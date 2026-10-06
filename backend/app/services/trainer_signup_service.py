@@ -39,7 +39,7 @@ def ensure_email_available(db: Session, email: str) -> None:
     """
     taken = db.scalar(select(User.id).where(func.lower(User.email) == email))
     if taken is not None:
-        raise TrainerEmailTaken("이미 가입된 이메일입니다.")
+        raise TrainerEmailTaken("이미 가입된 이메일이에요.")
 
 
 def register_trainer(
@@ -67,7 +67,9 @@ def register_trainer(
     db.add(trainer)
     db.flush()
 
-    db.add(TrainerProfile(trainer_id=trainer.id))
+    # 가입 화면이 받은 번호를 프로필에 담는다. 스키마가 `010-0000-0000` 으로 맞춘
+    # 값이고, 번호 칸이 없던 옛 빌드는 빈 값이다(MY 에서 넣는다).
+    db.add(TrainerProfile(trainer_id=trainer.id, phone=payload.phone))
     # 가입 화면에서 체크한 동의도 같은 트랜잭션이다(#2819). 목록을 보내지 않은
     # 옛 빌드는 기록 없이 만들어지고, 로그인 직후 동의 화면을 거친다.
     if payload.consents is not None:
@@ -79,7 +81,7 @@ def register_trainer(
         db.rollback()
         # 이메일 유니크 제약만이 여기서 경합으로 터질 수 있다 — 트레이너 id 는
         # 새로 만든 UUID 다.
-        raise TrainerEmailTaken("이미 가입된 이메일입니다.") from exc
+        raise TrainerEmailTaken("이미 가입된 이메일이에요.") from exc
 
     db.refresh(trainer)
     return trainer

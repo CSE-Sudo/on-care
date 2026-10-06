@@ -253,7 +253,7 @@ def test_member_token_on_trainer_route_is_still_role_forbidden(client):
     got = client.get("/v1/trainer/clients", headers=_auth(token))
 
     assert got.status_code == 403, got.text
-    assert got.json()["detail"] == "트레이너 권한이 필요합니다."
+    assert got.json()["detail"] == "트레이너 권한이 필요해요."
 
 
 def test_seeded_demo_trainer_is_not_blocked(client):

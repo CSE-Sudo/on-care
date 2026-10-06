@@ -106,7 +106,7 @@ void main() {
     await register('seoyeon@example.com');
     final res = await login('seoyeon@example.com', 'wrong-pass1');
     expect(res.statusCode, 401);
-    expect(res.data!['detail'], '이메일 또는 비밀번호가 올바르지 않습니다.');
+    expect(res.data!['detail'], '이메일 또는 비밀번호가 올바르지 않아요.');
     // 대소문자만 다른 주소도 같은 계정이다.
     expect((await login('SeoYeon@Example.com')).statusCode, 200);
   });
@@ -129,7 +129,7 @@ void main() {
     ]) {
       final res = await register(email);
       expect(res.statusCode, 409, reason: email);
-      expect(res.data!['detail'], '이미 가입된 이메일입니다.');
+      expect(res.data!['detail'], '이미 가입된 이메일이에요.');
     }
   });
 

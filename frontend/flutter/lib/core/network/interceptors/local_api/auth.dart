@@ -21,7 +21,7 @@ extension _LocalApiAuth on LocalApiInterceptor {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 401,
-        data: <String, Object?>{'detail': '이메일 또는 비밀번호가 올바르지 않습니다.'},
+        data: <String, Object?>{'detail': '이메일 또는 비밀번호가 올바르지 않아요.'},
       );
     }
     await _accounts.signIn(account == null ? null : username);
@@ -103,7 +103,7 @@ extension _LocalApiAuth on LocalApiInterceptor {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 409,
-        data: <String, Object?>{'detail': '이미 가입된 이메일입니다.'},
+        data: <String, Object?>{'detail': '이미 가입된 이메일이에요.'},
       );
     }
     // 이메일 인증 코드(#3038) — 서버처럼 중복 확인 뒤에 본다. 데모는 메일을
@@ -128,7 +128,7 @@ extension _LocalApiAuth on LocalApiInterceptor {
         data: <String, Object?>{
           'detail': <String, Object?>{
             'code': 'invalid_email_code',
-            'message': '인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.',
+            'message': '인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.',
           },
         },
       );

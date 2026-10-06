@@ -377,10 +377,10 @@ void main() {
     // 운동마다 칼로리는 줄 오른쪽, 합계는 카드 맨 아래 `총 소모 칼로리`.
     expect(
       valueOf('exercise-detail-calories-own-strength'),
-      '210 ${l.unitKcal}',
+      l.unitKcalValue(210),
     );
-    expect(valueOf('exercise-detail-calories-own-run'), '200 ${l.unitKcal}');
-    expect(valueOf('exercise-detail-calories'), '410 ${l.unitKcal}');
+    expect(valueOf('exercise-detail-calories-own-run'), l.unitKcalValue(200));
+    expect(valueOf('exercise-detail-calories'), l.unitKcalValue(410));
     expect(find.text(l.exRecordDetailTotalCalories), findsOneWidget);
   });
 

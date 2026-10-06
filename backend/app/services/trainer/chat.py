@@ -192,7 +192,7 @@ def _existing_message_out(
 ) -> ChatMessageOut:
     if message.body != text:
         raise IdempotencyConflict(
-            "같은 client_request_id에 다른 메시지를 보낼 수 없습니다."
+            "같은 client_request_id에 다른 메시지를 보낼 수 없어요."
         )
     return chat_message_out(message, viewer)
 

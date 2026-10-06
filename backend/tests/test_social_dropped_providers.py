@@ -25,7 +25,7 @@ from app.services.social.factory import get_verifier
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 TEMPLATE = BACKEND_DIR.parent / "infra" / "backend-service.yml"
 
-UNSUPPORTED_DETAIL = "지원하지 않는 소셜 로그인입니다."
+UNSUPPORTED_DETAIL = "지원하지 않는 소셜 로그인이에요."
 DROPPED = ("naver", "apple")
 
 

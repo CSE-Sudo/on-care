@@ -65,7 +65,7 @@ Map<String, dynamic> _overlapBody({
 }) => <String, dynamic>{
   'detail': <String, dynamic>{
     'code': scheduleOverlapCode,
-    'message': '같은 시간에 이미 다른 일정이 있습니다.',
+    'message': '같은 시간에 이미 다른 일정이 있어요.',
     if (withConflicts) 'conflicts': conflicts ?? <dynamic>[_sessionJson()],
   },
 };

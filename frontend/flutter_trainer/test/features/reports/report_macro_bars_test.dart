@@ -261,9 +261,9 @@ void main() {
   testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
     await _pump(tester, locale: 'en');
 
-    expect(find.text('Carbs 247 / 250g'), findsOneWidget);
-    expect(find.text('Protein 119 / 120g'), findsOneWidget);
-    expect(find.text('Fat 59 / 60g'), findsOneWidget);
+    expect(find.text('Carbs 247 / 250 g'), findsOneWidget);
+    expect(find.text('Protein 119 / 120 g'), findsOneWidget);
+    expect(find.text('Fat 59 / 60 g'), findsOneWidget);
   });
 
   testWidgets('영어에서 짚는 글월도 번역되어 있다', (tester) async {
@@ -275,7 +275,7 @@ void main() {
 
     expect(
       find.textContaining(
-        'Protein is well under target — worth raising in your feedback',
+        'Protein is well under goal — worth raising in your feedback',
       ),
       findsOneWidget,
     );

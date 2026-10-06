@@ -171,9 +171,9 @@ def find(
     hits = counted[kind]
     if len(hits) >= FOCUS_MIN_DAYS:
         described = {
-            "sodium": f"나트륨 권장량({targets.sodium_mg}mg)을 넘긴 날",
+            "sodium": f"나트륨 목표({targets.sodium_mg}mg)를 넘긴 날",
             "calorie": f"칼로리 목표({targets.calories}kcal)의 1.1배를 넘긴 날",
-            "sugar": f"당류 권장량({targets.sugar_g}g)을 넘긴 날",
+            "sugar": f"당류 목표({targets.sugar_g}g)를 넘긴 날",
             "protein": f"단백질이 목표({targets.protein_g}g)의 80%에 못 미친 날",
         }[kind]
         return Finding(

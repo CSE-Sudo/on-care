@@ -239,7 +239,7 @@ MealLimits mealLimitsOf(MemberHealthProfile? profile) => (
 ///    그대로 저장돼 있다.
 ///  * 음식: 이름 옆에 **내용량**(보조색), 오른쪽 끝에 그 음식의 kcal.
 ///  * 합계: `탄수화물(당류) / 단백질 / 지방 | 나트륨` 네 칸 오른쪽 끝에
-///    `총 247 kcal`([_MealTotals], 좁으면 네 칸 위 한 줄). 총 kcal 은 음식
+///    `총 247kcal`([_MealTotals], 좁으면 네 칸 위 한 줄). 총 kcal 은 음식
 ///    kcal 과 같은 세로선이라 "더하면 이 값" 으로 읽힌다.
 ///  * 과다: 끼니가 [MealLimits] 를 넘으면 합계 값이 빨강이 되고, 그 영양을 가장
 ///    많이 보탠 음식 옆에 빨간 배지가 선다. 평소에는 아무것도 서지 않는다 —
@@ -296,9 +296,9 @@ class _MealCard extends StatelessWidget {
                     food: f,
                     flags: <String>[
                       if (identical(f, sugarFood))
-                        '${l.metricSugar} ${_grams(f.sugarG)}g',
+                        '${l.metricSugar} ${_grams(f.sugarG)}${unitGap(l.localeName)}g',
                       if (identical(f, sodiumFood))
-                        '${l.metricSodium} ${formatNumber(f.sodiumMg)}mg',
+                        '${l.metricSodium} ${formatNumber(f.sodiumMg)}${unitGap(l.localeName)}mg',
                     ],
                   ),
               const SizedBox(height: OnCareSpacing.s8),
@@ -363,7 +363,7 @@ class _MealPhoto extends StatelessWidget {
   }
 }
 
-/// `스크램블 에그 130g …… 213 kcal` — 음식 한 줄.
+/// `스크램블 에그 130g …… 213kcal` — 음식 한 줄.
 ///
 /// 내용량은 이름 **바로 옆**이다 — 양은 "무엇을 얼마나" 의 일부라 음식에 붙고,
 /// 오른쪽 kcal 은 그 결과다(회원 앱 #1964 와 같은 자리). 양을 모르는 음식과
@@ -395,7 +395,7 @@ class _FoodLine extends StatelessWidget {
                     TextSpan(text: food.name),
                     if (amount != null)
                       TextSpan(
-                        text: '  ${_grams(amount)}g',
+                        text: '  ${_grams(amount)}${unitGap(l.localeName)}g',
                         style: OnCareTypography.numeric(
                           tokens
                               .text(OnCareTypography.caption)
@@ -436,7 +436,10 @@ class _FoodLine extends StatelessWidget {
                         const SizedBox(width: OnCareSpacing.s12),
                     ],
                     Text(
-                      '${formatNumber(food.calories)} ${l.unitKcal}',
+                      // ko `310kcal` · en `310 kcal`(#3120).
+                      '${formatNumber(food.calories)}'
+                      '${unitGap(Localizations.localeOf(context).toString())}'
+                      '${l.unitKcal}',
                       style: OnCareTypography.numeric(
                         tokens
                             .text(OnCareTypography.bodySmall)
@@ -454,14 +457,14 @@ class _FoodLine extends StatelessWidget {
   }
 }
 
-/// 끼니 합계 — 네 칸, 그 오른쪽 끝에 `총 247 kcal`. (#2333)
+/// 끼니 합계 — 네 칸, 그 오른쪽 끝에 `총 247kcal`. (#2333)
 ///
 /// ```
 /// 탄수화물 17%     단백질 27%    지방 56%    │ 나트륨
-/// 10.4g 당류 6.8g  16g           14.8g       │ 359mg     총 247 kcal
+/// 10.4g 당류 6.8g  16g           14.8g       │ 359mg     총 247kcal
 /// ```
 ///
-/// 예전에는 `총 칼로리 …… 247 kcal` 이 네 칸 위에 한 줄을 따로 차지했다.
+/// 예전에는 `총 칼로리 …… 247kcal` 이 네 칸 위에 한 줄을 따로 차지했다.
 /// `총` 을 값에 붙이면 라벨 줄 없이도 끼니 합계로 읽힌다 — 펼친 날의
 /// `하루 합계` 줄([_DayRow])이 이미 같은 말로 적는다. 옆자리를 내주면 당류가
 /// 아래 줄로 밀리는 폭(분할 패널의 좁은 쪽)이나 큰 글씨에서는 예전처럼 네 칸
@@ -544,7 +547,7 @@ class _MealTotals extends StatelessWidget {
     // 당류 — 탄수화물의 일부라 그 칸 안, **g 값 바로 오른쪽**에 작게 붙는다.
     // 아래 줄로 따로 두면 탄수화물 칸만 한 줄 길어져 네 칸의 키가 어긋났다.
     final Widget sugar = Text(
-      '${l.metricSugar} ${_grams(entry.sugarG)}g',
+      '${l.metricSugar} ${_grams(entry.sugarG)}${unitGap(l.localeName)}g',
       key: ValueKey<String>('client-diet-sugar-${entry.id}'),
       maxLines: 1,
       softWrap: false,
@@ -584,9 +587,10 @@ class _MealTotals extends StatelessWidget {
         bool sugarFits(double rowWidth) => _fitsInline(
           context,
           columnWidth: _macroColumnWidth(rowWidth),
-          value: '${_grams(entry.carbsG)}g',
+          value: '${_grams(entry.carbsG)}${unitGap(l.localeName)}g',
           valueStyle: value(),
-          sugar: '${l.metricSugar} ${_grams(entry.sugarG)}g',
+          sugar:
+              '${l.metricSugar} ${_grams(entry.sugarG)}${unitGap(l.localeName)}g',
           sugarStyle: head,
         );
         final double totalWidth =
@@ -633,7 +637,7 @@ class _MealTotals extends StatelessWidget {
                             textBaseline: TextBaseline.alphabetic,
                             children: <Widget>[
                               Text(
-                                '${_grams(p.grams)}g',
+                                '${_grams(p.grams)}${unitGap(l.localeName)}g',
                                 maxLines: 1,
                                 softWrap: false,
                                 style: value(),
@@ -708,7 +712,7 @@ class _MealTotals extends StatelessWidget {
                     const SizedBox(height: OnCareSpacing.s2),
                     fit(
                       Text(
-                        '${formatNumber(entry.sodiumMg)}mg',
+                        '${formatNumber(entry.sodiumMg)}${unitGap(l.localeName)}mg',
                         key: ValueKey<String>('client-diet-sodium-${entry.id}'),
                         maxLines: 1,
                         softWrap: false,
@@ -883,7 +887,11 @@ InlineSpan _foodsSpan(BuildContext context, ClientDietEntry meal) {
         if (i > 0) const TextSpan(text: ', '),
         TextSpan(text: meal.foods[i].name),
         if (meal.foods[i].amountG case final double g)
-          TextSpan(text: ' ${_grams(g)}g', style: amount),
+          TextSpan(
+            text:
+                ' ${_grams(g)}${unitGap(Localizations.localeOf(context).toString())}g',
+            style: amount,
+          ),
       ],
     ],
   );
@@ -893,7 +901,7 @@ InlineSpan _foodsSpan(BuildContext context, ClientDietEntry meal) {
 /// 음식 이름이 같은 선에서 시작하게 하는 콘텐츠 고유 치수다.
 const double _dayRowLabelWidth = 64;
 
-/// 펼친 날의 한 줄 — `[아침] 스크램블 에그 130g, 딸기 100g …… 247 kcal`, 그 아래
+/// 펼친 날의 한 줄 — `[아침] 스크램블 에그 130g, 딸기 100g …… 247kcal`, 그 아래
 /// 영양 한 줄([_NutrientLine]). (#1025, #2333)
 ///
 /// `오늘` 끼니 카드를 **두 줄로 줄인 것**이다. 말(이름 옆 내용량, 총 kcal,
@@ -936,7 +944,9 @@ class _DayRow extends StatelessWidget {
     final Widget kcal = Text(
       totalStyle
           ? l.clientDietTotalCalories(formatNumber(calories))
-          : '${formatNumber(calories)} ${l.unitKcal}',
+          : '${formatNumber(calories)}'
+                '${unitGap(Localizations.localeOf(context).toString())}'
+                '${l.unitKcal}',
       maxLines: 1,
       softWrap: false,
       style: OnCareTypography.numeric(
@@ -1053,12 +1063,12 @@ class _NutrientLine extends StatelessWidget {
     final bool tellsMacros = basis > 0 || calories <= 0;
     String part(String name, double kcal, double grams) => basis > 0
         ? '${l.clientDietMacroShare(name, (kcal / basis * 100).round())} '
-              '${_grams(grams)}g'
-        : '$name ${_grams(grams)}g';
+              '${_grams(grams)}${unitGap(l.localeName)}g'
+        : '$name ${_grams(grams)}${unitGap(l.localeName)}g';
     Widget item(InlineSpan span) =>
         Text.rich(span, maxLines: 1, softWrap: false, style: caption);
     final TextSpan sugar = TextSpan(
-      text: '${l.metricSugar} ${_grams(sugarG)}g',
+      text: '${l.metricSugar} ${_grams(sugarG)}${unitGap(l.localeName)}g',
       style: sugarOver ? warn : null,
     );
     return Wrap(
@@ -1098,7 +1108,8 @@ class _NutrientLine extends StatelessWidget {
         ),
         item(
           TextSpan(
-            text: '${l.metricSodium} ${formatNumber(sodiumMg)}mg',
+            text:
+                '${l.metricSodium} ${formatNumber(sodiumMg)}${unitGap(l.localeName)}mg',
             style: sodiumOver ? warn : null,
           ),
         ),

@@ -79,7 +79,7 @@ def sniff(data: bytes) -> tuple[str, str]:
             return extension, media_type
     if data[:4] == _WEBP_PREFIX and data[8:12] == _WEBP_TAG:
         return "webp", "image/webp"
-    raise UnsupportedImage("JPG·PNG·WebP 이미지만 보낼 수 있습니다.")
+    raise UnsupportedImage("JPG·PNG·WebP 이미지만 보낼 수 있어요.")
 
 
 def save(
@@ -106,17 +106,17 @@ def save(
             clean = image_sanitize.sanitize(data)
         except image_sanitize.UndecodableImage as exc:
             raise UnsupportedImage(
-                "이미지를 읽을 수 없습니다. JPG·PNG·WebP 사진을 보내 주세요."
+                "이미지를 읽을 수 없어요. JPG·PNG·WebP 사진을 보내 주세요."
             ) from exc
         data, extension, media_type = clean.data, clean.extension, clean.media_type
     if file_id is None:
         file_id = uuid.uuid4().hex
     elif not _FILE_ID.fullmatch(file_id):
-        raise ImageStorageError("이미지 식별자가 올바르지 않습니다.")
+        raise ImageStorageError("이미지 식별자가 올바르지 않아요.")
     try:
         _store().put(f"{file_id}.{extension}", data, content_type=media_type)
     except OSError as exc:
-        raise ImageStorageError("이미지를 저장하지 못했습니다.") from exc
+        raise ImageStorageError("이미지를 저장하지 못했어요.") from exc
     return StoredImage(file_id, extension, media_type, len(data))
 
 

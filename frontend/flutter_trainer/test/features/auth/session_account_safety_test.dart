@@ -88,6 +88,7 @@ class _AccountsAuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async => const TrainerAuthTokens(access: 'a-reg', refresh: 'a-r-reg');
 

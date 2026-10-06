@@ -178,7 +178,7 @@ def test_week_breakfast_snack_names_what_replaced_breakfast():
     assert [s.key for s in out[:2]] == [
         "tr_week_skip_breakfast_snack", "tr_week_breakfast_snack_food",
     ]
-    assert out[1].text == "아침 대신 먹은 것은 빵 3번이 가장 많았어요."
+    assert out[1].text == "아침 대신 먹은 것은 빵 3회가 가장 많았어요."
 
 
 def test_week_good_adds_the_daily_average():
@@ -218,9 +218,9 @@ def test_all_slot_sodium_names_the_foods():
     assert logged == 10
     # 회원 앱은 하나만 말하지만, 트레이너 웹은 다음 후보(자주 먹은 메뉴)까지 말한다.
     assert [s.key for s in out] == ["tr_all_slot_sodium", "tr_foods_two", "tr_all_frequent"]
-    assert out[0].text == "최근 4주 동안 점심 나트륨이 10번 목표의 절반을 넘었어요."
-    assert out[1].text == "김치찌개 5번, 짬뽕 3번이 대부분이에요."
-    assert out[2].text == "최근 4주 동안 저녁 메뉴로 닭가슴살 10번이 가장 많았어요."
+    assert out[0].text == "최근 4주 동안 점심 나트륨이 10회 목표의 절반을 넘었어요."
+    assert out[1].text == "김치찌개 5회, 짬뽕 3회가 대부분이에요."
+    assert out[2].text == "최근 4주 동안 저녁 메뉴로 닭가슴살 10회가 가장 많았어요."
 
 
 def test_all_few_records():

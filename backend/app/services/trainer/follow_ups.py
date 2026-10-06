@@ -205,7 +205,7 @@ def _owned_follow_up(
         )
     )
     if task is None:
-        raise FollowUpTaskNotFound("할 일을 찾을 수 없습니다.")
+        raise FollowUpTaskNotFound("할 일을 찾을 수 없어요.")
     return task
 
 

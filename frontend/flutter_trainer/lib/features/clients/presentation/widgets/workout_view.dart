@@ -680,7 +680,7 @@ class _RowTotals extends StatelessWidget {
   /// 아직 안 한 운동의 예상값 — `예상 소모 N kcal` 을 옅게.
   final bool estimated;
 
-  /// `예상 소모 1,234 kcal` 이 들어가는 폭 — 줄마다 kcal 끝이 맞는다.
+  /// `예상 소모 1,234kcal` 이 들어가는 폭 — 줄마다 kcal 끝이 맞는다.
   static const double width = 128;
 
   @override

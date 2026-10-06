@@ -177,11 +177,11 @@ def _caution_suffix(
                 "those areas."
             )
         else:
-            parts.append(f" 주의사항({', '.join(cautions)}) 반영: 해당 부위 부담 동작을 뺐습니다.")
+            parts.append(f" 주의사항({', '.join(cautions)}) 반영: 해당 부위 부담 동작을 뺐어요.")
     if escalate:
         parts.append(
             localized(
-                " 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.",
+                " 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.",
                 " Intensity was not raised — adjust after a professional check.",
                 locale,
             )
@@ -318,8 +318,8 @@ def rule_based_plans(
                 f"오늘 나트륨 {sodium_today_mg}mg"
                 f"{' (목표 초과)' if over else ''}, 최근 운동 완료율 "
                 f"{avg_completion_rate}% → 부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.",
-                f"Sodium today {sodium_today_mg}mg"
-                f"{' (over target)' if over else ''}, recent workout completion "
+                f"Sodium today {sodium_today_mg} mg"
+                f"{' (over goal)' if over else ''}, recent workout completion "
                 f"{avg_completion_rate}% → focusing on consistency with "
                 "low-strain cardio and stretching.",
                 locale,

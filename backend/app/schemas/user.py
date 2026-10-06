@@ -277,6 +277,22 @@ class SocialLoginRequest(BaseModel):
     token: str
 
 
+class KakaoCodeExchangeRequest(BaseModel):
+    """카카오 웹 로그인 창이 돌려준 인가 코드 (#330).
+
+    `redirect_uri` 는 로그인 창을 열 때 쓴 값과 **글자 그대로** 같아야 카카오가 교환해 준다.
+    """
+
+    code: str = Field(min_length=1, max_length=2048)
+    redirect_uri: str = Field(min_length=1, max_length=2048)
+
+
+class KakaoCodeExchangeResponse(BaseModel):
+    """교환한 카카오 access_token. 앱은 이 값을 `POST /auth/social/kakao` 의 `token` 으로 쓴다."""
+
+    access_token: str
+
+
 class UserRegister(BaseModel):
     #: 형식은 `contact_format.clean_email` 이 본다(#1780). 앞뒤 공백을 잘라내고
     #: 소문자로 맞춰 저장한다(#2816) — 로그인·중복 확인도 같은 규칙으로 비교한다.
@@ -296,9 +312,10 @@ class UserRegister(BaseModel):
     #: 가입 시점에 프로필을 채우기 위해 받는다 (#1634). 예전에는 MY 탭 프로필
     #: 편집에서만 넣을 수 있어 가입 직후에는 연락처가 비어 있었다.
     #:
-    #: 회원 앱 가입 화면은 필수로 받지만 스키마에서는 선택이다 — 트레이너 가입
-    #: (`TrainerRegister`)은 이 값을 쓰지 않고, 없어도 회원은 MY 탭에서 언제든
-    #: 넣을 수 있다.
+    #: 두 앱 가입 화면은 필수로 받지만 스키마에서는 선택이다 — 번호 칸이 없던 옛
+    #: 빌드의 가입도 받고, 비어 있어도 MY 에서 언제든 넣을 수 있다. 회원은
+    #: `HealthProfile.phone`, 트레이너(`TrainerRegister`)는 `TrainerProfile.phone` 에
+    #: 담긴다. 아이디(가입 이메일) 찾기가 이 값을 쓴다.
     #:
     #: 들어온 표기가 무엇이든 `010-0000-0000` 하나로 정리해 저장한다(#1780).
     phone: str = ""
@@ -364,6 +381,9 @@ class TrainerRegister(UserRegister):
 
     필수 동의 항목은 회원과 다르다(#2819) — 트레이너는 자기 건강정보를 기록하지
     않으므로 건강정보 처리 동의가 없다.
+
+    전화번호(`phone`)는 회원과 같이 받아 트레이너 프로필에 담는다. 전에는 받지 않아
+    가입 직후 번호가 비어 있었고, 번호로 가입 이메일을 찾을 수 없었다.
     """
 
     REQUIRED_CONSENTS_ROLE: ClassVar[str] = "trainer"

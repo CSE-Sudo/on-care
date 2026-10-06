@@ -64,6 +64,18 @@ Parameters:
     Type: String
     Default: ''
     AllowedPattern: '^[0-9]*$'
+  # 카카오 웹 로그인 client_id(같은 카카오 앱의 REST API 키, #330). 로그인 창 주소에 실려
+  # 브라우저에 보이는 값이라 비밀이 아니다. 비우면 웹 카카오 로그인(코드 교환)만 401.
+  KakaoLoginRestApiKey:
+    Type: String
+    Default: ''
+    AllowedPattern: '^[A-Za-z0-9]*$'
+  # 위 키의 클라이언트 시크릿을 켰으면 true — 비밀(SecretArn)의 KAKAO_CLIENT_SECRET 을 읽는다.
+  # 비밀에 없는 키를 참조하면 태스크가 뜨지 않으므로 켤 때만 참조한다.
+  KakaoClientSecretEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
   AllowDemoFallback:
     Type: String
     Default: 'false'
@@ -112,6 +124,8 @@ Conditions:
   IsStaging: !Equals [!Ref EnvironmentName, staging]
   HasGoogleClientIds: !Not [!Equals [!Ref GoogleClientIds, '']]
   HasKakaoAppId: !Not [!Equals [!Ref KakaoAppId, '']]
+  HasKakaoLoginRestApiKey: !Not [!Equals [!Ref KakaoLoginRestApiKey, '']]
+  HasKakaoClientSecret: !Equals [!Ref KakaoClientSecretEnabled, 'true']
   HasMail: !Not [!Equals [!Ref MailFrom, '']]
   HasMemberResetUrl: !Not [!Equals [!Ref PasswordResetMemberUrl, '']]
   HasTrainerResetUrl: !Not [!Equals [!Ref PasswordResetTrainerUrl, '']]
@@ -246,6 +260,11 @@ Resources:
               Value: !Ref KakaoAppId
             - !Ref AWS::NoValue
           - !If
+            - HasKakaoLoginRestApiKey
+            - Name: KAKAO_LOGIN_REST_API_KEY
+              Value: !Ref KakaoLoginRestApiKey
+            - !Ref AWS::NoValue
+          - !If
             - HasMail
             - Name: MAIL_PROVIDER
               Value: smtp
@@ -307,6 +326,11 @@ Resources:
             - HasMail
             - Name: SMTP_PASSWORD
               ValueFrom: !Sub '${SecretArn}:SMTP_PASSWORD::'
+            - !Ref AWS::NoValue
+          - !If
+            - HasKakaoClientSecret
+            - Name: KAKAO_CLIENT_SECRET
+              ValueFrom: !Sub '${SecretArn}:KAKAO_CLIENT_SECRET::'
             - !Ref AWS::NoValue
           # 데모 시드가 켜지는 staging 만. 운영은 데모 계정이 없다.
           - !If

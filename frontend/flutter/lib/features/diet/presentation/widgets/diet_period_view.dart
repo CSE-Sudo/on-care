@@ -388,7 +388,11 @@ class _PeriodBody extends StatelessWidget {
                                               ),
                                         ),
                                         TextSpan(
-                                          text: ' / ${format(goal)} $unit',
+                                          // ko `/ 2,000kcal` · en `/ 2,000 kcal`.
+                                          text:
+                                              ' / ${format(goal)}'
+                                              '${unitGap(Localizations.localeOf(context).toString())}'
+                                              '$unit',
                                           style: tokens
                                               .text(OnCareTypography.bodySmall)
                                               .copyWith(
@@ -552,7 +556,10 @@ class _WeekTrend extends StatelessWidget {
             l.chartA11y,
             values: values,
             dayLabels: days,
-            format: (double v) => '${format(v)} $unit',
+            format: (double v) =>
+                '${format(v)}'
+                '${unitGap(Localizations.localeOf(context).toString())}'
+                '$unit',
             upTo: today,
           ),
         ),
@@ -619,7 +626,7 @@ class _MacroDetail extends StatelessWidget {
               Text(label, maxLines: 1, style: base.copyWith(color: color)),
               const SizedBox(width: OnCareSpacing.s4),
               Text(
-                _macroGrams(value),
+                _macroGrams(value, l.localeName),
                 maxLines: 1,
                 style: OnCareTypography.numeric(
                   base,
@@ -633,7 +640,9 @@ class _MacroDetail extends StatelessWidget {
 }
 
 /// `204g` — 소수점은 버린다. 옆의 머리 숫자가 주인공이고 이 줄은 곁들이다.
-String _macroGrams(double v) => '${v.round()}g';
+/// `204g` / 영어 `204 g`(#3120).
+String _macroGrams(double v, String locale) =>
+    '${v.round()}${unitGap(locale)}g';
 
 /// 요일 라벨(월~일). 이번 주 그래프의 축에 적는다.
 List<String> _weekdayLabels(AppLocalizations l) => <String>[
@@ -759,7 +768,12 @@ class _PeriodBars extends StatelessWidget {
     }
     // 막대와 같은 색이어야 툴팁의 첫 줄이 그 막대를 가리킨다.
     spans.add(_swatch(over ? OnCareColors.danger : color));
-    spans.add(TextSpan(text: '$metricLabel   ${format(value)} $unit'));
+    spans.add(
+      TextSpan(
+        text:
+            '$metricLabel   ${format(value)}${unitGap(dayFormat.locale)}$unit',
+      ),
+    );
     // 칼로리 뒤에는 그 칼로리가 어디서 왔는지를 적는다.
     final DietPeriodDay? day = _dayAt(i);
     if (day != null && day.hasMacros) {

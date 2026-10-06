@@ -23,7 +23,7 @@ const ValueKey<String> _connectBanner = ValueKey<String>(
 );
 
 const String _hintKo = '연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요.';
-const String _hintEn = 'Connect members with the code they show you';
+const String _hintEn = 'Connect members with their connection code';
 
 Future<void> _pumpEmpty(
   WidgetTester tester, {
@@ -41,7 +41,7 @@ Future<void> _pumpEmpty(
 }
 
 void main() {
-  testWidgets('연결 가능 + 0명: 안내 문구와 신규 회원 등록 버튼', (tester) async {
+  testWidgets('연결 가능 + 0명: 안내 문구와 회원 연결 버튼', (tester) async {
     await _pumpEmpty(tester);
 
     expect(find.byKey(_empty), findsOneWidget);
@@ -54,7 +54,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(_emptyConnect),
-        matching: find.text('신규 회원 등록'),
+        matching: find.text('회원 연결'),
       ),
       findsOneWidget,
     );
@@ -120,7 +120,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(_emptyConnect),
-        matching: find.text('Register new member'),
+        matching: find.text('Connect member'),
       ),
       findsOneWidget,
     );

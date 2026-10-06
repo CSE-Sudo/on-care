@@ -66,7 +66,7 @@ void main() {
           body: <String, Object?>{
             'detail': <String, Object?>{
               'code': 'slot_unavailable',
-              'message': '예약할 수 없는 시간입니다.',
+              'message': '예약할 수 없는 시간이에요.',
             },
           },
         ),
@@ -110,7 +110,7 @@ void main() {
       final repository = _repo(
         _StubAdapter(
           status: 409,
-          body: <String, Object?>{'detail': '이미 대기 중인 상담 요청이 있습니다.'},
+          body: <String, Object?>{'detail': '이미 대기 중인 상담 요청이 있어요.'},
         ),
       );
 

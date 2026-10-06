@@ -43,7 +43,7 @@ void main() {
 
   test('분당 한도 429(문자열 detail)는 코드가 없다', () {
     final AppError error = AppError.fromDio(
-      _tooMany(<String, Object?>{'detail': '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'}),
+      _tooMany(<String, Object?>{'detail': '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.'}),
     );
 
     final RateLimitedError limited = error as RateLimitedError;

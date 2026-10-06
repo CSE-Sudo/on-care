@@ -37,7 +37,7 @@ CONSULT_ID_PREFIX = "seed-consult-"
 #: 며칠 전에 끝냈나 — 없으면 미완료). 오늘 할 일·기한 지남·예정·완료가 한 번씩 보이게.
 _FOLLOW_UPS: tuple[tuple[str, str, int, str, int, int | None], ...] = (
     ("user-sera", "허리 통증 경과 확인 메시지", 0, "message", 2, None),
-    ("user-junhyuk", "노쇼 반복 — 수업 시간대 재조정 제안", -1, "schedule", 4, None),
+    ("user-junhyuk", "노쇼 반복 — PT 시간대 재조정 제안", -1, "schedule", 4, None),
     ("user-dohyun", "첫 주 식단 기록 독려", 0, "diet", 1, None),
     ("user-hayun", "재활 루틴 강도 조정 검토", 1, "program", 3, None),
     ("user-kangseoyeon", "주말 식단 기록 점검", 3, "diet", 2, None),
@@ -154,8 +154,8 @@ _PAST_PT_NOTES: tuple[dict[str, str], ...] = (
         "user-kangseoyeon": "주말 과식 얘기 나눔. 스쿼트 50kg 4×10 안정적.",
         "user-taekyung": "벌크업 중 벤치프레스 45kg 도달. 단백질 쉐이크 운동 직후로 옮김.",
         "user-hayun": "재활 밴드 운동 통증 없이 완료. 다음 주 맨몸 런지 추가.",
-        "user-gayoung": "3주 만의 수업. 체력 저하가 커서 강도를 70%로 낮춰 진행.",
-        "user-eunchae": "첫 수업. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.",
+        "user-gayoung": "3주 만의 PT. 체력 저하가 커서 강도를 70%로 낮춰 진행.",
+        "user-eunchae": "첫 PT. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.",
     },
     {
         "user-jisu": "사이클 30분 + 하체 근력. 무릎 정렬 좋아짐.",
@@ -164,12 +164,12 @@ _PAST_PT_NOTES: tuple[dict[str, str], ...] = (
         "user-yuna": "레그프레스 가동범위 70%까지. 통증 척도 1/10.",
         "user-sera": "걷기 속도 높임. 운동 후 혈압 정상 범위.",
         "user-jiho": "체중 정체 이야기. 저녁 탄수화물 절반 줄이기로 합의.",
-        "user-junhyuk": "당일 취소 후 보강 수업. 컨디션 좋음.",
+        "user-junhyuk": "당일 취소 후 보강 PT. 컨디션 좋음.",
         "user-seojin": "플랭크 90초 달성. 나트륨 높은 점심 메뉴 대안 안내.",
         "user-kangseoyeon": "인터벌 후 어지럼 없음. 물 섭취 늘리라고 안내.",
         "user-taekyung": "하체 볼륨 늘림. 식사량 늘리는 게 힘들다고 함.",
         "user-hayun": "출산 후 코어 재활 4주차. 복직근 이개 1.5cm.",
-        "user-gayoung": "수업 시간대 바꾸고 싶다고 함. 상담 잡기로.",
+        "user-gayoung": "PT 시간대 바꾸고 싶다고 함. 상담 잡기로.",
     },
 )
 
