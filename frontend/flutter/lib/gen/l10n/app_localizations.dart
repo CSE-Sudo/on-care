@@ -2228,6 +2228,12 @@ abstract class AppLocalizations {
   /// **'Your trainer already has something else at this time, so it can\'t be booked. Please pick another time.'**
   String get exReserveTimeTaken;
 
+  /// No description provided for @exReserveUpcomingExists.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an upcoming booking. To change the time, cancel it first.'**
+  String get exReserveUpcomingExists;
+
   /// No description provided for @exReserveConfirmedSlotGym.
   ///
   /// In en, this message translates to:
@@ -5312,6 +5318,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t sign in with your social account. Please try again in a moment'**
   String get authSocialSignInFailed;
 
+  /// Error toast on sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551).
+  ///
+  /// In en, this message translates to:
+  /// **'An account already uses this email. Please sign in the way you first signed up.'**
+  String get authSocialEmailInUse;
+
   /// No description provided for @authSocialComingSoon.
   ///
   /// In en, this message translates to:
@@ -8297,6 +8309,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Changing your email changes your sign-in ID and the address password reset emails go to.'**
   String get reauthEmailMessage;
+
+  /// Title of the dialog that checks the new address before an email change (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your new email'**
+  String get emailChangeCodeTitle;
+
+  /// Body of the new-email code dialog; email is the new address (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {email}. Enter it to confirm this address is yours.'**
+  String emailChangeCodeMessage(String email);
+
+  /// Confirm button of the new-email code dialog; the re-auth dialog follows (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get emailChangeCodeNext;
 
   /// No description provided for @reauthPasswordPrompt.
   ///

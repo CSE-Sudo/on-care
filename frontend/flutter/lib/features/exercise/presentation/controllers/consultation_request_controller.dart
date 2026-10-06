@@ -232,9 +232,10 @@ final consultationRequestControllerProvider =
 /// 상담 신청 폼이 보여 줄 그 트레이너의 빈 자리. (#1873)
 ///
 /// 화면마다 다시 읽는다 — 자리는 다른 회원이 먼저 가져갈 수 있어, 폼을 열 때의
-/// 목록이 곧 지금 고를 수 있는 자리여야 한다.
-final consultationSlotsProvider =
-    FutureProvider.family<List<TrainerSlot>, String>((ref, trainerId) {
+/// 목록이 곧 지금 고를 수 있는 자리여야 한다. 그래서 폼을 닫으면 놓는다 — 붙들고
+/// 있으면 한 번 받은 빈 목록이 앱을 다시 켤 때까지 남아 신청할 길이 없었다(#3244).
+final consultationSlotsProvider = FutureProvider.autoDispose
+    .family<List<TrainerSlot>, String>((ref, trainerId) {
       if (trainerId.isEmpty) {
         return Future<List<TrainerSlot>>.value(const <TrainerSlot>[]);
       }

@@ -29,6 +29,7 @@ def test_social_login_creates_then_reuses_user(client, monkeypatch):
         provider_user_id=f"kakao-{uuid4().hex[:8]}",
         email=email,
         name="소셜유저",
+        email_verified=True,
     )
 
     class _FakeVerifier:

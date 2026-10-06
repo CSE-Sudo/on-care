@@ -1181,6 +1181,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '트레이너의 다른 일정과 겹쳐 이 시간은 예약할 수 없어요. 다른 시간을 골라 주세요';
 
   @override
+  String get exReserveUpcomingExists =>
+      '이미 다가오는 예약이 있어요. 다른 시간으로 바꾸려면 먼저 예약을 취소해 주세요';
+
+  @override
   String exReserveConfirmedSlotGym(String slot, String gym) {
     return '$slot · $gym 예약이 확정됐어요';
   }
@@ -2953,6 +2957,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authSocialSignInFailed => '소셜 로그인을 하지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get authSocialEmailInUse =>
+      '이 이메일로 가입한 계정이 있어요. 처음 가입한 방법으로 로그인해 주세요.';
 
   @override
   String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요';
@@ -4910,6 +4918,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reauthEmailMessage => '이메일을 바꾸면 로그인 아이디와 비밀번호 재설정 메일 주소가 바뀌어요.';
+
+  @override
+  String get emailChangeCodeTitle => '새 이메일 인증';
+
+  @override
+  String emailChangeCodeMessage(String email) {
+    return '$email 로 6자리 인증 코드를 보냈어요. 이 주소가 내 것인지 확인하려면 코드를 입력해 주세요.';
+  }
+
+  @override
+  String get emailChangeCodeNext => '다음';
 
   @override
   String get reauthPasswordPrompt => '계속하려면 현재 비밀번호를 입력해 주세요.';

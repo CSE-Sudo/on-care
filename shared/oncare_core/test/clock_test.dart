@@ -198,4 +198,28 @@ void main() {
     expect(nowKst(), DateTime(2026, 9, 14, 23, 30));
     expect(todayKst(), DateTime(2026, 9, 14));
   });
+
+  group('calendarDaysBetween (#3250)', () {
+    test('달력 날짜만 센다 — 시각은 버린다', () {
+      expect(
+        calendarDaysBetween(DateTime(2026, 3, 7, 23), DateTime(2026, 3, 9, 1)),
+        2,
+      );
+      expect(
+        calendarDaysBetween(DateTime(2026, 3, 9), DateTime(2026, 3, 9)),
+        0,
+      );
+      expect(
+        calendarDaysBetween(DateTime(2026, 3, 16), DateTime(2026, 3, 9)),
+        -7,
+      );
+    });
+
+    test('달과 해를 넘어도 달력대로다', () {
+      expect(
+        calendarDaysBetween(DateTime(2025, 12, 29), DateTime(2026, 3, 2)),
+        63,
+      );
+    });
+  });
 }

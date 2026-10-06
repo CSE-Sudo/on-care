@@ -28,6 +28,9 @@ class SocialIdentity:
     provider_user_id: str    # provider 내 고유 사용자 id
     email: str = ""
     name: str = ""
+    #: provider 가 이 이메일의 소유를 확인했는가(#1551). 참일 때만 같은 이메일의 기존
+    #: 계정에 자동으로 연결한다. 확인할 수단이 없는 provider 는 거짓으로 둔다.
+    email_verified: bool = False
 
 
 class SocialVerifier:

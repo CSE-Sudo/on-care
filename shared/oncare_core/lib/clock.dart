@@ -18,6 +18,13 @@
 /// 기준이 9시간 어긋난다. 그 규칙은 두 앱의 `test/core/utils/clock_test.dart` 가
 /// 각 앱 소스를 검사해 지킨다.
 ///
+/// **서머타임이 있는 기기에서의 한계(#3250).** 로컬 `DateTime` 은 기기 시간대의
+/// 규칙을 따른다. 서울의 벽시계가 기기 시간대에서 건너뛰는 한 시간(봄의 02:00~
+/// 02:59 같은)에 들면 그 시각은 로컬로 표현되지 않아 한 시간 뒤로 밀리고, 두 값의
+/// `difference` 는 전환을 사이에 두면 23·25시간이 된다. 그래서 날짜 사이의 날
+/// 수는 `difference(...).inDays` 로 세지 말고 [calendarDaysBetween] 으로, 날짜를
+/// 더할 때는 [addCalendarDays] 로 한다 — 둘 다 시각을 버리고 달력으로만 센다.
+///
 /// 회원 앱과 트레이너 웹이 이 파일 하나를 함께 쓴다(#2907). 예전에는 두 앱이
 /// 같은 시계를 따로 들고 있어, KST↔UTC 변환(#2751·#2759·#2876)을 두 번 넣어야 했다.
 library;
@@ -132,3 +139,15 @@ bool isSameKstDay(DateTime a, DateTime b) => kstDateOf(a) == kstDateOf(b);
 /// `oncare_ui` 의 `mondayOf` 가 같은 방식으로 구한다(#2908).
 DateTime addCalendarDays(DateTime d, int days) =>
     DateTime(d.year, d.month, d.day + days);
+
+/// [from] 의 날짜에서 [to] 의 날짜까지 달력으로 며칠인가(시각은 버린다). (#3250)
+///
+/// `to.difference(from).inDays` 는 두 자정 사이의 **시간**을 24로 나눈다.
+/// 서머타임이 있는 기기 시간대에서 봄 전환을 사이에 두면 그 하루가 23시간이라
+/// `inDays` 가 하루를 잃는다 — 주 수·N일째 같은 셈이 하나 모자란다. 날짜 성분을
+/// UTC 자정으로 옮겨 세면 시간대와 상관없이 달력의 날 수가 나온다.
+int calendarDaysBetween(DateTime from, DateTime to) => DateTime.utc(
+  to.year,
+  to.month,
+  to.day,
+).difference(DateTime.utc(from.year, from.month, from.day)).inDays;

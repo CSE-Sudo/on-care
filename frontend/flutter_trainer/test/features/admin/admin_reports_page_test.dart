@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,6 +65,9 @@ class _FakeAdminRepo implements AdminTrainerRepository {
   int released = 0;
   AppError? failWith;
 
+  /// 있으면 끝날 때까지 처리 응답을 잡아 둔다 — 처리 중 화면을 바꾸는 자리(#3248).
+  Completer<void>? gate;
+
   @override
   Future<List<AdminTrainerReport>> fetchReports(
     AdminReportFilter filter,
@@ -77,6 +82,8 @@ class _FakeAdminRepo implements AdminTrainerRepository {
     AdminReportOutcome outcome,
   ) async {
     calls.add('close:$reportId:${outcome.wire}');
+    final Completer<void>? wait = gate;
+    if (wait != null) await wait.future;
     final AppError? error = failWith;
     if (error != null) throw error;
     return reports.first;
@@ -214,6 +221,29 @@ void main() {
       expect(repo.calls, <String>['close:report-1:resolved']);
       expect(find.text('신고를 조치함으로 닫았어요'), findsOneWidget);
       expect(repo.reportFetches.length, greaterThanOrEqualTo(2));
+      await tester.pump(OnCareMotion.toastActionVisible);
+    });
+
+    testWidgets('처리하는 사이 카드가 사라져도 오류 없이 목록을 다시 읽는다 (#3248)', (tester) async {
+      final _FakeAdminRepo repo = _FakeAdminRepo(
+        reports: <AdminTrainerReport>[_report()],
+        trainers: <AdminTrainer>[_trainer()],
+      )..gate = Completer<void>();
+      await _pump(tester, repo);
+
+      await _tapKey(tester, 'admin-report-resolve-report-1');
+      await _confirm(tester, '조치함');
+      // 응답이 오기 전에 트레이너 갈래로 옮겨 신고 카드를 내린다.
+      await _openTrainers(tester);
+      expect(_key('admin-report-report-1'), findsNothing);
+      final int trainerFetches = repo.trainerFetches.length;
+
+      repo.gate!.complete();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(tester.takeException(), isNull);
+      expect(repo.trainerFetches.length, greaterThan(trainerFetches));
       await tester.pump(OnCareMotion.toastActionVisible);
     });
 

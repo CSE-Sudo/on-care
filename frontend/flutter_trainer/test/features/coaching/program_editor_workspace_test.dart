@@ -724,6 +724,25 @@ void main() {
       }
     });
 
+    test('버티는 운동은 횟수 대신 초를 보여준다 (#3247)', () {
+      // 나가는 값은 `hold_seconds` 뿐이다 — 화면에 `10회` 가 뜨면 본 것과
+      // 나간 것이 다르다.
+      expect(
+        programExerciseMetrics(
+          _ko,
+          nonStrength.copyWith(
+            type: '근력',
+            sets: 3,
+            reps: 10,
+            holdSeconds: 45,
+            isHold: true,
+            weight: 0,
+          ),
+        ),
+        <String>['3세트', '45초'],
+      );
+    });
+
     test('근력이면 세트와 중량을 보여준다', () {
       final metrics = programExerciseMetrics(
         _ko,
@@ -1093,6 +1112,53 @@ void main() {
         (exercise) => exercise.name == '스쿼트',
       );
       expect(squat.durationSeconds, 80 * 60);
+    });
+
+    testWidgets('근력 운동을 초로 바꿔 버티는 시간을 고칠 수 있다 (#3247)', (tester) async {
+      await pumpEditor(tester);
+      await mergeSuggestions(tester);
+
+      await chooseExerciseAction(tester, 'exercise-2', '수정');
+      // 회로 열린다 — 횟수 칸이 있고 초 칸은 없다.
+      expect(
+        find.byKey(const ValueKey<String>('exercise-2-reps-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('exercise-2-hold-field')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('exercise-2-measure-seconds')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('exercise-2-reps-field')),
+        findsNothing,
+      );
+      final holdField = find.byKey(
+        const ValueKey<String>('exercise-2-hold-field'),
+      );
+      expect(holdField, findsOneWidget);
+
+      await tester.enterText(holdField, '45');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('program-editor-send')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-editor-send')),
+      );
+      await tester.pump();
+
+      final squat = sent!.sessions.single.exercises.firstWhere(
+        (exercise) => exercise.name == '스쿼트',
+      );
+      expect(squat.isHold, isTrue);
+      expect(squat.holdSeconds, 45);
     });
 
     testWidgets('이름이 비면 추가되지 않는다', (tester) async {

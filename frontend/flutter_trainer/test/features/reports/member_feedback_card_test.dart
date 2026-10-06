@@ -36,6 +36,7 @@ Future<void> _pump(
   WidgetTester tester, {
   MemberWeeklyFeedback? feedback,
   bool none = false,
+  bool failed = false,
   String locale = 'ko',
   Size size = const Size(700, 700),
 }) async {
@@ -54,6 +55,7 @@ Future<void> _pump(
           padding: const EdgeInsets.all(OnCareSpacing.s16),
           child: MemberFeedbackCard(
             feedback: none ? null : (feedback ?? _feedback()),
+            failed: failed,
           ),
         ),
       ),
@@ -83,6 +85,13 @@ void main() {
     expect(find.text('컨디션'), findsOneWidget);
     expect(find.text('운동 강도'), findsOneWidget);
     expect(find.text('통증'), findsOneWidget);
+  });
+
+  testWidgets('읽지 못한 답은 미응답이 아니라 불러오지 못함으로 적는다 (#3246)', (tester) async {
+    await _pump(tester, none: true, failed: true);
+
+    expect(_answer(tester, 'report-feedback-condition').text, '불러오지 못했어요');
+    expect(find.text('미응답'), findsNothing);
   });
 
   testWidgets('답을 회원이 고른 말 그대로 적는다', (tester) async {
