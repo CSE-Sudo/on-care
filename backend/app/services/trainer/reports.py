@@ -342,7 +342,7 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
     if skipped:
         workout.append(
             f"다만 {_topic(', '.join(skipped))} 건너뛰셨더라고요. 컨디션 때문이었다면 "
-            "다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요."
+            "다음 PT 때 말씀해 주세요. 대체 운동으로 바꿔 둘게요."
         )
     if workout:
         paragraphs.append(" ".join(workout))

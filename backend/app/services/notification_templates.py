@@ -754,16 +754,16 @@ def _member_schedule_series(args: Args, locale: Locale) -> Rendered:
 #: 쿠폰 항목 id → 영어 혜택 이름. 한국어는 인자 `benefit`(교환 당시 문구)을 쓴다.
 #: 모르는 항목은 저장된 한국어 문구로 돌아간다.
 _BENEFIT_EN: dict[str, str] = {
-    "pt_renewal": "₩30,000 off PT re-registration",
+    "pt_renewal": "₩30,000 off PT renewal",
     "locker_month": "free personal locker for 1 month",
-    "diet_tray": "standard meal tray for photo analysis",
+    "diet_tray": "free analysis tray",
 }
 
 #: 취소된 쿠폰의 제목. 항목마다 다르다.
 _COUPON_CANCELLED_TITLE: dict[str, tuple[str, str]] = {
-    "pt_renewal": ("재등록 쿠폰이 취소됐어요", "PT re-registration coupon cancelled"),
-    "diet_tray": ("식판 수령 쿠폰이 취소됐어요", "Meal tray coupon cancelled"),
-    "locker_month": ("락커 쿠폰이 취소됐어요", "Locker coupon cancelled"),
+    "pt_renewal": ("PT 재등록 할인 쿠폰이 취소됐어요", "PT renewal discount coupon cancelled"),
+    "diet_tray": ("식판 수령 쿠폰이 취소됐어요", "Tray pickup coupon cancelled"),
+    "locker_month": ("개인 락커 쿠폰이 취소됐어요", "Personal locker coupon cancelled"),
 }
 
 #: 쿠폰이 취소된 까닭 코드 → (한국어 앞말, 영어 까닭).

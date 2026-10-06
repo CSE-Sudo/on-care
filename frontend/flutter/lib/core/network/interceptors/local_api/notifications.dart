@@ -162,7 +162,7 @@ Map<String, Object?>? _demoActionFor(String category) => switch (category) {
     'target': 'dashboard',
   },
   'coach_chat' => const <String, Object?>{
-    'label': '대화 보기',
+    'label': '메시지 보기',
     'target': 'coach_chat',
   },
   'coach_report' => const <String, Object?>{

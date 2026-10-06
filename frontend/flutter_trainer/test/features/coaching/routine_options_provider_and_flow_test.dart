@@ -1478,7 +1478,7 @@ void main() {
         const ValueKey<String>('generation-minutes'),
       );
       expect(
-        find.descendant(of: generationMinutes, matching: find.text('총 운동시간')),
+        find.descendant(of: generationMinutes, matching: find.text('총 운동 시간')),
         findsOneWidget,
       );
       expect(

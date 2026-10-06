@@ -59,7 +59,7 @@ def test_alert_specific_target_keeps_the_category_label_when_it_matches():
     # 갈래별 표와 목적지가 같으면 그 라벨이다. 다르면 목적지 라벨이다(#2690).
     assert _action_for("routine", "ko", "exercise").label == "운동 보기"
     assert _action_for("reminder", "ko", "diet").label == "식단 보기"
-    assert _action_for("reminder", "en", "diet").label == "View meals"
+    assert _action_for("reminder", "en", "diet").label == "View diet"
     assert _action_for("system", "ko", None) is None
 
 

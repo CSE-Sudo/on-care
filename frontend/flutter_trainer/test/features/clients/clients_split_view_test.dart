@@ -306,7 +306,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final banner = find.textContaining('주의 회원');
+    final banner = find.textContaining('관리 필요');
     expect(banner, findsWidgets);
 
     final first = tester.widgetList<ClientCard>(find.byType(ClientCard)).first;
@@ -359,7 +359,7 @@ void main() {
       expect(locationOf(tester), AppRoutes.clientsFiltered('attention'));
       expect(find.byType(ClientDetailView), findsNothing);
       // 필터 배너가 그대로 남는다 — 다시 걸 필요가 없다.
-      expect(find.textContaining('주의 회원'), findsWidgets);
+      expect(find.textContaining('관리 필요'), findsWidgets);
     });
 
     testWidgets('좁은 화면(상세만 보이는 배치)에서도 필터를 지킨다', (tester) async {

@@ -19,14 +19,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import Locale, current_locale, localized
+from app.core.locale import Locale, localized
 from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
     DietDayTotalsOut, DietEntryCreate, DietEntryOut, DietEntryUpdate,
     DietPeriodResponse, DietTodayResponse, calculate_macros,
 )
-from app.services import diet_photo_service, period_window, streak_shield_service
+from app.services import diet_photo_service, streak_shield_service
 from app.services.coach.personal_ingest import record_diet, refresh_diet
 
 logger = logging.getLogger(__name__)
@@ -242,162 +242,6 @@ def member_sodium_limit(db: Session, user_id: str) -> int:
     return goal or SODIUM_LIMIT_MG
 
 
-#: 기간 조언이 다루는 구간. 정의는 [period_window] 하나뿐이다 — 운동 조언
-#: (#1025)도 같은 구간을 봐야 해서 그리로 옮겼고, 여기서는 이름만 그대로
-#: 이어 준다(이미 이 이름으로 부르는 자리가 있다).
-PERIOD_TODAY = period_window.PERIOD_TODAY
-PERIOD_WEEK = period_window.PERIOD_WEEK
-PERIOD_ALL = period_window.PERIOD_ALL
-ALL_PERIOD_DAYS = period_window.ALL_PERIOD_DAYS
-period_bounds = period_window.period_bounds
-
-
-def _weekday_split(days: list[DietDayTotals]) -> tuple[list[int], list[int]]:
-    """(주중 나트륨, 주말 나트륨). 주말은 토·일이다."""
-    weekday = [d.sodium_mg for d in days if d.date.weekday() < 5]
-    weekend = [d.sodium_mg for d in days if d.date.weekday() >= 5]
-    return weekday, weekend
-
-
-def _avg(values: list[int]) -> float:
-    return sum(values) / len(values) if values else 0
-
-
-def _en_days(n: int, one: str, many: str) -> str:
-    """영어 문장의 단·복수 — 1 이면 [one], 아니면 [many] 의 `{n}` 을 채운다."""
-    return one if n == 1 else many.format(n=n)
-
-
-def period_coach_message(
-    days: list[DietDayTotals], period: str, locale: Locale | None = None
-) -> str:
-    """기간에 맞는 식단 조언. (#1017, #1574)
-
-    기간을 바꾸는 것은 "무엇을 볼지" 를 바꾸는 일이다. 그래프만 갈아 끼우고
-    조언이 오늘 이야기로 남으면, 이번 주를 보고 있는데 "오늘 점심이 짰어요" 를
-    읽게 되어 조언이 지금 화면과 무관한 말이 된다.
-
-    기간마다 **재료가 다르다.** 오늘은 오늘 먹은 것, 이번 주는 요일별 편차와
-    초과한 날 수, 전체는 주 단위 추세다. 말투도 다르다 — 오늘은 다음 끼니를
-    제안하고, 이번 주·전체는 되짚어 준다.
-
-    **한 문장 반을 넘기지 않는다.** 좁은 카드 안에서 길어질수록 정작 짚어야 할
-    수치가 묻힌다 — 근거 하나와 다음 행동 하나면 충분하다. (#1574)
-
-    언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어) — 트레이너웹이
-    영어 화면에서 이 문장을 그대로 보여 준다(#2299). 한국어 문장은 그대로 두고, 영어
-    문장은 같은 근거·같은 수치를 같은 순서로 말한다.
-    """
-    lang = locale or current_locale()
-
-    def say(ko: str, en: str) -> str:
-        return localized(ko, en, lang)
-
-    if not days:
-        # 없는 기록으로 조언을 지어내지 않는다.
-        if period == PERIOD_WEEK:
-            return say(
-                "이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.",
-                "No meals logged this week yet. Even one meal shows the trend.",
-            )
-        if period == PERIOD_ALL:
-            return say(
-                "기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.",
-                "Once you log more, we'll show how your sodium and calories are trending.",
-            )
-        return say(
-            "오늘 식단 기록이 아직 없어요. 첫 끼니를 기록해 볼까요?",
-            "No meals logged today yet. Want to log your first meal?",
-        )
-
-    over = [d for d in days if d.over_sodium]
-
-    if period == PERIOD_WEEK:
-        if len(over) >= 3:
-            return say(
-                f"이번 주 {len(over)}일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.",
-                f"Sodium went over on {len(over)} days this week. With soups, eat the solids and leave the broth.",
-            )
-        weekday, weekend = _weekday_split(days)
-        if weekend and weekday and _avg(weekend) > _avg(weekday) * 1.3:
-            return say(
-                "주중엔 잘 지키다 주말에 나트륨이 올라요. 주말 외식은 한 끼만 정해요.",
-                "Sodium stays in check on weekdays but rises on weekends. Limit eating out to one weekend meal.",
-            )
-        if over:
-            return say(
-                f"이번 주 {len(over)}일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.",
-                _en_days(
-                    len(over),
-                    "Only 1 day went over the sodium limit this week. The other days were well balanced.",
-                    "Only {n} days went over the sodium limit this week. The other days were well balanced.",
-                ),
-            )
-        return say(
-            f"이번 주 {len(days)}일 모두 나트륨을 권장량 안에서 지켰어요!",
-            _en_days(
-                len(days),
-                "You kept sodium within the limit on the 1 day you logged this week!",
-                "You kept sodium within the limit on all {n} days this week!",
-            ),
-        )
-
-    if period == PERIOD_ALL:
-        # 최근 4주와 그 이전을 견준다 — 나아지는 중인지가 이 화면의 질문이다.
-        recent_from = days[-1].date - timedelta(days=27)
-        recent = [d.sodium_mg for d in days if d.date >= recent_from]
-        earlier = [d.sodium_mg for d in days if d.date < recent_from]
-        if earlier and recent:
-            if _avg(recent) < _avg(earlier) * 0.9:
-                return say(
-                    "최근 4주 나트륨이 그 전보다 낮아졌어요. 지금 방식이 잘 맞아요.",
-                    "Sodium over the last 4 weeks is lower than before. This approach suits you.",
-                )
-            if _avg(recent) > _avg(earlier) * 1.1:
-                return say(
-                    "최근 4주 나트륨이 다시 올라가고 있어요. 한 주만 되짚어 볼까요?",
-                    "Sodium is creeping back up over the last 4 weeks. Want to look back over one week?",
-                )
-        weekday, weekend = _weekday_split(days)
-        # 읽은 기간을 문구가 밝힌다 (#2079). `전체` 그래프는 모든 기록을 그리지만
-        # 이 조언은 최근 [period_window.ALL_PERIOD_DAYS] 일만 읽는다 — "기록을
-        # 통틀어" 라고 말하면 그래프가 보여 주는 앞 기록까지 본 것처럼 읽힌다.
-        weeks = period_window.ALL_PERIOD_DAYS // 7
-        if weekend and weekday and _avg(weekend) > _avg(weekday) * 1.3:
-            return say(
-                f"최근 {weeks}주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.",
-                f"Over the last {weeks} weeks, sodium rises every weekend. Make one weekend meal lighter.",
-            )
-        ratio = round(len(over) * 100 / len(days))
-        if ratio >= 40:
-            return say(
-                f"최근 {weeks}주 중 {ratio}%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.",
-                f"{ratio}% of days in the last {weeks} weeks went over the sodium limit. Start by leaving the broth.",
-            )
-        return say(
-            f"최근 {weeks}주 기록한 {len(days)}일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.",
-            _en_days(
-                len(days),
-                f"Your 1 logged day in the last {weeks} weeks stayed within the sodium limit. Nice trend.",
-                f"Most of your {{n}} logged days in the last {weeks} weeks stayed within the sodium limit. Nice trend.",
-            ),
-        )
-
-    # 오늘 — 그날 합계 하나로 말한다.
-    today = days[-1]
-    if today.over_sodium:
-        return say(
-            f"오늘 나트륨 {today.sodium_mg:,}mg으로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
-            f"Sodium is at {today.sodium_mg:,} mg today, over the limit. "
-            "Keep the rest of your meals light.",
-        )
-    return say(
-        f"오늘 나트륨 {today.sodium_mg:,}mg으로 권장량 안이에요. 이대로 마무리해요.",
-        f"Sodium is at {today.sodium_mg:,} mg today, within the limit. "
-        "Finish the day like this.",
-    )
-
-
 def build_day(db: Session, user_id: str, date: str) -> DietTodayResponse:
     """지정 날짜 식단 집계(칼로리·나트륨·당류·macros + 코칭 메시지).
 
@@ -588,60 +432,6 @@ def period_stats(db: Session, user_id: str, start: str, end: str) -> DietPeriodS
         avg_sugar_g=round(sum(d["sugar"] for d in daily.values()) / days_logged, 1),
         avg_calories=round(sum(d["calories"] for d in daily.values()) / days_logged),
     )
-
-
-@dataclass(frozen=True)
-class DietDayTotals:
-    """하루치 합계. 기간 조언이 날짜별 패턴을 보려면 평균만으로는 부족하다. (#1017)"""
-
-    date: date_type
-    calories: int
-    sodium_mg: int
-    sugar_g: float
-
-    @property
-    def over_sodium(self) -> bool:
-        return self.sodium_mg > SODIUM_LIMIT_MG
-
-
-def daily_totals(
-    db: Session, user_id: str, start: str, end: str
-) -> list[DietDayTotals]:
-    """[start, end] 구간의 **기록이 있는 날만** 날짜순으로. (#1017)
-
-    기록이 없는 날을 0 으로 채우지 않는다 — 안 먹은 날과 기록 안 한 날은 다른
-    말이고, 평균·패턴이 그 차이를 삼키면 조언이 사실과 어긋난다.
-    """
-    rows = db.scalars(
-        select(DietEntry)
-        .where(DietEntry.user_id == user_id)
-        .where(DietEntry.date >= start)
-        .where(DietEntry.date <= end)
-    ).all()
-
-    by_day: dict[str, dict[str, float]] = {}
-    for r in rows:
-        day = by_day.setdefault(r.date, {"calories": 0, "sodium": 0, "sugar": 0.0})
-        day["calories"] += r.total_calories
-        day["sodium"] += r.sodium_mg
-        day["sugar"] += r.sugar_g
-
-    out: list[DietDayTotals] = []
-    for iso in sorted(by_day):
-        try:
-            when = date_type.fromisoformat(iso)
-        except ValueError:
-            continue
-        totals = by_day[iso]
-        out.append(
-            DietDayTotals(
-                date=when,
-                calories=round(totals["calories"]),
-                sodium_mg=round(totals["sodium"]),
-                sugar_g=round(totals["sugar"], 1),
-            )
-        )
-    return out
 
 
 def find_by_idempotency(db: Session, user_id: str, key: str) -> DietEntry | None:

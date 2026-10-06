@@ -9,7 +9,7 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
   ReportSheetLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get chartNoRecord => 'Not logged';
+  String get chartNoRecord => 'No record';
 
   @override
   String dateMonthDay(int month, int day) {
@@ -120,7 +120,7 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
   String get reportsSheetAttendance => 'PT done';
 
   @override
-  String get reportsSheetAverageBase => '4-wk avg';
+  String get reportsSheetAverageBase => '4-week average';
 
   @override
   String get reportsSheetAverageChange => 'Change';
@@ -224,7 +224,8 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
   String get reportsSheetTrendTitle => 'Trends';
 
   @override
-  String get reportsSheetTrendWeekly => 'Weekly exercise achievement (8 weeks)';
+  String get reportsSheetTrendWeekly =>
+      'Weekly exercise goal progress (8 weeks)';
 
   @override
   String get reportsTrendUnavailable =>

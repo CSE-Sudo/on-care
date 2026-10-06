@@ -43,6 +43,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async {
     try {
@@ -54,6 +55,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
           'email': email,
           'password': password,
           'name': name,
+          'phone': phone,
           // 가입 전에 받은 이메일 인증 코드(#3038).
           'email_code': emailCode,
           // 체크한 동의(#2819) — 계정과 한 트랜잭션으로 남는다. 넘기지 않으면

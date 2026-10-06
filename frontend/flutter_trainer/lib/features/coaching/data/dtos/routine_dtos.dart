@@ -70,8 +70,9 @@ String routineIntensityLabel(AppLocalizations l, String intensity) =>
 /// AI A/B 안의 강도 계약값(`낮음`/`보통`/`높음`, 서버 `RoutineIntensityLabel`)
 /// → 화면 문구. (#2301)
 ///
-/// 배정 강도([routineIntensityLabel])와 값 모양이 달라 따로 둔다. 한국어 화면은
-/// 예전처럼 계약값 그대로 읽힌다. 모르는 값(직접 고른 안의 태그 등)은 원문이다.
+/// 배정 강도([routineIntensityLabel])와 값 모양이 달라 따로 둔다. `낮음` 은 다른
+/// 강도 표시와 같은 `가벼움` 으로 읽힌다(#3201). 모르는 값(직접 고른 안의 태그 등)은
+/// 원문이다.
 String routinePlanIntensityLabel(AppLocalizations l, String intensity) =>
     switch (intensity) {
       '낮음' => l.aiPlanIntensityLow,

@@ -795,7 +795,7 @@ void main() {
     );
     await _startEditing(tester);
     await _openTab(tester, '식단 목표');
-    expect(find.text('나이·키·몸무게가 없어 기본 기준에 건강 목표만 반영했어요'), findsOneWidget);
+    expect(find.text('나이·키·체중이 없어 기본 기준에 건강 목표만 반영했어요'), findsOneWidget);
     expect(find.textContaining('권장: 2000kcal'), findsOneWidget);
   });
 

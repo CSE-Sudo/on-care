@@ -43,7 +43,7 @@ from app.services.trainer._common import get_member_trainer_id
 router = APIRouter(tags=["ai-coach"])
 
 #: 담당 트레이너가 연결된 회원에게 AI 챗봇 경로가 돌려주는 안내. (#1823)
-TRAINER_CONNECTED_DETAIL = "담당 트레이너가 연결된 회원은 AI 챗봇 대신 트레이너 채팅을 이용해요."
+TRAINER_CONNECTED_DETAIL = "담당 트레이너가 연결된 회원은 AI 코치 대신 트레이너와 메시지를 주고받아요."
 
 
 def _ensure_ai_chat_allowed(db: Session, user_id: str) -> None:

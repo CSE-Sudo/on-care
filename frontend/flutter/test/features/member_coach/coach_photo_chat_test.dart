@@ -415,7 +415,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text("Couldn't send the photo"), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Send again'), findsOneWidget);
       expect(find.text('Remove'), findsOneWidget);
     });
   });

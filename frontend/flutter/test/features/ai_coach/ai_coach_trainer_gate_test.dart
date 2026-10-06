@@ -129,7 +129,7 @@ void main() {
         find.text(_l.aicRetentionNotice(kAiChatRetentionDays)),
         findsOneWidget,
       );
-      expect(find.text('AI 챗봇 대화는 최근 30일 동안만 보관돼요'), findsOneWidget);
+      expect(find.text('AI 코치 대화는 최근 30일 동안만 보관돼요'), findsOneWidget);
       expect(
         find.byKey(const Key('aiCoachInsightHistoryButton')).hitTestable(),
         findsOneWidget,
@@ -173,7 +173,7 @@ void main() {
       final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
       expect(
         en.aicRetentionNotice(kAiChatRetentionDays),
-        'AI chat history is kept for the last 30 days',
+        'AI Coach chats are kept for the last 30 days',
       );
     });
   });

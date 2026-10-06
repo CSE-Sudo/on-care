@@ -904,7 +904,7 @@ Future<void> submitConsultation(
       of: find.byKey(const Key('consult-form')),
       matching: find.byType(AppLoading),
     ),
-    step: '예약 가능한 시간 불러오기',
+    step: '예약 가능 시간 불러오기',
   );
   for (final String key in <String>[
     'consult-slots-empty',
