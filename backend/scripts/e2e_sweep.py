@@ -320,7 +320,8 @@ def purge_sweep_traces(marker: str, doc_baseline: int) -> tuple[int, int, str]:
         from app.models.models import ChatMessage, CoachDocument
 
         chats = db.execute(
-            delete(ChatMessage).where(ChatMessage.body.like("%" + marker + "%"))
+            # 마커는 글자 그대로 찾는다 — `%`·`_` 가 와일드카드가 되지 않게(#3251).
+            delete(ChatMessage).where(ChatMessage.body.contains(marker, autoescape=True))
         ).rowcount or 0
         docs = 0
         if doc_baseline >= 0:

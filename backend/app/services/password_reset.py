@@ -5,7 +5,8 @@
 1. **요청** — 이메일을 받으면 그 계정 앞으로 일회용 코드를 만들어 메일로 보낸다.
    계정이 없거나, 쉬고 있거나, 소셜 로그인 전용(비밀번호 없음)이면 아무것도 보내지
    않는다. 어느 쪽이든 호출부는 **같은 응답**을 준다 — 응답이 다르면 아무 이메일이나
-   넣어 가입 여부를 알아낼 수 있다.
+   넣어 가입 여부를 알아낼 수 있다. 응답 **시간**도 갈리지 않게 메일은 응답 뒤에
+   보내고, 만료 코드 정리·커밋은 두 경우 모두 한다(#3238).
 2. **확인** — 코드와 새 비밀번호를 받으면 비밀번호를 바꾸고 토큰 세대를 올린다
    (#2766). 그 전에 나간 접근·refresh 토큰은 모든 기기에서 끊긴다. 확인은 새 토큰을
    주지 않는다 — 회원은 새 비밀번호로 다시 로그인한다.
@@ -20,6 +21,7 @@ import hashlib
 import logging
 import secrets
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from urllib.parse import urlencode, urlsplit
@@ -199,6 +201,14 @@ def _close_open_codes(db: Session, user_id: str, *, now: datetime) -> None:
     )
 
 
+def _deliver(sender: Mailer, mail: OutgoingMail) -> None:
+    """재설정 메일 한 통을 보낸다. 실패는 던지지 않고 로그만 남긴다."""
+    try:
+        sender.send(mail)
+    except MailDeliveryError as exc:
+        log.error("재설정 메일 발송 실패: to=%s err=%s", mask_email(mail.to), exc)
+
+
 def request_reset(
     db: Session,
     email: str,
@@ -207,11 +217,17 @@ def request_reset(
     settings: Settings | None = None,
     mailer: Mailer | None = None,
     locale: Locale | None = None,
+    schedule: Callable[..., object] | None = None,
 ) -> IssuedReset | None:
     """재설정 코드를 만들어 보낸다. 보낼 계정이 없으면 None.
 
     서버가 메일을 보낼 수 없으면 [ResetUnavailable] — 계정 존재 여부와 무관한
     서버 상태라 응답에 드러내도 된다. 발송 실패는 던지지 않고 로그만 남긴다.
+
+    [schedule] 을 주면 메일을 그 자리에서 보내지 않고 `schedule(함수, *인자)` 로
+    넘긴다(라우터는 `BackgroundTasks.add_task`). 동기 SMTP 발송은 수백 ms 가 걸려,
+    계정이 있을 때만 응답이 느려지면 응답 시간으로 가입 여부가 드러난다(#3238).
+    같은 까닭으로 만료 코드 정리와 커밋은 계정이 없어도 한다.
     """
     settings = settings or get_settings()
     if not settings.mail_enabled:
@@ -219,16 +235,18 @@ def request_reset(
     # 로그인과 같은 규칙으로 찾는다 — 키보드가 첫 글자를 대문자로 바꿔도 같은 계정이다
     # (#3094). 스키마를 거치지 않고 부르는 자리도 같은 결과가 나오게 여기서도 맞춘다.
     email = normalize_email(email)
+    purge_expired(db, now=now)
     user = db.scalar(select(User).where(func.lower(User.email) == email))
     if user is None or not user.is_active:
+        db.commit()
         return None
     if not user.hashed_password:
         # 소셜 로그인 전용 계정에는 바꿀 비밀번호가 없다. 여기서 비밀번호를 만들어
         # 주면 소셜 계정에 이메일 로그인이 새로 열린다 — 그 결정은 #1551 의 몫이다.
         log.info("소셜 로그인 전용 계정이라 재설정 코드를 보내지 않음: %s", mask_email(email))
+        db.commit()
         return None
 
-    purge_expired(db, now=now)
     # 새 코드를 보내면 앞서 보낸 코드는 닫는다 — 메일함에 살아 있는 코드가 여럿이면
     # 그중 어느 하나가 새어도 계정이 열린다.
     _close_open_codes(db, user.id, now=now)
@@ -251,10 +269,11 @@ def request_reset(
         reset_link(_link_base(settings, user), code),
         locale,
     )
-    try:
-        (mailer or get_mailer(settings)).send(mail)
-    except MailDeliveryError as exc:
-        log.error("재설정 메일 발송 실패: to=%s err=%s", mask_email(email), exc)
+    sender = mailer or get_mailer(settings)
+    if schedule is None:
+        _deliver(sender, mail)
+    else:
+        schedule(_deliver, sender, mail)
     return IssuedReset(user_id=user.id, code=code, expires_at=expires_at)
 
 

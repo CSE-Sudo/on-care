@@ -8,14 +8,14 @@ from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import exists, func, or_, select, update
+from sqlalchemy import exists, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.models.models import (
     ExerciseSession, RoutineHistory,
-    TrainerClient, TrainerReservation, TrainerRoutine, TrainerSchedule, User,
+    TrainerClient, TrainerRoutine, TrainerSchedule, User,
 )
 from app.schemas.trainer_api import (
     DeliveryOut,
@@ -65,6 +65,7 @@ from app.services.trainer._common import (
     _program_routines_for_request,
     _program_row_seconds,
     _release_cancelled_reservation,
+    _reservation_schedule_ids,
     _retire_personal_routines,
     _routine_out,
     _routine_outs,
@@ -188,19 +189,6 @@ def _personal_row_seconds(row: TrainerRoutine) -> int:
     return _exercise_seconds(
         row.type, row.duration_seconds, row.sets
     ) or row.minutes * 60
-
-
-def _reservation_schedule_ids(db: Session, session_ids: set[str]) -> set[str]:
-    """[session_ids] 중 회원 예약이 소유한 일정. [_is_reservation_schedule] 의 묶음판."""
-    if not session_ids:
-        return set()
-    return set(
-        db.scalars(
-            select(TrainerReservation.schedule_id).where(
-                TrainerReservation.schedule_id.in_(sorted(session_ids))
-            )
-        ).all()
-    )
 
 
 def _linked_member_ids(
@@ -401,6 +389,11 @@ def create_session(
 ) -> ScheduleSessionOut:
     program_json = _dump_program(program)
     if client_request_id:
+        # 같은 키의 동시 요청은 잠금 안에서 키를 다시 본다(#3241). 잠금 밖에서 보면
+        # 둘 다 "없음" 을 보고 잠금을 기다렸다가, 뒤 요청이 앞 요청의 일정과 자기
+        # 자신이 겹친다며 409 를 받는다. 자문 잠금은 같은 트랜잭션에서 다시 잡아도
+        # 된다(아래 겹침 검사가 한 번 더 잡는다).
+        lock_trainer_schedule(db, trainer_id)
         existing = db.scalar(
             select(TrainerSchedule).where(
                 TrainerSchedule.trainer_id == trainer_id,
@@ -577,6 +570,23 @@ SCHEDULE_OVERLAP_CODE = "schedule_overlap"
 _OCCUPYING_STATUSES = (SCHEDULE_UPCOMING, SCHEDULE_DONE)
 
 
+def lock_trainer_schedule(db: Session, trainer_id: str) -> None:
+    """이 트레이너의 겹침 검사와 그 뒤의 일정·자리 추가를 트랜잭션 끝까지 직렬화한다. (#3241)
+
+    겹침 검사는 "지금 커밋된 일정" 만 본다. 검사와 추가 사이에 다른 요청이 같은
+    시간을 잡으면 둘 다 빈 시간으로 보고 각자 넣는다 — 겹치는 두 자리를 두 회원이
+    동시에 잡거나, 트레이너가 일정을 만드는 순간 회원이 예약하면 이중 예약이 된다.
+    예약은 자리 행만 잠가 다른 자리와의 경합을 막지 못했다.
+
+    일정 행 잠금은 아직 없는 행을 잠글 수 없어 자문 잠금을 쓴다. 키에 트레이너
+    id 가 들어가 다른 트레이너와는 서로 기다리지 않고, 커밋·롤백과 함께 풀린다.
+    """
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+        {"key": f"trainer_schedule:{trainer_id}"},
+    )
+
+
 class ScheduleOverlap(Exception):
     """새로 잡거나 옮기려는 시간이 트레이너의 기존 일정과 겹친다. (#2284)
 
@@ -684,7 +694,12 @@ def ensure_no_overlap(
     exclude_ids: Sequence[str] = (),
     message: str | None = None,
 ) -> None:
-    """한 자리가 비어 있는지 확인하고, 겹치면 [ScheduleOverlap]. (#2284)"""
+    """한 자리가 비어 있는지 확인하고, 겹치면 [ScheduleOverlap]. (#2284)
+
+    확인 전에 트레이너 단위 잠금을 잡는다([lock_trainer_schedule], #3241) — 이
+    확인을 지난 요청이 커밋할 때까지 같은 트레이너의 다른 확인은 기다린다.
+    """
+    lock_trainer_schedule(db, trainer_id)
     conflicts = conflicting_sessions(
         db,
         trainer_id,
@@ -779,6 +794,8 @@ def create_recurring_sessions(
         _series_id_for(trainer_id, client_request_id) if client_request_id else None
     )
     if series_id is not None:
+        # 단건 생성과 같이 같은 키의 동시 요청은 잠금 안에서 시리즈를 다시 본다(#3241).
+        lock_trainer_schedule(db, trainer_id)
         existing = db.scalars(
             select(TrainerSchedule)
             .where(
@@ -800,6 +817,8 @@ def create_recurring_sessions(
         raise ScheduleError("반복할 요일과 종료 기준을 지정해 주세요.")
 
     iso = [day.isoformat() for day in dates]
+    # 단건 생성과 같이 확인부터 추가까지 트레이너 단위로 직렬화한다(#3241).
+    lock_trainer_schedule(db, trainer_id)
     conflicts = conflicting_sessions(
         db,
         trainer_id,
@@ -1239,12 +1258,26 @@ def list_scheduled_routines(
 
     **PT 프로그램 줄은 여기 오지 않는다.** 개인운동만 `delivery_kind` 를 달고
     있어(#2223) 그 값으로 가른다.
+
+    담당이 해제됐거나 동의가 철회된 회원의 줄은 남의 일정과 같이 빈 목록이다
+    (#3239). 해제하면 일정은 취소되지만 붙은 미전송 줄은 남아, 옛 일정 id 로 읽으면
+    그 회원의 지금 목표로 계산한 효과 문구가 나갔다.
     """
+    s = _get_owned_session(db, trainer_id, schedule_id)
+    if s is None:
+        return []
+    try:
+        _ensure_session_member_linked(db, trainer_id, s)
+    except ClientLinkDetached:
+        return []
     rows = db.scalars(
         select(TrainerRoutine)
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == schedule_id,
+            # 지금 일정의 회원 것만 — 회원을 바꾸기 전에 붙은 줄이 남아 있어도
+            # 다른 회원의 운동을 이 일정에 띄우지 않는다(#3232).
+            TrainerRoutine.member_id == s.member_id,
             TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status.in_((ROUTINE_SCHEDULED, ROUTINE_APPROVED)),
         )
@@ -1279,6 +1312,9 @@ def _raise_scheduled_program(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session.id,
+            # 지금 일정의 회원 줄만 올린다 — 회원을 바꾸기 전에 붙어 남은 줄이
+            # 이전 회원에게 가지 않게 한다(#3232).
+            TrainerRoutine.member_id == session.member_id,
             # 프로그램 줄만 — 개인운동은 `delivery_kind` 를 달고 있다(#2223).
             TrainerRoutine.delivery_kind.is_(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
@@ -1338,6 +1374,9 @@ def _send_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session.id,
+            # 지금 일정의 회원 줄만 보낸다(#3232) — 알림·이전 개인운동 정리도 이
+            # 회원에게 간다.
+            TrainerRoutine.member_id == session.member_id,
             # 개인운동만 — PT 프로그램 줄도 같은 일정에 `scheduled` 로 붙어
             # 있지만(#2279) 그쪽은 `delivery_kind` 가 비어 있다.
             TrainerRoutine.delivery_kind.is_not(None),
@@ -1415,6 +1454,8 @@ def send_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 지금 일정의 회원 줄만(#3232).
+            TrainerRoutine.member_id == s.member_id,
             # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
             TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
@@ -1432,6 +1473,7 @@ def send_scheduled_routines(
             .where(
                 TrainerRoutine.trainer_id == trainer_id,
                 TrainerRoutine.schedule_id == session_id,
+                TrainerRoutine.member_id == s.member_id,
                 # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
                 TrainerRoutine.delivery_kind.is_not(None),
                 TrainerRoutine.status == ROUTINE_SCHEDULED,
@@ -1469,6 +1511,10 @@ def _rewrite_scheduled_routines(
     회원이 `AI 추천` 으로 본다. 프로그램 만들기가 이미 같은 규칙으로 움직인다
     (#2223). 여기서도 **서버가** 판단한다: 클라이언트가 보낸 `source` 를 그대로
     믿으면 길마다 규칙이 갈린다.
+
+    세트·횟수·중량·초는 처음 붙일 때([_add_scheduled_routines])와 같은 규칙으로
+    근력에만 남긴다(#3232). 고칠 때만 규칙이 빠지면 유산소로 바꾼 운동이 옛 세트를
+    들고 회원에게 간다.
     """
     base = rows[0]
     for index, item in enumerate(items):
@@ -1480,33 +1526,52 @@ def _rewrite_scheduled_routines(
                 trainer_id=base.trainer_id,
                 member_id=base.member_id,
                 schedule_id=base.schedule_id,
+                exercise_date=base.exercise_date,
                 status=ROUTINE_SCHEDULED,
                 delivery_kind=base.delivery_kind,
                 source="trainer",
-                client_request_id=_personal_request_key(
-                    base.client_request_id, index
+                # 키 없이 붙인 줄(일정 상세에서 처음 붙인 것, #2280)이면 새 줄도
+                # 키를 두지 않는다(#3232). `None` 을 글자로 이어 붙이면 같은
+                # 회원의 다른 PT 에서도 `None#routine1` 이 나와 유니크 제약에 걸린다.
+                client_request_id=(
+                    _personal_request_key(base.client_request_id, index)
+                    if base.client_request_id
+                    else None
                 ),
+                created_at=datetime.now(timezone.utc),
             )
             db.add(row)
+        strength = item.type == "근력"
+        sets = item.sets if strength else None
+        reps = item.reps if strength and item.hold_seconds is None else None
+        hold_seconds = item.hold_seconds if strength else None
+        weight = (
+            round(item.weight, 1)
+            if item.weight is not None and strength
+            else None
+        )
         touched = (
             row.name != item.name
             or row.minutes != item.minutes
             or row.duration_seconds != item.duration_seconds
             or row.type != item.type
-            or row.sets != item.sets
-            or row.reps != item.reps
-            or row.hold_seconds != item.hold_seconds
-            or row.weight != item.weight
+            or row.intensity != item.intensity
+            or row.sets != sets
+            or row.reps != reps
+            or row.hold_seconds != hold_seconds
+            or row.weight != weight
         )
         row.name = item.name
         row.minutes = item.minutes
         row.duration_seconds = item.duration_seconds
         row.type = item.type
-        row.sets = item.sets
-        row.reps = item.reps
-        row.hold_seconds = item.hold_seconds
-        row.weight = item.weight
-        # 효과만 고친 것은 운동을 바꾼 것이 아니라 출처를 건드리지 않는다(#2570).
+        row.intensity = item.intensity
+        row.sets = sets
+        row.reps = reps
+        row.hold_seconds = hold_seconds
+        row.weight = weight
+        # 사유·효과만 고친 것은 운동을 바꾼 것이 아니라 출처를 건드리지 않는다(#2570).
+        row.reason = item.reason
         row.effect = item.effect.strip()
         row.source = "trainer" if touched else item.source
         row.sort_order = base.sort_order + index
@@ -1540,6 +1605,7 @@ def update_scheduled_routines(
     - 소유 슬롯 아님 → None(404).
     - 빈 목록으로 비우려 함 → ScheduleError.
     - 처음 붙이는데 붙일 수 없는 PT → ScheduleError(`_ensure_routine_attachable`).
+    - 담당이 해제됐거나 동의가 철회된 회원의 일정 → ClientLinkDetached(404).
 
     [suggestion_ids] 는 이 개인운동을 채운 대기 중 AI 제안이다(#2747) —
     프로그램 만들기와 같이 같은 트랜잭션에서 `consumed` 로 닫는다. 실패하면
@@ -1548,6 +1614,8 @@ def update_scheduled_routines(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    # 붙은 줄을 고치는 길도 처음 붙이는 길과 같은 담당·동의 경계를 본다(#3239).
+    _ensure_session_member_linked(db, trainer_id, s)
     if not items:
         raise ScheduleError("개인운동을 최소 한 개는 남겨 주세요.")
     rows = db.scalars(
@@ -1555,6 +1623,8 @@ def update_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 목록([list_scheduled_routines])과 같이 지금 일정의 회원 것만 고친다.
+            TrainerRoutine.member_id == s.member_id,
             # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
             TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
@@ -2059,6 +2129,13 @@ def update_session(
     if "member_id" in fields:
         # 빈 문자열은 '배정 해제'로 해석 → NULL 로 저장(""는 users.id FK 위반이라 500 유발).
         s.member_id = fields["member_id"] or None
+        if s.member_id != before_member_id:
+            # 붙어 있던 아직 보내지 않은 줄은 이전 회원의 것이다(#3232). 두면 완료
+            # 전송이 이전 회원의 줄을 올리면서 알림·개인운동 정리는 새 회원에게
+            # 간다. 개인운동은 이전 회원의 목표·상태로 짠 것이라 새 회원에게 옮기지
+            # 않고 걷는다. 프로그램은 일정에 그대로 남아, 전송 때 새 회원에게
+            # 새로 배정된다(`send_session_program`).
+            _clear_scheduled_routines(db, trainer_id, s.id)
     if "type" in fields:
         s.type = fields["type"]
     if "duration_minutes" in fields:
@@ -2592,7 +2669,11 @@ def complete_session(
         db.refresh(s)
         return _schedule_out(s)  # 동시 호출이 먼저 완료 처리함 — 기록 없이 현재 상태 반환
 
-    has_exercise_log = _sync_completed_records(db, s, trainer_id, note=note)
+    # 완료 요청에 메모가 없으면 미리 적어 둔 일정 메모가 그 PT 의 메모다(#3232) —
+    # 아래 알림과 같은 값을 이력에도 남긴다.
+    has_exercise_log = _sync_completed_records(
+        db, s, trainer_id, note=note or (s.note or "")
+    )
     if s.member_id:
         # 방금 전환한 이 호출만 알린다(#3027) — 멱등 재호출·동시 호출은 위에서
         # 돌아가 알림도 한 번뿐이다. 완료 요청에 메모가 없으면 미리 적어 둔 메모가

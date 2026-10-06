@@ -235,12 +235,12 @@ def trainer_change_password(
     손에 넣은 쪽이 현재 비밀번호를 맞혀 보면, 맞히는 순간 다른 기기 토큰까지 끊고
     계정을 가져간다. 로그인 잠금과 같은 창(`login_lockout_seconds`) 안에
     `password_change_max_failures` 번 틀리면 남은 시간 동안 429 이고, 틀린 시도는
-    감사 로그에 남는다. 잠금 판정은 비밀번호 확인보다 먼저 한다.
+    감사 로그에 남는다. 시도는 비밀번호 확인보다 먼저 세고 맞으면 지운다(#3238) —
+    동시 요청도 한도만큼만 확인에 들어간다.
     """
     guard = PasswordChangeGuard(trainer.id)
-    guard.ensure_unlocked()
+    guard.claim()
     if not verify_password(payload.current_password, trainer.hashed_password):
-        guard.record_failure()
         audit.record(
             db,
             event=audit.PASSWORD_CHANGE,

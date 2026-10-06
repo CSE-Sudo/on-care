@@ -21,6 +21,7 @@ from app.services import (
 from app.services.trainer import memos as trainer_memos_service
 from app.services.trainer import routines as trainer_routines_service
 from app.api.v1.trainer._common import (
+    _audit_client_read,
     _require_client,
 )
 
@@ -120,6 +121,7 @@ def trainer_update_memo(
 @router.get(
     "/trainer/clients/{member_id}/feedbacks",
     response_model=list[ClientFeedbackOut],
+    dependencies=[_audit_client_read("report")],
 )
 def trainer_client_feedbacks(
     member_id: str,
@@ -131,6 +133,9 @@ def trainer_client_feedbacks(
     완료 PT 세션 피드백·보낸 주간 리포트(트레이너 → 회원)와 회원 주간
     피드백(회원 → 트레이너)을 한 목록으로 준다. 읽기 전용이다 — 고치는 곳은
     원래 자리 하나뿐이다. 해제·비담당 회원은 다른 회원 경로와 같은 404 다.
+
+    회원 주간 피드백의 통증 부위·컨디션이 실려, 같은 데이터를 주는
+    `report/member-feedback` 과 같은 `report` 열람으로 남긴다(#2830, #3239).
     """
     link = _require_client(db, trainer.id, member_id)
     return client_feedback_service.build_client_feedbacks(db, trainer.id, link)

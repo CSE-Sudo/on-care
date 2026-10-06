@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.week import monday_of
+from app.db.session import release_connection
 from app.services import diet_ai_sentence
 from app.services import diet_coach_inputs as inputs
 from app.services.diet_advice_copy import SLOT_LABELS_KO, Line, ai_line, line
@@ -279,13 +280,18 @@ def week_advice(
     else:
         text = None
         if use_llm:
+            notes = inputs.trainer_notes(db, user_id)
+            goal = (profile.conditions if profile else "") or ""
+            # 문장을 기다리는 동안 연결을 쥐지 않는다(#3242). 여기까지는 읽기뿐이고,
+            # 저장(`store_advice`)은 새 연결로 한다.
+            release_connection(db)
             text = diet_ai_sentence.generate(
                 lang=lang,
                 analysis_text=finding.analysis.text,
                 finding=finding.description,
                 records=record_lines(finding, records),
-                notes=inputs.trainer_notes(db, user_id),
-                goal=(profile.conditions if profile else "") or "",
+                notes=notes,
+                goal=goal,
                 metric="diet_week_advice",
             )
         if text:

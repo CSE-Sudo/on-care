@@ -2,12 +2,12 @@
 
 ## 현재 운영 환경
 
-프론트엔드 배포 경로는 **두 개**이고, 둘 다 `main` 브랜치 push 에 걸려 있습니다.
+프론트엔드 배포 경로는 **두 개**이고, 둘 다 `main` 브랜치 push 에서 시작합니다. 데모는 push 에 바로 걸리고, 운영은 그 커밋의 E2E CI 가 성공으로 끝난 뒤(`workflow_run`) 시작합니다.
 
 | 배포 경로 | 워크플로 | 주소 | 두 웹이 보는 백엔드 | 비용 | 실행 조건 |
 | --- | --- | --- | --- | --- | --- |
 | GitHub Pages (**데모**) | [`deploy.yml`](../.github/workflows/deploy.yml) | 데모 도메인 `ewhasudo.zapto.org` | 목업(브라우저 drift DB). 수동 실행에서만 실서버 선택 가능 | 무료 | 조건 없음 — 항상 실행 |
-| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 |
+| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만. 같은 커밋의 E2E CI 성공 뒤 앱 CI·운영 백엔드 선후를 확인하고 배포([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)) |
 
 두 웹 앱의 백엔드 설정은 [아래 절](#운영-빌드는-실서버를-봅니다)에 정리했습니다.
 

@@ -15,6 +15,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
@@ -89,8 +90,26 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
 def _complete_login(
     db: Session, identity: SocialIdentity, ip: str | None, provider: str
 ) -> LoginToken:
-    """검증된 신원으로 사용자를 찾거나 만들고 감사 기록 뒤 토큰을 낸다. 동기(#2835)."""
-    user = _find_or_create_user(db, identity)
+    """검증된 신원으로 사용자를 찾거나 만들고 감사 기록 뒤 토큰을 낸다. 동기(#2835).
+
+    같은 신원의 첫 로그인이 동시에 오면 둘 다 "연결 없음" 을 보고 연결(또는 사용자)을
+    만들다 유일 제약(`uq_social_provider_uid`·`users.email`)에서 만난다(#3238). 늦은
+    쪽은 되돌리고 한 번 더 찾는다 — 먼저 끝난 쪽이 만든 연결로 같은 계정에 들어간다.
+
+    쉬는(정지된) 계정에는 토큰을 주지 않는다(#3238). 비밀번호 로그인·refresh 와 같은
+    401 이다 — 예전에는 200 과 토큰을 받고 다음 요청부터 401 이었다.
+    """
+    try:
+        user = _find_or_create_user(db, identity)
+    except IntegrityError:
+        db.rollback()
+        user = _find_or_create_user(db, identity)
+    if user is None or not user.is_active:
+        audit(
+            db, event="auth.social", user_id=user.id if user else None, ip=ip,
+            success=False, detail=f"{provider} reason=inactive",
+        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=_AUTH_FAILED)
     audit(db, event="auth.social", user_id=user.id, ip=ip, success=True, detail=provider)
     # 소셜로 처음 들어온 계정은 가입 화면을 거치지 않아 동의 기록이 없다(#2819) —
     # `consent_required` 가 참이 되어 앱이 가입 화면과 같은 동의 화면을 띄운다.

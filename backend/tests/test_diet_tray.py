@@ -410,3 +410,35 @@ def test_meals_from_the_dev_stub_recognizer_are_not_photo_days(client, db_sessio
 
     assert _state(client, h)["photo_days"] == 10
     assert diet_tray_service.photo_days(db_session, member_id) == 10
+
+
+def test_manually_written_meals_are_not_photo_days(client, db_session, trainer_id):
+    """손으로 적은 끼니(`manual`)는 사진 기록일이 아니다. (#3240)
+
+    지난 날짜로 직접 적어 20일을 채우면 사진 없이 실물 보상을 받는다. 모르는
+    엔진 값도 세지 않는다 — 사진 인식기 허용 목록으로 센다.
+    """
+    member_id, h = _new_member(client)
+    _link(db_session, member_id, trainer_id)
+    _add_meals(db_session, member_id, 5)
+    _add_meals(db_session, member_id, 20, start_ago=5, engine="manual")
+    _add_meals(db_session, member_id, 3, start_ago=25, engine="unknown")
+
+    assert _state(client, h)["photo_days"] == 5
+    assert diet_tray_service.photo_days(db_session, member_id) == 5
+    assert _claim(client, h).status_code == 409
+
+
+def test_photo_engines_cover_every_real_recognizer():
+    """인식기를 더하고 허용 목록을 빠뜨리면 그 사진 기록이 식판 조건에서 사라진다."""
+    from app.services.diet_service import MANUAL_ENGINE
+    from app.services.recognizer import factory
+    from app.services.recognizer.gemini import GeminiVisionRecognizer
+    from app.services.recognizer.litellm_vision import LiteLLMVisionRecognizer
+
+    # 레지스트리는 다른 테스트가 가짜 인식기를 더하기도 해 클래스 이름으로 본다.
+    real = {GeminiVisionRecognizer.name, LiteLLMVisionRecognizer.name}
+    assert real <= diet_tray_service.PHOTO_ENGINES
+    assert factory.STUB_ENGINE not in diet_tray_service.PHOTO_ENGINES
+    assert MANUAL_ENGINE not in diet_tray_service.PHOTO_ENGINES
+    assert "" not in diet_tray_service.PHOTO_ENGINES

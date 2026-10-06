@@ -111,16 +111,23 @@ jobs:
         # `# destructive-migration: <사유>` 주석을 두거나 PR 에 `destructive-migration` 라벨을
         # 붙이면 통과한다(라벨이면 찾은 곳을 경고로 남긴다). backend/docs/DEPLOY.md
         # "마이그레이션 운영 정책". 스크립트 테스트는 위 tool/ci 단계에서 함께 돈다.
+        # 라벨은 붙인 그 순간의 PR 내용만 승인한다(#3236). 이 라벨을 붙인 이벤트로 돈 실행에서만
+        # 승인으로 넘기고, 라벨이 남아 있어도 그 뒤 커밋(synchronize)·다른 라벨 변경으로 다시 돈
+        # 실행은 승인으로 치지 않는다 — 다시 검토했으면 라벨을 뗐다가 다시 붙인다. 같은 실행을
+        # Re-run 하면 처음 이벤트(라벨을 붙인 때의 head)를 다시 보므로 새 head 를 통과시키지 않는다.
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
-          LABEL_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'destructive-migration') }}
+          LABEL_ADDED_NOW: ${{ github.event.action == 'labeled' && github.event.label.name == 'destructive-migration' }}
+          LABEL_PRESENT: ${{ contains(github.event.pull_request.labels.*.name, 'destructive-migration') }}
         run: |
           set -euo pipefail
           git fetch --quiet origin "$BASE_REF"
           base=$(git merge-base FETCH_HEAD HEAD)
           flags=()
-          if [ "$LABEL_APPROVED" = true ]; then
+          if [ "$LABEL_ADDED_NOW" = true ]; then
             flags+=(--label-approved)
+          elif [ "$LABEL_PRESENT" = true ]; then
+            flags+=(--stale-label)
           fi
           python3 tool/ci/check_destructive_migrations.py --base "$base" "${flags[@]}"
 

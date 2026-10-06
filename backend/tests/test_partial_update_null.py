@@ -27,6 +27,7 @@ from app.schemas.trainer_api import (
 from app.schemas.user import (
     HealthGoalsUpdate,
     MemberNotificationSettingsUpdate,
+    OnboardingRequest,
     ProfileUpdate,
 )
 
@@ -38,6 +39,11 @@ _REJECTING = [
     (TrainerNotificationSettingsUpdate, "notify_new_message", False),
     (MemberNotificationSettingsUpdate, "trainer_message", False),
     (ProfileUpdate, "name", "김민수"),
+    # 온보딩·건강 목표의 NOT NULL 칸(#3243). null 이 커밋에서 500 이었다.
+    (OnboardingRequest, "gender", "female"),
+    (OnboardingRequest, "birth_date", "1990-01-15"),
+    (OnboardingRequest, "conditions", "체중 감량"),
+    (HealthGoalsUpdate, "conditions", "체중 감량"),
 ]
 
 
@@ -91,3 +97,8 @@ def test_health_goals_still_accepts_null_to_clear_a_goal():
 
     assert payload.daily_calories is None
     assert payload.model_dump(exclude_unset=True) == {"daily_calories": None}
+
+
+def test_onboarding_still_ignores_a_null_name():
+    """온보딩의 이름 null 은 지금처럼 '변경 없음' 이다 — 핸들러가 따로 거른다(#3243)."""
+    assert OnboardingRequest(name=None).name is None

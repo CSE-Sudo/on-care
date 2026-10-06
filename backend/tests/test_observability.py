@@ -52,6 +52,42 @@ def test_global_500_hides_detail_and_carries_request_id():
     assert r.headers.get("X-Request-ID") == "trace-abc"
 
 
+def _boom_app(origins):
+    app = FastAPI()
+    observability.install(app, cors_origins=origins)
+
+    @app.get("/boom")
+    def boom():
+        raise RuntimeError("boom")
+
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def test_global_500_carries_cors_headers_for_allowed_origin():
+    """전역 500 도 CORS 헤더를 실어 웹이 본문의 request_id 를 읽는다(#3242)."""
+    c = _boom_app(["https://trainer.example"])
+    r = c.get("/boom", headers={"Origin": "https://trainer.example"})
+    assert r.status_code == 500
+    assert r.headers.get("access-control-allow-origin") == "https://trainer.example"
+    assert r.headers.get("access-control-allow-credentials") == "true"
+    assert "Origin" in r.headers.get("vary", "")
+    assert r.json()["request_id"]
+
+
+def test_global_500_cors_wildcard_and_unknown_origin():
+    wildcard = _boom_app(["*"])
+    r = wildcard.get("/boom", headers={"Origin": "https://any.example"})
+    assert r.headers.get("access-control-allow-origin") == "*"
+    assert "access-control-allow-credentials" not in r.headers
+
+    strict = _boom_app(["https://trainer.example"])
+    r = strict.get("/boom", headers={"Origin": "https://evil.example"})
+    assert r.status_code == 500
+    assert "access-control-allow-origin" not in r.headers
+    # Origin 이 없는 호출(앱·서버 간)에는 붙이지 않는다.
+    assert "access-control-allow-origin" not in strict.get("/boom").headers
+
+
 def test_access_log_carries_request_id_on_success(client):
     """정상 200 응답의 액세스 로그에도 request_id 가 실려야 한다(reset 전에 로그).
 
