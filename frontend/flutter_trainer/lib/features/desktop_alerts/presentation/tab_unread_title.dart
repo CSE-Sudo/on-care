@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 탭 제목에 붙일 안 읽은 알림 수(#3285). 로그인한 콘솔의
 /// `DesktopAlertsHost` 가 채우고, 콘솔을 떠나면 0 으로 되돌린다.
@@ -30,7 +31,7 @@ class TabUnreadTitle extends ConsumerWidget {
     final int count = ref.watch(tabUnreadCountProvider);
     return Title(
       title: titleFor(AppLocalizations.of(context).appTitle, count),
-      color: const Color(0xFF235C88),
+      color: OnCareBrand.trainer.primary,
       child: child,
     );
   }
