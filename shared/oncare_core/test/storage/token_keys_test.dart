@@ -37,16 +37,19 @@ void main() {
   });
 
   group('migrateLegacyTokenKeys', () {
-    test('새 키가 비고 옛 키가 있으면 옮기고 옛 키를 지운다', () async {
+    test('새 키가 비고 옛 키가 있으면 복사하고 옛 키는 남긴다', () async {
       values
         ..[legacyAccessTokenKey] = 'old-a'
         ..[legacyRefreshTokenKey] = 'old-r';
 
       expect(await migrateLegacyTokenKeys(store, TokenKeyspace.member), isTrue);
 
+      // 옛 키는 어느 앱 것인지 모른다 — 역할 확인을 통과한 앱이 지운다(#3260).
       expect(values, <String, String>{
         'oncare.member.access_token': 'old-a',
         'oncare.member.refresh_token': 'old-r',
+        legacyAccessTokenKey: 'old-a',
+        legacyRefreshTokenKey: 'old-r',
       });
     });
 
@@ -96,20 +99,59 @@ void main() {
         await migrateLegacyTokenKeys(store, TokenKeyspace.trainer),
         isTrue,
       );
-      expect(values, <String, String>{'oncare.trainer.access_token': 'old-a'});
+      expect(values, <String, String>{
+        'oncare.trainer.access_token': 'old-a',
+        legacyAccessTokenKey: 'old-a',
+      });
     });
 
-    test('한 앱이 옮겨 간 옛 토큰을 다른 앱이 다시 옮기지 않는다', () async {
+    test('먼저 복사한 앱이 옛 키를 가져가지 않는다 — 주인 앱도 복사한다', () async {
+      // 회원 앱 옛 토큰이 남은 탭에서 트레이너 웹이 먼저 열린 순서다(#3260).
+      values
+        ..[legacyAccessTokenKey] = 'member-a'
+        ..[legacyRefreshTokenKey] = 'member-r';
+
+      await migrateLegacyTokenKeys(store, TokenKeyspace.trainer);
+      expect(await migrateLegacyTokenKeys(store, TokenKeyspace.member), isTrue);
+
+      expect(values[TokenKeyspace.member.accessKey], 'member-a');
+      expect(values[TokenKeyspace.member.refreshKey], 'member-r');
+    });
+  });
+
+  group('deleteLegacyTokenKeys', () {
+    test('옛 키 둘만 지우고 두 앱의 키는 남긴다', () async {
+      values
+        ..[legacyAccessTokenKey] = 'old-a'
+        ..[legacyRefreshTokenKey] = 'old-r'
+        ..[TokenKeyspace.member.accessKey] = 'member-a'
+        ..[TokenKeyspace.trainer.accessKey] = 'trainer-a';
+
+      await deleteLegacyTokenKeys(store);
+
+      expect(values, <String, String>{
+        TokenKeyspace.member.accessKey: 'member-a',
+        TokenKeyspace.trainer.accessKey: 'trainer-a',
+      });
+    });
+
+    test('지운 뒤에는 다시 복사할 것이 없다', () async {
       values
         ..[legacyAccessTokenKey] = 'old-a'
         ..[legacyRefreshTokenKey] = 'old-r';
-
       await migrateLegacyTokenKeys(store, TokenKeyspace.member);
+
+      // 로그아웃: 이 앱 키와 옛 키를 함께 지운다.
+      values
+        ..remove(TokenKeyspace.member.accessKey)
+        ..remove(TokenKeyspace.member.refreshKey);
+      await deleteLegacyTokenKeys(store);
+
       expect(
-        await migrateLegacyTokenKeys(store, TokenKeyspace.trainer),
+        await migrateLegacyTokenKeys(store, TokenKeyspace.member),
         isFalse,
       );
-      expect(values.containsKey(TokenKeyspace.trainer.accessKey), isFalse);
+      expect(values, isEmpty);
     });
   });
 }
