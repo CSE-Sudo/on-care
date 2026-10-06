@@ -5161,7 +5161,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsMacroShortfall(String name) {
-    return '$name이(가) 목표보다 많이 부족해요 — 피드백에서 짚어 보세요';
+    return '$name이 목표보다 많이 부족해요 — 피드백에서 짚어 보세요';
   }
 
   @override

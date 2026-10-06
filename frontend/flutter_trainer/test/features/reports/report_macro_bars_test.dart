@@ -203,7 +203,7 @@ void main() {
       report: _report(proteinWeek: const <double>[60, 60, 60, 60, 60, 60, 60]),
     );
 
-    expect(find.textContaining('단백질이(가) 목표보다 많이 부족해요'), findsOneWidget);
+    expect(find.textContaining('단백질이 목표보다 많이 부족해요'), findsOneWidget);
   });
 
   testWidgets('셋 다 모자라도 가장 많이 모자란 하나만 짚는다', (tester) async {
@@ -217,7 +217,7 @@ void main() {
     );
 
     expect(find.textContaining('목표보다 많이 부족해요'), findsOneWidget);
-    expect(find.textContaining('단백질이(가) 목표보다'), findsOneWidget);
+    expect(find.textContaining('단백질이 목표보다'), findsOneWidget);
   });
 
   testWidgets('모자람 줄은 지난 주 목표를 근거로 잇지 않는다 (#2400)', (tester) async {
@@ -226,7 +226,7 @@ void main() {
       report: _report(proteinWeek: const <double>[60, 60, 60, 60, 60, 60, 60]),
     );
 
-    expect(find.textContaining('단백질이(가) 목표보다'), findsOneWidget);
+    expect(find.textContaining('단백질이 목표보다'), findsOneWidget);
     expect(find.textContaining('지난 주 목표'), findsNothing);
     expect(find.textContaining('판정된 근거'), findsNothing);
   });
@@ -259,7 +259,7 @@ void main() {
       report: _report(proteinWeek: const <double>[88, 88, 88, 88, 88, 88, 88]),
     );
 
-    expect(find.textContaining('단백질이(가) 목표보다 많이 부족해요'), findsOneWidget);
+    expect(find.textContaining('단백질이 목표보다 많이 부족해요'), findsOneWidget);
   });
 
   testWidgets('78%인 주는 짚지 않는다 — 옛 80% 문턱이 결과지와 갈라지던 칸 (#3259)', (tester) async {
@@ -316,8 +316,8 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('지방이(가) 목표보다 많이 부족해요'), findsOneWidget);
-    expect(find.textContaining('단백질이(가)'), findsNothing);
+    expect(find.textContaining('지방이 목표보다 많이 부족해요'), findsOneWidget);
+    expect(find.textContaining('단백질이'), findsNothing);
   });
 
   testWidgets('짚는 항목은 결과지가 `부족` 칸에 세우는 항목과 같다 (#3259)', (tester) async {
@@ -330,8 +330,8 @@ void main() {
     final ReportSheet sheet = ReportSheet.of(report);
     expect(sheet.diet[SheetDietItem.carbs]!.band, SheetBand.under);
     expect(sheet.diet[SheetDietItem.protein]!.band, SheetBand.normal);
-    expect(find.textContaining('탄수화물이(가) 목표보다 많이 부족해요'), findsOneWidget);
-    expect(find.textContaining('단백질이(가)'), findsNothing);
+    expect(find.textContaining('탄수화물이 목표보다 많이 부족해요'), findsOneWidget);
+    expect(find.textContaining('단백질이'), findsNothing);
   });
 
   testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
