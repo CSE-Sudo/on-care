@@ -8,7 +8,10 @@ name: Deploy Frontend to AWS
 #   E2E CI 는 paths 필터가 없어 모든 main push 에서 한 번씩 끝나므로 그 완료를 신호로 삼고,
 #   paths 필터가 있는 User App CI·Trainer CI 는 실행이 있을 때만 성공을 요구한다.
 #   백엔드 변경이 들어 있는 커밋은 운영 백엔드가 그 변경을 담은 뒤에만 전환한다.
+#   자동 실행은 운영에 떠 있는 릴리스와 같거나 그보다 옛 커밋이면 빌드 전에 건너뛴다(#3254).
 #   판정 규칙과 대기 시간은 docs/aws-frontend-deployment.md "배포 순서" 에 있다.
+#   스크립트는 배포하는 커밋의 것을 쓴다(백엔드와 같은 원칙). 옛 커밋을 수동 배포할 때는 그 사이
+#   스크립트의 인자·종료 코드 약속이 바뀌지 않았는지 본다(docs/frontend_deployment.md).
 on:
   workflow_run:
     workflows: ["E2E CI"]
@@ -195,17 +198,71 @@ jobs:
           # 빌드 번호는 커밋 수다(#3226). 얕은 체크아웃이면 1 로 나와 스탬프 단계가 멈춘다.
           fetch-depth: 0
 
+      # 자동 실행이 운영에 이미 떠 있는 커밋이나 그보다 옛 커밋을 다시 올리지 않게 한다(#3254).
+      # 취소된 main E2E CI 를 나중에 Re-run 하면 그 완료가 옛 커밋 배포를 부른다. 지금 서비스
+      # 중인 릴리스(CloudFront origin path — 그 릴리스의 version.txt 와 같은 커밋)를 읽어, 대상이
+      # 그 커밋과 같거나 조상이면 아래 단계를 모두 건너뛴다(실패가 아니다). 수동 실행은 사람이
+      # 일부러 되돌리는 경우라 보지 않는다. gate 는 운영 AWS 역할을 받을 수 없어(Environment 형식
+      # OIDC, #3019) 여기서 본다. 이 역할은 뒤의 업로드 단계에서 다시 받는다.
+      - name: Configure AWS credentials (live release check)
+        if: github.event_name == 'workflow_run'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 판정 스크립트는 이 워크플로와 같은 main 커밋(GITHUB_SHA)의 것을 쓴다 — 대상이 이 가드보다
+      # 옛 커밋이면 그 checkout 에는 스크립트가 없다. 종료 코드 20 이 건너뜀이다(`|| code=$?`, #3235).
+      - name: Skip a release that is already live or older
+        id: live
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISTRIBUTION_ID: ${{ vars.AWS_FRONTEND_DISTRIBUTION_ID }}
+        run: |
+          set -uo pipefail
+          if [ "$EVENT_NAME" != "workflow_run" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "수동 실행이라 운영 릴리스와의 선후를 보지 않습니다(되돌리기 허용)."
+            exit 0
+          fi
+          tool="$RUNNER_TEMP/deploy_freshness.sh"
+          git show "$GITHUB_SHA:.github/scripts/deploy_freshness.sh" > "$tool" || exit 1
+          code=0
+          bash "$tool" frontend "$DISTRIBUTION_ID" "$RELEASE_SHA" > "$RUNNER_TEMP/freshness.txt" || code=$?
+          cat "$RUNNER_TEMP/freshness.txt"
+          case "$code" in
+            0)
+              echo "deploy=true" >> "$GITHUB_OUTPUT"
+              ;;
+            20)
+              echo "deploy=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::운영에 이미 같은 커밋이나 더 새 커밋이 떠 있어 이 자동 배포를 건너뜁니다."
+              {
+                echo "### AWS frontend deployment skipped"
+                echo "- Commit: \`$RELEASE_SHA\`"
+                echo "- Live release: \`$(sed -n 's/^live_sha=//p' "$RUNNER_TEMP/freshness.txt")\` ($(sed -n 's/^state=//p' "$RUNNER_TEMP/freshness.txt"))"
+                echo "- 이유: 자동 실행의 대상이 운영에 떠 있는 커밋과 같거나 그보다 옛 커밋입니다(#3254). 되돌리려면 Run workflow 에 그 SHA 를 넣어 수동으로 실행합니다."
+              } >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              exit "$code"
+              ;;
+          esac
+
       # 두 앱 고객 지원의 버전 줄(#3226). 빌드 번호(커밋 수)와 배포 일시(UTC)를 한 번만 만들어
       # 두 웹 빌드가 같은 값을 받게 한다. 같은 커밋이면 데모 Pages 빌드와도 번호가 같다.
       - name: Stamp release build number and date
+        if: steps.live.outputs.deploy == 'true'
         run: bash .github/scripts/release_build_stamp.sh "$GITHUB_ENV"
 
       # 랜딩의 앱 바로가기는 상대 경로라 이 배포에서는 같은 도메인의 /frontend/·/trainer/ 로
       # 간다(#2841). 절대 주소(무료 DNS 데모 등)가 들어오면 운영 방문자가 데모로 넘어가므로 빌드 전에 막는다.
       - name: Check landing app links
+        if: steps.live.outputs.deploy == 'true'
         run: bash .github/scripts/landing_site_url.sh check index.html
 
       - name: Set up Flutter
+        if: steps.live.outputs.deploy == 'true'
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
@@ -217,6 +274,7 @@ jobs:
           cache: true
 
       - name: Check Flutter version
+        if: steps.live.outputs.deploy == 'true'
         run: flutter --version
 
       # 운영 배포는 실서버 고정이다(#2810). 두 앱은 dart-define 을 받지 못하면
@@ -224,6 +282,7 @@ jobs:
       # 배포 뒤에야 드러난다. 그래서 주소 변수가 비었거나 형식이 틀리면 빌드 전에 멈춘다.
       # staging 주소와 같으면 멈춘다 — 운영 웹이 시연용 DB 를 보지 않게(#3020).
       - name: Require production API base URL
+        if: steps.live.outputs.deploy == 'true'
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           FORBIDDEN_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
@@ -233,6 +292,7 @@ jobs:
       # 배포는 계속한다 — 앱은 DSN 이 없으면 보고기를 끈다. 다만 운영 오류가 하나도 모이지
       # 않으므로 경고를 남긴다. 값 발급·등록은 #480.
       - name: Check Sentry DSN secrets
+        if: steps.live.outputs.deploy == 'true'
         env:
           SENTRY_DSN_MEMBER: ${{ secrets.SENTRY_DSN_MEMBER }}
           SENTRY_DSN_TRAINER: ${{ secrets.SENTRY_DSN_TRAINER }}
@@ -249,10 +309,12 @@ jobs:
           done
 
       - name: Install Flutter dependencies
+        if: steps.live.outputs.deploy == 'true'
         working-directory: frontend/flutter
         run: flutter pub get
 
       - name: Download drift WASM (sqlite3.wasm + drift_worker.js)
+        if: steps.live.outputs.deploy == 'true'
         working-directory: frontend/flutter
         run: bash tool/fetch_drift_wasm.sh
         env:
@@ -261,10 +323,12 @@ jobs:
 
       # 데모 전용 자산(데모 시드 사진·데모 대화 첨부)은 운영 번들에 싣지 않는다(#3157).
       - name: Strip demo-only assets
+        if: steps.live.outputs.deploy == 'true'
         working-directory: frontend/flutter
         run: python3 ../tool/strip_demo_assets.py .
 
       - name: Build Flutter web
+        if: steps.live.outputs.deploy == 'true'
         working-directory: frontend/flutter
         # 운영 빌드: 실서버(USE_MOCK_API=false)·운영 환경(ENV=prod — 라우터 진단 로그와
         # provider 로그가 꺼진다). 주소는 저장소 변수에서만 읽고 여기 적지 않는다.
@@ -299,10 +363,12 @@ jobs:
           flutter build web "${args[@]}"
 
       - name: Install Flutter dependencies (trainer)
+        if: steps.live.outputs.deploy == 'true'
         working-directory: frontend/flutter_trainer
         run: flutter pub get
 
       - name: Download drift WASM (trainer)
+        if: steps.live.outputs.deploy == 'true'
         working-directory: frontend/flutter_trainer
         run: bash tool/fetch_drift_wasm.sh
         env:
@@ -310,10 +376,12 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Strip demo-only assets (trainer)
+        if: steps.live.outputs.deploy == 'true'
         working-directory: frontend/flutter_trainer
         run: python3 ../tool/strip_demo_assets.py .
 
       - name: Build Flutter web (trainer)
+        if: steps.live.outputs.deploy == 'true'
         working-directory: frontend/flutter_trainer
         # 소속 헬스장 찾기 지도(#2543). 회원 앱과 같은 카카오맵 JS 키를 쓰고, 카카오
         # 콘솔에 트레이너 웹 도메인이 등록돼 있어야 뜬다. 키가 없으면 목록만 보인다.
@@ -349,12 +417,14 @@ jobs:
 
       # 올리기 전에 산출물을 직접 연다 — 목업 분기·데모 자산이 섞였으면 배포를 멈춘다(#3157).
       - name: Check production bundles have no demo code or assets
+        if: steps.live.outputs.deploy == 'true'
         run: |
           set -euo pipefail
           python3 tool/ci/check_prod_web_bundle.py --app member frontend/flutter/build/web
           python3 tool/ci/check_prod_web_bundle.py --app trainer frontend/flutter_trainer/build/web
 
       - name: Prepare deploy files
+        if: steps.live.outputs.deploy == 'true'
         run: |
           set -euo pipefail
           mkdir -p public/frontend public/trainer public/legal
@@ -369,12 +439,14 @@ jobs:
       # 열린 탭이 새 배포를 알아채도록 두 앱 폴더에도 같은 version.txt 를 둔다(#3023). 앱은
       # 자기 `<base href>version.txt` 를 읽어 빌드에 넣은 RELEASE_SHA 와 비교한다.
       - name: Copy release marker into each app
+        if: steps.live.outputs.deploy == 'true'
         run: |
           set -euo pipefail
           cp public/version.txt public/frontend/version.txt
           cp public/version.txt public/trainer/version.txt
 
       - name: Configure AWS credentials (OIDC)
+        if: steps.live.outputs.deploy == 'true'
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
@@ -385,6 +457,7 @@ jobs:
       # 붙이면 워크플로를 고치지 않아도 다음 배포부터 그 주소가 들어간다. 배포 설정은 읽기만 한다.
       - name: Stamp landing site URL
         id: site
+        if: steps.live.outputs.deploy == 'true'
         env:
           DISTRIBUTION_ID: ${{ vars.AWS_FRONTEND_DISTRIBUTION_ID }}
         run: |
@@ -403,6 +476,7 @@ jobs:
       # prefix 에만 올라가고, 지금 서비스 중인 릴리스의 객체는 손대지 않는다 —
       # 검증이 실패하면 아무것도 전환하지 않은 채 끝나면 된다.
       - name: Upload release to S3
+        if: steps.live.outputs.deploy == 'true'
         env:
           BUCKET: ${{ vars.AWS_FRONTEND_BUCKET }}
         run: |
@@ -414,6 +488,7 @@ jobs:
             "s3://$BUCKET/releases/${RELEASE_SHA:-$GITHUB_SHA}"
 
       - name: Verify the uploaded release before switching traffic
+        if: steps.live.outputs.deploy == 'true'
         env:
           BUCKET: ${{ vars.AWS_FRONTEND_BUCKET }}
         run: |
@@ -446,6 +521,7 @@ jobs:
 
       # 브라우저가 옛 진입 파일을 붙들지 않는지 — 대표 파일의 Cache-Control 을 본다(#3023).
       - name: Verify cache headers of the uploaded release
+        if: steps.live.outputs.deploy == 'true'
         env:
           BUCKET: ${{ vars.AWS_FRONTEND_BUCKET }}
         run: |
@@ -457,6 +533,7 @@ jobs:
       # 전환이 원자적이고, 직전 릴리스 객체가 그대로 남아 되돌릴 수 있다.
       - name: Switch CloudFront origin to the new release
         id: switch
+        if: steps.live.outputs.deploy == 'true'
         env:
           DISTRIBUTION_ID: ${{ vars.AWS_FRONTEND_DISTRIBUTION_ID }}
         run: |
@@ -498,6 +575,7 @@ jobs:
           echo "origin path: '${PREVIOUS}' -> '${NEW}'"
 
       - name: Invalidate CloudFront cache and verify deployment
+        if: steps.live.outputs.deploy == 'true'
         env:
           DISTRIBUTION_ID: ${{ vars.AWS_FRONTEND_DISTRIBUTION_ID }}
           SITE_URL: ${{ steps.site.outputs.site_url }}
@@ -589,6 +667,7 @@ jobs:
       # 릴리스를 남기고, 지금 서비스 중인 릴리스와 되돌아갈 직전 릴리스는 어떤 경우에도 지우지
       # 않는다. 삭제는 언제나 릴리스 루트 단위다. 규칙은 스크립트 한 곳에 있다.
       - name: Prune old releases
+        if: steps.live.outputs.deploy == 'true'
         env:
           BUCKET: ${{ vars.AWS_FRONTEND_BUCKET }}
           KEEP: '5'

@@ -6,7 +6,8 @@
 
   1) 모든 워크플로의 `run:` 에서 `x=$?` 를 따로 받는 줄을 찾아, `|| x=$?` 꼴이거나 `else`
      바로 다음이거나 앞에서 `set +e` 를 둔 경우만 허용하고,
-  2) 그 분기를 쓰는 step(프런트 배포 대기 두 개·pip-audit)을 실제로 `bash -e` 로 돌려
+  2) 그 분기를 쓰는 step(프런트 배포 대기 두 개·두 배포의 옛 커밋 가드(#3254)·pip-audit)을 실제로
+     `bash -e` 로 돌려
      가짜 명령이 0 이 아닌 값을 내도 다음 분기까지 가는지 확인한다.
 
 실행: python3 -m unittest discover -s tool/ci -p 'test_*.py'
@@ -27,6 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 WORKFLOWS = REPO_ROOT / ".github" / "workflows"
 AWS_DEPLOY = WORKFLOWS / "aws-frontend-deploy.yml"
 BACKEND_CI = WORKFLOWS / "backend-ci.yml"
+BACKEND_DEPLOY = WORKFLOWS / "backend-deploy.yml"
 
 BASH = shutil.which("bash")
 
@@ -150,6 +152,7 @@ class StepUnderErrexitTest(unittest.TestCase):
             [BASH, "-e", str(step)],
             cwd=cwd or self.work,
             env=full_env,
+            check=False,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -215,6 +218,93 @@ class StepUnderErrexitTest(unittest.TestCase):
         result, _ = self.backend_order([(11, "state=unknown\nbackend_sha=\n")])
         self.assertEqual(result.returncode, 1)
         self.assertIn("commit_sha", result.stdout)
+
+    # --- 옛 커밋 재배포 가드(#3254): 종료 코드 20 이 건너뜀이다.
+    def outputs(self) -> dict[str, str]:
+        text = self.output.read_text(encoding="utf-8") if self.output.exists() else ""
+        return dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
+
+    def guard_env(self, extra: dict[str, str]) -> dict[str, str]:
+        self.output = self.work / "github_output"
+        runner_temp = self.work / "_runner_temp"
+        runner_temp.mkdir(exist_ok=True)
+        env = {"GITHUB_OUTPUT": str(self.output), "RUNNER_TEMP": str(runner_temp)}
+        env.update(extra)
+        return env
+
+    def frontend_guard(self, event: str, outputs: list[tuple[int, str]]) -> subprocess.CompletedProcess:
+        # 판정 스크립트는 `git show $GITHUB_SHA:…` 로 꺼낸다. 가짜 git 이 가짜 스크립트를 내준다.
+        tool = self.work / "_fake_tool.sh"
+        self.sequenced_stub(tool, outputs)
+        self.git_calls = self.work / "git.calls"
+        self.stub(self.bin / "git", f'echo "$*" >> "{self.git_calls.as_posix()}"\n'
+                  f'[ "$1" = show ] && cat "{tool.as_posix()}"\n')
+        script = step_script(AWS_DEPLOY, "Skip a release that is already live or older")
+        env = self.guard_env({
+            "EVENT_NAME": event,
+            "DISTRIBUTION_ID": "E2EXAMPLE",
+            "RELEASE_SHA": "c" * 40,
+            "GITHUB_SHA": "d" * 40,
+        })
+        return self.run_step(script, env)
+
+    def test_frontend_guard_skips_an_older_release(self) -> None:
+        result = self.frontend_guard("workflow_run", [(20, "live_sha=" + "e" * 40 + "\nstate=older\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "false")
+        summary = self.summary.read_text(encoding="utf-8")
+        self.assertIn("deployment skipped", summary)
+        self.assertIn("e" * 40, summary)
+        self.assertIn("(older)", summary)
+        self.assertIn("show " + "d" * 40 + ":.github/scripts/deploy_freshness.sh",
+                      self.git_calls.read_text(encoding="utf-8"))
+
+    def test_frontend_guard_deploys_a_newer_release(self) -> None:
+        result = self.frontend_guard("workflow_run", [(0, "live_sha=" + "e" * 40 + "\nstate=newer\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "true")
+        self.assertEqual(self.summary.read_text(encoding="utf-8"), "")
+
+    def test_frontend_guard_fails_on_usage_error(self) -> None:
+        result = self.frontend_guard("workflow_run", [(1, "")])
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("deploy", self.outputs())
+
+    def test_frontend_guard_ignores_manual_runs(self) -> None:
+        result = self.frontend_guard("workflow_dispatch", [(20, "state=older\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "true")
+        self.assertFalse(self.git_calls.exists())
+
+    def backend_guard(self, event: str, outputs: list[tuple[int, str]]) -> tuple[subprocess.CompletedProcess, Path]:
+        tool = self.work / ".github" / "scripts" / "deploy_freshness.sh"
+        self.sequenced_stub(tool, outputs)
+        script = step_script(BACKEND_DEPLOY, "Skip a commit that is already live or older")
+        env = self.guard_env({
+            "EVENT_NAME": event,
+            "API_BASE_URL": "https://api.example.test/v1",
+            "SHA": "c" * 40,
+        })
+        return self.run_step(script, env), tool
+
+    def test_backend_guard_skips_the_same_commit(self) -> None:
+        result, tool = self.backend_guard("workflow_run", [(20, "live_sha=" + "c" * 40 + "\nstate=same\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.calls(tool), 1)
+        self.assertEqual(self.outputs().get("deploy"), "false")
+        self.assertIn("Backend deployment skipped", self.summary.read_text(encoding="utf-8"))
+        self.assertIn("(same)", self.summary.read_text(encoding="utf-8"))
+
+    def test_backend_guard_deploys_when_live_commit_is_unknown(self) -> None:
+        result, _ = self.backend_guard("workflow_run", [(0, "live_sha=none\nstate=unknown\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "true")
+
+    def test_backend_guard_ignores_manual_runs(self) -> None:
+        result, tool = self.backend_guard("workflow_dispatch", [(20, "state=older\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.calls(tool), 0)
+        self.assertEqual(self.outputs().get("deploy"), "true")
 
     # --- backend-ci.yml: Audit locked dependencies
     def audit(self, write_json: bool, code: int) -> subprocess.CompletedProcess:

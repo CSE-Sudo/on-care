@@ -430,9 +430,8 @@ class ApprovalTest(unittest.TestCase):
                 self.assertNotIn("::error", out)
 
     def test_label_flags_are_exclusive(self) -> None:
-        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-            with self.assertRaises(SystemExit):
-                dm.main(["--label-approved", "--stale-label", "x.py"])
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            dm.main(["--label-approved", "--stale-label", "x.py"])
 
 
 class WorkflowWiringTest(unittest.TestCase):
@@ -469,6 +468,7 @@ class ConsoleEncodingTest(unittest.TestCase):
                 path.write_text(source, encoding="utf-8")
                 result = subprocess.run(
                     [sys.executable, str(SCRIPT), str(path)],
+                    check=False,
                     capture_output=True,
                     env={**os.environ, "PYTHONIOENCODING": "cp949", "PYTHONUTF8": "0"},
                 )
@@ -509,6 +509,7 @@ class BaseDiffTest(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, str(SCRIPT), "--base", base],
                 cwd=repo,
+                check=False,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -525,6 +526,7 @@ class BaseDiffTest(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, str(SCRIPT), "--base", base],
                 cwd=repo,
+                check=False,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",

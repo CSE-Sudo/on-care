@@ -13,6 +13,9 @@
 # 사용:
 #   pages_demo_csp.sh narrow <index.html> [API_BASE_URL]   산출물의 connect-src 를 바꾼다
 #   pages_demo_csp.sh check  <index.html> [API_BASE_URL]   좁혀졌는지 확인한다
+# check 의 차단 기준은 운영 헤더 검사(frontend_security_headers.sh)와 같다(#3255) — scheme 전체
+# (https:·http:·wss:·ws:)·`*`·호스트가 `*` 인 출처(https://*·https://*:443·https://*/…)·http://·ws://
+# 평문 출처·localhost·127.0.0.1. 하위 도메인 묶음(https://*.example.com)은 허용한다.
 # API_BASE_URL 을 주면(실서버 빌드) 그 출처(`https://호스트[:포트]`)를 넣고·요구한다.
 set -euo pipefail
 # connect-src 의 `*` 가 파일 이름으로 펼쳐지지 않게 한다.
@@ -98,10 +101,10 @@ case "$cmd" in
     fi
     for source in $connect; do
       case "$source" in
-        https: | http: | '*' | 'https://*' | 'http://*')
+        https: | http: | wss: | ws: | '*' | *://\* | *://\*:* | *://\*/*)
           fail "$file: connect-src 가 좁혀지지 않았습니다('$source')." ;;
-        http://*)
-          fail "$file: connect-src 에 http 출처가 남아 있습니다('$source')." ;;
+        http://* | ws://*)
+          fail "$file: connect-src 에 평문(http·ws) 출처가 남아 있습니다('$source')." ;;
         *localhost* | *127.0.0.1*)
           fail "$file: connect-src 에 로컬 개발 주소가 남아 있습니다('$source')." ;;
       esac
