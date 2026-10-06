@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,8 +11,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 새 버전 안내 배너(#3023) — 회원 웹 탭이 열린 뒤 새 릴리스가 배포됐을 때만
 /// 그린다. 모바일 앱 빌드는 확인 자체가 꺼져 있어 그리지 않는다.
 ///
-/// 트레이너 웹과 같은 [AppBanner] 정보 톤이다. `새로고침` 은 페이지를 다시 읽고,
-/// 닫기는 같은 배포에 대해 이 탭에서 다시 띄우지 않는다.
+/// 트레이너 웹과 같은 [AppBanner] 정보 톤이다. `새로고침` 은 누르는 즉시 배너를
+/// 내리고 새 번들을 받아 페이지를 다시 읽는다(#3204). 닫기는 같은 배포에 대해 이
+/// 탭에서 다시 띄우지 않는다.
 class ReleaseUpdateBanner extends ConsumerWidget {
   /// Creates the banner.
   const ReleaseUpdateBanner({super.key});
@@ -48,7 +51,7 @@ class ReleaseUpdateBanner extends ConsumerWidget {
           title: l.releaseUpdateTitle,
           message: l.releaseUpdateMessage,
           actionLabel: l.releaseUpdateReload,
-          onAction: controller.reload,
+          onAction: () => unawaited(controller.reload()),
           trailing: AppIconButton(
             key: dismissKey,
             icon: AppIcons.close,

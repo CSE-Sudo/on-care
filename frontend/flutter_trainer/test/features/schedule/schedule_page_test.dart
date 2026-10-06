@@ -937,7 +937,7 @@ void main() {
         expect(find.text('무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.'), findsOneWidget);
 
         // 예전에는 이 자리가 눌리지 않는 안내였다("전송 API가 아직 없어…").
-        expect(find.text('김민수님에게 전송됨'), findsNothing);
+        expect(find.text('김민수님에게 보냄'), findsNothing);
         final send = find.byKey(
           const ValueKey<String>('schedule-send-program'),
         );
@@ -947,11 +947,11 @@ void main() {
         await tester.pumpAndSettle();
 
         // 보낸 뒤에는 같은 자리가 그 사실을 말하고, 다시 누를 수 없다.
-        expect(find.text('김민수님에게 전송됨'), findsWidgets);
+        expect(find.text('김민수님에게 보냄'), findsWidgets);
         final button = tester.widget<InkWell>(
           find
               .ancestor(
-                of: find.text('김민수님에게 전송됨').first,
+                of: find.text('김민수님에게 보냄').first,
                 matching: find.byType(InkWell),
               )
               .first,
@@ -1749,7 +1749,7 @@ void main() {
       await openSession(tester, '김민수'); // 완료 session with a program
       await revealInPanel(tester, find.textContaining('오늘 PT 프로그램'));
       expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
-      expect(find.text('김민수님에게 전송됨'), findsNothing);
+      expect(find.text('김민수님에게 보냄'), findsNothing);
     });
 
     testWidgets('a failed save shows a snackbar and keeps the sheet open', (

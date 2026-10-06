@@ -5,6 +5,7 @@ import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
 import 'package:oncare_trainer/core/network/client_platform.dart';
+import 'package:oncare_trainer/core/network/consent_gate.dart';
 import 'package:oncare_trainer/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
@@ -40,7 +41,11 @@ final dioProvider = Provider<Dio>((ref) {
     ..add(
       AcceptLanguageInterceptor(() => ref.read(trainerResolvedLocaleProvider)),
     )
-    ..add(authInterceptorFor(ref, retryClient: dio));
+    ..add(authInterceptorFor(ref, retryClient: dio))
+    // 필수 동의가 남은 트레이너는 서버가 403 으로 막는다 — 동의 화면으로 보낸다(#3155).
+    ..add(
+      ConsentRequiredInterceptor(() => ref.read(consentGateBridgeProvider)),
+    );
   // 담당이 해제된 회원의 404 를 로스터 재검증으로 잇는다(#2281).
   dio.interceptors.add(
     ClientAccessInterceptor(ref.watch(clientAccessLostProvider).report),

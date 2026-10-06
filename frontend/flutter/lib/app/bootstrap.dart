@@ -18,6 +18,7 @@ import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 import 'package:oncare/core/storage/seed_data.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Single entry point used by `main.dart`. Initializes binding,
@@ -27,6 +28,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// the app inside a [ProviderScope].
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 앱에 담긴 Pretendard 글꼴(OFL)을 오픈소스 라이선스 목록에 넣는다(#3150).
+  // 패키지 라이선스는 Flutter 가 모으지만 글꼴 같은 자산은 직접 넣어야 한다.
+  registerBundledLicenses();
   // 휴대폰은 세로로 고정한다. 태블릿·웹은 그대로 둔다(#3050).
   await applyPhoneOrientationLock();
 
@@ -67,12 +71,13 @@ Future<void> bootstrap() async {
   // 데모 시드와 목업 혜택 장부는 데모 모드에서만 깐다(#2914). drift 를 읽는
   // 소비자(로컬 인터셉터·목업 MY 저장소)가 모두 `useMockApi` 분기 안에만 있어,
   // 실서버 빌드가 시드하면 아무도 읽지 않는 데모 행을 기기에 써 넣기만 한다.
+  //
+  // 시드 함수는 기본 인자로 물려 있어, 상수 [kDemoCodeIncluded] 로 호출 자체를
+  // 감싸야 운영 릴리스 번들에서 시드가 빠진다(#3157).
   final db = AppDatabase();
-  final DemoBenefitsStore benefits = await prepareDemoStorage(
-    config,
-    db,
-    logger,
-  );
+  final DemoBenefitsStore benefits = kDemoCodeIncluded
+      ? await prepareDemoStorage(config, db, logger)
+      : DemoBenefitsStore.memory();
 
   // 전역 오류 처리기: 기기 로그에 남기고, 보고기가 켜져 있으면 에러 추적으로도 보낸다.
   installErrorHandlers(

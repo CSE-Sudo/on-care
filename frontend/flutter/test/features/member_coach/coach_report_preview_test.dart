@@ -211,7 +211,7 @@ void main() {
 
       expect(find.byType(CoachReportCard), findsOneWidget);
       expect(find.text('주간 리포트를 받았어요'), findsOneWidget);
-      expect(find.text('8월 17일 – 8월 23일'), findsOneWidget);
+      expect(find.text('8월 17일 ~ 8월 23일'), findsOneWidget);
       expect(find.text('PDF 미리보기'), findsOneWidget);
       // 본문 그대로의 말풍선은 그리지 않는다 — 같은 사건이 두 번 보인다.
       expect(find.text('이번 주 리포트입니다.'), findsNothing);

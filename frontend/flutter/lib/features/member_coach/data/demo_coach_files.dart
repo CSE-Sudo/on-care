@@ -62,7 +62,7 @@ const DemoCoachFile kDemoCoachSoupPhoto = DemoCoachFile(
   id: 'demo-coach-file-soup',
   kind: CoachAttachmentKind.image,
   fileName: 'soup-example.jpeg',
-  asset: 'assets/images/diet-doenjang-rice.jpeg',
+  asset: 'assets/demo/images/diet-doenjang-rice.jpeg',
   fileSize: 114516,
 );
 

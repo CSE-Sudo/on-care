@@ -20,14 +20,14 @@
 | Neon | 데이터베이스 운영(Postgres + pgvector) | 싱가포르(서버와 같은 리전) | 계정·프로필·식단(음식 사진 축소본 포함)·운동·건강 기록, 대화 기록, 검색 색인 | 탈퇴 또는 위탁 계약 종료 시까지 | `backend/docs/DEPLOY.md` 4·5절, `backend/.env.aws.example` `DATABASE_URL` |
 | Google LLC (Gemini API) | 음식 사진 인식, AI 코치 답변·추천, 개인 기록 검색 색인(임베딩), 트레이너 AI 프로그램·루틴 후보·리포트 요약 | 미국 등 Google 데이터센터 소재 국가 | 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치 대화, 트레이너가 입력한 코칭 조건과 담당 회원 운동 기록·주간 리포트 수치 | 요청 처리 후 수탁자 약관에서 정한 기간. **유료 등급 키 사용 전제**(#3032) — 무료 등급은 입력이 제공자의 서비스 개선에 쓰일 수 있어 이 표의 위탁 범위를 넘는다 | `config.py` `recognizer`·`coach_llm`·`embedder` 기본값 `gemini`, `backend/docs/DEPLOY.md` 5절 `GEMINI_API_KEY`, `rag_auto_ingest=True`(식단·운동 저장 때마다 색인), `services/trainer_report_summary_service.py`, `services/trainer_routine_options_service.py` |
 | Functional Software, Inc. (Sentry) | 앱·서버 오류 수집 | 미국 | 오류 내용, 기기·브라우저·운영체제 종류, 앱 버전. 이름·이메일·IP·헤더·쿠키·요청 본문·지역 변수는 보내기 전에 지운다 | 수탁자 보관 기간 | `backend/app/core/error_tracking.py`(`send_default_pii=False`, `scrub_event`), `frontend/flutter/lib/core/observability/error_reporter.dart`, 화면이 잡아서 처리한 오류도 같은 항목·같은 정리로 보낸다(`source=handled`, `frontend/flutter/lib/core/observability/handled_error.dart`, 연결 끊김·이미 지워진 항목 같은 예상된 실패는 보내지 않음), 트레이너 웹 `sentry_flutter` |
-| 주식회사 카카오 | 헬스장·장소 검색, 지도 표시 | 대한민국(국외 이전 아님) | 장소 검색 좌표(회원이 현재 위치를 허용한 경우 그 좌표), 검색어 | 수탁자 보관 기간 | `backend/app/services/places/kakao.py`, `services/trainer_gym_search.py`, `shared/oncare_kakao_map`, 두 앱 `web/index.html` CSP |
+| 주식회사 카카오 | 헬스장·장소 검색, 지도 표시 | 대한민국(국외 이전 아님) | 장소 검색 좌표(회원이 위치정보 이용에 동의하고 현재 위치를 허용한 경우 그 좌표), 검색어 | 수탁자 보관 기간 | `backend/app/services/places/kakao.py`, `services/trainer_gym_search.py`, `shared/oncare_kakao_map`, 두 앱 `web/index.html` CSP |
 
 국외 이전 동의는 따로 받지 않는다. 모두 계약 이행을 위한 처리 위탁·보관이라 「개인정보 보호법」
 제28조의8 제1항 제3호에 따라 처리방침 공개로 갈음한다(`backend/app/services/signup_consent.py`).
 
 **위탁 대상이 아닌 것**
 
-- 소셜 로그인(카카오·구글·네이버·애플): 회원이 고른 로그인 수단에서 식별자·이메일·이름을 **받는**
+- 소셜 로그인(카카오·구글): 회원이 고른 로그인 수단에서 식별자·이메일·이름을 **받는**
   쪽이라 위탁이 아니다. 처리방침 1항 수집 항목에 적는다.
 - 공공 식품영양성분 DB: 서버에 적재한 참조표(`food_nutrients`)를 조회할 뿐 외부로 보내지 않는다.
 - OpenAI·LiteLLM: 설정으로 고를 수 있지만 운영 기본값과 `backend/.env.aws.example` 은 Gemini 다.
@@ -45,6 +45,7 @@
 | 로그인 등 접속 기록(`audit_logs`, 일시·IP) | 1년 | 「통신비밀보호법」 로그인 기록 3개월 이상 | `config.py` `audit_retention_days=365` |
 | 트레이너 열람 기록, 데이터 공유 동의·철회, 탈퇴 기록 | 2년 | 「개인정보의 안전성 확보조치 기준」 처리 기록 | `config.py` `audit_sensitive_retention_days=730`, `services/audit.py` `SENSITIVE_EVENTS` |
 | 탈퇴 사유 | 회원과 잇지 않은 사유 코드·시각만 | 개인정보 아님 | `account_deletion_reasons` |
+| 위치정보 이용 동의·철회 기록 | 탈퇴 시까지(철회해도 행은 남고 철회 시각만 적는다) | 위치기반서비스 이용약관 제5조 ③ | `user_consents` (`kind=location`) |
 
 기간이 지난 감사 기록은 서버가 기동할 때와 그 뒤 하루마다 지운다(`services/retention.py` `run_purge`,
 `app/main.py` lifespan, #3144). 재시작 없이 오래 도는 서버에서도 고지한 보관 기간을 하루 넘게 넘기지 않는다.
@@ -85,7 +86,8 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 | 음식 사진 | ○ | — | `diet_photos` |
 | 채팅 첨부 사진·리포트 PDF | ○ | ○ | `chat_messages`, `config.py` `chat_image_storage_dir`·`report_pdf_storage_dir` |
 | 접속 기록(일시·IP) | ○ | ○ | `audit_logs.ip` |
-| 현재 위치 | 헬스장 찾기에서 허용한 경우만, 저장 안 함(서버 요청 로그에도 남지 않음) | — | `frontend/flutter/.../gym_location_controller.dart`, `GET /places/nearby` |
+| 현재 위치 | 헬스장 찾기에서 위치정보 이용에 동의(#3136)하고 OS 권한을 허용한 경우만, 저장 안 함(서버 요청 로그에도 남지 않음). 동의 전에는 OS 권한도 묻지 않는다 | — | `frontend/flutter/.../gym_location_controller.dart`·`location_consent_controller.dart`, `GET /places/nearby` |
+| 위치정보 이용 동의·철회 기록 | ○(선택 동의 `location`, 문서 버전·동의 시각·철회 시각) | — | `user_consents`, `GET`·`PUT`·`DELETE /users/me/consents/location` |
 | 상담·예약 신청 내용(운동 목표·희망 일시·문의 내용) | ○ | ○(받는 쪽) | `consultation_requests`, `trainer_reservations` · iOS 매니페스트 `NSPrivacyCollectedDataTypeOtherUserContent`(계정 연결) |
 | 서버 요청 로그 | method·경로(쿼리 제외)·상태·소요시간·요청 id 만. IP·쿼리(위치 좌표·검색어)·본문은 없음 | 같음 | `app/core/observability.py` `app.access`, `scripts/start.sh` `--no-access-log`(#3031) |
 | 오류 정보 | ○ | ○ | Sentry(1절) · iOS 매니페스트 `NSPrivacyCollectedDataTypeCrashData`·`NSPrivacyCollectedDataTypeOtherDiagnosticData`(세션 추적·기기 종류·운영체제·앱 버전, 계정 미연결) |
@@ -130,6 +132,7 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 | --- | --- | --- |
 | 개인정보 처리방침 | `/legal/privacy.html` | 두 앱 ARB `myLegalPrivacyBody`(회원·트레이너, 한국어·영문) |
 | 이용약관 | `/legal/terms.html` | 두 앱 ARB `myLegalTermsBody` |
+| 위치기반서비스 이용약관 | `/legal/location.html` | 회원 앱 ARB `myLegalLocationBody`(한국어·영문, #3136). 위치는 회원 앱만 쓴다 |
 
 - 랜딩 바닥글의 "개인정보 처리방침" 링크는 다른 링크보다 눈에 띄게(굵게) 둔다.
 - 페이지는 생성물이라 손으로 고치지 않는다. 모양은 랜딩 `index.html` 의 `:root` 토큰·글꼴·로고를

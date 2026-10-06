@@ -432,7 +432,7 @@ void main() {
           'Cardio',
           'of goal',
           '50%',
-          '640kcal',
+          '640 kcal',
           '75 min',
           'Weekly goal 150 min',
         ]),

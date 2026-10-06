@@ -52,6 +52,7 @@ from app.schemas.user import (
     ConsentStatus,
     ConsentSubmit,
     MemberPasswordChange,
+    OptionalConsentState,
     PasswordChanged,
     PasswordResetConfirm,
     PasswordResetDone,
@@ -144,6 +145,72 @@ def submit_consents(
     db.commit()
     pending = signup_consent.pending_kinds(db, user)
     return ConsentStatus(consent_required=bool(pending), consent_pending=pending)
+
+
+def _optional_state(
+    db: Session, user: User, kind: signup_consent.OptionalKind
+) -> OptionalConsentState:
+    row = signup_consent.optional_state(db, user.id, kind)
+    return OptionalConsentState(
+        kind=kind,
+        agreed=signup_consent.is_agreed(db, user.id, kind),
+        current_version=signup_consent.CURRENT_VERSIONS[kind],
+        version=row.version if row is not None else None,
+        agreed_at=row.agreed_at if row is not None else None,
+        revoked_at=row.revoked_at if row is not None else None,
+    )
+
+
+@router.get(
+    "/users/me/consents/{kind}", response_model=OptionalConsentState
+)
+def get_optional_consent(
+    kind: signup_consent.OptionalKind,
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> OptionalConsentState:
+    """선택 동의(위치정보 이용 등)의 지금 상태. (#3136)
+
+    회원 앱 헬스장 찾기가 위치를 쓰기 전에, MY 의 동의 스위치가 그리기 전에 읽는다.
+    선택 항목이 아닌 값은 경로에서 422 다 — 필수 항목은 이 경로로 거두지 못한다.
+    """
+    return _optional_state(db, user, kind)
+
+
+@router.put(
+    "/users/me/consents/{kind}", response_model=OptionalConsentState
+)
+def agree_optional_consent(
+    kind: signup_consent.OptionalKind,
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> OptionalConsentState:
+    """선택 동의를 지금 버전으로 남긴다. (#3136)
+
+    이미 지금 버전에 동의해 있으면 처음 동의한 시각을 그대로 둔다. 철회했던 동의는
+    되살리고 다시 동의한 시각을 적는다([signup_consent.record]).
+    """
+    signup_consent.record(db, user.id, [kind])
+    db.commit()
+    return _optional_state(db, user, kind)
+
+
+@router.delete(
+    "/users/me/consents/{kind}", response_model=OptionalConsentState
+)
+def revoke_optional_consent(
+    kind: signup_consent.OptionalKind,
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> OptionalConsentState:
+    """선택 동의를 철회한다 — 행은 남기고 철회 시각만 적는다. (#3136)
+
+    동의한 적이 없거나 이미 철회했어도 200 이다. 앱이 같은 요청을 다시 보내도
+    결과가 같다.
+    """
+    signup_consent.revoke(db, user.id, kind)
+    db.commit()
+    return _optional_state(db, user, kind)
 
 
 @router.get("/users/me/health", response_model=UserHealth)

@@ -32,18 +32,24 @@ import 'package:oncare_ui/oncare_ui.dart';
 // lives next door. `part` keeps the `_Client` family private to this
 // library rather than making the shapes public just to split a file.
 part 'seed_clients.dart';
+part 'seed_rings.dart';
 part 'seed_text_en.dart';
+part 'seed_workouts.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v54']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v55']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
 ///
-/// `_v54` 는 시드 문구의 표기를 정리했다(#3201·#3202) — 운동 이름 `런닝`→`러닝`,
+/// `_v55` 는 시드 문구의 표기를 정리했다(#3201·#3202) — 운동 이름 `런닝`→`러닝`,
 /// `이행률`→`완료율`, PT 메모의 `수업`·`세션`→`PT`, 알림 제목. 올리지 않으면 오늘
 /// 이미 시드된 브라우저가 자정까지 옛 표기를 보인다.
+///
+/// `_v54` 는 회원별 개인운동·운동 기록을 실서버 시드와 맞추고(#3003), 회원마다
+/// 받은 개인운동 기간 수를 다르게 심었다(#2508, `seed_rings.dart`). 올리지 않으면
+/// 오늘 이미 시드된 브라우저의 운동 탭 `전체` 에 링이 하나도 없다.
 ///
 /// `_v51` 은 이번 주 이행률 계열의 뜻을 바꿨다(#2513) — 걸린 것이 없는 날과
 /// 아직 오지 않은 날은 null, 0 은 "걸렸는데 하나도 안 했다" 다. 올리지 않으면
@@ -215,7 +221,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v54') == today &&
+  if (await db.readValue('trainer_seeded_v55') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -505,23 +511,38 @@ Future<void> seedIfEmpty(
             ),
         ]);
 
-        final List<_History> history = fromFixture
-            ? fixtureClient.history
-            : client.history;
+        // 김민수는 픽스처의 날짜 그대로, 다른 회원의 이력은 실서버 시드
+        // (`seed_member_data._history_days`)처럼 리포트 이력 주마다 같은
+        // 요일에 한 번씩이다 — 한 번만 두면 지난 주들에 PT 기록이 없어 A/B
+        // 추천 근거가 실서버와 갈렸다(#3003).
+        final List<(int, _History)> history = fromFixture
+            ? <(int, _History)>[
+                for (final _History h in fixtureClient.history) (h.daysAgo, h),
+              ]
+            : _weeklyHistory(client);
         b.insertAll(db.clientRoutineHistory, <ClientRoutineHistoryCompanion>[
-          for (var i = 0; i < history.length; i++)
+          for (final (int i, (int daysAgo, _History h)) in history.indexed)
             ClientRoutineHistoryCompanion.insert(
-              id: 'seed-history-${client.id}-$i',
+              id: fromFixture
+                  ? 'seed-history-${client.id}-$i'
+                  : 'seed-history-${client.id}-$daysAgo',
               clientId: 'seed-client-${client.id}',
-              dateLabel: _historyLabel(now, history[i].daysAgo, t),
-              label: t(history[i].label),
-              completionRate: history[i].completionRate,
-              exercisesJson: jsonEncode(t.exercises(history[i].exercises)),
-              clientFeedback: Value(t(history[i].clientFeedback)),
-              trainerNote: Value(t(history[i].trainerNote)),
-              sortOrder: Value(i),
-              completedAt: Value(_daysBefore(now, history[i].daysAgo)),
+              dateLabel: _historyLabel(now, daysAgo, t),
+              label: t(h.label),
+              completionRate: h.completionRate,
+              exercisesJson: jsonEncode(t.exercises(h.exercises)),
+              clientFeedback: Value(t(h.clientFeedback)),
+              trainerNote: Value(t(h.trainerNote)),
+              // 하루치 개인운동 카드와 함께 최신 먼저 선다(#3003).
+              sortOrder: Value(
+                fromFixture
+                    ? i
+                    : _historyOrder(daysAgo, pt: h.label.startsWith('PT')),
+              ),
+              completedAt: Value(_daysBefore(now, daysAgo)),
             ),
+          // 하루치 `개인운동` 카드 — 그날 개인운동 완료에서 만든다(#3003).
+          if (!fromFixture) ..._personalCards(client, now, t),
         ]);
 
         b.insertAll(
@@ -905,6 +926,10 @@ Future<void> seedIfEmpty(
     }
     await writeDemoScheduleConsultations(db);
 
+    // PT 수업을 받은 회원의 끝난 지난 수업마다 PT 이력과 운동 행(#3003). 수업
+    // 날은 위에서 심은 일정이 정한다.
+    await _seedPtPrograms(db, now, t);
+
     // 신체·목표는 저장된 값이 없는 회원에게만 넣는다 — 트레이너가 고친 값은
     // 날이 바뀌어도 남는다(#2597).
     await seedDemoHealthProfiles(db);
@@ -913,7 +938,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v54', today);
+    await db.putValue('trainer_seeded_v55', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -1132,11 +1157,16 @@ class _Routine {
     this.reps = 0,
     this.holdSeconds = 0,
     this.weight = 0,
+    this.intensity = 'moderate',
   });
   final String name;
   final int minutes;
   final String type;
   final String reason;
+
+  /// 처방 강도 — `light` | `moderate` | `high`(#3003). 회원별로 섞는다. 백엔드
+  /// `seed_workouts.ROUTINES` 와 같은 값이다.
+  final String intensity;
 
   /// 근력의 세트·횟수(또는 버티는 초)·중량(kg). 다른 유형은 0 이다. (#2705)
   final int sets;
@@ -1144,6 +1174,34 @@ class _Routine {
   final int holdSeconds;
   final double weight;
 }
+
+/// 시드 AI 개인운동 행([ClientAiRoutines])의 처방 강도(#3003). 그 표에는 강도
+/// 칸이 없어 시드 표([_Routine.intensity])에서 읽는다 — 행 id 는
+/// `seed-airoutine-{회원 번호}-{순번}` 이다. 모르는 행은 `moderate` 다.
+String seedAiRoutineIntensity(String rowId) {
+  final RegExpMatch? m = RegExp(
+    r'^seed-airoutine-(\d+)-(\d+)$',
+  ).firstMatch(rowId);
+  if (m == null) return 'moderate';
+  final int id = int.parse(m.group(1)!);
+  final int index = int.parse(m.group(2)!);
+  for (final _Client c in _clients) {
+    if (c.id != id) continue;
+    return index < c.aiRoutine.length
+        ? c.aiRoutine[index].intensity
+        : 'moderate';
+  }
+  return 'moderate';
+}
+
+/// 기록이 하나도 없는 신규 회원인가(임도현) — 개인운동은 **오늘 보낸** 것으로만
+/// 건다(#3003). 서버 시드(`seed_roster._seed_new_member_routines`)와 같다.
+bool seedClientIsNew(String clientId) => _clients.any(
+  (_Client c) =>
+      'seed-client-${c.id}' == clientId &&
+      c.weekCompletion.isNotEmpty &&
+      c.weekCompletion.every((int v) => v == 0),
+);
 
 /// 김민수의 개인 운동 — **공유 픽스처**가 정한다. (#1170)
 ///
@@ -1565,7 +1623,10 @@ Iterable<_SeedDay> _seedDays(_Client client, DateTime now) sync* {
     final calorieFactor = _calorieFactors[back % _calorieFactors.length];
     final sodiumFactor = _sodiumFactors[back % _sodiumFactors.length];
     final sugarFactor = _sugarFactors[back % _sugarFactors.length];
-    final doneFactor = _completionFactors[back % _completionFactors.length];
+    // 받은 개인운동 기간의 흐름(#2508)도 곱한다 — 실서버 시드와 같은 산식이다.
+    final doneFactor =
+        _completionFactors[back % _completionFactors.length] *
+        _ringTrend(client.id, back);
     // 이번 주는 오늘까지만, 지난 주들은 일요일까지 — 지난 주에 '아직 오지 않은
     // 요일'은 없다.
     final anchor = back == 0 ? todayIndex : 6;
@@ -1615,22 +1676,82 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
       proteinG: Value(_macroGrams(d.calories, shares.protein, 4)),
       fatG: Value(_macroGrams(d.calories, shares.fat, 9)),
       mealCount: Value(_mealCountOf(d.calories)),
-      // 배정 수는 그날 루틴의 길이다 — 한 것만 담는 `exercisesJson` 과 달리
-      // 안 한 것까지 센 분모라, 이행률 0 인 날도 `0 / 3회` 로 선다.
-      assignedCount: Value(_routineFor(client.id, d.day, 100).length),
+      // 배정 수는 그날 걸린 개인운동 수다 — 한 것만 담는 `exercisesJson` 과
+      // 달리 안 한 것까지 센 분모라, 이행률 0 인 날도 `0 / 3회` 로 선다.
+      assignedCount: Value(client.aiRoutine.length),
+      // 그날 한 운동(#3003) — PT 이력의 운동, 이행률만큼의 개인운동, 회원이 직접
+      // 적은 운동. 줄마다 출처·소모 kcal·강도를 싣는다(김민수 픽스처와 같은
+      // 모양). PT 수업 운동은 일정을 심은 뒤에 더한다([_seedPtPrograms]).
       exercisesJson: Value(
-        jsonEncode(
-          d.date == today
-              ? _todayRows(
-                  client,
-                  _exercisesFor(client, d.completion, t, today: true),
-                  t,
-                )
-              : t.exercises(_routineFor(client.id, d.day, d.completion)),
-        ),
+        jsonEncode(<Map<String, Object?>>[
+          ...?_historyRows(client, now, d.date, t),
+          if (_seedsPersonalOn(client, d.date, today))
+            ..._personalRows(client, d.completion, t),
+          if (d.date != today) ..._memberLogRows(client, d.date, t),
+        ]),
       ),
     );
   }
+}
+
+/// 그날 손으로 적은 이력(이지수·박성호의 PT 세션)에서 한 운동 → 운동 행. 그날
+/// 이력이 없거나 한 운동이 없으면 null 이다. (#2508)
+///
+/// 김민수 픽스처의 운동 행과 같은 모양이다 — 이력과 같은 이름이라 펼친 날의
+/// 줄마다 소모 kcal·강도가 서고, PT 는 `trainer_pt` 출처로 그 이력에 붙는다.
+/// 예전에는 요일 루틴을 실어 이력과 다른 운동을 말했다 — 줄은 비고 합계만 그
+/// 운동을 셌다.
+List<Map<String, Object?>>? _historyRows(
+  _Client client,
+  DateTime now,
+  DateTime date,
+  _SeedText t,
+) {
+  for (final (int daysAgo, _History h) in _weeklyHistory(client)) {
+    if (_daysBefore(now, daysAgo) != date) continue;
+    final bool pt = h.label.startsWith('PT');
+    final List<Map<String, Object?>> rows = <Map<String, Object?>>[
+      for (final Object item in t.exercises(h.exercises))
+        if (item is Map<String, Object?> && item['done'] != false)
+          <String, Object?>{
+            for (final MapEntry<String, Object?> e in item.entries)
+              if (e.key != 'done') e.key: e.value,
+            'calories': _seedKcal(item),
+            'source': pt ? 'trainer_pt' : 'assigned_routine',
+            'intensity': 'moderate',
+          },
+    ];
+    return rows.isEmpty ? null : rows;
+  }
+  return null;
+}
+
+/// 회원 이력 → (며칠 전, 이력). 리포트 이력 주마다 같은 요일에 한 번씩이고, 같은
+/// 날에 둘이 겹치면 앞의 것이다 — 실서버 `seed_member_data._history_days` 와 같다.
+List<(int, _History)> _weeklyHistory(_Client client) {
+  final Map<int, _History> byDay = <int, _History>{};
+  for (int week = 0; week < demoMetricsHistoryWeeks; week++) {
+    for (final _History h in client.history) {
+      byDay.putIfAbsent(h.daysAgo + week * 7, () => h);
+    }
+  }
+  return <(int, _History)>[
+    for (final MapEntry<int, _History> e in byDay.entries) (e.key, e.value),
+  ];
+}
+
+/// 운동 한 줄의 소모 kcal — 분 × 유형별 분당 소모(유산소 7·근력 6·스트레칭 3).
+/// 데모 주간 집계(`client_repository` 의 `_DemoKind`)와 서버 시드
+/// (`seed_member_logs._KCAL_PER_MINUTE`)가 같은 값으로 세어, 줄을 더하면
+/// 하루 합계가 된다.
+int _seedKcal(Map<String, Object?> row) {
+  final int minutes = (row['minutes'] as num?)?.toInt() ?? 0;
+  return minutes *
+      switch (row['type']) {
+        'strength' => 6,
+        'stretching' => 3,
+        _ => 7,
+      };
 }
 
 /// 끼니 수 → 그날 적은 끼니 자리(먹은 순서).
@@ -1784,167 +1905,6 @@ List<int> _split(int total, List<num> weights) {
 
 /// 이번 주는 값을 그대로 두고(계수 1) 과거 주만 흔든다.
 int _scaled(num value, double factor) => (value * factor).round();
-
-/// 요일마다 다른 루틴. 한 고객이 한 주 내내 같은 운동만 하면 화면이 복사본
-/// 처럼 읽힌다 — 요일과 고객을 함께 돌려 서로 다른 조합이 나오게 한다.
-///
-/// 근력은 세트·횟수·중량을, 유산소는 시간을 단다(#1276) — 유형마다 재는
-/// 단위가 다르다. 맨몸 운동은 중량을 비운다: 적지 않은 값을 `0kg` 으로 적으면
-/// 트레이너가 정해 준 무게처럼 읽힌다. 버티는 운동은 회가 아니라 초다(#1969).
-///
-/// 문장이 아니라 **값까지 실린 객체**다(#2667) — 김민수의 픽스처와 같은 키라,
-/// 운동 현황이 그날 한 운동에서 유형별 분·칼로리·세트를 센다. 예전에는 이름
-/// 문장만 있어 운동 현황이 이행률에서 분과 유형 비율을 지어냈다. 근력의 분은
-/// 세트 × [kStrengthMinutesPerSet] 이다.
-final List<List<Map<String, Object?>>> _routinePool =
-    <List<Map<String, Object?>>>[
-      <Map<String, Object?>>[
-        _strength('스쿼트', 4, 10, weight: 50),
-        _strength('런지', 3, 12, weight: 10),
-        _strength('레그컬', 3, 12, weight: 35),
-      ],
-      <Map<String, Object?>>[
-        _strength('벤치프레스', 4, 8, weight: 50),
-        _strength('푸시업', 3, 15),
-        _strength('덤벨 플라이', 3, 12, weight: 10),
-      ],
-      <Map<String, Object?>>[
-        _strength('데드리프트', 4, 8, weight: 60),
-        _strength('바벨 로우', 3, 10, weight: 40),
-        _strength('풀업', 3, 8),
-      ],
-      <Map<String, Object?>>[
-        _strength('숄더 프레스', 4, 10, weight: 20),
-        _strength('사이드 레터럴', 3, 15, weight: 6),
-        _strength('페이스 풀', 3, 15, weight: 15),
-      ],
-      <Map<String, Object?>>[
-        <String, Object?>{'name': '러닝', 'type': 'cardio', 'minutes': 30},
-        <String, Object?>{'name': '사이클', 'type': 'cardio', 'minutes': 20},
-        _strength('코어 서킷', 3, 12),
-      ],
-      <Map<String, Object?>>[
-        _strength('레그프레스', 4, 12, weight: 70),
-        _strength('힙 쓰러스트', 3, 12, weight: 40),
-        _strength('카프 레이즈', 3, 20),
-      ],
-      <Map<String, Object?>>[
-        <String, Object?>{
-          'name': '플랭크',
-          'type': 'strength',
-          'minutes': 9,
-          'sets': 3,
-          'hold_seconds': 45,
-        },
-        _strength('버피', 3, 12),
-        _strength('마운틴 클라이머', 3, 20),
-      ],
-    ];
-
-/// 근력 운동 한 줄. 분은 세트 × 3분([kStrengthMinutesPerSet])이다.
-Map<String, Object?> _strength(
-  String name,
-  int sets,
-  int reps, {
-  num? weight,
-}) => <String, Object?>{
-  'name': name,
-  'type': 'strength',
-  'minutes': sets * 3,
-  'sets': sets,
-  'reps': reps,
-  'weight': ?weight,
-};
-
-/// 그날 **실제로 한** 운동 목록. 미수행은 싣지 않는다. (#1288)
-///
-/// 예전에는 이행률에 맞춰 ✓/✗ 를 매겼다. 실서버에서는 그 목록이 나올 수 없다 —
-/// 배정에 날짜가 없어 "그날 배정됐는데 안 했다" 를 만들 자리가 없고, 요일 칸은
-/// 회원의 운동 기록에서 온다. 데모가 실서버에 없는 화면을 보여 주면 안 된다.
-///
-/// 오늘만은 고객의 큐레이션된 운동 기록을 그대로 쓴다 — 같은 날을 리포트와
-/// 고객 상세의 운동 기록이 각각 다른 운동으로 보여 주면 안 된다.
-List<String> _exercisesFor(
-  _Client client,
-  int completion,
-  _SeedText t, {
-  bool today = false,
-}) {
-  if (completion <= 0) return const <String>[];
-  if (today && client.history.isNotEmpty) {
-    var best = client.history.first;
-    for (final entry in client.history) {
-      if ((entry.completionRate - completion).abs() <
-          (best.completionRate - completion).abs()) {
-        best = entry;
-      }
-    }
-    // 옮긴 뒤에 추린다 — 원문의 `✓` 를 뗀 이름은 번역 표의 키가 아니다.
-    return _doneNames(t.exercises(best.exercises));
-  }
-  return const <String>[];
-}
-
-/// 오늘 한 운동 이름 → 운동 행. 개인운동과 이름이 같은 것은 그 개인운동의
-/// 양(유형·분·세트·횟수·중량)을 싣는다(#2508) — 실서버에서 회원이 개인운동을
-/// 체크하면 그 값으로 운동 행이 남는다. 그래야 줄마다 소모 kcal 과 운동 시간이
-/// 선다. 개인운동이 아닌 이름은 적힌 그대로 둔다.
-List<Object> _todayRows(_Client client, List<String> names, _SeedText t) =>
-    <Object>[
-      for (final String name in names)
-        () {
-          for (final _Routine r in client.aiRoutine) {
-            final String routine = t(r.name);
-            if (name != routine && !name.startsWith('$routine ')) continue;
-            return <String, Object?>{
-              'name': routine,
-              'type': switch (r.type) {
-                '유산소' => 'cardio',
-                '근력' => 'strength',
-                '스트레칭' => 'stretching',
-                _ => 'other',
-              },
-              'minutes': r.minutes,
-              'intensity': 'moderate',
-              if (r.sets > 0) 'sets': r.sets,
-              if (r.reps > 0) 'reps': r.reps,
-              if (r.holdSeconds > 0) 'hold_seconds': r.holdSeconds,
-              if (r.weight > 0) 'weight': r.weight,
-            };
-          }
-          return name;
-        }(),
-    ];
-
-/// 시드의 운동 목록에서 **한 것만** 이름으로 추린다.
-///
-/// 값까지 실린 객체(#1902)와, 손으로 적어 둔 옛 표기(`이름 ✓` / `이름 ✗`)를 함께
-/// 받는다. 운동 기록 탭은 목록을 그대로 쓰고 리포트만 이름으로 추린다.
-List<String> _doneNames(List<Object> items) {
-  final List<String> names = <String>[];
-  for (final Object item in items) {
-    if (item is Map<String, Object?>) {
-      if (item['done'] == false) continue;
-      final Object? name = item['name'];
-      if (name is String && name.isNotEmpty) names.add(name);
-    } else if (item is String && !item.contains('✗')) {
-      names.add(item.replaceAll('✓', '').trim());
-    }
-  }
-  return names;
-}
-
-/// 요일·고객으로 고른 루틴에서 이행률만큼을 **한 것**으로 남긴다.
-List<Map<String, Object?>> _routineFor(
-  int clientId,
-  int weekday,
-  int completion,
-) {
-  if (completion <= 0) return const <Map<String, Object?>>[];
-  final items = _routinePool[(clientId + weekday) % _routinePool.length];
-  final done = (items.length * completion / 100).round().clamp(1, items.length);
-  return items.take(done).toList(growable: false);
-}
 
 /// 아직 오지 않은 요일을 지운다.
 ///
@@ -2942,7 +2902,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       note: '야근이 이어져서 운동 강도가 버거웠어요.',
     ),
   ],
-  // 이지수 — 잘 따라오는 쪽. 주말 기록만 자주 빠지고, 런닝 숨참·플랭크 피로가 차츰 풀린다.
+  // 이지수 — 잘 따라오는 쪽. 주말 기록만 자주 빠지고, 러닝 숨참·플랭크 피로가 차츰 풀린다.
   2: <_Feedback>[
     _Feedback(
       weeksAgo: 0,

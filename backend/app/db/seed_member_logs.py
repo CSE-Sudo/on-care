@@ -5,14 +5,17 @@
 그래서 실서버 데모 계정에서 회원 상세의 지난 날짜를 펼치면 끼니 카드가 한 줄뿐이고,
 운동 현황에는 유형별 막대·`N일 연속` 이 없고, 식단 분석·AI 식단 추천의 근거가 빈다.
 
-여기서는 최근 [LOG_DAYS] 일의 그 한 줄을 **같은 합계의 끼니 여럿**으로 나누고, 같은
-날의 루틴 기록(`RoutineHistory`)에서 운동 세션을 만든다. 트레이너 웹 데모(#2667,
-`frontend/flutter_trainer/lib/core/storage/seed_data.dart` 의 `_mealsOf`·
-`_routinePool`)와 같은 규칙이다 — 합계를 나누므로 리포트·로스터 지표는 그대로다.
+여기서는 최근 [LOG_DAYS] 일의 그 한 줄을 **같은 합계의 끼니 여럿**으로 나눈다.
+트레이너 웹 데모(#2667, `frontend/flutter_trainer/lib/core/storage/seed_data.dart` 의
+`_mealsOf`)와 같은 규칙이다 — 합계를 나누므로 리포트·로스터 지표는 그대로다.
 
-멱등: 나눈 끼니(`seed-meal-…`)가 있는 날은 건너뛰고, 운동 세션은 결정론적 id 로
-한 번만 넣는다. 회원이 직접 남긴 기록(한 줄 시드가 아닌 행)이 있는 날은 건드리지
-않는다.
+운동 세션은 여기서 만들지 않는다(#3003). 예전에는 그날 루틴 기록에서 요일 루틴을
+`member` 로 심어, 같은 날 개인운동·PT 와 다른 운동이 `직접 기록한 운동` 에 섰다.
+개인운동 완료는 `seed_roster`·`seed_member_data` 가, 회원이 직접 적은 운동은
+`seed_workouts.MEMBER_LOGS` 가 정한다. 이미 깔린 그 행은 지운다([_drop_routine_sessions]).
+
+멱등: 나눈 끼니(`seed-meal-…`)가 있는 날은 건너뛴다. 회원이 직접 남긴 기록(한 줄
+시드가 아닌 행)이 있는 날은 건드리지 않는다.
 """
 from __future__ import annotations
 
@@ -26,10 +29,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.week import monday_of
 from app.db.session import SessionLocal
 from app.models import models
-from app.services import exercise_activity, exercise_types
 
 logger = logging.getLogger(__name__)
 
@@ -180,52 +181,6 @@ _MEAL_TEMPLATES: dict[str, tuple[tuple[tuple[str, int, int, float, int], ...], .
     ),
 }
 
-#: 요일마다 다른 루틴 — 트레이너 웹 데모 `_routinePool` 과 같은 목록·순서다.
-#: (이름, 유형, 분, 세트, 횟수, 중량, 버티는 초). 근력의 분은 세트 × 3분이다.
-_ROUTINE_POOL: tuple[tuple[tuple[str, str, int, int | None, int | None, float | None, int | None], ...], ...] = (
-    (
-        ("스쿼트", "strength", 12, 4, 10, 50, None),
-        ("런지", "strength", 9, 3, 12, 10, None),
-        ("레그컬", "strength", 9, 3, 12, 35, None),
-    ),
-    (
-        ("벤치프레스", "strength", 12, 4, 8, 50, None),
-        ("푸시업", "strength", 9, 3, 15, None, None),
-        ("덤벨 플라이", "strength", 9, 3, 12, 10, None),
-    ),
-    (
-        ("데드리프트", "strength", 12, 4, 8, 60, None),
-        ("바벨 로우", "strength", 9, 3, 10, 40, None),
-        ("풀업", "strength", 9, 3, 8, None, None),
-    ),
-    (
-        ("숄더 프레스", "strength", 12, 4, 10, 20, None),
-        ("사이드 레터럴", "strength", 9, 3, 15, 6, None),
-        ("페이스 풀", "strength", 9, 3, 15, 15, None),
-    ),
-    (
-        ("러닝", "cardio", 30, None, None, None, None),
-        ("사이클", "cardio", 20, None, None, None, None),
-        ("코어 서킷", "strength", 9, 3, 12, None, None),
-    ),
-    (
-        ("레그프레스", "strength", 12, 4, 12, 70, None),
-        ("힙 쓰러스트", "strength", 9, 3, 12, 40, None),
-        ("카프 레이즈", "strength", 9, 3, 20, None, None),
-    ),
-    (
-        ("플랭크", "strength", 9, 3, None, None, 45),
-        ("버피", "strength", 9, 3, 12, None, None),
-        ("마운틴 클라이머", "strength", 9, 3, 20, None, None),
-    ),
-)
-
-#: 유형별 분당 소모 칼로리 — 트레이너 웹 데모와 같은 대략값이다. 데모 루틴에는
-#: 운동마다 잰 소모량이 없다.
-_KCAL_PER_MINUTE = {"cardio": 7, "strength": 6, "stretching": 3}
-
-_DAY_LABELS = ("월", "화", "수", "목", "금", "토", "일")
-
 
 def _safe_commit(db: Session) -> None:
     """동시 기동이 같은 id 를 경쟁 삽입한 UNIQUE 충돌만 넘긴다(다른 시드와 같다)."""
@@ -248,7 +203,7 @@ def seed_member_logs() -> None:
             if db.get(models.User, member_id) is None:
                 continue  # 계정 시드가 건너뛴 회원(이메일 충돌 등)
             split_daily_meals(db, member_id, number, today)
-            seed_routine_sessions(db, member_id, number, today)
+            _drop_routine_sessions(db, member_id)
         _safe_commit(db)
     finally:
         db.close()
@@ -383,98 +338,9 @@ def meals_for_day(
     return out
 
 
-def routine_for(number: int, day: date, completion: int):
-    """요일·회원으로 고른 루틴에서 이행률만큼을 **한 것**으로 남긴다(데모 `_routineFor`)."""
-    if completion <= 0:
-        return ()
-    items = _ROUTINE_POOL[(number + day.weekday()) % len(_ROUTINE_POOL)]
-    done = max(1, min(len(items), round(len(items) * completion / 100)))
-    return items[:done]
-
-
-def _rename_seed_sessions(db: Session, member_id: str) -> None:
-    """이미 넣은 시드 세션(`seed-log-ex-`)의 운동 이름을 지금 시드 표기로 고친다.
-
-    세션은 결정론적 id 로 한 번만 넣으므로, 표기를 바꿔도 이미 시드된 DB 에는 옛
-    이름이 남는다(#3201). 이름 외의 값(시간·세트·완료 시각)은 건드리지 않는다.
-    회원이 시드 세션을 고쳐 다른 이름을 적었으면 옛 표기가 아니라 그대로 남는다.
-    """
-    for row in db.scalars(
-        select(models.ExerciseSession).where(
-            models.ExerciseSession.user_id == member_id,
-            models.ExerciseSession.id.like(f"{SESSION_ID_PREFIX}{member_id}-%"),
-        )
-    ):
-        renamed = current_seed_text(row.name)
-        if renamed != row.name:
-            row.name = renamed
-
-
-def seed_routine_sessions(
-    db: Session, member_id: str, number: int, today: date
-) -> None:
-    """최근 [LOG_DAYS] 일의 루틴 기록에서 운동 세션을 만든다.
-
-    회원이 그날 이미 운동을 남겼으면(시드가 아닌 세션) 그날은 건너뛴다.
-    """
-    since = today - timedelta(days=LOG_DAYS - 1)
-    history = db.scalars(
-        select(models.RoutineHistory).where(
-            models.RoutineHistory.member_id == member_id,
-            models.RoutineHistory.date >= since.isoformat(),
-            models.RoutineHistory.date <= today.isoformat(),
-        )
-    ).all()
-    rate_by_day: dict[str, int] = {}
-    for h in history:
-        rate_by_day[h.date] = max(rate_by_day.get(h.date, 0), h.completion_rate or 0)
-    # 이미 있는 세션 — 시드 id 는 다시 넣지 않고, 회원이 직접 남긴 세션이 있는
-    # 날은 통째로 건너뛴다.
-    existing: set[str] = set()
-    member_days: set[str] = set()
-    first_week = monday_of(since).isoformat()
-    for sid, done_at in db.execute(
-        select(
-            models.ExerciseSession.id, models.ExerciseSession.completed_at
-        ).where(
-            models.ExerciseSession.user_id == member_id,
-            models.ExerciseSession.week_start >= first_week,
-        )
-    ).all():
-        existing.add(sid)
-        if sid.startswith(SESSION_ID_PREFIX) or done_at is None:
-            continue
-        local = done_at.astimezone(clock.SEOUL) if done_at.tzinfo else done_at
-        member_days.add(local.date().isoformat())
-    _rename_seed_sessions(db, member_id)
-    for day_str, rate in rate_by_day.items():
-        day = date.fromisoformat(day_str)
-        if day_str in member_days:
-            continue
-        monday = monday_of(day)
-        for k, (name, kind, minutes, sets, reps, weight, hold) in enumerate(
-            routine_for(number, day, rate)
-        ):
-            sid = f"{SESSION_ID_PREFIX}{member_id}-{day_str}-{k}"
-            if sid in existing:
-                continue
-            existing.add(sid)
-            strength = kind == exercise_types.STRENGTH
-            db.add(models.ExerciseSession(
-                id=sid,
-                user_id=member_id,
-                week_start=monday.isoformat(),
-                day_label=_DAY_LABELS[day.weekday()],
-                type=kind,
-                name=name,
-                minutes=minutes,
-                sets=sets if strength else None,
-                reps=reps if strength else None,
-                weight=weight if strength else None,
-                hold_seconds=hold if strength else None,
-                calories=minutes * _KCAL_PER_MINUTE.get(kind, 5),
-                intensity="moderate",
-                completed_at=exercise_activity.noon(day),
-                source="member",
-            ))
-
+def _drop_routine_sessions(db: Session, member_id: str) -> None:
+    """예전 시드가 요일 루틴으로 심은 `member` 세션을 지운다(멱등). (#3003)"""
+    db.query(models.ExerciseSession).filter(
+        models.ExerciseSession.user_id == member_id,
+        models.ExerciseSession.id.like(f"{SESSION_ID_PREFIX}%"),
+    ).delete(synchronize_session=False)

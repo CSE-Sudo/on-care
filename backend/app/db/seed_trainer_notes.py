@@ -49,14 +49,30 @@ _FOLLOW_UPS: tuple[tuple[str, str, int, str, int, int | None], ...] = (
 
 #: (회원, 며칠 전, 본문, 운동 기록 카드에서 남긴 메모인가, 분류 #2622). AI 근거 `트레이너 메모`
 #: (최근 14일)가 읽는다.
-_MEMOS: tuple[tuple[str, int, str, bool, str], ...] = (
-    ("user-sera", 3, "혈압약 복용 시간이 아침 7시로 바뀜. 고강도 인터벌은 당분간 빼기.", False, "life"),
-    ("user-yuna", 5, "무릎 굴곡 110°까지 통증 없음. 다음 주부터 스쿼트 깊이를 조금씩 늘리기.", False, "pain"),
-    ("user-junhyuk", 8, "야근은 주로 화·목. 그날은 15분 홈트로 대신하도록 안내함.", False, "life"),
-    ("user-taekyung", 2, "벌크업 중 체중은 주 0.3kg 증가가 목표. 저녁 탄수화물 늘리기로 합의.", False, "diet"),
-    ("user-jiho", 6, "회식이 있는 주는 점심을 가볍게 — 본인이 먼저 제안함.", False, "diet"),
-    ("user-kangseoyeon", 1, "주말 러닝은 혼자서도 꾸준히 이어 가는 중.", True, "exercise"),
+#: (회원, 며칠 전, 본문, 붙는 운동 기록, 분류). 붙는 기록은 운동 탭 그날 출처 줄이다
+#: (#2508, #3003) — `personal` 은 그날 하루치 개인운동, `member_log` 은 그날 회원이
+#: 직접 적은 운동, `pt_session` 은 그날 PT 이력. 빈 값은 회원 상세 메모다. 며칠 전이
+#: `_LAST_SATURDAY` 면 오늘 전의 가장 가까운 토요일이다(주말 러닝 날). 트레이너 웹
+#: 데모(`seed_trainer_notes.dart` 의 `_memos`)와 같다.
+_LAST_SATURDAY = -1
+
+_MEMOS: tuple[tuple[str, int, str, str, str], ...] = (
+    ("user-sera", 3, "혈압약 복용 시간이 아침 7시로 바뀜. 고강도 인터벌은 당분간 빼기.", "", "life"),
+    ("user-yuna", 5, "무릎 굴곡 110°까지 통증 없음. 다음 주부터 스쿼트 깊이를 조금씩 늘리기.", "", "pain"),
+    ("user-junhyuk", 8, "야근은 주로 화·목. 그날은 15분 홈트로 대신하도록 안내함.", "", "life"),
+    ("user-taekyung", 2, "벌크업 중 체중은 주 0.3kg 증가가 목표. 저녁 탄수화물 늘리기로 합의.", "", "diet"),
+    ("user-jiho", 6, "회식이 있는 주는 점심을 가볍게 — 본인이 먼저 제안함.", "", "diet"),
+    ("user-kangseoyeon", 1, "평일 개인운동 세 가지를 모두 채움. 전신 서킷은 지금 강도로 유지.", "personal", "exercise"),
+    ("user-woojin", _LAST_SATURDAY, "주말 러닝은 혼자서도 꾸준히 이어 가는 중.", "member_log", "exercise"),
+    ("user-jisu", 3, "데드리프트 힙 힌지 자세 교정 — 다음 수업도 55kg 유지.", "pt_session", "exercise"),
 )
+
+
+def _memo_day(today: date, days_ago: int) -> date:
+    """메모가 붙는 날. [_LAST_SATURDAY] 면 오늘 전의 가장 가까운 토요일이다."""
+    if days_ago == _LAST_SATURDAY:
+        return today - timedelta(days=(today.weekday() - 5) % 7 or 7)
+    return today - timedelta(days=days_ago)
 
 
 def _strength(name: str, sets: int, reps: int, weight: float) -> dict:
@@ -268,19 +284,21 @@ def seed_memos(db: Session, today: date, valid: set[str]) -> None:
         models.TrainerClientMemo.source.in_(("trainer", "exercise_memo")),
     ):
         return
-    for i, (member, days_ago, body, member_log, category) in enumerate(_MEMOS):
+    for i, (member, days_ago, body, ref, category) in enumerate(_MEMOS):
         if member not in valid:
             continue
-        day = today - timedelta(days=days_ago)
+        day = _memo_day(today, days_ago)
         at = _at(day, 22)
         db.add(models.TrainerClientMemo(
             id=f"seed-memo-note-{i}",
             trainer_id=TRAINER_ID,
             member_id=member,
             body=body,
-            source="exercise_memo" if member_log else "trainer",
-            ref_kind="day" if member_log else "",
-            ref_date=day.isoformat() if member_log else None,
+            source="exercise_memo" if ref else "trainer",
+            ref_kind=ref,
+            # PT 는 그날 PT 이력을 id 로 가리킨다(`seed_member_data._seed_history`).
+            ref_id=f"seed-hist-{member}-{day.isoformat()}" if ref == "pt_session" else None,
+            ref_date=day.isoformat() if ref else None,
             category=category,
             created_at=at,
             updated_at=at,

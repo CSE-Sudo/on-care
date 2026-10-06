@@ -410,6 +410,12 @@ abstract class AppLocalizations {
   /// **'The API address does not start with https:// (API_BASE_URL)'**
   String get misconfiguredBuildInsecureApiUrl;
 
+  /// Startup guard item: a release build without DEMO_BUILD turned on the sign-in screen's demo entry button. Keep the define names in parentheses as-is.
+  ///
+  /// In en, this message translates to:
+  /// **'The demo entry is shown on the sign-in screen without the demo build flag (SHOW_DEMO_ENTRY, DEMO_BUILD)'**
+  String get misconfiguredBuildDemoEntry;
+
   /// Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'.
   ///
   /// In en, this message translates to:
@@ -619,6 +625,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Social sign-in is coming soon. Please sign in with your email.'**
   String get authSocialComingSoon;
+
+  /// Shown when the browser blocks the Kakao sign-in pop-up window (#330).
+  ///
+  /// In en, this message translates to:
+  /// **'The sign-in window was blocked. Allow pop-ups for this site and try again.'**
+  String get authSocialPopupBlocked;
 
   /// No description provided for @authErrSignInFailed.
   ///
@@ -2747,13 +2759,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodySodiumOver.
   ///
   /// In en, this message translates to:
-  /// **'Sodium averaged {avg}mg a day, and went over the {target}mg goal on {days} days. Leaving half the broth behind saves 400-500mg a day.'**
+  /// **'Sodium averaged {avg} mg a day, and went over the {target} mg goal on {days} days. Leaving half the broth behind saves 400–500 mg a day.'**
   String reportBodySodiumOver(String avg, String target, int days);
 
   /// No description provided for @reportBodySodiumOk.
   ///
   /// In en, this message translates to:
-  /// **'Sodium averaged {avg}mg a day — comfortably inside the {target}mg goal.'**
+  /// **'Sodium averaged {avg} mg a day — comfortably inside the {target} mg goal.'**
   String reportBodySodiumOk(String avg, String target);
 
   /// No description provided for @reportBodyPraise.
@@ -2813,7 +2825,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyCaloriesOver.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — {pct}% above your {target}kcal goal, and over it on {days} days.'**
+  /// **'Calories averaged {avg} kcal a day — {pct}% above your {target} kcal goal, and over it on {days} days.'**
   String reportBodyCaloriesOver(
     String avg,
     String target,
@@ -2824,31 +2836,31 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyCaloriesUnder.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — {pct}% below your {target}kcal goal. Eating too little tends to cost muscle first.'**
+  /// **'Calories averaged {avg} kcal a day — {pct}% below your {target} kcal goal. Eating too little tends to cost muscle first.'**
   String reportBodyCaloriesUnder(String avg, String target, String pct);
 
   /// No description provided for @reportBodyCaloriesNearOver.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day, close to your {target}kcal goal, but went over it on {days} days.'**
+  /// **'Calories averaged {avg} kcal a day, close to your {target} kcal goal, but went over it on {days} days.'**
   String reportBodyCaloriesNearOver(String avg, String target, int days);
 
   /// No description provided for @reportBodyCaloriesOk.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — right around your {target}kcal goal.'**
+  /// **'Calories averaged {avg} kcal a day — right around your {target} kcal goal.'**
   String reportBodyCaloriesOk(String avg, String target);
 
   /// No description provided for @reportBodySugarOver.
   ///
   /// In en, this message translates to:
-  /// **'Sugar averaged {avg}g a day and went over the {target}g goal on {days} days.'**
+  /// **'Sugar averaged {avg} g a day and went over the {target} g goal on {days} days.'**
   String reportBodySugarOver(String avg, String target, int days);
 
   /// No description provided for @reportBodySugarOk.
   ///
   /// In en, this message translates to:
-  /// **'Sugar averaged {avg}g a day, inside the {target}g goal.'**
+  /// **'Sugar averaged {avg} g a day, inside the {target} g goal.'**
   String reportBodySugarOk(String avg, String target);
 
   /// No description provided for @reportBodyMemberPain.
@@ -3937,6 +3949,18 @@ abstract class AppLocalizations {
   /// **'On-Care Trainer · Version {version}'**
   String myAppVersion(String version);
 
+  /// Shown after the app version in the version row when the build has no build number (local run or test build) (#3226).
+  ///
+  /// In en, this message translates to:
+  /// **'Development build'**
+  String get buildInfoDevelopment;
+
+  /// Deploy time in the version row. The date is the build time converted to Korea Standard Time and formatted for the current locale (#3226).
+  ///
+  /// In en, this message translates to:
+  /// **'Deployed {date} KST'**
+  String buildInfoReleasedAt(String date);
+
   /// No description provided for @myAppName.
   ///
   /// In en, this message translates to:
@@ -3954,6 +3978,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Privacy Policy'**
   String get myLegalPrivacyTitle;
+
+  /// MY support row that opens the open-source license list (packages and the bundled Pretendard font, #3150).
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licenses'**
+  String get myOpenSourceLicensesTitle;
 
   /// No description provided for @myLegalTermsEffectiveDate.
   ///
@@ -3976,7 +4006,7 @@ abstract class AppLocalizations {
   /// Privacy policy body. {contact} is the privacy officer contact, filled from LegalContact.privacyOfficerEmail in shared/oncare_core (the single definition point, #3005).
   ///
   /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator handle reports and manage accounts, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 5, 2026: changed the contact address of the privacy officer\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 5, 2026'**
+  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n(5) Location: the trainer web does not receive your device\'s location information.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator handle reports and manage accounts, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 5, 2026: changed the contact address of the privacy officer, and added that the trainer web does not receive location information ((5) of section 1)\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 5, 2026'**
   String myLegalPrivacyBody(String contact);
 
   /// No description provided for @myPasswordChanged.
@@ -4176,6 +4206,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t search gyms. Please try again in a moment.'**
   String get myGymSearchFailed;
+
+  /// No description provided for @myGymLocateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Find near my location'**
+  String get myGymLocateAction;
+
+  /// No description provided for @myGymNearbyCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Gyms near your current location. Your location is not saved.'**
+  String get myGymNearbyCaption;
+
+  /// No description provided for @myGymNearbyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No gyms found within 2 km of your location. Try searching by name.'**
+  String get myGymNearbyEmpty;
+
+  /// No description provided for @myGymLocationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access to find gyms near you.'**
+  String get myGymLocationDenied;
+
+  /// No description provided for @myGymLocationBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access in your browser site settings, then try again.'**
+  String get myGymLocationBlocked;
+
+  /// No description provided for @myGymLocationDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on device location services, then try again.'**
+  String get myGymLocationDisabled;
+
+  /// No description provided for @myGymLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get your location. Try again or search by name.'**
+  String get myGymLocationUnavailable;
 
   /// No description provided for @myGymCurrent.
   ///
@@ -6391,7 +6463,7 @@ abstract class AppLocalizations {
   /// **'{name}'**
   String notifTplMemberOnly(String name);
 
-  /// Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.
+  /// Seoul wall-clock date and time of a session. month and day have no leading zero, time is 24-hour HH:mm.
   ///
   /// In en, this message translates to:
   /// **'{month}/{day} {time}'**
@@ -6546,6 +6618,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t confirm your social account. Please sign in again.'**
   String get myDeleteReauthSocialFailed;
+
+  /// Shown in the account-deletion confirmation when no social sign-in is configured for this build (#330).
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in isn\'t available in this version yet. Please contact support.'**
+  String get myDeleteReauthSocialUnavailable;
 
   /// No description provided for @myWithdrawReasonTitle.
   ///
@@ -6780,24 +6858,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Personal exercise completion'**
   String get coachRoutineAdherenceTitle;
-
-  /// No description provided for @coachRoutineAdherenceSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'All done on {full} of the past {days} days'**
-  String coachRoutineAdherenceSummary(int days, int full);
-
-  /// No description provided for @coachRoutineAdherenceLate.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} on {weekday} checked later'**
-  String coachRoutineAdherenceLate(String weekday, int count);
-
-  /// No description provided for @coachRoutineAdherenceFirstDay.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent today'**
-  String get coachRoutineAdherenceFirstDay;
 
   /// No description provided for @coachRoutineAdherenceCell.
   ///
@@ -8178,7 +8238,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionSugar.
   ///
   /// In en, this message translates to:
-  /// **'Some days went over the {target}g sugar goal. Start with drinks and snacks.'**
+  /// **'Some days went over the {target} g sugar goal. Start with drinks and snacks.'**
   String reportsActionSugar(String target);
 
   /// No description provided for @reportsActionLowCompletion.
@@ -8208,7 +8268,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionCalories.
   ///
   /// In en, this message translates to:
-  /// **'Intake is under the {target}kcal goal. Suggest one protein-led meal.'**
+  /// **'Intake is under the {target} kcal goal. Suggest one protein-led meal.'**
   String reportsActionCalories(String target);
 
   /// No description provided for @reportsAiGenerated.
@@ -8364,19 +8424,19 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfValueMg.
   ///
   /// In en, this message translates to:
-  /// **'{value}mg'**
+  /// **'{value} mg'**
   String reportsPdfValueMg(String value);
 
   /// No description provided for @reportsPdfValueKcal.
   ///
   /// In en, this message translates to:
-  /// **'{value}kcal'**
+  /// **'{value} kcal'**
   String reportsPdfValueKcal(String value);
 
   /// No description provided for @reportsPdfValueGram.
   ///
   /// In en, this message translates to:
-  /// **'{value}g'**
+  /// **'{value} g'**
   String reportsPdfValueGram(String value);
 
   /// No description provided for @reportsPdfValueDays.
@@ -8994,7 +9054,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMacroValueOfTarget.
   ///
   /// In en, this message translates to:
-  /// **'{name} {value} / {target}g'**
+  /// **'{name} {value} / {target} g'**
   String reportsMacroValueOfTarget(String name, int value, int target);
 
   /// No description provided for @reportsMacroShortfall.
@@ -9330,7 +9390,7 @@ abstract class AppLocalizations {
   /// No description provided for @summarySodium.
   ///
   /// In en, this message translates to:
-  /// **'Avg sodium {avg}mg · over the {basis} of {target}mg on {days} day(s)'**
+  /// **'Avg sodium {avg} mg · over the {basis} of {target} mg on {days} day(s)'**
   String summarySodium(String avg, String basis, String target, String days);
 
   /// No description provided for @summarySodiumOverTopic.
@@ -9342,13 +9402,13 @@ abstract class AppLocalizations {
   /// No description provided for @summarySodiumAvgTopic.
   ///
   /// In en, this message translates to:
-  /// **'avg sodium {avg}mg'**
+  /// **'avg sodium {avg} mg'**
   String summarySodiumAvgTopic(String avg);
 
   /// No description provided for @summarySugar.
   ///
   /// In en, this message translates to:
-  /// **'Avg sugar {avg}g · over the {basis} of {target}g on {days} day(s)'**
+  /// **'Avg sugar {avg} g · over the {basis} of {target} g on {days} day(s)'**
   String summarySugar(String avg, String basis, String target, String days);
 
   /// No description provided for @summarySugarOverTopic.
@@ -9360,13 +9420,13 @@ abstract class AppLocalizations {
   /// No description provided for @summarySugarAvgTopic.
   ///
   /// In en, this message translates to:
-  /// **'avg sugar {avg}g'**
+  /// **'avg sugar {avg} g'**
   String summarySugarAvgTopic(String avg);
 
   /// No description provided for @summaryCalories.
   ///
   /// In en, this message translates to:
-  /// **'Avg calories {avg}kcal · {pct}% {direction} the {basis} of {target}kcal'**
+  /// **'Avg calories {avg} kcal · {pct}% {direction} the {basis} of {target} kcal'**
   String summaryCalories(
     String avg,
     String basis,
@@ -9384,13 +9444,13 @@ abstract class AppLocalizations {
   /// No description provided for @summaryCaloriesAvg.
   ///
   /// In en, this message translates to:
-  /// **'Avg calories {avg}kcal'**
+  /// **'Avg calories {avg} kcal'**
   String summaryCaloriesAvg(String avg);
 
   /// No description provided for @summaryMacro.
   ///
   /// In en, this message translates to:
-  /// **'Avg {label} {avg}g · {pct}% {direction} the personal goal of {target}g'**
+  /// **'Avg {label} {avg} g · {pct}% {direction} the personal goal of {target} g'**
   String summaryMacro(
     String label,
     String avg,
@@ -9774,7 +9834,7 @@ abstract class AppLocalizations {
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'{kcal}kcal · protein {protein}g · sodium {sodium}mg'**
+  /// **'{kcal} kcal · protein {protein} g · sodium {sodium} mg'**
   String clientDietRecNutrition(String kcal, String protein, String sodium);
 
   /// 트레이너웹 AI 식단 추천의 끼니 배지 (#2379).
@@ -9786,8 +9846,50 @@ abstract class AppLocalizations {
   /// No description provided for @authForgotPassword.
   ///
   /// In en, this message translates to:
-  /// **'Forgot your password?'**
+  /// **'Forgot password?'**
   String get authForgotPassword;
+
+  /// Text button next to 'Forgot password?' on sign-in that opens the find-email screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot email?'**
+  String get authFindEmail;
+
+  /// No description provided for @findEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your email'**
+  String get findEmailTitle;
+
+  /// No description provided for @findEmailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the name and phone number you signed up with to find your email.'**
+  String get findEmailSubtitle;
+
+  /// No description provided for @findEmailAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Find email'**
+  String get findEmailAction;
+
+  /// Toast shown when the find-email button is pressed while the lookup is not available yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your email is coming soon.'**
+  String get findEmailComingSoon;
+
+  /// Placeholder of the phone field on trainer sign-up and find-email.
+  ///
+  /// In en, this message translates to:
+  /// **'010-0000-0000'**
+  String get signUpPhoneHint;
+
+  /// No description provided for @signUpPhoneHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Used to find your sign-up email if you forget it.'**
+  String get signUpPhoneHelper;
 
   /// No description provided for @passwordResetTitle.
   ///
@@ -9987,22 +10089,22 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send the code. Please try again shortly.'**
   String get signUpCodeRequestFailed;
 
-  /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023).
+  /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023). Plain wording for members and trainers, not deployment jargon (#3204).
   ///
   /// In en, this message translates to:
-  /// **'A new version is available'**
+  /// **'The app has been updated'**
   String get releaseUpdateTitle;
 
   /// Body of the new-release banner.
   ///
   /// In en, this message translates to:
-  /// **'Reload to get the latest version. Save anything you\'re working on first.'**
+  /// **'Refresh to switch to the latest version. Save anything you\'re working on first.'**
   String get releaseUpdateMessage;
 
-  /// Button that reloads the page to load the new release.
+  /// Button that hides the banner and reloads the page with the new release's files (#3204).
   ///
   /// In en, this message translates to:
-  /// **'Reload'**
+  /// **'Refresh'**
   String get releaseUpdateReload;
 
   /// Tooltip of the button that hides the new-release banner for this release.
@@ -10022,6 +10124,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The server is having a temporary problem. Please try again in a moment.'**
   String get errorServerTemporary;
+
+  /// Button on the gym card and title of the screen where an affiliated trainer edits the gym hours, phone and tags (#2700).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit gym info'**
+  String get myGymInfoEdit;
+
+  /// No description provided for @myGymInfoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown as-is on the gym list and detail in the member app. Any trainer at this gym can edit it, and the last save stays.'**
+  String get myGymInfoSubtitle;
+
+  /// No description provided for @myGymInfoCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym info members see'**
+  String get myGymInfoCardTitle;
+
+  /// No description provided for @myGymWeekdayHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekday hours'**
+  String get myGymWeekdayHours;
+
+  /// No description provided for @myGymWeekendHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekend hours'**
+  String get myGymWeekendHours;
+
+  /// No description provided for @myGymHoursHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 06:00 - 23:00'**
+  String get myGymHoursHint;
+
+  /// No description provided for @myGymPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Main phone'**
+  String get myGymPhone;
+
+  /// No description provided for @myGymPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 02-123-4567'**
+  String get myGymPhoneHint;
+
+  /// No description provided for @myGymTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get myGymTags;
+
+  /// No description provided for @myGymAddTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a tag...'**
+  String get myGymAddTag;
+
+  /// No description provided for @myGymTagsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet.'**
+  String get myGymTagsEmpty;
+
+  /// No description provided for @myGymInfoLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the gym info.'**
+  String get myGymInfoLoadFailed;
+
+  /// No description provided for @myGymInfoSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the gym info.'**
+  String get myGymInfoSaveFailed;
+
+  /// No description provided for @a11yRemoveGymTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove tag'**
+  String get a11yRemoveGymTag;
+
+  /// No description provided for @myGymTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown as chips on the gym card in the member app. Up to {max} tags, {length} characters each.'**
+  String myGymTagsHint(int max, int length);
+
+  /// No description provided for @myGymTagsFull.
+  ///
+  /// In en, this message translates to:
+  /// **'You can add up to {max} tags'**
+  String myGymTagsFull(int max);
+
+  /// No description provided for @myGymTagTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'A tag can be up to {length} characters'**
+  String myGymTagTooLong(int length);
+
+  /// No description provided for @myGymHoursWeekday.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekdays {hours}'**
+  String myGymHoursWeekday(String hours);
+
+  /// No description provided for @myGymHoursWeekend.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekends {hours}'**
+  String myGymHoursWeekend(String hours);
 }
 
 class _AppLocalizationsDelegate

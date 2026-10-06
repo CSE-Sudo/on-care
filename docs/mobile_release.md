@@ -5,32 +5,47 @@
 
 ## 1. 버전·빌드 번호 규칙
 
-버전은 `frontend/flutter/pubspec.yaml` 의 `version: <이름>+<번호>` 한 곳에서 정합니다.
-Android `versionName`/`versionCode`, iOS `CFBundleShortVersionString`/`CFBundleVersion` 은
-Flutter 가 이 값에서 채웁니다.
+버전 이름은 `frontend/flutter/pubspec.yaml` 의 `version: <이름>+<번호>` 중 `+` 앞에서 정하고,
+빌드 번호는 **릴리스 빌드가 자동으로 채웁니다**(#3226). Android `versionName`/`versionCode`,
+iOS `CFBundleShortVersionString`/`CFBundleVersion` 은 Flutter 가 이 두 값에서 채웁니다.
 
-| 부분 | 형식 | 올리는 때 |
+| 부분 | 형식 | 정하는 곳 |
 | --- | --- | --- |
-| 버전 이름 (`+` 앞) | `MAJOR.MINOR.PATCH` | 회원이 보는 변화가 있을 때. 기능 추가 → MINOR, 수정만 → PATCH, 첫 정식 출시 → `1.0.0` |
-| 빌드 번호 (`+` 뒤) | 양의 정수 | **스토어(Play Console·App Store Connect)에 올리는 빌드마다 1씩.** 버전 이름이 바뀌어도 0 으로 되돌리지 않는다 |
+| 버전 이름 (`+` 앞) | `MAJOR.MINOR.PATCH` | 사람이 pubspec 에서 올린다. 회원이 보는 변화가 있을 때. 기능 추가 → MINOR, 수정만 → PATCH, 첫 정식 출시 → `1.0.0` |
+| 빌드 번호 | 양의 정수 | **빌드하는 커밋까지의 커밋 수**(`git rev-list --count HEAD`). 워크플로가 `--build-number` 로 넣는다 |
 
-- 빌드 번호는 두 스토어에서 같은 값을 씁니다. 한 번 올린 번호는 다시 쓸 수 없습니다(업로드 거부).
-- 제출 빌드는 `--build-number` 로 덮어쓰지 않고, `pubspec.yaml` 을 올린 커밋을 main 에 넣은 뒤
-  그 커밋에서 빌드합니다. 그래야 스토어의 빌드와 저장소 이력이 1:1 로 맞습니다.
-- 커밋 제목 예: `chore(mobile): 1.0.1+12 릴리스 버전 갱신`.
+- 빌드 번호는 `.github/scripts/release_build_stamp.sh` 하나가 만듭니다. 서명 빌드(`member-app-release.yml`),
+  데모 Pages(`deploy.yml`), 운영 웹(`aws-frontend-deploy.yml`)이 모두 이 스크립트를 씁니다.
+  - main 에 병합할 때마다 커지므로 다음 릴리스 빌드의 번호는 늘 이전보다 큽니다.
+  - 워크플로마다 따로 세는 실행 번호가 아니라 커밋에 묶인 하나의 카운터라, 같은 커밋이면 어느 워크플로·
+    어느 앱에서 만들어도 같은 번호입니다. 번호만으로 웹 배포와 스토어 빌드를 맞춰 볼 수 있습니다.
+  - 서명 빌드는 pubspec 의 `+` 뒤 번호(예전에 손으로 올리던 값)를 하한으로 주어, 새 번호가 그보다 크지
+    않으면 멈춥니다. 커밋 수가 이미 훨씬 커서 오프셋은 두지 않습니다.
+  - 얕은 체크아웃에서는 커밋 수가 1 로 나오므로 스크립트가 멈춥니다. 번호를 만드는 잡의 체크아웃은
+    `fetch-depth: 0` 입니다.
+- 빌드 번호는 두 스토어에서 같은 값을 씁니다. 한 번 올린 번호는 다시 쓸 수 없습니다(업로드 거부). 같은
+  커밋으로 다시 빌드하면 같은 번호이므로, 다시 올려야 하면 새 커밋을 main 에 넣고 빌드합니다. 스토어의
+  빌드와 저장소 커밋이 1:1 로 맞습니다.
+- pubspec 의 `+` 뒤 번호는 로컬 빌드의 기본값으로만 남습니다. 올리지 않아도 됩니다.
+- 버전 이름 커밋 제목 예: `chore(mobile): 1.0.1 릴리스 버전 갱신`.
 
 ### 화면의 버전과 웹 배포
 
-회원 앱 MY → 설정 → 고객 지원 하단과 트레이너 웹 MY 하단의 `… · 버전 <이름>` 은 빌드에서
-읽은 버전 이름입니다(`package_info_plus`, 모바일은 `versionName`·`CFBundleShortVersionString`, 웹은
-빌드의 `version.json`). 번역 문구에 숫자를 적지 않습니다(#3047). 읽지 못하면 앱 이름만 보입니다.
+버전은 화면에 한 곳만 보입니다 — 회원 앱 MY → 설정 → 고객 지원 하단, 트레이너 웹 설정 → 고객 지원
+하단의 버전 줄입니다(#3047, #3226). 모양은 `<앱 이름> · 버전 <버전 이름> (<빌드 번호>) · <배포 일시> KST 배포`
+입니다(예: `On-Care · 버전 0.4.0 (7032) · 2026년 10월 5일 14:30 KST 배포`).
 
+- 버전 이름은 빌드에서 읽습니다(`package_info_plus`, 모바일은 `versionName`·`CFBundleShortVersionString`,
+  웹은 빌드의 `version.json`). 번역 문구에 숫자를 적지 않습니다(#3047).
+- 빌드 번호와 배포 일시는 빌드 때 `--dart-define=BUILD_NUMBER`·`--dart-define=RELEASE_DATE`(UTC ISO 8601)로
+  들어가고, 앱이 KST 로 바꿔 화면 언어에 맞춰 적습니다.
+- 두 define 이 없는 로컬 실행·테스트 빌드는 `<앱 이름> · 버전 <버전 이름> · 개발 빌드` 로 보입니다. 버전
+  이름과 빌드 번호를 모두 읽지 못하면 버전 칸이 빠집니다(예: `On-Care · 개발 빌드`).
 - 트레이너 웹(`frontend/flutter_trainer/pubspec.yaml`)도 같은 규칙으로 버전을 둡니다.
-- 배포 워크플로(Pages·AWS)는 `--build-name`·`--build-number` 를 주입하지 않습니다. 주입하면 저장소
-  이력과 배포물의 버전이 갈라집니다.
+- 배포 워크플로(Pages·AWS)는 `--build-number` 만 자동 번호로 넣고 `--build-name` 은 넣지 않습니다.
+  버전 이름은 저장소의 pubspec 과 늘 같습니다.
 - 회원이나 트레이너가 보는 변화가 있는 웹 배포 전에는 그 앱의 버전 이름을 위 표대로 올리는 커밋을
-  main 에 넣습니다. 웹만 배포할 때는 빌드 번호(`+` 뒤)를 올리지 않아도 됩니다. 빌드 번호는 스토어
-  업로드에만 씁니다.
+  main 에 넣습니다.
 
 ## 2. Android 릴리스 서명
 
@@ -73,7 +88,8 @@ flutter build appbundle --release --dart-define-from-file=config/release.json
 3. 키스토어 파일과 비밀번호는 **팀 비밀번호 관리자(공유 금고)** 에만 둡니다. 저장소·이슈·PR·
    채팅방·메일에 파일이나 값을 붙이지 않습니다.
 4. 릴리스를 빌드하는 사람은 금고에서 키스토어를 받아 저장소 밖에 두고 `key.properties` 를
-   로컬로 만듭니다. 빌드가 끝나면 공용 PC 에서는 둘 다 지웁니다.
+   로컬로 만듭니다. 빌드가 끝나면 공용 PC 에서는 둘 다 지웁니다. 스토어 제출 빌드는 가능하면
+   [7절](#7-서명-빌드-워크플로-3148)의 서명 빌드 워크플로로 만들어, 키를 개인 PC 에 받지 않습니다.
 5. 담당자가 바뀌면 금고 접근 권한을 넘기고, 유출이 의심되면 Play Console 에서 업로드 키를
    재설정합니다.
 
@@ -224,7 +240,10 @@ flutter build ipa --release --dart-define-from-file=config/release.json
 2. 빌드 전에 `bash tool/check_release_defines.sh config/release.json` 을 돌립니다. 키가 빠졌거나 형식이
    틀리면(`ENV` 가 `prod`·`staging` 이 아님, 목업, `http://`·예시·로컬 주소, DSN 없음, 데모 전용 스위치
    `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남음) 빌드하지 말라는 오류와 함께 멈춥니다.
-3. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
+3. `python3 ../tool/strip_demo_assets.py .` 로 pubspec 의 데모 전용 자산 구간(`# >>> demo-assets`)을 지웁니다.
+   데모 시드 사진·데모 대화 첨부가 스토어 빌드에 실리지 않게 합니다(#3157). 서명 빌드 워크플로는 이 단계를
+   빌드 직전에 돌립니다. 손으로 빌드했다면 끝난 뒤 `git checkout pubspec.yaml` 로 되돌립니다.
+4. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
 
 빌드 단계를 건너뛰어도 앱이 한 번 더 막습니다. 릴리스 모드에서 `ENV` 가 `prod`·`staging` 이 아니거나,
 데모 빌드 표시(`DEMO_BUILD=true`) 없이 목업이거나, API 주소가 `https://` 가 아니거나 예시·로컬
@@ -282,3 +301,106 @@ Play 스토어 웹 페이지)을 엽니다. iOS 는 App Store 의 앱 ID 가 필
 
 값이 없으면 iOS 업데이트 화면은 버튼 대신 "App Store 에서 On-Care 를 업데이트해 주세요" 문구만
 보입니다. 첫 iOS 제출 전에 ID 를 넣어 빌드하는 것을 권장합니다.
+
+## 7. 서명 빌드 워크플로 (#3148)
+
+스토어에 올릴 AAB·IPA 는 개인 PC 대신 `.github/workflows/member-app-release.yml` 로 만듭니다.
+어떤 커밋·SDK·define 으로 만든 바이너리인지 실행 기록과 빌드 정보(`build-info.txt`)로 남고,
+업로드 키를 여러 사람이 각자 PC 에 받아 둘 필요가 없어집니다. 스토어 업로드는 자동화하지 않습니다.
+2·3절의 로컬 빌드는 워크플로를 쓸 수 없을 때의 대안으로 남깁니다.
+
+### 실행
+
+| 방법 | 조건 | 앱 ENV |
+| --- | --- | --- |
+| Actions → Member app signed build → Run workflow(`workflow_dispatch`) | **main** 에서만 | 입력값(`prod` 기본, 내부 배포는 `staging`) |
+| 태그 `member-app-v<버전 이름>` 푸시 | 태그 커밋이 main 에 들어 있고, 이름이 `pubspec.yaml` 버전 이름과 같아야 함 | `prod` |
+
+```bash
+# pubspec.yaml 이 version: 1.0.1+12 인 main 커밋에서
+git tag member-app-v1.0.1
+git push origin member-app-v1.0.1
+```
+
+잡 순서:
+
+1. **Check signing secrets** — 실행 조건(main·태그 이름)을 확인하고, 빌드 번호(커밋 수)·배포 일시를
+   만들어 두 빌드 잡에 넘긴 뒤(1절), 아래 비밀이 묶음별로 **있는지만**
+   봅니다. 묶음의 비밀이 하나도 없으면 실패가 아니라 안내(notice)와 실행 요약을 남기고 그 빌드 잡을
+   건너뜁니다. 일부만 있으면 설정 실수로 보고 멈춥니다.
+2. **Signed AAB**(ubuntu) — define 파일을 쓰고 `tool/check_release_defines.sh` 로 검사한 뒤
+   (5절과 같은 규칙, 통과해야 빌드), 업로드 키로 서명한 번들을 만들고 디버그 키 서명이 아닌지 확인합니다.
+3. **Signed IPA**(macOS, iOS 비밀이 있을 때만) — 같은 검사 뒤, 임시 키체인에 배포 인증서를 넣고
+   Runner Release 설정만 수동 서명으로 바꿔(러너의 작업 사본만, `tool/ci/ios_release_signing.py`)
+   App Store 배포용 IPA 를 만듭니다. 저장소의 Xcode 프로젝트는 개발자 PC 의 자동 서명 그대로입니다.
+
+키스토어·`key.properties`·인증서·프로필·키체인·`config/release.json` 은 러너 임시 위치에만 만들고 잡이
+끝나면 지웁니다. 비밀 값은 `env` 로만 넘기고 셸 본문에 직접 넣지 않으며, 로그에 찍지 않습니다.
+
+### 산출물 확인
+
+실행 화면 하단 Artifacts 에서 내려받습니다(보관 30일).
+
+| 아티팩트 | 내용 |
+| --- | --- |
+| `member-app-aab-<버전 이름>-<실행 번호>` | `on-care-<버전 이름>.aab`, `build-info.txt` |
+| `member-app-ipa-<버전 이름>-<실행 번호>` | `on-care-<버전 이름>.ipa`, `build-info.txt` |
+
+`build-info.txt` 에는 pubspec 버전, 빌드 번호, 배포 일시, 커밋, 실행 주소, Flutter 버전, `ENV`, `API_BASE_URL`, define 키 목록,
+산출물 SHA-256, (AAB) 서명 인증서 소유자·지문, (IPA) 프로비저닝 프로필 UUID 가 있습니다. 비밀 값은
+적지 않습니다. 올리기 전에 커밋이 의도한 main 커밋인지, 서명 지문이 Play Console 의 **업로드 키**
+지문과 같은지 확인합니다.
+
+### Environment `mobile-release` 설정 (저장소 관리자)
+
+비밀은 저장소 비밀이 아니라 Environment `mobile-release` 에 둡니다. 운영 배포 Environment(`production`)와
+나누는 이유는, 그 Environment 의 AWS 역할 신뢰 조건을 태그 실행에 넓히지 않기 위해서입니다.
+
+- Deployment branches and tags: **Selected** — 브랜치 `main`, 태그 `member-app-v*`.
+- Required reviewers 를 켜면 실행마다 서명 비밀 확인과 빌드 잡(Android·iOS)이 각각 승인을 기다립니다.
+  스토어 업로드는 사람이 하므로 기본은 끄고, 필요하면 팀이 정합니다.
+- Environment 를 만들지 않고 실행하면 GitHub 이 보호 규칙 없는 빈 Environment 를 만들고, 비밀이 없으므로
+  두 빌드 잡은 건너뜁니다.
+
+**비밀(Secrets)** — 묶음별로 모두 넣거나 모두 비워 둡니다.
+
+| 이름 | 묶음 | 값 |
+| --- | --- | --- |
+| `ANDROID_UPLOAD_KEYSTORE_BASE64` | Android | 업로드 키스토어(`.jks`) 파일의 base64 |
+| `ANDROID_UPLOAD_STORE_PASSWORD` | Android | 키스토어 비밀번호(`key.properties` 의 `storePassword`) |
+| `ANDROID_UPLOAD_KEY_ALIAS` | Android | 키 별칭(`keyAlias`) |
+| `ANDROID_UPLOAD_KEY_PASSWORD` | Android | 키 비밀번호(`keyPassword`) |
+| `IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64` | iOS | Apple Distribution 인증서·개인 키를 내보낸 `.p12` 의 base64 |
+| `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` | iOS | `.p12` 내보내기 비밀번호 |
+| `IOS_PROVISIONING_PROFILE_BASE64` | iOS | 번들 ID `com.csesudo.oncare` 의 **App Store** 배포 프로비저닝 프로필(`.mobileprovision`)의 base64 |
+| `SENTRY_DSN_MEMBER` | 공통 | 회원 앱 Sentry DSN. 운영 웹 배포와 같은 이름이지만 Environment 비밀은 따로라 `mobile-release` 에도 넣습니다(#480). 비면 define 검사에서 멈춥니다 |
+
+iOS 프로필은 다른 앱·와일드카드·개발용·Ad Hoc 프로필이면 서명 단계에서 멈춥니다. 팀 ID 는 프로필에서 읽습니다.
+
+**변수(Variables)** — 비밀이 아닌 설정값입니다.
+
+| 이름 | define 키 | 필수 |
+| --- | --- | --- |
+| `MEMBER_APP_API_BASE_URL` | `API_BASE_URL` | 예 — `https://<운영 API 도메인>/v1` |
+| `MEMBER_APP_KAKAO_JS_KEY` | `KAKAO_JS_KEY` | 아니요(4절 헬스장 찾기 지도) |
+| `MEMBER_APP_KAKAO_MAP_ORIGIN` | `KAKAO_MAP_ORIGIN` | 아니요(4절) |
+| `MEMBER_APP_IOS_APP_STORE_ID` | `IOS_APP_STORE_ID` | 아니요(6절) |
+| `MEMBER_APP_KAKAO_NATIVE_APP_KEY` | `KAKAO_NATIVE_APP_KEY` | 아니요 — 카카오 로그인([social_login_setup.md](social_login_setup.md)) |
+| `MEMBER_APP_GOOGLE_WEB_CLIENT_ID` | `GOOGLE_WEB_CLIENT_ID` | 아니요 — 구글 로그인(Android·iOS 의 서버 client_id) |
+| `MEMBER_APP_GOOGLE_IOS_CLIENT_ID` | `GOOGLE_IOS_CLIENT_ID` | 아니요 — iOS 구글 로그인. 웹 client_id 와 함께 넣습니다 |
+
+`ENV` 는 실행 방법(위 표), `USE_MOCK_API` 는 `false` 로 워크플로가 정합니다.
+로그인 변수를 비우면 그 버튼은 '준비 중'으로 꺼진 채 빌드됩니다. iOS 잡은 같은 값으로 로그인 URL
+스킴 파일(`ios/Flutter/Social.xcconfig`)도 만듭니다.
+
+등록은 키 보관 담당자가 금고에서 파일을 받아 자기 PC 에서 바로 넣고, 파일은 넣은 뒤 지웁니다.
+값을 이슈·PR·채팅에 붙이지 않습니다.
+
+```bash
+base64 -i oncare-upload.jks | gh secret set ANDROID_UPLOAD_KEYSTORE_BASE64 --env mobile-release
+gh secret set ANDROID_UPLOAD_STORE_PASSWORD --env mobile-release   # 프롬프트에 입력
+gh variable set MEMBER_APP_API_BASE_URL --env mobile-release --body 'https://<운영 API 도메인>/v1'
+```
+
+워크플로의 실행 조건·비밀 게이트·키 정리·아티팩트 구성은 `tool/ci/test_member_app_release.py` 가
+병합 전에 검사합니다(PR gate).

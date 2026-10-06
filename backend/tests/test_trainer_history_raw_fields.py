@@ -506,9 +506,9 @@ def test_history_api_carries_raw_fields_alongside_korean_labels(client):
         # 한국어 옛 필드에는 영어가 섞이지 않는다
         assert "Today" not in entry["date_label"]
         assert "Yesterday" not in entry["date_label"]
-    # 시드의 AI 개인운동은 코드를 받는다
+    # 시드의 하루치 개인운동 카드는 코드를 받는다(#3003)
     assert any(
-        e["label"] == "AI 개인운동" and e["kind"] == "ai_personal" for e in hist
+        e["label"] == "개인운동" and e["kind"] == "personal_routine" for e in hist
     )
 
 

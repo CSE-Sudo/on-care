@@ -55,7 +55,7 @@ void _useTallSurface(WidgetTester tester) {
 
 String _rowLabel(DateTime d) {
   const List<String> weekdays = <String>['월', '화', '수', '목', '금', '토', '일'];
-  return '${d.month}월 ${d.day}일 (${weekdays[d.weekday - 1]})';
+  return '${d.month}/${d.day} (${weekdays[d.weekday - 1]})';
 }
 
 String _todayRowLabel() => _rowLabel(nowKst());
@@ -404,8 +404,29 @@ void main() {
       final seongho = await DriftClientRepository(
         db,
       ).watchHistory('seed-client-3').first;
-      expect(seongho.last.completionRate, 0); // 7/3 · all skipped
-      expect(seongho.first.trainerNote, contains('벤치 중량'));
+      // 손으로 적은 PT 이력과, 개인운동 완료에서 만든 하루치 카드(#3003).
+      final RoutineHistoryEntry pt = seongho.firstWhere(
+        (RoutineHistoryEntry e) => e.label.startsWith('PT'),
+      );
+      expect(pt.trainerNote, contains('벤치 중량'));
+      final List<RoutineHistoryEntry> personal = <RoutineHistoryEntry>[
+        for (final RoutineHistoryEntry e in seongho)
+          if (e.label == '개인운동') e,
+      ];
+      expect(personal, isNotEmpty);
+      // 한 것이 하나라도 있는 날만 카드가 선다 — 서버와 같다.
+      expect(
+        personal.every((RoutineHistoryEntry e) => e.completionRate > 0),
+        isTrue,
+      );
+      // 최신 먼저다.
+      final List<DateTime> days = <DateTime>[
+        for (final RoutineHistoryEntry e in seongho) e.completedAt!,
+      ];
+      expect(
+        days,
+        orderedEquals(<DateTime>[...days]..sort((a, b) => b.compareTo(a))),
+      );
     });
   });
 
