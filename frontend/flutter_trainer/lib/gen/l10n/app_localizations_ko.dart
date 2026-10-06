@@ -2908,22 +2908,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aiTagExisting => '기존 AI 추천';
-
-  @override
-  String get aiTagCustom => '맞춤';
-
-  @override
-  String get aiExistingBlurb => '회원의 최근 식단과 운동 기록을 반영한 기존 추천이에요.';
-
-  @override
   String get aiOptionRecovery => '회복안';
 
   @override
   String get aiOptionPush => '강화안';
-
-  @override
-  String get aiOptionExisting => '기존안';
 
   @override
   String get aiGenerateFailed => 'AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요';
@@ -3076,6 +3064,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String aiFindingAction(String action) {
     return '→ $action';
   }
+
+  @override
+  String get aiOptionNext => '연계안';
 
   @override
   String get aiChatEvidenceTitle => '참고한 최근 대화';

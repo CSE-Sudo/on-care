@@ -722,6 +722,12 @@ def test_generator_sends_the_requested_language_to_the_llm(
 ):
     llm = _CapturingLlm(_EN_LLM_JSON)
     monkeypatch.setattr(options_service, "build_member_analysis", lambda *_: _analysis())
+    # DB 없이 돈다 — 연계안 기준(#3282)은 기록 없음으로 둔다.
+    monkeypatch.setattr(
+        options_service,
+        "build_next_pt",
+        lambda *_a, **_k: options_service.routine_next_pt.choose_next([], today=options_service.clock.today()),
+    )
     monkeypatch.setattr(options_service, "get_coach_llm", lambda: llm)
     token = request_locale._request_locale_ctx.set(locale)
     try:
@@ -741,6 +747,12 @@ def test_generator_sends_the_requested_language_to_the_llm(
 
 def test_english_fallback_when_the_llm_breaks(monkeypatch):
     monkeypatch.setattr(options_service, "build_member_analysis", lambda *_: _analysis())
+    # DB 없이 돈다 — 연계안 기준(#3282)은 기록 없음으로 둔다.
+    monkeypatch.setattr(
+        options_service,
+        "build_next_pt",
+        lambda *_a, **_k: options_service.routine_next_pt.choose_next([], today=options_service.clock.today()),
+    )
     monkeypatch.setattr(
         options_service, "get_coach_llm", lambda: _CapturingLlm("not json")
     )

@@ -148,10 +148,6 @@ Future<void> _pumpFlow(
         supportedLocales: AppLocalizations.supportedLocales,
         home: const AiRoutineOptionsFlow(
           client: _client,
-          recommendedExercises: <RoutineExercise>[
-            RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
-          ],
-          recommendedReason: '기존 회원 데이터 기반 추천',
         ),
       ),
     ),

@@ -1950,12 +1950,8 @@
       }
     }
   },
-  "aiTagExisting": "Existing suggestion",
-  "aiTagCustom": "Custom",
-  "aiExistingBlurb": "The existing suggestion, based on their recent meals and workouts.",
   "aiOptionRecovery": "Recovery",
   "aiOptionPush": "Push",
-  "aiOptionExisting": "Existing",
   "aiGenerateFailed": "Couldn't generate with AI. Please try again in a moment",
   "aiGenerateInvalidConditions": "Check the generation conditions. Total time must be between {min} and {max} minutes",
   "@aiGenerateInvalidConditions": {
@@ -2085,6 +2081,7 @@
       }
     }
   },
+  "aiOptionNext": "Follow-up",
   "aiChatEvidenceTitle": "Recent conversation used",
   "aiChatEvidenceLink": "{count} conversation lines used",
   "@aiChatEvidenceLink": {

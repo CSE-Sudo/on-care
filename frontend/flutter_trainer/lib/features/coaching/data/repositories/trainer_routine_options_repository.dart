@@ -11,6 +11,7 @@ import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart' show josa;
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_next_pt.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
@@ -18,6 +19,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routin
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart'
     show sodiumTargetMg;
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
@@ -194,6 +196,23 @@ class MockTrainerRoutineOptionsRepository
       completion: completion,
       en: en,
     );
+    // C안 — 지난 PT 흐름상 이번 차례(#3282). 서버 규칙형 C안과 같은 규칙이고,
+    // 기록이 없으면 기본 분할 시작안이라 C안은 늘 있다.
+    final DemoNextPt next = chooseNextPt(
+      await _recentPtSessions(memberId),
+      today: nowKst(),
+      en: en,
+    );
+    final RoutinePlan planC = rulePlanC(
+      next,
+      availableMinutes: minutes,
+      intensityPreference: intensityPref,
+      completion: completion,
+      cautions: cautions,
+      escalate: escalate,
+      en: en,
+    );
+    findings.add(nextPtFinding(next, en: en));
     if (member != null && frequent.isNotEmpty) {
       return _patternOptions(
         member,
@@ -205,6 +224,7 @@ class MockTrainerRoutineOptionsRepository
         note: note,
         suffix: noteSuffix + safety,
         findings: findings,
+        planC: planC,
         en: en,
       );
     }
@@ -307,6 +327,7 @@ class MockTrainerRoutineOptionsRepository
       // 지금 데모 화면 그대로 규칙형이다 — `규칙 기반 생성` 꼬리표가 남는다.
       generatedBy: 'rule',
       findings: findings,
+      planC: planC,
     );
   }
 
@@ -357,6 +378,7 @@ class MockTrainerRoutineOptionsRepository
     required String note,
     required String suffix,
     required List<RoutineFinding> findings,
+    required RoutinePlan planC,
     required bool en,
   }) {
     String t(String ko, String english) => en ? english : ko;
@@ -430,6 +452,7 @@ class MockTrainerRoutineOptionsRepository
       ),
       generatedBy: 'rule',
       findings: findings,
+      planC: planC,
     );
   }
 
@@ -450,6 +473,55 @@ class MockTrainerRoutineOptionsRepository
         suggestedAvailableMinutes: member.suggestedMinutes,
         suggestedIntensity: member.suggestedIntensity,
       );
+
+  /// 최근 완료한 PT 의 프로그램, 최신 먼저 — 서버 `_recent_pt_sessions`(#3282).
+  /// DB 가 없으면 기록 없음이다.
+  Future<List<DemoPtSession>> _recentPtSessions(String memberId) async {
+    final AppDatabase? db = this.db;
+    if (db == null) return const <DemoPtSession>[];
+    final DateTime now = nowKst();
+    final String today =
+        '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    final rows =
+        await (db.select(db.trainerScheduleEntries)
+              ..where(
+                (t) =>
+                    t.clientId.equals(memberId) &
+                    t.status.equals(ScheduleStatus.done) &
+                    t.type.equals(SessionType.consultation).not() &
+                    t.date.isSmallerOrEqualValue(today) &
+                    t.programJson.equals('[]').not(),
+              )
+              ..orderBy(<OrderingTerm Function($TrainerScheduleEntriesTable)>[
+                (t) => OrderingTerm.desc(t.date),
+                (t) => OrderingTerm.desc(t.time),
+                (t) => OrderingTerm.desc(t.id),
+              ])
+              ..limit(demoNextPtLookback))
+            .get();
+    return <DemoPtSession>[
+      for (final row in rows)
+        if (DateTime.tryParse(row.date) case final DateTime day)
+          DemoPtSession(
+            day: day,
+            items: <DemoPtItem>[
+              for (final Object? raw in _decodeList(row.programJson))
+                ?demoPtItemFromJson(raw),
+            ],
+          ),
+    ];
+  }
+
+  static List<Object?> _decodeList(String json) {
+    try {
+      final Object? decoded = jsonDecode(json);
+      return decoded is List ? decoded : const <Object?>[];
+    } on FormatException {
+      return const <Object?>[];
+    }
+  }
 
   /// 이 회원의 시드 지표로 만든 스냅샷. DB 가 없거나 모르는 회원이면 `null`.
   Future<_Snapshot?> _memberSnapshot(

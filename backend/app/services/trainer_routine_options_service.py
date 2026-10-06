@@ -54,7 +54,7 @@ from app.schemas.trainer_api import (
     RoutineContextSource,
     RoutineOptionsRequest,
 )
-from app.services import exercise_types, routine_ai
+from app.services import exercise_types, routine_ai, routine_next_pt
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.ai_log import log_ai_fallback
@@ -265,9 +265,31 @@ member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르�
     ],
     "reason": "회원에게 보여줄 짧은 추천 이유",
     "rationale": "트레이너가 확인할 데이터 근거"
+  },
+  "plan_c": {
+    "key": "C",
+    "label": "기준 프로그램의 짧은 이름",
+    "total_minutes": 30,
+    "intensity": "낮음|보통|높음",
+    "exercises": [
+      {"name": "운동명", "minutes": 12, "type": "근력", "sets": 3, "reps": 12, "weight": 20}
+    ],
+    "reason": "회원에게 보여줄 짧은 추천 이유",
+    "rationale": "트레이너가 확인할 데이터 근거",
+    "changes": ["기준 프로그램에서 바꾼 점 한 줄"]
   }
 }
 각 plan의 total_minutes는 exercises의 minutes 합과 정확히 같아야 합니다.
+
+next_pt 가 있으면 plan_c 를 반드시 만드세요. plan_c 는 새 루틴이 아니라
+next_pt.base_program(지난 PT 흐름상 이번 차례에 할 프로그램)을 바탕으로, 위의
+안전 순서와 이번 회원 분석에 맞게 **고친** 안입니다. 아픈 부위에 부담이 가는
+동작은 저충격 대안으로 바꾸고, available_minutes·intensity_preference 를 지키고,
+이행률·주간 피드백에 따라 세트·횟수·중량을 조정하세요. 근력 운동은 sets·reps·
+weight 를 기준 프로그램 값에서 이어 적으세요(모르면 빼세요). 바꾼 점마다
+changes 에 "런지 → 레그 익스텐션(무릎)", "벤치프레스 4세트 → 3세트" 처럼 한 줄씩
+적고, 그대로 둔 것은 적지 마세요. next_pt.basis 는 서버가 정한 차례 근거이니
+바꾸지 말고 rationale 에서 인용해도 됩니다.
 """
 )
 
@@ -281,7 +303,8 @@ member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르�
 _ENGLISH_OUTPUT_RULE = """
 Output language: the trainer is using the app in English.
 Write every free-text value in natural English: plan label, exercises[].name,
-reason and rationale. Ignore the "한국어 이름" hint in the JSON example above.
+reason, rationale and plan_c.changes. Keep exercise names copied from
+next_pt.base_program as written. Ignore the "한국어 이름" hint in the JSON example above.
 Do NOT translate "intensity" or exercises[].type — they are contract values and
 must be exactly one of the Korean values listed in the JSON example.
 Quote member data (messages, memos, exercise names from records) as-is when you
@@ -852,6 +875,116 @@ def _fallback_signals(analysis: RoutineOptionAnalysisOut) -> list[str]:
     ]
 
 
+#: C안 기준 프로그램의 운동 유형으로 받는 값. 그 밖의 값은 `기타` 다.
+_PLAN_TYPES = frozenset({"걷기", "유산소", "근력", "요가", "스트레칭", "기타"})
+
+
+def _loose_number(value: object) -> float | None:
+    """예전에 자유 문자열로 저장된 `"10회"`·`"20kg"` 에서도 숫자를 읽는다."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if isinstance(value, str):
+        matched = re.search(r"\d+(?:\.\d+)?", value)
+        if matched:
+            return float(matched.group())
+    return None
+
+
+def _pt_items(program_json: str) -> tuple[routine_next_pt.PtItem, ...]:
+    try:
+        raw = json.loads(program_json) if program_json else []
+    except json.JSONDecodeError:
+        return ()
+    items: list[routine_next_pt.PtItem] = []
+    for m in raw if isinstance(raw, list) else []:
+        if not isinstance(m, dict):
+            continue
+        name = str(m.get("name") or "").strip()
+        if not name:
+            continue
+        type_ = m.get("type") if m.get("type") in _PLAN_TYPES else "근력"
+        sets = _loose_number(m.get("sets"))
+        reps = _loose_number(m.get("reps"))
+        weight = _loose_number(m.get("weight"))
+        minutes = _loose_number(m.get("duration"))
+        if minutes is None:
+            seconds = _loose_number(m.get("duration_seconds"))
+            minutes = round(seconds / 60) if seconds else None
+        items.append(routine_next_pt.PtItem(
+            name=name[:100],
+            type=type_,
+            sets=int(sets) if sets else None,
+            reps=int(reps) if reps else None,
+            weight=weight or None,
+            minutes=int(minutes) if minutes else None,
+        ))
+    return tuple(items)
+
+
+def _recent_pt_sessions(
+    db: Session, trainer_id: str, member_id: str, today_date: date
+) -> list[routine_next_pt.PtSession]:
+    """최근 완료한 PT 의 프로그램, 최신 먼저(#3282). 프로그램이 빈 회차는 뺀다."""
+    rows = db.execute(
+        select(TrainerSchedule.date, TrainerSchedule.program_json)
+        .where(
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.type != CONSULT_SCHEDULE_TYPE,
+            TrainerSchedule.status == "완료",
+            TrainerSchedule.date <= today_date.isoformat(),
+            TrainerSchedule.program_json != "[]",
+        )
+        .order_by(
+            TrainerSchedule.date.desc(),
+            TrainerSchedule.time.desc(),
+            TrainerSchedule.id.desc(),
+        )
+        .limit(routine_next_pt.NEXT_PT_LOOKBACK)
+    ).all()
+    sessions: list[routine_next_pt.PtSession] = []
+    for day, program_json in rows:
+        items = _pt_items(program_json)
+        if items:
+            sessions.append(
+                routine_next_pt.PtSession(day=date.fromisoformat(day), items=items)
+            )
+    return sessions
+
+
+def build_next_pt(
+    db: Session, trainer_id: str, member_id: str, locale: Locale = "ko"
+) -> routine_next_pt.NextPt:
+    """이번 차례 판단(#3282). 기록이 없으면 기본 분할 시작이다."""
+    today_date = clock.today()
+    return routine_next_pt.choose_next(
+        _recent_pt_sessions(db, trainer_id, member_id, today_date),
+        today=today_date,
+        locale=locale,
+    )
+
+
+def _rule_plan_c(
+    analysis: RoutineOptionAnalysisOut,
+    request: RoutineOptionsRequest,
+    next_pt: routine_next_pt.NextPt,
+    locale: Locale,
+) -> RoutineOptionPlanOut:
+    """C안 규칙형 — AI 가 실패했거나 C안을 지키지 못했을 때 쓴다."""
+    signals = [*analysis.recent_messages, *_fallback_signals(analysis)]
+    return RoutineOptionPlanOut.model_validate(
+        routine_next_pt.rule_plan_c(
+            next_pt,
+            available_minutes=request.available_minutes,
+            intensity_preference=request.intensity_preference,
+            avg_completion_rate=analysis.avg_completion_rate,
+            cautions=routine_ai.cautions_in(analysis.conditions, signals),
+            escalate=routine_ai.needs_professional_check(analysis.conditions, signals),
+            locale=locale,
+        )
+    )
+
+
 def _finding_sources(analysis: RoutineOptionAnalysisOut) -> list[routine_ai.FindingSource]:
     """판단 결과의 근거로 읽을 자료, 먼저 볼 순서로(#3280).
 
@@ -870,9 +1003,15 @@ def _finding_sources(analysis: RoutineOptionAnalysisOut) -> list[routine_ai.Find
 
 
 def build_findings(
-    analysis: RoutineOptionAnalysisOut, locale: Locale = "ko"
+    analysis: RoutineOptionAnalysisOut,
+    locale: Locale = "ko",
+    next_pt: routine_next_pt.NextPt | None = None,
 ) -> list[RoutineFindingOut]:
-    """이번 생성의 판단 결과(#3280). AI·규칙형 어느 쪽이 답해도 같다."""
+    """이번 생성의 판단 결과(#3280). AI·규칙형 어느 쪽이 답해도 같다.
+
+    [next_pt] 가 있으면 C안의 차례 판단(#3282)을 맨 뒤에 덧붙인다.
+    """
+    rotation = [] if next_pt is None else [routine_next_pt.finding(next_pt, locale)]
     return [
         RoutineFindingOut.model_validate(item)
         for item in routine_ai.rule_findings(
@@ -884,6 +1023,7 @@ def build_findings(
             avg_completion_rate=analysis.avg_completion_rate,
             locale=locale,
         )
+        + rotation
     ]
 
 
@@ -891,6 +1031,7 @@ def build_rule_options(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
     locale: Locale = "ko",
+    next_pt: routine_next_pt.NextPt | None = None,
 ) -> RoutineOptionsOut:
     """LLM 실패 시 공용 결정형 생성기로 동일 계약을 반환한다.
 
@@ -922,7 +1063,8 @@ def build_rule_options(
         plan_a=RoutineOptionPlanOut.model_validate(plan_a),
         plan_b=RoutineOptionPlanOut.model_validate(plan_b),
         generated_by="rule",
-        findings=build_findings(analysis, locale),
+        findings=build_findings(analysis, locale, next_pt),
+        plan_c=None if next_pt is None else _rule_plan_c(analysis, request, next_pt, locale),
     )
 
 
@@ -1011,12 +1153,58 @@ def _call_llm(
     return future.result(timeout=LLM_TIMEOUT_SEC)
 
 
+def _next_pt_prompt(next_pt: routine_next_pt.NextPt) -> dict:
+    """AI 에 넘기는 C안 기준(#3282) — 차례 근거와 그 차례에 했던 프로그램."""
+    return {
+        "basis": next_pt.basis,
+        "base_program": [
+            {
+                key: value
+                for key, value in (
+                    ("name", item.name),
+                    ("type", item.type),
+                    ("sets", item.sets),
+                    ("reps", item.reps),
+                    ("weight", item.weight),
+                    ("minutes", item.minutes),
+                )
+                if value is not None
+            }
+            for item in next_pt.items
+        ],
+    }
+
+
+def _llm_plan_c(
+    raw: object,
+    request: RoutineOptionsRequest,
+    next_pt: routine_next_pt.NextPt,
+) -> RoutineOptionPlanOut | None:
+    """AI 가 준 C안. 계약을 어기면 None — 호출부가 규칙형 C안으로 채운다.
+
+    C안 하나가 어긋났다고 멀쩡한 A·B안까지 버리지 않는다. 차례 근거는 모델이
+    아니라 서버 규칙의 것이다.
+    """
+    if not isinstance(raw, dict):
+        return None
+    try:
+        plan = RoutineOptionPlanOut.model_validate(
+            {**raw, "key": "C", "basis": next_pt.basis}
+        )
+    except ValidationError:
+        return None
+    if plan.total_minutes > request.available_minutes:
+        return None
+    return plan
+
+
 def _generate_with_llm(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
     locale: Locale = "ko",
     *,
     trainer_id: str | None = None,
+    next_pt: routine_next_pt.NextPt | None = None,
 ) -> RoutineOptionsOut:
     prompt = json.dumps(
         {
@@ -1024,6 +1212,7 @@ def _generate_with_llm(
             "available_minutes": request.available_minutes,
             "intensity_preference": request.intensity_preference,
             "trainer_note": request.trainer_note.strip(),
+            **({} if next_pt is None else {"next_pt": _next_pt_prompt(next_pt)}),
         },
         ensure_ascii=False,
     )
@@ -1032,16 +1221,25 @@ def _generate_with_llm(
         # 출력 상한에 끊긴 JSON 은 앞부분만으로도 파싱될 수 있어 따로 막는다(#3032).
         raise RoutineContractError("LLM 응답이 출력 상한에 걸려 끊겼습니다.")
     payload = _decode_json_object(result.text)
+    raw_plan_c = payload.pop("plan_c", None)
     payload["analysis"] = analysis.model_dump()
     payload["generated_by"] = "ai"
     # 판단 결과는 모델이 아니라 서버 규칙이 쓴다(#3280) — 모델이 덧붙인 값은 버린다.
-    payload["findings"] = [f.model_dump() for f in build_findings(analysis, locale)]
+    payload["findings"] = [
+        f.model_dump() for f in build_findings(analysis, locale, next_pt)
+    ]
     options = RoutineOptionsOut.model_validate(payload)
     if (
         options.plan_a.total_minutes > request.available_minutes
         or options.plan_b.total_minutes > request.available_minutes
     ):
         raise RoutineContractError("LLM 루틴 시간이 요청 가능한 시간을 초과했습니다.")
+    if next_pt is not None:
+        plan_c = _llm_plan_c(raw_plan_c, request, next_pt)
+        if plan_c is None:
+            metrics.incr("routine_options.plan_c_fallback")
+            plan_c = _rule_plan_c(analysis, request, next_pt, locale)
+        options = options.model_copy(update={"plan_c": plan_c})
     return options
 
 
@@ -1077,11 +1275,14 @@ def generate_routine_options(
     # 출력 언어는 요청한 트레이너의 화면 언어다(#2301). 워커 스레드로 넘어가기 전에
     # 요청 컨텍스트에서 한 번 읽어 AI·폴백 양쪽에 같은 값을 쓴다.
     locale = current_locale()
-    fallback = build_rule_options(analysis, request, locale)
+    next_pt = build_next_pt(db, trainer_id, member_id, locale)
+    fallback = build_rule_options(analysis, request, locale, next_pt)
     started = time.monotonic()
     had_chat = bool(analysis.recent_messages)
     try:
-        options = _generate_with_llm(analysis, request, locale, trainer_id=trainer_id)
+        options = _generate_with_llm(
+            analysis, request, locale, trainer_id=trainer_id, next_pt=next_pt
+        )
     except ai_call_quota.TrainerAiDailyLimitReached:
         # 이 트레이너의 오늘 몫을 다 썼다 — 규칙형으로 덮지 않고 429 로 알린다(#3032).
         # 규칙형 후보를 주면 "AI 가 만든 것" 과 구분이 안 돼 한도를 모른 채 계속 누른다.
