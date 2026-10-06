@@ -713,7 +713,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppDialog(
+    final Widget dialog = AppDialog(
       title: widget.title,
       size: AppDialogSize.medium,
       footer: AppButtonPair(
@@ -730,6 +730,10 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       ),
       child: _fields(l),
     );
+    // 저장 중에는 배경·뒤로 가기·닫기 X 로 닫히지 않는다(#3245) — 닫히면 겹침·
+    // 반복 충돌 목록과 서버 사유를 보여 줄 자리가 사라진다. 기다리는 동안이
+    // 아니면 지금처럼 닫힌다. 저장이 끝나 닫는 것은 `pop` 이라 막히지 않는다.
+    return PopScope(canPop: !_saving, child: dialog);
   }
 
   Widget _fields(AppLocalizations l) {
