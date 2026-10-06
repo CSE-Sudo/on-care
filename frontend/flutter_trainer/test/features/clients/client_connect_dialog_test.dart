@@ -379,7 +379,6 @@ void main() {
           id: 'tci-1',
           memberId: 'user-8f2a41c9d6e3',
           memberName: '박하늘',
-          memberEmail: '',
           status: ClientInviteStatus.pending,
           createdAt: DateTime(2026, 9, 29, 10),
         ),

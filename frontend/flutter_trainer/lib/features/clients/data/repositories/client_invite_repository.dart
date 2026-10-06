@@ -174,7 +174,6 @@ class DemoClientInviteRepository implements ClientInviteRepository {
         id: 'demo-link-${existing.id}',
         memberId: normalized,
         memberName: existing.name,
-        memberEmail: '',
         status: ClientInviteStatus.accepted,
         createdAt: nowKst(),
       );
@@ -221,7 +220,6 @@ class DemoClientInviteRepository implements ClientInviteRepository {
       id: 'demo-link-${prospect.id}',
       memberId: prospect.id,
       memberName: prospect.name,
-      memberEmail: '',
       status: ClientInviteStatus.accepted,
       createdAt: now,
     );
