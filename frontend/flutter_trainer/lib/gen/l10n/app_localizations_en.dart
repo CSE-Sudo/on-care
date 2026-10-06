@@ -2229,7 +2229,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifNewMessageHint =>
-      'Get an inbox alert and a sidebar count when a member messages you';
+      'Get an inbox alert when a member messages you';
 
   @override
   String get myLanguageApp => 'Display language';
@@ -2818,7 +2818,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifMemberUpdatesHint =>
-      'When a member changes goals or name, or disconnects';
+      'When a member sends weekly feedback, changes goals or name, or disconnects';
 
   @override
   String get routineTypeCardio => 'Cardio';

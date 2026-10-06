@@ -10,7 +10,6 @@ import 'package:oncare_trainer/core/config/app_config.dart'
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
-import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -66,17 +65,11 @@ class AppSidebar extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     // Badges are live counters, not decoration: they're the reason a
     // trainer looks at the sidebar between tasks.
-    // 알림 설정이 이 배지를 끈다 — 설정 화면이 "사이드바 뱃지로 알려드려요"
-    // 라고 적어 두고 정작 아무 데서도 읽지 않아, 꺼도 배지가 그대로였다(#817).
-    // 설정을 받기 전·받지 못했을 때는 켠 쪽(배지 보임)으로 둔다(#2883).
-    final bool newMessageAlerts =
-        ref.watch(trainerSettingsProvider).valueOrNull?.newMessageAlerts ??
-        true;
+    // 알림 설정은 이 배지를 끄지 않는다(#2420) — 알림을 꺼도 안 읽은 메시지가
+    // 몇 개인지는 보여야 한다. 설정은 알림함에 새 줄이 생기느냐만 정한다.
     // 명단에 있는 회원 몫만 더한다 — 해제 회원 몫이 지울 수 없는 숫자로
     // 남지 않게, 대시보드·메시지 칩과 같은 규칙으로(#2868).
-    final unread = newMessageAlerts
-        ? ref.watch(rosterUnreadProvider)?.messages
-        : null;
+    final unread = ref.watch(rosterUnreadProvider)?.messages;
     // 완료한 수업은 빠진 '남은 일감' 수. 대시보드 KPI 의 '오늘 예약' 과는
     // 다른 숫자이고, 달라야 한다(#860).
     final pendingSessions = ref

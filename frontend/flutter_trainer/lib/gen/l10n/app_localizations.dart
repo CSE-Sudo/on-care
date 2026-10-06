@@ -3886,7 +3886,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifNewMessageHint.
   ///
   /// In en, this message translates to:
-  /// **'Get an inbox alert and a sidebar count when a member messages you'**
+  /// **'Get an inbox alert when a member messages you'**
   String get myNotifNewMessageHint;
 
   /// No description provided for @myLanguageApp.
@@ -4900,7 +4900,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifMemberUpdatesHint.
   ///
   /// In en, this message translates to:
-  /// **'When a member changes goals or name, or disconnects'**
+  /// **'When a member sends weekly feedback, changes goals or name, or disconnects'**
   String get myNotifMemberUpdatesHint;
 
   /// No description provided for @routineTypeCardio.

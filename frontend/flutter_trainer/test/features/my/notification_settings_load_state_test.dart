@@ -167,7 +167,7 @@ void main() {
   });
 
   group('사이드바 미읽음 배지', () {
-    testWidgets('받기 전에는 보이고, 받은 값이 꺼짐이면 숨긴다', (tester) async {
+    testWidgets('받기 전에도, 받은 값이 꺼짐이어도 그대로 보인다(#2420)', (tester) async {
       await withWideSurface(tester, () async {
         final _GatedRepository repo = _GatedRepository();
         await pumpTrainerApp(
@@ -187,28 +187,7 @@ void main() {
         );
         await settle(tester);
 
-        expect(_badgeNumbers(tester).length, lessThan(before.length));
-      });
-    });
-
-    testWidgets('불러오기에 실패해도 배지는 켠 쪽으로 남는다', (tester) async {
-      await withWideSurface(tester, () async {
-        final _GatedRepository repo = _GatedRepository();
-        await pumpTrainerApp(
-          tester,
-          token: 'demo-trainer-token',
-          at: AppRoutes.dashboard,
-          extraOverrides: <Override>[
-            trainerSettingsRepositoryProvider.overrideWithValue(repo),
-          ],
-        );
-        await settle(tester);
-        final List<String> before = _badgeNumbers(tester);
-
-        repo.loads.single.completeError(const NetworkError(message: 'offline'));
-        await settle(tester);
-
-        expect(_badgeNumbers(tester).length, before.length);
+        expect(_badgeNumbers(tester), before);
       });
     });
   });

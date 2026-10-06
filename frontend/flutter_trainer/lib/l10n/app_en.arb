@@ -1516,7 +1516,7 @@
   "@myNotifLoadFailed": {
     "description": "Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled."
   },
-  "myNotifNewMessageHint": "Get an inbox alert and a sidebar count when a member messages you",
+  "myNotifNewMessageHint": "Get an inbox alert when a member messages you",
   "myLanguageApp": "Display language",
   "myLanguageHint": "Your choice is saved in this browser only. Other devices follow their own browser setting.",
   "myLanguageSystem": "Match browser",
@@ -1811,7 +1811,7 @@
   "myNotifReservation": "Bookings",
   "myNotifReservationHint": "When a member books or changes an appointment",
   "myNotifMemberUpdates": "Member updates",
-  "myNotifMemberUpdatesHint": "When a member changes goals or name, or disconnects",
+  "myNotifMemberUpdatesHint": "When a member sends weekly feedback, changes goals or name, or disconnects",
   "routineTypeCardio": "Cardio",
   "routineTypeStrength": "Strength",
   "routineTypeStretching": "Stretching",

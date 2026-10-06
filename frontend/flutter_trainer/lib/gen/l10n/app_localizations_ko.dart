@@ -2114,7 +2114,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifLoadFailed => '알림 설정을 불러오지 못했어요. 다시 시도해 주세요';
 
   @override
-  String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려 드려요';
+  String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함으로 알려 드려요';
 
   @override
   String get myLanguageApp => '화면 언어';
@@ -2660,7 +2660,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifMemberUpdates => '담당 회원 소식';
 
   @override
-  String get myNotifMemberUpdatesHint => '회원이 목표·이름을 바꾸거나 연결을 끊으면 알려 드려요';
+  String get myNotifMemberUpdatesHint =>
+      '회원이 주간 피드백을 보내거나 목표·이름을 바꾸거나 연결을 끊으면 알려 드려요';
 
   @override
   String get routineTypeCardio => '유산소';
