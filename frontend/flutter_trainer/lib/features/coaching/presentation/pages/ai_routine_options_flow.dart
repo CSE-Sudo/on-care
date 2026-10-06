@@ -2738,7 +2738,7 @@ class _ChatEvidence extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(AppIcons.chat, size: 16, color: tokens.brand.primary),
+              AppIcon(AppIcons.chat, size: 16, color: tokens.brand.primary),
               const SizedBox(width: OnCareSpacing.s4),
               Text(
                 l.aiChatEvidenceLink(lines.length),
