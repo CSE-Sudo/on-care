@@ -26,6 +26,10 @@ enum AuthFailure {
   emailCodeRequired,
   sessionExpired,
   noSocialToken,
+
+  /// 소셜 계정의 확인 안 된 이메일이 기존 계정의 이메일과 같다(409
+  /// `social_email_in_use`, #1551). 서버는 연결도 새 계정도 만들지 않았다.
+  socialEmailInUse,
   emptyCredentials,
   network,
   emptyResponse,
@@ -166,6 +170,7 @@ String authFailureText(AppLocalizations l, AuthException e) {
     AuthFailure.emailCodeRequired => l.signUpCodeRequired,
     AuthFailure.sessionExpired => l.authErrSessionExpired,
     AuthFailure.noSocialToken => l.authErrNoSocialToken,
+    AuthFailure.socialEmailInUse => l.authErrSocialEmailInUse,
     AuthFailure.emptyCredentials => l.authErrEmptyCredentials,
     AuthFailure.network => l.authErrNetwork,
     AuthFailure.emptyResponse => l.authErrEmptyResponse,

@@ -5318,6 +5318,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t sign in with your social account. Please try again in a moment'**
   String get authSocialSignInFailed;
 
+  /// Error toast on sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551).
+  ///
+  /// In en, this message translates to:
+  /// **'An account already uses this email. Please sign in the way you first signed up.'**
+  String get authSocialEmailInUse;
+
   /// No description provided for @authSocialComingSoon.
   ///
   /// In en, this message translates to:

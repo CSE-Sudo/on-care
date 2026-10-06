@@ -223,6 +223,36 @@ void main() {
     }
   }
 
+  testWidgets('같은 이메일 계정이 있으면 처음 가입한 방법으로 로그인하라고 알린다 (#1551)', (tester) async {
+    final repo = _RecordingAuthRepository(
+      failure: AuthFailure.socialEmailInUse,
+    );
+    final container = await pumpTrainerApp(
+      tester,
+      seed: false,
+      extraOverrides: <Override>[
+        trainerAuthRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+    container.read(sessionControllerProvider);
+    await settle(tester);
+    final button = find.byKey(const ValueKey<String>('trainer-login-kakao'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await settle(tester);
+
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(TrainerSignInPage)),
+    );
+    expect(repo.socialCalls, 1);
+    expect(find.text(l.authErrSocialEmailInUse), findsOneWidget);
+    expect(find.text(l.authSocialSignInFailed), findsNothing);
+    expect(
+      container.read(sessionControllerProvider).status,
+      isNot(SessionStatus.authenticated),
+    );
+  });
+
   group('TrainerSignInPage', () {
     testWidgets('회원 앱 로그인과 같은 부품·문구로 선다 (#2226)', (tester) async {
       await _pumpWithRepo(tester);

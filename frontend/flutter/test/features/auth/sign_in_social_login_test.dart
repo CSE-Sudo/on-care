@@ -189,6 +189,63 @@ void main() {
     });
   }
 
+  testWidgets('같은 이메일 계정이 있으면 처음 가입한 방법으로 로그인하라고 알린다 (#1551)', (
+    WidgetTester tester,
+  ) async {
+    final dio = Dio(BaseOptions(baseUrl: 'https://api.test'))
+      ..interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.badResponse,
+                response: Response<Object?>(
+                  requestOptions: options,
+                  statusCode: 409,
+                  data: <String, Object?>{
+                    'detail': <String, Object?>{
+                      'code': 'social_email_in_use',
+                      'message': '이 이메일로 가입한 계정이 있어요.',
+                    },
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    addTearDown(dio.close);
+    await _pumpSignIn(
+      tester,
+      const AppConfig(
+        environment: Environment.dev,
+        apiBaseUrl: 'https://api.test',
+        useMockApi: true,
+      ),
+      dio: dio,
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SignInPage)),
+    );
+    container.read(sessionControllerProvider);
+    await tester.pumpAndSettle();
+    final button = find.byKey(const ValueKey<String>('member-login-kakao'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    final l = AppLocalizations.of(tester.element(find.byType(SignInPage)));
+    expect(find.text(l.authSocialEmailInUse), findsOneWidget);
+    expect(find.text(l.authSocialSignInFailed), findsNothing);
+    expect(
+      container.read(sessionControllerProvider).status,
+      SessionStatus.signedOut,
+    );
+  });
+
   testWidgets('목업 데모 설정에서는 소셜 로그인 버튼이 보인다', (WidgetTester tester) async {
     await _pumpSignIn(
       tester,
