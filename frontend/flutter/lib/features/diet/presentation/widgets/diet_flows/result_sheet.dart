@@ -530,8 +530,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       footer: _footer(l),
       child: _body(),
     );
-    // 고친 값을 보내는 동안에는 끌어내려 닫지 못하게 한다.
-    return PopScope(canPop: !_saving, child: sheet);
+    // 고친 값을 보내는 동안에는 끌어내려 닫지 못하게 한다. 날짜를 옮기는 동안도
+    // 같다(#3245) — 닫히면 두 날의 기록을 다시 읽지 않아 옮긴 기록이 옛 날에
+    // 남아 보인다. 분석 중에는 닫아도 된다(#2847).
+    return PopScope(canPop: !_saving && !_movingDate, child: sheet);
   }
 
   /// 인식된 데이터를 고치는 문. 헤더 우측에 놓이므로 결과가 있을 때만
