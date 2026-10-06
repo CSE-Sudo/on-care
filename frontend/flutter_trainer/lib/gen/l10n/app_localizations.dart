@@ -4903,6 +4903,96 @@ abstract class AppLocalizations {
   /// **'Weekly feedback, goal or name changes, disconnections'**
   String get myNotifMemberUpdatesHint;
 
+  /// No description provided for @myNotifKindsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications to receive'**
+  String get myNotifKindsTitle;
+
+  /// No description provided for @myNotifDesktopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Desktop alerts'**
+  String get myNotifDesktopTitle;
+
+  /// No description provided for @myNotifDesktopHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the console tab open and new notifications pop up in the corner of your screen while you use other tabs or apps. The unread count in the tab title shows either way.'**
+  String get myNotifDesktopHint;
+
+  /// No description provided for @myNotifDesktopSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Get alerts in this browser'**
+  String get myNotifDesktopSwitch;
+
+  /// No description provided for @myNotifDesktopGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'New notifications pop up when you\'re not looking at this tab'**
+  String get myNotifDesktopGranted;
+
+  /// No description provided for @myNotifDesktopNotAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your browser will ask for permission when you turn this on'**
+  String get myNotifDesktopNotAsked;
+
+  /// No description provided for @myNotifDesktopDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are blocked in this browser. Set Notifications to \'Allow\' from the icon at the left of the address bar, then reload'**
+  String get myNotifDesktopDenied;
+
+  /// No description provided for @myNotifDesktopUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available in this browser. Turn it on in Chrome, Edge or Whale on a computer'**
+  String get myNotifDesktopUnsupported;
+
+  /// No description provided for @myNotifDesktopOsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'If alerts don\'t appear, allow notifications for this browser in your computer\'s settings (Mac: System Settings › Notifications). You may need to restart the browser afterwards.'**
+  String get myNotifDesktopOsHint;
+
+  /// No description provided for @myNotifDesktopTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test alert'**
+  String get myNotifDesktopTest;
+
+  /// No description provided for @myNotifDesktopTestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On-Care Trainer alerts are on'**
+  String get myNotifDesktopTestTitle;
+
+  /// No description provided for @myNotifDesktopTestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'New notifications will look like this'**
+  String get myNotifDesktopTestBody;
+
+  /// No description provided for @desktopAlertMessageBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have a new message'**
+  String get desktopAlertMessageBody;
+
+  /// No description provided for @desktopAlertSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new notifications'**
+  String desktopAlertSummaryTitle(int count);
+
+  /// No description provided for @desktopAlertSummaryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open your inbox to see them'**
+  String get desktopAlertSummaryBody;
+
   /// No description provided for @routineTypeCardio.
   ///
   /// In en, this message translates to:

@@ -1812,6 +1812,28 @@
   "myNotifReservationHint": "Bookings and cancellations",
   "myNotifMemberUpdates": "Member updates",
   "myNotifMemberUpdatesHint": "Weekly feedback, goal or name changes, disconnections",
+  "myNotifKindsTitle": "Notifications to receive",
+  "myNotifDesktopTitle": "Desktop alerts",
+  "myNotifDesktopHint": "Keep the console tab open and new notifications pop up in the corner of your screen while you use other tabs or apps. The unread count in the tab title shows either way.",
+  "myNotifDesktopSwitch": "Get alerts in this browser",
+  "myNotifDesktopGranted": "New notifications pop up when you're not looking at this tab",
+  "myNotifDesktopNotAsked": "Your browser will ask for permission when you turn this on",
+  "myNotifDesktopDenied": "Notifications are blocked in this browser. Set Notifications to 'Allow' from the icon at the left of the address bar, then reload",
+  "myNotifDesktopUnsupported": "Not available in this browser. Turn it on in Chrome, Edge or Whale on a computer",
+  "myNotifDesktopOsHint": "If alerts don't appear, allow notifications for this browser in your computer's settings (Mac: System Settings › Notifications). You may need to restart the browser afterwards.",
+  "myNotifDesktopTest": "Test alert",
+  "myNotifDesktopTestTitle": "On-Care Trainer alerts are on",
+  "myNotifDesktopTestBody": "New notifications will look like this",
+  "desktopAlertMessageBody": "You have a new message",
+  "desktopAlertSummaryTitle": "{count} new notifications",
+  "@desktopAlertSummaryTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "desktopAlertSummaryBody": "Open your inbox to see them",
   "routineTypeCardio": "Cardio",
   "routineTypeStrength": "Strength",
   "routineTypeStretching": "Stretching",

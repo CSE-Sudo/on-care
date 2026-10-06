@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/app_router.dart';
+import 'package:oncare_trainer/features/desktop_alerts/presentation/tab_unread_title.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -43,7 +44,8 @@ class OncareTrainerApp extends ConsumerWidget {
         final MediaQueryData mq = MediaQuery.of(context);
         return MediaQuery(
           data: mq.copyWith(textScaler: OnCareTypography.scaler(mq.textScaler)),
-          child: child ?? const SizedBox.shrink(),
+          // 안 읽은 알림이 있으면 탭 제목 앞에 수를 붙인다(#3285).
+          child: TabUnreadTitle(child: child ?? const SizedBox.shrink()),
         );
       },
     );

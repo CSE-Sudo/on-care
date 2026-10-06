@@ -2819,6 +2819,59 @@ class AppLocalizationsEn extends AppLocalizations {
       'Weekly feedback, goal or name changes, disconnections';
 
   @override
+  String get myNotifKindsTitle => 'Notifications to receive';
+
+  @override
+  String get myNotifDesktopTitle => 'Desktop alerts';
+
+  @override
+  String get myNotifDesktopHint =>
+      'Keep the console tab open and new notifications pop up in the corner of your screen while you use other tabs or apps. The unread count in the tab title shows either way.';
+
+  @override
+  String get myNotifDesktopSwitch => 'Get alerts in this browser';
+
+  @override
+  String get myNotifDesktopGranted =>
+      'New notifications pop up when you\'re not looking at this tab';
+
+  @override
+  String get myNotifDesktopNotAsked =>
+      'Your browser will ask for permission when you turn this on';
+
+  @override
+  String get myNotifDesktopDenied =>
+      'Notifications are blocked in this browser. Set Notifications to \'Allow\' from the icon at the left of the address bar, then reload';
+
+  @override
+  String get myNotifDesktopUnsupported =>
+      'Not available in this browser. Turn it on in Chrome, Edge or Whale on a computer';
+
+  @override
+  String get myNotifDesktopOsHint =>
+      'If alerts don\'t appear, allow notifications for this browser in your computer\'s settings (Mac: System Settings › Notifications). You may need to restart the browser afterwards.';
+
+  @override
+  String get myNotifDesktopTest => 'Test alert';
+
+  @override
+  String get myNotifDesktopTestTitle => 'On-Care Trainer alerts are on';
+
+  @override
+  String get myNotifDesktopTestBody => 'New notifications will look like this';
+
+  @override
+  String get desktopAlertMessageBody => 'You have a new message';
+
+  @override
+  String desktopAlertSummaryTitle(int count) {
+    return '$count new notifications';
+  }
+
+  @override
+  String get desktopAlertSummaryBody => 'Open your inbox to see them';
+
+  @override
   String get routineTypeCardio => 'Cardio';
 
   @override
