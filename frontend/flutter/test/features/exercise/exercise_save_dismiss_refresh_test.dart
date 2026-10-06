@@ -156,17 +156,6 @@ class _RecordingRef implements Ref<Object?> {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-/// KST 고정 날짜의 기존 기록.
-final ExerciseSession _existing = ExerciseSession(
-  id: 'ex-1',
-  dayLabel: '월',
-  type: ExerciseType.cardio,
-  minutes: 30,
-  calories: 120,
-  name: '걷기',
-  date: DateTime(2026, 9, 28),
-);
-
 /// 시·분·초 휠의 [column] 번째 칸을 [steps] 칸만큼 굴린다. (#2071)
 Future<void> _rollDurationWheel(
   WidgetTester tester,
@@ -321,7 +310,7 @@ void main() {
   group('기록 시트', () {
     late _GatedRepository repo;
 
-    Future<void> pump(WidgetTester tester, {ExerciseSession? session}) async {
+    Future<void> pump(WidgetTester tester) async {
       tester.view.physicalSize = const Size(500, 1600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -343,8 +332,7 @@ void main() {
                   // 운동 탭의 주간 그래프가 이번 주를 보고 있는 상태.
                   ref.watch(exerciseWeekProvider);
                   return TextButton(
-                    onPressed: () =>
-                        showExerciseAddSheet(context, session: session),
+                    onPressed: () => showExerciseAddSheet(context),
                     child: const Text('열기'),
                   );
                 },
@@ -402,32 +390,19 @@ void main() {
       await drainToast(tester);
     });
 
-    testWidgets('수정 중에 시트를 내려도 이번 주를 다시 읽는다', (WidgetTester tester) async {
-      await pump(tester, session: _existing);
-
-      await tester.tap(find.text('열기'));
-      await tester.pumpAndSettle();
-      await saveThenDismiss(tester);
-
-      await finishSave(tester);
-      expect(find.text('운동 기록이 수정됐어요'), findsOneWidget);
-      await tester.pumpAndSettle();
-      expect(repo.weekCalls, 2);
-      expect(find.text('열기'), findsOneWidget);
-
-      await drainToast(tester);
-    });
-
     testWidgets('시트를 내리지 않으면 지금처럼 닫히고 다시 읽는다', (WidgetTester tester) async {
-      await pump(tester, session: _existing);
+      await pump(tester);
 
       await tester.tap(find.text('열기'));
       await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('exerciseNameField')), '걷기');
+      await tester.pumpAndSettle();
+      await _rollDurationWheel(tester, 1, 30);
       await tester.tap(find.byKey(const Key('exerciseSaveButton')));
       await tester.pump();
       await tester.pump(OnCareMotion.toastEnter);
 
-      expect(find.text('운동 기록이 수정됐어요'), findsOneWidget);
+      expect(find.text('운동이 기록됐어요'), findsOneWidget);
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('exerciseAddSheet')), findsNothing);
       expect(repo.weekCalls, 2);

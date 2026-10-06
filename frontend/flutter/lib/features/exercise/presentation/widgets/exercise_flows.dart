@@ -50,15 +50,6 @@ ExerciseType _typeFromIndex(int i) => switch (i) {
   _ => ExerciseType.other,
 };
 
-/// [ExerciseType] → chip index. 옛 값(걷기·요가)으로 저장된 기록도 자기 버킷
-/// 칩을 켠 채 열린다 — 유형이 넷으로 접힌 뒤에도 예전 기록은 남아 있다.
-int _indexFromType(ExerciseType t) => switch (t) {
-  ExerciseType.cardio || ExerciseType.walking => 0,
-  ExerciseType.strength => 1,
-  ExerciseType.stretching || ExerciseType.yoga => 2,
-  ExerciseType.other => 3,
-};
-
 /// 칩 index → 강도. `_levelLabels` 와 1:1 이다.
 ExerciseIntensity _intensityFromIndex(int level) => switch (level) {
   0 => ExerciseIntensity.light,
@@ -78,19 +69,17 @@ int _estimateCalories(ExerciseType type, int minutes, int level) =>
 // ─────────────────────────────────────────────────────── 운동 추가 ──
 
 /// A compact "운동 추가" sheet: pick a type + duration/intensity, then save.
-/// Pass [session] to open in edit mode (pre-filled → PUT); omit it to add.
-/// **기록이 저장되면 true.** 하단 `+` 로 연 흐름이 저장 성공에만 운동 탭으로
+/// 저장된 기록을 고치는 곳은 기록 상세의 제자리 수정이다 — 이 시트는 새 기록만
+/// 적는다(#3256). **기록이 저장되면 true.** 하단 `+` 로 연 흐름이 저장 성공에만 운동 탭으로
 /// 옮겨 가려면 취소와 저장을 구분해야 한다(#1434).
 Future<bool> showExerciseAddSheet(
   BuildContext context, {
-  ExerciseSession? session,
   DateTime? initialDate,
 }) async {
   final bool? saved = await showAppSheet<bool>(
     // 하단 바·+ 버튼이 시트 위로 올라오지 않도록 루트에 올린다(#791).
     context: Navigator.of(context, rootNavigator: true).context,
-    builder: (BuildContext ctx) =>
-        _ExerciseAddSheet(session: session, initialDate: initialDate),
+    builder: (BuildContext ctx) => _ExerciseAddSheet(initialDate: initialDate),
   );
   return saved ?? false;
 }
@@ -145,59 +134,50 @@ Future<bool> confirmDeleteExerciseSession(
 }
 
 class _ExerciseAddSheet extends ConsumerStatefulWidget {
-  const _ExerciseAddSheet({this.session, this.initialDate});
-
-  final ExerciseSession? session;
+  const _ExerciseAddSheet({this.initialDate});
 
   /// 새 기록의 기본 날짜. 운동 탭 안에서 열면 그 탭에서 보고 있는 날이다 —
   /// 어제를 보다가 추가했는데 오늘로 저장되면 방금 적은 기록이 목록에서
   /// 사라진다(#1428). 하단 `+` 로 열면 null 이라 오늘이 기본값이다.
   final DateTime? initialDate;
 
-  bool get isEdit => session != null;
-
   @override
   ConsumerState<_ExerciseAddSheet> createState() => _ExerciseAddSheetState();
 }
 
 class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
-  late int _type = widget.session != null
-      ? _indexFromType(widget.session!.type)
-      : 0; // 기본값은 유산소 — 칩 목록의 첫 칸이다.
-  // Intensity is persisted on ExerciseSession, so an edit reopens at the
-  // saved level (가벼움/보통/높음); a new session defaults to 보통.
-  late int _level = widget.session?.intensity.index ?? 1;
+  int _type = 0; // 기본값은 유산소 — 칩 목록의 첫 칸이다.
+  // 강도는 보통에서 시작한다(가벼움/보통/높음).
+  int _level = 1;
   // 유산소·스트레칭·기타의 걸린 시간. 분이 아니라 **초**로 들고 있다 —
   // 분 단위 스테퍼로는 45초짜리 운동을 적을 수 없었고, 한 시간이 넘는 운동은
-  // 90분처럼 분으로 환산해 올려야 했다(#2071). 초를 모르는 옛 기록은
-  // `minutes × 60` 으로 읽는다.
-  late Duration _duration = _initialDuration(widget.session);
+  // 90분처럼 분으로 환산해 올려야 했다(#2071).
+  //
+  // 0 에서 시작하는 것은 타이머의 규칙이다 — 미리 채워 둔 30분은 회원이 한
+  // 번도 건드리지 않고 저장할 수 있는 값이고, 그러면 아무도 적은 적 없는
+  // 시간이 기록에 남는다. 0 이면 저장이 막히므로(`exEnterDuration`) 시간은
+  // 반드시 적은 값이 된다.
+  Duration _duration = Duration.zero;
   // 근력은 시간이 아니라 **세트·횟수·중량**으로 재는 운동이다
   // (#1262, #1276, #1310). 분과 따로 들고 있어야 유형을 근력↔유산소로 오갈 때
   // 각자의 값이 남는다 — 하나로 쓰면 30분이 30세트가 되어 돌아온다.
-  late double _sets = _initialSets(widget.session);
-  late double _reps = (widget.session?.reps ?? 10).toDouble();
+  double _sets = 12;
+  double _reps = 10;
   // 버티는 운동은 한 세트를 회가 아니라 초로 잰다(#1969). 횟수와 따로 들고
   // 있어야 회↔초를 오갈 때 각자의 값이 남는다 — 한 칸을 같이 쓰면 10회가
   // 10초로 돌아온다.
-  late double _holdSeconds = (widget.session?.holdSeconds ?? 60).toDouble();
-  // 지금 이 운동을 초로 재는가. 수정 시트는 기록이 든 칸을 그대로 따르고,
-  // 새 기록은 이름을 적으면 종목표가 말해 준다(`_fetchEstimate`).
-  late bool _isHold = widget.session?.holdSeconds != null;
+  double _holdSeconds = 60;
+  // 지금 이 운동을 초로 재는가. 이름을 적으면 종목표가 말해 준다
+  // (`_fetchEstimate`).
+  bool _isHold = false;
   // 회원이 직접 회↔초를 고른 뒤에는 이름 해석이 그 선택을 덮지 않는다 —
   // 종목표는 **기본값**일 뿐이고, 고르는 것은 적는 사람이다.
   bool _holdChosenByUser = false;
-  // 휠은 0.5kg 칸에만 선다(#2545). 그 칸에 맞지 않는 옛 기록(62.3kg)은 여는
-  // 순간 가장 가까운 칸으로 맞춘다 — 휠에 보이는 값과 저장되는 값이 같아야 한다.
-  late double _weight = snapExerciseWeight(widget.session?.weight ?? 20);
-  // 기본값은 오늘. 지난 기록을 고치면 그 기록의 날짜로 열린다 — 오늘로
-  // 되돌리면 기록을 고치기만 해도 이번 주로 옮겨 간다.
-  late DateTime _date = _dateOnly(
-    widget.session?.date ?? widget.initialDate ?? nowKst(),
-  );
-  late final TextEditingController _name = TextEditingController(
-    text: widget.session?.name ?? '',
-  );
+  // 휠은 0.5kg 칸에만 선다(#2545).
+  double _weight = 20;
+  // 기본값은 운동 탭에서 보고 있던 날, 하단 `+` 로 열었으면 오늘이다.
+  late DateTime _date = _dateOnly(widget.initialDate ?? nowKst());
+  final TextEditingController _name = TextEditingController();
   final FocusNode _nameFocus = FocusNode();
   bool _saving = false;
 
@@ -206,7 +186,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   /// 하루치 운동 여러 개를 시트 한 번에 적는다. 예전에는 저장할 때마다 시트가
   /// 닫혀, 서너 가지를 했으면 시트를 서너 번 다시 열고 날짜를 다시 골라야
   /// 했다. 날짜는 모아 둔 운동 전부에 공통이라 저장하는 순간의 [_date] 로
-  /// 맞춘다. 수정 시트에는 쓰지 않는다.
+  /// 맞춘다.
   final List<ExerciseSessionDraft> _queue = <ExerciseSessionDraft>[];
 
   /// 모아 둔 목록의 자리. 담은 뒤 폼이 비워지면 그 목록이 보이게 올린다 —
@@ -234,31 +214,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  /// 편집 시트가 열릴 걸린 시간. 기록이 초를 들고 있으면 그 값, 초를 모르는
-  /// 옛 기록이면 분에서 환산한 값, **새 기록이면 0** 이다. (#2071)
-  ///
-  /// 새 기록을 0 에서 시작하는 것은 타이머의 규칙이다 — 미리 채워 둔 30분은
-  /// 회원이 한 번도 건드리지 않고 저장할 수 있는 값이고, 그러면 아무도 적은
-  /// 적 없는 시간이 기록에 남는다. 0 이면 저장이 막히므로(`exEnterDuration`)
-  /// 시간은 반드시 적은 값이 된다.
-  static Duration _initialDuration(ExerciseSession? session) {
-    if (session == null) return Duration.zero;
-    final int? seconds = session.durationSeconds;
-    if (seconds != null && seconds > 0) return Duration(seconds: seconds);
-    return Duration(minutes: session.minutes);
-  }
-
-  /// 편집 시트가 열릴 세트 수. 기록이 세트를 들고 있으면 그 값, 세트를 모르는
-  /// 옛 근력 기록이면 분에서 환산한 값, 새 기록이면 12세트다.
-  static double _initialSets(ExerciseSession? session) {
-    if (session == null || session.type != ExerciseType.strength) return 12;
-    final int? recorded = session.sets;
-    if (recorded != null && recorded > 0) return recorded.toDouble();
-    return setsFromStrengthMinutes(
-      session.minutes.toDouble(),
-    ).clamp(1, 40).toDouble();
-  }
-
   @override
   void initState() {
     super.initState();
@@ -267,8 +222,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     _nameFocus.addListener(() {
       if (!_nameFocus.hasFocus) _scheduleEstimate(immediate: true);
     });
-    // 수정 시트는 이름이 이미 차 있다 — 열자마자 그 이름의 값을 보여 준다.
-    if (_name.text.trim().isNotEmpty) _scheduleEstimate(immediate: true);
   }
 
   @override
@@ -387,30 +340,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       ? _strengthMinutes
       : minutesFromSeconds(_duration.inSeconds);
 
-  /// 편집 시트 안에서 지운다 — 목록 줄에는 더 이상 휴지통을 두지 않는다.
-  /// 지우기는 되돌릴 수 없는 동작이라, 고치는 화면 안에 한 번 더 들어와야만
-  /// 닿을 수 있는 자리에 둔다(식단 탭의 끼니 수정 화면과 같은 자리, #1468).
-  Future<void> _delete() async {
-    final ExerciseSession? session = widget.session;
-    if (session == null || _saving) return;
-    // 지우는 동안 `_saving` 을 세워 뒤로 가기·바깥 탭으로 시트가 닫히지 않게
-    // 한다(#3096).
-    final bool deleted = await confirmDeleteExerciseSession(
-      context,
-      ref,
-      session,
-      onDeleteStart: () {
-        if (mounted) setState(() => _saving = true);
-      },
-    );
-    if (!mounted) return;
-    if (deleted) {
-      Navigator.of(context).pop(true);
-    } else {
-      setState(() => _saving = false);
-    }
-  }
-
   Future<void> _pickDate() async {
     final DateTime now = nowKst();
     final DateTime? picked = await showAppDatePicker(
@@ -469,9 +398,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       return null;
     }
     // 근력이 아니면 세트·횟수·중량을 싣지 않는다 — 유산소를 세트로 세는
-    // 화면은 없고, 유형을 바꾼 수정에서는 null 이 옛 값을 지운다.
-    // 한 세트는 회로든 초로든 **한 번만** 잰다(#1969). 고르지 않은 쪽은
-    // null 로 실어 보내야, 회↔초를 되돌린 수정에서 옛 값이 남지 않는다.
+    // 화면은 없다. 한 세트는 회로든 초로든 **한 번만** 잰다(#1969).
     // 초는 시간으로 재는 유형에만 싣는다. 근력의 분은 세트에서 환산한 값이라
     // 회원이 적은 시간이 아니다 — 초를 함께 보내면 서버가 그 초로 분을 다시
     // 계산해, 세트에서 나온 분을 덮는다. (#2071)
@@ -488,8 +415,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       calories: _estimate != null && _requestedKey == _estimateKey
           ? _estimate!.calories
           : _estimateCalories(type, minutes, _level),
-      // Intensity is persisted now, so always recompute calories from the
-      // (restored or edited) level — no more preserving stale values.
       intensity: ExerciseIntensity.values[_level],
       date: _date,
       sets: _isStrength ? _sets.round() : null,
@@ -550,7 +475,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
 
   Future<void> _save() async {
     if (_saving) return;
-    if (widget.isEdit) return _saveEdit();
     final AppLocalizations l = AppLocalizations.of(context);
     final NavigatorState navigator = Navigator.of(context);
     final AppToastHost toast = AppToastHost.of(context);
@@ -604,51 +528,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     }
   }
 
-  Future<void> _saveEdit() async {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final NavigatorState navigator = Navigator.of(context);
-    final AppToastHost toast = AppToastHost.of(context);
-    final ExerciseSession editing = widget.session!;
-    final ExerciseSessionDraft? draft = _draftFromForm();
-    if (draft == null) return;
-    if (editing.id == null) {
-      // No id → PUT impossible; don't silently create a duplicate session.
-      toast.show(l.exCannotEdit, type: AppToastType.error);
-      return;
-    }
-
-    setState(() => _saving = true);
-    try {
-      // 저장·수정 뒤에 다시 읽을 것들은 삭제·추천 개인운동 완료와 같은 함수로
-      // 비운다(#2634). 시트가 아니라 runner 가 비워 저장 중에 시트를 내려도
-      // 빠지지 않는다(#2879).
-      await ref
-          .read(exerciseChangeRunnerProvider)
-          .run(
-            (ExerciseRepository repository) => repository.updateSession(
-              id: editing.id!,
-              type: draft.type,
-              name: draft.name,
-              minutes: draft.minutes,
-              calories: draft.calories,
-              intensity: draft.intensity,
-              date: draft.date,
-              sets: draft.sets,
-              reps: draft.reps,
-              holdSeconds: draft.holdSeconds,
-              durationSeconds: draft.durationSeconds,
-              weight: draft.weight,
-            ),
-          );
-      // Sheet dismissed mid-save → don't pop the page below.
-      if (mounted) navigator.pop(true);
-      toast.show(l.exUpdated, type: AppToastType.success);
-    } catch (_) {
-      if (mounted) setState(() => _saving = false);
-      toast.show(l.exSaveFailed, type: AppToastType.error);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -657,7 +536,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     final Widget sheet = AppSheet(
       key: const Key('exerciseAddSheet'),
       showClose: false,
-      title: widget.isEdit ? l.exEditExercise : l.exAddExercise,
+      title: l.exAddExercise,
       // [취소] 왼쪽, [저장] 오른쪽 — 식단 수정 화면과 같은 두 버튼이다(#1782).
       // 취소는 저장하지 않고 시트만 닫는다. 저장 중에는 둘 다 비활성이 되어
       // 두 번 눌리거나 저장 도중 닫히지 않는다.
@@ -875,33 +754,16 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
             // 하루치 운동을 시트 한 번에 적는다(#2544). 폼의 운동을 위 목록에
             // 담고 폼을 비운다. 폼을 다 적은 자리에서 누르도록 폼 맨 아래에
             // 한 줄을 채워 두고, 파란 글씨 버튼으로 둔다 — 채움 버튼이면 바로
-            // 아래 `저장` 과 무게가 겹친다. 수정 시트는 한 건만 고치므로 두지
-            // 않는다.
-            if (!widget.isEdit) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s8),
-              AppButton(
-                key: const Key('exerciseAddAnotherButton'),
-                label: l.exAddExercise,
-                onPressed: _saving ? null : _addAnother,
-                variant: AppButtonVariant.text,
-                leadingIcon: AppIcons.add,
-                fullWidth: true,
-              ),
-            ],
-            // 지우기는 고치는 화면 맨 아래에서만 한다 — 목록 줄의 휴지통은
-            // 없앴다. 새로 적는 시트에는(수정이 아니면) 지울 기록 자체가
-            // 없으니 두지 않는다.
-            if (widget.isEdit) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s20),
-              AppButton(
-                key: const Key('exerciseDeleteButton'),
-                label: l.exDeleteExercise,
-                onPressed: _saving ? null : _delete,
-                variant: AppButtonVariant.destructiveText,
-                leadingIcon: AppIcons.delete,
-                fullWidth: true,
-              ),
-            ],
+            // 아래 `저장` 과 무게가 겹친다.
+            const SizedBox(height: OnCareSpacing.s8),
+            AppButton(
+              key: const Key('exerciseAddAnotherButton'),
+              label: l.exAddExercise,
+              onPressed: _saving ? null : _addAnother,
+              variant: AppButtonVariant.text,
+              leadingIcon: AppIcons.add,
+              fullWidth: true,
+            ),
           ],
         ),
       ),
