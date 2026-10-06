@@ -584,7 +584,10 @@ Future<void> _ensureCentered(WidgetTester tester, Finder finder) async {
 }
 
 /// 이 스크롤해 가며 직접 찾게 한다.
-Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
+Future<void> _applyRecommendedRoutine(
+  WidgetTester tester, {
+  String option = 'A',
+}) async {
   final scrollable = find.byType(Scrollable).first;
 
   final generate = find.byKey(
@@ -601,21 +604,28 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   await tester.tap(generate);
   await tester.pumpAndSettle();
 
-  // 세 후보(회복안·강화안·기존안) 중 기존 AI 추천 그대로인 `기존안` 을
-  // 고른다 — 편집기에 들어갈 값이 이 회원의 seeded 추천과 같아야 한다.
-  final existing = find.byKey(
-    const ValueKey<String>('routine-option-recommended'),
+  // 세 후보(회복안·강화안·연계안) 중 `회복안` 으로 간다 — 이 회원의 반복
+  // 운동을 그대로 유지하는 안이라 편집기 값이 정해져 있다. 옛 `기존안`(배정된
+  // AI 개인운동)은 PT 단계에서 빠졌다(#3282). 회복안은 생성 직후 이미 골라져
+  // 있으므로 누르지 않는다 — 가운데로 끌어온 첫 카드는 위쪽 단계 칩과 겹쳐,
+  // 누르면 칩이 탭을 받아 흐름이 처음으로 되돌아간다.
+  final chosen = find.byKey(ValueKey<String>('routine-option-$option'));
+  expect(
+    find.byKey(ValueKey<String>('routine-option-$option'), skipOffstage: false),
+    findsOneWidget,
   );
-  await tester.scrollUntilVisible(
-    existing,
-    150,
-    scrollable: scrollable,
-    maxScrolls: 100,
-  );
-  await _ensureCentered(tester, existing);
-  await tester.pump();
-  await tester.tap(existing);
-  await tester.pumpAndSettle();
+  if (option != 'A') {
+    await tester.scrollUntilVisible(
+      chosen,
+      150,
+      scrollable: scrollable,
+      maxScrolls: 100,
+    );
+    await _ensureCentered(tester, chosen);
+    await tester.pump();
+    await tester.tap(chosen);
+    await tester.pumpAndSettle();
+  }
 
   final complete = find.byKey(
     const ValueKey<String>('complete-routine-review'),
@@ -798,10 +808,13 @@ Future<void> _revealBuilt(WidgetTester tester, String key) async {
 /// 이미 운동을 갖고 있으면(트레이너가 직접 채웠거나 이미 반영했다면)
 /// 여기서 다시 채우지 않는다. 조건 없이 AI 흐름을 다시 밟으면 방금 지운
 /// 운동이 되살아난다.
-Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
+Future<Finder> _ensureSendButtonReady(
+  WidgetTester tester, {
+  String option = 'A',
+}) async {
   final send = find.byKey(const ValueKey<String>('program-editor-send'));
   if (send.evaluate().isEmpty) {
-    await _applyRecommendedRoutine(tester);
+    await _applyRecommendedRoutine(tester, option: option);
   }
   await _revealBuilt(tester, 'program-editor-send');
   await tester.scrollUntilVisible(
@@ -1164,7 +1177,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('저강도 유산소 (걷기)'),
+            matching: find.text('저강도 유산소'),
           ),
           findsOneWidget,
         );
@@ -2016,14 +2029,15 @@ void main() {
         // 추천 루틴을 편집기에 반영해야 기본 추천이 보인다. AI 흐름 자신의
         // 검토 목록에도 같은 이름이 뜰 수 있어 편집기 안으로 범위를 좁힌다.
         await _applyRecommendedRoutine(tester);
+        // 회복안은 그 회원의 반복 운동이다 — 이지수는 데드리프트부터다.
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('인터벌 러닝'),
+            matching: find.text('데드리프트'),
           ),
           findsOneWidget,
         );
-        expect(find.text('저강도 유산소 (걷기)'), findsNothing);
+        expect(find.text('저강도 유산소'), findsNothing);
       },
     );
 
@@ -2155,7 +2169,7 @@ void main() {
       await _applyRecommendedRoutine(tester);
       final inEditor = find.descendant(
         of: find.byType(ProgramEditorWorkspace),
-        matching: find.text('저강도 유산소 (걷기)'),
+        matching: find.text('저강도 유산소'),
       );
       expect(inEditor, findsOneWidget);
       await _selectExerciseAction(tester, '삭제');
@@ -2169,7 +2183,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('김민수'));
       await settle(tester);
-      expect(find.text('저강도 유산소 (걷기)'), findsNothing);
+      expect(find.text('저강도 유산소'), findsNothing);
     });
 
     testWidgets('오늘 스케줄에 등록 writes the routine onto the schedule tab', (
@@ -2408,7 +2422,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(ProgramEditorWorkspace),
-          matching: find.text('저강도 유산소 (걷기)'),
+          matching: find.text('저강도 유산소'),
         ),
         findsNothing,
       );
@@ -2699,9 +2713,8 @@ void main() {
       // 있으려면 먼저 AI 코칭 보조 제안을 편집기에 반영해야 한다.
       await _applyRecommendedRoutine(tester);
 
-      // 김민수의 개인 운동을 모두 지운다 — 공유 픽스처가 정한 네 건이다
-      // (#1170).
-      for (var i = 0; i < 4; i++) {
+      // 회복안의 운동을 모두 지운다 — 김민수의 반복 운동 세 건이다(#3282).
+      for (var i = 0; i < 3; i++) {
         await _selectExerciseAction(tester, '삭제');
       }
 
@@ -3186,8 +3199,8 @@ void main() {
       return scheduleRepo;
     }
 
-    Future<void> tapSend(WidgetTester tester) async {
-      final send = await _ensureSendButtonReady(tester);
+    Future<void> tapSend(WidgetTester tester, {String option = 'A'}) async {
+      final send = await _ensureSendButtonReady(tester, option: option);
       // `_ensureSendButtonReady` 가 편집기를 채우려고 AI 흐름을 지났다면
       // (#1028) `템플릿에 반영` 스낵바가 큐에 남아 있을 수 있다 — 같은
       // `ScaffoldMessenger` 를 쓰므로, 그 스낵바가 다 사라질 때까지 기다려
@@ -3210,7 +3223,9 @@ void main() {
       (tester) async {
         final scheduleRepo = await openRealApiTab(tester);
 
-        await tapSend(tester);
+        // 근력·유산소가 함께 있는 강화안으로 보낸다 — 옛 `기존안`(배정된 AI
+        // 개인운동)은 PT 단계에서 빠졌다(#3282).
+        await tapSend(tester, option: 'B');
 
         expect(scheduleRepo.registerCalls, 1);
         expect(scheduleRepo.clientId, 'real-client-1');
@@ -3221,9 +3236,9 @@ void main() {
         // 들고 나가야 한다 — 횟수가 여기서만 빠져 있어, 편집기에서 채운
         // 값이 일정에 등록되는 순간 사라졌다.
         final strength = scheduleRepo.program!.singleWhere(
-          (item) => item.type == '근력',
+          (item) => item.name == '스쿼트',
         );
-        expect(strength.name, '스쿼트');
+        expect(strength.type, '근력');
         expect(strength.sets, isNotNull);
         expect(strength.reps, isNotNull);
         expect(strength.weight, isNotNull);
@@ -3231,10 +3246,10 @@ void main() {
         final cardio = scheduleRepo.program!.singleWhere(
           (item) => item.type == '유산소',
         );
-        expect(cardio.duration, 30);
+        expect(cardio.duration, isNotNull);
         // 초를 함께 싣는다(#2521) — 분만 실으면 일정의 운동이 분 × 60 으로
         // 되짚혀 편집기의 45초가 `1분` 이 된다.
-        expect(cardio.durationSeconds, 1800);
+        expect(cardio.durationSeconds, cardio.duration! * 60);
         expect(strength.durationSeconds, isNull);
         expect(cardio.sets, isNull);
         expect(cardio.reps, isNull);
@@ -3363,7 +3378,7 @@ void main() {
         // 운동이 있으려면 먼저 AI 코칭 보조 제안을 편집기에 반영해야 한다.
         await _applyRecommendedRoutine(tester);
 
-        // Remove all 3 seeded AI suggestions for 김민수.
+        // Remove all 3 exercises of plan A (the template recovery plan).
         for (var i = 0; i < 3; i++) {
           await _selectExerciseAction(tester, '삭제');
         }

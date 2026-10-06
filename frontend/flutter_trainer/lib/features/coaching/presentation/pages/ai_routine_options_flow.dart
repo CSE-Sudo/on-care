@@ -67,14 +67,13 @@ enum _Step {
 /// Conversation-style AI routine builder.
 ///
 /// The assistant stays inside the AI routine tab when [embedded] is true.
-/// After generation, A/B and the existing recommendation are presented in a
-/// horizontal rail; selecting a card updates the common editor below it.
+/// After generation, plans A/B/C are presented in a horizontal rail; selecting
+/// a card updates the common editor below it. C is the next PT program in the
+/// member's recent rotation, adjusted to the latest analysis (#3282).
 class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   const AiRoutineOptionsFlow({
     required this.client,
     this.embedded = false,
-    this.recommendedExercises = const <RoutineExercise>[],
-    this.recommendedReason = '',
     this.onReviewCompleted,
     this.onManualCreate,
     this.onGenerated,
@@ -90,8 +89,6 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
 
   final TrainerClient client;
   final bool embedded;
-  final List<RoutineExercise> recommendedExercises;
-  final String recommendedReason;
 
   /// 위저드를 빠져나가는 유일한 출구 — 확정한 PT 구성과 그 PT 에 붙일
   /// 개인운동을 함께 넘긴다(#2223). `개인운동만` 모드는 위저드가 직접 보내므로
@@ -430,28 +427,17 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     return <_RoutineChoice>[
       _RoutineChoice.fromPlan(options.planA),
       _RoutineChoice.fromPlan(options.planB),
-      if (widget.recommendedExercises.isNotEmpty)
-        _RoutineChoice(
-          // key 는 화면 문구가 아니라 선택 식별자다('A'/'B' 와 같은 층).
-          // 번역하면 _selectedKey 비교가 로케일마다 달라져 선택이 깨진다. (#501)
-          key: _recommendedKey,
-          label: l.aiTagExisting,
-          intensity: l.aiTagCustom,
-          exercises: widget.recommendedExercises,
-          reason: widget.recommendedReason.isEmpty
-              ? l.aiExistingBlurb
-              : widget.recommendedReason,
-        ),
+      // C안 — 지난 PT 흐름상 이번 차례(#3282). 예전 세 번째 카드(`기존 AI
+      // 추천`)는 배정된 **개인운동**이라 PT 프로그램 단계에 맞지 않았고, 생성
+      // 조건도 거치지 않았다. 개인운동은 개인운동 단계에서만 다룬다.
+      if (options.planC case final RoutinePlan c) _RoutineChoice.fromPlan(c),
     ];
   }
-
-  /// 기존 추천 후보의 선택 식별자. 'A'/'B' 와 같은 층의 값이라 번역하지 않는다.
-  static const String _recommendedKey = 'recommended';
 
   String _optionDisplayName(AppLocalizations l, String key) => switch (key) {
     'A' => l.aiOptionRecovery,
     'B' => l.aiOptionPush,
-    _ => l.aiOptionExisting,
+    _ => l.aiOptionNext,
   };
 
   Future<void> _generate() async {
@@ -1735,6 +1721,23 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ),
             style: _text(OnCareTypography.label, brand),
           ),
+          // C안 — 왜 이번 차례인지와 지난 PT 에서 무엇을 바꿨는지(#3282).
+          if (choice.basis.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(
+              choice.basis,
+              key: ValueKey<String>('routine-option-${choice.key}-basis'),
+              style: _text(OnCareTypography.bodySmall, OnCareColors.textSecondary),
+            ),
+          ],
+          if (choice.changes.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            for (final String change in choice.changes)
+              Text(
+                l.aiFindingAction(change),
+                style: _text(OnCareTypography.bodySmall, brand),
+              ),
+          ],
           const SizedBox(height: OnCareSpacing.s8),
           for (final exercise in choice.exercises)
             Padding(
@@ -2627,6 +2630,8 @@ class _RoutineChoice {
     required this.intensity,
     required this.exercises,
     required this.reason,
+    this.basis = '',
+    this.changes = const <String>[],
   });
 
   factory _RoutineChoice.fromPlan(RoutinePlan plan) {
@@ -2636,6 +2641,8 @@ class _RoutineChoice {
       intensity: plan.intensity,
       exercises: plan.exercises,
       reason: plan.rationale,
+      basis: plan.basis,
+      changes: plan.changes,
     );
   }
 
@@ -2644,6 +2651,10 @@ class _RoutineChoice {
   final String intensity;
   final List<RoutineExercise> exercises;
   final String reason;
+
+  /// C안의 차례 근거와 바꾼 점(#3282). A·B안은 비어 있다.
+  final String basis;
+  final List<String> changes;
 }
 
 /// 진행 단계 — 번호 원 세 개를 옅은 회색 선이 잇고, 원 아래에 단계 이름.

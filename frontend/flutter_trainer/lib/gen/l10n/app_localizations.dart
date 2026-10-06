@@ -5329,24 +5329,6 @@ abstract class AppLocalizations {
   /// **'You haven\'t sent any programs yet'**
   String get coachHistoryEmpty;
 
-  /// No description provided for @aiTagExisting.
-  ///
-  /// In en, this message translates to:
-  /// **'Existing suggestion'**
-  String get aiTagExisting;
-
-  /// No description provided for @aiTagCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom'**
-  String get aiTagCustom;
-
-  /// No description provided for @aiExistingBlurb.
-  ///
-  /// In en, this message translates to:
-  /// **'The existing suggestion, based on their recent meals and workouts.'**
-  String get aiExistingBlurb;
-
   /// No description provided for @aiOptionRecovery.
   ///
   /// In en, this message translates to:
@@ -5358,12 +5340,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Push'**
   String get aiOptionPush;
-
-  /// No description provided for @aiOptionExisting.
-  ///
-  /// In en, this message translates to:
-  /// **'Existing'**
-  String get aiOptionExisting;
 
   /// No description provided for @aiGenerateFailed.
   ///
@@ -5628,6 +5604,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'→ {action}'**
   String aiFindingAction(String action);
+
+  /// No description provided for @aiOptionNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up'**
+  String get aiOptionNext;
 
   /// No description provided for @aiChatEvidenceTitle.
   ///
