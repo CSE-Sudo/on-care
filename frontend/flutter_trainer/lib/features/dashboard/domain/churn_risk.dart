@@ -1,3 +1,4 @@
+import 'package:oncare_core/clock.dart' show calendarDaysBetween;
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -38,7 +39,9 @@ class ChurnRiskClient {
   final bool noRecentFeedback;
 }
 
-/// "최근" 트레이너 피드백을 찾는 기간.
+/// "최근" 트레이너 피드백을 찾는 기간 — **오늘을 포함한 날짜 7개**(오늘·어제 …
+/// 6일 전)다(#3268). 7일 전 날짜와 아직 오지 않은 날짜는 들지 않는다. 시각을
+/// 버리고 달력 날짜로만 센다.
 const int churnLookbackDays = 7;
 
 /// 기록 끊김이 이만큼 길면 그 하나로 이탈 위험이다. 3~6일은 `주의 회원` 이다.
@@ -58,10 +61,16 @@ bool hasRecentTrainerFeedback(
       _withinDays(s.date, now, churnLookbackDays),
 );
 
+/// [date] 가 [now] 의 날짜를 포함한 최근 [days] 개 날짜 안인가.
+///
+/// 예전에는 `now.difference(parsed).inDays <= days` 라 오늘을 포함해 날짜 8개를
+/// 보았고, 미래 날짜도 들었으며, 서머타임이 있는 시간대에서는 경계가 하루
+/// 어긋났다(#3268).
 bool _withinDays(String date, DateTime now, int days) {
   final parsed = DateTime.tryParse(date);
   if (parsed == null) return false;
-  return now.difference(parsed).inDays <= days;
+  final int ago = calendarDaysBetween(parsed, now);
+  return ago >= 0 && ago < days;
 }
 
 /// [client] 가 이탈 위험인가 — 규칙은 이 파일 머리 주석.
