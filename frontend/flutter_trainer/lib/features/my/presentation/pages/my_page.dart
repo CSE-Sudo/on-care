@@ -2655,7 +2655,8 @@ class _ManagedClientRow extends StatelessWidget {
 ///
 /// 고른 헬스장은 저장을 눌러야 바뀐다(다른 프로필 칸과 같다). 지도는 카카오
 /// JS 키가 주입된 빌드에서만 뜨고, 없으면 목록만으로 고른다. 검색 전에는 현재
-/// 소속 헬스장을 중심·핀으로 보여 준다(#3206). 지도는 검색 전에도
+/// 소속 헬스장을 중심·핀으로 보여 주고, 소속 위치가 없으면 들어오자마자 위치를
+/// 물어 주변 헬스장에서 시작한다(#3206). 지도는 검색 전에도
 /// 떠서 현재 소속을 보여 주고, 소속이 없으면 트레이너의 현재 위치에서 시작한다
 /// (#3206).
 class _GymPicker extends ConsumerStatefulWidget {
@@ -2713,6 +2714,19 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   /// 지도 확대 단계. 주변 찾기는 반경 2km 가 한눈에 들어오게 한 단계 넓힌다.
   static const int _mapLevel = 4;
   static const int _nearbyMapLevel = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    // 소속 위치가 없으면 지도를 보여 줄 기준이 없다 — 들어오자마자 위치를 물어
+    // 내 주변 헬스장에서 시작한다(#3206). 소속이 있으면 그 헬스장에서 시작하므로
+    // 묻지 않는다. 지도가 없는 빌드에서는 버튼으로만 찾는다.
+    if (isKakaoMapConfigured && !widget.current.hasLocation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _locate(auto: true);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -2794,11 +2808,14 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
     }
   }
 
-  /// 브라우저 위치를 얻어 주변 헬스장을 찾는다. 트레이너가 버튼을 눌렀을 때만
-  /// 부른다 — 권한 창이 이때 뜬다.
-  Future<void> _locate() async {
+  /// 브라우저 위치를 얻어 주변 헬스장을 찾는다. 권한 창이 이때 뜬다.
+  ///
+  /// 버튼을 눌렀을 때, 그리고 소속 위치가 없는 트레이너가 들어왔을 때([auto])
+  /// 부른다. 자동으로 부른 경우에는 실패 안내를 띄우지 않고(서울시청에서 시작한다),
+  /// 그새 이름을 치기 시작했으면 그 검색을 지우지 않는다.
+  Future<void> _locate({bool auto = false}) async {
     if (_locating) return;
-    _debounce?.cancel();
+    if (!auto) _debounce?.cancel();
     setState(() {
       _locating = true;
       _locationFailure = null;
@@ -2808,17 +2825,18 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           .read(trainerLocationServiceProvider)
           .locate();
       if (!mounted) return;
+      final bool typing = auto && _query.text.trim().isNotEmpty;
       // 주변 결과는 이름과 상관없다 — 남은 검색어가 목록을 설명하지 않게 비운다.
-      _query.clear();
+      if (!typing) _query.clear();
       setState(() {
         _position = position;
         _locating = false;
       });
-      await _loadNearby(position);
+      if (!typing) await _loadNearby(position);
     } on TrainerLocationFailure catch (failure) {
       if (!mounted) return;
       setState(() {
-        _locationFailure = failure;
+        if (!auto) _locationFailure = failure;
         _locating = false;
       });
     }
