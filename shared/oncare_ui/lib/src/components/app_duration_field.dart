@@ -37,6 +37,8 @@ class AppDurationField extends StatefulWidget {
     required this.labels,
     this.label,
     this.maxSeconds = 86400,
+    this.minSeconds = 0,
+    this.showSeconds = true,
     this.keyPrefix = 'duration',
   });
 
@@ -53,6 +55,14 @@ class AppDurationField extends StatefulWidget {
 
   /// 적을 수 있는 가장 긴 시간(초). 기본값은 하루다.
   final int maxSeconds;
+
+  /// 적을 수 있는 가장 짧은 시간(초). 기본값은 0 이다. 이보다 짧게 친 값은
+  /// 이 값으로 올려 보내고, 칸을 벗어날 때 칸도 다시 채운다.
+  final int minSeconds;
+
+  /// 초 칸을 그릴지. 끄면 `시 / 분` 두 칸만 서고, 분 칸이 마지막 칸이 된다 —
+  /// 분 단위로만 받는 값(AI 생성 조건의 총 운동시간)에 쓴다.
+  final bool showSeconds;
 
   /// 칸·목록 항목 키의 앞머리. 칸은 `<keyPrefix>-hours` · `-minutes` ·
   /// `-seconds`, 목록 항목은 `<keyPrefix>-minutes-option-30` 처럼 붙는다.
@@ -91,10 +101,19 @@ class _AppDurationFieldState extends State<AppDurationField> {
   /// 세 칸이 선 줄의 폭 — 목록을 그 칸 폭에 맞춰 세운다.
   double _rowWidth = 0;
 
+  /// 그리는 칸. [AppDurationField.showSeconds] 가 꺼지면 초 칸이 빠진다.
+  List<_Part> get _parts => widget.showSeconds
+      ? _Part.values
+      : const <_Part>[_Part.hours, _Part.minutes];
+
+  _Part get _last => _parts.last;
+
+  int _clamp(int seconds) =>
+      seconds.clamp(widget.minSeconds, widget.maxSeconds).toInt();
+
   bool get _anyFocused => _focus.values.any((FocusNode n) => n.hasFocus);
 
-  int get _clamped =>
-      widget.duration.inSeconds.clamp(0, widget.maxSeconds).toInt();
+  int get _clamped => _clamp(widget.duration.inSeconds);
 
   @override
   void initState() {
@@ -150,10 +169,12 @@ class _AppDurationFieldState extends State<AppDurationField> {
 
   /// 세 칸에 적힌 대로의 초. 분 `90` 처럼 넘치는 칸도 그대로 더하고, 상한으로
   /// 내린다.
-  int get _typedTotal => (_Part.values.fold<int>(
-    0,
-    (int sum, _Part part) => sum + _read(part) * part.unitSeconds,
-  )).clamp(0, widget.maxSeconds).toInt();
+  int get _typedTotal => _clamp(
+    _parts.fold<int>(
+      0,
+      (int sum, _Part part) => sum + _read(part) * part.unitSeconds,
+    ),
+  );
 
   void _fill(int total) {
     _controllers[_Part.hours]!.text = '${total ~/ 3600}';
@@ -167,24 +188,22 @@ class _AppDurationFieldState extends State<AppDurationField> {
   }
 
   void _next(_Part part) {
-    if (part == _Part.seconds) {
+    if (part == _last) {
       _focus[part]!.unfocus();
     } else {
-      _focus[_Part.values[part.index + 1]]!.requestFocus();
+      _focus[_parts[_parts.indexOf(part) + 1]]!.requestFocus();
     }
   }
 
-  /// 두 자리를 치면 다음 칸으로. 초 칸은 마지막이라 그대로 둔다 — 치자마자
+  /// 두 자리를 치면 다음 칸으로. 마지막 칸은 그대로 둔다 — 치자마자
   /// 닫히면 방금 친 값을 목록에서 확인하거나 고칠 틈이 없다.
   void _typed(_Part part, String text) {
     _emit();
-    if (text.length >= 2 && part != _Part.seconds) _next(part);
+    if (text.length >= 2 && part != _last) _next(part);
   }
 
   void _bump(_Part part, int delta) {
-    final int next = (_typedTotal + delta * part.unitSeconds)
-        .clamp(0, widget.maxSeconds)
-        .toInt();
+    final int next = _clamp(_typedTotal + delta * part.unitSeconds);
     _fill(next);
     final TextEditingController c = _controllers[part]!;
     c.selection = TextSelection.collapsed(offset: c.text.length);
@@ -296,7 +315,7 @@ class _AppDurationFieldState extends State<AppDurationField> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                for (final _Part part in _Part.values) ...<Widget>[
+                for (final _Part part in _parts) ...<Widget>[
                   if (part != _Part.hours)
                     const SizedBox(width: OnCareSpacing.s8),
                   Expanded(
@@ -336,7 +355,7 @@ class _AppDurationFieldState extends State<AppDurationField> {
             link: _link,
             child: Row(
               children: <Widget>[
-                for (final _Part part in _Part.values) ...<Widget>[
+                for (final _Part part in _parts) ...<Widget>[
                   if (part != _Part.hours)
                     const SizedBox(width: OnCareSpacing.s8),
                   Expanded(child: _box(context, part)),

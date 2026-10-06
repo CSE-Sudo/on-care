@@ -1568,22 +1568,35 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             subtitle: l.aiConditionsAutoHint,
           ),
           const SizedBox(height: OnCareSpacing.s12),
-          RoutineMinutesField(
+          // 다른 시간 칸(`RoutineDurationField`)과 같은 시·분 칸이다. 서버가
+          // 분으로 받으므로 초 칸은 숨긴다.
+          AppDurationField(
             key: const ValueKey<String>('generation-minutes'),
             keyPrefix: 'generation-minutes',
-            minutes: _minutes,
+            duration: Duration(minutes: _minutes),
             label: l.routineFieldTotalMinutes,
+            labels: AppDurationWheelLabels(
+              hours: l.routineUnitHours,
+              minutes: l.routineUnitMinutes,
+              seconds: l.routineUnitSeconds,
+            ),
+            showSeconds: false,
             // 서버가 받는 범위만 받는다(#2871) — 개별 운동 시간 칸과 다르다.
-            min: kRoutineGenerateMinMinutes,
-            max: kRoutineGenerateMaxMinutes,
-            helper: l.aiGenerateMinutesHelper(
+            minSeconds: kRoutineGenerateMinMinutes * 60,
+            maxSeconds: kRoutineGenerateMaxMinutes * 60,
+            onChanged: (Duration value) => setState(() {
+              _minutes = value.inMinutes;
+              _minutesTouched = true;
+            }),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.aiGenerateMinutesHelper(
               kRoutineGenerateMinMinutes,
               kRoutineGenerateMaxMinutes,
             ),
-            onChanged: (minutes) => setState(() {
-              _minutes = minutes;
-              _minutesTouched = true;
-            }),
+            key: const ValueKey<String>('generation-minutes-helper'),
+            style: _text(OnCareTypography.caption, OnCareColors.textTertiary),
           ),
           const SizedBox(height: OnCareSpacing.s16),
           RoutineIntensityChips(
@@ -1622,39 +1635,19 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         AppSectionHeader(title: l.aiCompareCandidates, icon: AppIcons.ai),
         const SizedBox(height: OnCareSpacing.s8),
         // 기록이 적은 회원에게도 그 사실을 말한다 — 데모·실서버 같다(#2674).
-        _RecommendationStatusBanner(analysis: options.analysis),
-        const SizedBox(height: OnCareSpacing.s8),
-        Text(
-          l.aiBasisGoalCompletion(
-                healthFocusGoalLabel(l, options.analysis.goal),
-                options.analysis.avgCompletionRate,
-              ) +
-              (options.generatedBy == 'rule' ? l.aiBasisRuleBased : ''),
-          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+        // 참고한 대화 링크도 이 배너 안에 둔다 — 무엇을 근거로 만들었는지가
+        // 한 상자에 모인다.
+        // 목표·완료율·생성 방식·트레이너 요청도 배너 안 표로 모은다 — 예전에는
+        // 배너 밖 한 줄 캡션이라 근거가 두 군데로 갈렸다.
+        _RecommendationStatusBanner(
+          analysis: options.analysis,
+          generatedBy: options.generatedBy,
+          trainerRequest: _prompt.text.trim(),
+          minutes: _minutes,
+          intensity: _intensity,
+          minutesSetByTrainer: _minutesTouched,
+          intensitySetByTrainer: _intensityTouched,
         ),
-        // 1단계에서 트레이너가 직접 적은 요청이 있으면 그대로 덧붙인다 —
-        // 이 화면이 "무엇을 근거로" 만들어졌는지 트레이너 자신의 조건까지
-        // 보여준다. 새 상태가 아니라 이미 있는 [_prompt] 를 그대로 읽는다.
-        if (_prompt.text.trim().isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            l.aiBasisTrainerRequest(_prompt.text.trim()),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _text(
-              OnCareTypography.caption,
-              OnCareColors.textSecondary,
-            ).copyWith(fontStyle: FontStyle.italic),
-          ),
-        ],
-        // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
-        // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다.
-        // 예전에는 AI 생성일 때만 보여, 규칙형으로 도는 데모와 AI 가 실패한
-        // 주의 실서버에서는 무엇을 보고 동작을 뺐는지 알 수 없었다(#2674).
-        if (options.analysis.recentMessages.isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s4),
-          _ChatEvidence(lines: options.analysis.recentMessages),
-        ],
         const SizedBox(height: OnCareSpacing.s12),
         // 세 안은 하나만 고르는 묶음이다 — 카드마다 선 라디오가 이 묶음을 본다.
         RadioGroup<String>(
@@ -2712,6 +2705,9 @@ class _PersonalOrigin {
 /// AI quietly ignored "무릎이 아파요", the only way to notice is to see which
 /// utterances it was given. Lines arrive speaker-labelled from the server, so
 /// this widget only handles layout.
+///
+/// 줄이 많으면 후보 비교가 아래로 밀려나므로 화면에는 `참고한 대화 N줄` 링크
+/// 한 줄만 두고, 누르면 채팅처럼 말풍선 창으로 연다.
 class _ChatEvidence extends StatelessWidget {
   const _ChatEvidence({required this.lines});
 
@@ -2721,33 +2717,106 @@ class _ChatEvidence extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    // 근거 인용이라 안내 배너가 아니라 회색 카드 안 구획이다(#2468).
-    return SizedBox(
-      width: double.infinity,
-      child: AppTile(
-        tone: AppTileTone.neutral,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              l.aiChatEvidenceTitle,
-              style: tokens
-                  .text(OnCareTypography.label)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-            const SizedBox(height: OnCareSpacing.s4),
-            for (final String line in lines)
-              Padding(
-                padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-                child: Text(
-                  line,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-              ),
-          ],
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: InkWell(
+        key: const ValueKey<String>('ai-chat-evidence-open'),
+        borderRadius: OnCareRadius.smAll,
+        onTap: () => showAppDialog<void>(
+          context: context,
+          builder: (BuildContext context) => _ChatEvidenceDialog(lines: lines),
         ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              AppIcon(AppIcons.chat, size: 16, color: tokens.brand.primary),
+              const SizedBox(width: OnCareSpacing.s4),
+              Text(
+                l.aiChatEvidenceLink(lines.length),
+                style: tokens
+                    .text(OnCareTypography.label)
+                    .copyWith(color: tokens.brand.primary),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 참고한 대화를 채팅처럼 보여 주는 창 — 회원은 왼쪽, 트레이너는 오른쪽.
+///
+/// 서버가 줄마다 `트레이너: ` · `회원: ` 처럼 말한 사람을 붙여 보낸다. 그
+/// 머리로 좌우를 가르고, 말풍선에는 머리를 뗀 본문만 적는다.
+class _ChatEvidenceDialog extends StatelessWidget {
+  const _ChatEvidenceDialog({required this.lines});
+
+  final List<String> lines;
+
+  static const List<String> _trainerPrefixes = <String>['트레이너', 'Trainer'];
+
+  static (bool trainer, String text) _split(String line) {
+    final int colon = line.indexOf(':');
+    if (colon <= 0) return (false, line.trim());
+    final String speaker = line.substring(0, colon).trim();
+    return (
+      _trainerPrefixes.contains(speaker),
+      line.substring(colon + 1).trim(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return AppDialog(
+      key: const ValueKey<String>('ai-chat-evidence-dialog'),
+      title: l.aiChatEvidenceTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final String line in lines)
+            Builder(
+              builder: (BuildContext context) {
+                final (bool trainer, String text) = _split(line);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+                  child: Align(
+                    alignment: trainer
+                        ? AlignmentDirectional.centerEnd
+                        : AlignmentDirectional.centerStart,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: trainer
+                              ? tokens.brand.surface
+                              : OnCareColors.surfaceInput,
+                          borderRadius: OnCareRadius.mdAll,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: OnCareSpacing.s12,
+                            vertical: OnCareSpacing.s8,
+                          ),
+                          child: Text(
+                            text,
+                            style: tokens
+                                .text(OnCareTypography.bodySmall)
+                                .copyWith(color: OnCareColors.textPrimary),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
     );
   }
@@ -2758,9 +2827,32 @@ class _ChatEvidence extends StatelessWidget {
 /// when the AI had nothing personal to go on, and a settled member sees
 /// what pattern the candidates are grounded in.
 class _RecommendationStatusBanner extends StatelessWidget {
-  const _RecommendationStatusBanner({required this.analysis});
+  const _RecommendationStatusBanner({
+    required this.analysis,
+    required this.generatedBy,
+    required this.trainerRequest,
+    required this.minutes,
+    required this.intensity,
+    required this.minutesSetByTrainer,
+    required this.intensitySetByTrainer,
+  });
 
   final MemberAnalysis analysis;
+
+  /// 서버가 알려 준 생성 방식(`rule` 이면 규칙 기반).
+  final String generatedBy;
+
+  /// 1단계에서 트레이너가 적은 요청. 비어 있으면 줄을 그리지 않는다.
+  final String trainerRequest;
+
+  /// 이번 생성의 총 시간·강도(`low`/`moderate`/`high`). 트레이너가 건드리지
+  /// 않은 값은 서버가 기록에서 정한 값으로 채워져 있다(#776).
+  final int minutes;
+  final String intensity;
+
+  /// 각 조건을 트레이너가 직접 정했는지 — 아니면 기록 기반 자동이다.
+  final bool minutesSetByTrainer;
+  final bool intensitySetByTrainer;
 
   @override
   Widget build(BuildContext context) {
@@ -2783,6 +2875,40 @@ class _RecommendationStatusBanner extends StatelessWidget {
         ),
       ),
     };
+    final bool hasChat = analysis.recentMessages.isNotEmpty;
+    final List<(String, String)> rows = <(String, String)>[
+      (l.aiBasisGoalLabel, healthFocusGoalLabel(l, analysis.goal)),
+      (
+        l.aiBasisCompletionLabel,
+        l.aiBasisCompletionValue(analysis.avgCompletionRate),
+      ),
+      if (analysis.frequentExercises.isNotEmpty)
+        (l.aiFrequentExercisesLabel, analysis.frequentExercises.join(', ')),
+      // 후보의 총 시간·강도를 직접 정하는 값이라 1단계와 겹쳐도 근거로 둔다.
+      (
+        l.aiBasisConditionLabel,
+        l.aiBasisConditionValue(
+          // 총 시간은 후보가 넘지 않는 **상한**이다 — A안은 일부러 더 짧게
+          // 짠다(#776). `총 30분` 이라 적으면 22분 후보가 조건을 어긴 듯 읽힌다.
+          l.aiBasisConditionMax(minutes, switch (intensity) {
+            'low' => l.intensityLight,
+            'high' => l.intensityHigh,
+            _ => l.intensityModerate,
+          }),
+          switch ((minutesSetByTrainer, intensitySetByTrainer)) {
+            (true, true) => l.aiBasisConditionByTrainer,
+            (false, false) => l.aiBasisConditionAuto,
+            _ => l.aiBasisConditionMixed,
+          },
+        ),
+      ),
+      (
+        l.aiBasisMethodLabel,
+        generatedBy == 'rule' ? l.aiBasisMethodRule : l.aiBasisMethodAi,
+      ),
+      if (trainerRequest.isNotEmpty)
+        (l.aiBasisRequestLabel, l.aiBasisRequestValue(trainerRequest)),
+    ];
     // AI 가 이번 후보를 무엇에 기대 만들었는지 알리는 안내다 — 회색 상자로
     // 두면 입력 칸처럼 읽혔다(#2468).
     return SizedBox(
@@ -2790,15 +2916,60 @@ class _RecommendationStatusBanner extends StatelessWidget {
       child: AppBanner(
         title: title,
         message: body,
-        child: analysis.frequentExercises.isEmpty
-            ? null
-            : Text(
-                '${l.aiFrequentExercisesLabel}: '
-                '${analysis.frequentExercises.join(', ')}',
-                style: tokens
-                    .text(OnCareTypography.strong(OnCareTypography.caption))
-                    .copyWith(color: OnCareColors.textPrimary),
-              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // 라벨 칸은 가장 긴 라벨에 맞춘다 — 숫자 너비를 박지 않는다.
+            Table(
+              columnWidths: const <int, TableColumnWidth>{
+                0: IntrinsicColumnWidth(),
+                1: FlexColumnWidth(),
+              },
+              children: <TableRow>[
+                for (final (String label, String value) in rows)
+                  TableRow(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          end: OnCareSpacing.s12,
+                          bottom: OnCareSpacing.s2,
+                        ),
+                        child: Text(
+                          label,
+                          style: tokens
+                              .text(OnCareTypography.caption)
+                              .copyWith(color: OnCareColors.textSecondary),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: OnCareSpacing.s2,
+                        ),
+                        child: Text(
+                          value,
+                          style: tokens
+                              .text(
+                                OnCareTypography.strong(
+                                  OnCareTypography.caption,
+                                ),
+                              )
+                              .copyWith(color: OnCareColors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
+            // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다
+            // (#2674).
+            if (hasChat) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s4),
+              _ChatEvidence(lines: analysis.recentMessages),
+            ],
+          ],
+        ),
       ),
     );
   }

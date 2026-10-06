@@ -45,6 +45,8 @@ void main() {
     WidgetTester tester, {
     Duration initial = Duration.zero,
     int maxSeconds = 86400,
+    int minSeconds = 0,
+    bool showSeconds = true,
     ValueNotifier<Duration>? external,
   }) async {
     tester.view.physicalSize = const Size(600, 900);
@@ -71,6 +73,8 @@ void main() {
                     AppDurationField(
                       duration: current,
                       maxSeconds: maxSeconds,
+                      minSeconds: minSeconds,
+                      showSeconds: showSeconds,
                       label: '운동 시간',
                       labels: labels,
                       onChanged: (Duration next) {
@@ -287,5 +291,31 @@ void main() {
     expect(text(tester, 'hours'), '1');
     expect(text(tester, 'minutes'), '0');
     expect(text(tester, 'seconds'), '45');
+  });
+
+  testWidgets('초 칸을 끄면 시·분 두 칸만 서고 하한·상한으로 당긴다', (
+    WidgetTester tester,
+  ) async {
+    final List<Duration> emitted = await pump(
+      tester,
+      initial: const Duration(minutes: 30),
+      minSeconds: 10 * 60,
+      maxSeconds: 180 * 60,
+      showSeconds: false,
+    );
+
+    expect(field('seconds'), findsNothing);
+    expect(text(tester, 'minutes'), '30');
+
+    await tester.enterText(field('minutes'), '5');
+    await leave(tester);
+    expect(emitted.last, const Duration(minutes: 10));
+    expect(text(tester, 'minutes'), '10');
+
+    await tester.enterText(field('hours'), '9');
+    await leave(tester);
+    expect(emitted.last, const Duration(minutes: 180));
+    expect(text(tester, 'hours'), '3');
+    expect(text(tester, 'minutes'), '0');
   });
 }
