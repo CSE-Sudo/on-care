@@ -54,7 +54,7 @@ Future<bool> showDietResultSheet(
   // 그 화면에서 저장했으면 이 흐름도 저장 성공이다(#2848, #2827).
   if (closedWith == _ResultSheetExit.manual) {
     if (!root.mounted) return false;
-    return openDietManualAddPage(root);
+    return openDietManualAddPage(root, date: date);
   }
   return outcome.resolve(closedWith);
 }
@@ -316,6 +316,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     final DateTime today = _todayKst();
     final DateTime? picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       // 지난 식사는 얼마든지 올릴 수 있지만, 앞날의 식사는 아직 먹지 않았다.
       firstDate: DateTime(today.year - 1),
@@ -528,8 +530,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       footer: _footer(l),
       child: _body(),
     );
-    // 고친 값을 보내는 동안에는 끌어내려 닫지 못하게 한다.
-    return PopScope(canPop: !_saving, child: sheet);
+    // 고친 값을 보내는 동안에는 끌어내려 닫지 못하게 한다. 날짜를 옮기는 동안도
+    // 같다(#3245) — 닫히면 두 날의 기록을 다시 읽지 않아 옮긴 기록이 옛 날에
+    // 남아 보인다. 분석 중에는 닫아도 된다(#2847).
+    return PopScope(canPop: !_saving && !_movingDate, child: sheet);
   }
 
   /// 인식된 데이터를 고치는 문. 헤더 우측에 놓이므로 결과가 있을 때만

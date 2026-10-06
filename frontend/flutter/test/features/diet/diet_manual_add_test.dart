@@ -138,6 +138,31 @@ void main() {
       expect(saved, <bool>[true]);
     });
 
+    testWidgets('소수 칸은 소수점을 하나만 받는다 (#3244)', (WidgetTester tester) async {
+      await _openAddSheet(tester, FakeDietRepository());
+      await tester.tap(find.byKey(const Key('dietManualAddButton')));
+      await tester.pumpAndSettle();
+      String carbs() => tester
+          .widget<EditableText>(
+            find.descendant(
+              of: _field('diet-food-carbs-1'),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .controller
+          .text;
+
+      await tester.ensureVisible(_field('diet-food-carbs-1'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_field('diet-food-carbs-1'), '12.5');
+      await tester.pump();
+      expect(carbs(), '12.5');
+      // 점이 둘 이상인 값은 숫자로 읽히지 않아 0g 으로 저장됐다 — 받지 않는다.
+      await tester.enterText(_field('diet-food-carbs-1'), '1.2.3');
+      await tester.pump();
+      expect(carbs(), '12.5');
+    });
+
     testWidgets('이름 적힌 음식이 없으면 저장하지 않고 이유를 보인다', (WidgetTester tester) async {
       final FakeDietRepository repository = FakeDietRepository();
       await _openAddSheet(tester, repository);

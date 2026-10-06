@@ -87,7 +87,7 @@ def _open_upright(data: bytes, max_edge: int):
     try:
         from PIL import Image, ImageOps
     except ImportError as exc:  # pragma: no cover - 운영/CI 에는 항상 설치돼 있다
-        raise UndecodableImage("이미지를 처리할 수 없습니다.") from exc
+        raise UndecodableImage("이미지를 처리할 수 없어요.") from exc
 
     try:
         with warnings.catch_warnings():
@@ -98,7 +98,7 @@ def _open_upright(data: bytes, max_edge: int):
     except UndecodableImage:
         raise
     except Exception as exc:  # noqa: BLE001 - 손상·폭탄·위장 파일 모두 여기서 끝난다
-        raise UndecodableImage("이미지를 읽을 수 없습니다.") from exc
+        raise UndecodableImage("이미지를 읽을 수 없어요.") from exc
 
 
 def check_dimensions(width: int, height: int) -> None:
@@ -109,11 +109,11 @@ def check_dimensions(width: int, height: int) -> None:
     """
     settings = get_settings()
     if width < 1 or height < 1:
-        raise UndecodableImage("이미지를 읽을 수 없습니다.")
+        raise UndecodableImage("이미지를 읽을 수 없어요.")
     if max(width, height) > settings.max_image_decode_edge:
-        raise UndecodableImage("이미지가 너무 큽니다.")
+        raise UndecodableImage("이미지가 너무 커요.")
     if width * height > settings.max_image_decode_pixels:
-        raise UndecodableImage("이미지가 너무 큽니다.")
+        raise UndecodableImage("이미지가 너무 커요.")
 
 
 def _decode(Image, ImageOps, data: bytes, max_edge: int):
@@ -124,9 +124,9 @@ def _decode(Image, ImageOps, data: bytes, max_edge: int):
         # 디코딩도 하지 않는다.
         width, height = source.size
         if max(width, height) > get_settings().max_image_decode_edge:
-            raise UndecodableImage("이미지가 너무 큽니다.")
+            raise UndecodableImage("이미지가 너무 커요.")
         if getattr(source, "n_frames", 1) > MAX_FRAMES:
-            raise UndecodableImage("이미지를 읽을 수 없습니다.")
+            raise UndecodableImage("이미지를 읽을 수 없어요.")
         if source_format == "JPEG":
             # 결과 장변 근처까지 줄여 펼친다. 회전 전이라 정사각 상자로 묻는다.
             source.draft(None, (max_edge, max_edge))
@@ -161,7 +161,7 @@ def sanitize(data: bytes, *, max_edge: int = CHAT_MAX_EDGE) -> CleanImage:
     """
     image, source_format, icc_profile = _open_upright(data, max_edge)
     if source_format not in _FORMATS:
-        raise UndecodableImage("JPG·PNG·WebP 이미지만 보낼 수 있습니다.")
+        raise UndecodableImage("JPG·PNG·WebP 이미지만 보낼 수 있어요.")
     extension, media_type = _FORMATS[source_format]
 
     options: dict[str, object] = {}
@@ -180,7 +180,7 @@ def sanitize(data: bytes, *, max_edge: int = CHAT_MAX_EDGE) -> CleanImage:
     try:
         image.save(buffer, format=source_format, **options)
     except Exception as exc:  # noqa: BLE001
-        raise UndecodableImage("이미지를 처리할 수 없습니다.") from exc
+        raise UndecodableImage("이미지를 처리할 수 없어요.") from exc
     return CleanImage(
         data=buffer.getvalue(),
         extension=extension,
@@ -202,7 +202,7 @@ def to_jpeg(data: bytes, *, max_edge: int, quality: int) -> CleanImage:
     try:
         image.save(buffer, format="JPEG", **options)
     except Exception as exc:  # noqa: BLE001
-        raise UndecodableImage("이미지를 처리할 수 없습니다.") from exc
+        raise UndecodableImage("이미지를 처리할 수 없어요.") from exc
     return CleanImage(
         data=buffer.getvalue(),
         extension="jpg",

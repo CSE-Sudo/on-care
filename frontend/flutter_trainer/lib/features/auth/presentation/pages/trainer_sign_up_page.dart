@@ -18,7 +18,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 가입 화면에서 검사하는 칸. 이름도 꼭 받는다(#1784).
-enum _Field { name, email, password, passwordConfirm }
+enum _Field { name, email, phone, password, passwordConfirm }
 
 /// 트레이너 회원가입 화면 — 공용 [AppAuthLayout]. 이름/이메일/
 /// 비밀번호로 계정을 만들고, 성공 시 자동 로그인해 고객 탭으로 진입한다
@@ -41,6 +41,7 @@ class TrainerSignUpPage extends ConsumerStatefulWidget {
 class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
   final TextEditingController _name = TextEditingController();
   final TextEditingController _email = TextEditingController();
+  final TextEditingController _phone = TextEditingController();
   final TextEditingController _password = TextEditingController();
   final TextEditingController _passwordConfirm = TextEditingController();
   final TextEditingController _code = TextEditingController();
@@ -104,6 +105,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     _code.dispose();
     _name.dispose();
     _email.dispose();
+    _phone.dispose();
     _password.dispose();
     _passwordConfirm.dispose();
     super.dispose();
@@ -115,6 +117,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     return switch (field) {
       _Field.name => authInputErrorText(l, AppInputRules.name(_name.text)),
       _Field.email => authInputErrorText(l, AppInputRules.email(_email.text)),
+      _Field.phone => authInputErrorText(l, AppInputRules.phone(_phone.text)),
       _Field.password => authInputErrorText(
         l,
         AppInputRules.signUpPassword(_password.text),
@@ -187,6 +190,14 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
           .read(signupEmailCodeRepositoryProvider)
           .request(email: email);
       if (!mounted) return;
+      // 요청하는 사이 이메일을 고쳤다면 받은 코드는 옛 주소의 것이다(#3248) —
+      // 그대로 두면 새 주소로 가입할 때 서버가 코드를 거절한다(400). 새 주소로
+      // 다시 받게 버린다.
+      if (SignupEmailCode.emailKey(_email.text) !=
+          SignupEmailCode.emailKey(email)) {
+        setState(() => _codeRequesting = false);
+        return;
+      }
       _codeTicker?.cancel();
       _code.clear();
       setState(() {
@@ -238,6 +249,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     final bool valid = _errors.validate(<_Field>[
       _Field.name,
       _Field.email,
+      _Field.phone,
       _Field.password,
       _Field.passwordConfirm,
     ]);
@@ -257,6 +269,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
             password: password,
             name: name,
             emailCode: _code.text.trim(),
+            phone: _phone.text.trim(),
             consents: TrainerSignupConsent.toPayload(_consents),
           );
       // 계정이 만들어진 뒤에만 새 비밀번호를 브라우저에 저장하게 한다(#2295).
@@ -271,6 +284,16 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
       // 해제된 context 로 로케일을 조회하게 된다.
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
+      // 계정은 만들었는데 이어진 로그인이 실패했다(#3248). 여기서 가입 실패로
+      // 알리면 다시 누른 가입이 이미 가입된 이메일(409)이 된다 — 로그인으로 보낸다.
+      // 계정이 있으므로 새 비밀번호를 브라우저에 저장하게 한다(#2295).
+      if (e.failure == AuthFailure.signedUpSignInFailed) {
+        TextInput.finishAutofillContext();
+        setState(() => _loading = false);
+        showAppToast(context, authFailureText(l, e));
+        context.go(AppRoutes.signIn);
+        return;
+      }
       // 인증 코드 문제는 코드 칸 아래에 둔다(#3038) — 폼은 그대로 남는다.
       if (e.failure == AuthFailure.emailCodeInvalid ||
           e.failure == AuthFailure.emailCodeRequired) {
@@ -345,6 +368,27 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
             ),
             const SizedBox(height: OnCareSpacing.s8),
             ..._codeStep(l, mutedStyle),
+            const SizedBox(height: OnCareSpacing.s12),
+            // 회원 앱 가입과 같은 칸이다. 왜 받는지 그 자리에서 말해 준다 — 이유
+            // 없이 번호를 물으면 가입을 그만두는 쪽이 자연스럽다.
+            AppTextField(
+              key: const ValueKey<String>('trainer-signup-phone'),
+              controller: _phone,
+              hint: l.signUpPhoneHint,
+              helper: l.signUpPhoneHelper,
+              errorText: _errors.of(_Field.phone),
+              prefixIcon: AppIcons.phone,
+              size: AppFieldSize.large,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              autofillHints: const <String>[
+                AutofillHints.telephoneNumberNational,
+              ],
+              inputFormatters: const <TextInputFormatter>[
+                AppPhoneNumberFormatter(),
+              ],
+              onChanged: _onEdited,
+            ),
             const SizedBox(height: OnCareSpacing.s12),
             AppTextField(
               key: const ValueKey<String>('trainer-signup-password'),

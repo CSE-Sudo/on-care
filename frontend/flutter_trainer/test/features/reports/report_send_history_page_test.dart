@@ -198,7 +198,7 @@ void main() {
       );
       expect(warning, findsOneWidget);
       expect(
-        find.text('전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.'),
+        find.text('전송 이력을 불러오지 못했어요. 이미 보낸 회원이 안 보냄으로 보일 수 있어요.'),
         findsOneWidget,
       );
     });
@@ -243,7 +243,7 @@ void main() {
 
       expect(find.text('이미 보낸 리포트예요'), findsOneWidget);
       expect(find.textContaining('김민수님에게'), findsWidgets);
-      expect(find.textContaining('다시 보내면 회원 채팅에 한 번 더 도착해요'), findsOneWidget);
+      expect(find.textContaining('다시 보내면 회원에게 메시지로 한 번 더 도착해요'), findsOneWidget);
 
       await tester.tap(find.text('취소'));
       await settle(tester);

@@ -147,7 +147,7 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
       _startTicker();
     });
     final EmoteState? state = _state;
-    return AppSheet(
+    final Widget sheet = AppSheet(
       key: const Key('emoteSheet'),
       showClose: false,
       title: l.emoteSheetTitle,
@@ -175,6 +175,9 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
         ],
       ),
     );
+    // 사는 중에는 바깥 누름·뒤로 가기·끌어내리기로 닫히지 않는다(#3245) — 닫히면
+    // 산 결과·실패 안내를 보여 줄 자리가 사라진다. 사는 중이 아니면 지금처럼 닫힌다.
+    return PopScope(canPop: !_busy, child: sheet);
   }
 }
 

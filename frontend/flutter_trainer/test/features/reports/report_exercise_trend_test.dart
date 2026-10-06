@@ -7,6 +7,8 @@
 /// 없어, 여덟 주에서 읽은 흐름 한 줄이 옆에 선다.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,8 +67,10 @@ Future<void> _pump(
   ReportTrend? trend,
   WeeklyReport? report,
   bool empty = false,
+  Future<ReportTrend> Function()? load,
   String locale = 'ko',
   Size size = const Size(1400, 1000),
+  bool settle = true,
 }) async {
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = size;
@@ -76,6 +80,7 @@ Future<void> _pump(
     ProviderScope(
       overrides: <Override>[
         reportTrendProvider.overrideWith((ref, key) async {
+          if (load != null) return load();
           // 못 읽은 주 — 값이 없는 것이지 0 인 것이 아니다.
           if (empty) {
             return const ReportTrend(
@@ -100,7 +105,7 @@ Future<void> _pump(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }
 
 /// 그 유형 칸 안의 글월 목록.
@@ -284,13 +289,13 @@ void main() {
       expect(_cardTexts(tester, ExerciseKind.cardio), contains('목표 없음'));
     });
 
-    testWidgets('견줄 지난 주가 없으면 빈 줄 대신 그렇다고 적는다', (tester) async {
+    testWidgets('견줄 지난주가 없으면 빈 줄 대신 그렇다고 적는다', (tester) async {
       await _pump(
         tester,
         trend: _trend(weeks: <ReportTrendWeek>[_w(cardio: 75)]),
       );
 
-      expect(_cardTexts(tester, ExerciseKind.cardio), contains('견줄 지난 주가 없어요'));
+      expect(_cardTexts(tester, ExerciseKind.cardio), contains('견줄 지난주가 없어요'));
     });
 
     testWidgets('내리막은 몇 주째인지로 적는다 — 이번 주 수치가 말하지 못하는 것이다', (tester) async {
@@ -354,7 +359,7 @@ void main() {
         ),
       );
 
-      expect(find.text('추적 종목 2개 — 자동 선별됨'), findsOneWidget);
+      expect(find.text('추적 운동 2개 — 자동 선별됨'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('report-tracked-스쿼트')),
         findsOneWidget,
@@ -402,6 +407,50 @@ void main() {
       );
     });
 
+    testWidgets('읽는 중에는 `불러오지 못했어요` 대신 로딩을 그린다 (#3246)', (tester) async {
+      final Completer<ReportTrend> pending = Completer<ReportTrend>();
+      await _pump(tester, load: () => pending.future, settle: false);
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-loading')),
+        findsOneWidget,
+      );
+      expect(find.text('이 주의 운동 기록을 불러오지 못했어요'), findsNothing);
+
+      pending.complete(_trend());
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-cardio')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('읽지 못하면 다시 시도할 수 있다 (#3246)', (tester) async {
+      int calls = 0;
+      await _pump(
+        tester,
+        load: () async {
+          calls++;
+          if (calls == 1) throw Exception('network');
+          return _trend();
+        },
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-error')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('다시 시도'));
+      await tester.pumpAndSettle();
+
+      expect(calls, 2);
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-cardio')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('세 칸이 폭을 똑같이 나눠 갖는다', (tester) async {
       await _pump(tester);
 
@@ -432,12 +481,12 @@ void main() {
           'Cardio',
           'of goal',
           '50%',
-          '640kcal',
+          '640 kcal',
           '75 min',
           'Weekly goal 150 min',
         ]),
       );
-      expect(find.text('Weekly goal rate'), findsOneWidget);
+      expect(find.text('Weekly goal progress'), findsOneWidget);
       expect(find.text('8-week average'), findsOneWidget);
     });
 

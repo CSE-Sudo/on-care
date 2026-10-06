@@ -13,8 +13,10 @@ RATE_LIMIT_ENABLED=false 로 끌 수 있고, RATE_LIMIT_AUTH_PER_MINUTE 로 한�
 요청자가 `X-Forwarded-For` 를 바꿔 보내도 버킷이 갈라지지 않는다.
 
 IP 버킷만으로는 부족한 곳(로그인·연결 코드·비밀번호 변경·가입)은 계정·이메일·
-사용자 id 를 키로 하는 버킷을 같이 건다(`check_key`, 실패 잠금 `ensure_unlocked`·
-`record_failure`). IP 를 바꿔도 같은 계정을 노리는 시도는 한 버킷에 모인다.
+사용자 id 를 키로 하는 버킷을 같이 건다(`check_key`, 실패 잠금 `claim_attempt`·
+`clear_failures`). IP 를 바꿔도 같은 계정을 노리는 시도는 한 버킷에 모인다. 실패
+잠금은 확인 전에 시도를 먼저 세고 맞으면 지운다(#3238) — 보고 나서 세면 그 사이에
+몰린 동시 요청이 모두 지나간다.
 
 **저장소는 두 가지다(#3143).** 같은 메서드(`check`·`retry_after`·`hit`·`reset`·`clear`)를
 갖고, 모듈의 `limiter` 가 설정(`RATE_LIMIT_STORE`)을 보고 매 호출 고른다 — 호출하는 쪽은
@@ -108,6 +110,26 @@ class RateLimiter:
                 return int(window)
             # 가장 오래된 기록이 창 밖으로 나가면 한 번 더 시도할 수 있다.
             return max(1, int(dq[0] + window - now + 0.999))
+
+    def try_acquire(self, key: str, limit: int, window: float) -> int | None:
+        """한도 안이면 한 번 세고 None, 막혔으면 풀릴 때까지 남은 초(#3238).
+
+        `retry_after` 로 보고 `hit` 로 세는 사이에는 틈이 있다 — 그 틈에 같은 키의
+        요청이 몰리면 모두 "아직 안 막힘" 을 보고 지나간다. 이 메서드는 보는 것과
+        세는 것을 한 잠금 안에서 한다.
+        """
+        now = time.monotonic()
+        with self._lock:
+            if now >= self._next_sweep:
+                self._sweep(now)
+            dq = self._live(key, now, window)
+            count = len(dq) if dq is not None else 0
+            if count >= limit:
+                if dq is None:
+                    return max(1, int(window))
+                return max(1, int(dq[0] + window - now + 0.999))
+            self._append(key, now, window, dq)
+            return None
 
     def hit(self, key: str, window: float) -> None:
         """한도 판정 없이 한 번 센다."""
@@ -278,6 +300,37 @@ class DatabaseRateLimiter:
         # 가장 오래된 기록이 창 밖으로 나가면 한 번 더 시도할 수 있다.
         return max(1, int(float(row.oldest_left) + 0.999))
 
+    def try_acquire(self, key: str, limit: int, window: float) -> int | None:
+        """한도 안이면 한 번 세고 None, 막혔으면 풀릴 때까지 남은 초(#3238).
+
+        `check` 와 같은 키 단위 트랜잭션 잠금 안에서 세고 기록한다 — 여러 태스크가
+        같은 키로 동시에 와도 한도만큼만 지나간다. DB 오류는 `check` 처럼 열어 둔다.
+        """
+        if limit <= 0:
+            return max(1, int(window))
+        params = {"key": key, "window": float(window)}
+        try:
+            with self._bind().begin() as conn:
+                conn.execute(_LOCK_KEY_SQL, {"ns": _ADVISORY_NAMESPACE, "key": key})
+                conn.execute(_DROP_EXPIRED_KEY_SQL, {"key": key})
+                row = conn.execute(_WINDOW_HITS_SQL, params).one()
+                if row.hits >= limit:
+                    blocked = (
+                        int(window)
+                        if row.oldest_left is None
+                        else int(float(row.oldest_left) + 0.999)
+                    )
+                else:
+                    blocked = None
+                    conn.execute(_INSERT_HIT_SQL, params)
+        except SQLAlchemyError:
+            self._store_error("try_acquire", key)
+            return None
+        if blocked is not None:
+            return max(1, blocked)
+        self._maybe_sweep()
+        return None
+
     def hit(self, key: str, window: float) -> None:
         """한도 판정 없이 한 번 센다."""
         try:
@@ -356,6 +409,9 @@ class ConfiguredLimiter:
     def retry_after(self, key: str, limit: int, window: float) -> int | None:
         return self.store().retry_after(key, limit, window)
 
+    def try_acquire(self, key: str, limit: int, window: float) -> int | None:
+        return self.store().try_acquire(key, limit, window)
+
     def hit(self, key: str, window: float) -> None:
         self.store().hit(key, window)
 
@@ -392,7 +448,7 @@ def too_many_requests(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         detail=detail
         if detail is not None
-        else "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+        else "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.",
         headers={"Retry-After": str(max(1, int(retry_after)))},
     )
 
@@ -409,6 +465,24 @@ def ensure_unlocked(key: str, limit: int, window: float) -> None:
     if not get_settings().rate_limit_enabled:
         return
     retry = limiter.retry_after(key, limit, window)
+    if retry is not None:
+        raise too_many_requests(retry)
+
+
+def claim_attempt(key: str, limit: int, window: float) -> None:
+    """시도 한 번을 **확인보다 먼저** 센다. 이미 한도면 429(#3238).
+
+    `ensure_unlocked` → (비밀번호 확인) → `record_failure` 순서는 확인하는 동안 틈이
+    생긴다. 같은 계정으로 요청을 한꺼번에 보내면 모두 잠금 판정을 통과한 뒤 bcrypt
+    확인에 들어가, 한 창에서 동시 요청 수만큼 더 맞혀 볼 수 있었다. 여기서는 판정과
+    기록을 한 잠금 안에서 해 한도만큼만 확인 단계에 들어간다.
+
+    센 시도는 실패로 남는다 — 확인이 맞으면 호출부가 `clear_failures` 로 지운다.
+    그래서 틀린 시도에 따로 `record_failure` 를 부르지 않는다.
+    """
+    if not get_settings().rate_limit_enabled:
+        return
+    retry = limiter.try_acquire(key, limit, window)
     if retry is not None:
         raise too_many_requests(retry)
 
@@ -449,13 +523,12 @@ class PasswordChangeGuard:
         self._limit = settings.password_change_max_failures
         self._window = float(settings.login_lockout_seconds)
 
-    def ensure_unlocked(self) -> None:
-        """잠겼으면 429. 비밀번호 확인보다 먼저 부른다."""
-        ensure_unlocked(self._key, self._limit, self._window)
+    def claim(self) -> None:
+        """시도 한 번을 먼저 센다. 잠겼으면 429. 비밀번호 확인보다 먼저 부른다(#3238).
 
-    def record_failure(self) -> None:
-        """현재 비밀번호가 틀린 시도 한 번을 센다."""
-        record_failure(self._key, self._window)
+        센 시도는 틀린 것으로 남고, 현재 비밀번호가 맞으면 [clear] 가 지운다.
+        """
+        claim_attempt(self._key, self._limit, self._window)
 
     def clear(self) -> None:
         """현재 비밀번호가 맞으면 실패 기록을 지운다."""

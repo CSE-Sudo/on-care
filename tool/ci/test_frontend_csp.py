@@ -42,6 +42,8 @@ ALLOWED_STATIC_CONNECT = {
     "https://www.gstatic.com",
     "https://fonts.gstatic.com",
     "https://dapi.kakao.com",
+    # 구글 로그인 버튼(GIS)이 로그인 상태를 묻는 곳(#330).
+    "https://accounts.google.com/gsi/",
 }
 
 
@@ -127,7 +129,7 @@ class FrontendCspTest(unittest.TestCase):
     def test_header_connect_src_is_within_meta(self) -> None:
         meta = self.metas[0]["connect-src"]
         for source in self.app_csp["connect-src"]:
-            if source.startswith("https://") or source.startswith("${"):
+            if source.startswith(("https://", "${")):
                 self.assertIn("https:", meta)
             else:
                 self.assertIn(source, meta)

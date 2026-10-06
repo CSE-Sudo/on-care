@@ -488,11 +488,17 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
     // 스트립은 늘 월요일에서 시작해 일요일로 끝난다 (#1059). 오늘을 가운데
     // 두면 한 줄에 지난주 끝과 이번 주 앞이 섞여, `이번 주` 그래프가 세는
     // 주와 달력이 보여 주는 주가 서로 어긋났다.
-    final DateTime center = today.add(Duration(days: _weekShift * 7));
+    // 날짜는 달력으로 더한다 — 24시간 단위로 더하면 서머타임이 있는 기기에서
+    // 전날 23시가 되어 한 칸 밀린다(#3244).
+    final DateTime center = DateTime(
+      today.year,
+      today.month,
+      today.day + _weekShift * 7,
+    );
     final DateTime monday = mondayOf(center);
     final List<DateTime> days = List<DateTime>.generate(
       7,
-      (int i) => monday.add(Duration(days: i)),
+      (int i) => DateTime(monday.year, monday.month, monday.day + i),
     );
     final bool atToday = _weekShift == 0 && _selected == today;
     // 날짜를 옮기면 기간 토글이 사라진다 — 운동 탭이 오늘이 아닌 날에
@@ -628,7 +634,12 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
                       date: _selected,
                       // 보고 있는 날로 추가한다(#2849). 어제를 보며 누른
                       // 추가가 오늘로 들어가면 어제 목록에는 끝내 보이지 않는다.
-                      onAdd: () => showDietAddSheet(context, date: _selected),
+                      // 자정을 넘긴 뒤 다시 그려지기 전에 누르면 `_selected` 가
+                      // 아직 어제다 — 지금의 오늘로 맞춘 뒤 추가한다(#3244).
+                      onAdd: () {
+                        setState(() => _followMidnight(_today));
+                        showDietAddSheet(context, date: _selected);
+                      },
                       onEditMeal: (DietMeal m) =>
                           openMealDetailPage(context, m),
                     ),
@@ -945,6 +956,8 @@ class _NutritionSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
+    // ko `/ 2,000kcal` · en `/ 2,000 kcal`(#3120).
+    final String gap = unitGap(Localizations.localeOf(context).toString());
     // 넘긴 항목은 빨강 (#890). 초과가 아닌 쪽은 브랜드 색이다 (#1070) — 초록은
     // "정상"으로 읽혀서 목표에 한참 못 미친 날까지 괜찮다고 말했다.
     final Color calorieColor = calories.isOverGoal
@@ -994,7 +1007,7 @@ class _NutritionSummaryCard extends StatelessWidget {
                                 ),
                               ),
                               TextSpan(
-                                text: ' / ${calories.goal} ${calories.unit}',
+                                text: ' / ${calories.goal}$gap${calories.unit}',
                                 style: _text(
                                   context,
                                   OnCareTypography.bodySmall,
@@ -1183,7 +1196,8 @@ class _MacroProgressItem extends StatelessWidget {
               // 초과분은 라벨 오른쪽에 빨간 글씨로 (#1070).
               if (macro.item.isOverGoal && macro.difference != null)
                 TextSpan(
-                  text: ' +${macro.difference}${macro.item.unit}',
+                  text:
+                      ' +${macro.difference}${unitGap(Localizations.localeOf(context).toString())}${macro.item.unit}',
                   style: const TextStyle(color: OnCareColors.danger),
                 ),
             ],
@@ -1214,7 +1228,8 @@ class _MacroProgressItem extends StatelessWidget {
                   ),
                 ),
                 TextSpan(
-                  text: ' / ${macro.item.goal}${macro.item.unit}',
+                  text:
+                      ' / ${macro.item.goal}${unitGap(Localizations.localeOf(context).toString())}${macro.item.unit}',
                   style: _text(
                     context,
                     OnCareTypography.caption,
@@ -1474,8 +1489,8 @@ class _MealCard extends StatelessWidget {
                                     fit: BoxFit.scaleDown,
                                     alignment: Alignment.centerRight,
                                     child: AppTag(
-                                      label:
-                                          '${_formatInt(meal.total)} ${l.unitKcal}',
+                                      // ko `1,480kcal` · en `1,480 kcal`(#3120).
+                                      label: l.unitKcalValue(meal.total),
                                       tone: AppTagTone.brand,
                                     ),
                                   ),

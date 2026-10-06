@@ -9,14 +9,19 @@ AI 챗봇은 담당 트레이너가 없는 회원의 코치다. 메시지 한 �
 - 무료를 넘겨 보내려면 회원이 동의해야 한다(`pay_with_points`). 앱은 포인트로 보낼
   때마다 확인창을 띄운다(#2217) — 동의 없이 넘기면 [PointsConsentRequired].
 - **AI 가 답했을 때만 센다.** 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다.
-  그래서 판정([plan])과 기록([record])을 나눈다 — LLM 을 부르기 전에 보낼 수 있는지
-  보고, 답을 받은 뒤에야 센다.
+- **먼저 잡고, 답하지 못하면 거둔다(#3240).** LLM 을 부르기 전에 잔액 행을 잠근 채
+  한도를 다시 보고 사용 한 줄을 미리 남긴다([reserve]) — 포인트로 나가면 그때
+  차감한다. 답을 받으면 그 답에 잇고([complete]), 대체 답·오류면 줄과 차감을
+  없던 일로 한다([release]). 확인과 기록 사이에 틈이 있으면 동시에 보낸 요청이
+  모두 "남았다" 를 보고 한도를 넘거나, 잔액이 모자란 요청이 무료로 답을 받는다.
+  잔액이 모자라면 답하기 전에 거절한다.
 - 같은 메시지의 재전송은 멱등키로 한 번만 센다([by_request]).
 """
 from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from datetime import timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -46,6 +51,15 @@ class PointsConsentRequired(AiChatQuotaError):
 
 class DailyLimitReached(AiChatQuotaError):
     """오늘 무료와 포인트 대화를 모두 썼다."""
+
+
+class ChatInProgress(AiChatQuotaError):
+    """같은 멱등키의 대화가 아직 답을 기다리는 중이다(동시 재전송)."""
+
+
+#: 답을 잇지 못한 채 이만큼 지난 예약은 버려진 것으로 본다 — 답을 기다리던 프로세스가
+#: 끝난 경우다. 그 회원의 다음 전송이 거둔다([reserve]). LLM 대기보다 넉넉하다.
+RESERVATION_STALE_AFTER = timedelta(minutes=5)
 
 
 @dataclass(frozen=True)
@@ -89,12 +103,11 @@ def status(db: Session, user_id: str) -> AiChatQuotaOut:
     )
 
 
-def plan(db: Session, user_id: str, *, pay_with_points: bool) -> bool:
+def _check(db: Session, user_id: str, *, pay_with_points: bool) -> bool:
     """이번 대화를 보낼 수 있는지 본다. 포인트로 나가면 True, 무료면 False.
 
-    아무것도 쓰지 않는다 — LLM 이 답한 뒤에 [record] 가 센다. 오늘 다 썼으면
-    [DailyLimitReached], 무료를 넘기는데 동의가 없으면 [PointsConsentRequired],
-    잔액이 모자라면 [points_service.InsufficientPoints] 다.
+    오늘 다 썼으면 [DailyLimitReached], 무료를 넘기는데 동의가 없으면
+    [PointsConsentRequired], 잔액이 모자라면 [points_service.InsufficientPoints] 다.
     """
     quota = status(db, user_id)
     if quota.next == NEXT_FREE:
@@ -103,35 +116,59 @@ def plan(db: Session, user_id: str, *, pay_with_points: bool) -> bool:
         raise DailyLimitReached("오늘 AI 코치 대화를 다 썼어요. 내일 다시 열려요.")
     if not pay_with_points:
         raise PointsConsentRequired(
-            f"오늘 무료 대화를 다 썼어요. 한 번에 {quota.cost}P 로 더 보낼 수 있어요."
+            f"오늘 무료 대화를 다 썼어요. 한 번에 {quota.cost}P로 더 보낼 수 있어요."
         )
     if quota.balance < quota.cost:
         raise points_service.InsufficientPoints(quota.cost - quota.balance)
     return True
 
 
-def record(
+def reserve(
     db: Session,
     user_id: str,
     *,
-    paid: bool,
-    message_id: str | None,
+    pay_with_points: bool,
     client_request_id: str | None,
-) -> AiChatUsage:
-    """AI 가 답한 대화 한 번을 센다. 포인트로 나가면 차감한다. 커밋한다.
+) -> str:
+    """LLM 을 부르기 전에 이번 대화의 몫을 잡는다. 잡은 줄의 id 를 돌려준다. 커밋한다.
 
-    판정([plan])과 답 사이에 다른 요청이 포인트를 썼으면 잔액이 모자랄 수 있다.
-    그때는 답을 이미 준 뒤라 무료로 센다 — 회원이 받은 답을 빼앗을 수는 없고,
-    같은 순간 두 번 보내는 일은 분당 한도가 막는다.
+    잔액 행을 잠근 채 한도를 다시 보고(같은 회원의 전송이 차례로 선다) 사용 한 줄을
+    남긴다. 포인트로 나가면 여기서 차감한다 — 잔액이 모자라면 아무것도 남기지 않고
+    [points_service.InsufficientPoints] 다. 답을 받으면 [complete], 아니면 [release].
+
+    같은 멱등키로 아직 답을 기다리는 줄이 있으면 [ChatInProgress] 다. 오래 묵은
+    줄([RESERVATION_STALE_AFTER])은 키와 관계없이 버려진 것으로 보고 먼저 거둔다 —
+    답을 기다리던 프로세스가 끝나 남은 줄이 그날 몫과 포인트를 붙들지 않게.
     """
     _, _, cost = _limits()
+    points_service.lock_balance(db, user_id)
+    _drop_abandoned(db, user_id)
+    if client_request_id:
+        existing = by_request(db, user_id, client_request_id)
+        if existing is not None:
+            if existing.message_id is not None:
+                # 답했던 대화가 한 달이 지나 지워졌다 — 새로 답하고 새로 센다.
+                existing.client_request_id = None
+            elif existing.kst_date != clock.today_iso():
+                # 지난 날 버려진 줄 — 오늘 정리에 들지 않으니 여기서 거둔다.
+                _drop(db, existing)
+            else:
+                # 묵은 줄은 위에서 거뒀다 — 남은 빈 줄은 지금 답을 기다리는 중이다.
+                db.rollback()
+                raise ChatInProgress("같은 메시지에 답하는 중이에요.")
+            db.flush()
+    try:
+        paid = _check(db, user_id, pay_with_points=pay_with_points)
+    except (AiChatQuotaError, points_service.InsufficientPoints):
+        db.rollback()
+        raise
     row = AiChatUsage(
         id=f"aiu-{uuid.uuid4().hex[:12]}",
         user_id=user_id,
         kst_date=clock.today_iso(),
         paid=False,
         cost=0,
-        message_id=message_id,
+        message_id=None,
         client_request_id=client_request_id,
     )
     db.add(row)
@@ -146,13 +183,64 @@ def record(
                 source_id=row.id,
                 cost=cost,
             )
-            row.paid = True
-            row.cost = cost
         except points_service.InsufficientPoints:
-            pass
+            db.rollback()
+            raise
+        row.paid = True
+        row.cost = cost
+    usage_id = row.id
+    db.commit()
+    return usage_id
+
+
+def complete(db: Session, usage_id: str, *, message_id: str | None) -> AiChatUsage:
+    """잡아 둔 줄을 AI 가 준 답에 잇는다. 커밋한다."""
+    row = db.get(AiChatUsage, usage_id)
+    if row is None:  # pragma: no cover - 같은 요청 안에서 지워질 길이 없다
+        raise LookupError(usage_id)
+    row.message_id = message_id
     db.commit()
     db.refresh(row)
     return row
+
+
+def release(db: Session, user_id: str, usage_id: str) -> None:
+    """AI 가 답하지 못한 대화의 몫을 거둔다 — 줄을 지우고 차감을 없던 일로. 커밋한다.
+
+    대체 답·서버 전체 AI 상한·저장 오류처럼 회원이 AI 답을 받지 못한 경우다.
+    """
+    points_service.lock_balance(db, user_id)
+    row = db.get(AiChatUsage, usage_id)
+    if row is not None and row.user_id == user_id:
+        _drop(db, row)
+    db.commit()
+
+
+def _drop_abandoned(db: Session, user_id: str) -> None:
+    """답을 잇지 못한 채 [RESERVATION_STALE_AFTER] 넘게 묵은 예약을 거둔다(커밋 없음).
+
+    잔액 행을 잠근 뒤에 부른다. 오늘 줄만 본다 — 한도를 붙드는 것은 오늘 줄뿐이고,
+    지난 기록의 원장은 건드리지 않는다.
+    """
+    cutoff = clock.now() - RESERVATION_STALE_AFTER
+    rows = db.scalars(
+        select(AiChatUsage).where(
+            AiChatUsage.user_id == user_id,
+            AiChatUsage.kst_date == clock.today_iso(),
+            AiChatUsage.message_id.is_(None),
+            AiChatUsage.created_at < cutoff,
+        )
+    ).all()
+    for row in rows:
+        _drop(db, row)
+
+
+def _drop(db: Session, row: AiChatUsage) -> None:
+    """예약 한 줄과 그 차감을 지운다(커밋 없음). 잔액 행을 잠근 뒤에 부른다."""
+    if row.paid:
+        points_service.cancel_spend(db, row.user_id, SOURCE_AI_CHAT, row.id)
+    db.delete(row)
+    db.flush()
 
 
 def by_request(

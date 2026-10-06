@@ -309,7 +309,7 @@ def answer(
     **하루 호출 상한(#3032)** — 모델을 부르기 직전에 서버 전체 몫을 잡는다. 상한에
     걸리면 대체 답으로 내려가지 않고 `ai_call_quota.AiCapacityReached` 를 그대로
     올린다 — 라우터가 503 `ai_capacity` 로 옮긴다. 회원 하루 한도·포인트는
-    답을 받은 뒤에만 세므로 차감되지 않는다.
+    라우터가 미리 잡아 둔 몫을 거두므로 쓰이지 않는다(#3240).
     """
     history = history or []
     hits = _safe_retrieve(db, user_id, message)

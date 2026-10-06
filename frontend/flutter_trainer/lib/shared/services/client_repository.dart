@@ -224,12 +224,22 @@ Future<void> writeDemoUnregisteredClientIds(
 /// 바뀔 때마다 다시 돈다. 대신 미등록 상태를 바꾸는 이 두 호출부
 /// (`MyPage._removeClient`, `ClientConnectDialog._connect`)가 명시적으로
 /// 무효화한다.
-void invalidateClientVisibilityDependentViews(WidgetRef ref) {
-  ref.invalidate(todayScheduleProvider);
-  ref.invalidate(scheduleForDateProvider);
-  ref.invalidate(bookedDatesProvider);
-  ref.invalidate(scheduleRangeProvider);
-  ref.invalidate(unreadCountsProvider);
+void invalidateClientVisibilityDependentViews(WidgetRef ref) =>
+    _invalidateClientVisibilityDependentViews(ref.invalidate);
+
+/// [invalidateClientVisibilityDependentViews] 를 컨테이너로 — 요청이 끝나기 전에
+/// 화면이 해제될 수 있는 자리가 쓴다(#3248).
+void invalidateClientVisibilityDependentViewsIn(ProviderContainer container) =>
+    _invalidateClientVisibilityDependentViews(container.invalidate);
+
+void _invalidateClientVisibilityDependentViews(
+  void Function(ProviderOrFamily provider) invalidate,
+) {
+  invalidate(todayScheduleProvider);
+  invalidate(scheduleForDateProvider);
+  invalidate(bookedDatesProvider);
+  invalidate(scheduleRangeProvider);
+  invalidate(unreadCountsProvider);
 }
 
 /// Reads client + schedule data from the local drift DB for the
@@ -1041,7 +1051,7 @@ class DriftClientRepository implements ClientRepository {
         )
         .firstOrNull;
     if (menu == null) {
-      throw ArgumentError.value(name, 'name', '추천 후보에 없는 메뉴입니다.');
+      throw ArgumentError.value(name, 'name', '추천 후보에 없는 메뉴예요.');
     }
     await _db.putValue(
       _demoPickKey(clientId),
@@ -1495,7 +1505,9 @@ final lastChatAtProvider = StreamProvider.autoDispose<Map<String, DateTime>>((
 /// Stays an [AsyncValue] on purpose. When the schedule is loading or failed
 /// there is no honest number to show, and `valueOrNull` is null — the UI
 /// hides the badge instead of claiming "0명 예약", which would be wrong.
-final todayReservationCountProvider = Provider<AsyncValue<int>>((ref) {
+final todayReservationCountProvider = Provider.autoDispose<AsyncValue<int>>((
+  ref,
+) {
   return ref
       .watch(todayScheduleProvider)
       .whenData(
@@ -1518,7 +1530,14 @@ final todayReservationCountProvider = Provider<AsyncValue<int>>((ref) {
 ///
 /// [todayReservationCountProvider] 와 같은 이유로 [AsyncValue] 로 남는다 —
 /// 스케줄을 못 읽으면 0 이 아니라 값 없음이고, 화면은 배지를 감춘다.
-final todayPendingSessionCountProvider = Provider<AsyncValue<int>>((ref) {
+///
+/// 두 수 모두 **보는 화면이 있는 동안만** 산다(#3248). 예전에는 autoDispose 가
+/// 아니어서 사이드바가 한 번 읽으면 [todayScheduleProvider] 를 붙잡아, 로그아웃한
+/// 뒤 로그인 화면에서도 토큰 없이 5초마다 `/trainer/schedule` 을 불러 401 을
+/// 받았고, 다음에 로그인한 트레이너가 잠깐 이전 수를 봤다.
+final todayPendingSessionCountProvider = Provider.autoDispose<AsyncValue<int>>((
+  ref,
+) {
   return ref
       .watch(todayScheduleProvider)
       .whenData((sessions) => sessions.where((s) => s.isUpcoming).length);

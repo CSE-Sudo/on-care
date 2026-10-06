@@ -11,6 +11,24 @@ DemoFixture _load() =>
 void main() {
   final DemoFixture fixture = _load();
 
+  group('Python 과 같은 반올림 (#3250)', () {
+    // 기대값은 Python `round()` 로 낸 값이다 — 서버가 같은 픽스처를 만든다.
+    test('정수는 절반이면 짝수 쪽이다', () {
+      expect(pyRoundForFixture(12.5), 12);
+      expect(pyRoundForFixture(37.5), 38);
+      expect(pyRoundForFixture(66.67), 67);
+    });
+
+    test('소수 첫째 자리는 실제 이진 값으로 자른다', () {
+      expect(pyRound1ForFixture(0.15), 0.1);
+      expect(pyRound1ForFixture(0.25), 0.2);
+      expect(pyRound1ForFixture(0.75), 0.8);
+      expect(pyRound1ForFixture(2.45), 2.5);
+      expect(pyRound1ForFixture(1.35), 1.4);
+      expect(pyRound1ForFixture(31.04), 31.0);
+    });
+  });
+
   test('앱에 심긴 상수가 원본 JSON 과 같다', () {
     // 둘이 갈라지면 앱만 옛 값을 들고 다닌다. 맞추는 방법은 손이 아니라
     // `python3 tool/gen_demo_fixture.py` 다.

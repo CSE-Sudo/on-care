@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/network/session_refresh.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
@@ -51,6 +52,7 @@ class _AuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async {
     registeredConsents = consents;
@@ -63,12 +65,20 @@ class _AuthRepository implements TrainerAuthRepository {
     required String token,
   }) async => _tokens('social');
 
-  @override
-  Future<TrainerAuthTokens> refresh(String refreshToken) async =>
-      _tokens('rotated');
+  /// 회전에 쓴 갱신 토큰들(#3248).
+  final List<String> refreshed = <String>[];
+
+  /// 서버에 폐기를 요청한 갱신 토큰들(#3248).
+  final List<String> loggedOut = <String>[];
 
   @override
-  Future<void> logout(String refreshToken) async {}
+  Future<TrainerAuthTokens> refresh(String refreshToken) async {
+    refreshed.add(refreshToken);
+    return _tokens('rotated');
+  }
+
+  @override
+  Future<void> logout(String refreshToken) async => loggedOut.add(refreshToken);
 
   @override
   Future<TrainerProfile> fetchProfile(String accessToken) async =>
@@ -208,7 +218,7 @@ void main() {
 
       await m.container
           .read(sessionControllerProvider.notifier)
-          .socialLogin(provider: 'kakao');
+          .socialLogin(provider: 'kakao', token: 'demo-kakao-token');
 
       expect(
         m.container.read(sessionControllerProvider).consentRequired,
@@ -326,5 +336,55 @@ void main() {
 
     expect(m.auth.registeredConsents, <String>['terms', 'privacy', 'age14']);
     expect(await _storedAccess(m.container), 'register-access');
+  });
+
+  // 동의 대기 토큰은 저장소가 아니라 메모리에 있다 — 갱신·폐기도 그것을 쓴다(#3248).
+  group('동의 화면에 머무는 동안의 토큰', () {
+    test('접근 토큰이 만료되면 들고 있던 갱신 토큰으로 회전하고, 저장하지 않는다', () async {
+      final m = _make();
+      await _settle();
+      final SessionController controller = m.container.read(
+        sessionControllerProvider.notifier,
+      );
+      await controller.login(email: 't@example.com', password: 'pw-12345678');
+
+      final TokenRefreshResult result = await controller
+          .refreshAfterUnauthorized('login-access');
+
+      expect(result.status, TokenRefreshStatus.refreshed);
+      expect(result.accessToken, 'rotated-access');
+      expect(m.auth.refreshed, <String>['login-refresh']);
+      expect(
+        m.container.read(sessionControllerProvider).status,
+        SessionStatus.authenticated,
+      );
+      // 동의 전이라 여전히 저장하지 않는다 — 새로고침은 로그인 화면이다.
+      expect(await _storedAccess(m.container), isNull);
+
+      // 동의를 마치면 **회전한** 토큰을 저장한다. 처음 받은 토큰은 이미 폐기됐다.
+      await controller.submitConsents(<String>['terms', 'privacy', 'age14']);
+      expect(await _storedAccess(m.container), 'rotated-access');
+      expect(
+        await m.container.read(secureTokenStoreProvider).readRefreshToken(),
+        'rotated-refresh',
+      );
+    });
+
+    test('동의 화면에서 로그아웃하면 들고 있던 갱신 토큰을 서버에서 폐기한다', () async {
+      final m = _make();
+      await _settle();
+      final SessionController controller = m.container.read(
+        sessionControllerProvider.notifier,
+      );
+      await controller.login(email: 't@example.com', password: 'pw-12345678');
+
+      await controller.signOut();
+
+      expect(m.auth.loggedOut, <String>['login-refresh']);
+      expect(
+        m.container.read(sessionControllerProvider).status,
+        SessionStatus.signedOut,
+      );
+    });
   });
 }

@@ -251,8 +251,7 @@ def _android_resource_files(app_dir: Path, reference: str) -> list[Path]:
     kind, name = match.groups()
     found: list[Path] = []
     for folder in sorted((app_dir / ANDROID_RES).glob(f"{kind}*")):
-        for candidate in sorted(folder.glob(f"{name}.*")):
-            found.append(candidate)
+        found.extend(sorted(folder.glob(f"{name}.*")))
     return found
 
 

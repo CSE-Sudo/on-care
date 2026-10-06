@@ -30,8 +30,8 @@ _COMMENT_KO = (
     "토핑은 지금처럼 과일·견과 위주로 담아 보세요."
 )
 _COMMENT_EN = (
-    "Sodium is low at 185mg, so this is an easy meal on that front. Sugar is "
-    "a little over half of your daily target (50g), and half of that comes "
+    "Sodium is low at 185 mg, so this is an easy meal on that front. Sugar is "
+    "a little over half of your daily target (50 g), and half of that comes "
     "from the frozen yogurt itself. Keep the toppings mostly fruit and nuts "
     "like you did here."
 )

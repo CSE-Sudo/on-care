@@ -81,6 +81,9 @@ class _FakeCoachRepository implements MemberCoachRepository {
       const <CoachRoutine>[];
 
   @override
+  Future<UpcomingRoutines?> fetchUpcomingRoutines() async => null;
+
+  @override
   Future<List<CoachSession>> fetchSessions() async => const <CoachSession>[];
 
   @override
@@ -267,7 +270,7 @@ void main() {
       );
 
       expect(_inviteDialog('tci-1'), findsOneWidget);
-      expect(find.text('담당 요청이 왔어요'), findsOneWidget);
+      expect(find.text('담당 요청이 도착했어요'), findsOneWidget);
       expect(find.text('김트레이너 트레이너'), findsOneWidget);
       expect(find.text('온케어짐 신촌점 소속'), findsOneWidget);
       expect(find.text('센터에서 뵀던 담당입니다.'), findsOneWidget);
@@ -395,7 +398,7 @@ void main() {
       ]) {
         expect(find.text(label), findsOneWidget, reason: label);
       }
-      expect(find.textContaining('MY 탭에서 담당 트레이너 연결을 삭제하면'), findsOneWidget);
+      expect(find.textContaining('MY 탭에서 담당 트레이너 연결을 해제하면'), findsOneWidget);
 
       // 펼쳐도 동의 버튼은 화면 안에 있고 눌린다.
       final Finder agree = find.text('동의하고 연결');

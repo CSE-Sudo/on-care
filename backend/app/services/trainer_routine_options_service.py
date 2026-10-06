@@ -307,6 +307,9 @@ def _exercise_name(item: object) -> str:
     운동" 으로 A안에 들어갔다.
     """
     if isinstance(item, dict):
+        # 값으로 적힌 기록은 `done: false` 가 안 한 운동이다 — 문장의 `✗` 와 같다.
+        if item.get("done") is False:
+            return ""
         text = str(item.get("name", ""))
     elif isinstance(item, str):
         text = item
@@ -423,7 +426,7 @@ def build_member_analysis(
         )
     )
     if link is None:
-        raise ValueError("담당 고객을 찾을 수 없습니다.")
+        raise ValueError("담당 회원을 찾을 수 없어요.")
 
     # 오늘과 28일 창을 같은 스냅샷에서 뽑는다 — 따로 읽으면 KST 자정 사이에
     # 한 응답의 '오늘 나트륨'과 '최근 4주 이행률'이 다른 날을 기준으로 잡힌다.

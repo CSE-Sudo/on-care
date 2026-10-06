@@ -33,7 +33,7 @@ def ping() -> dict[str, str]:
 
 @router.get("/healthz")
 def healthz() -> dict[str, object]:
-    """Liveness — 프로세스 생존만 확인(DB 무관). App Runner liveness 용.
+    """Liveness — 프로세스 생존만 확인(DB 무관). ECS 컨테이너·로드 밸런서 헬스체크용.
 
     배포 직후 **어떤 설정으로 떴는지**도 함께 싣는다(#2821). 백엔드의 안전장치는
     대부분 `ENV=prod` 일 때만 켜지는데, 그 값이 실제로 들어갔는지 확인할 길이
@@ -75,7 +75,7 @@ def readyz(db: Annotated[Session, Depends(get_db)]) -> dict[str, str]:
         db.rollback()
         # 원인(접속 문자열 등)은 서버 로그에만. 클라이언트엔 일반화된 503.
         logger.exception("readiness check failed — DB unavailable")
-        raise HTTPException(status_code=503, detail="서비스가 아직 준비되지 않았습니다.")
+        raise HTTPException(status_code=503, detail="서비스가 아직 준비되지 않았어요.")
     return {"status": "ready"}
 
 

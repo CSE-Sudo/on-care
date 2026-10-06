@@ -246,4 +246,219 @@ void main() {
     expect(memos.creates, 1);
     expect(memos.fetches, greaterThan(fetchesBefore));
   });
+
+  // 회원 메모 창도 같은 길이었다(#3249) — 저장 뒤 입력란을 비우려다 해제된
+  // 컨트롤러를 건드리고, 무효화는 닫힌 창의 `ref` 로 했다.
+  testWidgets('회원 메모 저장 중 창을 닫아도 메모 목록을 다시 읽는다', (tester) async {
+    final _HeldMemoRepository memos = _HeldMemoRepository();
+    final ProviderContainer container = await _pumpHost(
+      tester,
+      overrides: <Override>[
+        trainerMemoRepositoryProvider.overrideWithValue(memos),
+      ],
+      open: (BuildContext context) => showClientProfileDialog(
+        context,
+        clientId: 'm1',
+        clientName: '이지수',
+        section: ClientProfileSection.memo,
+      ),
+    );
+    final ProviderSubscription<Object?> list = container.listen(
+      trainerMemosProvider('m1'),
+      (_, _) {},
+    );
+    addTearDown(list.close);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('client-memo-input')),
+        matching: find.byType(TextField),
+      ),
+      '다음 주 하체 강도 올리기',
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+    await tester.pump();
+    await _closeDialog(tester);
+    final int fetchesBefore = memos.fetches;
+
+    memos.gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(memos.creates, 1);
+    expect(memos.fetches, greaterThan(fetchesBefore));
+  });
+
+  // 요청이 도는 동안만 창이 닫히지 않는다 — 평소엔 바깥을 눌러 바로 닫힌다.
+  group('요청 중에는 바깥 누름·뒤로 가기로 닫히지 않는다', () {
+    Future<void> tapOutside(WidgetTester tester) async {
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('건강 정보 창 — 평소엔 바깥을 눌러 닫힌다', (tester) async {
+      final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      await _pumpHost(
+        tester,
+        overrides: <Override>[
+          clientRepositoryProvider.overrideWithValue(
+            _HeldProfileRepository(db),
+          ),
+          clientsProvider.overrideWith(
+            (ref) => Stream<List<TrainerClient>>.value(const <TrainerClient>[]),
+          ),
+        ],
+        open: (BuildContext context) =>
+            showClientProfileDialog(context, clientId: 'm1', clientName: '이지수'),
+      );
+      await tester.pumpAndSettle();
+
+      await tapOutside(tester);
+
+      expect(find.byType(AppDialog), findsNothing);
+    });
+
+    testWidgets('건강 정보 저장 중엔 닫히지 않고, 끝나면 닫힌다', (tester) async {
+      final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final _HeldProfileRepository clients = _HeldProfileRepository(db);
+      await _pumpHost(
+        tester,
+        overrides: <Override>[
+          clientRepositoryProvider.overrideWithValue(clients),
+          clientsProvider.overrideWith(
+            (ref) => Stream<List<TrainerClient>>.value(const <TrainerClient>[]),
+          ),
+        ],
+        open: (BuildContext context) =>
+            showClientProfileDialog(context, clientId: 'm1', clientName: '이지수'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-profile-edit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-health-tabs')),
+          matching: find.text('식단 목표'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-goal-calories')),
+        '2000',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-profile-save')),
+      );
+      await tester.pump();
+
+      await tapOutside(tester);
+      expect(find.byType(AppDialog), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(AppDialog), findsOneWidget);
+
+      clients.gate.complete();
+      await tester.pumpAndSettle();
+      await tapOutside(tester);
+      expect(find.byType(AppDialog), findsNothing);
+    });
+
+    testWidgets('회원 메모 저장 중엔 닫히지 않고, 끝나면 닫힌다', (tester) async {
+      final _HeldMemoRepository memos = _HeldMemoRepository();
+      await _pumpHost(
+        tester,
+        overrides: <Override>[
+          trainerMemoRepositoryProvider.overrideWithValue(memos),
+        ],
+        open: (BuildContext context) => showClientProfileDialog(
+          context,
+          clientId: 'm1',
+          clientName: '이지수',
+          section: ClientProfileSection.memo,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-memo-input')),
+          matching: find.byType(TextField),
+        ),
+        '다음 주 하체 강도 올리기',
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+      await tester.pump();
+
+      await tapOutside(tester);
+      expect(find.byType(AppDialog), findsOneWidget);
+
+      memos.gate.complete();
+      await tester.pumpAndSettle();
+      expect(memos.creates, 1);
+      await tapOutside(tester);
+      expect(find.byType(AppDialog), findsNothing);
+    });
+  });
+
+  // 저장 결과·오류를 창 안에 보여 주므로 저장 중에는 닫히지 않는다(#3245).
+  testWidgets('운동 메모 저장 중에는 바깥을 눌러도 창이 닫히지 않는다', (tester) async {
+    final _HeldMemoRepository memos = _HeldMemoRepository();
+    await _pumpHost(
+      tester,
+      overrides: <Override>[
+        trainerMemoRepositoryProvider.overrideWithValue(memos),
+      ],
+      open: (BuildContext context) => showExerciseMemoDialog(
+        context,
+        clientId: 'm1',
+        memoRef: const TrainerMemoRef(
+          kind: TrainerMemoRefKind.ptSession,
+          id: 'hist-pt',
+          day: '2026-09-30',
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise-memo-input')),
+      '스쿼트 때 왼쪽 무릎이 안으로 모임',
+    );
+    await tester.tap(find.text('저장'));
+    await tester.pump();
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(AppDialog), findsOneWidget);
+
+    memos.gate.complete();
+    await tester.pumpAndSettle();
+    expect(memos.creates, 1);
+  });
+
+  testWidgets('운동 메모 창은 저장 중이 아니면 바깥을 눌러 닫힌다', (tester) async {
+    await _pumpHost(
+      tester,
+      overrides: <Override>[
+        trainerMemoRepositoryProvider.overrideWithValue(_HeldMemoRepository()),
+      ],
+      open: (BuildContext context) => showExerciseMemoDialog(
+        context,
+        clientId: 'm1',
+        memoRef: const TrainerMemoRef(
+          kind: TrainerMemoRefKind.ptSession,
+          id: 'hist-pt',
+          day: '2026-09-30',
+        ),
+      ),
+    );
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppDialog), findsNothing);
+  });
 }

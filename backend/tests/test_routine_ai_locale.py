@@ -181,7 +181,7 @@ def test_korean_candidates_keep_their_exact_wording():
     assert recovery.reason == (
         "최근 2주 운동 240분 중 190분(79%)이 근력이에요. "
         "2일 전 PT 가 있었어요. "
-        "다음 수업 전까지 회복 스트레칭으로 풀어 두기 좋아요."
+        "다음 PT 전까지 회복 스트레칭으로 풀어 두기 좋아요."
     )
     assert walking.name == "저강도 걷기"
     assert walking.reason == (
@@ -191,7 +191,7 @@ def test_korean_candidates_keep_their_exact_wording():
     assert light.name == "목·어깨 스트레칭"
     assert light.reason == (
         "최근 2주 기록에 치우침이나 건강 신호가 없어요. "
-        "다음 수업 준비용으로 가장 가벼운 스트레칭만 두었어요."
+        "다음 PT 준비용으로 가장 가벼운 스트레칭만 두었어요."
     )
 
 
@@ -201,7 +201,7 @@ def test_korean_candidates_keep_their_exact_wording():
         # PT 만 있고 편중이 없으면 며칠 전인지만 말한다.
         (
             suggestions._Signals(pt_just_finished=True, days_since_pt=0),
-            "오늘 PT 가 있었어요. 다음 수업 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
+            "오늘 PT 가 있었어요. 다음 PT 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
         ),
         # 근력 편중만 있으면 비율만 말한다.
         (
@@ -209,7 +209,7 @@ def test_korean_candidates_keep_their_exact_wording():
                 strength_heavy=True, total_minutes=100, strength_minutes=60
             ),
             "최근 2주 운동 100분 중 60분(60%)이 근력이에요. "
-            "다음 수업 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
+            "다음 PT 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
         ),
     ],
 )
@@ -505,7 +505,7 @@ def test_rule_plans_in_english():
     assert a["label"] == "Recovery & consistency"
     assert b["label"] == "Intensity & volume"
     assert "the set goal" in b["rationale"]
-    assert "(over target)" in a["rationale"]
+    assert "(over goal)" in a["rationale"]
     assert [e["name"] for e in b["exercises"]] == ["Interval running", "Squat", "Plank"]
 
 
@@ -599,7 +599,7 @@ def test_pattern_plans_korean_wording_is_unchanged():
         "최근 기록에서 반복 확인된 운동(레그프레스)을 유지하고 부족한 부분만 보완."
     )
     assert b["rationale"] == (
-        "기존 핵심 운동(레그프레스)은 유지하고 '스쿼트'을(를) 더해 "
+        "기존 핵심 운동(레그프레스)은 유지하고 '스쿼트'를 더해 "
         "운동량을 점진적으로 늘림."
     )
 

@@ -335,7 +335,7 @@ void main() {
 
       await _tapSend(tester);
 
-      expect(find.text('서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
+      expect(find.text('서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
       expect(find.text('개인운동을 고치지 못했어요. 다시 시도해 주세요.'), findsNothing);
     });
 
@@ -446,6 +446,36 @@ void main() {
       expect(
         currentLocation(tester),
         AppRoutes.scheduleAt(date: _todayPt.date, sessionId: _todayPt.id),
+      );
+    });
+  });
+
+  group('보낸 개인운동 (#3247)', () {
+    testWidgets('다른 회원에 다녀와도 보낸 개인운동을 미전송으로 묻지 않는다', (tester) async {
+      final repo = await _open(
+        tester,
+        candidates: const <ScheduleSession>[_todayPt],
+      );
+      await _composeRoutineOnly(tester);
+      await _tapSend(tester);
+      expect(repo.updatedFor, <String>['today-pt']);
+
+      Finder client(String id) =>
+          find.byKey(ValueKey<String>('program-client-$id'));
+      await _tapCentered(tester, client('seed-client-2'));
+      await _tapCentered(tester, client('seed-client-1'));
+      expect(
+        Uri.parse(currentLocation(tester)).queryParameters['client'],
+        'seed-client-1',
+      );
+
+      // 돌아온 회원의 개인운동은 이미 붙인 그 목록이다 — 전환 확인창이 뜨지
+      // 않고 바로 옮긴다.
+      await _tapCentered(tester, client('seed-client-2'));
+      expect(find.text('다른 회원으로 바꿀까요?'), findsNothing);
+      expect(
+        Uri.parse(currentLocation(tester)).queryParameters['client'],
+        'seed-client-2',
       );
     });
   });

@@ -12,7 +12,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     final n = await (_db.delete(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).go();
-    if (n == 0) return _notFound(options, '식단 기록을 찾을 수 없습니다.');
+    if (n == 0) return _notFound(options, '식단 기록을 찾을 수 없어요.');
     await _retireCuratedAdvice(
       dietDates: <String>[if (existing != null) existing.date],
     );
@@ -39,7 +39,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     }
     final String? mealType = (body['meal_type'] as String?)?.trim();
     if (mealType == null || !_mealTypes.contains(mealType)) {
-      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+      return _unprocessable(options, 'meal_type 이 올바르지 않아요.');
     }
     final Object? foodsValue = body['foods'];
     if (foodsValue is! List ||
@@ -71,7 +71,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
       if (sugar > carbs) {
         return _unprocessable(
           options,
-          '${i + 1}번째 음식(${food['name']})의 당류는 탄수화물보다 클 수 없습니다.',
+          '${i + 1}번째 음식(${food['name']})의 당류는 탄수화물보다 클 수 없어요.',
         );
       }
     }
@@ -90,7 +90,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
             requestOptions: options,
             statusCode: 409,
             data: <String, Object?>{
-              'detail': '같은 idempotency_key로 다른 끼니를 저장할 수 없습니다.',
+              'detail': '같은 idempotency_key로 다른 끼니를 저장할 수 없어요.',
             },
           );
         }
@@ -153,7 +153,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     final existing = await (_db.select(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (existing == null) return _notFound(options, '식단 기록을 찾을 수 없습니다.');
+    if (existing == null) return _notFound(options, '식단 기록을 찾을 수 없어요.');
     final body = _jsonBody(options);
     // 기록 날짜(#1241). 실서버와 같은 규칙이다 — 형식이 틀리거나 아직 오지 않은
     // 날은 받지 않는다. 데모에서만 통과하면 실연동에서 그 화면이 처음 실패한다.
@@ -169,7 +169,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     if (body.containsKey('meal_type') &&
         body['meal_type'] != null &&
         !_mealTypes.contains(body['meal_type'])) {
-      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+      return _unprocessable(options, 'meal_type 이 올바르지 않아요.');
     }
     if (timeLabel != null &&
         timeLabel.isNotEmpty &&
@@ -500,11 +500,11 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
 String? _entryDateError(String? date) {
   final DateTime? parsed = DateTime.tryParse(date ?? '');
   if (date == null || parsed == null || date.length != 10) {
-    return 'date 는 YYYY-MM-DD 형식이어야 합니다.';
+    return 'date 는 YYYY-MM-DD 형식이어야 해요.';
   }
   final DateTime now = nowKst();
   if (parsed.isAfter(DateTime(now.year, now.month, now.day))) {
-    return 'date 는 오늘보다 뒤일 수 없습니다.';
+    return 'date 는 오늘보다 뒤일 수 없어요.';
   }
   return null;
 }

@@ -30,9 +30,16 @@ final memberWeeklyFeedbackProvider =
 /// 더 옛 주를 쌓아 보여 줄 수도 있지만, 회원이 되돌아볼 이유가 있는 것은 방금
 /// 낸 답 하나다. 그보다 옛 답은 트레이너가 이미 읽고 다음 주 처방에 썼으니,
 /// 회원 화면에서 그것은 목록이 아니라 지나간 일이다.
-final lastWeekFeedbackProvider = FutureProvider<MemberWeeklyFeedback>((ref) {
-  return ref.watch(memberWeeklyFeedbackProvider(manualFeedbackWeek()).future);
-}, name: 'lastWeekFeedback');
+///
+/// 화면을 닫으면 놓는다 — 붙들고 있으면 처음 읽은 주에 머물러, 주가 바뀐 뒤
+/// `지금 피드백 보내기` 가 지난 주를 연다(#3244). 주마다의 답은
+/// [memberWeeklyFeedbackProvider] 가 따로 들고 있어 다시 열어도 새로 받지 않는다.
+final lastWeekFeedbackProvider =
+    FutureProvider.autoDispose<MemberWeeklyFeedback>((ref) {
+      return ref.watch(
+        memberWeeklyFeedbackProvider(manualFeedbackWeek()).future,
+      );
+    }, name: 'lastWeekFeedback');
 
 /// 이번에 들어왔을 때 물어볼 주 — 물을 것이 없으면 null. (#2232)
 ///

@@ -223,7 +223,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('앱 컨테이너의 운동 추세를 결과지에 싣는다', (tester) async {
+    testWidgets('앱 컨테이너의 운동 추이를 결과지에 싣는다', (tester) async {
       final _SpyCapture spy = _SpyCapture();
       await tester.runAsync(
         () => ReportPdfGenerator(
@@ -484,17 +484,17 @@ void main() {
     expect(content, contains('회원  김회원'));
     expect(content, contains('기간  2026-08-10 ~ 2026-08-16'));
     expect(content, contains('핵심 지표'));
-    expect(content, contains('• 운동 수행률: 72%'));
-    expect(content, contains('• PT 진행: 1/2회 (50%)'));
+    expect(content, contains('• 운동 완료율: 72%'));
+    expect(content, contains('• 완료 PT: 1/2회 (50%)'));
     expect(content, contains('• 평균 나트륨: 1890mg'));
     expect(content, contains('• 나트륨 목표 초과: 2일'));
-    expect(content, contains('• 평균 열량: 1863kcal'));
+    expect(content, contains('• 평균 칼로리: 1863kcal'));
     expect(content, contains('• 평균 당류: 21.4g'));
-    expect(content, contains('전주 대비 변화'));
-    expect(content, contains('• 운동 수행률: +7%'));
-    expect(content, contains('• PT 진행 횟수: -1회'));
+    expect(content, contains('지난주 대비 변화'));
+    expect(content, contains('• 운동 완료율: +7%'));
+    expect(content, contains('• 완료 PT: -1회'));
     expect(content, contains('주간 추이 (월~일)'));
-    expect(content, contains('일자별 운동'));
+    expect(content, contains('요일별 운동'));
     expect(content, contains('월: 80% · 스쿼트, 런지'));
     // 이행률 0 인 날은 `미집계`, 배정된 운동이 없으면 `기록 없음`.
     expect(content, contains('화: 미집계 · 기록 없음'));
@@ -508,19 +508,19 @@ void main() {
     expect(content, contains('Member  김회원'));
     expect(content, contains('Period  2026-08-10 – 2026-08-16'));
     expect(content, contains('Key metrics'));
-    expect(content, contains('• Workout completion: 72%'));
-    expect(content, contains('• PT: 1/2 (50%)'));
-    expect(content, contains('• Average sodium: 1890mg'));
-    expect(content, contains('• Days over sodium target: 2 days'));
-    expect(content, contains('• Average calories: 1863kcal'));
-    expect(content, contains('• Average sugar: 21.4g'));
+    expect(content, contains('• Workout completion rate: 72%'));
+    expect(content, contains('• PT done: 1/2 (50%)'));
+    expect(content, contains('• Average sodium: 1890 mg'));
+    expect(content, contains('• Days over sodium goal: 2 days'));
+    expect(content, contains('• Average calories: 1863 kcal'));
+    expect(content, contains('• Average sugar: 21.4 g'));
     expect(content, contains('Change from last week'));
-    expect(content, contains('• Workout completion: +7%'));
-    expect(content, contains('• PT completed: -1'));
+    expect(content, contains('• Workout completion rate: +7%'));
+    expect(content, contains('• PT done: -1'));
     expect(content, contains('Weekly trend (Mon–Sun)'));
     expect(content, contains('Workouts by day'));
     expect(content, contains('Mon: 80% · 스쿼트, 런지'));
-    expect(content, contains('Tue: Not measured · Not logged'));
+    expect(content, contains('Tue: Not measured · No record'));
     expect(content, contains('Trainer feedback'));
     expect(content, contains('Nice week'));
 
@@ -551,10 +551,10 @@ void main() {
       report: empty,
       feedback: '   ',
     );
-    expect(ko, contains('• 운동 수행률: 미집계'));
-    expect(ko, contains('• PT 진행: 미집계'));
+    expect(ko, contains('• 운동 완료율: 미집계'));
+    expect(ko, contains('• 완료 PT: 미집계'));
     expect(ko, contains('• 평균 나트륨: 미집계'));
-    expect(ko, contains('• 운동 수행률: 미집계'));
+    expect(ko, contains('• 운동 완료율: 미집계'));
     expect(ko, contains('피드백 없음'));
 
     final en = const ReportPdfGenerator().textContent(
@@ -562,8 +562,8 @@ void main() {
       report: empty,
       feedback: '',
     );
-    expect(en, contains('• Workout completion: Not measured'));
-    expect(en, contains('• PT: Not measured'));
+    expect(en, contains('• Workout completion rate: Not measured'));
+    expect(en, contains('• PT done: Not measured'));
     expect(en, contains('• Average sodium: Not measured'));
     expect(en, contains('No feedback'));
   });

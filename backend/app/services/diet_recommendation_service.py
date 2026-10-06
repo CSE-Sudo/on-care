@@ -32,7 +32,7 @@ from app.data.meal_catalog import CATALOG, DEFAULT_ORDER, RECOMMENDATION_COUNT, 
 from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet_api import DietRecommendationItem, DietRecommendationsResponse
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
-from app.services import ai_call_quota, goal_defaults, health_focus
+from app.services import ai_call_quota, diet_coach_inputs, goal_defaults, health_focus
 from app.services.ai_log import log_ai_fallback
 from app.services.coach.llm_base import is_truncated, output_cap
 
@@ -57,8 +57,11 @@ DEFAULT_CALORIE_LIMIT = goal_defaults.DAILY_CALORIES
 
 #: 한도의 몇 %를 넘으면 "과다" 신호로 볼지. 1.0 은 경계에서 신호가 깜빡이므로 여유를 둔다.
 _HIGH_RATIO = 0.9
-#: 한도의 몇 % 미만이면 "부족" 신호로 볼지.
+#: 한도의 몇 % 미만이면 "부족" 신호로 볼지(칼로리).
 _LOW_RATIO = 0.6
+#: 단백질 부족 신호의 비율 — 실효 목표 기준이다. 회원 코칭 문턱은
+#: `diet_coach_inputs` 한 곳에 있다(#3270).
+_PROTEIN_LOW_RATIO = diet_coach_inputs.COACH_PROTEIN_LOW_RATIO
 
 #: LLM 응답을 기다리는 최대 시간(초). 홈 화면은 기본 카드를 먼저 그리므로 응답이
 #: 늦어도 화면이 비지는 않지만, 요청 스레드를 오래 잡아두지 않도록 끊는다.
@@ -150,9 +153,9 @@ class NutritionContext:
             return None
         parts = [f"최근 {self.days_with_data}일 평균 나트륨 {self.avg_sodium_mg:,}mg"]
         if "sodium_high" in self.signals:
-            parts.append(f"권장 {self.sodium_limit_mg:,}mg 초과")
+            parts.append(f"목표 {self.sodium_limit_mg:,}mg 초과")
         if "sugar_high" in self.signals:
-            parts.append(f"당류 {self.avg_sugar_g:.0f}g(권장 {self.sugar_limit_g}g 초과)")
+            parts.append(f"당류 {self.avg_sugar_g:.0f}g(목표 {self.sugar_limit_g}g 초과)")
         if "protein_low" in self.signals:
             parts.append("단백질 부족")
         return " · ".join(parts)
@@ -200,7 +203,10 @@ def build_context(db: Session, user_id: str, today: date | None = None) -> Nutri
     sodium_limit = (profile.daily_sodium_mg if profile else None) or DEFAULT_SODIUM_LIMIT_MG
     sugar_limit = (profile.daily_sugar_g if profile else None) or DEFAULT_SUGAR_LIMIT_G
     calorie_limit = (profile.daily_calories if profile else None) or DEFAULT_CALORIE_LIMIT
-    protein_goal = (profile.daily_protein_g if profile else None) or 0
+    # 단백질은 실효 목표로 본다 — 개인 목표 → 체중 × 1.2g → 60g(#3270). 예전에는
+    # 개인 목표가 있을 때만 봐, 목표 칸을 비워 둔 회원(대부분)은 단백질이 아무리
+    # 모자라도 추천 순서가 바뀌지 않았다. 식단 조언과 같은 분모다.
+    protein_goal = diet_coach_inputs.effective_protein_g(profile)
 
     signals: list[str] = []
     if n:
@@ -212,7 +218,7 @@ def build_context(db: Session, user_id: str, today: date | None = None) -> Nutri
             signals.append("calorie_high")
         elif avg_cal and avg_cal <= calorie_limit * _LOW_RATIO:
             signals.append("calorie_low")
-        if protein_goal and avg_protein <= protein_goal * _LOW_RATIO:
+        if avg_protein <= protein_goal * _PROTEIN_LOW_RATIO:
             signals.append("protein_low")
 
     return NutritionContext(

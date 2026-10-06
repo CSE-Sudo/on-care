@@ -362,7 +362,7 @@ void main() {
     final TrainerNotification notice =
         TrainerNotification.fromJson(<String, Object?>{
           'id': 'noti-left',
-          'title': '회원 탈퇴',
+          'title': '회원이 탈퇴했어요',
           'body': '김민수 회원이 탈퇴했어요.',
           'category': 'member_left',
           'read': false,
@@ -378,8 +378,8 @@ void main() {
     final repo = _FakeNotificationRepository(<TrainerNotification>[
       _notification(
         id: 'noti-left',
-        title: '담당 연결 해제',
-        body: '김민수 회원이 담당 연결을 끊었어요.',
+        title: '담당 연결이 해제됐어요',
+        body: '김민수 회원이 담당 연결을 해제했어요.',
         kind: TrainerNotificationKind.memberLeft,
       ),
     ]);
@@ -392,8 +392,8 @@ void main() {
       ],
     );
 
-    expect(find.text('담당 연결 해제'), findsOneWidget);
-    expect(find.text('김민수 회원이 담당 연결을 끊었어요.'), findsOneWidget);
+    expect(find.text('담당 연결이 해제됐어요'), findsOneWidget);
+    expect(find.text('김민수 회원이 담당 연결을 해제했어요.'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('notification-noti-left')),
@@ -402,7 +402,7 @@ void main() {
 
     expect(repo.readCalls, <String>['noti-left']);
     // 갈 곳이 없어 알림함에 머문다.
-    expect(find.text('담당 연결 해제'), findsOneWidget);
+    expect(find.text('담당 연결이 해제됐어요'), findsOneWidget);
   });
 
   testWidgets('모두 읽음이 전체를 읽음 처리한다', (tester) async {

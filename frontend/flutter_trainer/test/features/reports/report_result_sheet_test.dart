@@ -39,6 +39,7 @@ const List<String> _sections = <String>[
 WeeklyReport _report({
   String name = '김회원',
   MemberWeeklyFeedback? memberFeedback,
+  double? macroTarget,
 }) => WeeklyReport(
   client: makeClient(id: 'sheet-client', name: name),
   weekStart: DateTime(2026, 8, 10),
@@ -56,6 +57,9 @@ WeeklyReport _report({
   proteinWeek: const <double>[60, 0, 70, 65, 80, 0, 0],
   fatWeek: const <double>[50, 0, 55, 45, 70, 0, 0],
   calorieTarget: 2000,
+  carbsTarget: macroTarget,
+  proteinTarget: macroTarget,
+  fatTarget: macroTarget,
   days: const <ReportDay>[
     ReportDay(completion: 80, exercises: <String>['스쿼트', '런지'], assigned: 3),
     ReportDay(completion: 0),
@@ -367,16 +371,33 @@ void main() {
     });
 
     testWidgets('항목별 평가는 해당 칸 하나에 표시한다', (tester) async {
-      await _pump(tester, ReportResultSheet(report: _report(), feedback: 'x'));
+      await _pump(
+        tester,
+        ReportResultSheet(report: _report(macroTarget: 80), feedback: 'x'),
+      );
 
       final Finder eval = find.byKey(const ValueKey<String>('sheet-eval'));
-      // 식단 여섯·수행률·출석 — 여덟 줄 모두 값이 있어 한 칸씩 표시된다.
+      // 식단 여섯·수행률·출석 — 여덟 줄 모두 값과 기준이 있어 한 칸씩 표시된다.
       expect(
         find.descendant(
           of: eval,
           matching: find.byKey(const ValueKey<String>('sheet-eval-checked')),
         ),
         findsNWidgets(8),
+      );
+    });
+
+    testWidgets('개인 목표가 없는 탄단지는 칸을 고르지 않는다 (#3246)', (tester) async {
+      await _pump(tester, ReportResultSheet(report: _report(), feedback: 'x'));
+
+      final Finder eval = find.byKey(const ValueKey<String>('sheet-eval'));
+      // 서버 리포트 요약도 개인 목표가 있을 때만 탄단지 균형을 판정한다.
+      expect(
+        find.descendant(
+          of: eval,
+          matching: find.byKey(const ValueKey<String>('sheet-eval-checked')),
+        ),
+        findsNWidgets(5),
       );
     });
 

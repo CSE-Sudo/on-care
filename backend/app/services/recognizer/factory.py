@@ -1,6 +1,6 @@
 """
 .env 의 RECOGNIZER 로 인식기를 선택하는 팩토리.
-get_recognizer("yolo") 로 강제 지정 가능(비교실험).
+get_recognizer("gemini") 처럼 이름으로 강제 지정 가능(비교실험).
 
 **운영에서는 대체 인식기로 내려가지 않는다(#2812).** 스텁은 사진을 보지 않고 늘
 같은 음식을 돌려주므로, 운영에서 키가 빠진 채 쓰이면 가짜 끼니가 저장되고 포인트가
@@ -28,12 +28,10 @@ def _registry() -> dict[str, type[FoodRecognizer]]:
     if not _REGISTRY:
         from app.services.recognizer.gemini import GeminiVisionRecognizer
         from app.services.recognizer.stub import StubFoodRecognizer
-        from app.services.recognizer.yolo import YoloPipelineRecognizer
         from app.services.recognizer.litellm_vision import LiteLLMVisionRecognizer
 
         _REGISTRY["gemini"] = GeminiVisionRecognizer
-        _REGISTRY["yolo"] = YoloPipelineRecognizer
-        _REGISTRY["claude"] = LiteLLMVisionRecognizer
+        _REGISTRY["litellm"] = LiteLLMVisionRecognizer  # LiteLLM 프록시 뒤의 비전 모델
         _REGISTRY[STUB_ENGINE] = StubFoodRecognizer  # 오프라인 폴백(키 불필요, 개발 전용)
     return _REGISTRY
 

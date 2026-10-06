@@ -2,12 +2,12 @@
 
 ## 현재 운영 환경
 
-프론트엔드 배포 경로는 **두 개**이고, 둘 다 `main` 브랜치 push 에 걸려 있습니다.
+프론트엔드 배포 경로는 **두 개**이고, 둘 다 `main` 브랜치 push 에서 시작합니다. 데모는 push 에 바로 걸리고, 운영은 그 커밋의 E2E CI 가 성공으로 끝난 뒤(`workflow_run`) 시작합니다.
 
 | 배포 경로 | 워크플로 | 주소 | 두 웹이 보는 백엔드 | 비용 | 실행 조건 |
 | --- | --- | --- | --- | --- | --- |
 | GitHub Pages (**데모**) | [`deploy.yml`](../.github/workflows/deploy.yml) | 데모 도메인 `ewhasudo.zapto.org` | 목업(브라우저 drift DB). 수동 실행에서만 실서버 선택 가능 | 무료 | 조건 없음 — 항상 실행 |
-| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 |
+| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만. 같은 커밋의 E2E CI 성공 뒤 앱 CI·운영 백엔드 선후를 확인하고 배포. 운영에 떠 있는 릴리스와 같거나 그보다 옛 커밋이면 자동 실행은 건너뜀([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)) |
 
 두 웹 앱의 백엔드 설정은 [아래 절](#운영-빌드는-실서버를-봅니다)에 정리했습니다.
 
@@ -105,7 +105,9 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 2. 남아 있는 트레이너 웹 수정이 머지되었다.
 3. GitHub Pages 에서 랜딩페이지·회원 앱·트레이너 웹 전체를 아래 [배포 확인](#배포-확인) 절차로 확인했다.
 
-되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
+되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다. 취소된 E2E CI 를 나중에 다시 돌려도 운영에 떠 있는 릴리스보다 옛 커밋은 올라가지 않습니다 — 그 자동 실행은 빌드 전에 건너뜁니다(#3254). 일부러 옛 커밋으로 되돌릴 때는 수동 실행에 그 SHA 를 넣습니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
+
+배포 스크립트(`.github/scripts/*`, `tool/ci/check_prod_web_bundle.py` 등)는 백엔드와 같은 원칙으로 **배포하는 커밋의 것**을 씁니다 — 워크플로 YAML 만 `main` 의 것입니다([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 2절). 옛 커밋을 수동으로 배포할 때는 그 사이에 스크립트의 인자·종료 코드 약속이 바뀌지 않았는지 먼저 봅니다(`git diff <대상>..main -- .github/scripts tool/ci .github/workflows/aws-frontend-deploy.yml`). 바뀌었으면 `main` 의 YAML 이 옛 스크립트를 다른 뜻으로 부를 수 있습니다. 예외는 옛 커밋 재배포 가드(`deploy_freshness.sh`)로, 옛 커밋 트리에는 없어 `main` 의 것을 씁니다.
 
 ## Vercel 연동 정리
 
@@ -198,8 +200,10 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 - `ENV` 가 `prod`·`staging` 이 아님(데모 빌드 표시가 있는 목업 빌드는 예외)
 - `USE_MOCK_API=true` 인데 데모 빌드 표시 `DEMO_BUILD=true` 가 없음
 - 실서버를 부르는데 `API_BASE_URL` 이 `https://` 가 아니거나 예시·로컬 주소(`example.com` 계열·`.test`·`localhost` 등)
+- 데모 빌드 표시 없이 로그인 화면의 데모 진입 `SHOW_DEMO_ENTRY=true` 가 켜짐(두 앱, #3147)
+- 데모 빌드 표시 없이 부분 실연동 스위치 `REAL_API` 가 남음(회원 앱, #3147)
 
-데모 Pages 빌드(`deploy.yml`)는 두 앱 모두 `--dart-define=DEMO_BUILD=true` 를 넘겨 지금처럼 목업으로 뜹니다. 운영 웹 빌드는 이 표시를 넘기지 않습니다. `flutter run`(디버그)과 테스트에는 가드가 적용되지 않습니다.
+데모 Pages 빌드(`deploy.yml`)는 두 앱 모두 `--dart-define=DEMO_BUILD=true` 를 넘겨 지금처럼 목업으로 뜹니다. 운영 웹 빌드는 이 표시를 넘기지 않습니다. 운영 웹 빌드(`aws-frontend-deploy.yml`)는 빌드 전에 `.github/scripts/check_web_release_defines.sh` 로 넘길 dart-define 을 검사해, `ENV` 가 prod·staging 이 아니거나 `USE_MOCK_API=false` 가 없거나 `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남아 있으면 배포 전에 멈춥니다(모바일 스토어 빌드의 `tool/check_release_defines.sh` 와 같은 규칙). `flutter run`(디버그)과 테스트에는 가드가 적용되지 않습니다.
 
 ### `ENV=prod` 로 띄울 때 걸리는 것
 
@@ -253,10 +257,13 @@ Flutter 웹 산출물의 진입 파일은 이름에 해시가 없습니다. 모�
 - 두 웹 빌드는 `--dart-define=RELEASE_SHA=<커밋 SHA>` 로 자기 릴리스를 내장합니다(운영·데모 모두). 로컬 실행·테스트 빌드에는 값이 없어 확인이 꺼집니다.
 - 배포는 루트 `version.txt` 를 두 앱 폴더에도 복사합니다(`/frontend/version.txt`·`/trainer/version.txt`).
 - 앱은 자기 `<base href>version.txt` 를 `cache: no-store` 로 읽어 내장 SHA 와 비교합니다. 시점은 시작 직후 한 번, 탭이 다시 보일 때, 그 밖에는 10분 간격입니다. 읽기 실패·SHA 가 아닌 응답은 조용히 넘깁니다.
-- 다르면 트레이너 웹은 콘텐츠 영역 맨 위, 회원 웹은 셸 맨 위에 정보 배너 "새 버전이 배포되었어요 · 새로고침" 이 뜹니다. `새로고침` 은 페이지를 다시 읽고(트레이너 웹은 작성 중인 폼이 있으면 브라우저 확인창이 먼저 뜹니다), 닫기(X)는 같은 배포에 대해 그 탭에서 다시 띄우지 않습니다. 자동 새로고침은 하지 않습니다.
+- 다르면 트레이너 웹은 콘텐츠 영역 맨 위, 회원 웹은 셸 맨 위에 정보 배너 "앱이 업데이트되었어요 · 새로고침" 이 뜹니다. 닫기(X)는 같은 배포에 대해 그 탭에서 다시 띄우지 않습니다. 자동 새로고침은 하지 않습니다.
+- `새로고침` 을 누르면 배너가 바로 내려가고, 진입 파일(`flutter_bootstrap.js`·`main.dart.js`·`version.json`·`drift_worker.js`·`sqlite3.wasm`·에셋 목록)을 `fetch(..., {cache: 'reload'})` 로 서버에서 새로 받아 HTTP 캐시를 바꾼 뒤 페이지를 다시 읽습니다(#3204). Pages 처럼 모든 파일에 `max-age` 가 붙어도 옛 번들이 다시 실리지 않게 하기 위해서입니다. 트레이너 웹은 작성 중인 폼이 있으면 브라우저 확인창이 먼저 뜹니다.
+- 새로고침 직전 받으러 간 배포 SHA 를 그 탭의 `sessionStorage`(`oncare.release.reloadedSha`)에 남깁니다. 다시 뜬 번들이 그 배포면 기록을 지우고, 그래도 옛 번들이면 같은 배포 안내는 그 탭에서 다시 띄우지 않습니다(더 새 배포는 다시 안내). 안내가 끝없이 되풀이되지 않게 하기 위해서입니다.
+- 두 앱은 서비스 워커를 쓰지 않습니다(#3204). 각 앱 `web/flutter_bootstrap.js` 템플릿이 `serviceWorkerSettings` 없이 `_flutter.loader.load()` 를 부르고, `web/js/sw_cleanup.js` 가 예전 빌드가 이 앱 폴더에 설치한 워커를 해제합니다(그 페이지가 워커 통제 아래 있었으면 탭당 한 번 다시 읽음). 빌드는 Flutter 의 자기 해제형 `flutter_service_worker.js` 를 계속 내므로 `--pwa-strategy=none` 은 넘기지 않습니다 — 넘기면 이 파일이 빈 파일이 돼 남은 워커가 스스로 사라지지 않습니다.
 - 모바일 앱 빌드는 확인 자체가 없습니다.
 
-배포 뒤 확인: 브라우저 개발자 도구 Network 탭에서 `/trainer/main.dart.js` 응답의 `Cache-Control: no-cache` 와 `/trainer/version.txt` 의 SHA 를 봅니다. 배포 전부터 열어 둔 탭은 다시 보이게 하면 배너가 떠야 합니다.
+배포 뒤 확인: 브라우저 개발자 도구 Network 탭에서 `/trainer/main.dart.js` 응답의 `Cache-Control: no-cache` 와 `/trainer/version.txt` 의 SHA 를 봅니다. 배포 전부터 열어 둔 탭은 다시 보이게 하면 배너가 떠야 하고, `새로고침` 뒤에는 배너 없이 새 배포가 떠야 합니다. Application → Service Workers 에 두 앱 폴더의 등록이 없어야 합니다.
 
 ## 운영 도메인과 보안 헤더
 

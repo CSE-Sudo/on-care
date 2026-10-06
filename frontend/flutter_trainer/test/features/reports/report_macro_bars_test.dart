@@ -3,10 +3,15 @@
 /// 칼로리 총량은 같은 2,000kcal 이 밥에서 왔는지 기름에서 왔는지 말하지
 /// 않는다. 그래서 이 카드가 지켜야 하는 것은 둘이다 — **안 적은 날을 0 으로
 /// 세지 않는 것**, 그리고 매주 아무 데나 빨갛게 짚지 않는 것.
+///
+/// `부족` 은 결과지·서버 리포트 요약과 같은 기준으로만 짚는다 — 개인 목표가
+/// 있을 때만, 그 목표의 75% 미만(#3259).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_report/oncare_report.dart'
+    show ReportSheet, SheetBand, SheetDietItem;
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_macro_bars.dart';
@@ -34,6 +39,7 @@ WeeklyReport _report({
   double? carbsTarget = 250,
   double? proteinTarget = 120,
   double? fatTarget = 60,
+  double? effectiveProteinTarget,
 }) => WeeklyReport(
   client: makeClient(name: '김민수'),
   weekStart: _week,
@@ -50,6 +56,7 @@ WeeklyReport _report({
   carbsTarget: carbsTarget,
   proteinTarget: proteinTarget,
   fatTarget: fatTarget,
+  effectiveProteinTarget: effectiveProteinTarget,
 );
 
 Future<void> _pump(
@@ -189,14 +196,14 @@ void main() {
     expect(colors, hasLength(3));
   });
 
-  testWidgets('목표의 80%에 못 미치는 항목을 한 줄로 짚어 준다', (tester) async {
+  testWidgets('개인 목표의 75%에 못 미치는 항목을 한 줄로 짚어 준다', (tester) async {
     await _pump(
       tester,
       // 목표(120g)의 절반이다.
       report: _report(proteinWeek: const <double>[60, 60, 60, 60, 60, 60, 60]),
     );
 
-    expect(find.textContaining('단백질이(가) 목표에 많이 모자라요'), findsOneWidget);
+    expect(find.textContaining('단백질이 목표보다 많이 부족해요'), findsOneWidget);
   });
 
   testWidgets('셋 다 모자라도 가장 많이 모자란 하나만 짚는다', (tester) async {
@@ -209,8 +216,8 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('목표에 많이 모자라요'), findsOneWidget);
-    expect(find.textContaining('단백질이(가) 목표에'), findsOneWidget);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsOneWidget);
+    expect(find.textContaining('단백질이 목표보다'), findsOneWidget);
   });
 
   testWidgets('모자람 줄은 지난 주 목표를 근거로 잇지 않는다 (#2400)', (tester) async {
@@ -219,7 +226,7 @@ void main() {
       report: _report(proteinWeek: const <double>[60, 60, 60, 60, 60, 60, 60]),
     );
 
-    expect(find.textContaining('단백질이(가) 목표에'), findsOneWidget);
+    expect(find.textContaining('단백질이 목표보다'), findsOneWidget);
     expect(find.textContaining('지난 주 목표'), findsNothing);
     expect(find.textContaining('판정된 근거'), findsNothing);
   });
@@ -232,19 +239,42 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('목표에 많이 모자라요'), findsNothing);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsNothing);
   });
 
-  testWidgets('딱 80%인 주도 짚지 않는다 — 경계값', (tester) async {
+  testWidgets('딱 75%인 주는 짚지 않는다 — 결과지·서버 요약과 같은 경계 (#3259)', (tester) async {
     await _pump(
       tester,
-      report: _report(proteinWeek: const <double>[96, 96, 96, 96, 96, 96, 96]),
+      // 90 / 120 = 75%.
+      report: _report(proteinWeek: const <double>[90, 90, 90, 90, 90, 90, 90]),
     );
 
-    expect(find.textContaining('목표에 많이 모자라요'), findsNothing);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsNothing);
   });
 
-  testWidgets('목표를 안 적어 뒀어도 크게 모자라면 짚는다 — 기본값이 기준이 된다 (#2232)', (tester) async {
+  testWidgets('75%를 밑돌면 짚는다 — 경계 바로 아래', (tester) async {
+    await _pump(
+      tester,
+      // 88 / 120 ≈ 73%.
+      report: _report(proteinWeek: const <double>[88, 88, 88, 88, 88, 88, 88]),
+    );
+
+    expect(find.textContaining('단백질이 목표보다 많이 부족해요'), findsOneWidget);
+  });
+
+  testWidgets('78%인 주는 짚지 않는다 — 옛 80% 문턱이 결과지와 갈라지던 칸 (#3259)', (tester) async {
+    await _pump(
+      tester,
+      // 94 / 120 ≈ 78%. 예전에는 화면만 `부족` 을 짚고 결과지는 `적정` 이었다.
+      report: _report(proteinWeek: const <double>[94, 94, 94, 94, 94, 94, 94]),
+    );
+
+    expect(find.textContaining('목표보다 많이 부족해요'), findsNothing);
+  });
+
+  testWidgets('개인 목표가 없으면 크게 모자라도 짚지 않는다 — 결과지·서버 요약과 같다 (#3259)', (
+    tester,
+  ) async {
     await _pump(
       tester,
       report: _report(
@@ -255,15 +285,61 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('목표에 많이 모자라요'), findsOneWidget);
+    // 막대는 기본값으로 그대로 긋는다 — 판정만 하지 않는다.
+    expect(find.text('단백질 10 / 60g'), findsOneWidget);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsNothing);
+  });
+
+  testWidgets('실효 단백질 목표는 막대 분모일 뿐 판정 기준이 아니다 (#3259)', (tester) async {
+    await _pump(
+      tester,
+      report: _report(
+        // 체중 × 1.2g = 84g 의 절반이다.
+        proteinWeek: const <double>[42, 42, 42, 42, 42, 42, 42],
+        proteinTarget: null,
+        effectiveProteinTarget: 84,
+      ),
+    );
+
+    expect(find.text('단백질 42 / 84g'), findsOneWidget);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsNothing);
+  });
+
+  testWidgets('개인 목표가 없는 항목은 건너뛰고 목표가 있는 항목만 짚는다', (tester) async {
+    await _pump(
+      tester,
+      report: _report(
+        // 단백질은 기본값의 17% 지만 개인 목표가 없다. 지방은 개인 목표의 50%.
+        proteinWeek: const <double>[10, 10, 10, 10, 10, 10, 10],
+        proteinTarget: null,
+        fatWeek: const <double>[30, 30, 30, 30, 30, 30, 30],
+      ),
+    );
+
+    expect(find.textContaining('지방이 목표보다 많이 부족해요'), findsOneWidget);
+    expect(find.textContaining('단백질이'), findsNothing);
+  });
+
+  testWidgets('짚는 항목은 결과지가 `부족` 칸에 세우는 항목과 같다 (#3259)', (tester) async {
+    final WeeklyReport report = _report(
+      carbsWeek: const <double>[150, 150, 150, 150, 150, 150, 150], // 60%
+      proteinWeek: const <double>[94, 94, 94, 94, 94, 94, 94], // 78%
+    );
+    await _pump(tester, report: report);
+
+    final ReportSheet sheet = ReportSheet.of(report);
+    expect(sheet.diet[SheetDietItem.carbs]!.band, SheetBand.under);
+    expect(sheet.diet[SheetDietItem.protein]!.band, SheetBand.normal);
+    expect(find.textContaining('탄수화물이 목표보다 많이 부족해요'), findsOneWidget);
+    expect(find.textContaining('단백질이'), findsNothing);
   });
 
   testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
     await _pump(tester, locale: 'en');
 
-    expect(find.text('Carbs 247 / 250g'), findsOneWidget);
-    expect(find.text('Protein 119 / 120g'), findsOneWidget);
-    expect(find.text('Fat 59 / 60g'), findsOneWidget);
+    expect(find.text('Carbs 247 / 250 g'), findsOneWidget);
+    expect(find.text('Protein 119 / 120 g'), findsOneWidget);
+    expect(find.text('Fat 59 / 60 g'), findsOneWidget);
   });
 
   testWidgets('영어에서 짚는 글월도 번역되어 있다', (tester) async {
@@ -275,7 +351,7 @@ void main() {
 
     expect(
       find.textContaining(
-        'Protein is well under target — worth raising in your feedback',
+        'Protein is well under goal — worth raising in your feedback',
       ),
       findsOneWidget,
     );

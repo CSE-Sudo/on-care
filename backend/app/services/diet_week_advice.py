@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.week import monday_of
+from app.db.session import release_connection
 from app.services import diet_ai_sentence
 from app.services import diet_coach_inputs as inputs
 from app.services.diet_advice_copy import SLOT_LABELS_KO, Line, ai_line, line
@@ -45,7 +46,9 @@ BREAKFAST_DEADLINE = time(11, 0)
 #: 먹지 않은 것이 아니라 적지 않은 것일 수 있다.
 PROTEIN_MIN_MEALS = 2
 CALORIE_OVER_RATIO = 1.1
-PROTEIN_SHORT_RATIO = 0.8
+#: 단백질이 실효 목표의 이 비율에 못 미친 날을 부족한 날로 센다 — 회원 코칭
+#: 문턱은 `diet_coach_inputs` 한 곳에 있다(#3270).
+PROTEIN_SHORT_RATIO = inputs.COACH_PROTEIN_SHORT_RATIO
 RETRY_AFTER = timedelta(hours=1)
 #: AI 에게 보여 줄 끼니 기록 줄 수.
 RECORD_LINES = 6
@@ -171,9 +174,9 @@ def find(
     hits = counted[kind]
     if len(hits) >= FOCUS_MIN_DAYS:
         described = {
-            "sodium": f"나트륨 권장량({targets.sodium_mg}mg)을 넘긴 날",
+            "sodium": f"나트륨 목표({targets.sodium_mg}mg)를 넘긴 날",
             "calorie": f"칼로리 목표({targets.calories}kcal)의 1.1배를 넘긴 날",
-            "sugar": f"당류 권장량({targets.sugar_g}g)을 넘긴 날",
+            "sugar": f"당류 목표({targets.sugar_g}g)를 넘긴 날",
             "protein": f"단백질이 목표({targets.protein_g}g)의 80%에 못 미친 날",
         }[kind]
         return Finding(
@@ -279,13 +282,18 @@ def week_advice(
     else:
         text = None
         if use_llm:
+            notes = inputs.trainer_notes(db, user_id)
+            goal = (profile.conditions if profile else "") or ""
+            # 문장을 기다리는 동안 연결을 쥐지 않는다(#3242). 여기까지는 읽기뿐이고,
+            # 저장(`store_advice`)은 새 연결로 한다.
+            release_connection(db)
             text = diet_ai_sentence.generate(
                 lang=lang,
                 analysis_text=finding.analysis.text,
                 finding=finding.description,
                 records=record_lines(finding, records),
-                notes=inputs.trainer_notes(db, user_id),
-                goal=(profile.conditions if profile else "") or "",
+                notes=notes,
+                goal=goal,
                 metric="diet_week_advice",
             )
         if text:

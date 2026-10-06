@@ -143,7 +143,7 @@ void main() {
     );
 
     expect(find.text('식단 분석'), findsOneWidget);
-    expect(find.text(keepWords('단백질은 54g으로 목표보다 46g 모자라요.')), findsOneWidget);
+    expect(find.text(keepWords('단백질은 54g으로 목표보다 46g 부족해요.')), findsOneWidget);
     expect(find.text('저녁으로 이 메뉴를 회원에게 추천할까요?'), findsOneWidget);
     expect(_menuName(tester), '닭가슴살 샐러드');
     expect(find.text('AI 추천 1 / 3'), findsOneWidget);

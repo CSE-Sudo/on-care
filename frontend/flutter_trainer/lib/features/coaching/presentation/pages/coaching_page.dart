@@ -14,11 +14,10 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
-import 'package:oncare_trainer/features/clients/domain/entities/routine_days.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_adherence_cards.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart'
     show ClientDietAnalysisPanel;
 import 'package:oncare_trainer/features/coaching/data/coaching_draft_autosaver.dart';
@@ -169,6 +168,24 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   /// 지금 `개인운동만` 을 보내고 있는 회원들.
   final Set<String> _sendingRoutineOnly = <String>{};
+
+  /// `개인운동만` 으로 보냈거나 PT 에 붙인 개인운동 목록 — 회원별로 보낸 그
+  /// 목록 자체를 기억한다(#3247).
+  ///
+  /// 보낸 뒤에도 박스를 남기려고 [_personalRoutines] 를 그대로 두는데, 회원을
+  /// 바꾸면 [_sent] 가 풀려 돌아왔을 때 보낸 목록이 `보내지 않은 작성 내용` 으로
+  /// 읽혔다 — 새로 고침 경고·전환 확인창이 뜨고 보낸 것이 자동 보관됐다. 목록을
+  /// 고치거나 다시 반영하면 새 목록이 들어서므로 같은 목록일 때만 보낸 것이다.
+  final Map<String, List<RoutineExercise>> _sentPersonalRoutines =
+      <String, List<RoutineExercise>>{};
+
+  /// [clientId] 의 지금 개인운동이 이미 보낸 그 목록인가(#3247).
+  bool _personalRoutinesSent(String clientId) {
+    final List<RoutineExercise>? current = _personalRoutines[clientId];
+    return current != null &&
+        identical(current, _sentPersonalRoutines[clientId]);
+  }
+
   ProgramTemplate? _appliedTemplate;
   int _templateRevision = 0;
   int _editorRevision = 0;
@@ -259,7 +276,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 값이라, 다른 회원이면 개인운동만 본다.
   bool _hasUnsentWorkFor(String clientId) {
     if (_unsentWorkClients.contains(clientId)) return true;
-    final bool sent = _sent && clientId == _clientId;
+    final bool sent =
+        (_sent && clientId == _clientId) || _personalRoutinesSent(clientId);
     return !sent && (_personalRoutines[clientId]?.isNotEmpty ?? false);
   }
 
@@ -684,7 +702,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// [_attachRoutineOnlyToPt]). 회원에게는 스케줄에서 그 PT 와 함께 간다.
   Future<void> _sendRoutineOnly(TrainerClient client) async {
     final routines = _personalRoutines[client.id] ?? const <RoutineExercise>[];
-    if (_sent || _sendingRoutineOnly.contains(client.id) || routines.isEmpty) {
+    if (_sent ||
+        _personalRoutinesSent(client.id) ||
+        _sendingRoutineOnly.contains(client.id) ||
+        routines.isEmpty) {
       return;
     }
     // 그날 PT 를 아직 읽지 못했으면 누르지 못한다 — 박스가 버튼을 잠근다.
@@ -751,6 +772,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
     _sendRequests.remove(sentFor);
     _unsentWorkClients.remove(sentFor);
+    _sentPersonalRoutines[sentFor] = routines;
     // 보냈다 — 자동 보관해 둔 작성 내용도 다 썼다(#2873).
     _discardAutosave(sentFor);
     // 보낸 뒤에도 목록과 `개인운동만` 표시를 그대로 둔다 — 지우면 그 자리에
@@ -1566,6 +1588,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!mounted) return;
     // 그 PT 에 붙였다 — 이 화면에만 있던 작성 내용이 아니다(#2873).
     _unsentWorkClients.remove(sentFor);
+    _sentPersonalRoutines[sentFor] = routines;
     _discardAutosave(sentFor);
     // 스케줄 화면은 그동안 떠 있지 않았다 — 돌아가면 다시 읽게 한다.
     ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
@@ -1848,7 +1871,12 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           reason: '',
                           sets: exercises[index].sets,
                           reps: exercises[index].reps,
-                          holdSeconds: exercises[index].holdSeconds,
+                          // 편집기는 초가 있으면 버티는 운동으로 연다 — 회로
+                          // 고른 운동에 남아 있는 초를 넘기면 회↔초가 뒤바뀐다
+                          // (#3247).
+                          holdSeconds: exercises[index].isHold
+                              ? exercises[index].holdSeconds
+                              : 0,
                           weight: exercises[index].weight,
                         ),
                     ];
@@ -1972,13 +2000,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     _personalRoutines[client.id] ?? const <RoutineExercise>[],
                 routineOnly: true,
                 startDate: _routineOnlyStart[client.id] ?? _todayKst(),
-                onStartDateChanged: _sent
+                onStartDateChanged: _sent || _personalRoutinesSent(client.id)
                     ? null
                     : (DateTime date) =>
                           setState(() => _routineOnlyStart[client.id] = date),
                 onSend: () => unawaited(_sendRoutineOnly(client)),
                 sending: _sendingRoutineOnly.contains(client.id),
-                sent: _sent,
+                // 보낸 뒤 다른 회원에 다녀와도 보낸 목록은 보낸 것이다(#3247).
+                sent: _sent || _personalRoutinesSent(client.id),
                 // 시작일에 PT 가 있으면 그 PT 에 붙고, 없으면 바로 보낸다(#2280).
                 target: _routineOnlyTargetFor(client.id),
                 nearestPt: _nearestRoutineOnlyPt(client.id),
@@ -2032,7 +2061,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 /// 본문이 남는 높이를 모두 갖는다.
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
-    super.key,
     required this.title,
     required this.icon,
     required this.child,
@@ -2104,41 +2132,6 @@ class _WeekCompletionBars extends StatelessWidget {
                   if (i < week.length && week[i] == null) i,
               },
             ),
-    );
-  }
-}
-
-/// 개인운동 이행 — 지금 걸린 개인운동을 보낸 날부터 7칸. (#2509)
-///
-/// 다음 프로그램을 짜는 자리에서 지난 개인운동을 회원이 매일 했는지 본다.
-/// 지금 걸린 개인운동이 없으면 카드를 두지 않는다(기한 없는 따로 배정만 있는
-/// 회원도 그렇다 — 칸의 시작점인 "보낸 날" 이 없다).
-class _RoutineAdherenceCard extends ConsumerWidget {
-  const _RoutineAdherenceCard({required this.clientId});
-
-  final String clientId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final RoutineDaysKey key = routineDaysKeyNow(clientId);
-    final RoutineDays? days = ref
-        .watch(clientRoutineDaysProvider(key))
-        .valueOrNull;
-    final RoutineDayGroup? group = days?.currentPersonal(key.day);
-    if (days == null || group == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: OnCareSpacing.s12),
-      child: _SectionCard(
-        key: ValueKey<String>('program-routine-adherence-card-$clientId'),
-        title: l.coachRoutineAdherenceTitle,
-        icon: AppIcons.personalRoutine,
-        child: ClientRoutineAdherenceStrip(
-          days: days,
-          group: group,
-          today: key.day,
-        ),
-      ),
     );
   }
 }
@@ -2248,29 +2241,35 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
             topGap: OnCareSpacing.s12,
           ),
         ] else ...<Widget>[
-          // 요약 → 상세 순이다(#2509): 운동 현황(그래프) → 주간 운동 이행률 →
-          // 개인운동 이행 → 운동 기록. 예전에는 운동 기록이 운동 현황 카드 안
-          // 그래프 아래 붙어 있어, 이행률보다 먼저 긴 목록을 지나야 했다.
+          // 운동 현황(그래프 + 그 아래 운동 기록) → 주간 운동 이행률 → 개인운동
+          // 이행. 운동 기록은 접힌 기본이 최근 1건이라 그래프 카드 안에 둔다.
           ClientExerciseStatusCard(
             key: ValueKey<String>('program-workout-${widget.client.id}'),
             clientId: widget.client.id,
             period: _period,
+            showRecords: true,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           _WeekCompletionBars(client: widget.client),
-          _RoutineAdherenceCard(clientId: widget.client.id),
-          const SizedBox(height: OnCareSpacing.s12),
-          _SectionCard(
-            key: ValueKey<String>(
-              'program-workout-records-${widget.client.id}',
-            ),
-            title: l.workoutRecords,
-            icon: AppIcons.exercise,
-            child: ClientWorkoutRecordsDetail(
+          // 개인운동 이행은 회원 상세 운동 탭과 같은 카드다(#3004) — 기간
+          // 토글과 같은 기간을 말한다. `오늘` 은 회원 상세처럼 카드를 두지
+          // 않는다 — 오늘 걸린 개인운동은 위 `운동 기록` 맨 위가 말한다.
+          if (_period == ClientPeriod.week)
+            ClientWeekRoutineAdherenceCard(
               clientId: widget.client.id,
-              period: _period,
+              cardKey: ValueKey<String>(
+                'program-routine-adherence-card-${widget.client.id}',
+              ),
+              padding: const EdgeInsets.only(top: OnCareSpacing.s12),
             ),
-          ),
+          if (_period == ClientPeriod.month)
+            ClientAllRoutineAdherenceCard(
+              clientId: widget.client.id,
+              cardKey: ValueKey<String>(
+                'program-routine-all-card-${widget.client.id}',
+              ),
+              padding: const EdgeInsets.only(top: OnCareSpacing.s12),
+            ),
         ],
       ],
     );
@@ -2316,12 +2315,14 @@ class _TemplateCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _delete(
-    BuildContext context,
-    WidgetRef ref,
-    ProgramTemplate template,
-  ) async {
+  Future<void> _delete(BuildContext context, ProgramTemplate template) async {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 확인창·삭제를 기다리는 사이 카드가 사라질 수 있다 — 그때 `ref` 는 쓸 수
+    // 없으니 목록 무효화는 미리 잡아 둔 컨테이너로 한다(#3247).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: l.coachTemplateDeleteConfirm(template.name),
@@ -2331,19 +2332,19 @@ class _TemplateCard extends ConsumerWidget {
     );
     if (!confirmed) return;
     try {
-      await ref
+      await container
           .read(trainerProgramTemplateRepositoryProvider)
           .delete(template.id);
-      ref.invalidate(programTemplatesProvider);
+      container.invalidate(programTemplatesProvider);
     } on NotFoundError {
       // 다른 탭·기기에서 이미 지웠다(#3101) — 다시 눌러도 같은 404 다. 목록을
       // 서버와 맞춰 카드를 걷고 그렇다고 알린다.
-      ref.invalidate(programTemplatesProvider);
+      container.invalidate(programTemplatesProvider);
       if (!context.mounted) return;
       showAppToast(context, l.coachTemplateAlreadyDeleted);
     } on AppError {
       // 실패해도 목록은 다시 읽는다 — 그사이 서버가 달라졌으면 맞춘다(#3101).
-      ref.invalidate(programTemplatesProvider);
+      container.invalidate(programTemplatesProvider);
       if (!context.mounted) return;
       showAppToast(
         context,
@@ -2426,7 +2427,7 @@ class _TemplateCard extends ConsumerWidget {
                                     _edit(context, template: template),
                                 onDelete: template.isStarter
                                     ? null
-                                    : () => _delete(context, ref, template),
+                                    : () => _delete(context, template),
                               )
                             else
                               AppIcon(

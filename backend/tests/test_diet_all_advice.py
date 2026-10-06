@@ -227,6 +227,24 @@ def test_all_advice_falls_back_and_retries(db_session, member, monkeypatch):
     assert svc.all_advice(db_session, member.id, now=_at(hours=1.1)).action_source == "llm"
 
 
+def test_all_advice_does_not_hold_the_connection_while_waiting_for_ai(
+    db_session, member, monkeypatch
+):
+    """AI 문장을 기다리는 동안 트랜잭션(연결)을 쥐지 않는다(#3242)."""
+    seen = []
+
+    def fake(system, user):
+        seen.append(db_session.in_transaction())
+        return '{"sentence": "생선을 주 2회 넣어요."}'
+
+    monkeypatch.setattr(ai, "_call_llm", fake)
+    _salty_dinners(db_session, member.id)
+
+    advice = svc.all_advice(db_session, member.id, now=_at())
+    assert advice.action_source == "llm"
+    assert seen == [False]
+
+
 def test_endpoint_all(client, monkeypatch):
     monkeypatch.setattr(ai, "_call_llm", _FakeAI(fail=True))
     email = f"all-api-{uuid.uuid4().hex[:8]}@oncare.com"

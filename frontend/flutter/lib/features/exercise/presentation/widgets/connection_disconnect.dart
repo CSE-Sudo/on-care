@@ -23,8 +23,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 해제가 됐는지 알 수 없었다(#2857). 서버가 '연결이 없다(404)' 고 답하면 이미
 /// 해제된 것이라 성공과 같이 다룬다.
 Future<bool> confirmDisconnect(
-  BuildContext context,
-  WidgetRef ref, {
+  BuildContext context, {
   required String message,
   required Future<void> Function(GymRepository repo) disconnect,
 }) async {
@@ -38,29 +37,33 @@ Future<bool> confirmDisconnect(
     cancelLabel: l.myCancel,
     destructive: true,
   );
-  if (!ok) return false;
+  if (!ok || !context.mounted) return false;
+  // 해제를 기다리는 동안 화면을 벗어나면 위젯의 ref 는 폐기된다. 그때 비우기를
+  // 건너뛰면 다른 화면에 끊은 연결이 남는다 — 비울 곳을 미리 붙들어 둔다(#3244).
+  final ProviderContainer container = ProviderScope.containerOf(
+    context,
+    listen: false,
+  );
   try {
-    await disconnect(ref.read(gymRepositoryProvider));
+    await disconnect(container.read(gymRepositoryProvider));
   } on Object catch (error) {
     if (!isAlreadyDisconnected(error)) {
       toast.show(l.myConnectionDeleteFailed, type: AppToastType.error);
       return false;
     }
   }
-  // 해제를 기다리는 동안 화면을 벗어났다면 ref 가 이미 폐기됐을 수 있다.
-  if (!context.mounted) return true;
   // 헬스장 해제는 트레이너까지 끊으므로 두 provider 를 함께 새로 읽는다.
-  ref.invalidate(myGymProvider);
-  ref.invalidate(myTrainerProvider);
+  container.invalidate(myGymProvider);
+  container.invalidate(myTrainerProvider);
   // 담당 코치도 더는 내 코치가 아니다(#1865). 다시 읽지 않으면 헤더의 대화
   // 버튼이 여전히 트레이너 채팅으로 가고, AI 챗봇 입구로 바뀌지 않는다(#1840).
   // 그 코치에 딸린 화면(배정 운동·PT 일정·대화·미읽음)도 함께 비워야 한다.
   // 묶음은 앱 복귀 재확인과 같은 목록이다(#2843).
-  ref.invalidate(memberCoachProvider);
-  invalidateCoachBoundData(ref.invalidate);
+  container.invalidate(memberCoachProvider);
+  invalidateCoachBoundData(container.invalidate);
   // 담당이 없는 회원에게만 담당 요청이 온다. 데모는 요청을 앱을 켤 때 한 번만
   // 받아서, 다시 읽지 않으면 끊은 뒤 온 요청 창이 뜨지 않는다(#2659).
-  ref.invalidate(coachInvitesProvider);
+  container.invalidate(coachInvitesProvider);
   return true;
 }
 

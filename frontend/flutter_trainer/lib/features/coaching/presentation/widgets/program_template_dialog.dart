@@ -75,6 +75,12 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
     if (_saving) return;
     final AppLocalizations l = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
+    // 저장을 기다리는 사이 창이 닫히면 `ref` 를 쓸 수 없다 — 목록 무효화는 미리
+    // 잡아 둔 컨테이너로 한다(#3247). 닫힌 뒤에도 목록은 서버와 맞아야 한다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final name = _name.text.trim();
     // 오류는 저마다 제 자리에서 말한다(#2220). 셋을 한 문구에 몰아 이름 칸에
     // 붙이면, 이름을 제대로 적어 둔 트레이너가 빨개진 이름 칸을 들여다보며
@@ -116,19 +122,19 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
           exercises: exercises,
         );
       }
-      ref.invalidate(programTemplatesProvider);
+      container.invalidate(programTemplatesProvider);
       if (!mounted) return;
       navigator.pop();
     } on NotFoundError {
       // 고치려던 템플릿을 다른 탭·기기에서 이미 지웠다(#3101) — 다시 저장해도
       // 같은 404 다. 목록을 서버와 맞춰 카드를 걷고, 창을 닫으며 알린다.
-      ref.invalidate(programTemplatesProvider);
+      container.invalidate(programTemplatesProvider);
       if (!mounted) return;
       showAppToast(context, l.coachTemplateAlreadyDeleted);
       navigator.pop();
     } on AppError catch (error) {
       // 실패해도 목록은 다시 읽는다 — 그사이 서버가 달라졌으면 맞춘다(#3101).
-      ref.invalidate(programTemplatesProvider);
+      container.invalidate(programTemplatesProvider);
       if (!mounted) return;
       // 저장이 막힌 것은 어느 한 칸의 잘못이 아니다. 창 아래에 세운다.
       setState(
@@ -155,7 +161,7 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
     // 시작 구성이든 직접 만든 템플릿이든 편집 창은 똑같이 생겼다 — 저장 시
     // 시작 구성만 조용히 새 템플릿으로 만들어지는 차이는 데이터 계층
     // (`_save`)에만 있고, 화면엔 드러내지 않는다.
-    return AppDialog(
+    final Widget dialog = AppDialog(
       title: widget.template == null ? l.coachTemplateNew : l.coachTemplateEdit,
       size: AppDialogSize.medium,
       footer: AppButtonPair(
@@ -236,6 +242,9 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
         ],
       ),
     );
+    // 저장 중에는 배경·뒤로 가기·닫기 X 로 닫히지 않는다(#3245) — 닫히면 서버가
+    // 거절한 사유를 보여 줄 자리가 사라진다. 기다리는 동안이 아니면 지금처럼 닫힌다.
+    return PopScope(canPop: !_saving, child: dialog);
   }
 }
 

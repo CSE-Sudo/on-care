@@ -199,7 +199,7 @@ def _owned(db: Session, trainer_id: str, template_id: str) -> TrainerProgramTemp
     )
     if row is None:
         # 남의 템플릿도 여기로 온다 — 존재조차 드러내지 않는다.
-        raise TemplateNotFound("템플릿을 찾을 수 없습니다.")
+        raise TemplateNotFound("템플릿을 찾을 수 없어요.")
     return row
 
 
@@ -219,7 +219,7 @@ def create_template(
     )
     if used is not None:
         raise TemplateLimitReached(
-            f"템플릿은 최대 {TEMPLATE_LIMIT}개까지 저장할 수 있습니다."
+            f"템플릿은 최대 {TEMPLATE_LIMIT}개까지 저장할 수 있어요."
         )
     now = _now()
     row = TrainerProgramTemplate(

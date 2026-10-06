@@ -63,8 +63,8 @@ Map<String, Object?> _row(String category, Map<String, Object?>? action) =>
 
 AlertItem _alert(AlertTarget target) => AlertItem(
   id: 'a1',
-  title: 'PT 수업 완료',
-  body: '3회차 PT 를 마쳤어요',
+  title: '박코치 트레이너와 3회차 PT를 마쳤어요',
+  body: '운동 기록에 남겼어요',
   createdAt: '2026-09-28T09:00:00Z',
   timeAgo: '방금',
   category: AlertCategory.ptDone,
@@ -188,8 +188,8 @@ void main() {
           NotificationItemsCompanion.insert(
             id: 'n-done',
             createdAt: now.subtract(const Duration(minutes: 1)),
-            title: 'PT 수업 완료',
-            body: '3회차 PT 를 마쳤어요',
+            title: '박코치 트레이너와 3회차 PT를 마쳤어요',
+            body: '운동 기록에 남겼어요',
             category: 'pt_done',
           ),
         ]);
@@ -231,7 +231,7 @@ void main() {
   });
 
   group('데모 시드', () {
-    test('PT 수업 완료 예시는 PT 기록 갈래이고 PT 기록 보기 버튼이다', () async {
+    test('PT 완료 예시는 PT 기록 갈래이고 PT 기록 보기 버튼이다', () async {
       final List<AlertItem> alerts = await fetchDemoAlerts();
       final AlertItem done = alerts.singleWhere(
         (AlertItem a) => a.id == 'seed-noti-2',

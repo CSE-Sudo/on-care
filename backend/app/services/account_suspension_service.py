@@ -52,7 +52,7 @@ def _out(user: User, *, released_clients: int = 0) -> AdminUserStatusOut:
 def _require_user(db: Session, user_id: str) -> User:
     user = db.get(User, user_id)
     if user is None:
-        raise UserNotFound("계정을 찾을 수 없습니다.")
+        raise UserNotFound("계정을 찾을 수 없어요.")
     return user
 
 
@@ -65,7 +65,7 @@ def suspend(db: Session, user_id: str, *, admin_id: str) -> AdminUserStatusOut:
     """
     user = _require_user(db, user_id)
     if user.id == admin_id or user.is_admin:
-        raise SuspensionNotAllowed("운영자 계정은 정지할 수 없습니다.")
+        raise SuspensionNotAllowed("운영자 계정은 정지할 수 없어요.")
     if user.is_active:
         user.is_active = False
         auth_tokens.bump_version(user)

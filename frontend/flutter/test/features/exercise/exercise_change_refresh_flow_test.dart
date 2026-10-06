@@ -198,19 +198,10 @@ void main() {
                   ..watch(myHealthStateProvider)
                   ..watch(weeklyChallengeProvider)
                   ..watch(recordSpanProvider);
-                return Column(
-                  children: <Widget>[
-                    TextButton(
-                      onPressed: () =>
-                          showExerciseAddSheet(context, session: _session),
-                      child: const Text('열기'),
-                    ),
-                    TextButton(
-                      onPressed: () =>
-                          confirmDeleteExerciseSession(context, ref, _session),
-                      child: const Text('지우기'),
-                    ),
-                  ],
+                return TextButton(
+                  onPressed: () =>
+                      confirmDeleteExerciseSession(context, ref, _session),
+                  child: const Text('지우기'),
                 );
               },
             ),
@@ -248,40 +239,10 @@ void main() {
     expect(builds.span, 1);
   });
 
-  testWidgets('기록을 고쳐 저장하면 지난 주·조언·MY·챌린지를 모두 다시 읽는다', (
-    WidgetTester tester,
-  ) async {
-    await pump(tester);
-
-    await tester.tap(find.text('열기'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('exerciseSaveButton')));
-    await tester.pumpAndSettle();
-
-    expect(repo.updated, 1);
-    expectEverythingRebuiltOnce();
-    await dismissToast(tester);
-  });
-
   testWidgets('기록을 지우면 저장과 같은 것들을 다시 읽는다', (WidgetTester tester) async {
     await pump(tester);
 
     await tester.tap(find.text('지우기'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('삭제').last);
-    await tester.pumpAndSettle();
-
-    expect(repo.deleted, 1);
-    expectEverythingRebuiltOnce();
-    await dismissToast(tester);
-  });
-
-  testWidgets('수정 시트 안의 삭제 버튼도 같은 갱신을 탄다', (WidgetTester tester) async {
-    await pump(tester);
-
-    await tester.tap(find.text('열기'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('exerciseDeleteButton')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('삭제').last);
     await tester.pumpAndSettle();

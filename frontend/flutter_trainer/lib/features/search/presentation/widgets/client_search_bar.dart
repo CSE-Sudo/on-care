@@ -94,14 +94,16 @@ ClientSearchFacts watchClientSearchFacts(
   final today = nowKst();
   final range = (
     from: ymd(today),
-    to: ymd(today.add(const Duration(days: clientSearchUpcomingDays - 1))),
+    // 달력의 날이다 — 24시간씩 더하면 서머타임이 바뀌는 기기에서 끝 날짜가 하루
+    // 어긋난다(#2890).
+    to: ymd(addCalendarDays(today, clientSearchUpcomingDays - 1)),
   );
   final sessions =
       ref.watch(scheduleRangeProvider(range)).valueOrNull ??
       const <ScheduleSession>[];
   return ClientSearchFacts(
     unread: unread,
-    nextSession: nextSessionsByClient(results, sessions),
+    nextSession: nextSessionsByClient(results, sessions, now: today),
   );
 }
 
@@ -209,14 +211,21 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
   /// search facts only hold the next 28 days of 예정, so the member's full
   /// history is read here, once, at the moment of the pick.
   Future<void> _apply(_Pick pick) async {
+    // 고를 때마다 번호를 새로 받는다. 스케줄 탭은 회원의 세션을 읽고 나서야
+    // 이동하므로, 연달아 고르면 먼저 고른 회원의 늦은 응답이 나중에 고른
+    // 회원으로의 이동을 덮었다(#3249). 마지막으로 고른 것만 이동한다.
+    final int seq = ++_applySeq;
     var route = pick.route;
     if (pick.inTab &&
         GoRouterState.of(context).uri.pathSegments.firstOrNull == 'schedule') {
       route = await _scheduleRoute(pick.client) ?? route;
-      if (!mounted) return;
+      if (!mounted || seq != _applySeq) return;
     }
     context.go(route);
   }
+
+  /// 마지막으로 고른 [_apply] 의 번호.
+  int _applySeq = 0;
 
   /// The member's session route on the 스케줄 tab, or `null` when the read
   /// fails (the facts-based route is used then).
@@ -226,7 +235,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
           .read(scheduleRepositoryProvider)
           .watchClientSessions((id: client.id, name: client.name))
           .first;
-      return clientScheduleDestination(client, sessions, ymd(nowKst()));
+      return clientScheduleDestination(client, sessions, nowKst());
     } catch (_) {
       return null;
     }

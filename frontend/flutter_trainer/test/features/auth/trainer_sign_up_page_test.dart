@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +24,7 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
   String? email;
   String? name;
   String? emailCode;
+  String? phone;
   List<String>? consents;
   int registerCalls = 0;
 
@@ -45,9 +48,11 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async {
     registerCalls++;
+    this.phone = phone;
     this.emailCode = emailCode;
     this.consents = consents;
     this.email = email;
@@ -89,9 +94,14 @@ class _RecordingCodeRepository implements SignupEmailCodeRepository {
   /// 요청이 던질 실패.
   SignupEmailCodeError? error;
 
+  /// 있으면 끝날 때까지 응답을 잡아 둔다 — 요청 중 입력을 바꾸는 자리(#3248).
+  Completer<void>? gate;
+
   @override
   Future<SignupEmailCodeSent> request({required String email}) async {
     requests.add(email);
+    final Completer<void>? wait = gate;
+    if (wait != null) await wait.future;
     if (error != null) throw error!;
     return const SignupEmailCodeSent(
       expiresInMinutes: 10,
@@ -152,6 +162,7 @@ const ValueKey<String> _confirmKey = ValueKey<String>(
   'trainer-signup-password-confirm',
 );
 const ValueKey<String> _codeKey = ValueKey<String>('trainer-signup-code');
+const ValueKey<String> _phoneKey = ValueKey<String>('trainer-signup-phone');
 const ValueKey<String> _codeSendKey = ValueKey<String>(
   'trainer-signup-code-send',
 );
@@ -211,6 +222,7 @@ Future<void> _fill(
   String password = 'signup-pw-1234',
   String confirm = 'signup-pw-1234',
   String? code = _validCode,
+  String phone = '01012345678',
 }) async {
   await tester.enterText(find.widgetWithText(TextField, '이름'), name);
   await tester.enterText(find.widgetWithText(TextField, '이메일'), email);
@@ -218,6 +230,7 @@ Future<void> _fill(
     await _requestCode(tester);
     await _enterCode(tester, code);
   }
+  await tester.enterText(find.byKey(_phoneKey), phone);
   // 비밀번호 안내가 새 규칙을 말한다(#1784).
   await tester.enterText(
     find.widgetWithText(TextField, '비밀번호 (영문·숫자 포함 8자 이상)'),
@@ -320,6 +333,8 @@ void main() {
     expect(repo.email, 'new@oncare.com');
     expect(repo.name, '김신규');
     expect(repo.emailCode, _validCode);
+    // 숫자만 쳐도 하이픈이 들어간 번호가 간다 — 회원 앱 가입과 같은 서식이다.
+    expect(repo.phone, '010-1234-5678');
   });
 
   testWidgets('비밀번호가 다르면 보내지 않는다', (WidgetTester tester) async {
@@ -330,6 +345,28 @@ void main() {
 
     expect(repo.registerCalls, 0);
     expect(_errorUnder(_confirmKey, '비밀번호가 일치하지 않아요'), findsOneWidget);
+  });
+
+  testWidgets('휴대폰 번호가 비었거나 형식이 틀리면 보내지 않는다', (WidgetTester tester) async {
+    final repo = await _pumpSignUp(tester);
+    await _fill(tester, phone: '');
+
+    await _submit(tester);
+
+    expect(repo.registerCalls, 0);
+    expect(
+      _errorUnder(_phoneKey, '전화번호를 010-0000-0000 형식으로 입력해 주세요'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(find.byKey(_phoneKey), '0101234');
+    await _submit(tester);
+    expect(repo.registerCalls, 0);
+
+    await tester.enterText(find.byKey(_phoneKey), '01012345678');
+    await _submit(tester);
+    expect(repo.registerCalls, 1);
+    expect(repo.phone, '010-1234-5678');
   });
 
   // --- 입력 형식 검사 (#1784) ----------------------------------------------
@@ -930,6 +967,7 @@ void main() {
 
     // 이메일은 건드리지 않고 나머지 칸을 채운다 — 고치면 코드가 버려진다.
     await _type(tester, _nameKey, '김신규');
+    await _type(tester, _phoneKey, '01012345678');
     await _type(tester, _passwordKey, 'signup-pw-1234');
     await _type(tester, _confirmKey, 'signup-pw-1234');
     await _enterCode(tester, MockSignupEmailCodeRepository.demoCode);
@@ -956,5 +994,40 @@ void main() {
     expect(find.text(_en.signUpCodeRemaining('10:00')), findsOneWidget);
     expect(find.text(_en.signUpCodeResendIn(60)), findsOneWidget);
     expect(_en.signUpCodeResendIn(60), 'Resend in 60s');
+  });
+
+  testWidgets('코드를 받는 사이 이메일을 고치면 옛 주소의 코드를 버린다 (#3248)', (
+    WidgetTester tester,
+  ) async {
+    await _pumpSignUp(tester);
+    _codes.gate = Completer<void>();
+    await _type(tester, _emailKey, 'new@oncare.com');
+    await _requestCode(tester);
+
+    // 응답이 오기 전에 주소를 고친다.
+    await _type(tester, _emailKey, 'other@oncare.com');
+    _codes.gate!.complete();
+    await settle(tester);
+
+    expect(_codes.requests, <String>['new@oncare.com']);
+    // 옛 주소의 코드 칸은 열리지 않는다 — 새 주소로 다시 받아야 한다.
+    expect(find.byKey(_codeKey), findsNothing);
+    expect(find.byKey(_codeSendKey), findsOneWidget);
+  });
+
+  testWidgets('계정을 만든 뒤 로그인이 실패하면 로그인 화면으로 보낸다 (#3248)', (
+    WidgetTester tester,
+  ) async {
+    final repo = await _pumpSignUp(
+      tester,
+      error: const AuthException(AuthFailure.signedUpSignInFailed),
+    );
+    await _fill(tester);
+
+    await _submit(tester);
+
+    expect(repo.registerCalls, 1);
+    expect(currentLocation(tester), AppRoutes.signIn);
+    expect(find.text(_ko.authErrSignedUpSignInFailed), findsOneWidget);
   });
 }

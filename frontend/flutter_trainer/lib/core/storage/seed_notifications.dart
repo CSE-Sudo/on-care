@@ -87,7 +87,7 @@ Future<void> seedDemoNotifications(
       template: 'trainer_health_notes',
       args: <String, Object?>{'focus': <String>[], 'with_focus': false},
       client: 2,
-      title: '회원 주의사항 변경',
+      title: '회원 주의사항이 바뀌었어요',
     ),
     row(
       id: 'demo-noti-2',
@@ -96,7 +96,7 @@ Future<void> seedDemoNotifications(
       template: 'trainer_member_message',
       args: const <String, Object?>{},
       client: 1,
-      title: '새 메시지',
+      title: '새 메시지가 왔어요',
       body: '오늘 PT 끝나고 스트레칭 루틴 한 번 더 봐 주실 수 있을까요?',
     ),
     row(
@@ -108,7 +108,7 @@ Future<void> seedDemoNotifications(
         'starts_at': '${wireDate(tomorrow)}T19:00:00+09:00',
       },
       client: 4,
-      title: '새 예약',
+      title: '새 예약이 들어왔어요',
       targetDate: wireDate(tomorrow),
     ),
     row(
@@ -120,7 +120,7 @@ Future<void> seedDemoNotifications(
         'focus': <String>['근력 향상', '체력 강화'],
       },
       client: 3,
-      title: '회원 건강 목표 변경',
+      title: '회원 건강 목표가 바뀌었어요',
       read: true,
     ),
     row(
@@ -140,7 +140,7 @@ Future<void> seedDemoNotifications(
       template: 'trainer_invite_accepted',
       args: const <String, Object?>{},
       client: 5,
-      title: '담당 요청 수락',
+      title: '담당 요청이 수락됐어요',
       read: true,
     ),
   ];

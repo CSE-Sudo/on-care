@@ -267,16 +267,26 @@ class _PeriodBody extends StatelessWidget {
   /// 머리 숫자 옆에 붙일 탄단지. [picked] 이 있으면 그날 값, 없으면 기록이
   /// 있는 날의 하루 평균이다. 서버가 영양을 주지 않은 기간이면 null 이라
   /// 아무것도 붙지 않는다.
+  ///
+  /// 평균은 칼로리와 같은 **보이는 구간**에서 낸다(#3244). 칼로리만 보이는
+  /// 구간 평균이고 탄단지는 기간 전체 평균이면, `전체` 를 옆으로 넘길 때 한
+  /// 줄의 두 숫자가 서로 다른 날들을 말한다.
   _Macros? _macrosFor(int? picked) {
     final List<DietPeriodDay>? all = days;
-    if (all == null) return null;
+    if (all == null || all.isEmpty) return null;
     if (picked != null) {
       final DietPeriodDay d = all[picked];
       return d.hasMacros
           ? _Macros(carbs: d.carbsG, protein: d.proteinG, fat: d.fatG)
           : null;
     }
+    final (int, int)? visible = selection.visible;
+    final int from = visible == null ? 0 : visible.$1.clamp(0, all.length - 1);
+    final int to = visible == null
+        ? all.length - 1
+        : visible.$2.clamp(from, all.length - 1);
     final List<DietPeriodDay> logged = all
+        .sublist(from, to + 1)
         .where((DietPeriodDay d) => d.hasMacros)
         .toList();
     if (logged.isEmpty) return null;
@@ -388,7 +398,11 @@ class _PeriodBody extends StatelessWidget {
                                               ),
                                         ),
                                         TextSpan(
-                                          text: ' / ${format(goal)} $unit',
+                                          // ko `/ 2,000kcal` · en `/ 2,000 kcal`.
+                                          text:
+                                              ' / ${format(goal)}'
+                                              '${unitGap(Localizations.localeOf(context).toString())}'
+                                              '$unit',
                                           style: tokens
                                               .text(OnCareTypography.bodySmall)
                                               .copyWith(
@@ -552,7 +566,10 @@ class _WeekTrend extends StatelessWidget {
             l.chartA11y,
             values: values,
             dayLabels: days,
-            format: (double v) => '${format(v)} $unit',
+            format: (double v) =>
+                '${format(v)}'
+                '${unitGap(Localizations.localeOf(context).toString())}'
+                '$unit',
             upTo: today,
           ),
         ),
@@ -619,7 +636,7 @@ class _MacroDetail extends StatelessWidget {
               Text(label, maxLines: 1, style: base.copyWith(color: color)),
               const SizedBox(width: OnCareSpacing.s4),
               Text(
-                _macroGrams(value),
+                _macroGrams(value, l.localeName),
                 maxLines: 1,
                 style: OnCareTypography.numeric(
                   base,
@@ -633,7 +650,9 @@ class _MacroDetail extends StatelessWidget {
 }
 
 /// `204g` — 소수점은 버린다. 옆의 머리 숫자가 주인공이고 이 줄은 곁들이다.
-String _macroGrams(double v) => '${v.round()}g';
+/// `204g` / 영어 `204 g`(#3120).
+String _macroGrams(double v, String locale) =>
+    '${v.round()}${unitGap(locale)}g';
 
 /// 요일 라벨(월~일). 이번 주 그래프의 축에 적는다.
 List<String> _weekdayLabels(AppLocalizations l) => <String>[
@@ -759,7 +778,12 @@ class _PeriodBars extends StatelessWidget {
     }
     // 막대와 같은 색이어야 툴팁의 첫 줄이 그 막대를 가리킨다.
     spans.add(_swatch(over ? OnCareColors.danger : color));
-    spans.add(TextSpan(text: '$metricLabel   ${format(value)} $unit'));
+    spans.add(
+      TextSpan(
+        text:
+            '$metricLabel   ${format(value)}${unitGap(dayFormat.locale)}$unit',
+      ),
+    );
     // 칼로리 뒤에는 그 칼로리가 어디서 왔는지를 적는다.
     final DietPeriodDay? day = _dayAt(i);
     if (day != null && day.hasMacros) {

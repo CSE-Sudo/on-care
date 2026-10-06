@@ -3,7 +3,7 @@
 HTTP 요청 예외만 잡고 `resp.json()`·`.get()` 을 그대로 쓰면, provider 가 200 에 HTML
 (점검 페이지·WAF 차단 화면)이나 깨진 JSON, 객체가 아닌 JSON 을 줄 때
 JSONDecodeError·AttributeError 가 라우터까지 올라가 500 이 되고 실패 감사 로그도
-빠진다. 세 adapter(google/kakao/naver)가 같은 규칙으로 응답을 읽도록 여기 모은다.
+빠진다. 두 adapter(google/kakao)가 같은 규칙으로 응답을 읽도록 여기 모은다.
 
 실패는 두 갈래로 나눈다.
 
@@ -64,10 +64,28 @@ def optional_str(provider: str, data: dict[str, Any], key: str) -> str:
     return value
 
 
+def optional_flag(provider: str, data: dict[str, Any], key: str) -> bool:
+    """선택 참/거짓 필드(#1551). 없거나 null 이면 거짓, 형식이 틀리면 형식 이상.
+
+    google tokeninfo 는 `email_verified` 를 문자열("true"/"false")로, kakao 는 bool 로
+    준다. 둘 다 받는다. 그 밖의 값(숫자·"yes"·객체 등)은 참으로 넘겨짚지 않는다.
+    """
+    value = data.get(key)
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.strip().lower() in ("true", "false"):
+        return value.strip().lower() == "true"
+    raise SocialProviderResponseError(
+        f"{provider} 응답의 {key} 형식 이상({type(value).__name__})"
+    )
+
+
 def required_id(provider: str, data: dict[str, Any], key: str) -> str:
     """필수 사용자 식별자. 없거나 비면 인증 실패(401), 타입이 틀리면 형식 이상(502).
 
-    kakao 는 id 를 정수로, google·naver 는 문자열로 준다. bool 은 int 의 하위
+    kakao 는 id 를 정수로, google 은 문자열로 준다. bool 은 int 의 하위
     타입이라 따로 막는다(`True` 가 사용자 id "True" 가 되면 안 된다).
     """
     value = data.get(key)

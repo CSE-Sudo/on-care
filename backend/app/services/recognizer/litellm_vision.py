@@ -1,7 +1,7 @@
 """
-LiteLLM(Claude) 경유 식단 인식기.
+LiteLLM 프록시 경유 식단 인식기(`RECOGNIZER=litellm`).
 
-Claude 비전 모델에 음식 사진을 주고 JSON 으로 분석받습니다.
+프록시 뒤의 비전 모델(`LITELLM_VISION_MODEL`)에 음식 사진을 주고 JSON 으로 분석받습니다.
 LiteLLM 이 OpenAI 호환이므로, OpenAI SDK 의 vision 형식(base64 image_url)을 사용합니다.
 결과는 Gemini 인식기와 동일한 DietAnalysis 로 변환 → 프론트 계약 동일.
 
@@ -38,7 +38,7 @@ amount_g 는 **사진에 실제로 담긴 양**을 그램으로 추정하세요(
 
 
 class LiteLLMVisionRecognizer(FoodRecognizer):
-    name = "claude"  # LiteLLM 뒤의 Claude 비전 모델
+    name = "litellm"  # LiteLLM 프록시 뒤의 비전 모델
 
     def __init__(self) -> None:
         s = get_settings()
@@ -86,7 +86,7 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
         return self._parse(raw, latency_ms)
 
     def _parse(self, raw: str, latency_ms: int) -> DietAnalysis:
-        # Claude 가 코드블록(```json ... ```)으로 감쌀 수 있어 앞부분 펜스만 정확히 제거
+        # 모델이 코드블록(```json ... ```)으로 감쌀 수 있어 앞부분 펜스만 정확히 제거
         text = raw.strip()
         # 선행 ```lang 펜스와 후행 ``` 만 제거 (본문의 'json' 은 건드리지 않음)
         text = re.sub(r"^```[a-zA-Z]*\s*", "", text)

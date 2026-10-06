@@ -143,26 +143,173 @@ def test_split_keeps_the_day_totals():
     assert [m.meal_type for m in meals] == ["breakfast", "lunch", "dinner"]
 
 
-def test_routine_sessions_are_seeded_by_type(db_session):
-    from app.db.seed_member_logs import SESSION_ID_PREFIX
+def test_pt_history_days_carry_the_pt_exercises(db_session):
+    """PT 이력이 있는 날의 운동 세션은 **그 수업에서 한 운동**이다(#2508, #3003).
+
+    트레이너 웹은 그날 세션을 출처로 PT 이력에 붙여 줄마다 소모 kcal 을 적는다.
+    예전에는 요일 루틴(`seed-log-ex-`)이 `member` 로 남아 이력과 다른 운동을
+    말했다 — 줄은 비고 하루 합계에만 섞였다.
+    """
+    from app.db import seed_workouts
+    from app.models.models import ExerciseSession, RoutineHistory
+
+    members = ["user-jisu", "user-sungho", *seed_workouts.PT_PROGRAMS]
+    for member in members:
+        history = db_session.scalars(
+            select(RoutineHistory).where(
+                RoutineHistory.member_id == member,
+                RoutineHistory.id.like("seed-%"),
+                RoutineHistory.kind_label == seed_workouts.PT_LABEL,
+            )
+        ).all()
+        assert history, f"{member}: PT 이력 시드가 없다"
+        pt_rows: dict[str, list] = {}
+        for s in db_session.scalars(
+            select(ExerciseSession).where(
+                ExerciseSession.user_id == member,
+                ExerciseSession.source == "trainer_pt",
+                ExerciseSession.id.like("seed-%"),
+            )
+        ).all():
+            pt_rows.setdefault(s.completed_at.astimezone(clock.SEOUL).date().isoformat(), []).append(s)
+        for h in history:
+            done = [
+                e["name"] for e in json.loads(h.exercises_json)
+                if e.get("done") is not False
+            ]
+            rows = pt_rows.get(h.date, [])
+            assert sorted(s.name for s in rows) == sorted(done), (member, h.date)
+            for s in rows:
+                assert s.calories == seed_workouts.kcal(s.type, s.minutes)
+                assert s.intensity
+                if s.type == "strength":
+                    assert s.sets
+
+
+def test_one_personal_day_is_done_at_a_different_intensity(db_session):
+    """이지수의 스쿼트를 한 가장 최근 지난 날 하루만 처방(보통)과 다르게 `high` 다(#3263).
+
+    트레이너 화면은 그날 줄에 `수행 높음` 을 붙인다(#3249). 그 밖의 개인운동 수행은
+    처방 그대로다 — 데모 시드(`_performedOff`)와 같은 날·같은 강도다.
+    """
+    from app.db import seed_workouts
+    from app.db.seed_member_data import _PERSONAL_SESSION_PREFIX
     from app.models.models import ExerciseSession
+
+    member = "user-jisu"
+    order, performed = seed_workouts.PERFORMED_OFF[member]
+    routines = seed_workouts.ROUTINES[member]
+    prefix = f"{_PERSONAL_SESSION_PREFIX}{member}-"
+    sessions = db_session.scalars(
+        select(ExerciseSession).where(ExerciseSession.id.like(f"{prefix}%"))
+    ).all()
+    assert sessions
+    # id 는 `머리 + 회원 - 날짜 - 배정 순서` 다.
+    keyed = {
+        (date.fromisoformat(s.id[len(prefix):len(prefix) + 10]), int(s.id.rsplit("-", 1)[1])): s
+        for s in sessions
+    }
+    off_day = max(day for day, o in keyed if o == order)
+    assert off_day < clock.today()
+    for (day, o), s in keyed.items():
+        expected = performed if (day, o) == (off_day, order) else routines[o].intensity
+        assert s.intensity == expected, (day, o, s.name)
+    assert keyed[(off_day, order)].name == routines[order].name
+
+
+def test_personal_routines_are_the_members_own(db_session):
+    """확장 회원의 개인운동·완료는 회원별 표 그대로다 — 데모와 같은 운동(#3003).
+
+    예전에는 모두에게 같은 세 운동(빠르게 걷기·스쿼트·전신 스트레칭)을 걸었고, 같은
+    날 요일 루틴을 `member` 로 또 심었다.
+    """
+    from app.db import seed_workouts
+    from app.db.seed_member_logs import SESSION_ID_PREFIX
+    from app.models.models import ExerciseSession, TrainerRoutine
+
+    assert not db_session.scalars(
+        select(ExerciseSession.id).where(
+            ExerciseSession.id.like(f"{SESSION_ID_PREFIX}%")
+        )
+    ).all(), "요일 루틴 `member` 세션이 남아 있다"
+
+    member = "user-kangseoyeon"
+    names = [r.name for r in seed_workouts.ROUTINES[member]]
+    routines = db_session.scalars(
+        select(TrainerRoutine).where(
+            TrainerRoutine.member_id == member,
+            TrainerRoutine.id.like("seed-roster-rt-%"),
+        )
+    ).all()
+    assert routines
+    assert {r.name for r in routines} == set(names)
+    by_name = {r.name: r for r in seed_workouts.ROUTINES[member]}
+    for r in routines:
+        assert r.intensity == by_name[r.name].intensity
 
     sessions = db_session.scalars(
         select(ExerciseSession).where(
-            # 확장 회원은 이행률을 개인운동 완료로 남기므로(#2513) 루틴 기록에서
-            # 세션을 만드는 회원은 기록을 가진 지수다.
-            ExerciseSession.user_id == "user-jisu",
-            ExerciseSession.id.like(f"{SESSION_ID_PREFIX}%"),
+            ExerciseSession.user_id == member,
+            ExerciseSession.id.like("seed-roster-ex-%"),
         )
     ).all()
     assert sessions
-    kinds = {s.type for s in sessions}
-    assert "strength" in kinds
+    per_day: dict[str, list] = {}
     for s in sessions:
-        assert s.minutes > 0 and s.calories > 0
-        if s.type == "strength":
-            assert s.sets
-        assert s.completed_at is not None
+        assert s.source == "assigned_routine"
+        assert s.name in by_name
+        assert s.calories == seed_workouts.kcal(s.type, s.minutes)
+        assert s.intensity == by_name[s.name].intensity
+        per_day.setdefault(s.id.rsplit("-", 1)[0], []).append(s.name)
+    # 완료는 배정 순서 앞에서부터다 — 둘째를 했으면 첫째도 했다.
+    for done in per_day.values():
+        assert sorted(done, key=names.index) == names[: len(done)]
+
+
+def test_member_logs_and_new_member_routines(db_session):
+    """회원 추가 운동은 `member` 출처, 신규 회원은 오늘 보낸 개인운동만 있다(#3003)."""
+    from app.db import seed_workouts
+    from app.models.models import ExerciseSession, TrainerRoutine
+
+    for member, logs in seed_workouts.MEMBER_LOGS.items():
+        rows = db_session.scalars(
+            select(ExerciseSession).where(
+                ExerciseSession.user_id == member,
+                ExerciseSession.id.like("seed-roster-mx-%"),
+            )
+        ).all()
+        assert rows, member
+        names = {exercise.name for _, exercise in logs}
+        for s in rows:
+            assert s.source == "member"
+            assert s.name in names
+            assert s.calories == seed_workouts.kcal(s.type, s.minutes)
+
+    today = clock.today().isoformat()
+    dohyun = db_session.scalars(
+        select(TrainerRoutine).where(TrainerRoutine.member_id == "user-dohyun")
+    ).all()
+    assert {r.name for r in dohyun} == {
+        r.name for r in seed_workouts.ROUTINES["user-dohyun"]
+    }
+    assert all(r.active_from == today for r in dohyun)
+    assert not db_session.scalars(
+        select(ExerciseSession.id).where(
+            ExerciseSession.user_id == "user-dohyun",
+            ExerciseSession.id.like("seed-%"),
+        )
+    ).all(), "임도현은 지난 기록이 없어야 한다"
+
+
+def test_done_count_matches_the_demo_rounding():
+    """완료 수·이행률 반올림이 데모(Dart `round`)와 같다 — .5 는 위로(#3003)."""
+    from app.db import seed_workouts
+
+    assert seed_workouts.half_up(22.5) == 23
+    assert seed_workouts.day_rate([25], 0, 0.9) == 23
+    assert seed_workouts.done_count(50, 3) == 2
+    assert seed_workouts.done_count(33, 3) == 1
+    assert seed_workouts.done_count(67, 3) == 2
 
 
 # ---- #2731 트레이너 기록 ------------------------------------------------------------
@@ -193,6 +340,13 @@ def test_trainer_notes_are_seeded(db_session):
         select(TrainerClientMemo).where(TrainerClientMemo.id.like("seed-memo-note-%"))
     ).all()
     assert {m.source for m in memos} >= {"trainer", "exercise_memo"}
+    # 운동 탭 출처 줄마다 메모가 하나씩은 붙는다 — 개인운동·회원 추가·PT(#3003).
+    assert {m.ref_kind for m in memos} >= {"personal", "member_log", "pt_session"}
+    from app.models.models import RoutineHistory
+
+    for m in memos:
+        if m.ref_kind == "pt_session":
+            assert db_session.get(RoutineHistory, m.ref_id) is not None, m.ref_id
 
     drafts = db_session.scalars(
         select(TrainerProgramDraft).where(

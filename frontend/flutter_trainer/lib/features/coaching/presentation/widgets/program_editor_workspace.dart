@@ -166,6 +166,11 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
 
   int _minutes(TimeOfDay value) => value.hour * 60 + value.minute;
 
+  static String _hhmm(BuildContext context, TimeOfDay value) =>
+      MaterialLocalizations.of(
+        context,
+      ).formatTimeOfDay(value, alwaysUse24HourFormat: true);
+
   /// 고른 등록 날짜가 이미 지났는가 — 화면을 연 채 자정을 넘긴 경우다(#1582).
   /// 누르는 순간의 재검증은 호출부가 한 번 더 한다.
   bool get _registerDateIsPast => widget.registerDate.isBefore(_todayDate());
@@ -178,12 +183,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     final saved = widget.initialDraft;
     if (saved != null) {
       _draft = saved;
-      _nextId =
-          saved.sessions.fold<int>(
-            0,
-            (count, session) => count + session.exercises.length,
-          ) +
-          2;
+      // 운동 수가 아니라 이미 쓴 번호 다음부터다(#3247).
+      _nextId = saved.nextFreeId;
     } else {
       // AI 루틴을 생성하기 전에는 임의의 추천 내용으로 채우지 않는다 — 프로그램
       // 정보 박스는 빈 상태로 시작하고, 이후 "템플릿에 반영"(AI 루틴 생성
@@ -641,9 +642,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                 compact: true,
                 key: const ValueKey<String>('program-register-time'),
                 icon: AppIcons.clock,
+                // 24시간제 — 예약 슬롯 창(`10:00 – 11:00`)과 같은 표기(#3120).
                 value:
-                    '${widget.registerStartTime.format(context)} – '
-                    '${widget.registerEndTime.format(context)}',
+                    '${_hhmm(context, widget.registerStartTime)} – '
+                    '${_hhmm(context, widget.registerEndTime)}',
                 onTap: () => unawaited(_pickRegisterTimeRange(context)),
               ),
               Tooltip(
@@ -731,6 +733,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           : widget.registerDate,
       firstDate: today,
       lastDate: today.add(const Duration(days: 365)),
+      // 오늘 테두리는 기기 시각이 아니라 서울의 오늘이다(#3250).
+      currentDate: today,
     );
     if (picked == null) return;
     widget.onRegisterDateChanged(
@@ -1700,6 +1704,21 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                       widget.onChanged(exercise.copyWith(type: value)),
                 ),
                 const SizedBox(height: OnCareSpacing.s8),
+                // 한 세트를 회로 잴지 초로 잴지 — 위저드와 같은 칩이다(#3247).
+                // 없던 동안에는 버티는 운동도 횟수 칸만 보여, 화면의 `10회`
+                // 를 고쳐도 실제로는 고칠 수 없는 초가 나갔다.
+                if (exercise.isStrength) ...<Widget>[
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: RoutineMeasureToggle(
+                      keyPrefix: '${exercise.id}-measure',
+                      isHold: exercise.isHold,
+                      onChanged: (bool hold) =>
+                          widget.onChanged(exercise.copyWith(isHold: hold)),
+                    ),
+                  ),
+                  const SizedBox(height: OnCareSpacing.s8),
+                ],
                 if (exercise.isStrength)
                   Row(
                     children: <Widget>[
@@ -1714,13 +1733,24 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       Expanded(
-                        child: RoutineRepsField(
-                          keyPrefix: '${exercise.id}-reps',
-                          reps: exercise.reps,
-                          compact: true,
-                          onChanged: (value) =>
-                              widget.onChanged(exercise.copyWith(reps: value)),
-                        ),
+                        // 버티는 운동은 `횟수` 자리를 `버티는 시간` 이 대신한다.
+                        child: exercise.isHold
+                            ? RoutineHoldSecondsField(
+                                keyPrefix: '${exercise.id}-hold',
+                                holdSeconds: exercise.holdSeconds,
+                                compact: true,
+                                onChanged: (value) => widget.onChanged(
+                                  exercise.copyWith(holdSeconds: value),
+                                ),
+                              )
+                            : RoutineRepsField(
+                                keyPrefix: '${exercise.id}-reps',
+                                reps: exercise.reps,
+                                compact: true,
+                                onChanged: (value) => widget.onChanged(
+                                  exercise.copyWith(reps: value),
+                                ),
+                              ),
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       Expanded(
@@ -1822,8 +1852,9 @@ class _ExerciseSummary extends StatelessWidget {
   }
 }
 
-/// 운동 한 줄의 지표 요약 — 근력은 세트·횟수·중량, 그 외 유형은 시간. 유형마다
-/// 재는 단위가 다르다는 규칙은 회원 앱·서버와도 같다 (#1276).
+/// 운동 한 줄의 지표 요약 — 근력은 세트·횟수(버티는 운동이면 초)·중량, 그 외
+/// 유형은 시간. 유형마다 재는 단위가 다르다는 규칙은 회원 앱·서버와도 같다
+/// (#1276). 버티는 운동에 횟수를 적으면 나가는 값(초)과 화면이 달라진다(#3247).
 ///
 /// 단위는 ARB 가 로케일마다 정한다 (#2304). 예전에는 `korean ?` 분기로 두 언어만
 /// 코드에 박혀 있었고, 영어는 `1 sets` 처럼 단수를 가리지 못했다.
@@ -1834,7 +1865,9 @@ List<String> programExerciseMetrics(
   final metrics = <String>[];
   if (exercise.isStrength) {
     metrics.add(l.progSetsValue(exercise.sets));
-    if (exercise.reps > 0) {
+    if (exercise.isHold) {
+      metrics.add(l.progHoldValue(exercise.holdSeconds));
+    } else if (exercise.reps > 0) {
       metrics.add(l.progRepsValue(exercise.reps));
     }
     // 맨몸 운동(0kg)은 중량을 적지 않는다(#2533).

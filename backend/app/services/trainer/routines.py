@@ -180,7 +180,7 @@ def _owned_routine(
         )
     )
     if routine is None or (not include_ended and _has_ended(routine)):
-        raise RoutineNotFound("루틴을 찾을 수 없습니다.")
+        raise RoutineNotFound("개인운동을 찾을 수 없어요.")
     return routine
 
 
@@ -190,7 +190,7 @@ def _routine_day(day: date | None) -> date:
     if day is None:
         return today
     if day > today:
-        raise RoutineDayInFuture("아직 오지 않은 날입니다.")
+        raise RoutineDayInFuture("아직 오지 않은 날이에요.")
     return day
 
 
@@ -294,7 +294,7 @@ def delete_own_routine(db: Session, member_id: str, routine_id: str) -> None:
     """
     if get_member_trainer_id(db, member_id) is not None:
         raise RoutineNotCancellable(
-            "담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없습니다."
+            "담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없어요."
         )
     routine = db.scalar(
         select(TrainerRoutine).where(
@@ -303,7 +303,7 @@ def delete_own_routine(db: Session, member_id: str, routine_id: str) -> None:
         )
     )
     if routine is None or _has_ended(routine):
-        raise RoutineNotFound("루틴을 찾을 수 없습니다.")
+        raise RoutineNotFound("개인운동을 찾을 수 없어요.")
     # 트레이너 철회와 같다 — 지난 날짜에 걸려 있던 목록은 남긴다(#2161).
     _end_routine(db, routine)
     db.commit()
@@ -352,9 +352,9 @@ def complete_assigned_routine(
     # 승인되지 않은 후보는 회원에게 보이지도 않는다. id 를 알아내 직접 호출해도
     # 완료로 넘어가지 않게 여기서 막는다 — 조회만 거르면 경로가 하나 남는다(#790).
     if routine.status != ROUTINE_APPROVED:
-        raise RoutineNotFound("루틴을 찾을 수 없습니다.")
+        raise RoutineNotFound("개인운동을 찾을 수 없어요.")
     if past and not _active_on(routine, target):
-        raise RoutineNotFound("루틴을 찾을 수 없습니다.")
+        raise RoutineNotFound("개인운동을 찾을 수 없어요.")
     completed_at = exercise_activity.noon(target) if past else clock.now()
     existing = db.scalar(
         select(ExerciseSession).where(

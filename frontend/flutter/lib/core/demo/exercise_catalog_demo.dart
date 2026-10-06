@@ -39,7 +39,7 @@ class DemoExerciseActivity {
 const List<DemoExerciseActivity> kDemoExerciseCatalog = <DemoExerciseActivity>[
   DemoExerciseActivity('걷기', 'cardio', 3.5, <String>['산책', '워킹']),
   DemoExerciseActivity('빠르게 걷기', 'cardio', 5.0, <String>['파워워킹', '속보']),
-  DemoExerciseActivity('달리기', 'cardio', 8.3, <String>['러닝', '구보']),
+  DemoExerciseActivity('달리기', 'cardio', 8.3, <String>['러닝', '런닝', '구보']),
   DemoExerciseActivity('조깅', 'cardio', 7.0, <String>[]),
   DemoExerciseActivity('러닝머신', 'cardio', 8.3, <String>['런닝머신', '트레드밀']),
   DemoExerciseActivity('계단 오르기', 'cardio', 8.8, <String>['계단운동', '천국의 계단']),
@@ -52,7 +52,7 @@ const List<DemoExerciseActivity> kDemoExerciseCatalog = <DemoExerciseActivity>[
   DemoExerciseActivity('줄넘기', 'cardio', 11.8, <String>['점프로프', '2단뛰기']),
   DemoExerciseActivity('수영', 'cardio', 5.8, <String>['자유형', '접영', '배영', '평영']),
   DemoExerciseActivity('버피', 'cardio', 8.0, <String>['버피테스트']),
-  DemoExerciseActivity('인터벌 러닝', 'cardio', 9.8, <String>['인터벌']),
+  DemoExerciseActivity('인터벌 러닝', 'cardio', 9.8, <String>['인터벌 런닝', '인터벌']),
   DemoExerciseActivity('웨이트 트레이닝', 'strength', 5.0, <String>[
     '웨이트',
     '헬스',

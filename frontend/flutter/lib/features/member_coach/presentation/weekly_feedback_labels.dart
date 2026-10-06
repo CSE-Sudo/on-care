@@ -27,7 +27,7 @@ String weekIntensityLabel(AppLocalizations l, WeekIntensity value) =>
       WeekIntensity.tooHard => l.weekIntensityTooHard,
     };
 
-/// `9월 15일~21일` — 그 주를 가리키는 말. 안내 카드와 같은 문장을 쓴다.
+/// `9월 15일 ~ 9월 21일` — 그 주를 가리키는 말. 안내 카드와 같은 문장을 쓴다.
 String weekRangeLabel(AppLocalizations l, DateTime weekStart) {
   final DateTime end = weekStart.add(const Duration(days: 6));
   return l.coachChatReportWeek(

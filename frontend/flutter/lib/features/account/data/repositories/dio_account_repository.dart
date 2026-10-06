@@ -7,8 +7,10 @@ import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
+import 'package:oncare/features/auth/data/repositories/dio_signup_email_code_repository.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
     show ReissuedTokens;
+import 'package:oncare/features/auth/domain/signup_email_code.dart';
 
 class DioAccountRepository implements AccountRepository {
   DioAccountRepository(this._dio);
@@ -112,6 +114,7 @@ class DioAccountRepository implements AccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
     AccountReauth? reauth,
+    String? emailCode,
     void Function(ReissuedTokens tokens)? onTokensReissued,
   }) async {
     final Response<Map<String, Object?>> res;
@@ -128,8 +131,9 @@ class DioAccountRepository implements AccountRepository {
           // 빼면 지움이 '손대지 않음'이 되어 비운 값이 되살아난다(#1941).
           if (heightCm != null) 'height_cm': heightCm.value,
           if (weightKg != null) 'weight_kg': weightKg.value,
-          // 이메일을 바꿀 때의 본인 확인(#3039).
+          // 이메일을 바꿀 때의 본인 확인(#3039)과 새 주소 인증 코드(#3230).
           ...?reauth?.toJson(),
+          'email_code': ?emailCode,
         },
       );
     } on DioException catch (e) {
@@ -153,6 +157,39 @@ class DioAccountRepository implements AccountRepository {
     final ReissuedTokens? tokens = ReissuedTokens.fromJson(res.data);
     if (tokens != null) onTokensReissued?.call(tokens);
     return UserProfile.fromJson(res.data!);
+  }
+
+  @override
+  Future<SignupEmailCodeSent> requestEmailChangeCode({
+    required String email,
+  }) async {
+    final Response<Map<String, Object?>> res;
+    try {
+      res = await _dio.post<Map<String, Object?>>(
+        '/users/me/email/code',
+        data: <String, String>{'email': email},
+      );
+    } on DioException catch (e) {
+      // 422 는 형식이 틀렸거나(`detail` 목록) 지금 이메일과 같은 경우
+      // (`email_unchanged`)다. 화면은 같은 주소면 요청하지 않으므로 둘 다
+      // 이메일 칸을 고칠 일이다.
+      throw SignupEmailCodeError(switch (e.response?.statusCode) {
+        422 => SignupEmailCodeFailure.invalidEmail,
+        429 => SignupEmailCodeFailure.tooMany,
+        503 => SignupEmailCodeFailure.unavailable,
+        _ => SignupEmailCodeFailure.temporary,
+      });
+    }
+    final Object? minutes = res.data?['expires_in_minutes'];
+    final Object? seconds = res.data?['resend_after_seconds'];
+    return SignupEmailCodeSent(
+      expiresInMinutes: minutes is num
+          ? minutes.toInt()
+          : DioSignupEmailCodeRepository.defaultExpiresInMinutes,
+      resendAfterSeconds: seconds is num
+          ? seconds.toInt()
+          : DioSignupEmailCodeRepository.defaultResendAfterSeconds,
+    );
   }
 
   @override

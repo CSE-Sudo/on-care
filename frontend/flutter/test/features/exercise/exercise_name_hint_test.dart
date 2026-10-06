@@ -88,7 +88,7 @@ class _StubRepository implements ExerciseRepository {
   }) async => throw UnimplementedError();
 }
 
-Future<void> _openSheet(WidgetTester tester, {ExerciseSession? session}) async {
+Future<void> _openSheet(WidgetTester tester) async {
   tester.view.physicalSize = const Size(500, 1600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -106,7 +106,7 @@ Future<void> _openSheet(WidgetTester tester, {ExerciseSession? session}) async {
         home: Scaffold(
           body: Builder(
             builder: (BuildContext context) => TextButton(
-              onPressed: () => showExerciseAddSheet(context, session: session),
+              onPressed: () => showExerciseAddSheet(context),
               child: const Text('열기'),
             ),
           ),
@@ -135,7 +135,7 @@ Future<void> _pickType(WidgetTester tester, String label) async {
 }
 
 void main() {
-  testWidgets('운동 종류마다 그 종류의 예시를 보여 준다', (WidgetTester tester) async {
+  testWidgets('운동 유형마다 그 유형의 예시를 보여 준다', (WidgetTester tester) async {
     await _openSheet(tester);
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byKey(const Key('exerciseAddContent'))),
@@ -166,30 +166,6 @@ void main() {
 
     expect(find.text('아침 러닝'), findsOneWidget);
     // 예시만 바뀐다 — 적어 둔 이름을 덮어쓰지 않는다.
-    expect(_hint(tester), l.exExerciseNameHintStrength);
-  });
-
-  testWidgets('수정 모드는 저장된 이름을 그대로 연다', (WidgetTester tester) async {
-    await _openSheet(
-      tester,
-      session: const ExerciseSession(
-        id: 'e-1',
-        dayLabel: '월',
-        type: ExerciseType.strength,
-        minutes: 36,
-        calories: 210,
-        name: '스쿼트',
-        sets: 5,
-      ),
-    );
-    final AppLocalizations l = AppLocalizations.of(
-      tester.element(find.byKey(const Key('exerciseAddContent'))),
-    );
-
-    expect(find.text('스쿼트'), findsOneWidget);
-    // 비워야 그 종류의 예시가 보인다.
-    await tester.enterText(find.byKey(const Key('exerciseNameField')), '');
-    await tester.pumpAndSettle();
     expect(_hint(tester), l.exExerciseNameHintStrength);
   });
 

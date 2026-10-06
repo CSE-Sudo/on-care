@@ -227,12 +227,8 @@ const ExerciseWeek _emptyWeek = ExerciseWeek(
   aiCoachMessage: '',
 );
 
-/// 시트를 연 화면. [session] 을 주면 수정 모드로 열린다.
-Future<void> _openSheet(
-  WidgetTester tester,
-  _CapturingRepository repo, {
-  ExerciseSession? session,
-}) async {
+/// 시트를 연 화면.
+Future<void> _openSheet(WidgetTester tester, _CapturingRepository repo) async {
   tester.view.physicalSize = const Size(500, 1600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -248,7 +244,7 @@ Future<void> _openSheet(
         home: Scaffold(
           body: Builder(
             builder: (BuildContext context) => TextButton(
-              onPressed: () => showExerciseAddSheet(context, session: session),
+              onPressed: () => showExerciseAddSheet(context),
               child: const Text('열기'),
             ),
           ),
@@ -429,33 +425,6 @@ void main() {
     expect(repo.holdSeconds, isNull);
   });
 
-  testWidgets('초로 적힌 기록을 열면 초 칸으로 열린다 (#1969)', (WidgetTester tester) async {
-    final _CapturingRepository repo = _CapturingRepository();
-    await _openSheet(
-      tester,
-      repo,
-      session: ExerciseSession(
-        id: 'ex-hold',
-        dayLabel: '월',
-        type: ExerciseType.strength,
-        minutes: 9,
-        calories: 54,
-        name: '플랭크',
-        sets: 3,
-        holdSeconds: 45,
-        weight: 0,
-        date: DateTime(2026, 3, 2),
-      ),
-    );
-
-    expect(find.byKey(const Key('exerciseHoldWheel')), findsOneWidget);
-    expect(
-      _wheelValue(tester, const Key('exerciseHoldWheel')),
-      45,
-      reason: '적어 둔 초가 그대로 열려야 한다',
-    );
-  });
-
   testWidgets('근력이 아닌 기록에는 세트·횟수·중량이 실리지 않는다', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);
@@ -552,28 +521,6 @@ void main() {
     expect(repo.name, isNull, reason: '저장 요청 자체가 나가지 않아야 한다');
   });
 
-  testWidgets('수정 시트는 저장된 초로 휠이 맞춰져 열린다 (#2071)', (WidgetTester tester) async {
-    final _CapturingRepository repo = _CapturingRepository();
-    await _openSheet(
-      tester,
-      repo,
-      session: ExerciseSession(
-        id: 'ex-secs',
-        dayLabel: '월',
-        type: ExerciseType.cardio,
-        minutes: 2,
-        durationSeconds: 95,
-        calories: 18,
-        name: '계단 오르기',
-        date: DateTime(2026, 3, 2),
-      ),
-    );
-
-    // 휠을 건드리지 않고 그대로 저장하면 적어 둔 초가 그대로 나간다.
-    await _save(tester);
-    expect(repo.durationSeconds, 95);
-  });
-
   testWidgets('트레이너가 배정할 수 있는 세트·중량을 회원도 직접 적을 수 있다', (
     WidgetTester tester,
   ) async {
@@ -611,114 +558,5 @@ void main() {
     await _save(tester);
 
     expect(repo.weight, 21.5);
-  });
-
-  testWidgets('0.5kg 칸에 맞지 않는 옛 중량은 가장 가까운 칸으로 열린다 (#2545)', (
-    WidgetTester tester,
-  ) async {
-    // 예전 스테퍼는 62.3 처럼 소수 한 자리를 받았다. 휠은 그 사이에 설 수
-    // 없으니, 보이는 값과 저장되는 값이 같도록 여는 순간 맞춘다.
-    final _CapturingRepository repo = _CapturingRepository();
-    await _openSheet(
-      tester,
-      repo,
-      session: ExerciseSession(
-        id: 'ex-odd',
-        dayLabel: '월',
-        type: ExerciseType.strength,
-        minutes: 9,
-        calories: 54,
-        sets: 3,
-        reps: 5,
-        weight: 62.3,
-        name: '데드리프트',
-        date: DateTime(2026, 8, 17),
-      ),
-    );
-
-    expect(_weightValue(tester), 62.5);
-    await _save(tester);
-    expect(repo.weight, 62.5);
-  });
-
-  testWidgets('수정 시트는 저장된 값으로 열린다', (WidgetTester tester) async {
-    final _CapturingRepository repo = _CapturingRepository();
-    await _openSheet(
-      tester,
-      repo,
-      session: ExerciseSession(
-        id: 'ex-1',
-        dayLabel: '월',
-        type: ExerciseType.strength,
-        minutes: 45,
-        calories: 270,
-        sets: 15,
-        reps: 8,
-        weight: 40.5,
-        name: '벤치프레스',
-        date: DateTime(2026, 8, 17),
-      ),
-    );
-
-    expect(find.text('세트 · 횟수 · 중량'), findsOneWidget);
-    expect(_wheelValue(tester, const Key('exerciseSetsWheel')), 15);
-    expect(_wheelValue(tester, const Key('exerciseRepsWheel')), 8);
-    expect(_weightValue(tester), 40.5);
-
-    await _save(tester);
-
-    expect(repo.updatedId, 'ex-1');
-    expect(repo.sets, 15);
-    expect(repo.reps, 8);
-    expect(repo.weight, 40.5);
-    expect(repo.name, '벤치프레스');
-    // 지난 기록을 고쳐도 그 날짜에 그대로 남는다 — 오늘로 끌어오지 않는다.
-    expect(repo.date, DateTime(2026, 8, 17));
-  });
-
-  testWidgets('세트를 모르는 옛 근력 기록은 분에서 환산해 연다', (WidgetTester tester) async {
-    final _CapturingRepository repo = _CapturingRepository();
-    await _openSheet(
-      tester,
-      repo,
-      session: const ExerciseSession(
-        id: 'ex-old',
-        dayLabel: '월',
-        type: ExerciseType.strength,
-        minutes: 30,
-        calories: 180,
-      ),
-    );
-
-    // 30분 ÷ 3분
-    expect(_wheelValue(tester, const Key('exerciseSetsWheel')), 10);
-  });
-
-  testWidgets('근력이던 기록을 유산소로 고치면 세트·횟수·중량이 지워진다', (WidgetTester tester) async {
-    final _CapturingRepository repo = _CapturingRepository();
-    await _openSheet(
-      tester,
-      repo,
-      session: const ExerciseSession(
-        id: 'ex-2',
-        dayLabel: '월',
-        type: ExerciseType.strength,
-        minutes: 36,
-        calories: 216,
-        sets: 12,
-        reps: 10,
-        weight: 30,
-        name: '스쿼트',
-      ),
-    );
-
-    await tester.tap(find.text('유산소'));
-    await tester.pumpAndSettle();
-    await _save(tester);
-
-    expect(repo.type, ExerciseType.cardio);
-    expect(repo.sets, isNull);
-    expect(repo.reps, isNull);
-    expect(repo.weight, isNull);
   });
 }

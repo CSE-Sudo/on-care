@@ -10,12 +10,35 @@
 """
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from app.core import clock
 
+#: 계약 날짜 표기 `YYYY-MM-DD`. ASCII 숫자만 — `\d` 는 다른 문자권 숫자도 받는다.
+_YMD = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+#: 계약 시각 표기 `HH:MM`(24시간, 두 자리).
+_HHMM = re.compile(r"([01][0-9]|2[0-3]):[0-5][0-9]")
+
+
+def parse_ymd(value: str) -> date:
+    """`YYYY-MM-DD` 한 가지 표기만 날짜로 읽는다. 아니면 `ValueError`. (#3243)
+
+    `date.fromisoformat`(3.11+)은 `20261005`·`2026-W40-1` 같은 다른 ISO 표기도 받는다.
+    그 원문이 그대로 저장되면 날짜 칸의 문자열 범위 조회·정렬·비교가 어긋난다 — 같은
+    날짜가 두 문자열로 남는다. 형태를 먼저 맞춘 뒤 달력에 있는 날인지 본다.
+    """
+    if not isinstance(value, str) or not _YMD.fullmatch(value):
+        raise ValueError("날짜는 YYYY-MM-DD 형식이어야 합니다.")
+    return date.fromisoformat(value)
+
+
+def is_hhmm(value: str) -> bool:
+    """`HH:MM`(두 자리 24시간) 표기인가. `9:5`·`24:00` 은 아니다. (#3243)"""
+    return isinstance(value, str) and _HHMM.fullmatch(value) is not None
+
 #: 앞날 거절 문구(422). 식단·운동이 같은 말을 한다.
-FUTURE_DATE_MESSAGE = "date 는 오늘보다 뒤일 수 없습니다."
+FUTURE_DATE_MESSAGE = "date 는 오늘보다 뒤일 수 없어요."
 
 
 def not_after_today(value: date) -> date:

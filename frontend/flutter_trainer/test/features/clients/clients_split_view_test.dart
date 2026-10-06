@@ -306,7 +306,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final banner = find.textContaining('주의 회원');
+    final banner = find.textContaining('관리 필요');
     expect(banner, findsWidgets);
 
     final first = tester.widgetList<ClientCard>(find.byType(ClientCard)).first;
@@ -359,7 +359,7 @@ void main() {
       expect(locationOf(tester), AppRoutes.clientsFiltered('attention'));
       expect(find.byType(ClientDetailView), findsNothing);
       // 필터 배너가 그대로 남는다 — 다시 걸 필요가 없다.
-      expect(find.textContaining('주의 회원'), findsWidgets);
+      expect(find.textContaining('관리 필요'), findsWidgets);
     });
 
     testWidgets('좁은 화면(상세만 보이는 배치)에서도 필터를 지킨다', (tester) async {
@@ -540,7 +540,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('통증·불편'), findsWidgets);
-    expect(find.text('칼로리 24% 과다'), findsWidgets);
+    expect(find.text('칼로리 24% 초과'), findsWidgets);
     // 헤더 버튼은 아이콘만이고, 신호 배지는 이름 아래 한 줄에 넘치는 만큼
     // `+N` 으로 묶인다(#2330) — 가장 좁은 칸에서도 넘치지 않는다.
     expect(find.byTooltip('리포트'), findsOneWidget);

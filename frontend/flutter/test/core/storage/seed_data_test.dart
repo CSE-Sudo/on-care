@@ -124,7 +124,7 @@ void main() {
         reason: 'exercise sessions for the current week must be seeded',
       );
 
-      expect(await db.readValue('seeded_v23'), today);
+      expect(await db.readValue('seeded_v24'), today);
     });
 
     test('과거 식단은 날짜마다 값이 달라 추이가 직선이 되지 않는다', () async {
@@ -237,52 +237,52 @@ void main() {
             'seed-diet-breakfast': (
               '08:20',
               '단백질과 식이섬유의 깔끔한 조합으로, 소금 간과 기름만 조절하면 혈당과 혈압 모두 잡는 우수한 식단입니다.',
-              'assets/images/breakfast-scrambled-egg-strawberry.jpg',
+              'assets/demo/images/breakfast-scrambled-egg-strawberry.jpg',
             ),
             'seed-diet-lunch': (
               '12:40',
               '정제 면과 높은 나트륨으로 혈압·혈당 부담이 매우 크니, 국물은 남기고 야채 위주로 드시는 것이 좋습니다.',
-              'assets/images/lunch-jjamppong.jpg',
+              'assets/demo/images/lunch-jjamppong.jpg',
             ),
             'seed-diet-snack': (
               '15:30',
               '당류와 칼로리가 낮고 견과류의 건강한 지방이 채워져 완벽한 간식입니다.',
-              'assets/images/snack-coffee-nuts.jpg',
+              'assets/demo/images/snack-coffee-nuts.jpg',
             ),
             'seed-diet-yesterday-breakfast': (
               '08:10',
               '오트밀로 식이섬유를 챙겼어요. 바나나가 들어가 당류는 다소 높은 편이에요.',
-              'assets/images/diet-oatmeal-banana.jpeg',
+              'assets/demo/images/diet-oatmeal-banana.jpeg',
             ),
             'seed-diet-yesterday-lunch': (
               '12:30',
               '야채가 풍부한 비빔밥이에요. 고추장을 줄이면 나트륨을 더 조절할 수 있어요.',
-              'assets/images/diet-vegetable-bibimbap.jpg',
+              'assets/demo/images/diet-vegetable-bibimbap.jpg',
             ),
             'seed-diet-yesterday-dinner': (
               '19:30',
               '고기와 술이 함께여서 칼로리가 크게 올라갔어요. 다음 날은 가볍게 시작해 보세요.',
-              'assets/images/diet-samgyeopsal-rice-soju.jpg',
+              'assets/demo/images/diet-samgyeopsal-rice-soju.jpg',
             ),
             'seed-diet-yesterday-snack': (
               '21:10',
               '디저트로 당류가 하루 목표를 넘었어요.',
-              'assets/images/snack-choco-cake-latte.jpg',
+              'assets/demo/images/snack-choco-cake-latte.jpg',
             ),
             'seed-diet-two-days-ago-breakfast': (
               '08:35',
               '그릭 요거트의 단백질과 견과류의 불포화지방을 고르게 섭취했어요.',
-              'assets/images/diet-greek-yogurt-nuts.jpeg',
+              'assets/demo/images/diet-greek-yogurt-nuts.jpeg',
             ),
             'seed-diet-two-days-ago-lunch': (
               '12:20',
               '야채가 풍부한 비빔밥이에요. 고추장을 줄이면 나트륨을 더 조절할 수 있어요.',
-              'assets/images/diet-vegetable-bibimbap.jpg',
+              'assets/demo/images/diet-vegetable-bibimbap.jpg',
             ),
             'seed-diet-two-days-ago-dinner': (
               '18:50',
               '연어의 지방과 현미밥의 복합 탄수화물 조합이 좋아요.',
-              'assets/images/diet-salmon-brown-rice.jpeg',
+              'assets/demo/images/diet-salmon-brown-rice.jpeg',
             ),
           };
 
@@ -448,7 +448,7 @@ void main() {
     test('stale flag (different date) re-seeds with today', () async {
       // Pretend the seed last ran a week ago.
       await seedIfEmpty(db, fixture: _fixture);
-      await db.putValue('seeded_v23', '2020-01-01');
+      await db.putValue('seeded_v24', '2020-01-01');
 
       await seedIfEmpty(db, fixture: _fixture);
 
@@ -456,7 +456,7 @@ void main() {
       final diet = await db.select(db.dietEntries).get();
       expect(diet, isNotEmpty);
       expect(diet.where((r) => r.date == today).length, 3);
-      expect(await db.readValue('seeded_v23'), today);
+      expect(await db.readValue('seeded_v24'), today);
     });
 
     test('legacy seeded_v2=true flag is migrated and cleared', () async {
@@ -483,7 +483,7 @@ void main() {
 
       // Legacy flag cleared, current flag set to today.
       expect(await db.readValue('seeded_v2'), isNull);
-      expect(await db.readValue('seeded_v23'), _todayString());
+      expect(await db.readValue('seeded_v24'), _todayString());
 
       // Stale seed-prefixed row was wiped and replaced with today's
       // seed batch.
@@ -513,7 +513,7 @@ void main() {
 
       await seedIfEmpty(db, fixture: _fixture);
       // Force a re-seed by ageing the flag.
-      await db.putValue('seeded_v23', '2020-01-01');
+      await db.putValue('seeded_v24', '2020-01-01');
       await seedIfEmpty(db, fixture: _fixture);
 
       final diet = await db.select(db.dietEntries).get();

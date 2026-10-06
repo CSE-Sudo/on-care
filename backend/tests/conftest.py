@@ -114,9 +114,23 @@ def _reset_database(url: str) -> None:
         engine.dispose()
 
 
+#: DB 탐침의 연결 상한(초). 앱 엔진의 기본 `DB_CONNECT_TIMEOUT_SECONDS` 와 같다.
+#:
+#: 상한이 없으면 Windows 에서 DB 가 꺼진 로컬 실행이 끝나지 않는다. psycopg 는
+#: 비동기 연결의 완료를 쓰기 가능 여부로만 기다리는데, Winsock 은 거부된 연결을
+#: 쓰기 가능으로 알리지 않아 libpq 기본값(무한)으로 멈춘다. 상한이 있으면 주소마다
+#: (`localhost` 는 ::1·127.0.0.1 두 개) 이 시간 뒤 실패해 skip 으로 넘어간다.
+#: DB 가 떠 있는 CI 는 곧바로 붙으므로 영향이 없다.
+_DB_PROBE_CONNECT_TIMEOUT_SECONDS = 5
+
+
 def _db_available() -> bool:
     try:
-        engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+        engine = create_engine(
+            DATABASE_URL,
+            pool_pre_ping=True,
+            connect_args={"connect_timeout": _DB_PROBE_CONNECT_TIMEOUT_SECONDS},
+        )
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         engine.dispose()
@@ -213,8 +227,9 @@ def _force_stub_recognizer(monkeypatch):
 
     스텁과 같은 식단을 돌려주되 이름은 `test-vision` 이다. 개발용 스텁(`stub`)
     결과는 포인트·식판 조건에 세지 않으므로(#2812), 이름까지 스텁이면 "실제 인식기로
-    저장한 끼니" 를 전제로 한 적립·식판 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
-    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다."""
+    저장한 끼니" 를 전제로 한 적립 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
+    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다. 식판 조건은 실제
+    인식기 이름만 세는 허용 목록(#3240)이라, 식판 테스트는 `gemini` 끼니를 직접 넣는다."""
     try:
         from app.core.config import get_settings
         from app.services.recognizer import factory

@@ -398,7 +398,7 @@ def test_success_rewards_200_once_after_the_week_ends(client, db_session, at):
     # 결과는 포인트 사용처로 보낸다 — 다음 주 참가와 돌려받은 포인트가 그 화면에
     # 있다. 내 혜택은 교환해 가진 것(쿠폰·보호권)만 둔다(#1789).
     assert notices[0].category == "points_shop"
-    assert "9월 14일~9월 20일" in notices[0].body
+    assert "9월 14일 ~ 9월 20일" in notices[0].body
 
     # 새 주의 상태는 참가 전이다.
     state = _weekly(client, h)

@@ -186,6 +186,25 @@ def test_trainer_without_consent_can_still_withdraw(client, db_session, without_
     assert db_session.get(User, user_id) is None
 
 
+def test_trainer_without_consent_cannot_download_chat_attachments(
+    client, without_default_consent
+):
+    """회원·트레이너 공용 첨부 경로도 트레이너 필수 동의를 본다(#3239).
+
+    파일을 찾기 전에 막으므로 없는 file id 에도 404 가 아니라 403 이다 — 동의가
+    남은 계정에 첨부가 있는지 드러나지 않는다. 동의하면 평소처럼 404 다.
+    """
+    _, _, login = _register_trainer(client)
+    token = login["access_token"]
+    path = f"/v1/chat/attachments/missing-{uuid4().hex}"
+
+    _assert_consent_required(client.get(path, headers=_auth(token)))
+
+    _consent(client, token)
+    r = client.get(path, headers=_auth(token))
+    assert r.status_code == 404, r.text
+
+
 def test_trainer_routes_open_after_consent(client, without_default_consent):
     _, _, login = _register_trainer(client)
     token = login["access_token"]
@@ -253,7 +272,7 @@ def test_member_token_on_trainer_route_is_still_role_forbidden(client):
     got = client.get("/v1/trainer/clients", headers=_auth(token))
 
     assert got.status_code == 403, got.text
-    assert got.json()["detail"] == "트레이너 권한이 필요합니다."
+    assert got.json()["detail"] == "트레이너 권한이 필요해요."
 
 
 def test_seeded_demo_trainer_is_not_blocked(client):

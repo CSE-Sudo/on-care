@@ -6,7 +6,7 @@
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
   POST /diet/analyze             -> 사진 정리(EXIF 제거) → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
-  POST /diet/analyze?engine=yolo -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
+  POST /diet/analyze?engine=gemini -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
   GET  /diet/photos/{photo_id}   -> 내 끼니 사진 원본 바이트(본인만)
   POST /diet/entries             -> 사진 없이 직접 적은 끼니 저장(포인트 없음)
   PUT/DELETE /diet/entries/{id}  -> 끼니/영양소 수정·삭제(본인 소유만, 삭제는 적립 회수)
@@ -85,19 +85,19 @@ _RATE_LIMITED = {
 #: 일반 실패와 구분해 직접 입력으로 이어 준다.
 _ANALYSIS_UNAVAILABLE = {
     "code": "analysis_unavailable",
-    "message": "사진 분석을 잠시 쓸 수 없어요. 직접 입력으로 기록할 수 있어요.",
+    "message": "사진 분석을 잠시 쓸 수 없어요. 직접 추가로 기록할 수 있어요.",
 }
 
 #: 사진에서 음식을 하나도 찾지 못했을 때의 422 본문(#2848). 끼니·포인트·사진을 남기지
 #: 않고 멱등키도 쓰지 않는다 — 앱은 다른 사진 고르기·직접 입력으로 이어 준다.
 _NO_FOOD_DETECTED = {
     "code": "no_food_detected",
-    "message": "사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 입력해 주세요.",
+    "message": "사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 추가해 주세요.",
 }
 
 #: 형식은 맞지만 픽셀을 읽을 수 없는 사진의 415 본문(#3041). 형식 판정 415 와 같은
 #: 문자열 모양이라 앱은 같은 "지원하지 않는 사진" 안내를 띄운다.
-_UNREADABLE_IMAGE = "이미지를 읽을 수 없습니다. 다른 사진을 골라 주세요."
+_UNREADABLE_IMAGE = "이미지를 읽을 수 없어요. 다른 사진을 골라 주세요."
 
 
 @router.get("/diet/days/today", response_model=DietTodayResponse)
@@ -160,8 +160,8 @@ def diet_advice(
     조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). `오늘` 은 4주 추천 메뉴
     리스트에서 다음 식사를 고르고, `이번 주` 는 규칙이 고른 한 가지에 AI 가 원인
     메뉴나 대안을 붙인다(하루 한 번, #2253). `전체` 는 최근 4주 식습관 하나에 AI 가
-    다음 4주의 행동 목표를 붙인다(주 한 번, #2254). 트레이너웹 경로는 아직 예전 한
-    문장(`diet_service.period_coach_message`)이다.
+    다음 4주의 행동 목표를 붙인다(주 한 번, #2254). 트레이너웹 경로는
+    `diet_trainer_analysis` 의 식단 분석 문장이다(#2379).
     """
     if period == diet_period_advice.PERIOD_TODAY:
         return _advice_response(
@@ -297,12 +297,12 @@ async def diet_analyze(
     ),
     engine: str | None = Query(
         None,
-        description="엔진 강제('gemini'|'yolo'). 비교실험용 — 운영에서는 관리자만 적용된다.",
+        description="엔진 강제('gemini'|'litellm'). 비교실험용 — 운영에서는 관리자만 적용된다.",
     ),
 ) -> DietAnalyzeResponse:
     image_bytes = await image.read()
     if not image_bytes:
-        raise HTTPException(status_code=400, detail="빈 파일입니다.")
+        raise HTTPException(status_code=400, detail="빈 파일이에요.")
     # 형식은 바이트로 판정한다 — 요청 헤더의 Content-Type 은 보내는 쪽이 적어 준 값일
     # 뿐이라, 이미지가 아닌 본문이 그 말만 믿고 외부 모델 호출까지 가면 안 된다(#2827).
     try:
@@ -375,7 +375,7 @@ async def diet_analyze(
             engine=engine or "-", user_id=user_id,
         )
         raise HTTPException(
-            status_code=502, detail="식단 인식에 실패했습니다. 잠시 후 다시 시도해 주세요."
+            status_code=502, detail="식단을 인식하지 못했어요. 잠시 후 다시 시도해 주세요."
         ) from e
 
     # 음식을 하나도 찾지 못한 사진(풍경·사람·빈 그릇)은 끼니가 아니다. 0kcal 끼니를
@@ -514,7 +514,7 @@ def diet_photo(
     """
     photo = diet_photo_service.get_owned_photo(db, photo_id, current_user.id)
     if photo is None:
-        raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="사진을 찾을 수 없어요.")
     return Response(
         content=photo.data,
         media_type=photo.content_type,
@@ -553,7 +553,7 @@ def update_entry(
     """식단 기록의 끼니 분류/시간·영양소 수정(본인 소유만, 아니면 404)."""
     row = diet_service.get_owned_entry(db, current_user.id, entry_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없어요.")
     try:
         return diet_service.apply_entry_update(db, row, payload)
     except diet_service.NutritionInconsistentError as e:
@@ -570,7 +570,7 @@ def delete_entry(
     """식단 기록 삭제. 본인 소유 엔트리만 삭제 가능(아니면 404)."""
     row = diet_service.get_owned_entry(db, current_user.id, entry_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없어요.")
     # 이 끼니로 받은 포인트를 회수한다. 기록 삭제와 같은 트랜잭션이라 기록만
     # 사라지고 포인트가 남는 일이 없다(#1786).
     points_service.revoke(

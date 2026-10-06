@@ -39,6 +39,8 @@ const instance, in which case Riverpod may leave its dependents unchanged.
 | `coachingSeenCountProvider` | Non-auto-dispose count of coaching cards already seen; the next account would otherwise start with its coaching badge hidden (#2632) | Invalidate the count |
 | Notification controller/list | The controller retains read and simulated-push state; an active list watcher can retain fetched items | Recreate the controller and invalidate the list |
 | `notificationSettingsProvider` | Delivery settings are stored per account on the real backend; the cached toggles otherwise survive until an app restart | Invalidate the cached settings |
+| `locationConsentProvider`, `locationConsentPromptedProvider` | Location consent is per account on the real backend (#3136); the cached answer would otherwise let the next account's gym finder read the device location without that account's consent, and the once-per-run prompt flag would skip asking the next account | Invalidate both leaves. The repository follows `gymDemoSessionProvider`, so it switches between device and server storage by itself |
+| `gymSearchAreaProvider` | Non-auto-dispose origin of the nearby gym search; once the gym finder has read the device location it holds that account's coordinates, so resetting only the location consent would let the next account search around the previous account's position (#3244) | Invalidate the leaf so the next account starts from the default area |
 | Schedule date/month families | Active family instances can retain account schedule entries | Invalidate every family instance |
 
 Auto-dispose alone is not a sufficient boundary: demo-to-login authentication

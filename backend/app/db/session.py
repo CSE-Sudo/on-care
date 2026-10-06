@@ -5,8 +5,8 @@ import logging
 from collections.abc import Generator
 from typing import Any
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import DeclarativeBase, ORMExecuteState, Session, SessionTransaction, sessionmaker
 
 from app.core.config import Settings, get_settings
 
@@ -65,6 +65,32 @@ def pool_status() -> dict[str, int]:
     return out
 
 
+# 세션이 지금 트랜잭션에서 DB 에 쓴 적이 있는지(#3253). `new`·`dirty`·`deleted` 는
+# 아직 flush 하지 않은 변경만 보여 주므로, 이미 flush 했거나 `db.execute(delete(...))`
+# 처럼 flush 를 거치지 않고 실행한 쓰기는 따로 표시해 둔다. 루트 트랜잭션이 끝날 때
+# (커밋·롤백) 지운다.
+_WROTE_KEY = "oncare_wrote_in_transaction"
+
+
+@event.listens_for(Session, "after_flush")
+def _mark_flushed_write(session: Session, _flush_context: Any) -> None:
+    session.info[_WROTE_KEY] = True
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _mark_executed_write(state: ORMExecuteState) -> None:
+    # SELECT 가 아닌 문장은 쓰기로 본다. `text(...)` 는 내용을 알 수 없고(자문 잠금
+    # 같은 트랜잭션 범위 효과도 있다) 커밋하면 되돌릴 수 없으니 보수적으로 표시한다.
+    if not state.is_select:
+        state.session.info[_WROTE_KEY] = True
+
+
+@event.listens_for(Session, "after_transaction_end")
+def _clear_write_mark(session: Session, transaction: SessionTransaction) -> None:
+    if transaction.parent is None:  # 세이브포인트가 아닌 루트 트랜잭션만
+        session.info.pop(_WROTE_KEY, None)
+
+
 def release_connection(db: Session | None) -> bool:
     """외부 호출(LLM 등)을 기다리기 전에 연결을 풀로 돌려준다. (#2836)
 
@@ -73,9 +99,9 @@ def release_connection(db: Session | None) -> bool:
     조회까지 풀 대기에 걸린다. 여기까지 **읽기만 했다면** 트랜잭션을 끝내 연결을
     돌려주고, 다음 쿼리 때 새로 빌린다.
 
-    아직 쓰지 않은 변경(new·dirty·deleted)이 있으면 호출자의 트랜잭션 경계를 바꾸지
-    않도록 건드리지 않고 False 를 돌려준다. 끝낸 뒤에는 세션의 객체가 만료되어 다음
-    접근 때 다시 읽힌다.
+    아직 쓰지 않은 변경(new·dirty·deleted)이 있거나, 이번 트랜잭션에서 이미 flush·
+    실행한 쓰기가 있으면(#3253) 호출자의 트랜잭션 경계를 바꾸지 않도록 건드리지 않고
+    False 를 돌려준다. 끝낸 뒤에는 세션의 객체가 만료되어 다음 접근 때 다시 읽힌다.
     """
     if db is None:  # 세션 없이 부르는 단위 호출(테스트 등)
         return False
@@ -84,6 +110,9 @@ def release_connection(db: Session | None) -> bool:
         return False
     if not db.in_transaction():
         return True
+    if db.info.get(_WROTE_KEY):
+        logger.debug("이번 트랜잭션에 쓴 세션 — 연결 반납을 건너뜀")
+        return False
     db.commit()
     return True
 

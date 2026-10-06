@@ -178,7 +178,7 @@ void main() {
     test('400 은 현재 비밀번호 불일치', () async {
       final PasswordChangeError e = await _changeFails(
         _OneAnswer(400, <String, Object?>{
-          'detail': '현재 비밀번호가 일치하지 않습니다.',
+          'detail': '현재 비밀번호가 일치하지 않아요.',
         }).build(),
       );
       expect(e.kind, PasswordChangeFailure.wrongCurrent);

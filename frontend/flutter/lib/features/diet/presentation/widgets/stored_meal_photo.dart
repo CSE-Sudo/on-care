@@ -19,24 +19,30 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 ///
 /// Riverpod's cache is also the image cache here — the same meal rendered on
 /// the diet tab and in the detail sheet fetches once. (#699)
-final storedMealPhotoProvider = FutureProvider.family<Uint8List?, String>((
-  ref,
-  path,
-) async {
-  final Dio dio = ref.watch(dioProvider);
-  try {
-    final Response<List<int>> res = await dio.get<List<int>>(
-      path,
-      options: Options(responseType: ResponseType.bytes),
-    );
-    final List<int>? data = res.data;
-    if (data == null || data.isEmpty) return null;
-    return Uint8List.fromList(data);
-  } on DioException {
-    // 사진을 못 가져와도 끼니 카드는 그려야 한다 — 호출부가 대체 썸네일로 넘어간다.
-    return null;
-  }
-});
+///
+/// 받은 사진과 서버가 "없다·볼 수 없다" 고 답한 사진만 붙들어 둔다. 망 끊김·
+/// 시간 초과·5xx 같은 잠깐의 오류까지 붙들면 앱을 다시 켜기 전까지 그 끼니의
+/// 사진이 대체 썸네일로 남았다 — 그때는 화면을 떠나면 놓아, 다시 열 때 다시
+/// 받는다(#3244).
+final storedMealPhotoProvider = FutureProvider.autoDispose
+    .family<Uint8List?, String>((ref, path) async {
+      final Dio dio = ref.watch(dioProvider);
+      try {
+        final Response<List<int>> res = await dio.get<List<int>>(
+          path,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        ref.keepAlive();
+        final List<int>? data = res.data;
+        if (data == null || data.isEmpty) return null;
+        return Uint8List.fromList(data);
+      } on DioException catch (e) {
+        final int? status = e.response?.statusCode;
+        if (status == 403 || status == 404) ref.keepAlive();
+        // 사진을 못 가져와도 끼니 카드는 그려야 한다 — 호출부가 대체 썸네일로 넘어간다.
+        return null;
+      }
+    });
 
 /// A **stored** meal photo (the one the member already uploaded) drawn at
 /// [width] × [height], with [fallback] shown while it

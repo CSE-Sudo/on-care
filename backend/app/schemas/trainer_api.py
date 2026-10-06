@@ -13,6 +13,7 @@ from typing import Annotated, Any, ClassVar, Literal, TypeVar
 from pydantic import (
     BaseModel,
     BeforeValidator,
+    ConfigDict,
     Field,
     field_validator,
     model_validator,
@@ -45,6 +46,7 @@ from app.schemas.health_goal_ranges import (
     WeeklyWorkoutGoal,
 )
 from app.schemas.partial_update import PartialUpdate
+from app.schemas.record_dates import is_hhmm, parse_ymd
 from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
 from app.services.password_policy import check_new_password
@@ -54,18 +56,22 @@ from app.services import exercise_types
 
 
 def _validate_ymd(v: str) -> str:
+    """`YYYY-MM-DD` 이고 달력에 있는 날. 원문을 그대로 저장하므로 표기 하나만 받는다.
+
+    `fromisoformat` 만 쓰면 `20261005`·`2026-W40-1` 도 통과해, 문자열로 저장된 날짜의
+    범위 조회·정렬·`until < date` 비교가 어긋났다(#3243).
+    """
     try:
-        _date.fromisoformat(v)  # 2026-99-99 / 2026-02-31 등 달력상 불가능한 값 거부
+        parse_ymd(v)  # 2026-99-99 / 2026-02-31 등 달력상 불가능한 값도 거부
     except ValueError as e:
         raise ValueError("유효한 날짜(YYYY-MM-DD)가 아닙니다.") from e
     return v
 
 
 def _validate_hhmm(v: str) -> str:
-    try:
-        _datetime.strptime(v, "%H:%M")  # 25:99 / 빈 문자열 등 거부
-    except ValueError as e:
-        raise ValueError("유효한 시간(HH:MM)이 아닙니다.") from e
+    """`HH:MM`(두 자리). `strptime` 은 `9:5` 도 받아 시각 정렬이 어긋났다(#3243)."""
+    if not is_hhmm(v):  # 25:99 / 빈 문자열 / 9:5 등 거부
+        raise ValueError("유효한 시간(HH:MM)이 아닙니다.")
     return v
 
 
@@ -78,6 +84,10 @@ class TrainerGymOut(BaseModel):
     address: str
     hours: str
     phone: str
+    #: 소속 헬스장 좌표(`places.lat`·`lng`). 트레이너 웹이 헬스장 찾기 지도를 검색
+    #: 전에도 현재 소속 위치로 띄우는 데 쓴다(#3206). 소속이 없거나 좌표가 없으면 None.
+    lat: float | None = None
+    lng: float | None = None
 
 
 class TrainerMe(BaseModel):
@@ -712,10 +722,27 @@ class RoutineOut(BaseModel):
     trainer_message: str = ""
 
 
+class UpcomingRoutinesOut(BaseModel):
+    """GET /me/coach/routines/upcoming — 아직 시작하지 않은 개인운동 한 묶음. (#3106)
+
+    트레이너가 `개인운동만` 을 미래 시작일로 보내면(#2656) 알림은 바로 가지만, 그날
+    목록(`/me/coach/routines`)은 시작일부터 그 운동을 싣는다. 회원 앱은 이 값으로
+    오늘 목록 아래에 `8/22(토)부터 · 빠르게 걷기 · …` 한 줄을 둔다. 둘 이상이면
+    가장 최근에 보낸 것 하나다.
+    """
+
+    #: 걸리기 시작하는 날 — 이날부터 그날 목록에 들어 체크할 수 있다.
+    starts_on: _date
+    #: 트레이너가 보낸 날.
+    sent_on: _date
+    #: 묶음의 운동 이름(배정 순서).
+    names: list[str]
+
+
 class RoutineCompleteOut(RoutineOut):
     """POST /me/coach/routines/{id}/complete 응답 — 이번 완료의 포인트 적립을 더한다. (#1786)
 
-    AI 추천 루틴과 트레이너 배정 루틴 모두 `추천·배정 운동 완료` 규칙으로 적립하고
+    AI 추천 루틴과 트레이너 배정 루틴 모두 `개인운동 완료` 규칙으로 적립하고
     하루 한도 1회를 함께 쓴다. 목록 응답(`RoutineOut`)에는 붙지 않는다.
     """
 
@@ -2066,6 +2093,67 @@ class TrainerKakaoGymSelect(BaseModel):
     name: str = Field(min_length=1, max_length=200)
 
 
+#: 헬스장 태그 개수·길이 상한(#2700). 회원 앱 목록 카드에 칩으로 한 줄 남짓 그려지는
+#: 값이라 길게 받을 이유가 없다.
+GYM_TAGS_MAX = 10
+GYM_TAG_MAX_LENGTH = 20
+
+
+class TrainerGymProfileOut(BaseModel):
+    """GET·PUT /trainer/me/gym/profile — 소속 헬스장의 부가 정보. (#2700)
+
+    회원 앱 헬스장 목록·상세(`GymOut`)에 그대로 나가는 값이다. 평점은 트레이너가
+    고치는 값이 아니라 싣지 않는다.
+    """
+    gym_id: str
+    name: str
+    weekday_hours: str
+    weekend_hours: str
+    phone: str
+    tags: list[str]
+
+
+class TrainerGymProfileUpdate(PartialUpdate):
+    """PUT /trainer/me/gym/profile — 소속 헬스장 부가 정보 부분 수정. (#2700)
+
+    보낸 칸만 바꾼다. 빈 문자열은 "비운다"이고, null 은 422 다(`PartialUpdate`).
+    길이 상한은 `gym_profiles` 컬럼 길이와 같다 — 넘치면 DB 가 막는다.
+
+    **평점은 받지 않는다.** 트레이너가 자기 헬스장 평점을 적게 두면 그 값은 평점이
+    아니다. 보내도 모르는 키로 버려지지 않게 422 로 막는다(`extra="forbid"`).
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    weekday_hours: str | None = Field(default=None, max_length=50)
+    weekend_hours: str | None = Field(default=None, max_length=50)
+    #: 헬스장 대표번호 — 휴대전화 규칙(`normalize_phone`)을 걸지 않는다(#1914,
+    #: `TrainerMeUpdate.gym_phone` 주석). `02-332-1720` 같은 정상 번호가 막힌다.
+    phone: str | None = Field(default=None, max_length=20)
+    tags: list[str] | None = Field(default=None, max_length=GYM_TAGS_MAX)
+
+    @field_validator("weekday_hours", "weekend_hours", "phone")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("tags")
+    @classmethod
+    def _clean_tags(cls, value: list[str] | None) -> list[str] | None:
+        """앞뒤 공백을 걷고, 빈 태그는 422, 같은 태그는 처음 것만 남긴다."""
+        if value is None:
+            return value
+        cleaned: list[str] = []
+        for raw in value:
+            tag = raw.strip()
+            if not tag:
+                raise ValueError("빈 태그는 저장할 수 없습니다.")
+            if len(tag) > GYM_TAG_MAX_LENGTH:
+                raise ValueError(f"태그는 {GYM_TAG_MAX_LENGTH}자 이하로 입력하세요.")
+            if tag not in cleaned:
+                cleaned.append(tag)
+        return cleaned
+
+
 # ---- 주간 리포트 (트레이너 → 회원) ----
 
 class WeeklyReportDayOut(BaseModel):
@@ -2223,6 +2311,17 @@ class MemberWeeklyFeedbackSaveRequest(BaseModel):
     pain_on: str = Field(default="", description="YYYY-MM-DD")
     #: 한 줄은 길게 받지 않는다 — 30초 안에 끝나야 매주 돌아온다.
     note: str = Field(default="", max_length=TEXT_LINE_MAX)
+
+    @field_validator("pain_on")
+    @classmethod
+    def _v_pain_on(cls, v: str) -> str:
+        """비었거나 `YYYY-MM-DD`. (#3243)
+
+        검사가 없어 `pain_area` 가 있을 때 10자를 넘는 값은 칸(`String(10)`)에서 500,
+        짧은 날짜 아닌 값은 그대로 저장돼 트레이너 화면의 `(MM.DD)` 가 깨졌다.
+        """
+        v = v.strip()
+        return _validate_ymd(v) if v else v
 
 
 class ReportGoalsOut(BaseModel):
@@ -2525,12 +2624,15 @@ class TrainerClientInviteCreate(BaseModel):
 
 
 class TrainerClientInviteOut(BaseModel):
-    """트레이너가 보고 있는 '보낸 요청' 카드."""
+    """트레이너가 보고 있는 '보낸 요청' 카드.
+
+    회원 이메일은 싣지 않는다(#3239) — 수락 전인 요청만으로 회원의 연락처가
+    트레이너에게 가면 안 된다. 연결 코드 미리보기(`PairedMemberOut`)와 같은 범위다.
+    """
 
     id: str
     member_id: str
     member_name: str
-    member_email: str
     message: str | None = None
     status: Literal["pending", "accepted", "rejected", "cancelled"]
     created_at: _datetime

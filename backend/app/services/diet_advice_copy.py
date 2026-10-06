@@ -30,7 +30,7 @@ _KO: dict[str, str] = {
     # 오늘 — 규칙 한 줄 (#2251)
     "today_empty": "오늘 식단 기록이 아직 없어요.",
     "today_missing_meal": "적지 않은 끼니가 있나요?",
-    "today_sodium_over": "나트륨 **{sodium_mg:,}mg**, 권장량 초과예요.",
+    "today_sodium_over": "나트륨 **{sodium_mg:,}mg**, 목표 초과예요.",
     "today_calorie_over": "오늘 **{kcal:,}kcal**, 목표 초과예요.",
     "today_protein_left": "단백질 **{protein_g}g** 더 필요해요.",
     "today_balanced": "오늘 **{kcal:,}kcal**, 균형이 좋아요.",

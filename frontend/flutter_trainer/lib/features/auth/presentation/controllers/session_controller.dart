@@ -147,6 +147,10 @@ class SessionController extends StateNotifier<SessionState>
     try {
       final profile = await _repo.fetchProfile(access);
       if (!mounted || _userActionStarted) return;
+      // 역할 확인을 통과한 앱만 옛 키를 지운다(#3260). 트레이너가 아니면 아래
+      // [_expire] 가 복사해 온 새 키만 버리고 옛 키를 남겨, 회원 앱이 가져가게 한다.
+      await _claimLegacyKeys(access);
+      if (!mounted || _userActionStarted) return;
       state = SessionState(
         status: SessionStatus.authenticated,
         profile: profile,
@@ -156,7 +160,9 @@ class SessionController extends StateNotifier<SessionState>
       await _expire();
     } on UnauthorizedError {
       if (_userActionStarted) return;
-      if (allowRefresh && refresh.isNotEmpty) {
+      if (allowRefresh &&
+          refresh.isNotEmpty &&
+          !await _isUnconfirmedLegacy(access)) {
         await _refreshAndResolve(refresh);
       } else {
         await _expire();
@@ -195,6 +201,9 @@ class SessionController extends StateNotifier<SessionState>
     AuthFailure.emailCodeInvalid ||
     AuthFailure.emailCodeRequired ||
     AuthFailure.noSocialToken ||
+    AuthFailure.socialEmailInUse ||
+    AuthFailure.tooManyAttempts ||
+    AuthFailure.signedUpSignInFailed ||
     AuthFailure.emptyCredentials => false,
   };
 
@@ -266,6 +275,7 @@ class SessionController extends StateNotifier<SessionState>
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async {
     _userActionStarted = true;
@@ -274,28 +284,38 @@ class SessionController extends StateNotifier<SessionState>
       password: password,
       name: name,
       emailCode: emailCode,
+      phone: phone,
       consents: consents,
     );
-    await _establish(tokens);
+    await _establishAfterSignUp(tokens);
+  }
+
+  /// 가입 뒤 세션을 연다. 실패해도 계정은 이미 있다 — 가입 실패로 알리면 다시
+  /// 누른 가입이 409 가 되므로 [AuthFailure.signedUpSignInFailed] 로 바꾼다(#3248).
+  Future<void> _establishAfterSignUp(TrainerAuthTokens tokens) async {
+    try {
+      await _establish(tokens);
+    } on AuthException catch (e) {
+      throw AuthException(
+        AuthFailure.signedUpSignInFailed,
+        detail: e.failure.name,
+      );
+    }
   }
 
   /// Social sign-in (kakao / google). Throws [AuthException].
-  Future<void> socialLogin({required String provider}) async {
+  ///
+  /// [token] 은 provider 에서 받은 토큰이다(구글 ID 토큰·카카오 access_token).
+  /// 로그인 화면과 탈퇴 본인 확인(#3039)이 같은 `trainerSocialLoginProvider` 로
+  /// 받는다(#330).
+  Future<void> socialLogin({
+    required String provider,
+    required String token,
+  }) async {
     _userActionStarted = true;
-    final tokens = await _repo.socialLogin(
-      provider: provider,
-      token: await socialProviderToken(provider),
-    );
+    final tokens = await _repo.socialLogin(provider: provider, token: token);
     await _establish(tokens);
   }
-
-  /// 소셜 로그인의 첫 단계 — [provider] 에서 받은 토큰. 로그인과 본인 확인
-  /// (#3039, 소셜로만 가입한 계정의 탈퇴)이 이 한 경로로 토큰을 얻는다.
-  ///
-  /// 트레이너 웹에는 아직 제공자 SDK 가 붙지 않아 데모 토큰을 쓴다 — 실서버
-  /// 빌드의 로그인 화면이 소셜 버튼을 꺼 두는 이유다(#2769).
-  Future<String> socialProviderToken(String provider) async =>
-      'demo-$provider-token';
 
   /// Persists fresh tokens and attaches the trainer profile from `/me`.
   /// Any failure clears the just-issued tokens and rethrows an
@@ -412,7 +432,7 @@ class SessionController extends StateNotifier<SessionState>
     // 지우기 **전에** 서버에 알린다 — 지운 뒤에는 폐기할 토큰이 없다.
     await _revokeSession();
     // 사용자가 직접 요청한 만료다 — 자기 자신의 가드에 막히면 안 된다.
-    await _expire(userInitiated: true);
+    await _expire(userInitiated: true, forgetLegacy: true);
     // 직접 로그아웃한 것이다 — 만료 안내가 남아 있었다면 거둔다.
     if (mounted) _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
   }
@@ -438,14 +458,20 @@ class SessionController extends StateNotifier<SessionState>
     if (!_holdsToken(staleToken)) {
       return const TokenRefreshResult.unavailable();
     }
-    String? refresh;
-    try {
-      // 읽기도 저장 큐를 탄다 — 먼저 시작한 저장·삭제가 끝난 값을 읽는다.
-      await _serializeTokenStorage(() async {
-        refresh = await _tokens.readRefreshToken();
-      });
-    } catch (_) {
-      return const TokenRefreshResult.unavailable();
+    // 동의가 남은 세션의 토큰은 저장소가 아니라 메모리에 있다(#2819). 저장소만
+    // 보면 동의 화면에 접근 토큰 수명(60분)보다 오래 머문 트레이너가 갱신할
+    // 수단이 없어 강제로 로그아웃됐다(#3248).
+    final TrainerAuthTokens? pending = _consentPendingTokens;
+    String? refresh = pending?.refresh;
+    if (pending == null) {
+      try {
+        // 읽기도 저장 큐를 탄다 — 먼저 시작한 저장·삭제가 끝난 값을 읽는다.
+        await _serializeTokenStorage(() async {
+          refresh = await _tokens.readRefreshToken();
+        });
+      } catch (_) {
+        return const TokenRefreshResult.unavailable();
+      }
     }
     if (!_holdsToken(staleToken)) {
       return const TokenRefreshResult.unavailable();
@@ -479,17 +505,28 @@ class SessionController extends StateNotifier<SessionState>
     );
     // 계정 확인보다 **먼저** 저장한다. 갱신 토큰은 일회용이라 방금 쓴 [stored] 는
     // 서버에서 이미 폐기됐다. 아래에서 다른 계정의 토큰으로 밝혀져도, 저장소는 그
-    // 계정(다른 탭)의 세션이므로 회전 결과를 돌려놓아야 그 탭이 다음 회전에서
-    // 끊기지 않는다(#2764).
-    await _persist(rotated);
+    // 계정의 세션이므로 회전 결과를 돌려놓아야 그 세션이 다음 회전에서 끊기지
+    // 않는다(#2764). 동의가 남은 세션은 저장하지 않고 들고만 있는다(#2819).
+    // 회전하는 사이 동의를 마쳤다면 그쪽이 옛 토큰을 저장했으니 새 토큰으로 덮는다.
+    if (pending != null && identical(_consentPendingTokens, pending)) {
+      _consentPendingTokens = TrainerAuthTokens(
+        access: rotated.access,
+        refresh: rotated.refresh,
+        consentRequired: true,
+      );
+    } else {
+      await _persist(rotated);
+    }
     if (!_holdsToken(staleToken)) {
       return const TokenRefreshResult.unavailable();
     }
 
-    // 저장소의 갱신 토큰은 같은 출처의 모든 탭이 공유한다(웹 `FlutterSecureStorage`
-    // = localStorage). 다른 탭이 다른 트레이너로 다시 로그인했다면 방금 받은 토큰은
-    // **그 계정의 것**이다. 그대로 쓰면 화면은 이전 트레이너인데 요청은 새 계정
-    // 명의로 나간다 — 회전 결과의 주인을 확인하고 나서야 채택한다(#2764).
+    // 웹 토큰이 모든 탭이 함께 보는 저장소(localStorage)에 있던 때에는, 다른
+    // 탭이 다른 트레이너로 다시 로그인하면 방금 받은 토큰이 **그 계정의 것**이
+    // 됐다. 지금은 탭 단위 저장소(sessionStorage, #2828)라 다른 탭과 나누지 않고,
+    // 저장소를 복사해 받는 복제 탭은 시작할 때 받은 토큰을 버린다(#3248). 그래도
+    // 회전 결과를 쓰기 전에 주인을 확인하는 규칙은 남긴다 — 저장소가 다른 계정의
+    // 것이면 화면은 이전 트레이너인데 요청은 그 계정 명의로 나간다(#2764).
     final _AccountCheck check = await _checkSameAccount(rotated.access);
     if (!_holdsToken(staleToken)) {
       return const TokenRefreshResult.unavailable();
@@ -592,7 +629,7 @@ class SessionController extends StateNotifier<SessionState>
     _ref.read(signedOutByUserProvider.notifier).state = false;
     // 로그인한 뒤라 사용자 행동 가드는 이미 켜져 있다. 그 가드는 **복구**가 뒤늦게
     // 세션을 덮지 못하게 하는 것이고, 이 만료는 지금 세션에 대한 것이다.
-    await _expire(userInitiated: true);
+    await _expire(userInitiated: true, forgetLegacy: true);
     if (!mounted || state.status != SessionStatus.signedOut) return;
     _ref.read(sessionExpiredNoticeProvider.notifier).state = true;
   }
@@ -607,14 +644,18 @@ class SessionController extends StateNotifier<SessionState>
   /// **어떤 실패도 로그아웃을 막지 않는다.** 폐기는 성사되면 좋은 일이고, 실패했다고
   /// 사용자를 로그인된 화면에 붙잡아 두는 쪽이 훨씬 나쁘다.
   Future<void> _revokeSession() async {
-    String? refresh;
-    try {
-      // 읽기도 저장 큐를 탄다 — 회전이 방금 저장한 토큰이 있다면 그것을 끊어야 한다.
-      await _serializeTokenStorage(() async {
-        refresh = await _tokens.readRefreshToken();
-      });
-    } catch (_) {
-      return; // secure storage 를 못 읽으면 끊을 대상도 모른다.
+    // 동의 화면에서 로그아웃하면 토큰이 저장소가 아니라 메모리에 있다(#2819).
+    // 저장소만 보면 폐기할 것이 없다고 여겨 서버 세션이 그대로 남았다(#3248).
+    String? refresh = _consentPendingTokens?.refresh;
+    if (refresh == null || refresh.isEmpty) {
+      try {
+        // 읽기도 저장 큐를 탄다 — 회전이 방금 저장한 토큰이 있다면 그것을 끊어야 한다.
+        await _serializeTokenStorage(() async {
+          refresh = await _tokens.readRefreshToken();
+        });
+      } catch (_) {
+        return; // secure storage 를 못 읽으면 끊을 대상도 모른다.
+      }
     }
     final token = refresh;
     // 데모 세션에는 저장된 토큰이 없다 — 부를 것도 없다.
@@ -639,9 +680,32 @@ class SessionController extends StateNotifier<SessionState>
     }
   }
 
-  Future<void> _clearPersistedTokens() async {
+  /// [forgetLegacy] 는 [SecureTokenStore.clear] 와 같다 — 이 앱이 세션을 끝낼
+  /// 때(로그아웃·실행 중 만료)만 켠다(#3260).
+  Future<void> _clearPersistedTokens({bool forgetLegacy = false}) async {
     try {
-      await _serializeTokenStorage(_tokens.clear);
+      await _serializeTokenStorage(
+        () => _tokens.clear(forgetLegacy: forgetLegacy),
+      );
+    } catch (_) {}
+  }
+
+  /// [access] 가 역할 확인 전의 옛 키 토큰이면 회전하지 않는다(#3260) — 회원 앱의
+  /// 일회용 갱신 토큰일 수 있다. [_expire] 가 이 앱의 새 키만 비우고 옛 키는
+  /// 남긴다. 확인하지 못하면 회전하지 않는 쪽으로 둔다.
+  Future<bool> _isUnconfirmedLegacy(String access) async {
+    try {
+      return await _tokens.isUnconfirmedLegacy(access);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// 복원이 [access] 로 트레이너 역할을 확인했다 — 그 토큰이 옛 키에서 왔으면 옛
+  /// 키를 지운다(#3260). 실패해도 세션은 이어 간다 — 다음 복원이 다시 지운다.
+  Future<void> _claimLegacyKeys(String access) async {
+    try {
+      await _serializeTokenStorage(() => _tokens.claimLegacyKeys(access));
     } catch (_) {}
   }
 
@@ -668,10 +732,17 @@ class SessionController extends StateNotifier<SessionState>
   /// 느린 복구 중에 로그인이 끝났다면 저장소에는 방금 받은 토큰이 들어 있고, 저장소
   /// 작업은 큐로 직렬화되어 나중에 들어간 것이 뒤에 실행되므로, 뒤늦은 만료의 `clear`
   /// 는 그 저장을 **확실히** 덮어쓴다 — 화면은 로그인 상태인데 다음 실행에서 로그아웃된다.
-  Future<void> _expire({bool userInitiated = false}) async {
+  ///
+  /// [forgetLegacy] 는 이름공간 없던 옛 키도 지운다(#3260) — 로그아웃·실행 중
+  /// 만료처럼 이 앱이 세션을 끝낼 때만 켠다. 복원의 역할 확인에 걸린 경우는 끈
+  /// 채로 두어 옛 키를 원래 주인 앱(회원 앱)이 가져가게 한다.
+  Future<void> _expire({
+    bool userInitiated = false,
+    bool forgetLegacy = false,
+  }) async {
     if (!mounted) return;
     if (!userInitiated && _userActionStarted) return;
-    await _clearPersistedTokens();
+    await _clearPersistedTokens(forgetLegacy: forgetLegacy);
     // `_setAccessToken` reads a provider — guard it behind the mounted check
     // so it never runs against a disposed container during teardown.
     if (!mounted) return;

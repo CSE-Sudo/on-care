@@ -11,6 +11,7 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/dialog_busy_scope.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 카드 필드 라벨 열 폭 — `운동 목표`·`희망 일시` 가 한 줄에 들어가는 폭.
@@ -73,10 +74,13 @@ class ConsultationsPage extends ConsumerWidget {
 }
 
 /// Opens the shared consultation inbox without leaving the current workspace.
+///
+/// 평소에는 바깥 누름·뒤로 가기로 닫히고, 카드의 승인·거절 요청이 도는 동안만
+/// 막는다([DialogBusyScope]).
 Future<void> showConsultationsDialog(BuildContext context) =>
     showAppDialog<void>(
       context: context,
-      builder: (_) => const ConsultationsPage(),
+      builder: (_) => const DialogBusyScope(child: ConsultationsPage()),
     );
 
 /// 필터 칩 + 요청 목록. 페이지와 모달이 같은 것을 쓴다.
@@ -206,7 +210,9 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     final AppLocalizations l = AppLocalizations.of(context);
     final String failureText = l.consultActionFailed;
     try {
-      await action(container);
+      // 요청이 도는 동안 상담 창이 닫히지 않는다 — 결과 토스트가 사라진 창에
+      // 남지 않는다.
+      await DialogBusyScope.guard(context, () => action(container));
       if (!mounted) return;
       showAppToast(context, success, type: AppToastType.success);
     } on AppError catch (e) {
@@ -244,7 +250,10 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     final AppLocalizations l = AppLocalizations.of(context);
     final request = widget.request;
     try {
-      final result = await acceptConsultation(container, request.id);
+      final result = await DialogBusyScope.guard(
+        context,
+        () => acceptConsultation(container, request.id),
+      );
       if (!mounted) return;
       showAppToast(
         context,

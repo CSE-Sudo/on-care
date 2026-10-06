@@ -133,8 +133,12 @@ Linux 에서 작업한다면 `cd shared/oncare_ui && flutter test --update-golde
 확인한 뒤 머지합니다. SHA 는 이렇게 확인합니다.
 
 ```bash
-gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha
+gh api repos/actions/checkout/commits/v7.0.1 --jq .sha
 ```
+
+`commits/<태그>` 는 태그가 가리키는 **커밋** SHA 를 돌려줍니다. `git/ref/tags/<태그>` 의
+`.object.sha` 는 annotated 태그면 커밋이 아니라 태그 객체의 SHA 를 돌려주므로 쓰지 않습니다 —
+`uses:` 에는 커밋 SHA 를 적습니다(#3237).
 
 ---
 
@@ -153,9 +157,13 @@ Dependabot 이 매주 월요일 오전에 생태계별로 묶은 업데이트 PR
 - **백엔드 잠금 파일**: `requirements.txt`·`requirements-dev.txt` 는 손으로 고치지 않습니다.
   직접 의존을 바꿀 때는 `requirements.in`(·`requirements-dev.in`)을 고친 뒤 잠금 파일을
   다시 만듭니다(절차는 [backend/README.md](../backend/README.md) "의존성").
-- **취약점 경고**: 백엔드 CI 의 `Dependency audit (pip-audit)` 잡이 잠금 파일의 알려진
-  취약점을 요약에 남깁니다. 지금은 경고 모드라 병합을 막지 않지만, 경고가 뜨면 해당
-  패키지 업데이트를 우선 처리합니다.
+- **취약점 차단**(#3163): 백엔드 CI 의 `Dependency audit (pip-audit)` 잡은 잠금 파일에
+  알려진 취약점이 있으면 실패합니다. 먼저 고친 버전으로 잠금 파일을 올립니다. 고친 버전이 없거나
+  당장 올릴 수 없으면 [`backend/audit-allowlist.toml`](../backend/audit-allowlist.toml) 에 취약점
+  id·패키지·사유(우리 코드가 그 경로를 쓰는지)·재검토 날짜(180일 이내)를 적어 PR 에서 검토받습니다.
+  재검토 날짜가 지나면 잡이 다시 실패하고, 더 이상 보고되지 않는 항목은 경고로 알려 지우게 합니다.
+- **린트**: 같은 CI 의 `Lint (ruff)` 잡이 정의되지 않은 이름·쓰지 않는 import 같은 오류 계열 규칙
+  ([`backend/ruff.toml`](../backend/ruff.toml))을 봅니다. 로컬에서는 `cd backend && ruff check .`.
 
 ## 6.3 비밀값 스캔 (#2837)
 

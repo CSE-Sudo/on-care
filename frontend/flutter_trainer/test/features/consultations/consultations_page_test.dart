@@ -422,7 +422,7 @@ void main() {
       await settle(tester);
 
       expect(_inInbox(find.text(label)), findsOneWidget);
-      expect(_inInbox(find.text('대기중')), findsNothing);
+      expect(_inInbox(find.text('대기 중')), findsNothing);
       // 끝난 신청이라 결정 버튼이 없다.
       expect(_inInbox(find.text('승인')), findsNothing);
     });
@@ -610,6 +610,34 @@ void main() {
       expect(clientBuilds, greaterThan(clientsBefore));
       expect(todayBuilds, greaterThan(todayBefore));
       expect(repo.pendingFetches, greaterThan(pendingBefore));
+    });
+
+    // 평소엔 바깥을 눌러 닫히지만, 승인 요청이 도는 동안만은 닫히지 않는다 —
+    // 결과 토스트가 닫힌 창과 함께 사라지지 않게.
+    testWidgets('승인 중엔 바깥 누름·뒤로 가기로 닫히지 않고, 끝나면 닫힌다', (tester) async {
+      final repo = slotRequestRepo();
+      await open(tester, repo);
+      final Finder inbox = find.byKey(
+        const ValueKey<String>('consultations-dialog'),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await tester.pump();
+      await tester.tapAt(const Offset(2, 2));
+      await settle(tester);
+      expect(inbox, findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(inbox, findsOneWidget);
+
+      repo.gate.complete();
+      await settle(tester);
+      expect(repo.accepted, <String>['consult-1']);
+      await tester.tapAt(const Offset(2, 2));
+      await settle(tester);
+      expect(inbox, findsNothing);
     });
 
     testWidgets('승인 중 필터를 바꿔 카드가 다시 그려져도 갱신을 마친다', (tester) async {

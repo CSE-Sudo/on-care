@@ -1,4 +1,4 @@
-/// 알림함 첫 조회 중에는 "알림이 없습니다" 를 그리지 않는다 — #2638.
+/// 알림함 첫 조회 중에는 "아직 받은 알림이 없어요" 를 그리지 않는다 — #2638.
 ///
 /// 예전에는 컨트롤러가 첫 조회를 시작하며 `loading` 을 세웠지만 화면이 그 값을
 /// 읽지 않아, 응답이 오기 전까지 빈 상태가 먼저 보였다가 목록으로 바뀌었다.
@@ -8,7 +8,7 @@
 ///  * 첫 조회가 끝나기 전, 목록이 비어 있으면 로딩 표시를 그린다.
 ///  * 서버가 빈 목록을 주면 그때 빈 상태를 그린다.
 ///  * 첫 조회가 실패하면 로딩 표시를 내리고 실패 안내와 재시도만 그린다 —
-///    빈 상태("알림이 없습니다")는 그리지 않는다(#2877).
+///    빈 상태("아직 받은 알림이 없어요")는 그리지 않는다(#2877).
 ///  * 한 번 받은 뒤의 새로고침은 빈 상태를 로딩 표시로 바꾸지 않는다.
 ///  * 목/데모 시드는 처음부터 받은 목록이다.
 library;
@@ -285,7 +285,7 @@ void main() {
 
       expect(find.byKey(_firstLoading), findsOneWidget);
       expect(find.byType(AppEmptyState), findsNothing);
-      expect(find.text('알림이 없습니다'), findsNothing);
+      expect(find.text('아직 받은 알림이 없어요'), findsNothing);
 
       repo.gate!.complete();
       await tester.pumpAndSettle();
@@ -324,7 +324,7 @@ void main() {
       expect(find.byKey(_firstLoading), findsNothing);
       expect(find.byKey(_firstLoadFailed), findsOneWidget);
       // 받아 본 적이 없는데 "없다" 고 말하지 않는다(#2877).
-      expect(find.text('알림이 없습니다'), findsNothing);
+      expect(find.text('아직 받은 알림이 없어요'), findsNothing);
       // 같은 안내를 배너로 한 번 더 얹지 않는다.
       expect(find.byKey(_retryBanner), findsNothing);
     });

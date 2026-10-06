@@ -42,45 +42,80 @@ Future<void>? _sdkReady;
 
 /// SDK 를 한 번만 내려받고, `autoload=false` + `kakao.maps.load` 로 초기화를 기다린다.
 /// (autoload 를 켜면 스크립트 onload 시점과 실제 준비 시점이 어긋난다.)
+///
+/// 성공만 기억한다(#3250). 실패·시간 초과로 끝난 Future 까지 들고 있으면 한 번
+/// 넘어진 뒤로는 새로 고침 전까지 모든 지도가 대체 그림으로만 뜬다 — 다음에 붙는
+/// 지도가 다시 내려받게 비워 둔다.
 Future<void> _ensureSdkLoaded() {
   final Future<void>? existing = _sdkReady;
   if (existing != null) return existing;
+  final Future<void> ready = _loadSdk();
+  _sdkReady = ready;
+  unawaited(
+    ready.catchError((Object _) {
+      if (identical(_sdkReady, ready)) _sdkReady = null;
+    }),
+  );
+  return ready;
+}
 
+Future<void> _loadSdk() {
   final Completer<void> completer = Completer<void>();
-  // SRI(integrity)는 걸 수 없다(#3089) — SDK 내용이 예고 없이 바뀌고 t1.daumcdn.net
-  // 의 스크립트를 다시 불러온다. 남은 방어는 CSP script-src 와 카카오 콘솔의 JS 키
-  // 사용 도메인 제한이다.
-  final web.HTMLScriptElement script =
-      web.document.createElement('script') as web.HTMLScriptElement
-        ..src = kakaoMapSdkSrc(kakaoJsKey)
-        ..async = true;
-
-  script.addEventListener(
-    'load',
-    (JSAny _) {
-      final JSObject? kakao = _global('kakao');
-      final JSObject? maps = kakao == null ? null : _prop(kakao, 'maps');
-      if (maps == null) {
-        completer.completeError(
-          StateError('카카오맵 SDK 로드 후 kakao.maps 를 찾지 못했습니다.'),
-        );
-        return;
-      }
-      maps.callMethod('load'.toJS, (() => completer.complete()).toJS);
-    }.toJS,
-  );
-  script.addEventListener(
-    'error',
-    (JSAny _) {
-      // 도메인 미등록·키 오류·네트워크 차단 모두 여기로 온다.
-      completer.completeError(
-        StateError('카카오맵 SDK 를 불러오지 못했습니다 (JS 키/도메인 등록 확인).'),
-      );
-    }.toJS,
+  void initialise(JSObject maps) => maps.callMethod(
+    'load'.toJS,
+    (() {
+      if (!completer.isCompleted) completer.complete();
+    }).toJS,
   );
 
-  web.document.head!.append(script);
-  return _sdkReady = completer.future.timeout(
+  // 앞선 시도가 시간을 넘긴 뒤에 스크립트가 늦게 도착했으면 다시 내려받지 않고
+  // 초기화만 기다린다 — 같은 SDK 를 두 번 얹지 않는다.
+  final JSObject? loaded = _global('kakao');
+  final JSObject? loadedMaps = loaded == null ? null : _prop(loaded, 'maps');
+  if (loadedMaps != null) {
+    initialise(loadedMaps);
+  } else {
+    // SRI(integrity)는 걸 수 없다(#3089) — SDK 내용이 예고 없이 바뀌고
+    // t1.daumcdn.net 의 스크립트를 다시 불러온다. 남은 방어는 CSP script-src 와
+    // 카카오 콘솔의 JS 키 사용 도메인 제한이다.
+    final web.HTMLScriptElement script =
+        web.document.createElement('script') as web.HTMLScriptElement
+          ..src = kakaoMapSdkSrc(kakaoJsKey)
+          ..async = true;
+
+    script.addEventListener(
+      'load',
+      (JSAny _) {
+        final JSObject? kakao = _global('kakao');
+        final JSObject? maps = kakao == null ? null : _prop(kakao, 'maps');
+        if (maps == null) {
+          if (!completer.isCompleted) {
+            completer.completeError(
+              StateError('카카오맵 SDK 로드 후 kakao.maps 를 찾지 못했습니다.'),
+            );
+          }
+          return;
+        }
+        initialise(maps);
+      }.toJS,
+    );
+    script.addEventListener(
+      'error',
+      (JSAny _) {
+        // 도메인 미등록·키 오류·네트워크 차단 모두 여기로 온다. 실패한 태그는
+        // 걷어 다음 시도가 새로 붙인다.
+        script.remove();
+        if (!completer.isCompleted) {
+          completer.completeError(
+            StateError('카카오맵 SDK 를 불러오지 못했습니다 (JS 키/도메인 등록 확인).'),
+          );
+        }
+      }.toJS,
+    );
+
+    web.document.head!.append(script);
+  }
+  return completer.future.timeout(
     _sdkTimeout,
     onTimeout: () => throw TimeoutException(
       '카카오맵 SDK 로드가 ${_sdkTimeout.inSeconds}초 안에 끝나지 않았습니다.',

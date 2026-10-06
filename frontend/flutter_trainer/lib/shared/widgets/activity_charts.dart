@@ -35,6 +35,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/widgets/chart_a11y_labels.dart';
+import 'package:oncare_trainer/shared/widgets/period_chart_selection_bounds.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 소모 칼로리 색. **트레이너 메인 색**이다 (#1168).
@@ -201,7 +202,9 @@ class BurnDonut extends StatelessWidget {
                       title: title,
                       points: calories == 0
                           ? const <String>[]
-                          : <String>['$calories${l.unitKcal}'],
+                          : <String>[
+                              '$calories${unitGap(locale)}${l.unitKcal}',
+                            ],
                     ),
                     child: ExcludeSemantics(
                       child: SizedBox(
@@ -729,7 +732,7 @@ class BurnBarChart extends StatelessWidget {
   static const int _slotsPerScreen = 13;
 
   /// 막대 하나의 툴팁 — 소모 칼로리와 그 주의 유형별 내역.
-  List<InlineSpan> _tipSpans(AppLocalizations l, int i) {
+  List<InlineSpan> _tipSpans(AppLocalizations l, String locale, int i) {
     final ActivitySplit s = splits[i];
     final List<String> rows = <String>[
       for (final ExerciseKind kind in ExerciseKind.values)
@@ -742,7 +745,8 @@ class BurnBarChart extends StatelessWidget {
       return <InlineSpan>[TextSpan(text: l.chartNoRecord)];
     }
     return <InlineSpan>[
-      TextSpan(text: '${calories[i]}${l.unitKcal}'),
+      // ko `310kcal` · en `310 kcal`(#3120).
+      TextSpan(text: '${calories[i]}${unitGap(locale)}${l.unitKcal}'),
       if (rows.isNotEmpty) TextSpan(text: '\n${rows.join('\n')}'),
     ];
   }
@@ -775,7 +779,7 @@ class BurnBarChart extends StatelessWidget {
           builder: (BuildContext context, Widget? _) => PeriodScrollChart(
             count: calories.length,
             height: chartHeight,
-            selectedIndex: selection.selected,
+            selectedIndex: selection.selectedWithin(calories.length),
             onSelected: selection.select,
             onVisibleRangeChanged: selection.setVisible,
             daysPerScreen: _slotsPerScreen,
@@ -808,7 +812,7 @@ class BurnBarChart extends StatelessWidget {
             // 상세 한 화면에서 두 차트의 툴팁이 달라 보이지 않게(#2469). 같은
             // 내용을 시맨틱 라벨로도 준다(식단 차트 #972 와 같은 방식).
             barBuilder: (BuildContext context, int i) => Semantics(
-              label: TextSpan(children: _tipSpans(l, i)).toPlainText(),
+              label: TextSpan(children: _tipSpans(l, locale, i)).toPlainText(),
               child: Tooltip(
                 key: Key('client-exercise-bar-$i'),
                 excludeFromSemantics: true,
@@ -816,7 +820,9 @@ class BurnBarChart extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 richMessage: WidgetSpan(
                   child: AppChartTooltip(
-                    child: Text.rich(TextSpan(children: _tipSpans(l, i))),
+                    child: Text.rich(
+                      TextSpan(children: _tipSpans(l, locale, i)),
+                    ),
                   ),
                 ),
                 child: _BurnBarColumn(

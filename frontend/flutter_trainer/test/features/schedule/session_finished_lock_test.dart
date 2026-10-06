@@ -164,7 +164,7 @@ void main() {
           find.byKey(const ValueKey<String>('session-finished-hint')),
           findsOneWidget,
         );
-        expect(find.text('끝난 PT는 메모·프로그램만 고칠 수 있어요.'), findsOneWidget);
+        expect(find.text('끝난 PT는 피드백·프로그램만 고칠 수 있어요.'), findsOneWidget);
 
         await _openMenu(tester);
         // 감추지 않고 흐리게 둔다 — 동작이 있는데 지금은 안 된다.
@@ -188,7 +188,7 @@ void main() {
     testWidgets('완료 세션은 일정 수정을 열고, 되돌리기 안내를 보인다', (tester) async {
       final taps = await _pumpCard(tester, _session(ScheduleStatus.done));
 
-      expect(find.textContaining('완료한 PT는 메모·프로그램만'), findsOneWidget);
+      expect(find.textContaining('완료한 PT는 피드백·프로그램만'), findsOneWidget);
       await _openMenu(tester);
       await _tapItem(tester, 'session-edit-schedule-chip');
       expect(taps.editSchedule, 1);

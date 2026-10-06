@@ -80,6 +80,7 @@ class WeeklyReport implements ReportSheetWeek {
     this.days = const <ReportDay>[],
     this.mealCounts = const <int>[],
     this.memberFeedback,
+    this.memberFeedbackFailed = false,
     this.calorieBaseline,
   });
 
@@ -161,8 +162,11 @@ class WeeklyReport implements ReportSheetWeek {
   final double? proteinTarget;
 
   /// 개인 목표가 없어도 채워지는 실효 단백질 목표(#2898) — 식단 분석과 같은
-  /// 규칙(개인 목표 → 체중 × 1.2g → 60g). 리포트 막대 분모다. 판정은 여전히
-  /// [proteinTarget] 만 본다 — 지어낸 기준으로 균형을 나무라지 않는다.
+  /// 규칙(개인 목표 → 체중 × 1.2g → 60g). 리포트 탄단지 막대와 결과지 단백질
+  /// 막대의 분모로만 쓴다. `부족`·`초과` 판정은 [proteinTarget] 이 있을 때만
+  /// 하고 이 값은 보지 않는다 — 서버 리포트 요약·결과지와 같은 규칙이다
+  /// (`ReportSheet.macros`, #3259). 지어낸 기준으로 균형을 나무라지 않는다.
+  @override
   final double? effectiveProteinTarget;
   @override
   final double? fatTarget;
@@ -184,6 +188,11 @@ class WeeklyReport implements ReportSheetWeek {
   /// 수치만 보면 같은 한 주가 `게으름` 으로도 `과부하·일정 문제` 로도 읽힌다.
   /// 그 둘은 다음 주 처방이 정반대라, 갈림길은 회원 본인의 답이 정한다.
   final MemberWeeklyFeedback? memberFeedback;
+
+  /// 회원 피드백을 읽지 못했다(#3246). [memberFeedback] 이 null 이어도 `안 냈다`
+  /// 가 아니다 — 이대로 보내면 답한 회원의 결과지에 `아직 받지 못했어요` 가
+  /// 실리므로 화면이 전송을 막고 다시 불러오게 한다.
+  final bool memberFeedbackFailed;
 
   /// 직전 4주(`kCalorieBaselineWeeks`) 동안 기록한 날의 하루 평균 칼로리 — ①
   /// 섭취 칼로리 줄이 견주는 `평소`. (#2232, #2863)
@@ -241,7 +250,9 @@ class WeeklyReport implements ReportSheetWeek {
         '${day.completion}:${day.assigned}:${day.assignedDone}:${day.exercises.join('␟')}',
       mealCounts.join(','),
       calorieBaseline,
-      if (member == null)
+      if (memberFeedbackFailed)
+        '!'
+      else if (member == null)
         '-'
       else
         <Object?>[
@@ -254,7 +265,7 @@ class WeeklyReport implements ReportSheetWeek {
     ].join('␞');
   }
 
-  /// `M월 D일 – M월 D일` / `M/D – M/D`, in the current locale.
+  /// `M월 D일 ~ M월 D일` / `M/D – M/D`, in the current locale.
   String rangeLabel(AppLocalizations l) => l.dateRange(
     l.dateMonthDay(weekStart.month, weekStart.day),
     l.dateMonthDay(weekEnd.month, weekEnd.day),

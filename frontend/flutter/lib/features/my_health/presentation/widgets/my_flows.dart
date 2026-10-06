@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/app_version/app_version.dart';
+import 'package:oncare/core/release/build_info.dart';
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -22,12 +23,15 @@ import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
+import 'package:oncare/features/exercise/presentation/controllers/location_consent_controller.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
+import 'package:oncare/features/my_health/presentation/widgets/email_change_code_dialog.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_error_state_for.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_core/legal_contact.dart';
 import 'package:oncare_core/licenses.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -530,7 +534,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     final bool emailChanged =
         email != null &&
         email.toLowerCase() != _base.email.trim().toLowerCase();
-    Future<void> send({AccountReauth? reauth}) async {
+    Future<void> send({AccountReauth? reauth, String? emailCode}) async {
       _base = await ref
           .read(accountRepositoryProvider)
           .updateProfile(
@@ -542,6 +546,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             heightCm: heightCm,
             weightKg: weightKg,
             reauth: reauth,
+            emailCode: emailCode,
             // 이메일이 바뀌면 다른 기기의 세션이 끊기고 이 기기에 새 토큰이
             // 온다 — 비밀번호 변경과 같이 받아 넣어야 로그인이 이어진다.
             onTokensReissued: _adoptTokens,
@@ -551,17 +556,40 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     }
 
     if (emailChanged) {
+      // 먼저 새 주소의 주인인지 확인한다(#3230) — 그 주소로 보낸 코드를 받아 온다.
+      // 본인 확인만으로는 남의 주소로 바꿔 그 주소를 선점할 수 있었다. 취소하면
+      // 편집 상태 그대로 둔다.
+      final String? emailCode = await showEmailChangeCodeDialog(
+        context: context,
+        email: email,
+      );
+      if (!mounted || emailCode == null) return;
       // 저장 버튼의 진행 표시는 켜지 않는다 — 창이 떠 있는 동안 진행 중인 것은
       // 창 안의 확정 버튼이고, 창 뒤에서 도는 표시는 회원에게 보이지도 않는다.
+      Future<void>? request;
       final AccountReauthDialogOutcome outcome = await showAccountReauthDialog(
         context: context,
         message: l.reauthEmailMessage,
         confirmLabel: l.mySave,
         hasPassword: _base.hasPassword,
-        onSubmit: (AccountReauth reauth) => send(reauth: reauth),
+        onSubmit: (AccountReauth reauth) =>
+            request = send(reauth: reauth, emailCode: emailCode),
       );
       if (!mounted) return;
-      switch (outcome.result) {
+      AccountReauthDialogResult result = outcome.result;
+      // 창이 요청 도중 다른 길로 닫혔다면 `취소` 로 온다. 서버에서는 이메일이
+      // 바뀌었을 수 있다 — 탈퇴 화면처럼 그 요청의 끝을 보고 판단한다(#3245).
+      final Future<void>? pending = request;
+      if (result == AccountReauthDialogResult.cancelled && pending != null) {
+        try {
+          await pending;
+          result = AccountReauthDialogResult.done;
+        } on Object {
+          // 거절·실패면 이메일은 그대로다 — 취소로 둔다.
+        }
+        if (!mounted) return;
+      }
+      switch (result) {
         case AccountReauthDialogResult.done:
           _onSaved(toast, l);
         case AccountReauthDialogResult.cancelled:
@@ -636,6 +664,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         _phoneRequiredByServer = true;
         _errors.validate(const <_ProfileField>[_ProfileField.phone]);
       case ProfileUpdateRejection.invalid:
+      // 코드가 틀렸거나 만료됐다(#3230) — 저장을 다시 누르면 새 코드를 받는다.
+      case ProfileUpdateRejection.emailCodeInvalid:
         break;
     }
     setState(() => _saving = false);
@@ -643,6 +673,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       ProfileUpdateRejection.emailTaken => l.myProfileEmailTaken,
       ProfileUpdateRejection.phoneRequired => l.myProfilePhoneRequired,
       ProfileUpdateRejection.invalid => l.myProfileInvalid,
+      ProfileUpdateRejection.emailCodeInvalid => l.signUpEmailCodeInvalid,
     };
   }
 
@@ -1185,6 +1216,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   RecommendedGoals get _exerciseSuggestion =>
       _recommendedFor(UserProfile.defaultDailyCalories);
 
+  /// 회원의 나이·성별·키·체중으로 낸 권장 칼로리와 그 배분(#2144). 온보딩·
+  /// 트레이너 웹 신체·목표 창과 **같은 계산**이다.
+  ///
+  /// 흐린 기준선([_fallbackValue])과는 다른 값이다. 기준선은 목표 없는 회원을
+  /// 홈·식단 탭이 실제로 견주는 2000 이고, 이 값은 회원이 받아들였을 때만
+  /// 목표가 된다 — 온보딩도 계산값을 칸에 채워 보여 주고 완료를 눌러야 저장한다.
+  /// 정보가 모자라면 `fallback` 이고, 그때 화면은 이 줄을 내지 않는다.
+  RecommendedGoals get _personalSuggestion => recommendedGoalsFor(
+    ageYears: ageFromBirthDate(_base.birthDate, today: todayKst()),
+    gender: _base.gender,
+    heightCm: _base.heightCm,
+    weightKg: _base.weightKg,
+    focus: _focus,
+  );
+
   /// 탄단지 → 칼로리. 세 칸이 모두 채워졌을 때만 칼로리를 다시 쓴다.
   ///
   /// 한 칸이라도 비어 있으면 손대지 않는다 — 지우는 도중의 빈 칸을 0g 으로
@@ -1227,6 +1273,37 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _markTouched(_kFat);
     _markTouched(_kSugar);
     _syncCaloriesFromMacros();
+  }
+
+  /// 권장 칼로리와 그 배분을 다섯 칸에 채운다(#2144).
+  ///
+  /// 채운 칸은 손댄 칸으로 친다 — 저장하면 `null` 이 아니라 이 값이 목표로
+  /// 나가, 홈·식단 탭·트레이너 화면이 모두 같은 숫자를 견준다.
+  ///
+  /// 칼로리를 탄단지에서 다시 세지 않는다. 반올림 탓에 배분의 합이 몇 kcal
+  /// 어긋나는데, 다시 세면 칸이 방금 안내한 권장 칼로리와 다른 수가 되고
+  /// `탄·단·지 목표로 계산한 값` 이라는 엉뚱한 안내까지 붙는다. 온보딩도 두
+  /// 값을 따로 채운다.
+  void _applyPersonalSuggestion() {
+    final RecommendedGoals r = _personalSuggestion;
+    if (!r.isPersonalized) return;
+    setState(() {
+      _kcal.text = '${r.dailyCalories}';
+      _carbs.text = '${r.dailyCarbsG}';
+      _protein.text = '${r.dailyProteinG}';
+      _fat.text = '${r.dailyFatG}';
+      _sugar.text = '${r.dailySugarG}';
+      _kcalFromMacros = false;
+      for (final String key in <String>[
+        _kKcal,
+        _kCarbs,
+        _kProtein,
+        _kFat,
+        _kSugar,
+      ]) {
+        _markTouched(key);
+      }
+    });
   }
 
   /// 권장 운동 목표를 네 칸에 채운다. 고른 건강 목표를 반영한 값이다(#1816).
@@ -1370,6 +1447,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     // 만질 때마다 사라진다.
     final split = _suggestedSplit;
     final RecommendedGoals exercise = _exerciseSuggestion;
+    final RecommendedGoals personal = _personalSuggestion;
     // 보기 모드가 읽는 초점도 저장된 값이다 — 고치다 취소한 선택이 남아
     // 있을 수 있는 `_focus` 가 아니라 프로필에서 다시 센다.
     final Set<String> savedFocus = parseHealthFocus(_base.conditions);
@@ -1623,6 +1701,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
               }),
             ),
           ),
+          // 회원 정보로 낸 권장 칼로리(#2144). 칼로리 칸 바로 아래에 둔다 — 이
+          // 줄이 말하는 것은 칼로리이고, 아래 `권장 배분` 줄은 칸에 적힌 칼로리를
+          // 나눈 값이라 자리가 다르다. 목표가 이미 저장된 회원에게도 보인다:
+          // 운동 권장 줄과 같은 규칙이고, 덮어쓰기는 버튼을 누르고 저장할 때만
+          // 일어난다. 값을 덮어쓰는 버튼이라 보기 모드에서는 내지 않고, 계산할
+          // 정보가 없으면 기본값 2000 을 권장처럼 다시 말하지 않도록 감춘다.
+          if (_editing && personal.isPersonalized) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            _MacroSuggestionRow(
+              buttonKey: const Key('goalApplyPersonalCalories'),
+              note: l.myGoalPersonalCaloriesNote(personal.dailyCalories),
+              actionLabel: l.myGoalPersonalCaloriesApply,
+              onApply: _applyPersonalSuggestion,
+            ),
+          ],
           const SizedBox(height: OnCareSpacing.s12),
           _goalField(
             _kCarbs,
@@ -2037,6 +2130,17 @@ class SupportPage extends StatelessWidget {
           () => _openLegal(context, _LegalDoc.privacy),
         ),
         const AppDivider(),
+        // 위치기반서비스 이용약관과 그 동의 스위치(#3136). 헬스장 찾기에서 받은
+        // 동의를 여기서 거둘 수 있다.
+        _supportRow(
+          context,
+          AppIcons.location,
+          l.myLegalLocationTitle,
+          () => _openLegal(context, _LegalDoc.location),
+        ),
+        const AppDivider(),
+        const LocationConsentRow(),
+        const AppDivider(),
         // 오픈소스 라이선스(#3150) — 의존 패키지와 앱에 담긴 Pretendard 글꼴의
         // 고지. Flutter 기본 목록 화면을 앱 테마 그대로 연다.
         _supportRow(
@@ -2062,9 +2166,12 @@ class SupportPage extends StatelessWidget {
   }
 }
 
-/// 고객 지원 맨 아래 버전 줄(#3047). 버전은 빌드에서 읽는다 — 예전에는 번역
-/// 문구에 `1.0.0` 이 박혀 실제 빌드와 상관없이 늘 같았다. 읽기 전·읽지 못하면
-/// 앱 이름만 보인다(트레이너 웹과 같은 규칙).
+/// 고객 지원 맨 아래 버전 줄(#3047, #3226) — 앱에서 버전이 보이는 단 한 곳이다.
+///
+/// `On-Care · 버전 0.4.0 (7032) · 2026년 10월 5일 14:30 KST 배포`. 버전 이름은 빌드에서
+/// 읽는다 — 예전에는 번역 문구에 `1.0.0` 이 박혀 실제 빌드와 상관없이 늘 같았다.
+/// 빌드 번호가 없는 로컬·테스트 빌드는 `On-Care · 버전 0.4.0 · 개발 빌드` 다. 문구
+/// 조립은 트레이너 웹과 같은 규칙이다([buildInfoSummary]).
 class SupportAppVersionLine extends ConsumerWidget {
   const SupportAppVersionLine({super.key});
 
@@ -2072,10 +2179,13 @@ class SupportAppVersionLine extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Text(
-      switch (ref.watch(appVersionProvider).valueOrNull) {
-        final String version => l.myAppVersion(version),
-        null => l.myAppName,
-      },
+      buildInfoSummary(
+        l,
+        Localizations.localeOf(context).toString(),
+        ref.watch(buildInfoProvider),
+      ),
+      key: const ValueKey<String>('support-app-version'),
+      textAlign: TextAlign.center,
       style: context.oncare
           .text(OnCareTypography.caption)
           .copyWith(color: OnCareColors.textTertiary),
@@ -2154,7 +2264,68 @@ Widget _supportRow(
 
 /// The in-app legal documents surfaced from customer support. Titles and
 /// bodies are resolved from localizations via [_LegalDocSheet].
-enum _LegalDoc { terms, privacy }
+enum _LegalDoc { terms, privacy, location }
+
+/// 위치정보 이용 동의 스위치(#3136).
+///
+/// 켜면 동의를 남기고, 끄면 철회한다. 철회하면 헬스장 찾기가 들고 있던 회원
+/// 위치도 버린다. 저장에 실패하면 스위치는 그대로이고 실패를 알린다.
+class LocationConsentRow extends ConsumerStatefulWidget {
+  const LocationConsentRow({super.key});
+
+  @override
+  ConsumerState<LocationConsentRow> createState() => _LocationConsentRowState();
+}
+
+class _LocationConsentRowState extends ConsumerState<LocationConsentRow> {
+  bool _saving = false;
+
+  Future<void> _set(bool value) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AppToastHost toast = AppToastHost.of(context);
+    setState(() => _saving = true);
+    final LocationConsentController controller = ref.read(
+      locationConsentProvider.notifier,
+    );
+    final bool saved = value
+        ? await controller.agree()
+        : await controller.revoke();
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (!saved) {
+      toast.show(l.locationConsentSaveFailed, type: AppToastType.error);
+      return;
+    }
+    toast.show(value ? l.myLocationConsentAgreed : l.myLocationConsentRevoked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final bool? agreed = ref.watch(locationConsentProvider).valueOrNull;
+    return AppListRow(
+      key: const ValueKey<String>('my-location-consent'),
+      leading: AppIcon(
+        AppIcons.location,
+        size: OnCareSize.iconMedium,
+        color: context.oncare.brand.primary,
+      ),
+      title: l.myLocationConsentTitle,
+      subtitle: l.myLocationConsentHint,
+      // 스위치에 이름을 붙인다 — 알림 설정과 같은 이유다(#1942).
+      trailing: Semantics(
+        label: l.myLocationConsentTitle,
+        excludeSemantics: true,
+        child: Switch(
+          key: const ValueKey<String>('my-location-consent-switch'),
+          value: agreed ?? false,
+          // 읽는 중·저장 중에는 누를 수 없다 — 모르는 값을 뒤집지 않는다.
+          onChanged: agreed == null || _saving ? null : _set,
+        ),
+      ),
+    );
+  }
+}
 
 class LegalDocumentPage extends StatelessWidget {
   const LegalDocumentPage({super.key, required this.document});
@@ -2164,15 +2335,31 @@ class LegalDocumentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool isTerms = document == _LegalDoc.terms.name;
-    final String title = isTerms ? l.myLegalTermsTitle : l.myLegalPrivacyTitle;
-    final String body = isTerms
-        ? l.myLegalTermsBody
-        : l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
-    // 두 문서는 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
-    final String effectiveDate = isTerms
-        ? l.myLegalTermsEffectiveDate
-        : l.myLegalPrivacyEffectiveDate;
+    final _LegalDoc doc = _LegalDoc.values.firstWhere(
+      (_LegalDoc d) => d.name == document,
+      orElse: () => _LegalDoc.privacy,
+    );
+    final String title = switch (doc) {
+      _LegalDoc.terms => l.myLegalTermsTitle,
+      _LegalDoc.privacy => l.myLegalPrivacyTitle,
+      _LegalDoc.location => l.myLegalLocationTitle,
+    };
+    final String body = switch (doc) {
+      _LegalDoc.terms => l.myLegalTermsBody,
+      _LegalDoc.privacy => l.myLegalPrivacyBody(
+        LegalContact.privacyOfficerEmail,
+      ),
+      // 위치정보관리책임자는 개인정보 보호책임자가 겸한다(#3136).
+      _LegalDoc.location => l.myLegalLocationBody(
+        LegalContact.privacyOfficerEmail,
+      ),
+    };
+    // 문서마다 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
+    final String effectiveDate = switch (doc) {
+      _LegalDoc.terms => l.myLegalTermsEffectiveDate,
+      _LegalDoc.privacy => l.myLegalPrivacyEffectiveDate,
+      _LegalDoc.location => l.myLegalLocationEffectiveDate,
+    };
     return _shell(context, title, <Widget>[
       _card(<Widget>[
         Text(

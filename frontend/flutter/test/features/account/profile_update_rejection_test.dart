@@ -15,6 +15,7 @@ import 'package:oncare/features/account/data/repositories/dio_account_repository
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
+import 'package:oncare/features/auth/domain/signup_email_code.dart';
 
 import '../../helpers/mock_account_repository.dart';
 
@@ -67,7 +68,7 @@ void main() {
     test('409 는 이메일 중복이다', () {
       expect(
         ProfileUpdateRejected.fromResponse(409, <String, Object?>{
-          'detail': '이미 사용 중인 이메일입니다.',
+          'detail': '이미 사용 중인 이메일이에요.',
         })?.reason,
         ProfileUpdateRejection.emailTaken,
       );
@@ -83,7 +84,7 @@ void main() {
     test('422 가 문장이면 연락처 비움이다', () {
       expect(
         ProfileUpdateRejected.fromResponse(422, <String, Object?>{
-          'detail': '전화번호는 비울 수 없습니다.',
+          'detail': '전화번호는 비울 수 없어요.',
         })?.reason,
         ProfileUpdateRejection.phoneRequired,
       );
@@ -125,7 +126,7 @@ void main() {
   group('DioAccountRepository.updateProfile — 실서버 예외', () {
     test('409 는 이메일 중복으로 올린다', () async {
       final repo = _serverRepo(409, <String, Object?>{
-        'detail': '이미 사용 중인 이메일입니다.',
+        'detail': '이미 사용 중인 이메일이에요.',
       });
       await expectLater(
         repo.updateProfile(email: 'trainer@oncare.com'),
@@ -135,7 +136,7 @@ void main() {
 
     test('문장 422 는 연락처 비움으로 올린다', () async {
       final repo = _serverRepo(422, <String, Object?>{
-        'detail': '전화번호는 비울 수 없습니다.',
+        'detail': '전화번호는 비울 수 없어요.',
       });
       await expectLater(
         repo.updateProfile(phone: ''),
@@ -215,8 +216,10 @@ void main() {
     });
 
     test('아무도 쓰지 않는 새 이메일이면 저장된다', () async {
+      // 새 주소 확인 코드까지 맞아야 바뀐다(#3230). 데모는 데모 코드를 받는다.
       final UserProfile saved = await repo.updateProfile(
         email: 'minsu.new@oncare.com',
+        emailCode: SignupEmailCode.demoCode,
         reauth: _reauth,
       );
       expect(saved.email, 'minsu.new@oncare.com');
@@ -308,6 +311,7 @@ void main() {
       final repo = MockAccountRepository();
       final UserProfile saved = await repo.updateProfile(
         email: 'trainer@oncare.com',
+        emailCode: SignupEmailCode.demoCode,
         reauth: _reauth,
       );
       expect(saved.email, 'trainer@oncare.com');

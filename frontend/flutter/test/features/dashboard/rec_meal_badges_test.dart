@@ -29,9 +29,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 const Set<String> _allowedTags = <String>{
   '저나트륨',
   '저칼로리',
-  '저당류',
+  '저당',
   '저탄수화물',
-  '고단백질',
+  '고단백',
   '저지방',
 };
 
@@ -249,7 +249,7 @@ void main() {
       expect(pickX, lessThan(x));
     }
     // 이유 태그는 정해 둔 어휘로 그린다.
-    expect(find.text('고단백질'), findsWidgets);
+    expect(find.text('고단백'), findsWidgets);
   });
 
   testWidgets('여섯 어휘로 말할 수 없는 이유는 배지 없이 이유 줄만 쓴다', (WidgetTester tester) async {

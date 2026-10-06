@@ -104,9 +104,8 @@ class _CatalogRepository implements ExerciseRepository {
 
 Future<void> _openSheet(
   WidgetTester tester,
-  _CatalogRepository repository, {
-  ExerciseSession? session,
-}) async {
+  _CatalogRepository repository,
+) async {
   tester.view.physicalSize = const Size(500, 1600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -124,7 +123,7 @@ Future<void> _openSheet(
         home: Scaffold(
           body: Builder(
             builder: (BuildContext context) => TextButton(
-              onPressed: () => showExerciseAddSheet(context, session: session),
+              onPressed: () => showExerciseAddSheet(context),
               child: const Text('열기'),
             ),
           ),
@@ -134,10 +133,10 @@ Future<void> _openSheet(
   );
   await tester.tap(find.text('열기'));
   await tester.pumpAndSettle();
-  // 새 기록은 0시 0분 0초로 열린다(#2071). 이 스위트는 `유산소 30분` 의
+  // 시트는 0시 0분 0초로 열린다(#2071). 이 스위트는 `유산소 30분` 의
   // 칼로리를 보므로, 그 시간을 먼저 적어 둔다 — 0 이면 미리보기를 부르지
   // 않는다(서버가 `minutes > 0` 을 요구한다).
-  if (session == null) await _rollWheel(tester, 1, 30);
+  await _rollWheel(tester, 1, 30);
 }
 /// 시·분 휠의 [column] 번째 칸을 [steps] 칸만큼 굴린다. (#2071)
 ///
@@ -236,32 +235,6 @@ void main() {
     await _typeName(tester, '');
     expect(
       find.descendant(of: box, matching: find.text(l.exCaloriesNeedName)),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('수정 시트는 이름이 이미 차 있어 열자마자 값이 보인다', (WidgetTester tester) async {
-    final repository = _CatalogRepository();
-    await _openSheet(
-      tester,
-      repository,
-      session: const ExerciseSession(
-        id: 'ex-1',
-        dayLabel: '월',
-        type: ExerciseType.cardio,
-        name: '러닝머신',
-        minutes: 30,
-        calories: 290,
-      ),
-    );
-    final AppLocalizations l = _l(tester);
-
-    expect(repository.askedNames, contains('러닝머신'));
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('exerciseCalorieBox')),
-        matching: find.text(l.unitKcalValue(290)),
-      ),
       findsOneWidget,
     );
   });

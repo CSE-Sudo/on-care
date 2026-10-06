@@ -25,6 +25,10 @@ class AppRoutes {
   /// 잃지 않는다.
   static const String passwordReset = '/auth/password-reset';
 
+  /// 아이디(가입 이메일) 찾기. 로그인 화면이 연다. 가입 화면처럼 로그아웃
+  /// 상태에서만 머문다 — 로그인한 채 열면 대시보드로 간다. 찾기는 아직 준비 중이다.
+  static const String findEmail = '/auth/find-email';
+
   // --- Main navigation (StatefulShellRoute branches) ---
 
   /// 대시보드 — the console's home; what needs doing today.
@@ -353,6 +357,9 @@ class AppRoutes {
     my,
     legacyConsultations,
     notifications,
+    // 운영 화면도 새로 고침 뒤 제자리로 돌아온다(#3248). 운영자가 아니면 화면이
+    // 찾을 수 없음 안내만 그린다.
+    adminReports,
   ];
 
   /// Is [location] an in-app destination the app may return to?

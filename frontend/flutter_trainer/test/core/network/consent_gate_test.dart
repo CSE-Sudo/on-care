@@ -72,6 +72,7 @@ class _AuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async => _tokens;
 

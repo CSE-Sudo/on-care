@@ -11,7 +11,7 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -448,7 +448,7 @@ class DietEntry(Base):
     sugar_g: Mapped[float] = mapped_column(Float, default=0.0)
     engine: Mapped[str] = mapped_column(
         String(20), default=""
-    )  # 인식 엔진(gemini|yolo)
+    )  # 인식 엔진(gemini|litellm|stub)
     # 사진 분석이 만든 식단평(#1932). 앱이 끼니 카드 아래 한 줄로 보여 준다.
     # 손으로 적은 끼니와 이 컬럼 이전 기록은 빈 문자열이다.
     ai_comment: Mapped[str] = mapped_column(Text, default="", server_default="")
@@ -1165,7 +1165,7 @@ class SocialAccount(Base):
     )
     provider: Mapped[str] = mapped_column(
         String(20), index=True
-    )  # kakao|google|naver|apple
+    )  # kakao|google — 지난 provider 값(naver·apple)도 받는 자유 문자열(#3218)
     provider_user_id: Mapped[str] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -1562,6 +1562,13 @@ class TrainerClientInvite(Base):
         # 회원 앱이 읽는 질의 그대로 — 나에게 온 대기 중인 요청.
         Index(
             "ix_trainer_client_invites_member_status", "member_id", "status"
+        ),
+        # 마이그레이션 0050 의 제약과 같은 이름·식이다(#3251). 모델에 없으면
+        # `create_all` 로 만드는 테스트 DB 가 잘못된 상태값을 받아 운영과 달라진다.
+        # 운영 DB 에는 이미 있어 새 마이그레이션은 필요 없다.
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'rejected', 'cancelled')",
+            name="ck_trainer_client_invite_status",
         ),
     )
 
@@ -2559,7 +2566,7 @@ class EmailVerificationCode(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     #: 소문자로 정규화한 이메일.
     email: Mapped[str] = mapped_column(String(255))
-    #: `member_signup` | `trainer_signup`.
+    #: `member_signup` | `trainer_signup` | `email_change`(로그인 이메일 변경, #3230).
     purpose: Mapped[str] = mapped_column(String(32))
     code_hash: Mapped[str] = mapped_column(String(64))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
@@ -2630,8 +2637,10 @@ class AiConversation(Base):
 class AiChatUsage(Base):
     """AI 챗봇이 답한 대화 한 번 — 하루 무료 횟수와 포인트 구매를 센다. (#2145)
 
-    **LLM 이 실제로 답했을 때만** 한 줄이 생긴다. 키가 없거나 모델이 실패해 검색 기반
-    대체 답을 준 대화는 세지 않는다 — 회원이 받은 것이 AI 답이 아니다.
+    **LLM 이 실제로 답했을 때만** 한 줄이 남는다. 키가 없거나 모델이 실패해 검색 기반
+    대체 답을 준 대화는 세지 않는다 — 회원이 받은 것이 AI 답이 아니다. 줄은 LLM 을
+    부르기 전에 미리 잡고(`message_id` 가 빈 줄, #3240) 답하지 못하면 지운다 — 동시에
+    보낸 요청이 한도·잔액을 넘지 않게 하려는 것이다.
 
     `paid` 면 그 대화에 포인트를 썼고, 원장(`points_ledger`)의 `ai_chat` 사용 줄이 이
     행의 id 를 근거로 남는다. `balance_after` 는 차감 뒤 잔액으로, 답변 아래의

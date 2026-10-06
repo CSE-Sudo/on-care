@@ -39,7 +39,7 @@ MEMBER_REQUIRED = ["age14", "health", "privacy", "terms"]
 AUTH_ONLY_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/users/me/consents"): "동의를 제출하는 곳이다.",
     ("GET", "/v1/chat/attachments/{file_id}"): "회원·트레이너가 함께 쓰는 첨부 내려받기. "
-    "회원의 첨부는 동의 뒤의 채팅에서만 생긴다.",
+    "역할 의존성 대신 핸들러가 `ensure_consented` 로 직접 확인한다(#3239).",
 }
 
 

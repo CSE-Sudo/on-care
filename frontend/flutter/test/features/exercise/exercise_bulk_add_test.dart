@@ -109,11 +109,7 @@ const Key _saveButton = Key('exerciseSaveButton');
 const Key _cancelButton = Key('exerciseCancelButton');
 const Key _addAnother = Key('exerciseAddAnotherButton');
 
-Future<void> _open(
-  WidgetTester tester,
-  _BatchRepository repo, {
-  ExerciseSession? session,
-}) async {
+Future<void> _open(WidgetTester tester, _BatchRepository repo) async {
   tester.view.physicalSize = const Size(500, 1600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -129,7 +125,7 @@ Future<void> _open(
         home: Scaffold(
           body: Builder(
             builder: (BuildContext context) => TextButton(
-              onPressed: () => showExerciseAddSheet(context, session: session),
+              onPressed: () => showExerciseAddSheet(context),
               child: const Text('열기'),
             ),
           ),
@@ -265,7 +261,7 @@ void main() {
 
     await _tapKey(tester, _addAnother);
 
-    expect(find.text('운동 이름을 입력해주세요'), findsOneWidget);
+    expect(find.text('운동 이름을 입력해 주세요'), findsOneWidget);
     expect(find.textContaining('추가할 운동'), findsNothing);
   });
 
@@ -305,24 +301,5 @@ void main() {
     expect(find.byKey(_sheet), findsOneWidget);
     expect(find.text('추가할 운동 1'), findsOneWidget);
     expect(_saveLabel(tester), '2개 저장');
-  });
-
-  testWidgets('수정 시트에는 운동 하나 더가 없다', (WidgetTester tester) async {
-    await _open(
-      tester,
-      _BatchRepository(),
-      session: ExerciseSession(
-        id: 'ex-1',
-        dayLabel: '월',
-        type: ExerciseType.cardio,
-        minutes: 30,
-        calories: 120,
-        name: '걷기',
-        date: DateTime(2026, 9, 14),
-      ),
-    );
-
-    expect(find.byKey(_addAnother), findsNothing);
-    expect(_saveLabel(tester), '저장');
   });
 }

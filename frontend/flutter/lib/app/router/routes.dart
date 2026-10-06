@@ -94,6 +94,10 @@ class AppRoutes {
   /// 채로 링크를 열어도 코드를 잃지 않는다.
   static const String passwordReset = '/auth/password-reset';
 
+  /// 아이디(가입 이메일) 찾기. 로그인 화면이 연다. 가입 화면처럼 로그아웃
+  /// 상태에서만 머문다 — 로그인한 채 열면 홈으로 간다. 찾기는 아직 준비 중이다.
+  static const String findEmail = '/auth/find-email';
+
   /// MY → 비밀번호 변경(#2824)의 설정 구역 이름.
   static const String passwordSettingsSection = 'password';
 

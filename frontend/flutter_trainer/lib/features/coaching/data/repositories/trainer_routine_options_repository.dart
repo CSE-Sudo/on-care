@@ -9,6 +9,8 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/utils/korean_josa.dart' show josa;
+import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
@@ -151,7 +153,7 @@ class MockTrainerRoutineOptionsRepository
     final bool sodiumOver = member?.sodiumOver ?? true;
     // 서버 규칙형과 같다 — 목표를 넘을 때만 꼬리표를 단다.
     final String sodiumLabel = sodiumOver
-        ? t(' (목표 초과)', ' (over target)')
+        ? t(' (목표 초과)', ' (over goal)')
         : '';
     final note = trainerNote.trim();
     final noteSuffix = note.isEmpty
@@ -254,7 +256,7 @@ class MockTrainerRoutineOptionsRepository
           'A short, easy-to-sustain recovery program',
         ),
         rationale: en
-            ? 'Sodium today ${sodium}mg$sodiumLabel, recent workout '
+            ? 'Sodium today $sodium mg$sodiumLabel, recent workout '
                   'completion $completion% → focusing on consistency with '
                   'low-strain cardio and stretching.$noteSuffix$safety'
             : '오늘 나트륨 ${sodium}mg$sodiumLabel, 최근 운동 완료율 $completion% → '
@@ -400,7 +402,8 @@ class MockTrainerRoutineOptionsRepository
             ? 'Keeps the core exercises ($coreLabel) and adds '
                   "'${libraryExerciseName(extra.$1, en: true)}' to gradually "
                   'raise the workload.$suffix'
-            : "기존 핵심 운동($coreLabel)은 유지하고 '${extra.$1}'을(를) 더해 "
+            : '기존 핵심 운동($coreLabel)은 유지하고 '
+                  "'${extra.$1}'${josa(extra.$1, '을', '를')} 더해 "
                   '운동량을 점진적으로 늘림.$suffix',
       ),
       generatedBy: 'rule',
@@ -508,7 +511,16 @@ class MockTrainerRoutineOptionsRepository
                     DateTime(since.year, since.month, since.day),
                   ),
             ))
-            .get();
+            .get()
+            // 하루치 `개인운동` 카드는 빼고 센다 — 서버는 그 카드를 이력 표가
+            // 아니라 개인운동 완료에서 만들어, 추천 근거(`RoutineHistory`)에
+            // 들지 않는다(#3003).
+            .then(
+              (rows) => <ClientRoutineHistoryRow>[
+                for (final row in rows)
+                  if (routineKindCode(row.label) != 'personal_routine') row,
+              ],
+            );
     final List<List<Object?>> sessions = <List<Object?>>[
       for (final row in history)
         if (jsonDecode(row.exercisesJson) case final List<Object?> items) items,

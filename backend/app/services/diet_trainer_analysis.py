@@ -37,8 +37,9 @@ PERIOD_ALL = "all"
 
 #: 오늘 칼로리를 "넘쳤다" 로 볼 배수 — 회원 앱 오늘 조언과 같다.
 CALORIE_OVER_RATIO = 1.1
-#: 오늘 단백질을 "모자라다" 로 말할 최소 부족분(g) — 회원 앱과 같다.
-PROTEIN_GAP_G = 10
+#: 오늘 단백질을 "모자라다" 로 말할 최소 부족분(g) — 회원 앱 오늘 조언과 같은 값을
+#: 한 곳(`diet_coach_inputs`)에서 읽는다(#3270).
+PROTEIN_GAP_G = inputs.COACH_PROTEIN_GAP_G
 #: 최근 4주 평균 단백질이 목표의 이 비율보다 낮으면 "꾸준히 부족" 이다.
 PROTEIN_CHRONIC_RATIO = 0.8
 #: 이 시각이 지났는데 그 끼니가 없으면 "기록이 아직 없다" 고 말한다(회원 앱과 같다).
@@ -74,7 +75,7 @@ _KO: dict[str, str] = {
                      "{value}까지 올라 목표 {target}의 {ratio}배가 됐어요.",
     "tr_today_over_meal": "{slot_ko} 식사({food_value}) 때문에 오늘 {nutrient_subj} "
                           "{value}까지 올라 목표 {target}의 {ratio}배가 됐어요.",
-    "tr_today_protein_short": "단백질은 {value}으로 목표보다 {gap} 모자라요.",
+    "tr_today_protein_short": "단백질은 {value}으로 목표보다 {gap} 부족해요.",
     "tr_today_protein_chronic": "단백질은 {value}으로 목표보다 {gap} 모자라고, 최근 4주 "
                                 "평균도 하루 {avg}이라 꾸준히 부족한 편이에요.",
     "tr_today_missing": "{slot_ko} 기록이 아직 없어요.",
@@ -88,25 +89,25 @@ _KO: dict[str, str] = {
     "tr_week_protein_short": "{scope_ko} 기록한 {logged}일 중 {days}일 단백질이 목표의 "
                              "80%에 못 미쳤어요.",
     "tr_week_good": "{scope_ko} 기록한 {days}일 모두 목표 안에서 드셨어요.",
-    "tr_week_breakfast_snack_food": "아침 대신 먹은 것은 {food} {count}번이 가장 많았어요.",
+    "tr_week_breakfast_snack_food": "아침 대신 먹은 것은 {food} {count}회가 가장 많았어요.",
     "tr_week_protein_avg": "모자란 날은 하루 평균 {value} 정도였어요.",
     "tr_week_good_avg": "하루 평균 {kcal}, 단백질 {protein}을 드셨어요.",
     "tr_week_vs_last_more": "지난주({prev_logged}일 중 {prev_days}일)보다 늘었어요.",
     "tr_week_vs_last_less": "지난주({prev_logged}일 중 {prev_days}일)보다 줄었어요.",
     "tr_week_vs_last_same": "지난주({prev_logged}일 중 {prev_days}일)와 비슷해요.",
     "tr_all_few": "최근 4주 기록이 {days}일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
-    "tr_all_slot_sodium": "최근 4주 동안 {slot_ko} 나트륨이 {days}번 목표의 절반을 넘었어요.",
-    "tr_all_carb_heavy": "최근 4주 섭취 열량 중 탄수화물이 {pct}%로 높은 편이에요.",
-    "tr_all_protein_light": "최근 4주 섭취 열량 중 단백질이 {pct}%로 낮은 편이에요.",
+    "tr_all_slot_sodium": "최근 4주 동안 {slot_ko} 나트륨이 {days}회 목표의 절반을 넘었어요.",
+    "tr_all_carb_heavy": "최근 4주 섭취 칼로리 중 탄수화물이 {pct}%로 높은 편이에요.",
+    "tr_all_protein_light": "최근 4주 섭취 칼로리 중 단백질이 {pct}%로 낮은 편이에요.",
     "tr_all_protein_trend_up": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 "
                                "{after}일로 늘었어요.",
     "tr_all_protein_trend_down": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 "
                                  "{after}일로 줄었어요.",
-    "tr_all_frequent": "최근 4주 동안 {slot_ko} 메뉴로 {food} {count}번이 가장 많았어요.",
+    "tr_all_frequent": "최근 4주 동안 {slot_ko} 메뉴로 {food} {count}회가 가장 많았어요.",
     "tr_all_repeated": "최근 4주 음식 기록에서 {food1}·{food2} 비중이 높아요.",
     "tr_all_good": "최근 4주 동안 {days}일 기록했고, 흐름이 고른 편이에요.",
-    "tr_foods_one": "{food1} {count1}번이 대부분이에요.",
-    "tr_foods_two": "{food1} {count1}번, {food2} {count2}번이 대부분이에요.",
+    "tr_foods_one": "{food1} {count1}회가 대부분이에요.",
+    "tr_foods_two": "{food1} {count1}회, {food2} {count2}회가 대부분이에요.",
 }
 
 #: 영어 틀 — `Accept-Language: en` 인 트레이너의 `message`. 트레이너 웹 영어 ARB 가
@@ -176,7 +177,7 @@ class Sentence:
         return self.text_in("ko")
 
     def text_in(self, locale: str) -> str:
-        fields = _ko_fields(self.params)
+        fields = _ko_fields(self.params, spaced=locale == "en")
         if locale == "en":
             return _EN[self.key].format(**fields)
         return _KO[self.key].format(**fields)
@@ -198,17 +199,19 @@ class Analysis:
         return " ".join(s.text_in(locale) for s in self.sentences)
 
 
-def _fmt(value: int, nutrient: str) -> str:
-    return f"{value:,}{_UNIT[nutrient]}"
+def _fmt(value: int, nutrient: str, spaced: bool = False) -> str:
+    """`4,286mg` / 영어는 `4,286 mg` — 단위를 한국어는 붙이고 영어는 띄운다(#3120)."""
+    gap = " " if spaced else ""
+    return f"{value:,}{gap}{_UNIT[nutrient]}"
 
 
-def _ko_fields(params: dict[str, str | int]) -> dict[str, str | int]:
-    """값 → 한국어 틀에 넣을 말. 수치는 단위를 붙이고 천 단위를 끊는다."""
+def _ko_fields(params: dict[str, str | int], spaced: bool = False) -> dict[str, str | int]:
+    """값 → 틀에 넣을 말. 수치는 천 단위를 끊고 단위를 단다 — [spaced] 면 띄운다(영어)."""
     out: dict[str, str | int] = dict(params)
     nutrient = str(params.get("nutrient", ""))
     for k in ("value", "target", "food_value"):
         if k in params and nutrient in _UNIT:
-            out[k] = _fmt(int(params[k]), nutrient)
+            out[k] = _fmt(int(params[k]), nutrient, spaced)
     if "slot" in params:
         out["slot_ko"] = _SLOT_KO.get(str(params["slot"]), "간식")
         out["slot_en"] = _SLOT_EN.get(str(params["slot"]), "snack")
@@ -225,12 +228,12 @@ def _ko_fields(params: dict[str, str | int]) -> dict[str, str | int]:
         out["weekday_ko"] = _WEEKDAY_KO[int(params["weekday"])]
         out["weekday_en"] = _WEEKDAY_EN[int(params["weekday"])]
     if "kcal" in params:
-        out["kcal"] = _fmt(int(params["kcal"]), "calorie")
+        out["kcal"] = _fmt(int(params["kcal"]), "calorie", spaced)
     for k in ("gap", "avg", "protein"):
         if k in params:
-            out[k] = _fmt(int(params[k]), "protein")
+            out[k] = _fmt(int(params[k]), "protein", spaced)
     if nutrient == "protein" and "value" in params:
-        out["value"] = _fmt(int(params["value"]), "protein")
+        out["value"] = _fmt(int(params["value"]), "protein", spaced)
     return out
 
 
