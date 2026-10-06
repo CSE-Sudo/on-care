@@ -3237,7 +3237,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppDialog(
+    final Widget dialog = AppDialog(
       title: l.myChangePassword,
       size: AppDialogSize.medium,
       footer: AppButtonPair(
@@ -3280,5 +3280,8 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
         ],
       ),
     );
+    // 바꾸는 중에는 배경·뒤로 가기·닫기 X 로 닫히지 않는다(#3245) — 닫히면 칸 아래
+    // 오류를 보여 줄 자리가 사라진다. 기다리는 동안이 아니면 지금처럼 닫힌다.
+    return PopScope(canPop: !_saving, child: dialog);
   }
 }
