@@ -62,7 +62,7 @@ def set_trainer_gym(
     _apply_gym_texts(profile, place, db.get(GymProfile, place.id))
     db.commit()
     db.refresh(profile)
-    return build_trainer_me(trainer, profile)
+    return build_trainer_me(db, trainer, profile)
 
 
 def clear_trainer_gym(db: Session, trainer: User, profile: TrainerProfile) -> TrainerMe:
@@ -75,7 +75,7 @@ def clear_trainer_gym(db: Session, trainer: User, profile: TrainerProfile) -> Tr
     _apply_gym_texts(profile, None, None)
     db.commit()
     db.refresh(profile)
-    return build_trainer_me(trainer, profile)
+    return build_trainer_me(db, trainer, profile)
 
 
 # ---- 소속 헬스장 부가 정보 (#2700) ----
