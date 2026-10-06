@@ -412,26 +412,37 @@ class WriteReleaseDefinesTest(unittest.TestCase):
     def test_mock_api_cannot_be_overridden(self) -> None:
         self.assertEqual(defines.release_defines({"USE_MOCK_API": "true"})["USE_MOCK_API"], "false")
 
-    def test_writes_json_readable_only_by_owner(self) -> None:
-        tricky = 'https://k"\\@o.ingest.sentry.io/1'
+    TRICKY_DSN = 'https://k"\\@o.ingest.sentry.io/1'
+
+    def write_tricky_json(self, tmp: str) -> tuple[Path, str]:
+        out = Path(tmp) / "config" / "release.json"
+        env = {"APP_ENV": "staging", "SENTRY_DSN": self.TRICKY_DSN}
+        old = dict(os.environ)
+        try:
+            os.environ.clear()
+            os.environ.update(env)
+            with redirect_stdout(io.StringIO()) as printed:
+                self.assertEqual(defines.main([str(out)]), 0)
+        finally:
+            os.environ.clear()
+            os.environ.update(old)
+        return out, printed.getvalue()
+
+    def test_writes_json_without_printing_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp) / "config" / "release.json"
-            env = {"APP_ENV": "staging", "SENTRY_DSN": tricky}
-            old = dict(os.environ)
-            try:
-                os.environ.clear()
-                os.environ.update(env)
-                with redirect_stdout(io.StringIO()) as printed:
-                    self.assertEqual(defines.main([str(out)]), 0)
-            finally:
-                os.environ.clear()
-                os.environ.update(old)
+            out, printed = self.write_tricky_json(tmp)
             data = json.loads(out.read_text(encoding="utf-8"))
-            self.assertEqual(data["SENTRY_DSN"], tricky)
+            self.assertEqual(data["SENTRY_DSN"], self.TRICKY_DSN)
             self.assertEqual(data["ENV"], "staging")
-            self.assertEqual(stat.S_IMODE(out.stat().st_mode), 0o600)
             # 값은 출력하지 않는다.
-            self.assertNotIn("sentry", printed.getvalue())
+            self.assertNotIn("sentry", printed)
+
+    # Windows 는 chmod 로 그룹·기타 권한을 없앨 수 없다(읽기 전용 표시만). 권한은 CI(리눅스)에서 본다.
+    @unittest.skipUnless(os.name == "posix", "파일 권한 비트는 POSIX 에서만 확인한다")
+    def test_writes_json_readable_only_by_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out, _ = self.write_tricky_json(tmp)
+            self.assertEqual(stat.S_IMODE(out.stat().st_mode), 0o600)
 
     def test_usage(self) -> None:
         with redirect_stderr(io.StringIO()):

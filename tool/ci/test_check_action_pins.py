@@ -146,7 +146,9 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 1)
         errors = [line for line in output.splitlines() if line.startswith("::error ")]
         self.assertEqual(len(errors), 7)
-        self.assertTrue(all("/unpinned.yml," in line for line in errors), errors)
+        # 경로 구분자는 OS 마다 다르다(Windows 는 `\`). 주석의 file= 값을 파일 이름으로 비교한다.
+        files = {Path(line.split("file=", 1)[1].split(",line=", 1)[0]).name for line in errors}
+        self.assertEqual(files, {"unpinned.yml"}, errors)
 
     def test_yaml_extension_is_checked(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
