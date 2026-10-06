@@ -2081,7 +2081,7 @@
       }
     }
   },
-  "aiOptionNext": "Next up",
+  "aiOptionNext": "Follow-up",
   "aiChatEvidenceTitle": "Recent conversation used",
   "aiChatEvidenceLink": "{count} conversation lines used",
   "@aiChatEvidenceLink": {

@@ -3066,7 +3066,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aiOptionNext => '다음 차례안';
+  String get aiOptionNext => '연계안';
 
   @override
   String get aiChatEvidenceTitle => '참고한 최근 대화';

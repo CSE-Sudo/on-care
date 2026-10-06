@@ -594,7 +594,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   await tester.tap(generate);
   await tester.pumpAndSettle();
 
-  // 세 후보(회복안·강화안·다음 차례안) 중 `회복안` 을 고른다 — 이 회원의
+  // 세 후보(회복안·강화안·연계안) 중 `회복안` 을 고른다 — 이 회원의
   // 반복 운동을 그대로 유지하는 안이라 편집기 값이 정해져 있다. 옛 `기존안`
   // (배정된 AI 개인운동)은 PT 단계에서 빠졌다(#3282).
   final existing = find.byKey(

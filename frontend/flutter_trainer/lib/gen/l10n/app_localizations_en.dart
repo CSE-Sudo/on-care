@@ -3238,7 +3238,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiOptionNext => 'Next up';
+  String get aiOptionNext => 'Follow-up';
 
   @override
   String get aiChatEvidenceTitle => 'Recent conversation used';

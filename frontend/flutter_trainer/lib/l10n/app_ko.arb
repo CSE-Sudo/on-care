@@ -1336,7 +1336,7 @@
   "aiFindingsTitle": "이번 분석에서 찾은 것",
   "aiFindingSource": " · {source}",
   "aiFindingAction": "→ {action}",
-  "aiOptionNext": "다음 차례안",
+  "aiOptionNext": "연계안",
   "aiChatEvidenceTitle": "참고한 최근 대화",
   "aiChatEvidenceLink": "참고한 대화 {count}줄",
   "aiEditOption": "{option} 수정",

@@ -5626,7 +5626,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiOptionNext.
   ///
   /// In en, this message translates to:
-  /// **'Next up'**
+  /// **'Follow-up'**
   String get aiOptionNext;
 
   /// No description provided for @aiChatEvidenceTitle.
