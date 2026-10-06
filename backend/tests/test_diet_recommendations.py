@@ -441,10 +441,12 @@ def test_personal_protein_goal_still_comes_first(db_session):
 def test_protein_low_ratio_is_the_shared_coaching_threshold():
     """추천 식단의 단백질 문턱은 회원 코칭 문턱 한 곳(`diet_coach_inputs`)의 값이다."""
     from app.services import diet_coach_inputs, diet_period_advice, diet_week_advice
-    from app.services import diet_all_advice
+    from app.services import diet_all_advice, diet_trainer_analysis
 
     assert svc._PROTEIN_LOW_RATIO == diet_coach_inputs.COACH_PROTEIN_LOW_RATIO == 0.6
     assert diet_period_advice.PROTEIN_GAP_G == diet_coach_inputs.COACH_PROTEIN_GAP_G == 10
+    # 트레이너 식단 분석의 "오늘 단백질 부족" 도 회원 앱과 같은 값이다.
+    assert diet_trainer_analysis.PROTEIN_GAP_G == diet_coach_inputs.COACH_PROTEIN_GAP_G
     assert (
         diet_week_advice.PROTEIN_SHORT_RATIO
         == diet_coach_inputs.COACH_PROTEIN_SHORT_RATIO

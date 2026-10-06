@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.core.week import monday_of
 from app.db.session import release_connection
-from app.services import diet_ai_sentence
+from app.services import diet_ai_sentence, korean_josa
 from app.services import diet_coach_inputs as inputs
 from app.services.diet_advice_copy import SLOT_LABELS_KO, Line, ai_line, line
 from app.services.diet_period_advice import (
@@ -201,7 +201,8 @@ def frequent(records: dict[date, DayRecord]) -> Finding | None:
     ]
     return Finding(
         "frequent", line("all_frequent_menu", slot=slot, food=name, count=n),
-        f"최근 4주 {SLOT_LABELS_KO[slot]}에 {name}을(를) {n}회 먹었다. 좋아하는 메뉴는 두고 "
+        f"최근 4주 {SLOT_LABELS_KO[slot]}에 {korean_josa.with_particle(name, '을', '를')} {n}회 먹었다. "
+        "좋아하는 메뉴는 두고 "
         "곁들임·양을 바꾸는 대안을 권한다.",
         tuple(samples[:RECORD_LINES]),
     )
