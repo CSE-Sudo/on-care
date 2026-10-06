@@ -1130,6 +1130,14 @@ void main() {
       await generate(tester);
 
       expect(find.text('참고한 최근 대화'), findsOneWidget);
+      // 기본은 접혀 있다 — 제목 줄을 눌러야 대화가 보인다.
+      expect(find.textContaining('무릎이 아파요'), findsNothing);
+      final Finder toggle = find.byKey(
+        const ValueKey<String>('ai-chat-evidence-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
       expect(find.textContaining('무릎이 아파요'), findsOneWidget);
     });
 
@@ -1197,7 +1205,7 @@ void main() {
               .widget<TextField>(
                 _textFieldUnder(
                   find.byKey(
-                    const ValueKey<String>('generation-minutes-field'),
+                    const ValueKey<String>('generation-minutes-minutes'),
                   ),
                 ),
               )
@@ -1239,7 +1247,7 @@ void main() {
         );
 
         await tester.enterText(
-          find.byKey(const ValueKey<String>('generation-minutes-field')),
+          find.byKey(const ValueKey<String>('generation-minutes-minutes')),
           '60',
         );
         await tester.pump();

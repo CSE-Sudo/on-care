@@ -1569,22 +1569,35 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             subtitle: l.aiConditionsAutoHint,
           ),
           const SizedBox(height: OnCareSpacing.s12),
-          RoutineMinutesField(
+          // 다른 시간 칸(`RoutineDurationField`)과 같은 시·분 칸이다. 서버가
+          // 분으로 받으므로 초 칸은 숨긴다.
+          AppDurationField(
             key: const ValueKey<String>('generation-minutes'),
             keyPrefix: 'generation-minutes',
-            minutes: _minutes,
+            duration: Duration(minutes: _minutes),
             label: l.routineFieldTotalMinutes,
+            labels: AppDurationWheelLabels(
+              hours: l.routineUnitHours,
+              minutes: l.routineUnitMinutes,
+              seconds: l.routineUnitSeconds,
+            ),
+            showSeconds: false,
             // 서버가 받는 범위만 받는다(#2871) — 개별 운동 시간 칸과 다르다.
-            min: kRoutineGenerateMinMinutes,
-            max: kRoutineGenerateMaxMinutes,
-            helper: l.aiGenerateMinutesHelper(
+            minSeconds: kRoutineGenerateMinMinutes * 60,
+            maxSeconds: kRoutineGenerateMaxMinutes * 60,
+            onChanged: (Duration value) => setState(() {
+              _minutes = value.inMinutes;
+              _minutesTouched = true;
+            }),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.aiGenerateMinutesHelper(
               kRoutineGenerateMinMinutes,
               kRoutineGenerateMaxMinutes,
             ),
-            onChanged: (minutes) => setState(() {
-              _minutes = minutes;
-              _minutesTouched = true;
-            }),
+            key: const ValueKey<String>('generation-minutes-helper'),
+            style: _text(OnCareTypography.caption, OnCareColors.textTertiary),
           ),
           const SizedBox(height: OnCareSpacing.s16),
           RoutineIntensityChips(
@@ -2705,10 +2718,20 @@ class _PersonalOrigin {
 /// AI quietly ignored "무릎이 아파요", the only way to notice is to see which
 /// utterances it was given. Lines arrive speaker-labelled from the server, so
 /// this widget only handles layout.
-class _ChatEvidence extends StatelessWidget {
+///
+/// 줄이 많으면 후보 비교가 아래로 밀려나므로 기본은 접어 두고, 제목 줄을
+/// 눌러 편다.
+class _ChatEvidence extends StatefulWidget {
   const _ChatEvidence({required this.lines});
 
   final List<String> lines;
+
+  @override
+  State<_ChatEvidence> createState() => _ChatEvidenceState();
+}
+
+class _ChatEvidenceState extends State<_ChatEvidence> {
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -2722,23 +2745,45 @@ class _ChatEvidence extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              l.aiChatEvidenceTitle,
-              style: tokens
-                  .text(OnCareTypography.label)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-            const SizedBox(height: OnCareSpacing.s4),
-            for (final String line in lines)
-              Padding(
-                padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-                child: Text(
-                  line,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textSecondary),
+            Semantics(
+              button: true,
+              expanded: _expanded,
+              child: InkWell(
+                key: const ValueKey<String>('ai-chat-evidence-toggle'),
+                borderRadius: OnCareRadius.smAll,
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        l.aiChatEvidenceTitle,
+                        style: tokens
+                            .text(OnCareTypography.label)
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ),
+                    Icon(
+                      _expanded ? AppIcons.expandLess : AppIcons.expandMore,
+                      size: 20,
+                      color: OnCareColors.textTertiary,
+                    ),
+                  ],
                 ),
               ),
+            ),
+            if (_expanded) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s4),
+              for (final String line in widget.lines)
+                Padding(
+                  padding: const EdgeInsets.only(top: OnCareSpacing.s2),
+                  child: Text(
+                    line,
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textSecondary),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
