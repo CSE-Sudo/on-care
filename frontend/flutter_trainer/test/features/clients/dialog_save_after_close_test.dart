@@ -289,4 +289,118 @@ void main() {
     expect(memos.creates, 1);
     expect(memos.fetches, greaterThan(fetchesBefore));
   });
+
+  // 요청이 도는 동안만 창이 닫히지 않는다 — 평소엔 바깥을 눌러 바로 닫힌다.
+  group('요청 중에는 바깥 누름·뒤로 가기로 닫히지 않는다', () {
+    Future<void> tapOutside(WidgetTester tester) async {
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('건강 정보 창 — 평소엔 바깥을 눌러 닫힌다', (tester) async {
+      final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      await _pumpHost(
+        tester,
+        overrides: <Override>[
+          clientRepositoryProvider.overrideWithValue(
+            _HeldProfileRepository(db),
+          ),
+          clientsProvider.overrideWith(
+            (ref) => Stream<List<TrainerClient>>.value(const <TrainerClient>[]),
+          ),
+        ],
+        open: (BuildContext context) =>
+            showClientProfileDialog(context, clientId: 'm1', clientName: '이지수'),
+      );
+      await tester.pumpAndSettle();
+
+      await tapOutside(tester);
+
+      expect(find.byType(AppDialog), findsNothing);
+    });
+
+    testWidgets('건강 정보 저장 중엔 닫히지 않고, 끝나면 닫힌다', (tester) async {
+      final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final _HeldProfileRepository clients = _HeldProfileRepository(db);
+      await _pumpHost(
+        tester,
+        overrides: <Override>[
+          clientRepositoryProvider.overrideWithValue(clients),
+          clientsProvider.overrideWith(
+            (ref) => Stream<List<TrainerClient>>.value(const <TrainerClient>[]),
+          ),
+        ],
+        open: (BuildContext context) =>
+            showClientProfileDialog(context, clientId: 'm1', clientName: '이지수'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-profile-edit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-health-tabs')),
+          matching: find.text('식단 목표'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('client-goal-calories')),
+        '2000',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-profile-save')),
+      );
+      await tester.pump();
+
+      await tapOutside(tester);
+      expect(find.byType(AppDialog), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(AppDialog), findsOneWidget);
+
+      clients.gate.complete();
+      await tester.pumpAndSettle();
+      await tapOutside(tester);
+      expect(find.byType(AppDialog), findsNothing);
+    });
+
+    testWidgets('회원 메모 저장 중엔 닫히지 않고, 끝나면 닫힌다', (tester) async {
+      final _HeldMemoRepository memos = _HeldMemoRepository();
+      await _pumpHost(
+        tester,
+        overrides: <Override>[
+          trainerMemoRepositoryProvider.overrideWithValue(memos),
+        ],
+        open: (BuildContext context) => showClientProfileDialog(
+          context,
+          clientId: 'm1',
+          clientName: '이지수',
+          section: ClientProfileSection.memo,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-memo-input')),
+          matching: find.byType(TextField),
+        ),
+        '다음 주 하체 강도 올리기',
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+      await tester.pump();
+
+      await tapOutside(tester);
+      expect(find.byType(AppDialog), findsOneWidget);
+
+      memos.gate.complete();
+      await tester.pumpAndSettle();
+      expect(memos.creates, 1);
+      await tapOutside(tester);
+      expect(find.byType(AppDialog), findsNothing);
+    });
+  });
 }
