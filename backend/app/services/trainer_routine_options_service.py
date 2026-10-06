@@ -48,6 +48,7 @@ from app.schemas.trainer_api import (
     RecommendationStatus,
     RoutineIntensityPreference,
     RoutineOptionAnalysisOut,
+    RoutineFindingOut,
     RoutineOptionPlanOut,
     RoutineOptionsOut,
     RoutineContextSource,
@@ -851,6 +852,41 @@ def _fallback_signals(analysis: RoutineOptionAnalysisOut) -> list[str]:
     ]
 
 
+def _finding_sources(analysis: RoutineOptionAnalysisOut) -> list[routine_ai.FindingSource]:
+    """판단 결과의 근거로 읽을 자료, 먼저 볼 순서로(#3280).
+
+    규칙 폴백이 주의사항으로 읽는 글([_fallback_signals]·건강 프로필·대화)과
+    같은 자료다. 대화는 오래된 것부터 오므로 뒤집어 최근 언급을 먼저 잡는다.
+    """
+    return [
+        ("건강 프로필", "Health profile", [analysis.conditions] if analysis.conditions else []),
+        ("채팅 감지 메모", "Chat insight memo", analysis.insight_memos),
+        ("트레이너 메모", "Trainer memo", analysis.trainer_memos),
+        ("PT 피드백", "PT feedback", analysis.pt_feedbacks),
+        ("주간 피드백", "Weekly feedback", analysis.weekly_feedback),
+        ("상담 메모", "Consultation memo", analysis.consult_memos),
+        ("최근 대화", "Recent chat", list(reversed(analysis.recent_messages))),
+    ]
+
+
+def build_findings(
+    analysis: RoutineOptionAnalysisOut, locale: Locale = "ko"
+) -> list[RoutineFindingOut]:
+    """이번 생성의 판단 결과(#3280). AI·규칙형 어느 쪽이 답해도 같다."""
+    return [
+        RoutineFindingOut.model_validate(item)
+        for item in routine_ai.rule_findings(
+            sources=_finding_sources(analysis),
+            frequent_exercises=analysis.frequent_exercises,
+            history_session_count=analysis.history_session_count,
+            analysis_period_days=analysis.analysis_period_days,
+            sodium_today_mg=analysis.sodium_today_mg,
+            avg_completion_rate=analysis.avg_completion_rate,
+            locale=locale,
+        )
+    ]
+
+
 def build_rule_options(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
@@ -886,6 +922,7 @@ def build_rule_options(
         plan_a=RoutineOptionPlanOut.model_validate(plan_a),
         plan_b=RoutineOptionPlanOut.model_validate(plan_b),
         generated_by="rule",
+        findings=build_findings(analysis, locale),
     )
 
 
@@ -997,6 +1034,8 @@ def _generate_with_llm(
     payload = _decode_json_object(result.text)
     payload["analysis"] = analysis.model_dump()
     payload["generated_by"] = "ai"
+    # 판단 결과는 모델이 아니라 서버 규칙이 쓴다(#3280) — 모델이 덧붙인 값은 버린다.
+    payload["findings"] = [f.model_dump() for f in build_findings(analysis, locale)]
     options = RoutineOptionsOut.model_validate(payload)
     if (
         options.plan_a.total_minutes > request.available_minutes

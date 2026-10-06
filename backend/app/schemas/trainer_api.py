@@ -1540,11 +1540,34 @@ class RoutineOptionPlanOut(BaseModel):
         return self
 
 
+#: 판단 결과 한 줄의 종류(#3280). 화면이 아이콘·순서를 고르는 계약값이다.
+RoutineFindingKind = Literal["caution", "escalation", "pattern", "sodium", "adherence"]
+
+
+class RoutineFindingOut(BaseModel):
+    """서버가 이번 생성에서 찾은 것 하나와 그에 따른 반영 방향(#3280).
+
+    `routine_ai.rule_findings` 가 규칙형 생성과 같은 규칙으로 만든다. 문장은
+    요청 언어다.
+    """
+
+    kind: RoutineFindingKind
+    #: 찾은 것 — `"무릎 불편·통증 언급"`.
+    finding: str = Field(min_length=1, max_length=120)
+    #: 어디서 봤는지 — `"최근 대화"`, `"PT 피드백 · 10.06"`.
+    source: str = Field(min_length=1, max_length=60)
+    #: 후보에 어떻게 반영했는지 — `"무릎에 부담이 큰 동작(…)을 빼고 …"`.
+    action: str = Field(min_length=1, max_length=120)
+
+
 class RoutineOptionsOut(BaseModel):
     analysis: RoutineOptionAnalysisOut
     plan_a: RoutineOptionPlanOut
     plan_b: RoutineOptionPlanOut
     generated_by: RoutineOptionGenerator
+    #: 이번 생성의 판단 결과(#3280). 분석(`analysis`)은 판단에 **넣은** 값이고,
+    #: 이쪽은 그 값에서 **찾은** 신호와 반영 방향이다. 찾은 것이 없으면 비어 있다.
+    findings: list[RoutineFindingOut] = Field(default_factory=list, max_length=12)
 
     @model_validator(mode="after")
     def _requires_distinct_a_and_b(self) -> RoutineOptionsOut:

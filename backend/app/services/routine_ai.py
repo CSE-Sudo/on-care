@@ -16,6 +16,8 @@ LLM 생성과 이 규칙형 생성기로의 폴백은 `trainer_routine_options_s
 """
 from __future__ import annotations
 
+import re
+
 from app.core.locale import Locale, localized
 from app.services import goal_defaults, korean_josa
 
@@ -464,3 +466,159 @@ def _pattern_based_plans(
         ),
     }
     return plan_a, plan_b
+
+
+#: 판단 결과 한 줄의 근거 글 묶음 — (화면 이름 ko, en, 글 목록). 글 목록은
+#: 가장 최근 것이 먼저 오게 넘긴다(#3280).
+FindingSource = tuple[str, str, list[str] | tuple[str, ...]]
+
+#: 메모·피드백 줄 앞의 `"MM.dd"` — 근거 날짜로 쓴다. 대화 줄에는 날짜가 없다.
+_LINE_DATE = re.compile(r"^(\d{2}\.\d{2})")
+
+
+def _first_hit(
+    sources: list[FindingSource], keywords: tuple[str, ...]
+) -> tuple[FindingSource, str, str] | None:
+    """[keywords] 가 처음 보이는 (자료, 줄, 걸린 낱말). 앞 자료가 먼저다."""
+    for source in sources:
+        for line in source[2]:
+            for keyword in keywords:
+                if keyword in line:
+                    return source, line, keyword
+    return None
+
+
+def _source_label(source: FindingSource, line: str, locale: Locale) -> str:
+    name = localized(source[0], source[1], locale)
+    matched = _LINE_DATE.match(line.strip())
+    return f"{name} · {matched.group(1)}" if matched else name
+
+
+def rule_findings(
+    *,
+    sources: list[FindingSource],
+    frequent_exercises: list[str] | tuple[str, ...],
+    history_session_count: int,
+    analysis_period_days: int,
+    sodium_today_mg: int,
+    avg_completion_rate: int,
+    locale: Locale = "ko",
+) -> list[dict]:
+    """서버가 이번 생성에서 **찾은 것**과 그에 따른 **반영 방향**(#3280).
+
+    [rule_based_plans] 와 같은 규칙·같은 갈림으로 센다 — 화면이 "무엇을 보고
+    어떻게 판단했는지" 를 근거 문장(`rationale`)을 잘라 읽지 않고 항목으로
+    보여 주기 위해서다. 같은 분석을 받는 AI 경로에도 같은 목록을 싣는다. AI 는
+    이 신호를 같은 지시(통증 부위 회피·판단이 어려우면 강도 유지)로 받는다.
+
+    [sources] 는 주의사항으로 읽는 자료를 화면 이름과 함께, 먼저 볼 순서로
+    넘긴다. 진단은 하지 않는다 — 어느 글에 무엇이 보였는지만 말한다.
+    """
+    out: list[dict] = []
+    for part, keywords, risky in _CAUTION_RULES:
+        hit = _first_hit(sources, keywords)
+        if hit is None:
+            continue
+        source, line, _ = hit
+        part_en = _EN_CAUTION_PARTS.get(part, part)
+        moves = "·".join(risky[:3])
+        out.append({
+            "kind": "caution",
+            "finding": localized(
+                f"{part} 불편·통증 언급", f"Mentions {part_en} discomfort", locale
+            ),
+            "source": _source_label(source, line, locale),
+            "action": localized(
+                f"{part}에 부담이 큰 동작({moves} 등)을 빼고 저충격 대안으로",
+                f"Removes movements that load the {part_en} and uses "
+                "low-impact alternatives",
+                locale,
+            ),
+        })
+    escalation = _first_hit(sources, _ESCALATION_KEYWORDS)
+    if escalation is not None:
+        source, line, keyword = escalation
+        out.append({
+            "kind": "escalation",
+            "finding": localized(
+                f"전문가 확인이 필요한 언급({keyword})",
+                "Mentions a symptom that needs a professional check",
+                locale,
+            ),
+            "source": _source_label(source, line, locale),
+            "action": localized(
+                "강도를 올리지 않음 — 전문가 확인 후 조정",
+                "Does not raise intensity — adjust after a professional check",
+                locale,
+            ),
+        })
+
+    records = localized("운동 기록", "Workout records", locale)
+    if frequent_exercises:
+        names = ", ".join(frequent_exercises)
+        out.append({
+            "kind": "pattern",
+            "finding": localized(
+                f"반복한 운동: {names}", f"Repeated exercises: {names}", locale
+            ),
+            "source": localized(
+                f"{records} · 최근 {analysis_period_days}일 {history_session_count}회",
+                f"{records} · last {analysis_period_days} days, "
+                f"{history_session_count} sessions",
+                locale,
+            ),
+            "action": localized(
+                "A안은 이 운동을 그대로 유지, B안은 하나를 더해 운동량 확대",
+                "Plan A keeps these; plan B adds one to raise the workload",
+                locale,
+            ),
+        })
+        return out
+
+    # 반복 패턴이 없는 회원만 완료율·나트륨으로 A안 부담을 가른다
+    # ([rule_based_plans] 의 목표 기반 갈림과 같다).
+    over = sodium_today_mg > SODIUM_TARGET_MG
+    if over:
+        out.append({
+            "kind": "sodium",
+            "finding": localized(
+                f"오늘 나트륨 {sodium_today_mg}mg (목표 초과)",
+                f"Sodium today {sodium_today_mg} mg (over goal)",
+                locale,
+            ),
+            "source": localized("식단 기록 · 오늘", "Diet records · today", locale),
+            "action": localized(
+                "A안 부담을 낮추고 스트레칭 비중 확대",
+                "Plan A lowers the load and adds more stretching",
+                locale,
+            ),
+        })
+    if avg_completion_rate < 50:
+        action = localized(
+            "A안 부담을 낮추고 스트레칭 비중 확대",
+            "Plan A lowers the load and adds more stretching",
+            locale,
+        )
+    elif avg_completion_rate >= 60:
+        action = localized(
+            "상향 여력이 있어 B안에서 운동량을 높임",
+            "Room to step up — plan B raises the workload",
+            locale,
+        )
+    else:
+        action = localized(
+            "B안은 운동량을 점진적으로 높임",
+            "Plan B raises the workload gradually",
+            locale,
+        )
+    out.append({
+        "kind": "adherence",
+        "finding": localized(
+            f"평균 완료율 {avg_completion_rate}%",
+            f"Average completion {avg_completion_rate}%",
+            locale,
+        ),
+        "source": records,
+        "action": action,
+    })
+    return out
