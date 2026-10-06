@@ -779,6 +779,7 @@ def request_email_change_code(
     payload: EmailChangeCodeRequest,
     user: RequireMember,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ) -> SignupEmailCodeSent:
     """로그인 이메일을 바꾸기 전에 **새** 주소로 6자리 인증 코드를 보낸다(#3230).
@@ -792,6 +793,8 @@ def request_email_change_code(
     지금 쓰는 주소와 같으면(대소문자 무시) 확인할 것이 없어 422 다. 시도 제한은 가입
     코드와 같은 세 겹(IP·이메일·다시 받기)에 회원 id 버킷을 더한다. 메일 발송 수단이
     없으면 503 이다.
+
+    메일은 응답을 보낸 뒤에 보낸다(#3257, 가입 코드·비밀번호 재설정과 같다).
     """
     settings = get_settings()
     if payload.email == user.email.lower():
@@ -813,6 +816,7 @@ def request_email_change_code(
             now=clock.now(),
             settings=settings,
             locale=get_request_locale(request),
+            schedule=background_tasks.add_task,
         )
     except signup_email_code.CodeUnavailable:
         raise HTTPException(
@@ -842,6 +846,7 @@ def request_email_change_code(
 def request_signup_email_code(
     payload: SignupEmailCodeRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ) -> SignupEmailCodeSent:
     """가입 전에 그 이메일로 6자리 인증 코드를 보낸다. 회원·트레이너 공용(#3038).
@@ -853,6 +858,9 @@ def request_signup_email_code(
     메일 수(`SIGNUP_EMAIL_CODE_PER_WINDOW`, 여러 IP 에서 한 사람에게 메일을 쏟아붓는 것을
     막는다), 같은 (이메일, 용도)의 다시 받기 간격(`SIGNUP_EMAIL_CODE_RESEND_SECONDS`).
     가입된 주소도 똑같이 세므로 429 로 가입 여부가 드러나지 않는다.
+
+    메일은 응답을 보낸 뒤에 보낸다(#3257, 비밀번호 재설정 #3238 과 같다). SMTP 를
+    기다리는 만큼 응답이 늦고 워커가 묶인다.
 
     서버에 메일 발송 수단이 없으면(운영인데 SMTP 설정이 비었을 때) 503 이다.
     """
@@ -866,6 +874,7 @@ def request_signup_email_code(
             now=clock.now(),
             settings=settings,
             locale=get_request_locale(request),
+            schedule=background_tasks.add_task,
         )
     except signup_email_code.CodeUnavailable:
         raise HTTPException(

@@ -148,6 +148,27 @@ def test_taken_address_gets_the_same_response_but_no_code(
     ) is None
 
 
+def test_code_request_hands_mail_to_background_tasks(
+    client, db_session, made, outbox, verification_on, monkeypatch
+):
+    """메일은 응답 뒤에 보낸다 — 가입 코드·비밀번호 재설정과 같다(#3257)."""
+    seen: dict[str, object] = {}
+    real = signup_email_code.request_code
+
+    def spy(*args, **kwargs):
+        seen["schedule"] = kwargs.get("schedule")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(signup_email_code, "request_code", spy)
+    user = _user(db_session, made)
+    new = _new_email()
+    res = _ask(client, user, new)
+    assert res.status_code == 202, res.text
+    assert callable(seen["schedule"])
+    # TestClient 는 응답 뒤 백그라운드 작업까지 끝내고 돌아온다.
+    assert outbox.code_for(new)
+
+
 def test_same_address_is_rejected(client, db_session, made, outbox):
     user = _user(db_session, made)
     res = _ask(client, user, user.email.upper())

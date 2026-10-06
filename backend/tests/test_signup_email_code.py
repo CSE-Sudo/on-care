@@ -420,6 +420,83 @@ def test_mail_failure_does_not_change_response(client, outbox, verification_on, 
     assert res.status_code == 202
 
 
+# ---- 응답 뒤 발송 (#3257) ----
+
+
+def _request_scheduled(db_session, email: str, box: _Outbox, scheduled: list[tuple]):
+    return signup_email_code.request_code(
+        db_session,
+        email,
+        signup_email_code.MEMBER_SIGNUP,
+        now=clock.now(),
+        settings=get_settings(),
+        mailer=box,
+        schedule=lambda fn, *args: scheduled.append((fn, args)),
+    )
+
+
+def _run(scheduled: list[tuple]) -> None:
+    for fn, args in scheduled:
+        fn(*args)
+
+
+def test_code_mail_is_scheduled_not_sent_inline(client, db_session, cleanup):
+    email = _email(cleanup)
+    box = _Outbox()
+    scheduled: list[tuple] = []
+    issued = _request_scheduled(db_session, email, box, scheduled)
+    assert issued is not None
+    # 요청이 돌아올 때까지 아무것도 보내지 않는다.
+    assert box.sent == []
+    assert len(scheduled) == 1
+    _run(scheduled)
+    assert box.code_for(email) == issued.code
+
+
+def test_registered_notice_is_scheduled_too(client, db_session, cleanup):
+    taken = _email(cleanup, "taken")
+    db_session.add(
+        models.User(id=f"user-{uuid4().hex[:12]}", email=taken, name="기존", hashed_password="")
+    )
+    db_session.commit()
+    box = _Outbox()
+    scheduled: list[tuple] = []
+    assert _request_scheduled(db_session, taken, box, scheduled) is None
+    assert box.sent == []
+    assert len(scheduled) == 1
+    _run(scheduled)
+    (notice,) = box.to(taken)
+    assert not _CODE.search(notice.body)
+
+
+def test_scheduled_mail_failure_is_only_logged(client, db_session, cleanup, caplog):
+    box = _Outbox()
+    box.fail = True
+    scheduled: list[tuple] = []
+    assert _request_scheduled(db_session, _email(cleanup), box, scheduled) is not None
+    _run(scheduled)  # 던지지 않는다 — 재설정 메일(#3238)과 같다
+    assert "발송 실패" in caplog.text
+
+
+def test_code_endpoint_hands_mail_to_background_tasks(
+    client, outbox, verification_on, cleanup, monkeypatch
+):
+    seen: dict[str, object] = {}
+    real = signup_email_code.request_code
+
+    def spy(*args, **kwargs):
+        seen["schedule"] = kwargs.get("schedule")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(signup_email_code, "request_code", spy)
+    email = _email(cleanup)
+    res = _ask(client, email)
+    assert res.status_code == 202, res.text
+    assert callable(seen["schedule"])
+    # TestClient 는 응답 뒤 백그라운드 작업까지 끝내고 돌아온다 — 메일은 실제로 간다.
+    assert outbox.code_for(email)
+
+
 def test_prod_without_mail_is_503(client, monkeypatch, outbox, cleanup):
     s = get_settings()
     monkeypatch.setattr(s, "env", "prod")
