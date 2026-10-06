@@ -116,7 +116,6 @@ class _TrainerDetails extends ConsumerWidget {
     if (!context.mounted) return;
     final bool removed = await confirmDisconnect(
       context,
-      ref,
       message: l.myTrainerDisconnectConfirm(trainer.name, myGym?.name ?? ''),
       disconnect: (GymRepository repo) => repo.disconnectMyTrainer(),
     );
