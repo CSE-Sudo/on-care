@@ -68,6 +68,7 @@ def run_stamp(cwd: Path, *args: str, min_build: str | None = None) -> subprocess
     return subprocess.run(
         ["bash", str(SCRIPT), *args],
         cwd=cwd,
+        check=False,
         capture_output=True,
         text=True,
         # 스크립트는 한국어 안내를 UTF-8 로 낸다. Windows 기본 인코딩(cp949)으로 읽으면 출력이 None 이 된다.

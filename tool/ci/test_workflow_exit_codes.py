@@ -152,6 +152,7 @@ class StepUnderErrexitTest(unittest.TestCase):
             [BASH, "-e", str(step)],
             cwd=cwd or self.work,
             env=full_env,
+            check=False,
             capture_output=True,
             text=True,
             encoding="utf-8",
