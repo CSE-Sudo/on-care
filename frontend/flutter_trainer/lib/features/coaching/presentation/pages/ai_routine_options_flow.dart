@@ -2885,34 +2885,47 @@ class _RecommendationStatusBanner extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            for (final (String label, String value) in rows)
-              Padding(
-                padding: const EdgeInsets.only(bottom: OnCareSpacing.s2),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    SizedBox(
-                      width: 88,
-                      child: Text(
-                        label,
-                        style: tokens
-                            .text(OnCareTypography.caption)
-                            .copyWith(color: OnCareColors.textSecondary),
+            // 라벨 칸은 가장 긴 라벨에 맞춘다 — 숫자 너비를 박지 않는다.
+            Table(
+              columnWidths: const <int, TableColumnWidth>{
+                0: IntrinsicColumnWidth(),
+                1: FlexColumnWidth(),
+              },
+              children: <TableRow>[
+                for (final (String label, String value) in rows)
+                  TableRow(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          end: OnCareSpacing.s12,
+                          bottom: OnCareSpacing.s2,
+                        ),
+                        child: Text(
+                          label,
+                          style: tokens
+                              .text(OnCareTypography.caption)
+                              .copyWith(color: OnCareColors.textSecondary),
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        value,
-                        style: tokens
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
-                            .copyWith(color: OnCareColors.textPrimary),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: OnCareSpacing.s2,
+                        ),
+                        child: Text(
+                          value,
+                          style: tokens
+                              .text(
+                                OnCareTypography.strong(
+                                  OnCareTypography.caption,
+                                ),
+                              )
+                              .copyWith(color: OnCareColors.textPrimary),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+              ],
+            ),
             // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
             // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다
             // (#2674).
