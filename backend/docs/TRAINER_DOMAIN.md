@@ -529,9 +529,11 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 
 ### 알림 수신 설정 (`/trainer/me/settings`)
 
-기기 로컬이 아니라 **계정 단위** — 트레이너는 센터 PC 와 태블릿을 오간다. 값이 3개뿐이고
+기기 로컬이 아니라 **계정 단위** — 트레이너는 센터 PC 와 태블릿을 오간다. 값이 몇 개뿐이고
 프로필과 수명이 같아 별도 테이블 대신 `trainer_profiles` 컬럼으로 뒀다
-(`0019_trainer_noti_settings`). **기본값은 서버가 소유한다**(모두 켬 / 30분 전) —
+(`0019_trainer_noti_settings`, 종류별 칸은 `0151_trainer_notify_kinds`). 알림 종류가 어느
+칸을 따르는지는 `notification_service._TRAINER_SETTING_COLUMN` 한 곳에서 정한다(#2420) —
+새 종류를 더하면 이 표에도 넣는다(빠뜨리면 테스트가 실패한다). **기본값은 서버가 소유한다**(모두 켬 / 30분 전) —
 클라이언트마다 기본값을 들고 있으면 기기별로 갈라진다. `reminder_lead_minutes` 는
 `REMINDER_LEAD_OPTIONS`(10/30/60) 밖의 값을 422 로 거부한다.
 

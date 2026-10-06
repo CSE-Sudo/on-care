@@ -1099,13 +1099,20 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   `pain`(통증 유무)·`revised`(고쳐 낸 답), `subject_id` = 회원, `target_date` = 그 주 월요일. 통증이 있으면 제목이
   "{회원} 회원이 통증을 알렸어요"로 바뀝니다. 아픈 곳(회원이 쓴 글)은 알림에 싣지 않습니다(`trainer_health_notes` 와 같은
   이유, #2619). 같은 주에 다시 내면 트레이너가 **아직 읽지 않은** 그 주 알림을 최신 답으로 고쳐 맨 위로 올리고(건수 그대로),
-  이미 읽었으면 `revised: true` 알림을 한 건 더 만듭니다. 앱은 그 회원 상세의 메모 창을 '피드백' 탭으로 엽니다. 수신 설정
-  스위치는 아직 없습니다(종류별 설정은 #2420).
+  이미 읽었으면 `revised: true` 알림을 한 건 더 만듭니다. 앱은 그 회원 상세의 메모 창을 '피드백' 탭으로 엽니다. 수신 설정은
+  담당 회원 소식(`notify_member_updates`)을 따르고, 꺼 두면 안 읽은 그 주 알림을 고쳐 쓰지도 않습니다(#2420).
 - **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
 - **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`, 사진은 `POST /me/coach/chat/image` — #1665), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832)·건강상태·주의사항 변경(#2619), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
 - **언어**: 제목·본문은 요청 언어로 조립합니다. 트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립합니다 — 규칙은 위 [알림 문장의 언어](#알림-문장의-언어-2302) 와 같습니다. (#2302)
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
-- **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
+- **수신 설정(#2420)**: 종류마다 `trainer_profiles` 의 칸 하나를 따르고, 꺼 두면 그 종류는 알림함에 새 줄을 만들지 않습니다. 기본값은 모두 켬입니다. 사이드바·대시보드의 안 읽은 메시지 수와 상담 요청 수는 설정과 상관없이 그대로 셉니다.
+
+  | 설정 칸 | 따르는 종류(`category`) |
+  | --- | --- |
+  | `notify_new_message` | `message` |
+  | `notify_consultation` | `consultation`, `consult_withdrawn`, `invite_accepted`, `invite_rejected` |
+  | `notify_reservation` | `reservation` |
+  | `notify_member_updates` | `health_goal`, `member_name`, `member_left`, `weekly_feedback` |
 - 남의 알림 읽음 처리는 **404** 입니다.
 
 #### 트레이너 알림함 쪽 나눔 (#2293)
@@ -1189,7 +1196,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/trainer/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }` — 탈퇴. 본인 확인 필수(#3039). 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다(#505) |
 | DELETE | `/trainer/me/gym` | `TrainerMe` — 소속 해제. 원래 없어도 200 |
 | POST | `/trainer/me/password` | `{ current_password, new_password }` → `{ access_token, refresh_token, token_type, status }`. 아래 "비밀번호 변경과 토큰 세대" |
-| GET | `/trainer/me/settings` | `{ notify_new_message, notify_session_reminder, reminder_lead_minutes }` — 기본값은 서버가 정한다 |
+| GET | `/trainer/me/settings` | `{ notify_new_message, notify_consultation, notify_reservation, notify_member_updates, notify_session_reminder, reminder_lead_minutes }` — 기본값은 서버가 정한다. 종류별 칸은 위 "수신 설정" 표 |
 | PUT | `/trainer/me/settings` | 위 키 중 보낸 것만 → 같은 모양. 바꿀 칸이 하나도 없으면 400 |
 | GET | `/trainer/clients?limit=&after_id=` | `TrainerClientOut[]` — 담당 고객 로스터 한 쪽(`after_id` 커서, 위 "공통 규약") |
 | DELETE | `/trainer/clients/{member_id}` | 204 — 담당 관계만 해제. 회원 계정과 기록은 남는다 |

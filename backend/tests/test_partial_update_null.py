@@ -37,6 +37,9 @@ _REJECTING = [
     (ScheduleUpdateRequest, "client_name", "김민수"),
     (TrainerMeUpdate, "phone", "010-0000-0000"),
     (TrainerNotificationSettingsUpdate, "notify_new_message", False),
+    (TrainerNotificationSettingsUpdate, "notify_consultation", False),
+    (TrainerNotificationSettingsUpdate, "notify_reservation", False),
+    (TrainerNotificationSettingsUpdate, "notify_member_updates", False),
     (MemberNotificationSettingsUpdate, "trainer_message", False),
     (ProfileUpdate, "name", "김민수"),
     # 온보딩·건강 목표의 NOT NULL 칸(#3243). null 이 커밋에서 500 이었다.

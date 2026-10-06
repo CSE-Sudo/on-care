@@ -376,14 +376,32 @@ TRAINER_INVITE_ACCEPTED_KIND = "invite_accepted"
 TRAINER_INVITE_REJECTED_KIND = "invite_rejected"
 #: 담당 회원이 주간 피드백(컨디션·강도·통증)을 냈다 → 그 회원 메모 창 '피드백' 탭
 #: (`subject_id`·`target_date`=주 시작, #3026). 같은 주의 안 읽은 알림이 있으면 새로
-#: 만들지 않고 그 행을 고쳐 쓴다(`trainer.weekly_feedback`). 수신 설정 스위치는
-#: 아직 없다 — 종류별 설정은 #2420 몫이다.
+#: 만들지 않고 그 행을 고쳐 쓴다(`trainer.weekly_feedback`). 수신 설정은 담당 회원
+#: 소식(`notify_member_updates`)을 따른다(#2420).
 TRAINER_WEEKLY_FEEDBACK_KIND = "weekly_feedback"
 
-#: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
-#: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.
+#: 종류별 트레이너 수신 설정 컬럼(#2420). 트레이너 웹 설정 › 알림의 네 스위치와
+#: 같은 묶음이다. 여기 없는 종류는 항상 보낸다 — 새 종류를 더하면 어느 스위치를
+#: 따를지 함께 정한다.
+#:
+#: * 상담 요청: 상담 신청·철회와 트레이너가 보낸 담당 요청의 수락·거절. 둘 다
+#:   새 회원과 이어지는 과정이고, 설정 화면 문구도 "상담을 신청하거나 담당 요청에
+#:   답하면" 이다.
+#: * 담당 회원 소식: 이미 담당인 회원에게 생긴 일(목표·이름 변경, 떠남, 주간 피드백).
+#:
+#: 사이드바·대시보드의 안 읽은 수는 이 설정과 상관없다 — 끄면 알림함에 새 줄이
+#: 생기지 않을 뿐이다.
 _TRAINER_SETTING_COLUMN: dict[str, str] = {
     TRAINER_MESSAGE_KIND: "notify_new_message",
+    TRAINER_CONSULTATION_KIND: "notify_consultation",
+    TRAINER_CONSULT_WITHDRAWN_KIND: "notify_consultation",
+    TRAINER_INVITE_ACCEPTED_KIND: "notify_consultation",
+    TRAINER_INVITE_REJECTED_KIND: "notify_consultation",
+    TRAINER_RESERVATION_KIND: "notify_reservation",
+    TRAINER_HEALTH_GOAL_KIND: "notify_member_updates",
+    TRAINER_MEMBER_NAME_KIND: "notify_member_updates",
+    TRAINER_MEMBER_LEFT_KIND: "notify_member_updates",
+    TRAINER_WEEKLY_FEEDBACK_KIND: "notify_member_updates",
 }
 
 
