@@ -14,6 +14,7 @@ import 'dart:ui' show Locale;
 
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart' show calendarDaysBetween;
 import 'package:oncare_rules/oncare_rules.dart'
     show endsWithHangul, normalizeExerciseType, normalizeExerciseTypeKo;
 import 'package:oncare_ui/oncare_ui.dart' show mondayOf;
@@ -661,7 +662,8 @@ ExerciseAdvice _routineAll(List<RoutineAdviceDay> days) {
         )
         .date,
   );
-  final int span = today.difference(since).inDays + 1;
+  // 달력으로 센다(#3250) — `difference(...).inDays` 는 서머타임 전환을 끼면 하루 모자란다.
+  final int span = calendarDaysBetween(since, today) + 1;
   if (span < _allMinDays) {
     return _advice('routine_all_new', <String, Object>{'days': span});
   }

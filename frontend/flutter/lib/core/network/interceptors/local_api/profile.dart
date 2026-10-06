@@ -149,6 +149,9 @@ extension _LocalApiProfile on LocalApiInterceptor {
   ///    기기의 세션을 끊고 이 기기에 새 쌍을 주는 것과 같은 모양이다.
   ///  * 다른 계정이 쓰는 이메일 → 409. 자기 이메일 그대로면 통과한다. 본인 확인
   ///    뒤에 본다.
+  ///  * 새 이메일 인증 코드(#3230) → 없으면 422 `email_code_required`, 데모 코드
+  ///    ([SignupEmailCode.demoCode])가 아니면 400 `invalid_email_code`. 409 뒤에
+  ///    본다. 데모는 메일을 보내지 않으므로 고정 코드 하나만 받는다.
   ///  * 있던 연락처를 비움 → 422. 서버처럼 `detail` 을 문장으로 준다.
   ///
   /// 거절하면 아무것도 저장하지 않는다.
@@ -170,6 +173,25 @@ extension _LocalApiProfile on LocalApiInterceptor {
         statusCode: 409,
         data: <String, Object?>{'detail': '이미 사용 중인 이메일이에요.'},
       );
+    }
+    if (emailChanged) {
+      final String code = (body['email_code'] as String? ?? '').trim();
+      if (code != SignupEmailCode.demoCode) {
+        return Response<Object?>(
+          requestOptions: options,
+          statusCode: code.isEmpty ? 422 : 400,
+          data: <String, Object?>{
+            'detail': <String, Object?>{
+              'code': code.isEmpty
+                  ? 'email_code_required'
+                  : 'invalid_email_code',
+              'message': code.isEmpty
+                  ? '이메일 인증 코드를 입력해 주세요.'
+                  : '인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.',
+            },
+          },
+        );
+      }
     }
     final String currentPhone = ((current['phone'] as String?) ?? '').trim();
     if (body['phone'] == '' && currentPhone.isNotEmpty) {
@@ -207,6 +229,55 @@ extension _LocalApiProfile on LocalApiInterceptor {
           : null,
       'refresh_token': emailChanged ? 'demo-refresh' : null,
     });
+  }
+
+  /// POST /users/me/email/code — 로그인 이메일 변경 인증 코드 요청(#3230).
+  ///
+  /// 서버처럼 그 주소가 다른 계정 것이든 아니든 같은 202 다. 지금 이메일과 같으면
+  /// 422 `email_unchanged`, 형식이 틀리면 422 목록이다. 데모는 메일을 보내지 않고
+  /// 이메일 변경은 [SignupEmailCode.demoCode] 를 받는다.
+  Future<Response<Object?>> _usersMeEmailCode(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final String email = (body['email'] as String? ?? '').trim().toLowerCase();
+    if (AppInputRules.email(email) != null) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': 'value_error',
+              'loc': <Object?>['body', 'email'],
+              'msg': 'invalid',
+            },
+          ],
+        },
+      );
+    }
+    final Map<String, Object?> current = await _mergedProfile();
+    final String currentEmail = ((current['email'] as String?) ?? '')
+        .trim()
+        .toLowerCase();
+    if (email == currentEmail) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'email_unchanged',
+            'message': '지금 쓰는 이메일과 같습니다.',
+          },
+        },
+      );
+    }
+    return Response<Object?>(
+      requestOptions: options,
+      statusCode: 202,
+      data: <String, Object?>{
+        'expires_in_minutes': 10,
+        'resend_after_seconds': 60,
+      },
+    );
   }
 
   /// PUT /users/me/health-goals — 식단 일일 목표(6종) + 운동 목표(7종)를

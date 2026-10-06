@@ -613,6 +613,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get clientsEmptyForManagement => 'No members match these filters';
+
+  @override
   String clientsMemberCount(int total) {
     return '$total members';
   }
@@ -1388,6 +1391,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it';
 
   @override
+  String get reportsSendFeedbackFailedTitle =>
+      'Couldn\'t load the member\'s feedback';
+
+  @override
+  String get reportsSendFeedbackFailedBody =>
+      'Sending now would show the member as not having answered. Reload it, then send';
+
+  @override
   String get reportsSendAlreadyDone =>
       'This report was already sent. Send history has been refreshed';
 
@@ -1944,6 +1955,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRepeatNeedsEndDate => 'Pick an end date for the repeat.';
+
+  @override
+  String get schedRepeatNoOccurrences =>
+      'None of the chosen days fall within the repeat period. Change the days or the end date.';
+
+  @override
+  String get schedNewNeedsClient =>
+      'You have no members yet. Connect a member before adding an appointment.';
+
+  @override
+  String get schedClientsLoading =>
+      'Loading your members. Please try again in a moment.';
 
   @override
   String schedRepeatConflictTitle(int total, int count) {
@@ -3582,6 +3605,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrNotTrainer => 'Please sign in with a trainer account.';
+
+  @override
+  String get authErrTooManyAttempts =>
+      'Too many attempts. Please try again in a moment.';
+
+  @override
+  String authErrTooManyAttemptsMinutes(int minutes) {
+    return 'Too many attempts. Please try again in $minutes min.';
+  }
+
+  @override
+  String get authErrSignedUpSignInFailed =>
+      'Your account was created. Please sign in.';
 
   @override
   String aiBasisGoalCompletion(String goal, int rate) {
@@ -5407,6 +5443,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsMemberFeedbackUnanswered => 'No answer';
+
+  @override
+  String get reportsMemberFeedbackLoadFailed => 'Couldn\'t load';
+
+  @override
+  String get reportsMemberFeedbackLoadFailedHint =>
+      'Couldn\'t check whether the member answered. Reload the report in a moment';
 
   @override
   String get reportsMemberFeedbackNoteLabel => 'One-line feedback';

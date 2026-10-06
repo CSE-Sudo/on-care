@@ -594,6 +594,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get clientsEmptyForManagement => '조건에 맞는 회원이 없어요';
+
+  @override
   String clientsMemberCount(int total) {
     return '$total명';
   }
@@ -1334,6 +1337,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '아직 보내지 않았어요. 새 수치로 다시 만든 리포트를 확인한 뒤 보내 주세요';
 
   @override
+  String get reportsSendFeedbackFailedTitle => '회원 피드백을 불러오지 못했어요';
+
+  @override
+  String get reportsSendFeedbackFailedBody =>
+      '이대로 보내면 답한 회원도 미응답으로 실려요. 다시 불러온 뒤 보내 주세요';
+
+  @override
   String get reportsSendAlreadyDone => '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
 
   @override
@@ -1859,6 +1869,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedRepeatNeedsEndDate => '반복 종료일을 골라 주세요.';
+
+  @override
+  String get schedRepeatNoOccurrences =>
+      '고른 요일이 반복 기간 안에 없어요. 요일이나 종료일을 바꿔 주세요.';
+
+  @override
+  String get schedNewNeedsClient => '담당 회원이 없어 일정을 만들 수 없어요. 회원을 먼저 연결해 주세요.';
+
+  @override
+  String get schedClientsLoading => '회원 목록을 불러오는 중이에요. 잠시 후 다시 눌러 주세요.';
 
   @override
   String schedRepeatConflictTitle(int total, int count) {
@@ -3393,6 +3413,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authErrNotTrainer => '트레이너 계정으로 로그인해 주세요.';
+
+  @override
+  String get authErrTooManyAttempts => '시도가 너무 많아 잠시 막혔어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String authErrTooManyAttemptsMinutes(int minutes) {
+    return '시도가 너무 많아 잠시 막혔어요. $minutes분 뒤에 다시 시도해 주세요.';
+  }
+
+  @override
+  String get authErrSignedUpSignInFailed => '가입은 완료됐어요. 로그인해 주세요.';
 
   @override
   String aiBasisGoalCompletion(String goal, int rate) {
@@ -5155,6 +5186,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsMemberFeedbackUnanswered => '미응답';
+
+  @override
+  String get reportsMemberFeedbackLoadFailed => '불러오지 못했어요';
+
+  @override
+  String get reportsMemberFeedbackLoadFailedHint =>
+      '회원이 답했는지 확인하지 못했어요. 잠시 후 리포트를 다시 불러와 주세요';
 
   @override
   String get reportsMemberFeedbackNoteLabel => '한 줄 피드백';

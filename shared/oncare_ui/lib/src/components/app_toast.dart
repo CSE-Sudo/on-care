@@ -17,7 +17,11 @@ import 'package:oncare_ui/src/tokens/typography.dart';
 /// 토스트 종류. 바탕색은 종류와 무관하게 하나고 아이콘만 다르다.
 enum AppToastType { success, error, info }
 
-OverlayEntry? _current;
+/// 지금 떠 있는 토스트를 걷고 놓는 함수. 없으면 null.
+///
+/// 걷기(`remove`)만 하고 놓지(`dispose`) 않으면 토스트마다 [OverlayEntry] 가
+/// 하나씩 남는다(#3250). 두 번 걷으면 단언이 터지므로 한 번만 하게 감싼다.
+VoidCallback? _discardCurrent;
 
 /// 화면 위쪽에 잠깐 떴다 사라지는 알림(#1693). 두 앱이 같은 모양이다.
 ///
@@ -82,8 +86,18 @@ void _insertToast(
   VoidCallback? onAction,
   String? rewardLabel,
 ) {
-  _current?.remove();
+  _discardCurrent?.call();
   late final OverlayEntry entry;
+  bool discarded = false;
+  void discard() {
+    if (discarded) return;
+    discarded = true;
+    if (identical(_discardCurrent, discard)) _discardCurrent = null;
+    entry
+      ..remove()
+      ..dispose();
+  }
+
   entry = OverlayEntry(
     builder: (BuildContext _) => _ToastView(
       tokens: tokens,
@@ -97,13 +111,10 @@ void _insertToast(
           : type == AppToastType.error
           ? OnCareMotion.toastErrorVisible
           : OnCareMotion.toastVisible,
-      onDismissed: () {
-        if (_current == entry) _current = null;
-        if (entry.mounted) entry.remove();
-      },
+      onDismissed: discard,
     ),
   );
-  _current = entry;
+  _discardCurrent = discard;
   overlay.insert(entry);
 }
 
@@ -139,6 +150,14 @@ class _ToastViewState extends State<_ToastView>
     duration: OnCareMotion.toastEnter,
     reverseDuration: OnCareMotion.toastExit,
   );
+
+  /// 들고 나는 곡선. 그릴 때마다 새로 만들면 부모 컨트롤러에 듣는 이가 쌓이고
+  /// 놓이지 않는다(#3250) — 한 번 만들어 [dispose] 에서 놓는다.
+  late final CurvedAnimation _curved = CurvedAnimation(
+    parent: _controller,
+    curve: OnCareMotion.curve,
+    reverseCurve: OnCareMotion.exitCurve,
+  );
   Timer? _timer;
 
   @override
@@ -158,6 +177,7 @@ class _ToastViewState extends State<_ToastView>
   @override
   void dispose() {
     _timer?.cancel();
+    _curved.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -171,11 +191,7 @@ class _ToastViewState extends State<_ToastView>
       AppToastType.error => (icons.error, OnCareColors.overlayError),
       AppToastType.info => (icons.info, OnCareColors.overlayAction),
     };
-    final Animation<double> curved = CurvedAnimation(
-      parent: _controller,
-      curve: OnCareMotion.curve,
-      reverseCurve: OnCareMotion.exitCurve,
-    );
+    final Animation<double> curved = _curved;
     return Positioned(
       top: MediaQuery.paddingOf(context).top + OnCareSpacing.s12,
       left: OnCareSpacing.s16,

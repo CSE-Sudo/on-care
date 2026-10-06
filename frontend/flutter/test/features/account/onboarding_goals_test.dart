@@ -15,6 +15,7 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
     show ReissuedTokens;
+import 'package:oncare/features/auth/domain/signup_email_code.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -98,6 +99,7 @@ class _RecordingRepository implements AccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
     AccountReauth? reauth,
+    String? emailCode,
     void Function(ReissuedTokens tokens)? onTokensReissued,
   }) => _inner.updateProfile(
     name: name,
@@ -108,8 +110,13 @@ class _RecordingRepository implements AccountRepository {
     heightCm: heightCm,
     weightKg: weightKg,
     reauth: reauth,
+    emailCode: emailCode,
     onTokensReissued: onTokensReissued,
   );
+
+  @override
+  Future<SignupEmailCodeSent> requestEmailChangeCode({required String email}) =>
+      _inner.requestEmailChangeCode(email: email);
 
   @override
   Future<UserProfile> updateHealthGoals({

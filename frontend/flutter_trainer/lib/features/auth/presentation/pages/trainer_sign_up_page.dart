@@ -190,6 +190,14 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
           .read(signupEmailCodeRepositoryProvider)
           .request(email: email);
       if (!mounted) return;
+      // 요청하는 사이 이메일을 고쳤다면 받은 코드는 옛 주소의 것이다(#3248) —
+      // 그대로 두면 새 주소로 가입할 때 서버가 코드를 거절한다(400). 새 주소로
+      // 다시 받게 버린다.
+      if (SignupEmailCode.emailKey(_email.text) !=
+          SignupEmailCode.emailKey(email)) {
+        setState(() => _codeRequesting = false);
+        return;
+      }
       _codeTicker?.cancel();
       _code.clear();
       setState(() {
@@ -276,6 +284,16 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
       // 해제된 context 로 로케일을 조회하게 된다.
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
+      // 계정은 만들었는데 이어진 로그인이 실패했다(#3248). 여기서 가입 실패로
+      // 알리면 다시 누른 가입이 이미 가입된 이메일(409)이 된다 — 로그인으로 보낸다.
+      // 계정이 있으므로 새 비밀번호를 브라우저에 저장하게 한다(#2295).
+      if (e.failure == AuthFailure.signedUpSignInFailed) {
+        TextInput.finishAutofillContext();
+        setState(() => _loading = false);
+        showAppToast(context, authFailureText(l, e));
+        context.go(AppRoutes.signIn);
+        return;
+      }
       // 인증 코드 문제는 코드 칸 아래에 둔다(#3038) — 폼은 그대로 남는다.
       if (e.failure == AuthFailure.emailCodeInvalid ||
           e.failure == AuthFailure.emailCodeRequired) {

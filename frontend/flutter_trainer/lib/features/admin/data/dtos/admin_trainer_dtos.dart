@@ -1,3 +1,4 @@
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/features/admin/domain/entities/admin_report.dart';
 import 'package:oncare_trainer/features/admin/domain/entities/admin_trainer.dart';
 
@@ -46,5 +47,10 @@ String _str(Object? value) => value is String ? value : '';
 
 int _int(Object? value) => value is num ? value.toInt() : 0;
 
+/// 서버 시각을 KST 벽시계로 읽는다(#3248). `toLocal()` 은 브라우저 시간대라
+/// 해외에서 접속한 운영자에게는 신고·가입 날짜가 하루 어긋날 수 있었다.
 DateTime? _date(Object? value) =>
-    value is String ? DateTime.tryParse(value)?.toLocal() : null;
+    switch (value is String ? DateTime.tryParse(value) : null) {
+      final DateTime at => toKst(at),
+      null => null,
+    };

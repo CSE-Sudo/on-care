@@ -1243,6 +1243,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your trainer already has something else at this time, so it can\'t be booked. Please pick another time.';
 
   @override
+  String get exReserveUpcomingExists =>
+      'You already have an upcoming booking. To change the time, cancel it first.';
+
+  @override
   String exReserveConfirmedSlotGym(String slot, String gym) {
     return '$slot · $gym booking confirmed';
   }
@@ -5201,6 +5205,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reauthEmailMessage =>
       'Changing your email changes your sign-in ID and the address password reset emails go to.';
+
+  @override
+  String get emailChangeCodeTitle => 'Verify your new email';
+
+  @override
+  String emailChangeCodeMessage(String email) {
+    return 'We sent a 6-digit code to $email. Enter it to confirm this address is yours.';
+  }
+
+  @override
+  String get emailChangeCodeNext => 'Next';
 
   @override
   String get reauthPasswordPrompt => 'Enter your current password to continue.';
