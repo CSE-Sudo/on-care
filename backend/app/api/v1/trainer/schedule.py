@@ -247,6 +247,7 @@ def trainer_assign_program_with_schedule(
             session_id=payload.session_id,
             personal_routines=payload.personal_routines,
             suggestion_ids=payload.suggestion_ids,
+            note=payload.note,
         )
     except trainer_common_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

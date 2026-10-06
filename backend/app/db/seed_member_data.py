@@ -873,6 +873,13 @@ def _fixture_pt_program(day) -> list[dict]:
     return items
 
 
+def _fixture_pt_sent_at(day: date) -> datetime:
+    """김민수 지난 PT 의 프로그램을 보낸 시각 — 수업이 끝난 그날 저녁(KST)."""
+    return datetime.combine(day, datetime.min.time(), tzinfo=clock.SEOUL) + timedelta(
+        hours=19, minutes=30
+    )
+
+
 def _seed_fixture_pt(db: Session, valid: set[str]) -> None:
     """픽스처가 PT 날로 적은 지난 날마다 김민수의 완료 수업을 둔다. (#2694)
 
@@ -903,11 +910,17 @@ def _seed_fixture_pt(db: Session, valid: set[str]) -> None:
     ).delete(synchronize_session=False)
     names = {user_id: name for user_id, _email, name, *_ in _MEMBERS}
     for row_id, day in wanted.items():
+        program = json.dumps(_fixture_pt_program(day), ensure_ascii=False)
         existing = db.get(models.TrainerSchedule, row_id)
         if existing is not None:
             # 이미 깐 행의 메모가 옛 픽스처 문장이면 지금 문장으로 고친다(#3202).
             # 트레이너가 고쳐 쓴 메모는 표에 없어 그대로다.
             existing.note = current_seed_sentence(existing.note)
+            # 프로그램을 비워 깔았던 예전 행도 채운다(#3282). 트레이너가 손댄
+            # 프로그램은 비어 있지 않으니 그대로다.
+            if existing.program_json in ("", "[]") and existing.program_sent_at is None:
+                existing.program_json = program
+                existing.program_sent_at = _fixture_pt_sent_at(day.day)
             continue
         db.add(models.TrainerSchedule(
             id=row_id,
@@ -920,9 +933,13 @@ def _seed_fixture_pt(db: Session, valid: set[str]) -> None:
             duration_minutes=_FIXTURE_PT_MINUTES,
             status="완료",
             note=day.trainer_note,
-            # 프로그램은 비운다 — 트레이너 웹 데모의 지난 수업과 같다. 붙이면 코칭
-            # 화면의 `전송 이력` 에 보낸 것으로 줄지어 선다.
-            program_json="[]",
+            # 그날 회원 앱이 `완료한 PT` 로 그리는 운동이 곧 그 수업의 프로그램이다
+            # (#3282). 다른 회원의 되풀이 수업(`_seed_weekly_pt`)은 같은 운동이
+            # 열세 주 반복돼 비우지만, 김민수는 주마다 다른 실제 순환이라 AI C안
+            # (다음 차례 PT)의 근거가 된다. 수업 뒤 보낸 것으로 둔다 — 트레이너가
+            # 실제로 하는 일이고, 코칭 화면 `전송 이력` 에 그대로 쌓인다.
+            program_json=program,
+            program_sent_at=_fixture_pt_sent_at(day.day),
             sort_order=_WEEKLY_PT_SORT_BASE,
         ))
     _safe_commit(db)

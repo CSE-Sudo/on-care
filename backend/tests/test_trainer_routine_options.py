@@ -318,6 +318,14 @@ def test_public_generator_falls_back_for_malformed_llm(monkeypatch):
         "build_member_analysis",
         lambda *_: _analysis(),
     )
+    # DB 없이 돈다 — 연계안 기준(#3282)은 기록 없음으로 둔다.
+    monkeypatch.setattr(
+        trainer_routine_options_service,
+        "build_next_pt",
+        lambda *_a, **_k: trainer_routine_options_service.routine_next_pt.choose_next(
+            [], today=trainer_routine_options_service.clock.today()
+        ),
+    )
     monkeypatch.setattr(
         trainer_routine_options_service,
         "get_coach_llm",

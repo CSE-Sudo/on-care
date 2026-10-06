@@ -65,7 +65,7 @@
 
 | 이름 | 누가 읽나 | 해당하는 글 |
 |---|---|---|
-| 트레이너 피드백 | 회원 | PT 일정의 글(`trainer_schedule.note`, 회원 앱 `오늘의 피드백`), 리포트 피드백(`trainer_report_feedback`), 위저드·일정 추가에서 회원에게 전할 말 |
+| 트레이너 피드백 | 회원 | PT 일정의 글(`trainer_schedule.note`, 회원 앱 `오늘의 피드백`), 리포트 피드백(`trainer_report_feedback`), 프로그램 탭 `일정 추가` 와 함께 쓰는 피드백(그 PT 일정의 글로 저장, #2374) |
 | 회원 피드백 | 트레이너 | 회원 주간 피드백과 그 안의 `한 줄 피드백`(`member_weekly_feedback`) |
 | 메모 | 트레이너만 | 회원 상세 메모(`trainer_client_memos` — 직접 작성·채팅 감지·운동 기록 카드), 상담 일정의 글(`상담 메모`) |
 

@@ -5329,42 +5329,6 @@ abstract class AppLocalizations {
   /// **'You haven\'t sent any programs yet'**
   String get coachHistoryEmpty;
 
-  /// No description provided for @aiReasonSodium.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium is over goal today, so lean into low-intensity cardio.'**
-  String get aiReasonSodium;
-
-  /// No description provided for @aiReasonBalanced.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s meals are balanced, so the current intensity is fine to keep.'**
-  String get aiReasonBalanced;
-
-  /// No description provided for @aiReasonGoal.
-  ///
-  /// In en, this message translates to:
-  /// **'Based on the {goal} goal and recent {last} activity.'**
-  String aiReasonGoal(String goal, String last);
-
-  /// No description provided for @aiTagExisting.
-  ///
-  /// In en, this message translates to:
-  /// **'Existing suggestion'**
-  String get aiTagExisting;
-
-  /// No description provided for @aiTagCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom'**
-  String get aiTagCustom;
-
-  /// No description provided for @aiExistingBlurb.
-  ///
-  /// In en, this message translates to:
-  /// **'The existing suggestion, based on their recent meals and workouts.'**
-  String get aiExistingBlurb;
-
   /// No description provided for @aiOptionRecovery.
   ///
   /// In en, this message translates to:
@@ -5376,12 +5340,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Push'**
   String get aiOptionPush;
-
-  /// No description provided for @aiOptionExisting.
-  ///
-  /// In en, this message translates to:
-  /// **'Existing'**
-  String get aiOptionExisting;
 
   /// No description provided for @aiGenerateFailed.
   ///
@@ -5647,6 +5605,12 @@ abstract class AppLocalizations {
   /// **'→ {action}'**
   String aiFindingAction(String action);
 
+  /// No description provided for @aiOptionNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up'**
+  String get aiOptionNext;
+
   /// No description provided for @aiChatEvidenceTitle.
   ///
   /// In en, this message translates to:
@@ -5689,17 +5653,23 @@ abstract class AppLocalizations {
   /// **'Add'**
   String get aiRegister;
 
-  /// No description provided for @aiNoteForClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Feedback to send with it'**
-  String get aiNoteForClient;
-
   /// No description provided for @aiReviewedSuggestion.
   ///
   /// In en, this message translates to:
   /// **'Confirmed plan · {option}'**
   String aiReviewedSuggestion(String option);
+
+  /// No description provided for @aiReviewSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{total} min total · {count} exercises · {strength} strength · {cardio} cardio'**
+  String aiReviewSummary(int total, int count, int strength, int cardio);
+
+  /// No description provided for @aiReviewIntensityWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent completion is low but intensity is set to high. Check whether to lower it.'**
+  String get aiReviewIntensityWarning;
 
   /// No description provided for @aiEditsApplied.
   ///
@@ -6090,12 +6060,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recent activity'**
   String get aiRecentRoutine;
-
-  /// No description provided for @aiNotePlaceholderHint.
-  ///
-  /// In en, this message translates to:
-  /// **'The grey suggestion is only a prompt — only what you type is saved and sent.'**
-  String get aiNotePlaceholderHint;
 
   /// No description provided for @aiGenerateConditions.
   ///

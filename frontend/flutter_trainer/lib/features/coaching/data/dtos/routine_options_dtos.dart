@@ -9,8 +9,11 @@ RoutineOptions routineOptionsFromJson(Map<String, Object?> json) {
     planB: _plan(json['plan_b']),
     generatedBy: _requiredString(json, 'generated_by'),
     findings: _findings(json['findings']),
+    planC: json['plan_c'] == null ? null : _plan(json['plan_c']),
   );
-  if (options.planA.key != 'A' || options.planB.key != 'B') {
+  if (options.planA.key != 'A' ||
+      options.planB.key != 'B' ||
+      (options.planC != null && options.planC!.key != 'C')) {
     throw const FormatException('routine-options must contain A and B plans.');
   }
   if (options.generatedBy != 'ai' && options.generatedBy != 'rule') {
@@ -29,6 +32,7 @@ Map<String, Object?> routineOptionsToJson(RoutineOptions options) =>
       'analysis': _analysisToJson(options.analysis),
       'plan_a': _planToJson(options.planA),
       'plan_b': _planToJson(options.planB),
+      'plan_c': options.planC == null ? null : _planToJson(options.planC!),
       'generated_by': options.generatedBy,
       'findings': <Map<String, Object?>>[
         for (final RoutineFinding f in options.findings)
@@ -64,10 +68,19 @@ Map<String, Object?> _planToJson(RoutinePlan plan) => <String, Object?>{
   'intensity': plan.intensity,
   'exercises': <Map<String, Object?>>[
     for (final RoutineExercise e in plan.exercises)
-      <String, Object?>{'name': e.name, 'minutes': e.minutes, 'type': e.type},
+      <String, Object?>{
+        'name': e.name,
+        'minutes': e.minutes,
+        'type': e.type,
+        if (e.sets > 0) 'sets': e.sets,
+        if (e.reps > 0) 'reps': e.reps,
+        if (e.weight > 0) 'weight': e.weight,
+      },
   ],
   'reason': plan.reason,
   'rationale': plan.rationale,
+  if (plan.basis.isNotEmpty) 'basis': plan.basis,
+  if (plan.changes.isNotEmpty) 'changes': plan.changes,
 };
 
 MemberAnalysis _analysis(Object? v) {
@@ -148,11 +161,19 @@ RoutinePlan _plan(Object? v) {
             name: _requiredString(exercise, 'name'),
             minutes: _requiredInt(exercise, 'minutes'),
             type: _requiredString(exercise, 'type'),
+            // C안은 지난 PT 의 근력 양을 이어받는다(#3282). A·B안은 비어 있다.
+            sets: _optionalInt(exercise, 'sets') ?? 0,
+            reps: _optionalInt(exercise, 'reps') ?? 0,
+            weight: exercise['weight'] is num
+                ? (exercise['weight']! as num).toDouble()
+                : 0,
           );
         })
         .toList(growable: false),
     reason: _requiredString(m, 'reason'),
     rationale: _requiredString(m, 'rationale'),
+    basis: m['basis'] is String ? m['basis']! as String : '',
+    changes: _stringList(m, 'changes'),
   );
 }
 

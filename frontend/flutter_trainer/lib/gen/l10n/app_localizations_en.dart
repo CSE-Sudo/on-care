@@ -3061,36 +3061,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachHistoryEmpty => 'You haven\'t sent any programs yet';
 
   @override
-  String get aiReasonSodium =>
-      'Sodium is over goal today, so lean into low-intensity cardio.';
-
-  @override
-  String get aiReasonBalanced =>
-      'Today\'s meals are balanced, so the current intensity is fine to keep.';
-
-  @override
-  String aiReasonGoal(String goal, String last) {
-    return 'Based on the $goal goal and recent $last activity.';
-  }
-
-  @override
-  String get aiTagExisting => 'Existing suggestion';
-
-  @override
-  String get aiTagCustom => 'Custom';
-
-  @override
-  String get aiExistingBlurb =>
-      'The existing suggestion, based on their recent meals and workouts.';
-
-  @override
   String get aiOptionRecovery => 'Recovery';
 
   @override
   String get aiOptionPush => 'Push';
-
-  @override
-  String get aiOptionExisting => 'Existing';
 
   @override
   String get aiGenerateFailed =>
@@ -3249,6 +3223,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get aiOptionNext => 'Follow-up';
+
+  @override
   String get aiChatEvidenceTitle => 'Recent conversation used';
 
   @override
@@ -3275,12 +3252,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRegister => 'Add';
 
   @override
-  String get aiNoteForClient => 'Feedback to send with it';
-
-  @override
   String aiReviewedSuggestion(String option) {
     return 'Confirmed plan · $option';
   }
+
+  @override
+  String aiReviewSummary(int total, int count, int strength, int cardio) {
+    return '$total min total · $count exercises · $strength strength · $cardio cardio';
+  }
+
+  @override
+  String get aiReviewIntensityWarning =>
+      'Recent completion is low but intensity is set to high. Check whether to lower it.';
 
   @override
   String get aiEditsApplied =>
@@ -3518,10 +3501,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiRecentRoutine => 'Recent activity';
-
-  @override
-  String get aiNotePlaceholderHint =>
-      'The grey suggestion is only a prompt — only what you type is saved and sent.';
 
   @override
   String get aiGenerateConditions => 'Conditions';

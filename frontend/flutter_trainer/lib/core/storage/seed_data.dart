@@ -38,7 +38,7 @@ part 'seed_workouts.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v55']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v56']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
@@ -221,7 +221,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v55') == today &&
+  if (await db.readValue('trainer_seeded_v56') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -836,7 +836,9 @@ Future<void> seedIfEmpty(
         // 김민수의 지난 PT — 공유 픽스처가 PT 날로 적은 날마다 오늘 수업과 같은
         // 시각·길이의 끝난 수업이다(#2694). 회원 앱은 그날을 `18:00 수업 완료`
         // 로 그리고, 실서버 시드도 같은 날에 같은 수업을 깐다. 메모는 픽스처가
-        // 그 수업에 적은 것이고, 프로그램은 다른 지난 수업처럼 비운다.
+        // 그 수업에 적은 것이다. 프로그램은 그날 회원 앱이 `완료한 PT` 로
+        // 그리는 운동이고 보낸 것으로 둔다(#3282) — 다른 회원의 되풀이 수업과
+        // 달리 주마다 다른 실제 순환이라 AI C안(다음 차례 PT)의 근거가 된다.
         for (final FixtureDay day in fixtureClient.days)
           if (day.isPt && day.date != today)
             TrainerScheduleEntriesCompanion.insert(
@@ -849,7 +851,8 @@ Future<void> seedIfEmpty(
               durationMinutes: Value(fixturePt.durationMinutes),
               status: ScheduleStatus.done,
               note: Value(t(day.trainerNote)),
-              programJson: const Value('[]'),
+              programJson: Value(jsonEncode(t.program(_fixturePtProgram(day)))),
+              programSent: const Value(true),
               sortOrder: const Value(0),
             ),
         // 지난 상담(#2667). 이번 주 상담만 있으면 AI 근거의 `상담 메모`(최근
@@ -938,7 +941,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v55', today);
+    await db.putValue('trainer_seeded_v56', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -3705,3 +3708,37 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
     ),
   ],
 };
+
+
+/// 픽스처 PT 날의 운동 → 수업 프로그램 — 서버 `_fixture_pt_program` 과 같다(#3282).
+///
+/// 회원 앱이 그날 `완료한 PT` 로 그리는 종목·세트·횟수·중량이다. 근력은 세트로,
+/// 나머지는 분으로 적는다.
+List<Map<String, Object?>> _fixturePtProgram(FixtureDay day) {
+  const Map<String, String> typeLabels = <String, String>{
+    'cardio': '유산소',
+    'strength': '근력',
+    'stretching': '스트레칭',
+  };
+  return <Map<String, Object?>>[
+    for (final FixtureExercise e in day.exercises)
+      if (e.done)
+        if (e.type != 'strength')
+          <String, Object?>{
+            'name': e.name,
+            'type': typeLabels[e.type] ?? '기타',
+            'duration': e.minutes,
+          }
+        else
+          <String, Object?>{
+            'name': e.name,
+            'type': '근력',
+            'sets': e.sets,
+            if (e.holdSeconds != null)
+              'hold_seconds': e.holdSeconds
+            else if (e.reps != null)
+              'reps': e.reps,
+            'weight': e.weight ?? 0,
+          },
+  ];
+}

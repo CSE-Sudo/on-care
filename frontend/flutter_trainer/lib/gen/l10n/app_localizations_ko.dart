@@ -2897,33 +2897,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachHistoryEmpty => '아직 보낸 프로그램이 없어요';
 
   @override
-  String get aiReasonSodium => '오늘 나트륨이 목표를 초과해 저강도 유산소 비중을 높이는 것이 좋아요.';
-
-  @override
-  String get aiReasonBalanced => '오늘 식단 균형이 안정적이라 기존 운동 강도를 유지해도 좋아요.';
-
-  @override
-  String aiReasonGoal(String goal, String last) {
-    return '$goal 목표와 최근 $last 기록을 고려했어요.';
-  }
-
-  @override
-  String get aiTagExisting => '기존 AI 추천';
-
-  @override
-  String get aiTagCustom => '맞춤';
-
-  @override
-  String get aiExistingBlurb => '회원의 최근 식단과 운동 기록을 반영한 기존 추천이에요.';
-
-  @override
   String get aiOptionRecovery => '회복안';
 
   @override
   String get aiOptionPush => '강화안';
-
-  @override
-  String get aiOptionExisting => '기존안';
 
   @override
   String get aiGenerateFailed => 'AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요';
@@ -3078,6 +3055,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get aiOptionNext => '연계안';
+
+  @override
   String get aiChatEvidenceTitle => '참고한 최근 대화';
 
   @override
@@ -3103,12 +3083,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRegister => '추가';
 
   @override
-  String get aiNoteForClient => '회원에게 전할 피드백';
-
-  @override
   String aiReviewedSuggestion(String option) {
     return '확정한 구성 · $option';
   }
+
+  @override
+  String aiReviewSummary(int total, int count, int strength, int cardio) {
+    return '총 $total분 · $count종목 · 근력 $strength · 유산소 $cardio';
+  }
+
+  @override
+  String get aiReviewIntensityWarning =>
+      '최근 완료율이 낮은데 강도가 높음이에요. 강도를 낮출지 확인해 주세요';
 
   @override
   String get aiEditsApplied => '선택하고 수정한 내용이 최종 추천 목록에 반영됐어요.';
@@ -3337,10 +3323,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiRecentRoutine => '최근 운동';
-
-  @override
-  String get aiNotePlaceholderHint =>
-      '회색 제안 문구는 입력 전 참고용이며, 직접 입력한 피드백만 저장·전송돼요.';
 
   @override
   String get aiGenerateConditions => '생성 조건';

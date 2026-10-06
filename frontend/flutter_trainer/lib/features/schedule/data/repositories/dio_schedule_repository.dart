@@ -259,6 +259,7 @@ class DioScheduleRepository implements ScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) async {
     late bool attachedToExisting;
     final memberId = Uri.encodeComponent(clientId);
@@ -276,6 +277,7 @@ class DioScheduleRepository implements ScheduleRepository {
             sessionId: sessionId,
             personalRoutines: personalRoutinesToJson(personalRoutines),
             suggestionIds: suggestionIdsOf(personalRoutines),
+            note: note,
           ),
         );
       } on DioException catch (e) {

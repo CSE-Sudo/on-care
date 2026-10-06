@@ -1261,15 +1261,8 @@
   "coachDeliveryNothing": "보낸 것 없음",
   "coachHistoryFailed": "이력을 불러오지 못했어요",
   "coachHistoryEmpty": "아직 보낸 프로그램이 없어요",
-  "aiReasonSodium": "오늘 나트륨이 목표를 초과해 저강도 유산소 비중을 높이는 것이 좋아요.",
-  "aiReasonBalanced": "오늘 식단 균형이 안정적이라 기존 운동 강도를 유지해도 좋아요.",
-  "aiReasonGoal": "{goal} 목표와 최근 {last} 기록을 고려했어요.",
-  "aiTagExisting": "기존 AI 추천",
-  "aiTagCustom": "맞춤",
-  "aiExistingBlurb": "회원의 최근 식단과 운동 기록을 반영한 기존 추천이에요.",
   "aiOptionRecovery": "회복안",
   "aiOptionPush": "강화안",
-  "aiOptionExisting": "기존안",
   "aiGenerateFailed": "AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요",
   "aiGenerateInvalidConditions": "생성 조건을 확인해 주세요. 총 운동 시간은 {min}~{max}분 사이여야 해요",
   "@aiGenerateInvalidConditions": {
@@ -1340,6 +1333,7 @@
   "aiFindingsTitle": "이번 분석에서 찾은 것",
   "aiFindingSource": " · {source}",
   "aiFindingAction": "→ {action}",
+  "aiOptionNext": "연계안",
   "aiChatEvidenceTitle": "참고한 최근 대화",
   "aiChatEvidenceLink": "참고한 대화 {count}줄",
   "aiEditOption": "{option} 수정",
@@ -1347,8 +1341,25 @@
   "aiAddExerciseManually": "운동 직접 추가하기",
   "aiExerciseNameExample": "예: 레그프레스 3세트",
   "aiRegister": "추가",
-  "aiNoteForClient": "회원에게 전할 피드백",
   "aiReviewedSuggestion": "확정한 구성 · {option}",
+  "aiReviewSummary": "총 {total}분 · {count}종목 · 근력 {strength} · 유산소 {cardio}",
+  "@aiReviewSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "strength": {
+        "type": "int"
+      },
+      "cardio": {
+        "type": "int"
+      }
+    }
+  },
+  "aiReviewIntensityWarning": "최근 완료율이 낮은데 강도가 높음이에요. 강도를 낮출지 확인해 주세요",
   "aiEditsApplied": "선택하고 수정한 내용이 최종 추천 목록에 반영됐어요.",
   "aiApplyToTemplate": "프로그램에 반영",
   "aiAppliedToTemplate": "AI 추천안이 프로그램에 반영됐어요.",
@@ -1519,7 +1530,6 @@
   },
   "aiNoRecentRoutine": "기록 없음",
   "aiRecentRoutine": "최근 운동",
-  "aiNotePlaceholderHint": "회색 제안 문구는 입력 전 참고용이며, 직접 입력한 피드백만 저장·전송돼요.",
   "aiGenerateConditions": "생성 조건",
   "aiCompareCandidates": "맞춤 추천안 후보를 비교해 보세요",
   "aiConditionsAutoHint": "비워두면 최근 기록이나 목표를 기준으로 자동 설정돼요.",

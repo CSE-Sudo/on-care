@@ -129,6 +129,7 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:8000/v1/system/met
 | `routine_options.fallback{reason=infra}` | 키 미설정·설정 오타·네트워크·5xx |
 | `routine_options.fallback{reason=global_cap}` | 서버 전체 하루 AI 상한(`AI_GLOBAL_CALLS_PER_DAY`) 도달(#3032) |
 | `routine_options.with_chat_context` | 채팅 근거가 실린 채 AI 가 성공한 횟수(#580) |
+| `routine_options.plan_c_fallback` | AI 가 A·B안은 지켰지만 C안(다음 차례 PT, #3282)을 어겨 규칙형 C안으로 채운 횟수 |
 | `diet_recommendations.generated{by=llm}` | LLM 이 만든 추천 |
 | `diet_recommendations.generated{by=rules}` | LLM 실패 후 규칙으로 만든 추천 |
 | `diet_recommendations.generated{by=no_data}` | 근거가 없어 LLM 을 부르지 않음(신규 가입자) |

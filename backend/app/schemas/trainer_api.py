@@ -1521,16 +1521,25 @@ class RoutineOptionExerciseOut(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     minutes: int = Field(ge=1, le=180)
     type: RoutineType
+    #: 근력의 양(#3282). C안은 지난 PT 프로그램의 세트·횟수·중량을 이어받아
+    #: 고치므로 함께 싣는다. A·B안과 옛 응답은 비어 있고, 화면이 기본값을 채운다.
+    sets: int | None = Field(default=None, ge=1, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, ge=1, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
 
 
 class RoutineOptionPlanOut(BaseModel):
-    key: Literal["A", "B"]
+    key: Literal["A", "B", "C"]
     label: str = Field(min_length=1, max_length=50)
     total_minutes: int = Field(ge=1, le=180)
     intensity: RoutineIntensityLabel
     exercises: list[RoutineOptionExerciseOut] = Field(min_length=1, max_length=12)
     reason: str = Field(min_length=1, max_length=200)
     rationale: str = Field(min_length=1, max_length=500)
+    #: C안만(#3282) — 왜 이번 차례인지. 서버 규칙이 쓴다.
+    basis: str = Field(default="", max_length=200)
+    #: C안만(#3282) — 기준 프로그램에서 바꾼 점, 한 줄씩.
+    changes: list[str] = Field(default_factory=list, max_length=8)
 
     @model_validator(mode="after")
     def _total_matches_exercises(self) -> RoutineOptionPlanOut:
@@ -1541,7 +1550,9 @@ class RoutineOptionPlanOut(BaseModel):
 
 
 #: 판단 결과 한 줄의 종류(#3280). 화면이 아이콘·순서를 고르는 계약값이다.
-RoutineFindingKind = Literal["caution", "escalation", "pattern", "sodium", "adherence"]
+RoutineFindingKind = Literal[
+    "caution", "escalation", "pattern", "sodium", "adherence", "rotation"
+]
 
 
 class RoutineFindingOut(BaseModel):
@@ -1568,11 +1579,16 @@ class RoutineOptionsOut(BaseModel):
     #: 이번 생성의 판단 결과(#3280). 분석(`analysis`)은 판단에 **넣은** 값이고,
     #: 이쪽은 그 값에서 **찾은** 신호와 반영 방향이다. 찾은 것이 없으면 비어 있다.
     findings: list[RoutineFindingOut] = Field(default_factory=list, max_length=12)
+    #: 지난 PT 흐름상 이번 차례 프로그램을 최근 상태에 맞게 고친 안(#3282).
+    #: 기록이 없어도 기본 분할 시작안으로 늘 채운다 — 옛 응답만 비어 있다.
+    plan_c: RoutineOptionPlanOut | None = None
 
     @model_validator(mode="after")
     def _requires_distinct_a_and_b(self) -> RoutineOptionsOut:
         if self.plan_a.key != "A" or self.plan_b.key != "B":
             raise ValueError("plan_a/plan_b key 는 각각 A/B여야 합니다.")
+        if self.plan_c is not None and self.plan_c.key != "C":
+            raise ValueError("plan_c key 는 C여야 합니다.")
         return self
 
 
@@ -1897,6 +1913,10 @@ class ProgramScheduleRequest(BaseModel):
     suggestion_ids: list[_SuggestionId] = Field(
         default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
+    #: 이 PT 의 트레이너 피드백(#2374) — 일정의 `note` 에 담긴다. 회원에게는 PT 를
+    #: 완료한 뒤에 보인다(#2515). 기존 회차에 붙일 때 그 회차에 피드백이 있으면
+    #: 덮지 않고 줄을 바꿔 이어 붙인다. 비우면 일정의 피드백을 건드리지 않는다.
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
