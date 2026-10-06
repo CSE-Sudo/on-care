@@ -56,7 +56,7 @@ SLOT_SODIUM_SHARE = 0.3
 CARB_HEAVY_PCT = 65
 PROTEIN_LIGHT_PCT = 15
 #: 단백질 목표를 "달성" 으로 볼 비율과, 추세로 말할 최소 차이·반기(2주)별 최소 기록일.
-PROTEIN_MET_RATIO = 0.9
+PROTEIN_MET_RATIO = inputs.COACH_PROTEIN_MET_RATIO
 TREND_MIN_DIFF = 2
 TREND_MIN_DAYS = 3
 #: 자주 먹은 메뉴로 말할 최소 횟수와 이름 길이(카드 45자).

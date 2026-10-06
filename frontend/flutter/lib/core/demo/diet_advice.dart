@@ -53,6 +53,25 @@ typedef DemoDietTargets = ({
   int sugarG,
 });
 
+// ── 회원 코칭의 단백질 문턱(#3270) ──────────────────────────────────────
+// 회원 코칭(오늘·이번 주·4주 조언, 홈 추천 식단)은 **실효 목표**
+// ([demoDietTargets] 의 단백질 — 개인 목표 → 체중 × 1.2g → 60g)로 단백질 부족을
+// 본다. 리포트 **평가**(결과지·트레이너 주간 요약)는 개인 목표가 있을 때만 ±25%
+// 로 판정한다(#3259) — 지어낸 기준으로 평가하지 않는다. 문턱 숫자는 보는 기간이
+// 달라 서로 다르다. 서버 `diet_coach_inputs.COACH_PROTEIN_…` 와 같은 값이다.
+
+/// 오늘 — 목표보다 이만큼(g) 모자라면 말하고, 채울 메뉴를 고른다.
+const int kCoachProteinGapG = 10;
+
+/// 이번 주 — 목표의 이 비율에 못 미친 날을 부족한 날로 센다.
+const double kCoachProteinShortRatio = 0.8;
+
+/// 4주 — 목표의 이 비율 이상인 날을 달성한 날로 센다.
+const double kCoachProteinMetRatio = 0.9;
+
+/// 홈 추천 식단 — 최근 3일 평균이 목표의 이 비율 이하면 `protein_low` 신호다.
+const double kCoachProteinLowRatio = 0.6;
+
 /// 개인 목표 → 하루 목표. 단백질은 목표 → 체중 × 1.2g → 60g 순이다.
 ///
 /// 기본값은 공용 패키지 `oncare_ui` 의 `kGoalDefault…` 한 곳에 있다(#2906).
@@ -230,7 +249,7 @@ _TodayDecision _decideToday(
     });
   } else if (kcal > t.calories * 1.1) {
     analysis = _line('today_calorie_over', <String, Object>{'kcal': kcal});
-  } else if (pyRound(gap) >= 10) {
+  } else if (pyRound(gap) >= kCoachProteinGapG) {
     analysis = _line('today_protein_left', <String, Object>{
       'protein_g': pyRound(gap),
     });
@@ -267,13 +286,13 @@ _TodayDecision _decideToday(
   if (slot != null) {
     if (has) {
       if (sodium >= t.sodiumMg * 0.6) needs.add(_sodiumLow);
-      if (gap >= 10) needs.add(_proteinHigh);
+      if (gap >= kCoachProteinGapG) needs.add(_proteinHigh);
       if (kcal >= t.calories * 0.9) needs.add(_calorieLow);
       if (sugar >= t.sugarG * 0.7) needs.add(_sugarLow);
     }
   } else if (has) {
     needs = <String>[
-      if (gap >= 10) _proteinHigh,
+      if (gap >= kCoachProteinGapG) _proteinHigh,
       if (kcal <= t.calories * 0.7) _calorieHigh,
     ];
     slot = needs.isEmpty ? null : _snack;
@@ -291,7 +310,7 @@ _TodayDecision _decideToday(
     analysis: analysis,
     slot: slot,
     needs: needs,
-    satisfied: <String>{if (has && gap < 10) _proteinHigh},
+    satisfied: <String>{if (has && gap < kCoachProteinGapG) _proteinHigh},
     action: null,
   );
 }
@@ -413,7 +432,9 @@ const Map<String, String> _focusTips = <String, String>{
       'sugar': days.where((_DayRecord r) => r.sugar > t.sugarG).length,
       'protein': closed
           .where(
-            (_DayRecord r) => r.mainMeals >= 2 && r.protein < t.proteinG * 0.8,
+            (_DayRecord r) =>
+                r.mainMeals >= 2 &&
+                r.protein < t.proteinG * kCoachProteinShortRatio,
           )
           .length,
     };
@@ -529,8 +550,9 @@ _Finding? _trend(
       .where((_DayRecord r) => r.day.isBefore(split))
       .toList();
   if (recent.length < 3 || before.length < 3) return null;
-  int met(List<_DayRecord> rs) =>
-      rs.where((_DayRecord r) => r.protein >= t.proteinG * 0.9).length;
+  int met(List<_DayRecord> rs) => rs
+      .where((_DayRecord r) => r.protein >= t.proteinG * kCoachProteinMetRatio)
+      .length;
   final int a = met(before);
   final int b = met(recent);
   if ((b - a).abs() < 2) return null;
