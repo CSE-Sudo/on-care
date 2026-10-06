@@ -12,6 +12,8 @@
 /// 대조하므로, 서버 표를 고치고 파일을 다시 만들면 여기가 어긋난 만큼 깨진다.
 library;
 
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+
 /// 조심할 부위 · 그 부위를 가리키는 말 · 그 부위에 부담이 큰 운동 이름 조각.
 /// 서버 `_CAUTION_RULES` 와 같다(#1440). 진단하지 않는다 — 무엇을 빼야 안전한가만
 /// 안다.
@@ -167,6 +169,145 @@ String cautionSuffix(List<String> cautions, bool escalate, {required bool en}) {
     );
   }
   return out.toString();
+}
+
+/// 판단 결과에 보여 줄 부위별 대표 동작 — 서버 `_CAUTION_EXAMPLES` 와 같다(#3280).
+const Map<String, String> demoCautionExamples = <String, String>{
+  '무릎': '러닝·점프·스쿼트',
+  '허리': '데드리프트·윗몸일으키기·점프',
+  '어깨': '오버헤드 프레스·푸시업·풀업',
+  '발목': '러닝·점프·줄넘기',
+};
+
+/// 판단 결과의 근거 자료 — (화면 이름 ko, en, 최근 것부터의 줄) (#3280).
+typedef DemoFindingSource = (String, String, List<String>);
+
+final RegExp _lineDate = RegExp(r'^(\d{2}\.\d{2})');
+
+(DemoFindingSource, String, String)? _firstHit(
+  List<DemoFindingSource> sources,
+  List<String> keywords,
+) {
+  for (final DemoFindingSource source in sources) {
+    for (final String line in source.$3) {
+      for (final String keyword in keywords) {
+        if (line.contains(keyword)) return (source, line, keyword);
+      }
+    }
+  }
+  return null;
+}
+
+String _sourceLabel(DemoFindingSource source, String line, {required bool en}) {
+  final String name = en ? source.$2 : source.$1;
+  final RegExpMatch? m = _lineDate.firstMatch(line.trim());
+  return m == null ? name : '$name · ${m.group(1)}';
+}
+
+/// 서버가 찾은 것과 반영 방향 — 서버 `rule_findings` 와 같은 규칙(#3280).
+List<RoutineFinding> ruleFindings({
+  required List<DemoFindingSource> sources,
+  required List<String> frequent,
+  required int sessionCount,
+  required int periodDays,
+  required int sodium,
+  required bool sodiumOver,
+  required int completion,
+  required bool en,
+}) {
+  String t(String ko, String english) => en ? english : ko;
+  final List<RoutineFinding> out = <RoutineFinding>[];
+  for (final (String part, List<String> keywords, List<String> risky)
+      in demoCautionRules) {
+    final hit = _firstHit(sources, keywords);
+    if (hit == null) continue;
+    final String partEn = demoEnCautionParts[part] ?? part;
+    final String moves = demoCautionExamples[part] ?? risky.take(3).join('·');
+    out.add(
+      RoutineFinding(
+        kind: 'caution',
+        finding: t('$part 불편·통증 언급', 'Mentions $partEn discomfort'),
+        source: _sourceLabel(hit.$1, hit.$2, en: en),
+        action: t(
+          '$part에 부담이 큰 동작($moves 등)을 빼고 저충격 대안으로',
+          'Removes movements that load the $partEn and uses '
+              'low-impact alternatives',
+        ),
+      ),
+    );
+  }
+  final escalation = _firstHit(sources, demoEscalationKeywords);
+  if (escalation != null) {
+    out.add(
+      RoutineFinding(
+        kind: 'escalation',
+        finding: t(
+          '전문가 확인이 필요한 언급(${escalation.$3})',
+          'Mentions a symptom that needs a professional check',
+        ),
+        source: _sourceLabel(escalation.$1, escalation.$2, en: en),
+        action: t(
+          '강도를 올리지 않음 — 전문가 확인 후 조정',
+          'Does not raise intensity — adjust after a professional check',
+        ),
+      ),
+    );
+  }
+  final String records = t('운동 기록', 'Workout records');
+  if (frequent.isNotEmpty) {
+    final String names = frequent.join(', ');
+    out.add(
+      RoutineFinding(
+        kind: 'pattern',
+        finding: t('반복한 운동: $names', 'Repeated exercises: $names'),
+        source: t(
+          '$records · 최근 $periodDays일 $sessionCount회',
+          '$records · last $periodDays days, $sessionCount sessions',
+        ),
+        action: t(
+          'A안은 이 운동을 그대로 유지, B안은 하나를 더해 운동량 확대',
+          'Plan A keeps these; plan B adds one to raise the workload',
+        ),
+      ),
+    );
+    return out;
+  }
+  final String easeA = t(
+    'A안 부담을 낮추고 스트레칭 비중 확대',
+    'Plan A lowers the load and adds more stretching',
+  );
+  if (sodiumOver) {
+    out.add(
+      RoutineFinding(
+        kind: 'sodium',
+        finding: t(
+          '오늘 나트륨 ${sodium}mg (목표 초과)',
+          'Sodium today $sodium mg (over goal)',
+        ),
+        source: t('식단 기록 · 오늘', 'Diet records · today'),
+        action: easeA,
+      ),
+    );
+  }
+  out.add(
+    RoutineFinding(
+      kind: 'adherence',
+      finding: t('평균 완료율 $completion%', 'Average completion $completion%'),
+      source: records,
+      action: completion < 50
+          ? easeA
+          : completion >= 60
+          ? t(
+              '상향 여력이 있어 B안에서 운동량을 높임',
+              'Room to step up — plan B raises the workload',
+            )
+          : t(
+              'B안은 운동량을 점진적으로 높임',
+              'Plan B raises the workload gradually',
+            ),
+    ),
+  );
+  return out;
 }
 
 /// 라이브러리 운동 이름을 화면 언어로. 라이브러리 밖 이름은 그대로다.

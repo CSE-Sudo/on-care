@@ -249,4 +249,71 @@ void main() {
       expect(o.analysis.recommendationStatus, RecommendationStatus.template);
     });
   });
+
+  group('findings (#3280)', () {
+    Map<String, Object?> payload(Object? findings) => <String, Object?>{
+      'analysis': <String, Object?>{
+        'goal': '혈압 관리',
+        'sodium_today_mg': 2100,
+        'sodium_over_target': true,
+        'avg_completion_rate': 55,
+        'latest_routine': '걷기',
+        'note': '',
+      },
+      'plan_a': <String, Object?>{
+        'key': 'A',
+        'label': '회복형',
+        'total_minutes': 20,
+        'intensity': '낮음',
+        'exercises': <Object?>[
+          <String, Object?>{'name': '걷기', 'minutes': 20, 'type': '유산소'},
+        ],
+        'reason': 'r',
+        'rationale': 'r',
+      },
+      'plan_b': <String, Object?>{
+        'key': 'B',
+        'label': '강화형',
+        'total_minutes': 20,
+        'intensity': '높음',
+        'exercises': <Object?>[
+          <String, Object?>{'name': '걷기', 'minutes': 20, 'type': '유산소'},
+        ],
+        'reason': 'r',
+        'rationale': 'r',
+      },
+      'generated_by': 'ai',
+      'findings': ?findings,
+    };
+
+    test('reads findings and round-trips through toJson', () {
+      final o = routineOptionsFromJson(
+        payload(<Object?>[
+          <String, Object?>{
+            'kind': 'caution',
+            'finding': '무릎 불편·통증 언급',
+            'source': '최근 대화',
+            'action': '무릎에 부담이 큰 동작을 뺌',
+          },
+        ]),
+      );
+      expect(o.findings.single.kind, 'caution');
+      expect(o.findings.single.source, '최근 대화');
+      final again = routineOptionsFromJson(routineOptionsToJson(o));
+      expect(again.findings.single.action, '무릎에 부담이 큰 동작을 뺌');
+    });
+
+    test('absent or malformed findings never throw', () {
+      expect(routineOptionsFromJson(payload(null)).findings, isEmpty);
+      expect(
+        routineOptionsFromJson(
+          payload(<Object?>[
+            <String, Object?>{'kind': 'caution'},
+            'oops',
+          ]),
+        ).findings,
+        isEmpty,
+      );
+    });
+  });
 }

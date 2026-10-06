@@ -1647,6 +1647,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           intensity: _intensity,
           minutesSetByTrainer: _minutesTouched,
           intensitySetByTrainer: _intensityTouched,
+          findings: options.findings,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         // 세 안은 하나만 고르는 묶음이다 — 카드마다 선 라디오가 이 묶음을 본다.
@@ -2835,6 +2836,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
     required this.intensity,
     required this.minutesSetByTrainer,
     required this.intensitySetByTrainer,
+    required this.findings,
   });
 
   final MemberAnalysis analysis;
@@ -2853,6 +2855,9 @@ class _RecommendationStatusBanner extends StatelessWidget {
   /// 각 조건을 트레이너가 직접 정했는지 — 아니면 기록 기반 자동이다.
   final bool minutesSetByTrainer;
   final bool intensitySetByTrainer;
+
+  /// 서버가 찾은 것과 반영 방향(#3280). 비어 있으면(옛 서버) 입력값 표만 둔다.
+  final List<RoutineFinding> findings;
 
   @override
   Widget build(BuildContext context) {
@@ -2878,12 +2883,16 @@ class _RecommendationStatusBanner extends StatelessWidget {
     final bool hasChat = analysis.recentMessages.isNotEmpty;
     final List<(String, String)> rows = <(String, String)>[
       (l.aiBasisGoalLabel, healthFocusGoalLabel(l, analysis.goal)),
-      (
-        l.aiBasisCompletionLabel,
-        l.aiBasisCompletionValue(analysis.avgCompletionRate),
-      ),
-      if (analysis.frequentExercises.isNotEmpty)
-        (l.aiFrequentExercisesLabel, analysis.frequentExercises.join(', ')),
+      // 판단 결과가 있으면 완료율·반복 운동은 그 안(`평균 완료율` · `반복한
+      // 운동`)에 근거와 함께 나온다 — 1단계 회원 현황과 세 번 겹치지 않게 뺀다.
+      if (findings.isEmpty) ...<(String, String)>[
+        (
+          l.aiBasisCompletionLabel,
+          l.aiBasisCompletionValue(analysis.avgCompletionRate),
+        ),
+        if (analysis.frequentExercises.isNotEmpty)
+          (l.aiFrequentExercisesLabel, analysis.frequentExercises.join(', ')),
+      ],
       // 후보의 총 시간·강도를 직접 정하는 값이라 1단계와 겹쳐도 근거로 둔다.
       (
         l.aiBasisConditionLabel,
@@ -2920,6 +2929,56 @@ class _RecommendationStatusBanner extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
+            // 찾은 것 → 반영 방향(#3280). 분석 박스가 회원 현황을 되풀이하지
+            // 않고 **이번 판단**을 말하는 자리다.
+            if (findings.isNotEmpty) ...<Widget>[
+              Text(
+                l.aiFindingsTitle,
+                style: tokens
+                    .text(OnCareTypography.label)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              for (final RoutineFinding f in findings)
+                Padding(
+                  key: ValueKey<String>('ai-finding-${f.kind}'),
+                  padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text.rich(
+                        TextSpan(
+                          children: <InlineSpan>[
+                            TextSpan(
+                              text: f.finding,
+                              style: tokens
+                                  .text(
+                                    OnCareTypography.strong(
+                                      OnCareTypography.bodySmall,
+                                    ),
+                                  )
+                                  .copyWith(color: OnCareColors.textPrimary),
+                            ),
+                            TextSpan(
+                              text: l.aiFindingSource(f.source),
+                              style: tokens
+                                  .text(OnCareTypography.bodySmall)
+                                  .copyWith(color: OnCareColors.textTertiary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        l.aiFindingAction(f.action),
+                        style: tokens
+                            .text(OnCareTypography.bodySmall)
+                            .copyWith(color: tokens.brand.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: OnCareSpacing.s4),
+            ],
             // 라벨 칸은 가장 긴 라벨에 맞춘다 — 숫자 너비를 박지 않는다.
             Table(
               columnWidths: const <int, TableColumnWidth>{
@@ -2938,7 +2997,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
                         child: Text(
                           label,
                           style: tokens
-                              .text(OnCareTypography.caption)
+                              .text(OnCareTypography.bodySmall)
                               .copyWith(color: OnCareColors.textSecondary),
                         ),
                       ),
@@ -2951,7 +3010,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
                           style: tokens
                               .text(
                                 OnCareTypography.strong(
-                                  OnCareTypography.caption,
+                                  OnCareTypography.bodySmall,
                                 ),
                               )
                               .copyWith(color: OnCareColors.textPrimary),

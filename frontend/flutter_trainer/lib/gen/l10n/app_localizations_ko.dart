@@ -3065,6 +3065,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiBasisConditionMixed => '일부 지정';
 
   @override
+  String get aiFindingsTitle => '이번 분석에서 찾은 것';
+
+  @override
+  String aiFindingSource(String source) {
+    return ' · $source';
+  }
+
+  @override
+  String aiFindingAction(String action) {
+    return '→ $action';
+  }
+
+  @override
   String get aiChatEvidenceTitle => '참고한 최근 대화';
 
   @override

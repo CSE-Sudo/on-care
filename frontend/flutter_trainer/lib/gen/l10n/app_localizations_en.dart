@@ -3238,6 +3238,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiBasisConditionMixed => 'partly set by you';
 
   @override
+  String get aiFindingsTitle => 'What this analysis found';
+
+  @override
+  String aiFindingSource(String source) {
+    return ' · $source';
+  }
+
+  @override
+  String aiFindingAction(String action) {
+    return '→ $action';
+  }
+
+  @override
   String get aiChatEvidenceTitle => 'Recent conversation used';
 
   @override

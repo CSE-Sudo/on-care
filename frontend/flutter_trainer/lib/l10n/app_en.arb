@@ -2068,6 +2068,23 @@
   "aiBasisConditionByTrainer": "set by you",
   "aiBasisConditionAuto": "auto from history",
   "aiBasisConditionMixed": "partly set by you",
+  "aiFindingsTitle": "What this analysis found",
+  "aiFindingSource": " · {source}",
+  "@aiFindingSource": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "aiFindingAction": "→ {action}",
+  "@aiFindingAction": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "aiChatEvidenceTitle": "Recent conversation used",
   "aiChatEvidenceLink": "{count} conversation lines used",
   "@aiChatEvidenceLink": {
