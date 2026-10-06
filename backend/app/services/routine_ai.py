@@ -468,6 +468,16 @@ def _pattern_based_plans(
     return plan_a, plan_b
 
 
+#: 판단 결과에 보여 줄 부위별 대표 동작(#3280). [_CAUTION_RULES] 의 낱말 조각은
+#: 판단용이라 `러닝·런닝·달리기` 처럼 같은 동작이 겹친다 — 화면에는 서로 다른
+#: 동작 셋을 운동 이름으로 보인다. 데모(`demo_routine_rules.dart`)도 같은 표다.
+_CAUTION_EXAMPLES = {
+    "무릎": "러닝·점프·스쿼트",
+    "허리": "데드리프트·윗몸일으키기·점프",
+    "어깨": "오버헤드 프레스·푸시업·풀업",
+    "발목": "러닝·점프·줄넘기",
+}
+
 #: 판단 결과 한 줄의 근거 글 묶음 — (화면 이름 ko, en, 글 목록). 글 목록은
 #: 가장 최근 것이 먼저 오게 넘긴다(#3280).
 FindingSource = tuple[str, str, list[str] | tuple[str, ...]]
@@ -521,7 +531,7 @@ def rule_findings(
             continue
         source, line, _ = hit
         part_en = _EN_CAUTION_PARTS.get(part, part)
-        moves = "·".join(risky[:3])
+        moves = _CAUTION_EXAMPLES.get(part, "·".join(risky[:3]))
         out.append({
             "kind": "caution",
             "finding": localized(

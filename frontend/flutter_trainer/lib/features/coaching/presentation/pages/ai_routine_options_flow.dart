@@ -2954,7 +2954,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
                               style: tokens
                                   .text(
                                     OnCareTypography.strong(
-                                      OnCareTypography.caption,
+                                      OnCareTypography.bodySmall,
                                     ),
                                   )
                                   .copyWith(color: OnCareColors.textPrimary),
@@ -2962,7 +2962,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
                             TextSpan(
                               text: l.aiFindingSource(f.source),
                               style: tokens
-                                  .text(OnCareTypography.caption)
+                                  .text(OnCareTypography.bodySmall)
                                   .copyWith(color: OnCareColors.textTertiary),
                             ),
                           ],
@@ -2971,7 +2971,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
                       Text(
                         l.aiFindingAction(f.action),
                         style: tokens
-                            .text(OnCareTypography.caption)
+                            .text(OnCareTypography.bodySmall)
                             .copyWith(color: tokens.brand.primary),
                       ),
                     ],
@@ -2997,7 +2997,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
                         child: Text(
                           label,
                           style: tokens
-                              .text(OnCareTypography.caption)
+                              .text(OnCareTypography.bodySmall)
                               .copyWith(color: OnCareColors.textSecondary),
                         ),
                       ),
@@ -3010,7 +3010,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
                           style: tokens
                               .text(
                                 OnCareTypography.strong(
-                                  OnCareTypography.caption,
+                                  OnCareTypography.bodySmall,
                                 ),
                               )
                               .copyWith(color: OnCareColors.textPrimary),

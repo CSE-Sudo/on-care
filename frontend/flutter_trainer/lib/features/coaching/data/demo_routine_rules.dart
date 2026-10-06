@@ -171,6 +171,14 @@ String cautionSuffix(List<String> cautions, bool escalate, {required bool en}) {
   return out.toString();
 }
 
+/// 판단 결과에 보여 줄 부위별 대표 동작 — 서버 `_CAUTION_EXAMPLES` 와 같다(#3280).
+const Map<String, String> demoCautionExamples = <String, String>{
+  '무릎': '러닝·점프·스쿼트',
+  '허리': '데드리프트·윗몸일으키기·점프',
+  '어깨': '오버헤드 프레스·푸시업·풀업',
+  '발목': '러닝·점프·줄넘기',
+};
+
 /// 판단 결과의 근거 자료 — (화면 이름 ko, en, 최근 것부터의 줄) (#3280).
 typedef DemoFindingSource = (String, String, List<String>);
 
@@ -214,7 +222,7 @@ List<RoutineFinding> ruleFindings({
     final hit = _firstHit(sources, keywords);
     if (hit == null) continue;
     final String partEn = demoEnCautionParts[part] ?? part;
-    final String moves = risky.take(3).join('·');
+    final String moves = demoCautionExamples[part] ?? risky.take(3).join('·');
     out.add(
       RoutineFinding(
         kind: 'caution',
