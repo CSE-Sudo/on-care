@@ -3415,6 +3415,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrNotTrainer => '트레이너 계정으로 로그인해 주세요.';
 
   @override
+  String get authErrSocialEmailInUse =>
+      '이 이메일로 가입한 계정이 있어요. 처음 가입한 방법으로 로그인해 주세요.';
+
+  @override
   String get authErrTooManyAttempts => '시도가 너무 많아 잠시 막혔어요. 잠시 후 다시 시도해 주세요.';
 
   @override
