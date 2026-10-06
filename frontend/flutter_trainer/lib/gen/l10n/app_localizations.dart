@@ -1184,6 +1184,12 @@ abstract class AppLocalizations {
   /// **'No members match {filter}'**
   String clientsEmptyForFilter(String filter);
 
+  /// No description provided for @clientsEmptyForManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'No members match these filters'**
+  String get clientsEmptyForManagement;
+
   /// No description provided for @clientsMemberCount.
   ///
   /// In en, this message translates to:
@@ -2516,6 +2522,18 @@ abstract class AppLocalizations {
   /// **'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it'**
   String get reportsSendStaleBody;
 
+  /// No description provided for @reportsSendFeedbackFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the member\'s feedback'**
+  String get reportsSendFeedbackFailedTitle;
+
+  /// Notice on the send step when the member feedback request failed; sending is blocked (#3246).
+  ///
+  /// In en, this message translates to:
+  /// **'Sending now would show the member as not having answered. Reload it, then send'**
+  String get reportsSendFeedbackFailedBody;
+
   /// Toast when the server says this report send was already processed (409, #2773).
   ///
   /// In en, this message translates to:
@@ -3414,6 +3432,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick an end date for the repeat.'**
   String get schedRepeatNeedsEndDate;
+
+  /// No description provided for @schedRepeatNoOccurrences.
+  ///
+  /// In en, this message translates to:
+  /// **'None of the chosen days fall within the repeat period. Change the days or the end date.'**
+  String get schedRepeatNoOccurrences;
+
+  /// No description provided for @schedNewNeedsClient.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no members yet. Connect a member before adding an appointment.'**
+  String get schedNewNeedsClient;
+
+  /// No description provided for @schedClientsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your members. Please try again in a moment.'**
+  String get schedClientsLoading;
 
   /// No description provided for @schedRepeatConflictTitle.
   ///
@@ -6222,6 +6258,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please sign in with a trainer account.'**
   String get authErrNotTrainer;
+
+  /// Error toast on trainer sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551).
+  ///
+  /// In en, this message translates to:
+  /// **'An account already uses this email. Please sign in the way you first signed up.'**
+  String get authErrSocialEmailInUse;
+
+  /// No description provided for @authErrTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in a moment.'**
+  String get authErrTooManyAttempts;
+
+  /// No description provided for @authErrTooManyAttemptsMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in {minutes} min.'**
+  String authErrTooManyAttemptsMinutes(int minutes);
+
+  /// No description provided for @authErrSignedUpSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account was created. Please sign in.'**
+  String get authErrSignedUpSignInFailed;
 
   /// No description provided for @aiBasisGoalCompletion.
   ///
@@ -9116,6 +9176,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No answer'**
   String get reportsMemberFeedbackUnanswered;
+
+  /// Member feedback card value when the feedback request failed, kept apart from 'No answer' (#3246).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load'**
+  String get reportsMemberFeedbackLoadFailed;
+
+  /// No description provided for @reportsMemberFeedbackLoadFailedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check whether the member answered. Reload the report in a moment'**
+  String get reportsMemberFeedbackLoadFailedHint;
 
   /// No description provided for @reportsMemberFeedbackNoteLabel.
   ///

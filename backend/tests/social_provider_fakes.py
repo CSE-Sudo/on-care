@@ -79,7 +79,13 @@ PROVIDERS: dict[str, ProviderCase] = {
     "google": ProviderCase(
         name="google",
         verifier=GoogleVerifier,
-        valid_body=lambda uid: {**GOOGLE_CLAIMS, "sub": uid, "email": "g@oncare.com", "name": "구글유저"},
+        valid_body=lambda uid: {
+            **GOOGLE_CLAIMS,
+            "sub": uid,
+            "email": "g@oncare.com",
+            "email_verified": "true",
+            "name": "구글유저",
+        },
         missing_id_body={**GOOGLE_CLAIMS, "email": "g@oncare.com", "name": "구글유저"},
         read=lambda token: GoogleVerifier().verify(token),
     ),
@@ -88,7 +94,12 @@ PROVIDERS: dict[str, ProviderCase] = {
         verifier=KakaoVerifier,
         valid_body=lambda uid: {
             "id": uid,
-            "kakao_account": {"email": "k@oncare.com", "profile": {"nickname": "카카오유저"}},
+            "kakao_account": {
+                "email": "k@oncare.com",
+                "is_email_valid": True,
+                "is_email_verified": True,
+                "profile": {"nickname": "카카오유저"},
+            },
         },
         missing_id_body={"kakao_account": {"email": "k@oncare.com"}},
         read=lambda token: KakaoVerifier().verify(token),

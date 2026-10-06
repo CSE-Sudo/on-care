@@ -194,6 +194,34 @@ void main() {
     expect(_barTip(tester, 'client-exercise-bar-1'), contains('kcal'));
   });
 
+  // 지난주에 시작한 회원은 `전체` 가 8~10일이라, 칸 수로 가르던 때에는 주간
+  // 링과 `이번 주 소모` 제목으로 그려졌다(#3249).
+  testWidgets('전체가 열흘 이하여도 주 막대로 그린다', (tester) async {
+    await pump(tester, <Override>[
+      clientExercisePeriodProvider.overrideWith((ref, key) async {
+        final DateTime today = key.day;
+        final List<DateTime> dates = <DateTime>[
+          for (int i = 8; i >= 0; i--)
+            DateTime(today.year, today.month, today.day - i),
+        ];
+        return ClientExercisePeriod(
+          range: (from: dates.first, to: dates.last),
+          days: <ClientExerciseDay>[
+            for (final DateTime d in dates)
+              ClientExerciseDay(date: d, minutes: 30, calories: 180),
+          ],
+        );
+      }),
+    ]);
+
+    await tester.tap(_periodSegment('전체'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(BurnBarChart), findsOneWidget);
+    expect(find.byType(BurnGoalRings), findsNothing);
+  });
+
   testWidgets('기간을 바꿔도 토글 자리가 움직이지 않는다', (tester) async {
     await pump(tester, withSplit());
 

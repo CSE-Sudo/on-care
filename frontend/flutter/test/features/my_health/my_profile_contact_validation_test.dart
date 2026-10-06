@@ -41,6 +41,7 @@ class _CountingAccountRepository extends MockAccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
     AccountReauth? reauth,
+    String? emailCode,
     void Function(ReissuedTokens tokens)? onTokensReissued,
   }) {
     saves++;
@@ -53,6 +54,7 @@ class _CountingAccountRepository extends MockAccountRepository {
       heightCm: heightCm,
       weightKg: weightKg,
       reauth: reauth,
+      emailCode: emailCode,
       onTokensReissued: onTokensReissued,
     );
   }

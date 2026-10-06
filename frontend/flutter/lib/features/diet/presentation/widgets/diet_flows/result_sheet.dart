@@ -54,7 +54,7 @@ Future<bool> showDietResultSheet(
   // 그 화면에서 저장했으면 이 흐름도 저장 성공이다(#2848, #2827).
   if (closedWith == _ResultSheetExit.manual) {
     if (!root.mounted) return false;
-    return openDietManualAddPage(root);
+    return openDietManualAddPage(root, date: date);
   }
   return outcome.resolve(closedWith);
 }
@@ -316,6 +316,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     final DateTime today = _todayKst();
     final DateTime? picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       // 지난 식사는 얼마든지 올릴 수 있지만, 앞날의 식사는 아직 먹지 않았다.
       firstDate: DateTime(today.year - 1),

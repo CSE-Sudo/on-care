@@ -246,4 +246,47 @@ void main() {
     expect(memos.creates, 1);
     expect(memos.fetches, greaterThan(fetchesBefore));
   });
+
+  // 회원 메모 창도 같은 길이었다(#3249) — 저장 뒤 입력란을 비우려다 해제된
+  // 컨트롤러를 건드리고, 무효화는 닫힌 창의 `ref` 로 했다.
+  testWidgets('회원 메모 저장 중 창을 닫아도 메모 목록을 다시 읽는다', (tester) async {
+    final _HeldMemoRepository memos = _HeldMemoRepository();
+    final ProviderContainer container = await _pumpHost(
+      tester,
+      overrides: <Override>[
+        trainerMemoRepositoryProvider.overrideWithValue(memos),
+      ],
+      open: (BuildContext context) => showClientProfileDialog(
+        context,
+        clientId: 'm1',
+        clientName: '이지수',
+        section: ClientProfileSection.memo,
+      ),
+    );
+    final ProviderSubscription<Object?> list = container.listen(
+      trainerMemosProvider('m1'),
+      (_, _) {},
+    );
+    addTearDown(list.close);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('client-memo-input')),
+        matching: find.byType(TextField),
+      ),
+      '다음 주 하체 강도 올리기',
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
+    await tester.pump();
+    await _closeDialog(tester);
+    final int fetchesBefore = memos.fetches;
+
+    memos.gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(memos.creates, 1);
+    expect(memos.fetches, greaterThan(fetchesBefore));
+  });
 }

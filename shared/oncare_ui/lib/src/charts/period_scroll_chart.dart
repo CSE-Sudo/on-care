@@ -113,6 +113,10 @@ class _PeriodScrollChartState extends State<PeriodScrollChart> {
   double _slot = 0;
   double _viewport = 0;
 
+  /// 마지막으로 그린 칸 수. 칸 폭·화면 폭은 그대로인데 칸 수만 바뀌면(기록이
+  /// 더 읽혀 기간이 늘거나 줄면) 보이는 구간의 번호가 달라진다(#3250).
+  int _count = 0;
+
   @override
   void initState() {
     super.initState();
@@ -158,12 +162,21 @@ class _PeriodScrollChartState extends State<PeriodScrollChart> {
         final double slot = viewport / widget.daysPerScreen;
         final double contentWidth = math.max(slot * widget.count, viewport);
         final bool changed = slot != _slot || viewport != _viewport;
+        final bool countChanged = widget.count != _count;
         _slot = slot;
         _viewport = viewport;
+        _count = widget.count;
         if (changed) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted || !_controller.hasClients) return;
             _controller.jumpTo(_controller.position.maxScrollExtent);
+            _reportVisible();
+          });
+        } else if (countChanged) {
+          // 칸 수만 바뀌었다 — 보던 자리는 두고, 바뀐 칸 번호로 보이는 구간을
+          // 다시 알린다. 알리지 않으면 머리의 기간 글자가 옛 구간을 말한다.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !_controller.hasClients) return;
             _reportVisible();
           });
         }

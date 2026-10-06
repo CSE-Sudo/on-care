@@ -15,6 +15,8 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자).
+import 'package:oncare_trainer/core/config/app_config.dart'
+    show kDemoCodeIncluded;
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/release/build_info.dart';
@@ -161,9 +163,13 @@ class _MyPageState extends ConsumerState<MyPage> {
   void initState() {
     super.initState();
     final session = ref.read(sessionControllerProvider);
+    // 데모 신원은 데모 코드가 실리는 빌드에서만 쓴다(#3250, 사이드바와 같은 규칙).
+    // 실서버 빌드는 로그인하면 세션에 프로필이 늘 있어 빈 값은 화면에 서지 않는다.
     _profile =
         session.profile ??
-        seedTrainerProfileFor(ref.read(demoLanguageProvider));
+        (kDemoCodeIncluded
+            ? seedTrainerProfileFor(ref.read(demoLanguageProvider))
+            : _blankProfile);
     _gym = _profile.gym;
     _certs = List<String>.of(_profile.certifications);
     _draftCerts = List<String>.of(_certs);
@@ -490,10 +496,17 @@ class _MyPageState extends ConsumerState<MyPage> {
     );
     if (!confirmed || !mounted) return;
     setState(() => _removingClients.add(client.id));
+    // 해제하는 사이 MY 를 떠나도 명단·일정은 다시 읽어야 한다. 해제된 화면의
+    // `ref` 는 StateError 를 내고 아래 catch 가 삼켜, 해제한 회원이 명단에
+    // 남았다(#3248). 컨테이너는 앱과 수명이 같다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       await ref.read(clientRepositoryProvider).removeClient(client.id);
-      ref.invalidate(clientsProvider);
-      invalidateClientVisibilityDependentViews(ref);
+      container.invalidate(clientsProvider);
+      invalidateClientVisibilityDependentViewsIn(container);
       if (!mounted) return;
       showAppToast(context, l.myClientRemoveSuccess);
     } catch (_) {
@@ -510,22 +523,51 @@ class _MyPageState extends ConsumerState<MyPage> {
   ///
   /// 본인 확인이 거절되면(400) 확인창 안에 알리고 세션은 그대로 둔다 — 토큰은
   /// 아직 유효하다.
+  ///
+  /// 확인창은 바깥 클릭·Esc·뒤로 가기로 닫지 않는다 — `취소` 로만 닫는다(#3245).
+  /// 요청 중에 창이 닫히면 서버에서는 계정이 지워졌는데 이 화면은 결과를 못 받아
+  /// 로그아웃하지 않고, 다음 요청의 401 에서야 "세션 만료" 로 튕겼다.
   Future<void> _deleteAccount() async {
-    final bool? deleted = await showAppDialog<bool>(
+    // 탈퇴가 끝났을 때 이 화면이 이미 사라졌어도 로그아웃은 해야 한다.
+    final SessionController session = ref.read(
+      sessionControllerProvider.notifier,
+    );
+    final TrainerAccountRepository repository = ref.read(
+      trainerAccountRepositoryProvider,
+    );
+    final List<String> reasons = <String>[
+      for (final _WithdrawReason r in _WithdrawReason.values)
+        if (_withdrawReasons.contains(r)) r.code,
+    ];
+    Future<void>? request;
+    final bool? closed = await showAppDialog<bool>(
       context: context,
+      dismissible: false,
       builder: (_) => _DeleteAccountDialog(
         hasPassword: _profile.hasPassword,
-        reasons: <String>[
-          for (final _WithdrawReason r in _WithdrawReason.values)
-            if (_withdrawReasons.contains(r)) r.code,
-        ],
+        onSubmit: (TrainerReauth reauth) => request = repository.deleteAccount(
+          reauth: reauth,
+          reasons: reasons,
+        ),
       ),
     );
-    if (deleted != true || !mounted) return;
+    bool deleted = closed == true;
+    // 창이 요청 도중 다른 길로 닫혔다면 결과 없이 온다 — 그 요청의 끝을 보고
+    // 판단한다.
+    final Future<void>? pending = request;
+    if (!deleted && pending != null) {
+      try {
+        await pending;
+        deleted = true;
+      } on Object {
+        // 거절·실패면 계정은 그대로다.
+      }
+    }
+    if (!deleted) return;
     // 계정이 사라졌으므로 남은 토큰은 무효다 — 세션을 비워 인증 게이트가
     // 로그인 화면으로 돌려보내게 한다. 탈퇴 화면 주소를 다음 사람이 이어 받지
     // 않도록 `?from=` 없이 간다(#2765).
-    await ref.read(sessionControllerProvider.notifier).signOut();
+    await session.signOut();
   }
 
   @override
@@ -1532,13 +1574,14 @@ class _WithdrawKeepItem extends StatelessWidget {
 class _DeleteAccountDialog extends ConsumerStatefulWidget {
   const _DeleteAccountDialog({
     required this.hasPassword,
-    required this.reasons,
+    required this.onSubmit,
   });
 
   final bool hasPassword;
 
-  /// 탈퇴 화면에서 고른 사유 코드(#2264).
-  final List<String> reasons;
+  /// 본인 확인 값으로 탈퇴를 요청한다. 요청은 부른 쪽이 들고 있다 — 창이 먼저
+  /// 닫혀도 결과를 볼 수 있게(#3245).
+  final Future<void> Function(TrainerReauth reauth) onSubmit;
 
   @override
   ConsumerState<_DeleteAccountDialog> createState() =>
@@ -1641,10 +1684,11 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
       _error = null;
     });
     final NavigatorState navigator = Navigator.of(context);
+    // 요청이 끝났을 때 이 창이 아직 맨 위인지 본다. 창이 이미 닫혔는데 그대로
+    // 닫으면 아래 화면이 닫힌다(#3245).
+    final ModalRoute<Object?>? route = ModalRoute.of(context);
     try {
-      await ref
-          .read(trainerAccountRepositoryProvider)
-          .deleteAccount(reauth: reauth, reasons: widget.reasons);
+      await widget.onSubmit(reauth);
     } on ReauthRejected catch (e) {
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
@@ -1679,7 +1723,7 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
       });
       return;
     }
-    if (!mounted) return;
+    if (!mounted || !(route?.isCurrent ?? false)) return;
     navigator.pop(true);
   }
 
@@ -2480,6 +2524,18 @@ class _SupportRow extends StatelessWidget {
 }
 
 /// 회원 관리 검색창의 입력 키 — 테스트가 이 화면의 입력칸을 짚는다.
+/// 운영 빌드에서 세션 프로필이 아직 없을 때의 자리 값 — 데모 신원을 싣지 않는다(#3250).
+const TrainerProfile _blankProfile = TrainerProfile(
+  name: '',
+  email: '',
+  phone: '',
+  specialty: '',
+  careerYears: null,
+  intro: '',
+  certifications: <String>[],
+  gym: TrainerGym(name: '', address: '', hours: '', phone: ''),
+);
+
 const Key clientManagementSearchFieldKey = ValueKey<String>(
   'client-management-search',
 );

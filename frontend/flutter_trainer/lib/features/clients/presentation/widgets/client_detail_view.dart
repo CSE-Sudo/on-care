@@ -8,10 +8,12 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/errors/app_error_message.dart';
+import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_profile_dialog.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/workout_view.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -116,6 +118,13 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
   void didUpdateWidget(ClientDetailView old) {
     super.didUpdateWidget(old);
     if (old.clientId != widget.clientId) _startSync();
+    // 회원을 오가도 이 State 는 그대로 쓰인다. 연 창의 표시를 풀지 않으면 다음
+    // 알림(다른 회원이든 같은 회원이든)이 창을 열지 못했다(#3249). 요청이
+    // 사라졌거나(연 뒤 주소에서 `open` 을 지웠다) 회원이 바뀌면 다시 열 수 있다.
+    if (old.clientId != widget.clientId ||
+        !(widget.openHealthNotes || widget.openFeedback)) {
+      _openedHealthNotes = false;
+    }
   }
 
   @override
@@ -138,6 +147,11 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
   /// 몇 시간씩 열려 있는 화면이라, 보지 않는 동안 회원 한 명당 여러 요청을
   /// 30초마다 보내면 부하만 쌓인다. 창이 포커스만 잃은(`inactive`) 동안은 화면에
   /// 그대로 보이므로 이어 간다.
+  ///
+  /// 개인운동 이행(`clientRoutineDaysProvider`)과 지금 걸린 개인운동
+  /// (`assignedRoutinesProvider`)도 같은 주기로 다시 읽는다(#3233). 둘 다 계정
+  /// 동안 살아 있고 실서버에서는 한 번만 읽어, 회원이 개인운동을 체크해도 오늘
+  /// 줄이 `아직` 으로 남았다 — 같은 카드의 운동 행·총 소모 kcal 은 늘어나는데.
   void _startSync() {
     _sync?.dispose();
     final String clientId = widget.clientId;
@@ -158,6 +172,10 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
       ..invalidate(clientExercisePeriodProvider)
       ..invalidate(clientDietOnProvider)
       ..invalidate(clientExercisesOnProvider)
+      // 키에 날짜가 들어 있어 family 전체를 비운다 — 자정 직후 화면이 듣고
+      // 있는 것은 어제 키다(`refreshClientDietInsights` 와 같은 이유).
+      ..invalidate(clientRoutineDaysProvider)
+      ..invalidate(assignedRoutinesProvider(clientId))
       ..invalidate(memberHealthProfileProvider(clientId));
     refreshClientDietInsights(ref);
   }

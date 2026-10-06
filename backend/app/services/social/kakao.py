@@ -13,6 +13,12 @@
 (`KAKAO_LOGIN_REST_API_KEY`, 있으면 `KAKAO_CLIENT_SECRET`)로 토큰을 교환해 access_token 만
 돌려준다(`exchange_code`). 앱은 그 토큰으로 모바일과 같은 `POST /auth/social/kakao`·본인
 확인을 탄다 — 교환 단계가 로그인 규칙을 따로 갖지 않게 한다. 클라이언트 시크릿은 서버에만 있다.
+
+이메일은 `kakao_account.is_email_valid` 와 `is_email_verified` 가 **둘 다 참**일 때만
+확인된 것으로 넘긴다(#1551). 카카오 문서의 정의로 `is_email_valid=false` 는 "이메일이
+다른 카카오계정에 사용돼 만료", `is_email_verified=false` 는 "인증되지 않은 이메일"이다.
+둘 중 하나라도 거짓이면 그 주소의 주인이 이 카카오 사용자라고 볼 수 없다.
+https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api#req-user-info
 """
 from __future__ import annotations
 
@@ -23,6 +29,7 @@ import httpx
 from app.core.config import get_settings
 from app.services.social._response import (
     json_object,
+    optional_flag,
     optional_object,
     optional_str,
     required_id,
@@ -92,11 +99,17 @@ class KakaoVerifier(SocialVerifier):
 
         account = optional_object("kakao", data, "kakao_account")
         profile = optional_object("kakao", account, "profile")
+        email = optional_str("kakao", account, "email")
+        verified = (
+            optional_flag("kakao", account, "is_email_valid")
+            and optional_flag("kakao", account, "is_email_verified")
+        )
         return SocialIdentity(
             provider="kakao",
             provider_user_id=uid,
-            email=optional_str("kakao", account, "email"),
+            email=email,
             name=optional_str("kakao", profile, "nickname"),
+            email_verified=bool(email) and verified,
         )
 
 

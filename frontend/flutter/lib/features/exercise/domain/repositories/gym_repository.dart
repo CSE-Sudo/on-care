@@ -26,6 +26,19 @@ class SlotTimeTakenError implements Exception {
   String toString() => 'SlotTimeTakenError($slotId)';
 }
 
+/// 다가오는 예약이 이미 있어 새 자리를 잡지 않았다. (#3240)
+///
+/// 1:1 PT 라 다음 일정은 하나이고, 시간을 바꾸려면 먼저 취소한다(#1072). 마감
+/// (`StateError`)과 구분한다 — 다시 눌러도 같은 결과라 "먼저 취소하라" 고 알려야 한다.
+class UpcomingReservationError implements Exception {
+  const UpcomingReservationError(this.slotId);
+
+  final String slotId;
+
+  @override
+  String toString() => 'UpcomingReservationError($slotId)';
+}
+
 abstract class GymRepository {
   /// User's current gym (one). `null` until they register one.
   Future<Gym?> fetchMyGym();

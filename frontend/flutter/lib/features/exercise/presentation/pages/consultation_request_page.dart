@@ -155,9 +155,18 @@ class _ConsultationRequestPageState
     // 그대로다. 나머지 목표는 매핑된 종류만으로 뜻이 충분하다.
     final String? healthPurposeDetail =
         healthPurposeType == HealthPurposeType.other ? message : null;
-    final TrainerSlot slot = slots.firstWhere(
-      (TrainerSlot s) => s.id == _slotId,
-    );
+    // 고른 자리가 목록을 다시 받는 사이 사라졌을 수 있다 — 고르던 칸을 비우고
+    // 남은 자리에서 다시 고르게 한다(#3244).
+    final TrainerSlot? slot = slots
+        .where((TrainerSlot s) => s.id == _slotId)
+        .firstOrNull;
+    if (slot == null) {
+      setState(() {
+        _submitting = false;
+        _slotId = null;
+      });
+      return;
+    }
     final ConsultationRequest request = ConsultationRequest(
       id: 'consult-${now.microsecondsSinceEpoch}',
       trainerId: trainer.id,

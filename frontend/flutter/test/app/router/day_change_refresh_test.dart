@@ -7,6 +7,8 @@ import 'package:oncare/app/router/day_change_refresh.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 
 void main() {
@@ -20,12 +22,15 @@ void main() {
 
   DayChangeRefresher refresher() => DayChangeRefresher(today: () => today);
 
-  test('대상은 기록 그래프·보호권·주간 챌린지·프로필 펫이다', () {
+  test('대상은 기록 그래프·보호권·주간 챌린지·프로필 펫·AI 맞춤 조언이다', () {
     expect(kDayChangeRefreshTargets, <ProviderOrFamily>[
       activityCalendarProvider,
       myStreakShieldsProvider,
       weeklyChallengeProvider,
       profilePetProvider,
+      // 다음 날 복귀해도 조언만 어제 것으로 남지 않게(#3244).
+      dietAdviceProvider,
+      exerciseAdviceProvider,
     ]);
   });
 

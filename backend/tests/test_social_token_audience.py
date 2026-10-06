@@ -411,10 +411,18 @@ def test_api_kakao_token_of_another_app_does_not_take_over_an_account(client, db
 
 
 def test_api_kakao_token_of_our_app_still_links_the_same_email(client, db_session, monkeypatch):
-    """회귀: 우리 앱 토큰이면 지금처럼 같은 이메일 계정에 연결된다(#1551 범위는 그대로)."""
+    """회귀: 우리 앱 토큰이고 카카오가 확인한 이메일이면 같은 이메일 계정에 연결된다(#1551)."""
     email = _register(client)
     uid = int(uuid4().int % 10**10)
-    user = {"id": uid, "kakao_account": {"email": email, "profile": {"nickname": "우리앱"}}}
+    user = {
+        "id": uid,
+        "kakao_account": {
+            "email": email,
+            "is_email_valid": True,
+            "is_email_verified": True,
+            "profile": {"nickname": "우리앱"},
+        },
+    }
     respond_kakao(monkeypatch, token_info=kakao_token_info(uid), user=user)
 
     r = _login(client, "kakao")
