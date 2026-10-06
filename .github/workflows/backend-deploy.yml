@@ -10,6 +10,8 @@ name: Backend Deploy (ECR + ECS Express Mode)
 #     → deploy-production(GitHub Environment "production" 승인 뒤)
 #   staging 이 켜져 있으면 staging 이 통과해야 운영으로 간다. 두 환경은 같은 digest 를 쓴다.
 #   각 환경 배포는 실패하면 직전 이미지로 되돌린다(backend-deploy-service.yml).
+#   자동 실행은 운영 백엔드에 떠 있는 커밋과 같거나 그보다 옛 커밋이면 resolve 에서 멈추고
+#   나머지를 건너뛴다(#3254). 수동 실행은 되돌리기를 위해 보지 않는다.
 #
 # Repository Variables
 #   BACKEND_DEPLOY_ENABLED            true 일 때만 동작
@@ -69,6 +71,7 @@ jobs:
     outputs:
       sha: ${{ steps.target.outputs.sha }}
       target: ${{ steps.target.outputs.target }}
+      deploy: ${{ steps.live.outputs.deploy }}
     steps:
       - name: Resolve and verify deploy commit
         id: target
@@ -137,8 +140,58 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Verified deploy commit: $TARGET_SHA (target: $TARGET)"
 
+      # 자동 실행이 운영에 이미 떠 있는 커밋이나 그보다 옛 커밋을 다시 올리지 않게 한다(#3254).
+      # 취소된 main Backend CI 를 나중에 Re-run 하면 그 완료가 옛 커밋 배포를 부른다. 운영 백엔드
+      # `<API_BASE_URL>/version` 의 commit_sha 를 읽어, 대상이 그 커밋과 같거나 조상이면 이미지
+      # 빌드부터 모두 건너뛴다(실패가 아니다). staging 도 함께 건너뛴다. 수동 실행은 사람이 일부러
+      # 되돌리는 경우라 보지 않는다. checkout 은 main(GITHUB_SHA)이라 스크립트는 언제나 최신이다.
+      - name: Checkout repository
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # 종료 코드 20 이 건너뜀이다. `bash -e` 에서도 분기에 닿도록 `|| code=$?` 로 받는다(#3235).
+      - name: Skip a commit that is already live or older
+        id: live
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -uo pipefail
+          if [ "$EVENT_NAME" != "workflow_run" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "수동 실행이라 운영 백엔드와의 선후를 보지 않습니다(되돌리기 허용)."
+            exit 0
+          fi
+          code=0
+          bash .github/scripts/deploy_freshness.sh backend "$API_BASE_URL" "$SHA" > "$RUNNER_TEMP/freshness.txt" || code=$?
+          cat "$RUNNER_TEMP/freshness.txt"
+          case "$code" in
+            0)
+              echo "deploy=true" >> "$GITHUB_OUTPUT"
+              ;;
+            20)
+              echo "deploy=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::운영 백엔드에 이미 같은 커밋이나 더 새 커밋이 떠 있어 이 자동 배포를 건너뜁니다."
+              {
+                echo "### Backend deployment skipped"
+                echo "- Commit: \`$SHA\`"
+                echo "- Live backend: \`$(sed -n 's/^live_sha=//p' "$RUNNER_TEMP/freshness.txt")\` ($(sed -n 's/^state=//p' "$RUNNER_TEMP/freshness.txt"))"
+                echo "- 이유: 자동 실행의 대상이 운영에 떠 있는 커밋과 같거나 그보다 옛 커밋입니다(#3254). 되돌리려면 Run workflow 에 그 SHA 를 넣어 수동으로 실행합니다."
+              } >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              exit "$code"
+              ;;
+          esac
+
+  # 운영에 이미 같은 커밋이나 더 새 커밋이 떠 있는 자동 실행이면 여기서부터 모두 건너뛴다(#3254).
   build:
     needs: resolve
+    if: needs.resolve.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read

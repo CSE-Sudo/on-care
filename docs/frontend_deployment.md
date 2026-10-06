@@ -7,7 +7,7 @@
 | 배포 경로 | 워크플로 | 주소 | 두 웹이 보는 백엔드 | 비용 | 실행 조건 |
 | --- | --- | --- | --- | --- | --- |
 | GitHub Pages (**데모**) | [`deploy.yml`](../.github/workflows/deploy.yml) | 데모 도메인 `ewhasudo.zapto.org` | 목업(브라우저 drift DB). 수동 실행에서만 실서버 선택 가능 | 무료 | 조건 없음 — 항상 실행 |
-| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만. 같은 커밋의 E2E CI 성공 뒤 앱 CI·운영 백엔드 선후를 확인하고 배포([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)) |
+| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만. 같은 커밋의 E2E CI 성공 뒤 앱 CI·운영 백엔드 선후를 확인하고 배포. 운영에 떠 있는 릴리스와 같거나 그보다 옛 커밋이면 자동 실행은 건너뜀([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)) |
 
 두 웹 앱의 백엔드 설정은 [아래 절](#운영-빌드는-실서버를-봅니다)에 정리했습니다.
 
@@ -105,7 +105,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 2. 남아 있는 트레이너 웹 수정이 머지되었다.
 3. GitHub Pages 에서 랜딩페이지·회원 앱·트레이너 웹 전체를 아래 [배포 확인](#배포-확인) 절차로 확인했다.
 
-되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
+되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다. 취소된 E2E CI 를 나중에 다시 돌려도 운영에 떠 있는 릴리스보다 옛 커밋은 올라가지 않습니다 — 그 자동 실행은 빌드 전에 건너뜁니다(#3254). 일부러 옛 커밋으로 되돌릴 때는 수동 실행에 그 SHA 를 넣습니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
 
 ## Vercel 연동 정리
 

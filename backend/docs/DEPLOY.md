@@ -136,6 +136,7 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 | `AWS_BACKEND_REGION` | 예: `ap-southeast-1` | `ap-southeast-1` |
 | `AWS_BACKEND_IMAGE_PUSH_ROLE_ARN` | bootstrap 스택 출력 `GitHubImagePushRoleArn` | build 잡 실패 |
 | `STAGING_API_BASE_URL` | `https://<staging 주소>/v1` | 데모 사이트 real 빌드 실패(#3020) |
+| `API_BASE_URL` | `https://<운영 주소>/v1`(프런트 배포와 같은 변수) | 옛 커밋 재배포 가드가 운영 커밋을 못 읽어 경고만 남기고 배포(#3254) |
 
 App Runner 시절의 `AWS_DEPLOY_ROLE_ARN`·`APPRUNNER_SERVICE_ARN` 시크릿과 `BACKEND_EXPECTED_ENV`
 변수는 더 이상 읽지 않는다. 기대 환경은 Environment 이름으로 정해진다(production → `prod`,
@@ -147,6 +148,12 @@ staging → `staging`).
   push** 에서 발생한 성공 run 만 허용한다. PR·fork 등 다른 이벤트의 CI 결과로는 배포할 수 없다.
   Backend CI 는 `alembic heads` 가 **정확히 1개**인지 검사해 마이그레이션 head 분기를 막는다.
 - 배포는 `concurrency` 로 한 번에 하나만 돈다.
+- **옛 커밋 재배포 가드**(#3254): 자동 실행은 resolve 에서 운영 백엔드 `<API_BASE_URL>/version` 의
+  `commit_sha` 를 읽어(`.github/scripts/deploy_freshness.sh`), 대상이 그 커밋과 **같거나 조상이면** build
+  부터 모두 건너뛴다 — 실패가 아니라 skipped 이고, 이유는 Step Summary 에 남는다. 취소된 main Backend CI
+  를 나중에 Re-run 해도 옛 커밋이 새 커밋 위에 올라가지 않는다. 운영 커밋을 못 읽으면(첫 배포, 응답 없음,
+  `commit_sha` 없음, 저장소에 없는 커밋) 지금처럼 배포하고 경고만 남긴다. staging 도 함께 건너뛴다.
+  **수동 실행은 보지 않는다** — 일부러 되돌리는 경우다(아래 "되돌리기").
 - **build**: 커밋 SHA 태그(`oncare-backend:<sha>`)로 한 번 빌드·푸시하고 digest 를 얻는다. 같은 커밋을
   다시 배포하면(되돌리기 포함) 새로 빌드하지 않고 있는 이미지의 digest 를 쓴다. 빌드 때
   `--build-arg GIT_SHA=<sha>` 를 넘겨 이미지가 자기 커밋을 품는다 — `/v1/version`·`/v1/healthz` 의
