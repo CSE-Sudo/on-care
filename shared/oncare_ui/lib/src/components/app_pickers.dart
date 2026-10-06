@@ -1033,6 +1033,7 @@ class _RangeMonthGrid extends StatelessWidget {
                   child: AspectRatio(
                     aspectRatio: OnCareCalendar.rangeCellAspectRatio,
                     child: _dayCell(
+                      l,
                       tokens,
                       week * 7 + col - firstOffset + 1,
                       daysInMonth,
@@ -1045,7 +1046,12 @@ class _RangeMonthGrid extends StatelessWidget {
     );
   }
 
-  Widget _dayCell(OnCareTokens tokens, int dayOfMonth, int daysInMonth) {
+  Widget _dayCell(
+    MaterialLocalizations l,
+    OnCareTokens tokens,
+    int dayOfMonth,
+    int daysInMonth,
+  ) {
     if (dayOfMonth < 1 || dayOfMonth > daysInMonth) {
       return const SizedBox.shrink();
     }
@@ -1074,13 +1080,21 @@ class _RangeMonthGrid extends StatelessWidget {
     );
     final TextStyle cap = base.copyWith(fontWeight: FontWeight.w700);
 
-    return Semantics(
-      button: true,
-      enabled: !disabled,
-      selected: isCap,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: disabled ? null : () => onDayTap(day),
+    // 누르기는 읽기 노드 바깥에 둔다 — 안쪽에 두면 `excludeSemantics` 가 누르기
+    // 동작까지 지워 스크린리더로 날을 고를 수 없다(단일 날짜 달력과 같은 배치).
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: disabled ? null : () => onDayTap(day),
+      child: Semantics(
+        // 단일 날짜 달력([AppCalendarDatePicker])과 같은 순서·문구로 읽는다 —
+        // 날짜 숫자, 전체 날짜, 오늘이면 `오늘`(#3267).
+        label:
+            '${l.formatDecimal(dayOfMonth)}, ${l.formatFullDate(day)}'
+            '${isToday ? ', ${l.currentDateLabel}' : ''}',
+        button: true,
+        enabled: !disabled,
+        selected: isCap,
+        excludeSemantics: true,
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints box) {
             // 원 지름 = 칸의 짧은 변. 띠도 같은 높이라 원과 매끈하게 붙는다.

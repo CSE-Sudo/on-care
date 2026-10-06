@@ -879,13 +879,54 @@ void main() {
         ),
       );
       expect(rings, findsOneWidget);
-      expect(tester.getCenter(rings), tester.getCenter(find.text('15')));
+      // 칸 폭이 소수라 원과 글자의 가운데가 마지막 자리에서 갈린다.
+      expect(
+        tester.getCenter(rings),
+        offsetMoreOrLessEquals(tester.getCenter(find.text('15'))),
+      );
       expect(
         (tester.widget<DecoratedBox>(rings).decoration as BoxDecoration).border,
         Border.all(color: OnCareBrand.trainer.primary),
       );
       expect(dayText(tester, '15').style!.color, OnCareBrand.trainer.primary);
       expect(dayText(tester, '16').style!.color, OnCareColors.textPrimary);
+    });
+
+    testWidgets('날짜 칸은 단일 날짜 달력과 같은 순서로 읽고 오늘을 알린다 (#3267)', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await openRangePicker(tester, currentDate: DateTime(2026, 3, 15));
+      final MaterialLocalizations ml = MaterialLocalizations.of(
+        tester.element(find.byKey(AppDateRangePickerDialog.dialogKey)),
+      );
+      String label(int day, {bool today = false}) =>
+          '${ml.formatDecimal(day)}, ${ml.formatFullDate(DateTime(2026, 3, day))}'
+          '${today ? ', ${ml.currentDateLabel}' : ''}';
+
+      expect(
+        tester.getSemantics(find.text('15')),
+        matchesSemantics(
+          label: label(15, today: true),
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasSelectedState: true,
+          hasTapAction: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.text('16')),
+        matchesSemantics(
+          label: label(16),
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasSelectedState: true,
+          hasTapAction: true,
+        ),
+      );
+      handle.dispose();
     });
 
     testWidgets('시작·종료일이 오늘이면 채운 원이 테두리를 덮는다 (#3267)', (
