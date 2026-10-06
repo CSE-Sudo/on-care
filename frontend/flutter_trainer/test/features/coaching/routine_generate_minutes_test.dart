@@ -386,11 +386,16 @@ void main() {
 
       expect(find.text('10~180분 사이로 입력해 주세요'), findsOneWidget);
 
+      // 시·분 칸이다(초 칸 없음). 9시간은 서버 상한(180분)을 넘는다.
+      expect(
+        find.byKey(const ValueKey<String>('generation-minutes-seconds')),
+        findsNothing,
+      );
       final Finder field = find.byKey(
-        const ValueKey<String>('generation-minutes-field'),
+        const ValueKey<String>('generation-minutes-hours'),
       );
       await tester.ensureVisible(field);
-      await tester.enterText(field, '200');
+      await tester.enterText(field, '9');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
       await _tapGenerate(tester);

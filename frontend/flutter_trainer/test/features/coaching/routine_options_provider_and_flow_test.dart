@@ -1198,7 +1198,18 @@ void main() {
       );
       await generate(tester);
 
+      // 화면에는 링크 한 줄만 있고, 누르면 말풍선 창으로 연다.
+      expect(find.text('참고한 대화 1줄'), findsOneWidget);
+      expect(find.textContaining('무릎이 아파요'), findsNothing);
+      final Finder open = find.byKey(
+        const ValueKey<String>('ai-chat-evidence-open'),
+      );
+      await tester.ensureVisible(open);
+      await tester.tap(open);
+      await tester.pumpAndSettle();
       expect(find.text('참고한 최근 대화'), findsOneWidget);
+      // 말한 사람 머리는 떼고 본문만 말풍선에 적는다.
+      expect(find.text('무릎이 아파요'), findsOneWidget);
       expect(find.textContaining('무릎이 아파요'), findsOneWidget);
     });
 
@@ -1266,7 +1277,7 @@ void main() {
               .widget<TextField>(
                 _textFieldUnder(
                   find.byKey(
-                    const ValueKey<String>('generation-minutes-field'),
+                    const ValueKey<String>('generation-minutes-minutes'),
                   ),
                 ),
               )
@@ -1308,7 +1319,7 @@ void main() {
         );
 
         await tester.enterText(
-          find.byKey(const ValueKey<String>('generation-minutes-field')),
+          find.byKey(const ValueKey<String>('generation-minutes-minutes')),
           '60',
         );
         await tester.pump();
