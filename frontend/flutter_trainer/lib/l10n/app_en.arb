@@ -1946,6 +1946,14 @@
   "aiDirectionNoData": "Not enough records yet",
   "aiBasisRuleBased": " · rule-based",
   "aiChatEvidenceTitle": "Recent conversation used",
+  "aiChatEvidenceLink": "{count} conversation lines used",
+  "@aiChatEvidenceLink": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "aiEditOption": "Edit {option}",
   "@aiEditOption": {
     "placeholders": {

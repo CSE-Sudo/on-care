@@ -2960,6 +2960,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiChatEvidenceTitle => '참고한 최근 대화';
 
   @override
+  String aiChatEvidenceLink(int count) {
+    return '참고한 대화 $count줄';
+  }
+
+  @override
   String aiEditOption(String option) {
     return '$option 수정';
   }

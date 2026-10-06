@@ -1266,6 +1266,7 @@
   "aiDirectionNoData": "기록이 쌓이면 판단해요",
   "aiBasisRuleBased": " · 규칙 기반 생성",
   "aiChatEvidenceTitle": "참고한 최근 대화",
+  "aiChatEvidenceLink": "참고한 대화 {count}줄",
   "aiEditOption": "{option} 수정",
   "aiEditBlurb": "기존 AI 추천과 같은 방식으로 운동명·시간·구성을 수정할 수 있어요.",
   "aiAddExerciseManually": "운동 직접 추가하기",

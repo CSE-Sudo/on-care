@@ -5449,6 +5449,12 @@ abstract class AppLocalizations {
   /// **'Recent conversation used'**
   String get aiChatEvidenceTitle;
 
+  /// No description provided for @aiChatEvidenceLink.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} conversation lines used'**
+  String aiChatEvidenceLink(int count);
+
   /// No description provided for @aiEditOption.
   ///
   /// In en, this message translates to:

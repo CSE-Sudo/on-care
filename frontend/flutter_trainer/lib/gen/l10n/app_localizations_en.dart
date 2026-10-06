@@ -3122,6 +3122,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiChatEvidenceTitle => 'Recent conversation used';
 
   @override
+  String aiChatEvidenceLink(int count) {
+    return '$count conversation lines used';
+  }
+
+  @override
   String aiEditOption(String option) {
     return 'Edit $option';
   }

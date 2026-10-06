@@ -2719,73 +2719,117 @@ class _PersonalOrigin {
 /// utterances it was given. Lines arrive speaker-labelled from the server, so
 /// this widget only handles layout.
 ///
-/// 줄이 많으면 후보 비교가 아래로 밀려나므로 기본은 접어 두고, 제목 줄을
-/// 눌러 편다.
-class _ChatEvidence extends StatefulWidget {
+/// 줄이 많으면 후보 비교가 아래로 밀려나므로 화면에는 `참고한 대화 N줄` 링크
+/// 한 줄만 두고, 누르면 채팅처럼 말풍선 창으로 연다.
+class _ChatEvidence extends StatelessWidget {
   const _ChatEvidence({required this.lines});
 
   final List<String> lines;
 
   @override
-  State<_ChatEvidence> createState() => _ChatEvidenceState();
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: InkWell(
+        key: const ValueKey<String>('ai-chat-evidence-open'),
+        borderRadius: OnCareRadius.smAll,
+        onTap: () => showAppDialog<void>(
+          context: context,
+          builder: (BuildContext context) => _ChatEvidenceDialog(lines: lines),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(AppIcons.chat, size: 16, color: tokens.brand.primary),
+              const SizedBox(width: OnCareSpacing.s4),
+              Text(
+                l.aiChatEvidenceLink(lines.length),
+                style: tokens
+                    .text(OnCareTypography.label)
+                    .copyWith(color: tokens.brand.primary),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _ChatEvidenceState extends State<_ChatEvidence> {
-  bool _expanded = false;
+/// 참고한 대화를 채팅처럼 보여 주는 창 — 회원은 왼쪽, 트레이너는 오른쪽.
+///
+/// 서버가 줄마다 `트레이너: ` · `회원: ` 처럼 말한 사람을 붙여 보낸다. 그
+/// 머리로 좌우를 가르고, 말풍선에는 머리를 뗀 본문만 적는다.
+class _ChatEvidenceDialog extends StatelessWidget {
+  const _ChatEvidenceDialog({required this.lines});
+
+  final List<String> lines;
+
+  static const List<String> _trainerPrefixes = <String>['트레이너', 'Trainer'];
+
+  static (bool trainer, String text) _split(String line) {
+    final int colon = line.indexOf(':');
+    if (colon <= 0) return (false, line.trim());
+    final String speaker = line.substring(0, colon).trim();
+    return (
+      _trainerPrefixes.contains(speaker),
+      line.substring(colon + 1).trim(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    // 근거 인용이라 안내 배너가 아니라 회색 카드 안 구획이다(#2468).
-    return SizedBox(
-      width: double.infinity,
-      child: AppTile(
-        tone: AppTileTone.neutral,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Semantics(
-              button: true,
-              expanded: _expanded,
-              child: InkWell(
-                key: const ValueKey<String>('ai-chat-evidence-toggle'),
-                borderRadius: OnCareRadius.smAll,
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        l.aiChatEvidenceTitle,
-                        style: tokens
-                            .text(OnCareTypography.label)
-                            .copyWith(color: OnCareColors.textSecondary),
+    return AppDialog(
+      key: const ValueKey<String>('ai-chat-evidence-dialog'),
+      title: l.aiChatEvidenceTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final String line in lines)
+            Builder(
+              builder: (BuildContext context) {
+                final (bool trainer, String text) = _split(line);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+                  child: Align(
+                    alignment: trainer
+                        ? AlignmentDirectional.centerEnd
+                        : AlignmentDirectional.centerStart,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: trainer
+                              ? tokens.brand.surface
+                              : OnCareColors.surfaceInput,
+                          borderRadius: OnCareRadius.mdAll,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: OnCareSpacing.s12,
+                            vertical: OnCareSpacing.s8,
+                          ),
+                          child: Text(
+                            text,
+                            style: tokens
+                                .text(OnCareTypography.bodySmall)
+                                .copyWith(color: OnCareColors.textPrimary),
+                          ),
+                        ),
                       ),
                     ),
-                    Icon(
-                      _expanded ? AppIcons.expandLess : AppIcons.expandMore,
-                      size: 20,
-                      color: OnCareColors.textTertiary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (_expanded) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s4),
-              for (final String line in widget.lines)
-                Padding(
-                  padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-                  child: Text(
-                    line,
-                    style: tokens
-                        .text(OnCareTypography.caption)
-                        .copyWith(color: OnCareColors.textSecondary),
                   ),
-                ),
-            ],
-          ],
-        ),
+                );
+              },
+            ),
+        ],
       ),
     );
   }
