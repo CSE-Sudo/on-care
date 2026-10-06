@@ -37,6 +37,8 @@ NARROWED = {"connect-src"}
 # 헤더 connect-src 가 열어 둘 수 있는 출처. ${...} 는 스택 파라미터 자리다.
 ALLOWED_STATIC_CONNECT = {
     "'self'",
+    # 사진 선택기가 줄인 사진을 같은 탭의 blob: 주소에서 읽는다. 외부 출처가 아니다.
+    "blob:",
     "${ApiOrigin}",
     "${ExtraConnectSources}",
     "https://www.gstatic.com",
@@ -119,6 +121,7 @@ class FrontendCspTest(unittest.TestCase):
         sources = self.app_csp["connect-src"]
         self.assertIn("'self'", sources)
         self.assertIn("${ApiOrigin}", sources)
+        self.assertIn("blob:", sources)
         self.assertNotIn("https:", sources)
         for source in sources:
             self.assertNotIn("localhost", source)
