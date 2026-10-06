@@ -73,6 +73,8 @@ class _FakeRepository implements TrainerNotificationRepository {
 
   @override
   Future<int> markAllRead() async => 0;
+
+  Future<void> close() => unread.close();
 }
 
 TrainerNotification _noti(
@@ -112,7 +114,7 @@ void main() {
 
   tearDown(() async {
     container.dispose();
-    await repository.unread.close();
+    await repository.close();
   });
 
   Future<void> settle(WidgetTester tester) async {
