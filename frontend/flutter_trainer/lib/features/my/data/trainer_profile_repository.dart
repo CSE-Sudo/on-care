@@ -412,6 +412,8 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
               address: text(gym, 'address') ?? '',
               hours: text(gym, 'hours') ?? '',
               phone: text(gym, 'phone') ?? '',
+              lat: (gym['lat'] as num?)?.toDouble(),
+              lng: (gym['lng'] as num?)?.toDouble(),
             )
           : null,
     );
@@ -433,6 +435,8 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
           'address': _profile.gym.address,
           'hours': _profile.gym.hours,
           'phone': _profile.gym.phone,
+          'lat': _profile.gym.lat,
+          'lng': _profile.gym.lng,
         },
       }),
     );
@@ -449,8 +453,8 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
       name: seedTrainerProfileFor(language).gym.name,
       address: seedTrainerProfileFor(language).gym.address,
       registered: true,
-      lat: 37.5579,
-      lng: 126.9368,
+      lat: kDemoTrainerGymLat,
+      lng: kDemoTrainerGymLng,
       phone: '02-1234-5678',
     ),
     TrainerGymCandidate(
@@ -572,6 +576,8 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
         // 카카오는 영업시간을 주지 않는다 — 서버와 같게 빈 값이다.
         hours: gym.id == kDemoTrainerGymId ? _profile.gym.hours : '',
         phone: gym.phone,
+        lat: gym.lat,
+        lng: gym.lng,
       ),
     );
     await _persist();
@@ -654,6 +660,8 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
         address: _profile.gym.address,
         hours: next.weekdayHours,
         phone: next.phone,
+        lat: _profile.gym.lat,
+        lng: _profile.gym.lng,
       ),
     );
     await _persist();
