@@ -242,9 +242,34 @@ class ReportSheet {
           low: 1 - calorieTolerance,
           high: 1 + calorieTolerance,
         ),
-        // 탄·단·지는 목표가 없으면 기본값으로 막대만 긋고, 칸은 회원이 적어 둔
-        // 목표가 있을 때만 고른다 — 서버 리포트 요약과 같은 규칙이다(#3246).
-        // 단백질 막대는 트레이너 화면과 같은 실효 목표(#2898)로 견준다.
+        ...macros(r),
+        // 나트륨·당류는 상한만 있다 — 적게 먹어서 걱정할 항목이 아니다. 평균이
+        // 목표 안이어도 넘긴 날이 사흘 이상이면 `초과` 다(서버와 같은 규칙).
+        SheetDietItem.sodium: SheetMeasure(
+          value: r.sodiumAvg?.toDouble() ?? recordedMean(r.sodiumWeek),
+          target: r.sodiumGoal.toDouble(),
+          low: 0,
+          high: 1,
+          overByDays: r.sodiumOverGoalDays > kReportSodiumOverDays,
+        ),
+        SheetDietItem.sugar: SheetMeasure(
+          value: r.sugarMean,
+          target: r.sugarLimit,
+          low: 0,
+          high: 1,
+          overByDays: r.sugarOverLimitDays > kReportSugarOverDays,
+        ),
+      };
+
+  /// 탄·단·지 세 줄 — 결과지와 트레이너 웹 리포트의 탄단지 막대가 함께 쓴다
+  /// (#3259). 한쪽만 다른 문턱으로 `부족` 을 짚으면 같은 주가 화면과 결과지에서
+  /// 다르게 말한다.
+  ///
+  /// 목표가 없으면 기본값으로 막대만 긋고, 칸은 회원이 적어 둔 목표가 있을
+  /// 때만 고른다 — 서버 리포트 요약과 같은 규칙이다(#3246). 단백질 막대는
+  /// 식단 분석과 같은 실효 목표(#2898)로 견주지만, 판정은 개인 목표만 본다.
+  static Map<SheetDietItem, SheetMeasure> macros(ReportSheetWeek r) =>
+      <SheetDietItem, SheetMeasure>{
         SheetDietItem.carbs: SheetMeasure(
           value: recordedMean(r.carbsWeek),
           target: r.carbsTarget ?? kReportCarbsTargetG.toDouble(),
@@ -265,22 +290,6 @@ class ReportSheet {
           low: _macroLow,
           high: _macroHigh,
           judged: _isSet(r.fatTarget),
-        ),
-        // 나트륨·당류는 상한만 있다 — 적게 먹어서 걱정할 항목이 아니다. 평균이
-        // 목표 안이어도 넘긴 날이 사흘 이상이면 `초과` 다(서버와 같은 규칙).
-        SheetDietItem.sodium: SheetMeasure(
-          value: r.sodiumAvg?.toDouble() ?? recordedMean(r.sodiumWeek),
-          target: r.sodiumGoal.toDouble(),
-          low: 0,
-          high: 1,
-          overByDays: r.sodiumOverGoalDays > kReportSodiumOverDays,
-        ),
-        SheetDietItem.sugar: SheetMeasure(
-          value: r.sugarMean,
-          target: r.sugarLimit,
-          low: 0,
-          high: 1,
-          overByDays: r.sugarOverLimitDays > kReportSugarOverDays,
         ),
       };
 

@@ -684,13 +684,15 @@ class _PickerHeaderLabel extends StatelessWidget {
 /// 브랜드 띠로 잇는다.
 /// 시작·종료일 값 자체가 입력창이라 타이핑도 달력 탭도 둘 다 항상 된다.
 ///
-/// [initialRange] 가 없으면 두 칸을 비우고 오늘이 든 달부터 연다.
+/// [initialRange] 가 없으면 두 칸을 비우고 오늘이 든 달부터 연다. 오늘은
+/// [currentDate] 다([showAppDatePicker] 와 같다, #3267).
 Future<DateTimeRange?> showAppDateRangePicker({
   required BuildContext context,
   required DateTime firstDate,
   required DateTime lastDate,
   DateTimeRange? initialRange,
   String? helpText,
+  DateTime? currentDate,
 }) {
   return showAppDialog<DateTimeRange>(
     context: context,
@@ -699,6 +701,7 @@ Future<DateTimeRange?> showAppDateRangePicker({
       lastDate: lastDate,
       initialRange: initialRange,
       helpText: helpText,
+      currentDate: currentDate,
     ),
   );
 }
@@ -711,6 +714,7 @@ class AppDateRangePickerDialog extends StatefulWidget {
     required this.lastDate,
     this.initialRange,
     this.helpText,
+    this.currentDate,
   });
 
   /// 창·입력창·버튼 키(옛 `portraitDateRangePicker*` 키).
@@ -726,6 +730,11 @@ class AppDateRangePickerDialog extends StatefulWidget {
 
   /// 제목. 비우면 플랫폼 문구(`기간 선택`)다.
   final String? helpText;
+
+  /// 달력에 테두리로 표시하고, [initialRange] 가 없을 때 처음 여는 달을 정하는
+  /// 오늘(#3267). 비우면 기기 시각의 오늘이다 — 앱은 서비스 기준 시각(KST)의
+  /// 오늘을 넘긴다. [AppDatePickerDialog.currentDate] 와 같다.
+  final DateTime? currentDate;
 
   @override
   State<AppDateRangePickerDialog> createState() =>
@@ -751,8 +760,11 @@ class _AppDateRangePickerDialogState extends State<AppDateRangePickerDialog> {
 
   static DateTime _monthOf(DateTime d) => DateTime(d.year, d.month);
 
+  DateTime get _today =>
+      DateUtils.dateOnly(widget.currentDate ?? DateTime.now());
+
   DateTime _clampedToday() {
-    final DateTime today = DateUtils.dateOnly(DateTime.now());
+    final DateTime today = _today;
     if (today.isBefore(_first)) return _first;
     if (today.isAfter(_last)) return _last;
     return today;
@@ -950,6 +962,7 @@ class _AppDateRangePickerDialogState extends State<AppDateRangePickerDialog> {
             lastDate: _last,
             start: _start,
             end: _end,
+            today: _today,
             onDayTap: (DateTime day) => _handleCalendarTap(l, day),
           ),
         ],
@@ -961,7 +974,9 @@ class _AppDateRangePickerDialogState extends State<AppDateRangePickerDialog> {
 /// 한 달을 고정 격자로 그린다 — 시작·종료일은 칸 크기의 브랜드 색 원에 흰 숫자,
 /// 그 사이 날은 옅은 브랜드 띠([OnCareBrand.surface])에 짙은 브랜드 숫자다. 띠는
 /// 시작·종료일 칸의 안쪽 절반까지 이어져 두 원과 붙는다. [firstDate]~[lastDate]
-/// 밖의 날짜는 흐리게 두고 탭을 막는다.
+/// 밖의 날짜는 흐리게 두고 탭을 막는다. [today] 는 단일 날짜 달력
+/// ([AppCalendarDatePicker])처럼 브랜드 테두리 원과 브랜드 숫자로 표시한다
+/// (#3267) — 시작·종료일이면 채운 원이 덮는다.
 class _RangeMonthGrid extends StatelessWidget {
   const _RangeMonthGrid({
     required this.month,
@@ -969,6 +984,7 @@ class _RangeMonthGrid extends StatelessWidget {
     required this.lastDate,
     required this.start,
     required this.end,
+    required this.today,
     required this.onDayTap,
   });
 
@@ -977,6 +993,7 @@ class _RangeMonthGrid extends StatelessWidget {
   final DateTime lastDate;
   final DateTime? start;
   final DateTime? end;
+  final DateTime today;
   final ValueChanged<DateTime> onDayTap;
 
   @override
@@ -1016,6 +1033,7 @@ class _RangeMonthGrid extends StatelessWidget {
                   child: AspectRatio(
                     aspectRatio: OnCareCalendar.rangeCellAspectRatio,
                     child: _dayCell(
+                      l,
                       tokens,
                       week * 7 + col - firstOffset + 1,
                       daysInMonth,
@@ -1028,7 +1046,12 @@ class _RangeMonthGrid extends StatelessWidget {
     );
   }
 
-  Widget _dayCell(OnCareTokens tokens, int dayOfMonth, int daysInMonth) {
+  Widget _dayCell(
+    MaterialLocalizations l,
+    OnCareTokens tokens,
+    int dayOfMonth,
+    int daysInMonth,
+  ) {
     if (dayOfMonth < 1 || dayOfMonth > daysInMonth) {
       return const SizedBox.shrink();
     }
@@ -1037,6 +1060,7 @@ class _RangeMonthGrid extends StatelessWidget {
     final bool isStart = start != null && DateUtils.isSameDay(day, start);
     final bool isEnd = end != null && DateUtils.isSameDay(day, end);
     final bool isCap = isStart || isEnd;
+    final bool isToday = DateUtils.isSameDay(day, today);
     // 시작·종료가 서로 다른 날일 때만 띠가 있다. 같은 날이거나 종료일을 아직
     // 고르지 않았으면 원 하나만 그린다.
     final bool hasBand =
@@ -1056,13 +1080,21 @@ class _RangeMonthGrid extends StatelessWidget {
     );
     final TextStyle cap = base.copyWith(fontWeight: FontWeight.w700);
 
-    return Semantics(
-      button: true,
-      enabled: !disabled,
-      selected: isCap,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: disabled ? null : () => onDayTap(day),
+    // 누르기는 읽기 노드 바깥에 둔다 — 안쪽에 두면 `excludeSemantics` 가 누르기
+    // 동작까지 지워 스크린리더로 날을 고를 수 없다(단일 날짜 달력과 같은 배치).
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: disabled ? null : () => onDayTap(day),
+      child: Semantics(
+        // 단일 날짜 달력([AppCalendarDatePicker])과 같은 순서·문구로 읽는다 —
+        // 날짜 숫자, 전체 날짜, 오늘이면 `오늘`(#3267).
+        label:
+            '${l.formatDecimal(dayOfMonth)}, ${l.formatFullDate(day)}'
+            '${isToday ? ', ${l.currentDateLabel}' : ''}',
+        button: true,
+        enabled: !disabled,
+        selected: isCap,
+        excludeSemantics: true,
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints box) {
             // 원 지름 = 칸의 짧은 변. 띠도 같은 높이라 원과 매끈하게 붙는다.
@@ -1099,6 +1131,16 @@ class _RangeMonthGrid extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                     ),
+                  )
+                else if (isToday)
+                  SizedBox.square(
+                    dimension: diameter,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: tokens.brand.primary),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   ),
                 Text(
                   '$dayOfMonth',
@@ -1109,6 +1151,8 @@ class _RangeMonthGrid extends StatelessWidget {
                         ? tokens.brand.strong
                         : disabled
                         ? OnCareColors.textDisabled
+                        : isToday
+                        ? tokens.brand.primary
                         : OnCareColors.textPrimary,
                   ),
                 ),

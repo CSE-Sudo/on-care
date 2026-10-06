@@ -46,7 +46,9 @@ BREAKFAST_DEADLINE = time(11, 0)
 #: 먹지 않은 것이 아니라 적지 않은 것일 수 있다.
 PROTEIN_MIN_MEALS = 2
 CALORIE_OVER_RATIO = 1.1
-PROTEIN_SHORT_RATIO = 0.8
+#: 단백질이 실효 목표의 이 비율에 못 미친 날을 부족한 날로 센다 — 회원 코칭
+#: 문턱은 `diet_coach_inputs` 한 곳에 있다(#3270).
+PROTEIN_SHORT_RATIO = inputs.COACH_PROTEIN_SHORT_RATIO
 RETRY_AFTER = timedelta(hours=1)
 #: AI 에게 보여 줄 끼니 기록 줄 수.
 RECORD_LINES = 6

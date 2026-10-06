@@ -161,7 +161,7 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
     // 시작 구성이든 직접 만든 템플릿이든 편집 창은 똑같이 생겼다 — 저장 시
     // 시작 구성만 조용히 새 템플릿으로 만들어지는 차이는 데이터 계층
     // (`_save`)에만 있고, 화면엔 드러내지 않는다.
-    return AppDialog(
+    final Widget dialog = AppDialog(
       title: widget.template == null ? l.coachTemplateNew : l.coachTemplateEdit,
       size: AppDialogSize.medium,
       footer: AppButtonPair(
@@ -242,6 +242,9 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
         ],
       ),
     );
+    // 저장 중에는 배경·뒤로 가기·닫기 X 로 닫히지 않는다(#3245) — 닫히면 서버가
+    // 거절한 사유를 보여 줄 자리가 사라진다. 기다리는 동안이 아니면 지금처럼 닫힌다.
+    return PopScope(canPop: !_saving, child: dialog);
   }
 }
 

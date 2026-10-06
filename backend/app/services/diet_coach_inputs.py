@@ -36,6 +36,24 @@ DEFAULT_SUGAR_G = goal_defaults.DAILY_SUGAR_G
 PROTEIN_G_PER_KG = goal_defaults.PROTEIN_G_PER_KG
 DEFAULT_PROTEIN_G = goal_defaults.DAILY_PROTEIN_G
 
+# ── 회원 코칭의 단백질 문턱(#3270) ────────────────────────────────────────────
+# 회원 코칭(오늘·이번 주·4주 조언, 홈 추천 식단)은 **실효 목표**
+# ([effective_protein_g] — 개인 목표 → 체중 × 1.2g → 60g)로 단백질 부족을 본다.
+# 개인 목표를 비워 둔 회원이 대부분이라, 개인 목표만 보면 코칭이 말을 못 한다.
+# 리포트 **평가**(트레이너 주간 요약·결과지·탄단지 막대)는 다르다 — 개인 목표가
+# 있을 때만 ±25% 로 판정한다(`trainer_report_summary_service.MACRO_TOLERANCE`,
+# #3259). 지어낸 기준으로 평가하지 않는다. 문턱 숫자는 보는 기간이 달라 서로 다르다.
+# 데모(회원 앱 `core/demo/diet_advice.dart` 의 `kCoachProtein…`)와 같은 값이다.
+
+#: 오늘 — 목표보다 이만큼(g) 모자라면 말하고, 채울 메뉴를 고른다.
+COACH_PROTEIN_GAP_G = 10
+#: 이번 주 — 목표의 이 비율에 못 미친 날을 부족한 날로 센다.
+COACH_PROTEIN_SHORT_RATIO = 0.8
+#: 4주 — 목표의 이 비율 이상인 날을 달성한 날로 센다.
+COACH_PROTEIN_MET_RATIO = 0.9
+#: 홈 추천 식단 — 최근 3일 평균이 목표의 이 비율 이하면 `protein_low` 신호다.
+COACH_PROTEIN_LOW_RATIO = 0.6
+
 #: 트레이너 메시지를 거슬러 읽는 날 수와 개수. 오래된 지시는 이미 바뀌었을 수 있고,
 #: 많이 넣으면 프롬프트가 대화 기록으로 채워진다.
 TRAINER_NOTE_DAYS = 14

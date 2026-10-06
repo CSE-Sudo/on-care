@@ -221,6 +221,14 @@ class SessionController extends StateNotifier<SessionState>
         await _expire();
         return;
       }
+      // 역할 확인을 통과한 앱만 옛 키를 지운다(#3260). 걸린 앱은 위 [_expire] 가
+      // 복사해 온 새 키만 버리고 옛 키를 남겨, 원래 주인 앱이 가져가게 한다.
+      try {
+        await _ref.read(secureTokenStoreProvider).claimLegacyKeys(access);
+      } catch (_) {
+        // 옛 키를 못 지워도 이번 세션은 이어 간다 — 다음 복원이 다시 지운다.
+      }
+      if (!mounted || _userActionStarted) return;
       _setToken(access);
       // 저장된 세션으로 돌아온 계정도 동의가 남았으면 동의 화면부터 거친다
       // (#2819) — 기존 가입자가 "다음 로그인" 을 기다리지 않게 한다.
@@ -239,7 +247,9 @@ class SessionController extends StateNotifier<SessionState>
         return;
       }
       if (code == 401) {
-        if (allowRefresh && refresh.isNotEmpty) {
+        if (allowRefresh &&
+            refresh.isNotEmpty &&
+            !await _isUnconfirmedLegacy(access)) {
           await _refreshAndResolve(refresh);
         } else {
           await _expire();
@@ -251,6 +261,19 @@ class SessionController extends StateNotifier<SessionState>
     } catch (_) {
       if (!mounted || _userActionStarted) return;
       _keepTokensAndSignOut();
+    }
+  }
+
+  /// [access] 가 역할 확인 전의 옛 키 토큰이면 회전하지 않는다(#3260) — 다른 앱의
+  /// 일회용 갱신 토큰일 수 있다. [_expire] 가 이 앱의 새 키만 비우고 옛 키는
+  /// 남긴다. 확인하지 못하면 회전하지 않는 쪽으로 둔다.
+  Future<bool> _isUnconfirmedLegacy(String access) async {
+    try {
+      return await _ref
+          .read(secureTokenStoreProvider)
+          .isUnconfirmedLegacy(access);
+    } catch (_) {
+      return true;
     }
   }
 
@@ -576,10 +599,11 @@ class SessionController extends StateNotifier<SessionState>
   /// 저장된 토큰을 지우고, 회원별 화면 상태를 비우고, 로그인 화면으로 보낸다.
   ///
   /// 로그아웃과 실행 중 만료(#1546)가 함께 쓰는 마지막 단계다. 계정에 매인
-  /// 기기 기록도 여기서 지운다(#3154).
+  /// 기기 기록도 여기서 지운다(#3154). 이름공간 없던 옛 키도 지운다 — 남겨 두면
+  /// 새로 고침이 그 토큰을 다시 복사해 로그인이 되살아난다(#3260).
   Future<void> _closeSession() async {
     try {
-      await _ref.read(secureTokenStoreProvider).clear();
+      await _ref.read(secureTokenStoreProvider).clear(forgetLegacy: true);
     } catch (_) {}
     await _forgetAccountRecords();
     if (!mounted) return;

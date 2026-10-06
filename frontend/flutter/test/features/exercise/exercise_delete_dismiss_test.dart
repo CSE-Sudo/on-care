@@ -19,7 +19,6 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_record_detail_page.dart';
-import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -175,40 +174,6 @@ void main() {
     await tester.pump(OnCareMotion.toastVisible);
     await tester.pumpAndSettle();
   }
-
-  testWidgets('편집 시트는 지우는 중에 뒤로 가기로 닫히지 않고, 지운 뒤 닫히며 다시 읽는다', (
-    WidgetTester tester,
-  ) async {
-    final DateTime today = todayKst();
-    final ExerciseSession target = _session('ex-1', today);
-    repo = _GatedDeleteRepository(<ExerciseSession>[target]);
-    await pump(
-      tester,
-      open: (BuildContext context) => TextButton(
-        onPressed: () => showExerciseAddSheet(context, session: target),
-        child: const Text('열기'),
-      ),
-    );
-    expect(repo.weekCalls, 1);
-
-    await tester.tap(find.text('열기'));
-    await tester.pumpAndSettle();
-    await confirmDelete(tester);
-
-    await pressBack(tester);
-    expect(find.byKey(const Key('exerciseAddSheet')), findsOneWidget);
-
-    await finishDelete(tester);
-    expect(repo.deletes, 1);
-    expect(find.text('운동 기록을 삭제했어요'), findsOneWidget);
-    expect(find.text('삭제하지 못했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('exerciseAddSheet')), findsNothing);
-    expect(find.text('열기'), findsOneWidget);
-    expect(repo.weekCalls, 2);
-
-    await drainToast(tester);
-  });
 
   testWidgets('상세 화면은 상자를 지우는 중에 뒤로 가기로 닫히지 않는다', (WidgetTester tester) async {
     final DateTime today = todayKst();

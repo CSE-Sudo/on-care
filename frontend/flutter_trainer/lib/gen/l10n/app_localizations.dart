@@ -9117,7 +9117,7 @@ abstract class AppLocalizations {
   /// **'{name} {value} / {target} g'**
   String reportsMacroValueOfTarget(String name, int value, int target);
 
-  /// No description provided for @reportsMacroShortfall.
+  /// Shortfall line under the report macro bars. {name} is metricCarbs, metricProtein or metricFat; in Korean all three end with a final consonant, so the copy uses the subject particle '이' only (no two-form '이(가)', #1177).
   ///
   /// In en, this message translates to:
   /// **'{name} is well under goal — worth raising in your feedback'**

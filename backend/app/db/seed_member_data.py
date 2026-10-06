@@ -1663,6 +1663,7 @@ def _seed_personal_days(db: Session, member_id: str) -> None:
             )
         ).all()
     }
+    done_by_day: dict[date, int] = {}
     for week in range(_HISTORY_WEEKS):
         monday = this_monday - timedelta(days=7 * week)
         factor = _COMPLETION_FACTORS[week % len(_COMPLETION_FACTORS)]
@@ -1671,41 +1672,48 @@ def _seed_personal_days(db: Session, member_id: str) -> None:
             if day >= today:
                 break
             rate = seed_workouts.day_rate(pattern, offset, factor)
-            done = seed_workouts.done_count(rate, len(routines))
-            late = seed_workouts.is_late_day(member_id, day, done, today)
-            for order in range(done):
-                routine = routines[order]
-                code = seed_workouts.TYPE_CODE.get(routine.type, "other")
-                strength = code == exercise_types.STRENGTH
-                sid = f"{_PERSONAL_SESSION_PREFIX}{member_id}-{day.isoformat()}-{order}"
-                row = rows.get(sid)
-                if row is None:
-                    row = models.ExerciseSession(
-                        id=sid,
-                        user_id=member_id,
-                        week_start=monday.isoformat(),
-                        day_label="월화수목금토일"[offset],
-                        source="assigned_routine",
-                        assigned_trainer_id=TRAINER_ID,
-                    )
-                    db.add(row)
-                at = exercise_activity.noon(day)
-                if late and order == done - 1:
-                    at = min(exercise_activity.noon(day + timedelta(days=1)), now)
-                row.type = code
-                row.name = routine.name
-                row.minutes = routine.minutes
-                row.calories = seed_workouts.kcal(code, routine.minutes)
-                row.sets = routine.sets if strength else None
-                row.reps = routine.reps if strength else None
-                row.hold_seconds = routine.hold_seconds if strength else None
-                # 맨몸 운동(중량 0)은 수행 기록에 중량을 적지 않는다 — 데모 행과 같다.
-                row.weight = routine.weight if strength and routine.weight else None
-                row.intensity = routine.intensity
-                row.assigned_routine_id = routine.id
-                row.assigned_routine_name = routine.name
-                row.completed_at = at
-                row.created_at = at
+            done_by_day[day] = seed_workouts.done_count(rate, len(routines))
+    # 처방과 다른 강도로 한 날(#3263) — 데모와 같은 날에 같은 강도다.
+    off_day = seed_workouts.performed_off_day(member_id, done_by_day)
+    for day, done in done_by_day.items():
+        monday = monday_of(day)
+        offset = day.weekday()
+        late = seed_workouts.is_late_day(member_id, day, done, today)
+        for order in range(done):
+            routine = routines[order]
+            code = seed_workouts.TYPE_CODE.get(routine.type, "other")
+            strength = code == exercise_types.STRENGTH
+            sid = f"{_PERSONAL_SESSION_PREFIX}{member_id}-{day.isoformat()}-{order}"
+            row = rows.get(sid)
+            if row is None:
+                row = models.ExerciseSession(
+                    id=sid,
+                    user_id=member_id,
+                    week_start=monday.isoformat(),
+                    day_label="월화수목금토일"[offset],
+                    source="assigned_routine",
+                    assigned_trainer_id=TRAINER_ID,
+                )
+                db.add(row)
+            at = exercise_activity.noon(day)
+            if late and order == done - 1:
+                at = min(exercise_activity.noon(day + timedelta(days=1)), now)
+            row.type = code
+            row.name = routine.name
+            row.minutes = routine.minutes
+            row.calories = seed_workouts.kcal(code, routine.minutes)
+            row.sets = routine.sets if strength else None
+            row.reps = routine.reps if strength else None
+            row.hold_seconds = routine.hold_seconds if strength else None
+            # 맨몸 운동(중량 0)은 수행 기록에 중량을 적지 않는다 — 데모 행과 같다.
+            row.weight = routine.weight if strength and routine.weight else None
+            row.intensity = seed_workouts.performed_intensity(
+                member_id, order, day, off_day, routine.intensity
+            )
+            row.assigned_routine_id = routine.id
+            row.assigned_routine_name = routine.name
+            row.completed_at = at
+            row.created_at = at
     _safe_commit(db)
 
 

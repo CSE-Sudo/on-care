@@ -1778,12 +1778,6 @@ abstract class AppLocalizations {
   /// **'Please enter a duration'**
   String get exEnterDuration;
 
-  /// No description provided for @exCannotEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'This record can\'t be edited'**
-  String get exCannotEdit;
-
   /// No description provided for @exUpdated.
   ///
   /// In en, this message translates to:
@@ -6631,11 +6625,11 @@ abstract class AppLocalizations {
   /// **'Delete this personal exercise'**
   String get coachRoutineCancel;
 
-  /// No description provided for @coachRoutineCancelConfirm.
+  /// Confirm deleting a recommended workout. {nameObj} is the Korean object particle for {name} ('을' or '를', from oncare_rules josa); English ignores it (#1177).
   ///
   /// In en, this message translates to:
   /// **'Delete \'{name}\' from the list? Anything you already logged stays.'**
-  String coachRoutineCancelConfirm(String name);
+  String coachRoutineCancelConfirm(String name, String nameObj);
 
   /// Title of the dialog confirming undoing a completed recommended workout.
   ///

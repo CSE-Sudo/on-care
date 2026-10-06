@@ -10,6 +10,8 @@
 ///  * 현재 비밀번호 불일치(400)는 예전처럼 현재 비밀번호 칸 아래다.
 library;
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,9 +36,12 @@ final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 변경 호출을 기록하고 [error] 를 던지는 페이크.
 class _FakeAccountRepository implements TrainerAccountRepository {
-  _FakeAccountRepository({this.error, this.reissued});
+  _FakeAccountRepository({this.error, this.reissued, this.gate});
 
   final Object? error;
+
+  /// 있으면 변경이 이것이 끝날 때까지 기다린다 — 바꾸는 중인 창을 본다.
+  final Completer<void>? gate;
 
   /// 성공 응답에 실릴 새 토큰 한 쌍(#2766).
   final TrainerAuthTokens? reissued;
@@ -54,6 +59,7 @@ class _FakeAccountRepository implements TrainerAccountRepository {
     required String newPassword,
   }) async {
     newPasswords.add(newPassword);
+    await gate?.future;
     if (error != null) throw error!;
     return reissued;
   }
@@ -69,9 +75,14 @@ Future<_FakeAccountRepository> _openDialog(
   WidgetTester tester, {
   Object? error,
   TrainerAuthTokens? reissued,
+  Completer<void>? gate,
   void Function(ProviderContainer container)? onContainer,
 }) async {
-  final repo = _FakeAccountRepository(error: error, reissued: reissued);
+  final repo = _FakeAccountRepository(
+    error: error,
+    reissued: reissued,
+    gate: gate,
+  );
   final ProviderContainer container = await pumpTrainerApp(
     tester,
     token: 'demo-token',
@@ -418,6 +429,24 @@ void main() {
         ),
       );
     });
+  });
+
+  // 칸 아래 오류를 창 안에 보여 주므로 바꾸는 중에는 닫히지 않는다(#3245).
+  testWidgets('바꾸는 중에는 바깥을 눌러도 비밀번호 창이 닫히지 않는다', (tester) async {
+    final Completer<void> gate = Completer<void>();
+    final repo = await _openDialog(tester, gate: gate);
+    await _fill(tester, next: 'newpass123');
+    await tester.tap(find.text(_ko.actionChange).last);
+    await tester.pump();
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(_field('password-current'), findsOneWidget);
+
+    gate.complete();
+    await settle(tester);
+    expect(repo.newPasswords, <String>['newpass123']);
   });
 }
 

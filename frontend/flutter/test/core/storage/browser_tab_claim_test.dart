@@ -5,10 +5,10 @@ library;
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/core/storage/secure_token_store.dart';
+import 'package:oncare/core/storage/token_session_storage.dart';
 import 'package:oncare_core/storage/browser_tab_claim.dart';
 import 'package:oncare_core/storage/token_keys.dart';
-import 'package:oncare_trainer/core/storage/secure_token_store.dart';
-import 'package:oncare_trainer/core/storage/token_session_storage.dart';
 
 void main() {
   final DateTime now = DateTime.utc(2026, 10, 5, 3);
