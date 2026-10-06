@@ -35,8 +35,8 @@ GYM_NAME = "쿠폰 테스트짐"
 #: 회원이 연결한 헬스장(`member_gyms`). 트레이너 프로필의 헬스장 문구와 일부러 다르다.
 MEMBER_GYM_NAME = "쿠폰 락커짐"
 
-RENEWAL_CANCELLED = "재등록 쿠폰이 취소됐어요"
-LOCKER_CANCELLED = "락커 쿠폰이 취소됐어요"
+RENEWAL_CANCELLED = "PT 재등록 할인 쿠폰이 취소됐어요"
+LOCKER_CANCELLED = "개인 락커 쿠폰이 취소됐어요"
 
 
 def _headers(user_id: str) -> dict[str, str]:
@@ -821,6 +821,36 @@ def test_weekly_report_buys_last_week_once(client, db_session):
     listed = client.get("/v1/me/weekly-reports", headers=h).json()
     assert [r["week_start"] for r in listed["reports"]] == [last_monday]
     assert _shop_item(client, h, "weekly_report")["blocked_reason"] == "week_owned"
+    assert client.get("/v1/me/points/shop", headers=h).json()["balance"] == 700
+
+
+def test_weekly_report_retry_after_monday_returns_the_bought_week(
+    client, db_session, monkeypatch
+):
+    """같은 요청의 재시도는 그때 산 주를 돌려준다(#3240).
+
+    월요일 0시(KST)를 넘긴 재시도가 지금의 지난주를 받으면, 사지 않은 주를
+    받았다고 답한다. 포인트도 다시 쓰지 않는다.
+    """
+    from datetime import timedelta
+
+    _, h = _new_member(client, db_session, points=1000)
+    bought_week = weekly_report_purchase_service.target_week()
+    key = uuid4().hex
+
+    bought = _exchange(client, h, "weekly_report", request_id=key)
+    assert bought.status_code == 201, bought.text
+
+    # 한 주가 지났다 — 지금 사면 받는 주는 다음 주다.
+    monkeypatch.setattr(
+        weekly_report_purchase_service,
+        "target_week",
+        lambda today=None: bought_week + timedelta(days=7),
+    )
+    retried = _exchange(client, h, "weekly_report", request_id=key)
+
+    assert retried.status_code == 201, retried.text
+    assert retried.json()["weekly_report_week"] == bought_week.isoformat()
     assert client.get("/v1/me/points/shop", headers=h).json()["balance"] == 700
 
 

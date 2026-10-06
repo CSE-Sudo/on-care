@@ -5,7 +5,10 @@
 /// 본인 확인(현재 비밀번호, 소셜로만 가입했으면 소셜 재로그인)이다(#3039).
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -42,6 +45,9 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   List<String> lastReasons = const <String>[];
   TrainerReauth? lastReauth;
 
+  /// 채워 두면 탈퇴 요청이 이것이 끝날 때까지 서버에 머문다(#3245).
+  Completer<void>? gate;
+
   @override
   bool get supportsPasswordChange => true;
 
@@ -59,6 +65,7 @@ class _FakeAccountRepository implements TrainerAccountRepository {
     deleteCalls++;
     lastReauth = reauth;
     lastReasons = reasons;
+    await gate?.future;
     final Object? e = error;
     if (e != null) {
       error = null;
@@ -342,6 +349,49 @@ void main() {
     // 다음에 로그인하는 사람이 탈퇴 화면으로 이어 가지 않는다.
     expect(AppRoutes.resumeTarget(location), isNull);
     expect(Uri.parse(location).queryParameters, isEmpty);
+  });
+
+  testWidgets('탈퇴 요청이 도는 동안에는 바깥·Esc 로 창이 닫히지 않는다 (#3245)', (tester) async {
+    final (repo, _) = await _pumpSettings(tester);
+
+    await _tapDelete(tester);
+    await _enterPassword(tester, 'current-pw-1');
+    repo.gate = Completer<void>();
+    await tester.tap(_submit);
+    await tester.pump();
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(find.text(_ko.myDeleteTitle), findsOneWidget);
+
+    repo.gate!.complete();
+    await settle(tester);
+
+    expect(repo.deleteCalls, 1);
+    expect(Uri.parse(currentLocation(tester)).path, AppRoutes.signIn);
+  });
+
+  testWidgets('요청 중 창이 다른 길로 닫혀도 탈퇴가 끝나면 로그아웃한다 (#3245)', (tester) async {
+    final (repo, _) = await _pumpSettings(tester);
+
+    await _tapDelete(tester);
+    await _enterPassword(tester, 'current-pw-1');
+    repo.gate = Completer<void>();
+    await tester.tap(_submit);
+    await tester.pump();
+
+    // 창만 걷어 낸다 — 결과 없이 닫히면 부른 쪽은 아무 값도 받지 못한다.
+    Navigator.of(tester.element(find.byType(AppDialog))).pop();
+    await settle(tester);
+    expect(find.text(_ko.myDeleteTitle), findsNothing);
+
+    repo.gate!.complete();
+    await settle(tester);
+
+    expect(repo.deleteCalls, 1);
+    expect(Uri.parse(currentLocation(tester)).path, AppRoutes.signIn);
   });
 
   // --- 소셜로만 가입한 계정 (#3039) -----------------------------------------

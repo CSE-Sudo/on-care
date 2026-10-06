@@ -38,10 +38,14 @@ part 'seed_workouts.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v54']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v55']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v55` 는 시드 문구의 표기를 정리했다(#3201·#3202) — 운동 이름 `런닝`→`러닝`,
+/// `이행률`→`완료율`, PT 메모의 `수업`·`세션`→`PT`, 알림 제목. 올리지 않으면 오늘
+/// 이미 시드된 브라우저가 자정까지 옛 표기를 보인다.
 ///
 /// `_v54` 는 회원별 개인운동·운동 기록을 실서버 시드와 맞추고(#3003), 회원마다
 /// 받은 개인운동 기간 수를 다르게 심었다(#2508, `seed_rings.dart`). 올리지 않으면
@@ -217,7 +221,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v54') == today &&
+  if (await db.readValue('trainer_seeded_v55') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -934,7 +938,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v54', today);
+    await db.putValue('trainer_seeded_v55', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -2116,8 +2120,8 @@ const List<Map<String, String>> _pastPtNotes = <Map<String, String>>[
     '강서연': '주말 과식 얘기 나눔. 스쿼트 50kg 4×10 안정적.',
     '류태경': '벌크업 중 벤치프레스 45kg 도달. 단백질 쉐이크 운동 직후로 옮김.',
     '정하윤': '재활 밴드 운동 통증 없이 완료. 다음 주 맨몸 런지 추가.',
-    '문가영': '3주 만의 수업. 체력 저하가 커서 강도를 70%로 낮춰 진행.',
-    '노은채': '첫 수업. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.',
+    '문가영': '3주 만의 PT. 체력 저하가 커서 강도를 70%로 낮춰 진행.',
+    '노은채': '첫 PT. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.',
   },
   <String, String>{
     '이지수': '사이클 30분 + 하체 근력. 무릎 정렬 좋아짐.',
@@ -2126,12 +2130,12 @@ const List<Map<String, String>> _pastPtNotes = <Map<String, String>>[
     '신유나': '레그프레스 가동범위 70%까지. 통증 척도 1/10.',
     '오세라': '걷기 속도 높임. 운동 후 혈압 정상 범위.',
     '한지호': '체중 정체 이야기. 저녁 탄수화물 절반 줄이기로 합의.',
-    '배준혁': '당일 취소 후 보강 수업. 컨디션 좋음.',
+    '배준혁': '당일 취소 후 보강 PT. 컨디션 좋음.',
     '백서진': '플랭크 90초 달성. 나트륨 높은 점심 메뉴 대안 안내.',
     '강서연': '인터벌 후 어지럼 없음. 물 섭취 늘리라고 안내.',
     '류태경': '하체 볼륨 늘림. 식사량 늘리는 게 힘들다고 함.',
     '정하윤': '출산 후 코어 재활 4주차. 복직근 이개 1.5cm.',
-    '문가영': '수업 시간대 바꾸고 싶다고 함. 상담 잡기로.',
+    '문가영': 'PT 시간대 바꾸고 싶다고 함. 상담 잡기로.',
   },
 ];
 
@@ -2185,7 +2189,7 @@ class _SeedSession {
 /// 두면 금요일 수업이 월요일에 열어 본 화면에서 이미 끝난 것으로 보인다. 지난
 /// 요일은 `완료`, 남은 요일은 `예정` 으로 시딩이 정한다.
 ///
-/// 메모는 지난 세션·다음 세션 어느 쪽으로 읽어도 어색하지 않은 문구로 둔다.
+/// 메모는 지난 세션·다음 PT 어느 쪽으로 읽어도 어색하지 않은 문구로 둔다.
 /// 프로그램이 빈 세션도 섞는다 — 트레이너가 아직 짜지 않은 수업이 실제로 있고,
 /// 그 상태에서 프로그램을 만드는 흐름이 이 앱의 주된 동작이다.
 class _WeekSlot {
@@ -2230,7 +2234,7 @@ const String _seedConsultPrefix = 'seed-consultation-';
 const Map<String, ({String goal, String message})>
 _seedConsultRequests = <String, ({String goal, String message})>{
   '정하윤': (goal: 'eating', message: '저녁 외식이 잦은데 식단 기록을 어떻게 이어 가면 좋을지 상담받고 싶어요.'),
-  '문가영': (goal: 'fitness', message: '수업을 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.'),
+  '문가영': (goal: 'fitness', message: 'PT를 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.'),
   '조은비': (goal: 'rehab', message: '예전에 무릎을 다친 적이 있어요. 무리 없이 시작할 수 있을지 궁금해요.'),
   '서지훈': (goal: 'exercise_habit', message: '주말에만 운동할 수 있는데 그래도 꾸준히 할 수 있을까요?'),
   // 지난 상담(#2667)의 요청 — 상담 메모와 같은 이야기를 회원 쪽 말로 한다.
@@ -2261,7 +2265,7 @@ _seedConsultRequests = <String, ({String goal, String message})>{
   ('강서연', seedPastMissWeeksAgo) => (
     status: ScheduleStatus.cancelled,
     source: CancellationSource.member,
-    reason: '감기 기운이 있어 이번 수업은 쉬고 싶다고 연락함',
+    reason: '감기 기운이 있어 이번 PT는 쉬고 싶다고 연락함',
   ),
   _ => null,
 };
@@ -2301,7 +2305,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     altWeekday: 2,
     altTime: '12:00',
     durationMinutes: 30,
-    note: '출근 전 수업. 상체 위주로 짧게 끊어 간다.',
+    note: '출근 전 PT. 상체 위주로 짧게 끊어 간다.',
     program: <Map<String, Object?>>[
       <String, Object?>{
         'name': '랫풀다운',
@@ -2427,7 +2431,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     clientName: '문가영',
     type: SessionType.consultation,
     durationMinutes: 60,
-    note: '수업 시간대 변경 상담. 오전 이동 가능 여부를 확인한다.',
+    note: 'PT 시간대 변경 상담. 오전 이동 가능 여부를 확인한다.',
   ),
   _WeekSlot(
     weekday: 3,
@@ -2437,7 +2441,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     altWeekday: 4,
     altTime: '20:00',
     durationMinutes: 30,
-    note: '야간 수업. 다음 날 근육통을 고려해 볼륨을 낮게 잡는다.',
+    note: '야간 PT. 다음 날 근육통을 고려해 볼륨을 낮게 잡는다.',
   ),
   // 목
   _WeekSlot(
@@ -2487,7 +2491,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     altWeekday: 4,
     altTime: '12:00',
     durationMinutes: 50,
-    note: '주 마지막 근력 수업. 상체 볼륨을 채운다.',
+    note: '주 마지막 근력 PT. 상체 볼륨을 채운다.',
   ),
   _WeekSlot(
     weekday: 5,
@@ -2505,7 +2509,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     altWeekday: 4,
     altTime: '18:00',
     durationMinutes: 30,
-    note: '주 2회 중 두 번째 수업. 월요일에 못 채운 하체를 넣는다.',
+    note: '주 2회 중 두 번째 PT. 월요일에 못 채운 하체를 넣는다.',
     program: <Map<String, Object?>>[
       <String, Object?>{
         'name': '레그프레스',
@@ -2540,7 +2544,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     altWeekday: 5,
     altTime: '12:00',
     durationMinutes: 45,
-    note: '주말 수업. 평일보다 길게 가져가되 마무리 스트레칭을 넉넉히 둔다.',
+    note: '주말 PT. 평일보다 길게 가져가되 마무리 스트레칭을 넉넉히 둔다.',
     program: <Map<String, Object?>>[
       <String, Object?>{
         'name': '체스트프레스',
@@ -2566,7 +2570,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     clientName: '박성호',
     type: SessionType.personalTraining,
     durationMinutes: 60,
-    note: '주말 보강 수업. 평일에 빠진 하체를 채운다.',
+    note: '주말 보강 PT. 평일에 빠진 하체를 채운다.',
   ),
   _WeekSlot(
     weekday: 6,
@@ -2585,7 +2589,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     altWeekday: 6,
     altTime: '12:00',
     durationMinutes: 50,
-    note: '가벼운 마무리 수업. 다음 주 계획을 함께 정한다.',
+    note: '가벼운 마무리 PT. 다음 주 계획을 함께 정한다.',
   ),
   // 문가영은 수요일 상담만 있어 주간 PT 가 0회였다(#2452). 휴면 회원이라도
   // 잡혀 있는 수업은 있다 — 리포트의 PT 횟수가 이 자리에서 나온다.
@@ -2595,7 +2599,7 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     clientName: '문가영',
     type: SessionType.personalTraining,
     durationMinutes: 60,
-    note: '오랜만의 수업. 가벼운 전신 운동으로 다시 리듬을 잡는다.',
+    note: '오랜만의 PT. 가벼운 전신 운동으로 다시 리듬을 잡는다.',
     altWeekday: 6,
     altTime: '16:00',
   ),
@@ -2626,7 +2630,7 @@ const List<_Slot> _schedule = <_Slot>[
     type: SessionType.personalTraining,
     durationMinutes: 50,
     status: ScheduleStatus.done,
-    note: '무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.',
+    note: '무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.',
     program: <Map<String, Object?>>[
       <String, Object?>{
         'name': '벤치프레스',
@@ -2658,7 +2662,7 @@ const List<_Slot> _schedule = <_Slot>[
     type: SessionType.personalTraining,
     durationMinutes: 50,
     status: ScheduleStatus.done,
-    note: '데드리프트 자세 안정적. 다음 세션 60kg 도전.',
+    note: '데드리프트 자세 안정적. 다음 PT 60kg 도전.',
     program: <Map<String, Object?>>[
       <String, Object?>{
         'name': '데드리프트',
@@ -2832,7 +2836,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 1,
       condition: 'good',
       intensity: 'right',
-      note: '지난 주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
+      note: '지난주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
     ),
     _Feedback(
       weeksAgo: 2,
@@ -2898,7 +2902,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       note: '야근이 이어져서 운동 강도가 버거웠어요.',
     ),
   ],
-  // 이지수 — 잘 따라오는 쪽. 주말 기록만 자주 빠지고, 런닝 숨참·플랭크 피로가 차츰 풀린다.
+  // 이지수 — 잘 따라오는 쪽. 주말 기록만 자주 빠지고, 러닝 숨참·플랭크 피로가 차츰 풀린다.
   2: <_Feedback>[
     _Feedback(
       weeksAgo: 0,
@@ -2922,7 +2926,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 3,
       condition: 'great',
       intensity: 'right',
-      note: '런닝할 때 숨찬 게 확실히 줄었어요!',
+      note: '러닝할 때 숨찬 게 확실히 줄었어요!',
     ),
     _Feedback(
       weeksAgo: 4,
@@ -2958,7 +2962,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 9,
       condition: 'ok',
       intensity: 'right',
-      note: '회식이 두 번 있었어요. 그래도 다음 날 런닝은 했어요.',
+      note: '회식이 두 번 있었어요. 그래도 다음 날 러닝은 했어요.',
     ),
     _Feedback(
       weeksAgo: 11,
@@ -2972,7 +2976,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       intensity: 'hard',
       painArea: '왼쪽 발목',
       painDay: 4,
-      note: '런닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.',
+      note: '러닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.',
     ),
   ],
   // 박성호 — 휴면. 몸이 아니라 일정(출장·회사 일)이 막고 있고, 나올 때는 벤치 중량에 욕심이
@@ -3337,7 +3341,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 2,
       condition: 'tired',
       intensity: 'right',
-      note: '회식이 많아서 수업도 한 번 빠졌어요. 죄송해요.',
+      note: '회식이 많아서 PT도 한 번 빠졌어요. 죄송해요.',
     ),
     _Feedback(
       weeksAgo: 3,
@@ -3381,7 +3385,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 12,
       condition: 'ok',
       intensity: 'hard',
-      note: '저녁엔 자꾸 야근이 잡혀서 수업 시간을 옮기고 싶어요.',
+      note: '저녁엔 자꾸 야근이 잡혀서 PT 시간을 옮기고 싶어요.',
     ),
   ],
   // 신유나 — 회복 중. 무릎 재활이라 오래전일수록 통증이 잦고, 최근 주로 올수록 통증 없이

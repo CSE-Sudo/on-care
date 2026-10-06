@@ -345,7 +345,7 @@
       "label": "PT 세션 · 트레이너 지도",
       "pt": true,
       "clientFeedback": "무릎이 좀 당겼지만 트레이너님 덕분에 잘 마쳤어요 😊",
-      "trainerNote": "무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.",
+      "trainerNote": "무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.",
       "dayMessage": "점심 짬뽕으로 오늘 나트륨 섭취가 많았어요. 저녁은 양념을 줄인 채소와 단백질 위주로 구성해 보세요.",
       "exercises": [
         {
@@ -9023,7 +9023,7 @@
       {
         "weeksAgo": 11,
         "clientFeedback": "첫 PT 라 긴장했는데 생각보다 할 만했어요.",
-        "trainerNote": "첫 세션. 체력 수준 점검 위주로 가볍게 진행.",
+        "trainerNote": "첫 PT. 체력 수준 점검 위주로 가볍게 진행.",
         "exercises": [
           {
             "name": "고블릿 스쿼트",
@@ -9278,7 +9278,7 @@
       {
         "weeksAgo": 6,
         "clientFeedback": "벤치프레스 자세가 조금 익숙해졌어요.",
-        "trainerNote": "벤치프레스 35kg 4×10 안정. 다음 세션도 같은 무게로 반복.",
+        "trainerNote": "벤치프레스 35kg 4×10 안정. 다음 PT도 같은 무게로 반복.",
         "exercises": [
           {
             "name": "벤치프레스",
@@ -9482,7 +9482,7 @@
       {
         "weeksAgo": 2,
         "clientFeedback": "레그프레스 무게가 붙었어요. 마지막 세트가 힘들었어요.",
-        "trainerNote": "하체 근력 향상 확인. 다음 세션 레그프레스 5kg 증량.",
+        "trainerNote": "하체 근력 향상 확인. 다음 PT 레그프레스 5kg 증량.",
         "exercises": [
           {
             "name": "레그프레스",
@@ -9533,7 +9533,7 @@
       {
         "weeksAgo": 1,
         "clientFeedback": "다음 주엔 40kg 에 도전해 볼게요.",
-        "trainerNote": "벤치프레스 37.5kg 4×10 성공. 다음 세션 40kg.",
+        "trainerNote": "벤치프레스 37.5kg 4×10 성공. 다음 PT 40kg.",
         "exercises": [
           {
             "name": "벤치프레스",

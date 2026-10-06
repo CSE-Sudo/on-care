@@ -97,16 +97,24 @@ def _remember(
 
     같은 이름을 두 요청이 동시에 물으면 기본키가 충돌한다. 그때 터뜨릴 이유가
     없다 — 둘 다 같은 값을 쓰려던 참이고, 캐시는 계산의 전제가 아니다.
+
+    **호출자의 세션이 아니라 따로 연 세션에 적는다(#3242).** 이 함수는 PT 완료의
+    기록 동기화처럼 "커밋하지 않는다" 를 약속한 흐름 한가운데서도 불린다. 호출자
+    세션에서 커밋하면 아직 끝나지 않은 변경이 중간에 확정되고, 키 충돌로 롤백하면
+    그 변경이 조용히 버려진다. 별도 세션은 미리보기처럼 커밋하지 않는 요청에서도
+    캐시를 남긴다 — savepoint 였다면 바깥이 커밋하지 않을 때 함께 사라진다.
     """
-    try:
-        db.merge(
-            ExerciseNameMatch(
-                name_norm=norm,
-                catalog_id=catalog_id,
-                confidence=confidence,
-                resolver="ai",
+    bind = db.get_bind()
+    with Session(getattr(bind, "engine", bind)) as cache_db:
+        try:
+            cache_db.merge(
+                ExerciseNameMatch(
+                    name_norm=norm,
+                    catalog_id=catalog_id,
+                    confidence=confidence,
+                    resolver="ai",
+                )
             )
-        )
-        db.commit()
-    except Exception:  # noqa: BLE001 — 캐시 실패로 저장을 막지 않는다
-        db.rollback()
+            cache_db.commit()
+        except Exception:  # noqa: BLE001 — 캐시 실패로 저장을 막지 않는다
+            cache_db.rollback()

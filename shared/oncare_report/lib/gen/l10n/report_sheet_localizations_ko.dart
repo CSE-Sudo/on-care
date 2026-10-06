@@ -180,7 +180,7 @@ class ReportSheetLocalizationsKo extends ReportSheetLocalizations {
 
   @override
   String get reportsSheetFootnote =>
-      '범위는 이번 주 기록을 회원의 목표와 견줍니다. 기록이 없는 항목은 미집계로 표시합니다.';
+      '범위는 이번 주 기록을 회원의 목표와 견줘요. 기록이 없는 항목은 미집계로 표시해요.';
 
   @override
   String reportsSheetGoal(String value) {
@@ -206,7 +206,7 @@ class ReportSheetLocalizationsKo extends ReportSheetLocalizations {
 
   @override
   String get reportsSheetScoreFormula =>
-      '운동 완료율·완료 PT·식단 기록·칼로리 적정일 비율의 평균입니다. 기록이 없는 항목은 빠집니다.';
+      '운동 완료율·완료 PT·식단 기록·칼로리 적정일 비율의 평균이에요. 기록이 없는 항목은 빠져요.';
 
   @override
   String get reportsSheetScoreNone => '점수를 낼 기록이 없어요';

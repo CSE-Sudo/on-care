@@ -559,7 +559,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     // 화면에서 부르는 이름을 `개인운동` 으로 통일했다(#1457).
-    expect(find.text('개인운동 수행 완료'), findsOneWidget);
+    expect(find.text('개인운동 완료'), findsOneWidget);
     // 회원이 운동의 세부 내용을 지정하는 자리는 없다 — 실제 수행 시간 입력은
     // 내려갔고(#1360), 피드백 칸도 없앴다 — 불편은 채팅에서 감지한다(#1825).
     // 남은 값은 강도뿐이다.
@@ -842,7 +842,7 @@ void main() {
 
     final TextField input = tester.widget<TextField>(find.byType(TextField));
     expect(input.controller?.text, '다시 보낼 메시지');
-    expect(find.text('메시지 전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('메시지를 보내지 못했어요. 다시 시도해 주세요'), findsOneWidget);
   });
 
   testWidgets('PDF attachment를 파일명과 크기가 있는 카드로 표시한다', (tester) async {

@@ -29,7 +29,9 @@ from app.services.trainer import _common as trainer_common_service
 TRAINER_EMAIL = "trainer@oncare.com"
 MEMBER_EMAIL = "jisu@oncare.com"
 MEMBER_ID = "user-jisu"
-CANCELLED_TITLE = "일정이 취소되었어요"
+#: 같은 트레이너의 다른 담당 회원(시드). 한 회원의 다가오는 예약은 하나다(#3240).
+OTHER_MEMBER_ID = "user-hayun"
+CANCELLED_TITLE = "일정이 취소됐어요"
 
 
 # ---------------------------------------------------------------------------
@@ -455,20 +457,24 @@ def test_my_reservations_skip_rows_not_booked(client, db_session, created_slots)
 
 
 def test_other_reservations_survive_a_trainer_cancel(client, db_session, created_slots):
-    """한 세션을 취소해도 같은 회원의 다른 예약은 그대로다."""
+    """한 세션을 취소해도 다른 예약은 그대로다.
+
+    한 회원의 다가오는 예약은 하나라(#3240) 두 번째 자리는 같은 트레이너의 다른
+    담당 회원이 잡는다.
+    """
     trainer_token = _login(client, TRAINER_EMAIL)
     member_token = _login(client, MEMBER_EMAIL)
+    other_token = create_access_token(OTHER_MEMBER_ID)
     first_slot = _create_slot(client, trainer_token, created_slots)
     second_slot = _create_slot(client, trainer_token, created_slots)
     first = _book(client, member_token, first_slot["id"], created_slots)
-    second = _book(client, member_token, second_slot["id"], created_slots)
+    second = _book(client, other_token, second_slot["id"], created_slots)
 
     assert _trainer_cancel(client, trainer_token, first["schedule_id"]).status_code == 200
 
-    mine = _my_reservation_ids(client, member_token)
-    assert first["id"] not in mine
-    assert second["id"] in mine
-    assert _member_slot(client, member_token, second_slot["id"])["remaining"] == 0
+    assert first["id"] not in _my_reservation_ids(client, member_token)
+    assert second["id"] in _my_reservation_ids(client, other_token)
+    assert _member_slot(client, other_token, second_slot["id"])["remaining"] == 0
     db_session.expire_all()
     kept = db_session.get(TrainerSchedule, second["schedule_id"])
     assert kept.status == "예정"

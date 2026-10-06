@@ -348,7 +348,12 @@ class MetricTrendPainter extends CustomPainter {
       ),
       textDirection: ui.TextDirection.ltr,
     )..layout();
-    final bx = (at.dx - tp.width / 2).clamp(0.0, w - tp.width);
+    // 글자가 캔버스보다 넓으면 상한이 하한보다 작아 `clamp` 가 던진다(#3250) —
+    // 그때는 왼쪽 끝에 붙인다.
+    final double bx = (at.dx - tp.width / 2).clamp(
+      0.0,
+      math.max(0.0, w - tp.width),
+    );
     var by = at.dy - tp.height - 7;
     if (by < 0) by = at.dy + 7;
     tp.paint(c, Offset(bx, by));

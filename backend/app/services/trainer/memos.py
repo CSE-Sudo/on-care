@@ -88,7 +88,7 @@ def _resolve_exercise_memo_ref(
         # 날짜로 가리키면 그날의 한 상자(`personal`·`member_log`) 또는 그날
         # 운동 기록 전체(`day`)에 다는 메모다(#2508). 오지 않은 날의 기록은 없다.
         if ref_date > _today():
-            raise RoutineNotFound("운동 기록을 찾을 수 없습니다.")
+            raise RoutineNotFound("운동 기록을 찾을 수 없어요.")
         return _MemoRef(
             kind=ref_kind or "day", ref_id=None, day=ref_date.isoformat()
         )
@@ -123,7 +123,7 @@ def _resolve_exercise_memo_ref(
         )
     )
     if session is None:
-        raise RoutineNotFound("운동 기록을 찾을 수 없습니다.")
+        raise RoutineNotFound("운동 기록을 찾을 수 없어요.")
     # 날짜는 이력 목록과 같은 규칙이다([_assigned_history_out], #1264) — 둘이
     # 갈리면 같은 기록이 카드와 메모 태그에서 다른 날로 보인다.
     completed_at = session.completed_at or session.created_at
@@ -259,7 +259,7 @@ def _owned_memo(
         )
     )
     if memo is None:
-        raise MemoNotFound("메모를 찾을 수 없습니다.")
+        raise MemoNotFound("메모를 찾을 수 없어요.")
     return memo
 
 
@@ -283,7 +283,7 @@ def update_memo(
     memo = _owned_memo(db, trainer_id, member_id, memo_id)
     if "category" in fields and fields["category"] != (memo.category or ""):
         if memo.source != "trainer":
-            raise MemoCategoryLocked("직접 쓴 메모만 분류를 바꿀 수 있습니다.")
+            raise MemoCategoryLocked("직접 쓴 메모만 분류를 바꿀 수 있어요.")
         memo.category = fields["category"]
     if "body" in fields:
         memo.body = fields["body"]

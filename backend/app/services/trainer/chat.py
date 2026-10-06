@@ -192,7 +192,7 @@ def _existing_message_out(
 ) -> ChatMessageOut:
     if message.body != text:
         raise IdempotencyConflict(
-            "같은 client_request_id에 다른 메시지를 보낼 수 없습니다."
+            "같은 client_request_id에 다른 메시지를 보낼 수 없어요."
         )
     return chat_message_out(message, viewer)
 
@@ -221,22 +221,42 @@ def _schedule_from_chat(
 
     같은 날 같은 시각의 일정이 이미 있으면 아무것도 하지 않는다. 트레이너가
     같은 약속을 두 번 말하는 것은 흔한 일이라, 그때마다 칸이 늘면 일정 화면이
-    중복으로 찬다.
+    중복으로 찬다. 취소·노쇼로 끝난 일정은 그 시간을 차지하지 않으므로 같은 약속을
+    다시 잡는 것을 막지 않는다(#3241).
+
+    다른 일정과 시간이 겹치면 만들지 않는다(#3241) — 일정 화면·예약이 모두 막는
+    이중 예약을 채팅만 지나가게 둘 수 없다. 메시지 전송은 그대로 성공한다: 읽어 낸
+    약속은 덤이고, 겹친 시간은 트레이너가 일정 화면에서 정리한다.
     """
+    # `schedule` 이 이 모듈을 불러 쓰므로 여기서 불러온다.
+    from app.services.trainer import schedule as trainer_schedule_service
+
+    local_sent_at = clock.to_seoul(sent_at)
     parsed = schedule_parse.parse_schedule(
-        text, sent_on=clock.to_seoul(sent_at).date()
+        text, sent_on=local_sent_at.date(), sent_time=local_sent_at.time()
     )
     if parsed is None:
         return
     existing = db.scalar(
-        select(TrainerSchedule).where(
+        select(TrainerSchedule.id).where(
             TrainerSchedule.trainer_id == trainer_id,
             TrainerSchedule.member_id == member_id,
             TrainerSchedule.date == parsed.date,
             TrainerSchedule.time == parsed.time,
+            TrainerSchedule.status.in_(trainer_schedule_service._OCCUPYING_STATUSES),
         )
     )
     if existing is not None:
+        return
+    try:
+        trainer_schedule_service.ensure_no_overlap(
+            db,
+            trainer_id,
+            date=parsed.date,
+            time=parsed.time,
+            duration_minutes=_CHAT_SCHEDULE_MINUTES,
+        )
+    except trainer_schedule_service.ScheduleOverlap:
         return
     member_name = db.scalar(select(User.name).where(User.id == member_id))
     db.add(

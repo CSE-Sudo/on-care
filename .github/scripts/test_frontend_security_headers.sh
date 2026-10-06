@@ -46,7 +46,8 @@ write_fixture() {
 
 expect() {
   local want="$1" label="$2" dir="$3" origin="${4:-$api}" got
-  if FAKE_HEADERS_DIR="$dir" PATH="$work/bin:$PATH" bash "$tool" https://d111.cloudfront.net/ "$origin" > "$work/out" 2>&1; then
+  # 파일이 있는 폴더에서 돌린다 — connect-src 의 `*` 가 파일 이름으로 펼쳐지면 차단을 지나친다(#3237).
+  if (cd "$work" && FAKE_HEADERS_DIR="$dir" PATH="$work/bin:$PATH" bash "$tool" https://d111.cloudfront.net/ "$origin") > "$work/out" 2>&1; then
     got=pass
   else
     got=fail
@@ -93,6 +94,18 @@ expect fail 'connect-src 에 https: 전체가 그대로' "$d"
 d=$(case_dir local)
 sed -i.bak "s#connect-src 'self'#connect-src 'self' http://localhost:*#" "$d/trainer"
 expect fail 'connect-src 에 localhost' "$d"
+
+# 출처 전체를 여는 값은 하나씩 걸린다(#3237).
+for wide in '*' 'https://*' 'https://*:443' 'wss:' 'ws://api.oncare.test' 'http://api.oncare.test'; do
+  d=$(case_dir "wide-$(printf '%s' "$wide" | tr -c 'a-z0-9' '_')")
+  sed -i.bak "s#connect-src 'self' $api#connect-src 'self' $wide $api#" "$d/frontend"
+  expect fail "connect-src 에 $wide" "$d"
+done
+
+# 특정 하위 도메인 묶음은 넓히는 값이 아니다.
+d=$(case_dir subdomain)
+sed -i.bak "s#connect-src 'self' $api#connect-src 'self' https://*.oncare.test $api#" "$d/trainer"
+expect pass 'connect-src 에 https://*.oncare.test' "$d"
 
 d=$(case_dir wrong-origin); expect fail 'ApiOrigin 이 API_BASE_URL 과 다름' "$d" 'https://other-api.oncare.test'
 

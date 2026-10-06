@@ -12,6 +12,10 @@
 
 **`async` 함수 안의 DB 작업은 스레드풀로 넘긴다(#2835).** 카카오 호출만 `await`
 하고, 동기 세션 조회·커밋은 `run_in_threadpool` 로 돌려 이벤트 루프를 막지 않는다.
+
+**카카오를 기다리기 전에 연결을 풀로 돌려준다(#3242).** 그 앞은 읽기뿐이라
+트랜잭션을 끝내도 잃는 것이 없고, 뒤의 조회·저장은 새 연결을 빌린다. 쓰기가
+남아 있으면 `release_connection` 이 건드리지 않는다.
 """
 from __future__ import annotations
 
@@ -24,6 +28,7 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
+from app.db.session import release_connection
 from app.models.models import GymProfile, Place, TrainerProfile, User
 from app.schemas.trainer_api import TrainerGymCandidate, TrainerMe
 from app.services.gym_service import _haversine_m
@@ -147,6 +152,7 @@ async def _with_kakao(
     seen = {c.id for c in out}
 
     settings = get_settings()
+    await run_in_threadpool(release_connection, db)
     try:
         found = await kakao.search_gyms(
             query, lat, lng,
@@ -299,6 +305,7 @@ async def select_kakao_gym(
         raise GymLookupUnavailable
 
     settings = get_settings()
+    await run_in_threadpool(release_connection, db)
     try:
         found = await kakao.search_gyms(
             name, None, None,

@@ -48,7 +48,7 @@ def _require_profile(db: Session, trainer_id: str) -> TrainerProfile:
         select(TrainerProfile).where(TrainerProfile.trainer_id == trainer_id)
     )
     if profile is None:
-        raise HTTPException(status_code=404, detail="트레이너 프로필이 없습니다.")
+        raise HTTPException(status_code=404, detail="트레이너 프로필이 없어요.")
     return profile
 
 
@@ -75,7 +75,7 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
         )
     )
     if not data_consent_service.link_is_open(link):
-        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없어요.")
     return link
 
 

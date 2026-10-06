@@ -52,7 +52,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
       'member_name': '지수',
       'focus': <String>['근력 향상', '재활'],
     },
-    '회원 건강 목표 변경',
+    '회원 건강 목표가 바뀌었어요',
     '지수 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활',
     'Member goals changed',
     '지수 changed their health goals: Build strength · Rehab',
@@ -60,7 +60,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_health_goal',
     <String, Object?>{'member_name': '지수', 'focus': <String>[]},
-    '회원 건강 목표 변경',
+    '회원 건강 목표가 바뀌었어요',
     '지수 회원이 건강 목표를 바꿨어요: 목표 없음',
     'Member goals changed',
     '지수 changed their health goals: none',
@@ -68,7 +68,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_health_notes',
     <String, Object?>{'member_name': '지수', 'with_focus': false},
-    '회원 주의사항 변경',
+    '회원 주의사항이 바뀌었어요',
     '지수 회원이 건강상태·주의사항을 바꿨어요',
     'Member health notes changed',
     '지수 updated their health notes',
@@ -76,7 +76,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_health_notes',
     <String, Object?>{'member_name': '지수', 'with_focus': true},
-    '회원 주의사항 변경',
+    '회원 주의사항이 바뀌었어요',
     '지수 회원이 건강 목표와 건강상태·주의사항을 바꿨어요',
     'Member health notes changed',
     '지수 updated their health goals and health notes',
@@ -87,7 +87,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
       'member_name': 'Alex',
       'focus': <String>['체중 감량', '체력 강화', '자세 교정', '식습관 개선', '운동 습관', '혈압 관리'],
     },
-    '회원 건강 목표 변경',
+    '회원 건강 목표가 바뀌었어요',
     'Alex 회원이 건강 목표를 바꿨어요: 체중 감량 · 체력 강화 · 자세 교정 · 식습관 개선 · 운동 습관 · 혈압 관리',
     'Member goals changed',
     'Alex changed their health goals: Weight loss · Improve fitness · '
@@ -97,7 +97,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_member_renamed',
     <String, Object?>{'old_name': '김지수', 'new_name': '김지수B'},
-    '회원 이름 변경',
+    '회원 이름이 바뀌었어요',
     '김지수 회원이 이름을 바꿨어요: 김지수B',
     'Member renamed',
     '김지수 changed their name to 김지수B.',
@@ -105,7 +105,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_member_withdrawn',
     <String, Object?>{'member_name': '지수'},
-    '회원 탈퇴',
+    '회원이 탈퇴했어요',
     '지수 회원이 탈퇴했어요.',
     'Member account deleted',
     '지수 deleted their account.',
@@ -113,7 +113,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_member_disconnected',
     <String, Object?>{'member_name': '지수'},
-    '담당 연결 해제',
+    '담당 연결이 해제됐어요',
     '지수 회원이 담당 연결을 해제했어요.',
     'Member disconnected',
     '지수 ended their connection with you.',
@@ -145,15 +145,15 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_invite_accepted',
     <String, Object?>{'member_name': '지수'},
-    '담당 요청이 수락되었어요',
-    '지수 회원이 담당으로 연결되었어요.',
+    '담당 요청이 수락됐어요',
+    '지수 회원이 담당으로 연결됐어요.',
     'Coaching request accepted',
     '지수 is now one of your members.',
   ),
   (
     'trainer_invite_rejected',
     <String, Object?>{'member_name': '지수'},
-    '담당 요청이 거절되었어요',
+    '담당 요청이 거절됐어요',
     '지수 회원이 담당 요청을 거절했어요.',
     'Coaching request declined',
     '지수 declined your coaching request.',
@@ -169,7 +169,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_reservation_cancelled',
     <String, Object?>{'member_name': '지수', 'starts_at': _starts},
-    '예약이 취소되었습니다',
+    '예약이 취소됐어요',
     '지수 회원 · 10월 1일 09:05',
     'Booking cancelled',
     '지수 · 10/1 09:05',
@@ -177,7 +177,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_reservation_cancelled',
     <String, Object?>{'member_name': '지수', 'starts_at': null},
-    '예약이 취소되었습니다',
+    '예약이 취소됐어요',
     '지수 회원',
     'Booking cancelled',
     '지수',
@@ -185,7 +185,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
   (
     'trainer_reservation_cancelled',
     <String, Object?>{'member_name': '지수'},
-    '예약이 취소되었습니다',
+    '예약이 취소됐어요',
     '지수 회원',
     'Booking cancelled',
     '지수',
@@ -493,7 +493,7 @@ void main() {
     Map<String, Object?> json([Map<String, Object?> extra = const {}]) =>
         <String, Object?>{
           'id': 'n1',
-          'title': '회원 탈퇴',
+          'title': '회원이 탈퇴했어요',
           'body': '지수 회원이 탈퇴했어요.',
           'category': 'member_left',
           'read': false,
@@ -518,7 +518,7 @@ void main() {
       final TrainerNotification n = TrainerNotification.fromJson(json());
       expect(n.template, isNull);
       expect(n.args, isEmpty);
-      expect(_text(_en, n).title, '회원 탈퇴');
+      expect(_text(_en, n).title, '회원이 탈퇴했어요');
     });
 
     test('null·빈 문자열·다른 모양은 없는 것으로 읽는다', () {

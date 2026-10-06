@@ -62,7 +62,7 @@ DioGymRepository _repo(int status, Object? body) => DioGymRepository(
 const Map<String, Object?> _overlapBody = <String, Object?>{
   'detail': <String, Object?>{
     'code': 'schedule_overlap',
-    'message': '이 시간은 트레이너의 다른 일정과 겹쳐 예약할 수 없습니다.',
+    'message': '이 시간은 트레이너의 다른 일정과 겹쳐 예약할 수 없어요.',
   },
 };
 

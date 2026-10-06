@@ -19,9 +19,11 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core import clock
 from app.core.week import monday_of
+from app.db.seed_member_logs import current_seed_sentence, current_seed_text
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
@@ -37,7 +39,7 @@ CONSULT_ID_PREFIX = "seed-consult-"
 #: 며칠 전에 끝냈나 — 없으면 미완료). 오늘 할 일·기한 지남·예정·완료가 한 번씩 보이게.
 _FOLLOW_UPS: tuple[tuple[str, str, int, str, int, int | None], ...] = (
     ("user-sera", "허리 통증 경과 확인 메시지", 0, "message", 2, None),
-    ("user-junhyuk", "노쇼 반복 — 수업 시간대 재조정 제안", -1, "schedule", 4, None),
+    ("user-junhyuk", "노쇼 반복 — PT 시간대 재조정 제안", -1, "schedule", 4, None),
     ("user-dohyun", "첫 주 식단 기록 독려", 0, "diet", 1, None),
     ("user-hayun", "재활 루틴 강도 조정 검토", 1, "program", 3, None),
     ("user-kangseoyeon", "주말 식단 기록 점검", 3, "diet", 2, None),
@@ -117,7 +119,7 @@ _DRAFTS: tuple[tuple[str, str, str, str, list[tuple[str, list[dict]]], int], ...
             ("1회차 · 전신 서킷", [
                 _strength("버피", 3, 12, 0),
                 _strength("마운틴 클라이머", 3, 20, 0),
-                _timed("런닝", "유산소", 20),
+                _timed("러닝", "유산소", 20),
             ]),
         ],
         9,
@@ -154,8 +156,8 @@ _PAST_PT_NOTES: tuple[dict[str, str], ...] = (
         "user-kangseoyeon": "주말 과식 얘기 나눔. 스쿼트 50kg 4×10 안정적.",
         "user-taekyung": "벌크업 중 벤치프레스 45kg 도달. 단백질 쉐이크 운동 직후로 옮김.",
         "user-hayun": "재활 밴드 운동 통증 없이 완료. 다음 주 맨몸 런지 추가.",
-        "user-gayoung": "3주 만의 수업. 체력 저하가 커서 강도를 70%로 낮춰 진행.",
-        "user-eunchae": "첫 수업. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.",
+        "user-gayoung": "3주 만의 PT. 체력 저하가 커서 강도를 70%로 낮춰 진행.",
+        "user-eunchae": "첫 PT. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.",
     },
     {
         "user-jisu": "사이클 30분 + 하체 근력. 무릎 정렬 좋아짐.",
@@ -164,12 +166,12 @@ _PAST_PT_NOTES: tuple[dict[str, str], ...] = (
         "user-yuna": "레그프레스 가동범위 70%까지. 통증 척도 1/10.",
         "user-sera": "걷기 속도 높임. 운동 후 혈압 정상 범위.",
         "user-jiho": "체중 정체 이야기. 저녁 탄수화물 절반 줄이기로 합의.",
-        "user-junhyuk": "당일 취소 후 보강 수업. 컨디션 좋음.",
+        "user-junhyuk": "당일 취소 후 보강 PT. 컨디션 좋음.",
         "user-seojin": "플랭크 90초 달성. 나트륨 높은 점심 메뉴 대안 안내.",
         "user-kangseoyeon": "인터벌 후 어지럼 없음. 물 섭취 늘리라고 안내.",
         "user-taekyung": "하체 볼륨 늘림. 식사량 늘리는 게 힘들다고 함.",
         "user-hayun": "출산 후 코어 재활 4주차. 복직근 이개 1.5cm.",
-        "user-gayoung": "수업 시간대 바꾸고 싶다고 함. 상담 잡기로.",
+        "user-gayoung": "PT 시간대 바꾸고 싶다고 함. 상담 잡기로.",
     },
 )
 
@@ -235,6 +237,7 @@ def _trainer_has(db: Session, model, *where) -> bool:
 
 def seed_follow_ups(db: Session, today: date, valid: set[str]) -> None:
     if _trainer_has(db, models.TrainerFollowUpTask):
+        _rename_seed_follow_ups(db)
         return
     for i, (member, title, due, context, created_ago, done_ago) in enumerate(_FOLLOW_UPS):
         if member not in valid:
@@ -253,6 +256,26 @@ def seed_follow_ups(db: Session, today: date, valid: set[str]) -> None:
             updated_at=completed or created,
             completed_at=completed,
         ))
+
+
+def _rename_seed_follow_ups(db: Session) -> None:
+    """이미 넣은 시드 할 일(`seed-followup-`)의 제목을 지금 시드 문장으로 고친다.
+
+    할 일은 트레이너에게 하나라도 있으면 통째로 건너뛰므로, 문장을 바꿔도 이미
+    시드된 DB 에는 옛 제목이 남는다(#3202). 옛 문장과 정확히 같은 제목만 바꾸고
+    상태·기한·수정 시각은 그대로 둔다.
+    """
+    for row in db.scalars(
+        select(models.TrainerFollowUpTask).where(
+            models.TrainerFollowUpTask.trainer_id == TRAINER_ID,
+            models.TrainerFollowUpTask.id.like("seed-followup-%"),
+        )
+    ):
+        renamed = current_seed_sentence(row.title)
+        if renamed != row.title:
+            row.title = renamed
+            # 표기만 고친 것을 방금 손본 할 일처럼 보이지 않게 수정 시각을 둔다.
+            flag_modified(row, "updated_at")
 
 
 def seed_memos(db: Session, today: date, valid: set[str]) -> None:
@@ -284,6 +307,7 @@ def seed_memos(db: Session, today: date, valid: set[str]) -> None:
 
 def seed_drafts(db: Session, today: date) -> None:
     if _trainer_has(db, models.TrainerProgramDraft):
+        _rename_seed_drafts(db)
         return
     for i, (name, goal, period, memo, sessions, updated_ago) in enumerate(_DRAFTS):
         at = _at(today - timedelta(days=updated_ago), 23)
@@ -313,6 +337,28 @@ def seed_drafts(db: Session, today: date) -> None:
         ))
 
 
+def _rename_seed_drafts(db: Session) -> None:
+    """이미 넣은 시드 초안(`seed-draft-`)의 운동 이름을 지금 시드 표기로 고친다.
+
+    초안은 트레이너에게 하나라도 있으면 통째로 건너뛰므로, 표기를 바꿔도 이미
+    시드된 DB 에는 옛 이름(`런닝`)이 남는다(#3201). 바뀐 표기만 갈아 끼우고 트레이너가
+    고친 다른 값과 수정 시각은 그대로 둔다.
+    """
+    for row in db.scalars(
+        select(models.TrainerProgramDraft).where(
+            models.TrainerProgramDraft.trainer_id == TRAINER_ID,
+            models.TrainerProgramDraft.id.like("seed-draft-%"),
+        )
+    ):
+        renamed = current_seed_text(row.sessions_json)
+        if renamed != row.sessions_json:
+            row.sessions_json = renamed
+            # 수정 시각은 있던 값 그대로 — 표기만 고친 것을 트레이너가 방금 고친
+            # 초안처럼 맨 위로 올리지 않는다. 값을 SET 에 넣어야 `onupdate` 가
+            # 지금 시각으로 바꾸지 않는다.
+            flag_modified(row, "updated_at")
+
+
 def seed_past_pt_notes(db: Session, today: date) -> None:
     """지난 두 주 회원별 첫 시드 PT 에 수업 메모를 단다 — 비어 있을 때만."""
     monday = monday_of(today)
@@ -337,6 +383,18 @@ def seed_past_pt_notes(db: Session, today: date) -> None:
             note = notes.get(row.member_id)
             if note and not row.note:
                 row.note = note
+    # 이미 메모가 달린 시드 PT 는 위에서 건너뛰므로, 옛 문장으로 단 메모만 지금
+    # 문장으로 고친다(#3202). 트레이너가 고쳐 쓴 메모는 표에 없어 그대로다.
+    for row in db.scalars(
+        select(models.TrainerSchedule).where(
+            models.TrainerSchedule.trainer_id == TRAINER_ID,
+            models.TrainerSchedule.id.like("seed-pt-%"),
+            models.TrainerSchedule.note != "",
+        )
+    ):
+        renamed = current_seed_sentence(row.note)
+        if renamed != row.note:
+            row.note = renamed
 
 
 def seed_past_consults(db: Session, today: date, valid: set[str]) -> None:

@@ -20,6 +20,8 @@ void main() {
           'address': '서울 서대문구 신촌로 120',
           'hours': '06:00 – 23:00',
           'phone': '02-1234-5678',
+          'lat': 37.5559,
+          'lng': 126,
         },
       });
 
@@ -29,6 +31,10 @@ void main() {
       expect(profile.gym.name, '온케어짐 신촌점');
       expect(profile.gym.id, 'gym-1');
       expect(profile.gym.hours, '06:00 – 23:00');
+      // 정수로 와도 좌표로 읽는다 — 헬스장 찾기 지도의 첫 위치다(#3206).
+      expect(profile.gym.lat, 37.5559);
+      expect(profile.gym.lng, 126.0);
+      expect(profile.gym.hasLocation, isTrue);
     });
 
     test('drops non-string certifications and tolerates a missing gym', () {
@@ -58,6 +64,16 @@ void main() {
       });
 
       expect(profile.gym.id, '42');
+    });
+
+    test('leaves gym coordinates null when missing or not numbers', () {
+      final profile = trainerProfileFromJson(<String, Object?>{
+        'gym': <String, Object?>{'name': '온케어짐', 'lat': '37.5', 'lng': null},
+      });
+
+      expect(profile.gym.lat, isNull);
+      expect(profile.gym.lng, isNull);
+      expect(profile.gym.hasLocation, isFalse);
     });
 
     // 운영자 표시(#3008) — 참일 때만 운영자다.

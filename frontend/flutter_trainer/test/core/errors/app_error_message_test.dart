@@ -30,7 +30,7 @@ void main() {
           ko.errorServerTemporary,
         );
       }
-      expect(ko.errorServerTemporary, contains('서버에 일시적인 문제가 있습니다'));
+      expect(ko.errorServerTemporary, contains('서버에 일시적인 문제가 있어요'));
     });
 
     test('5xx 라도 서버가 사유를 주면 그 사유다', () {

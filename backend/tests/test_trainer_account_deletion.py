@@ -316,7 +316,7 @@ def test_a_past_client_with_a_booking_hears_only_about_the_booking(
     assert _delete_me(client, token).status_code == 200
 
     added = Counter(_member_titles(db_session, member_id)) - Counter(before)
-    assert added == Counter({"예약한 수업이 취소되었어요": 1})
+    assert added == Counter({"예약한 PT가 취소됐어요": 1})
 
 
 def test_an_active_client_with_a_booking_gets_one_notice(
@@ -461,3 +461,52 @@ def test_trainer_deletion_without_reasons_still_works(
         headers=_h(token),
     )
     assert deleted.status_code == 200, deleted.text
+
+
+def test_deleting_cancels_pending_consultation_requests(
+    client, db_session, gym_id, make_trainer
+):
+    """받은 대기 상담 요청은 취소로 닫고 회원에게 알린다(#3241).
+
+    두면 받을 사람이 없는 `pending` 이 회원의 대기 상한에 계속 잡힌다.
+    """
+    from app.models import models
+
+    token, trainer_id = make_trainer(gym_id)
+    _, member_id = _register_member(client)
+    _, stale_member_id = _register_member(client)
+    live_id = f"consult-{uuid4().hex}"
+    stale_id = f"consult-{uuid4().hex}"
+    common = {
+        "target_type": "trainer",
+        "trainer_id": trainer_id,
+        "exercise_goal": "weight_loss",
+        "health_purpose_type": "general",
+        "preferred_date": "2026-12-01",
+        "preferred_time_slot": "evening",
+        "status": "pending",
+    }
+    db_session.add_all(
+        [
+            models.ConsultationRequest(id=live_id, member_id=member_id, **common),
+            # 만료 시각이 지났지만 아직 정리되지 않은 요청.
+            models.ConsultationRequest(
+                id=stale_id,
+                member_id=stale_member_id,
+                created_at=datetime.now(timezone.utc) - timedelta(hours=30),
+                **common,
+            ),
+        ]
+    )
+    db_session.commit()
+    stale_before = _member_titles(db_session, stale_member_id)
+
+    assert _delete_me(client, token).status_code == 200
+
+    db_session.expire_all()
+    live = db_session.get(models.ConsultationRequest, live_id)
+    stale = db_session.get(models.ConsultationRequest, stale_id)
+    assert (live.status, live.trainer_id) == ("cancelled", None)
+    assert stale.status == "expired"
+    assert "상담 요청이 취소되었어요" in _member_titles(db_session, member_id)
+    assert _member_titles(db_session, stale_member_id) == stale_before

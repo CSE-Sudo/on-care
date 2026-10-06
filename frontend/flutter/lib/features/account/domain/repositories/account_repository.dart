@@ -5,6 +5,7 @@ import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
     show ReissuedTokens;
+import 'package:oncare/features/auth/domain/signup_email_code.dart';
 
 abstract class AccountRepository {
   Future<UserProfile> fetchProfile();
@@ -89,6 +90,10 @@ abstract class AccountRepository {
   /// [AccountReauthRejected] 다. 이메일이 바뀌면 서버가 다른 기기의 세션을 끊고
   /// 이 기기에 새 토큰 한 쌍을 주는데, 그 쌍을 [onTokensReissued] 로 넘긴다 —
   /// 받은 쪽이 세션에 넣어야 이 기기의 로그인이 이어진다.
+  ///
+  /// 이메일을 바꿀 때는 새 주소로 받은 코드([emailCode], #3230)도 함께 보낸다 —
+  /// [requestEmailChangeCode] 로 받는다. 코드가 막히면 [ProfileUpdateRejected]
+  /// (`emailCodeInvalid`)다.
   Future<UserProfile> updateProfile({
     String? name,
     String? email,
@@ -98,6 +103,14 @@ abstract class AccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
     AccountReauth? reauth,
+    String? emailCode,
     void Function(ReissuedTokens tokens)? onTokensReissued,
   });
+
+  /// POST /users/me/email/code — 로그인 이메일을 바꾸기 전에 **새** 주소로 6자리
+  /// 인증 코드를 보낸다(#3230). 새 주소의 주인인지 확인한 뒤에만 이메일이 바뀐다.
+  ///
+  /// 그 주소를 다른 계정이 쓰고 있어도 같은 응답이다(코드 대신 안내 메일이 간다).
+  /// 실패는 [SignupEmailCodeError] — 가입 코드 요청과 같은 사유를 쓴다.
+  Future<SignupEmailCodeSent> requestEmailChangeCode({required String email});
 }

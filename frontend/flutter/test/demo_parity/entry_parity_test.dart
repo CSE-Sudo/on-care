@@ -568,7 +568,7 @@ void main() {
           '트레이너 채팅 버튼',
           (_) => find.byKey(const Key('trainerChatHeaderButton')),
         ),
-        ParityEntry('지난 주', (l) => find.byTooltip(l.a11yPrevWeek)),
+        ParityEntry('지난주', (l) => find.byTooltip(l.a11yPrevWeek)),
         ParityEntry(
           '기간 탭',
           (_) => find.byKey(const ValueKey<String>('diet-period-toggle')),

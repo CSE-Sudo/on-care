@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
@@ -9,6 +10,10 @@ import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_recurrence.dart';
+import 'package:oncare_trainer/features/schedule/presentation/widgets/session_sheet.dart';
+import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart' show AppButton;
 
 import '../../helpers/pump_app.dart';
 
@@ -253,6 +258,30 @@ void main() {
         find.byKey(const ValueKey<String>('repeat-preview')),
         findsNothing,
       );
+    });
+
+    // 담당 회원이 없으면 `새 일정` 이 아무 반응 없이 눌렸다(#3249).
+    testWidgets('담당 회원이 없으면 새 일정을 못 여는 까닭을 알린다', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.schedule,
+        extraOverrides: <Override>[
+          clientsProvider.overrideWith(
+            (ref) => Stream<List<TrainerClient>>.value(const <TrainerClient>[]),
+          ),
+        ],
+      );
+
+      await tester.tap(find.widgetWithText(AppButton, '새 일정'));
+      await settle(tester);
+
+      expect(find.byType(SessionSheet), findsNothing);
+      expect(
+        find.text('담당 회원이 없어 일정을 만들 수 없어요. 회원을 먼저 연결해 주세요.'),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 5));
     });
   });
 }

@@ -186,7 +186,7 @@ void main() {
     expect(repository.fetchInviteCalls, greaterThan(1));
     expect(location(), contains(AppRoutes.exercise));
     expect(find.byType(AppDialog), findsNothing);
-    expect(find.text('담당 요청이 왔어요'), findsNothing);
+    expect(find.text('담당 요청이 도착했어요'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('coach-invite-accept-tci-1')),
       findsNothing,
@@ -271,7 +271,7 @@ void main() {
     await pumpShell(tester, _InviteRepository());
     await tapInviteAlert(tester);
     expect(location(), contains(AppRoutes.exercise));
-    expect(find.text('이미 처리되었거나 취소된 요청이에요.'), findsOneWidget);
+    expect(find.text('이미 처리됐거나 취소된 요청이에요.'), findsOneWidget);
     expect(inviteDialog(), findsNothing);
   });
 
@@ -281,7 +281,7 @@ void main() {
     repository.failFetch = true;
     await tapInviteAlert(tester);
     expect(location(), contains(AppRoutes.dashboard));
-    expect(find.text('이미 처리되었거나 취소된 요청이에요.'), findsNothing);
+    expect(find.text('이미 처리됐거나 취소된 요청이에요.'), findsNothing);
     repository.failFetch = false;
     repository.invites = <CoachInvite>[_invite];
     await tapInviteAlert(tester);

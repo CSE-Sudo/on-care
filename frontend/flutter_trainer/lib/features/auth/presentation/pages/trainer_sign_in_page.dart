@@ -161,14 +161,19 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
           .socialLogin(provider: success.provider.id, token: success.token);
       if (!mounted) return;
       context.go(destination);
-    } catch (_) {
+    } catch (e) {
       // 요청 중 화면을 떠났으면 여기서 끝낸다 — 아래 `AppLocalizations.of` 가
       // 이미 해제된 context 를 조회하게 된다.
       if (!mounted) return;
       setState(() => _loading = false);
+      final AppLocalizations l = AppLocalizations.of(context);
+      // 확인 안 된 이메일이 기존 계정의 이메일과 같다(#1551) — 서버가 따로 계정을
+      // 만들지 않았으니, 처음 가입한 방법으로 들어오라고 알린다.
       showAppToast(
         context,
-        AppLocalizations.of(context).authSocialSignInFailed,
+        e is AuthException && e.failure == AuthFailure.socialEmailInUse
+            ? authFailureText(l, e)
+            : l.authSocialSignInFailed,
         type: AppToastType.error,
       );
     }
@@ -279,19 +284,31 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-            // 비밀번호를 잊은 트레이너가 메일로 되찾는 입구(#2824). 회원 앱
-            // 로그인과 같은 자리 — 비밀번호 칸 바로 아래 오른쪽이다.
-            Align(
-              alignment: Alignment.centerRight,
-              child: AppButton(
-                key: const ValueKey<String>('trainer-login-forgot-password'),
-                label: l.authForgotPassword,
-                onPressed: _loading
-                    ? null
-                    : () => context.push(AppRoutes.passwordReset),
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-              ),
+            // 이메일·비밀번호를 잊은 트레이너가 되찾는 입구(#2824). 회원 앱
+            // 로그인과 같은 자리 — 비밀번호 칸 바로 아래 오른쪽이다. 영어 문구가
+            // 길어 좁은 폭에서는 줄을 바꾼다.
+            Wrap(
+              alignment: WrapAlignment.end,
+              children: <Widget>[
+                AppButton(
+                  key: const ValueKey<String>('trainer-login-find-email'),
+                  label: l.authFindEmail,
+                  onPressed: _loading
+                      ? null
+                      : () => context.push(AppRoutes.findEmail),
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+                AppButton(
+                  key: const ValueKey<String>('trainer-login-forgot-password'),
+                  label: l.authForgotPassword,
+                  onPressed: _loading
+                      ? null
+                      : () => context.push(AppRoutes.passwordReset),
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+              ],
             ),
             const SizedBox(height: OnCareSpacing.s12),
             AppButton(

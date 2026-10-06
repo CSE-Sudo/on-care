@@ -312,7 +312,19 @@ RoutineGroupAdherence _groupAdherence(
     done: done,
     total: total,
     ongoing: group.activeOn(today),
-    day: today.difference(group.activeFrom).inDays + 1,
+    // 달력 날짜 차이다(#3249) — 로컬 자정끼리 빼면 서머타임이 시작하는 날은
+    // 23시간이라 `inDays` 가 하루 모자란다. UTC 자정끼리 빼면 늘 24시간이다.
+    day:
+        DateTime.utc(today.year, today.month, today.day)
+            .difference(
+              DateTime.utc(
+                group.activeFrom.year,
+                group.activeFrom.month,
+                group.activeFrom.day,
+              ),
+            )
+            .inDays +
+        1,
   );
 }
 

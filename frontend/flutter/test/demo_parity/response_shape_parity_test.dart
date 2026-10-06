@@ -265,7 +265,7 @@ void main() {
       ),
     );
     expect(error, isA<NotFoundError>());
-    expect(error.detail, '알림을 찾을 수 없습니다.');
+    expect(error.detail, '알림을 찾을 수 없어요.');
   });
 
   test('형식 오류 422 — 본문이 `detail` 이다', () async {

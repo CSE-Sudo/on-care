@@ -33,7 +33,7 @@ from app.models.models import (
 )
 from app.services import diet_menu_plan
 
-GUARD_DETAIL = "담당 회원을 찾을 수 없습니다."
+GUARD_DETAIL = "담당 회원을 찾을 수 없어요."
 #: 끼니마다 돌려 쓰는 태그. 나트륨·단백질 메뉴가 끼니마다 섞인다.
 _TAGS = (
     catalog.TAG_FIBER_HIGH,

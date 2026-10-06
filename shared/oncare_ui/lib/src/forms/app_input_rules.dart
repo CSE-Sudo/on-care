@@ -119,7 +119,10 @@ abstract final class AppInputRules {
   static AppInputError? name(String value) {
     final String name = value.trim();
     if (name.isEmpty) return AppInputError.nameEmpty;
-    if (name.length > nameMaxLength) return AppInputError.nameTooLong;
+    // 글자 수는 코드포인트로 센다 — 서버(파이썬 `len`)와 DB 의 `String(100)` 이
+    // 세는 단위다(#3250). `length` 는 UTF-16 단위라 이모지·확장 한자가 둘로
+    // 세어져, 서버가 받는 이름을 앱이 `너무 길다` 로 막았다.
+    if (name.runes.length > nameMaxLength) return AppInputError.nameTooLong;
     return null;
   }
 

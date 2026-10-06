@@ -27,12 +27,23 @@ const int clientSearchUpcomingDays = 28;
 ///
 /// `clientId`가 없는 과거 예약은 이름이 유일할 때만 연결하여 동명이인의
 /// 기록이 잘못 노출되지 않도록 합니다.
+///
+/// [now](KST 벽시계)를 주면 이미 시작한 `예정` 은 다음 예약이 아닙니다(#3249).
+/// 완료·노쇼로 정리하지 않은 오늘 아침 수업이 저녁에도 "다음 예약" 으로 떴습니다.
 Map<String, ScheduleSession> nextSessionsByClient(
   List<TrainerClient> clients,
-  List<ScheduleSession> sessions,
-) {
+  List<ScheduleSession> sessions, {
+  DateTime? now,
+}) {
   final booked =
-      sessions.where((session) => !session.isGap && session.isUpcoming).toList()
+      sessions
+          .where(
+            (session) =>
+                !session.isGap &&
+                session.isUpcoming &&
+                (now == null || !sessionHasStarted(session, now)),
+          )
+          .toList()
         ..sort((a, b) {
           final byDate = a.date.compareTo(b.date);
           return byDate != 0 ? byDate : a.time.compareTo(b.time);

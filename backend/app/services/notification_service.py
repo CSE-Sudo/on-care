@@ -15,7 +15,7 @@ from collections.abc import Collection, Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import func, select, tuple_
+from sqlalchemy import delete, func, select, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -540,16 +540,31 @@ def expired_notifications(
     그대로 출력한다).
     """
     query = select(Notification).where(
-        Notification.read.is_(True),
-        Notification.created_at < retention_cutoff(days, now=now),
+        *_expired_conditions(days=days, now=now, user_id=user_id, exclude_ids=exclude_ids)
     )
-    if user_id is not None:
-        query = query.where(Notification.user_id == user_id)
-    if exclude_ids:
-        query = query.where(Notification.id.not_in(sorted(exclude_ids)))
     return list(
         db.scalars(query.order_by(Notification.created_at, Notification.id)).all()
     )
+
+
+def _expired_conditions(
+    *,
+    days: int,
+    now: datetime | None,
+    user_id: str | None,
+    exclude_ids: Collection[str],
+) -> list:
+    """정리 대상의 조건. 미리 보기([expired_notifications])와 삭제([purge_expired])가
+    같은 조건을 쓰게 한 곳에 둔다."""
+    conditions = [
+        Notification.read.is_(True),
+        Notification.created_at < retention_cutoff(days, now=now),
+    ]
+    if user_id is not None:
+        conditions.append(Notification.user_id == user_id)
+    if exclude_ids:
+        conditions.append(Notification.id.not_in(sorted(exclude_ids)))
+    return conditions
 
 
 def purge_expired(
@@ -560,11 +575,20 @@ def purge_expired(
     user_id: str | None = None,
     exclude_ids: Collection[str] = (),
 ) -> int:
-    """[expired_notifications] 가 고른 것을 지우고 건수를 돌려준다."""
-    rows = expired_notifications(
-        db, days=days, now=now, user_id=user_id, exclude_ids=exclude_ids
+    """[expired_notifications] 와 같은 조건의 알림을 지우고 건수를 돌려준다.
+
+    한 번의 `DELETE` 로 지운다(#3242). 대상을 ORM 으로 모두 읽어 한 건씩 지우면
+    90일 치 읽은 알림이 쌓인 서버에서 정리 한 번이 행 수만큼 왕복한다. 알림을
+    가리키는 다른 표는 없어 ORM 의 연쇄 삭제가 할 일도 없다.
+    """
+    result = db.execute(
+        delete(Notification)
+        .where(
+            *_expired_conditions(
+                days=days, now=now, user_id=user_id, exclude_ids=exclude_ids
+            )
+        )
+        .execution_options(synchronize_session=False)
     )
-    for row in rows:
-        db.delete(row)
     db.commit()
-    return len(rows)
+    return result.rowcount or 0

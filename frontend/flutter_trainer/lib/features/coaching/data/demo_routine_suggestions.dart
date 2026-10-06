@@ -42,7 +42,7 @@ const Map<String, List<RoutineSuggestion>> demoMemberSuggestionsKo =
           name: '햄스트링 스트레칭',
           minutes: 10,
           type: '스트레칭',
-          reason: '인터벌 런닝과 스쿼트가 이어지는 주예요. 허벅지 뒤쪽을 풀어 회복을 돕기 좋아요.',
+          reason: '인터벌 러닝과 스쿼트가 이어지는 주예요. 허벅지 뒤쪽을 풀어 회복을 돕기 좋아요.',
           evidence: <String>[RoutineEvidence.recentRecord],
         ),
       ],
@@ -448,7 +448,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       reps: 12,
       weight: 0,
       reason:
-          'Recent personal workouts were 100% and 67% complete. Step-ups '
+          'Recent personal exercises were 100% and 67% complete. Step-ups '
           'load the legs from a different angle than squats.',
       evidence: <String>[RoutineEvidence.recentRecord],
     ),
@@ -482,7 +482,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       reps: 10,
       weight: 0,
       reason:
-          'Recent personal workouts were 33% and 0% complete. A short, '
+          'Recent personal exercises were 33% and 0% complete. A short, '
           'lighter circuit is an easier restart.',
       evidence: <String>[RoutineEvidence.recentRecord],
     ),
@@ -550,7 +550,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       minutes: 25,
       type: '유산소',
       reason:
-          'Recent personal workouts were all 100% complete. Tempo '
+          'Recent personal exercises were all 100% complete. Tempo '
           'segments between long runs raise the intensity.',
       evidence: <String>[RoutineEvidence.recentRecord],
     ),

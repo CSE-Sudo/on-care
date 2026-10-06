@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.models import (
-    TrainerClient, TrainerProfile, TrainerReservation, TrainerReservationSlot, User,
+    Place, TrainerClient, TrainerProfile, TrainerReservation, TrainerReservationSlot, User,
 )
 from app.schemas.trainer_api import (
     TrainerGymOut, TrainerMe,
@@ -33,7 +33,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
     예약 행을 먼저 치우지 않으면 그 CASCADE 가 FK 에서 막힌다.
 
     나머지(프로필·채팅·루틴·일정·슬롯·이력·알림)는 `users.id` CASCADE 가 처리한다.
-    상담 요청의 `trainer_id`·`decided_by` 는 SET NULL 이라 요청 이력은 남는다.
+    상담 요청의 `trainer_id`·`decided_by` 는 SET NULL 이라 요청 이력은 남는다. 아직
+    답하지 않은 요청은 그 전에 취소로 닫는다(#3241).
     """
 
     # 이 트레이너의 슬롯에 걸린 예약을 먼저 치운다. 좌석을 되돌릴 필요는 없다 —
@@ -84,6 +85,12 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
             template=notification_templates.MEMBER_TRAINER_LEFT,
             template_args={"trainer_name": trainer_name},
         )
+    # 아직 답하지 않은 상담 요청은 취소하고 회원에게 알린다(#3241). 두면 받을
+    # 사람이 없는 `pending` 이 회원의 대기 상한에 계속 잡힌다.
+    from app.services import consultation_service
+
+    consultation_service.cancel_pending_for_trainer_deletion(db, trainer)
+
     # 예약만 있고 지금 담당은 아닌 회원에게도 알린다 — 잡아 둔 수업이 사라진다.
     # 담당이 끝난 과거 회원이라도 예약이 남아 있으면 여기서 받는다(#3024).
     for member_id in sorted(booked_member_ids - set(active_member_ids)):
@@ -115,8 +122,10 @@ def _certifications(profile: TrainerProfile) -> list[str]:
     return certs
 
 
-def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
+def build_trainer_me(db: Session, trainer: User, profile: TrainerProfile) -> TrainerMe:
     """`GET /trainer/me` 응답. 조회와 수정이 같은 표현을 쓰도록 분리."""
+    # 좌표는 소속 장소에만 있다 — 호환 문자열(gym_*)처럼 프로필에 복사해 두지 않는다.
+    place = db.get(Place, profile.gym_id) if profile.gym_id else None
     return TrainerMe(
         id=trainer.id,
         name=trainer.name,
@@ -132,6 +141,8 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
             address=profile.gym_address,
             hours=profile.gym_hours,
             phone=profile.gym_phone,
+            lat=place.lat if place else None,
+            lng=place.lng if place else None,
         ),
         is_admin=bool(trainer.is_admin),
         has_password=bool(trainer.hashed_password),
@@ -172,4 +183,4 @@ def update_trainer_profile(
             setattr(profile, column, fields[column])
     db.commit()
     db.refresh(profile)
-    return build_trainer_me(trainer, profile)
+    return build_trainer_me(db, trainer, profile)

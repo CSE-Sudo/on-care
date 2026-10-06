@@ -70,7 +70,7 @@ def test_renaming_tells_the_trainer_once(client, seeded):
 
     notices = _name_notices(client, seeded["trainer"])
     assert len(notices) == 1
-    assert notices[0]["title"] == "회원 이름 변경"
+    assert notices[0]["title"] == "회원 이름이 바뀌었어요"
     assert notices[0]["body"] == f"{seeded['original']} 회원이 이름을 바꿨어요: 이수진"
     # 누르면 그 회원 상세로 간다 — 건강 목표 변경 알림과 같은 길이다.
     assert notices[0]["subject_id"] == MEMBER_ID
@@ -99,7 +99,7 @@ def test_already_received_notices_keep_the_old_name(client, seeded, db_session):
         Notification(
             id=old_id,
             user_id=trainer_id,
-            title="회원 건강 목표 변경",
+            title="회원 건강 목표가 바뀌었어요",
             body=old_body,
             category=notification_service.TRAINER_HEALTH_GOAL_KIND,
             subject_id=MEMBER_ID,

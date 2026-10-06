@@ -912,11 +912,11 @@ void main() {
     ) async {
       await openSchedule(tester);
 
-      await tester.tap(find.text('예약 슬롯'));
+      await tester.tap(find.text('예약 가능 시간'));
       await settle(tester);
 
-      expect(find.text('예약 슬롯 관리'), findsOneWidget);
-      expect(find.textContaining('회원이 예약할 시간을 엽니다'), findsOneWidget);
+      expect(find.text('예약 가능 시간 관리'), findsOneWidget);
+      expect(find.textContaining('회원이 예약할 시간을 열어요'), findsOneWidget);
       expect(find.text('열기'), findsOneWidget);
     });
 
@@ -934,7 +934,7 @@ void main() {
         expect(find.text('벤치프레스'), findsOneWidget);
         expect(find.text('플랭크 60초'), findsOneWidget);
         expect(find.text('트레이너 피드백'), findsOneWidget);
-        expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsOneWidget);
+        expect(find.text('무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.'), findsOneWidget);
 
         // 예전에는 이 자리가 눌리지 않는 안내였다("전송 API가 아직 없어…").
         expect(find.text('김민수님에게 보냄'), findsNothing);
@@ -1748,7 +1748,7 @@ void main() {
 
       await openSession(tester, '김민수'); // 완료 session with a program
       await revealInPanel(tester, find.textContaining('오늘 PT 프로그램'));
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
       expect(find.text('김민수님에게 보냄'), findsNothing);
     });
 
@@ -1774,7 +1774,7 @@ void main() {
       await tester.tap(find.text('추가'));
       await settle(tester);
 
-      expect(find.text('일정 저장에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('일정을 저장하지 못했어요. 다시 시도해 주세요'), findsOneWidget);
       // Sheet stays open (its title is still present) so input isn't lost.
       expect(find.text('새 일정 추가'), findsOneWidget);
     });
@@ -1818,7 +1818,7 @@ void main() {
 
       // The exception is caught: an error snackbar shows and the card is
       // still 예정 (its ✓ 완료 action remains) (review PR 237).
-      expect(find.text('완료 처리에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('완료 처리하지 못했어요. 다시 시도해 주세요'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -1847,7 +1847,7 @@ void main() {
       await tester.tap(find.text('삭제').last); // confirm in dialog
       await settle(tester);
 
-      expect(find.text('일정 삭제에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('일정을 삭제하지 못했어요. 다시 시도해 주세요'), findsOneWidget);
     });
   });
 }

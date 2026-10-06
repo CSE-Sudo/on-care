@@ -177,11 +177,11 @@ def _caution_suffix(
                 "those areas."
             )
         else:
-            parts.append(f" 주의사항({', '.join(cautions)}) 반영: 해당 부위 부담 동작을 뺐습니다.")
+            parts.append(f" 주의사항({', '.join(cautions)}) 반영: 해당 부위 부담 동작을 뺐어요.")
     if escalate:
         parts.append(
             localized(
-                " 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.",
+                " 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.",
                 " Intensity was not raised — adjust after a professional check.",
                 locale,
             )

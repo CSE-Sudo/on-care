@@ -10,6 +10,8 @@ class TrainerGym {
     required this.address,
     required this.hours,
     required this.phone,
+    this.lat,
+    this.lng,
   });
 
   /// Backend `places.id` used by `PUT /trainer/me/gym`.
@@ -28,6 +30,13 @@ class TrainerGym {
 
   /// Contact phone number.
   final String phone;
+
+  /// 소속 헬스장 좌표 — 헬스장 찾기 지도를 검색 전에도 이 위치로 띄운다(#3206).
+  /// 소속이 없거나 좌표를 모르면 null.
+  final double? lat;
+  final double? lng;
+
+  bool get hasLocation => lat != null && lng != null;
 }
 
 /// A trainer account's profile.
@@ -122,6 +131,10 @@ class TrainerProfile {
 /// 데모 프로필이 소속을 가져야 '회원에게 보이지 않는다' 안내가 뜨지 않는다(#2543).
 const String kDemoTrainerGymId = 'gym-oncare-sinchon';
 
+/// 데모 소속 헬스장(온케어짐 신촌점) 좌표 — 데모 검색 결과의 같은 헬스장과 같다.
+const double kDemoTrainerGymLat = 37.5579;
+const double kDemoTrainerGymLng = 126.9368;
+
 /// The single fixed trainer profile attached on a successful (mock)
 /// login. Sourced from the On-Care Figma trainer mock (TrainerMyTab).
 const TrainerProfile seedTrainerProfile = TrainerProfile(
@@ -142,6 +155,8 @@ const TrainerProfile seedTrainerProfile = TrainerProfile(
     address: '서울 서대문구 신촌로 120',
     hours: '06:00 – 23:00',
     phone: '02-1234-5678',
+    lat: kDemoTrainerGymLat,
+    lng: kDemoTrainerGymLng,
   ),
 );
 
@@ -168,6 +183,8 @@ const TrainerProfile seedTrainerProfileEn = TrainerProfile(
     address: '120 Sinchon-ro, Seodaemun-gu, Seoul',
     hours: '06:00 – 23:00',
     phone: '02-1234-5678',
+    lat: kDemoTrainerGymLat,
+    lng: kDemoTrainerGymLng,
   ),
 );
 

@@ -10,6 +10,7 @@ import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_p
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_consent_page.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_find_email_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_password_reset_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_up_page.dart';
@@ -75,7 +76,10 @@ String? sessionRedirect(
       SessionStatus.demo || SessionStatus.authenticated => AppRoutes.dashboard,
     };
   }
-  final onAuthRoute = path == AppRoutes.signIn || path == AppRoutes.signUp;
+  final onAuthRoute =
+      path == AppRoutes.signIn ||
+      path == AppRoutes.signUp ||
+      path == AppRoutes.findEmail;
   switch (status) {
     case SessionStatus.unknown:
     case SessionStatus.signedOut:
@@ -336,6 +340,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.consent,
         builder: (context, state) => const TrainerConsentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.findEmail,
+        builder: (context, state) => const TrainerFindEmailPage(),
       ),
       GoRoute(
         path: AppRoutes.passwordReset,

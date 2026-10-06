@@ -108,7 +108,7 @@ Future<void> _showWeekOf(WidgetTester tester, DateTime target) async {
     target.isBefore(week);
     week = week.subtract(const Duration(days: 7))
   ) {
-    await tester.tap(find.byTooltip('지난 주'));
+    await tester.tap(find.byTooltip('지난주'));
     await tester.pumpAndSettle();
   }
 }

@@ -34,7 +34,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String schedCancelConfirm(String time, String name) {
-    return 'The $time session with $name will be recorded as cancelled. The entry stays.';
+    return 'The $time PT with $name will be recorded as cancelled. The entry stays.';
   }
 
   @override
@@ -54,14 +54,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedCancelFailed =>
-      'Couldn\'t cancel the session. Please try again.';
+      'Couldn\'t cancel the appointment. Please try again.';
 
   @override
   String get schedNoShowTitle => 'Record as a no-show?';
 
   @override
   String schedNoShowConfirm(String time, String name) {
-    return 'The $time session with $name will be recorded as a no-show.';
+    return 'The $time appointment with $name will be recorded as a no-show.';
   }
 
   @override
@@ -79,7 +79,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedDeleteMeansRemoveFinished =>
-      'Deleting erases the record. This session is already complete and can\'t be undone.';
+      'Deleting erases the record. This appointment is already complete and can\'t be undone.';
 
   @override
   String get scheduleStatusGap => 'Open';
@@ -106,7 +106,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navReports => 'Reports';
 
   @override
-  String get navConsultations => 'Requests';
+  String get navConsultations => 'Consultation requests';
 
   @override
   String get actionSave => 'Save';
@@ -291,7 +291,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authSocialSignInFailed =>
-      'Social sign-in failed. Please try again in a moment.';
+      'Couldn\'t sign in with your social account. Please try again in a moment.';
 
   @override
   String get authSocialComingSoon =>
@@ -303,11 +303,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrSignInFailed =>
-      'Sign-in failed. Please try again in a moment.';
+      'Couldn\'t sign in. Please try again in a moment.';
 
   @override
   String get authSessionExpired =>
-      'Your session has expired. Please sign in again.';
+      'Your sign-in has expired. Please sign in again.';
 
   @override
   String get authErrNameEmpty => 'Enter your name';
@@ -347,7 +347,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrSignUpFailed =>
-      'Sign-up failed. Please try again in a moment.';
+      'Couldn\'t sign up. Please try again in a moment.';
 
   @override
   String get dashTitle => 'Dashboard';
@@ -591,7 +591,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSortNameDescending => 'Name Z–A';
 
   @override
-  String get clientsSortRecentMessage => 'Recent conversations';
+  String get clientsSortRecentMessage => 'Recent messages';
 
   @override
   String get clientsFilterLabel => 'Filters';
@@ -611,6 +611,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String clientsEmptyForFilter(String filter) {
     return 'No members match $filter';
   }
+
+  @override
+  String get clientsEmptyForManagement => 'No members match these filters';
 
   @override
   String clientsMemberCount(int total) {
@@ -643,11 +646,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSignalRecordGapLong => 'No logs 30d+';
 
   @override
-  String get clientsSignalNoShow => 'No-shows';
+  String get clientsSignalNoShow => 'No-shows/cancels';
 
   @override
   String clientsSignalNoShowCount(int count) {
-    return '$count no-shows';
+    return '$count no-shows/cancels';
   }
 
   @override
@@ -781,7 +784,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Keep trainer-only notes in Memo.';
 
   @override
-  String get memberHealthDietGoal => 'Nutrition goals';
+  String get memberHealthDietGoal => 'Diet goals';
 
   @override
   String get memberHealthExerciseGoal => 'Exercise goals';
@@ -805,7 +808,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthGoalFat => 'Daily fat goal (g)';
 
   @override
-  String get memberHealthGoalBurnDaily => 'Daily burn (kcal)';
+  String get memberHealthGoalBurnDaily => 'Daily calories burned (kcal)';
 
   @override
   String get memberHealthGoalCardioWeekly => 'Weekly cardio (min)';
@@ -950,7 +953,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientTabDiet => 'Diet';
 
   @override
-  String get clientTabWorkout => 'Workouts';
+  String get clientTabWorkout => 'Exercise';
 
   @override
   String get clientNotFound => 'Member not found';
@@ -1005,7 +1008,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDormantActivate => 'Tap to mark active';
 
   @override
-  String get clientSignalLess => 'Less';
+  String get clientSignalLess => 'Show less';
 
   @override
   String clientSignalMore(int count) {
@@ -1157,12 +1160,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String consultApproved(String name) {
-    return '$name\'s request was approved. Add a session from the Schedule tab.';
+    return '$name\'s request was approved. Add an appointment from the Schedule tab.';
   }
 
   @override
   String consultScheduleCreated(String name) {
-    return 'Added a consultation session for $name';
+    return 'Added a consultation appointment for $name';
   }
 
   @override
@@ -1186,7 +1189,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consultStatusCancelled => 'Cancelled';
 
   @override
-  String get consultStatusCancelledByTrainer => 'Withdrawn (session cancelled)';
+  String get consultStatusCancelledByTrainer =>
+      'Withdrawn (appointment cancelled)';
 
   @override
   String get consultStatusExpired => 'Expired';
@@ -1289,7 +1293,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientNutritionSummary => 'Nutrition summary';
 
   @override
-  String get dietCalorieIntake => 'Calories today';
+  String get dietCalorieIntake => 'Calories eaten today';
 
   @override
   String get dietAchieveRate => 'Progress';
@@ -1387,6 +1391,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it';
 
   @override
+  String get reportsSendFeedbackFailedTitle =>
+      'Couldn\'t load the member\'s feedback';
+
+  @override
+  String get reportsSendFeedbackFailedBody =>
+      'Sending now would show the member as not having answered. Reload it, then send';
+
+  @override
   String get reportsSendAlreadyDone =>
       'This report was already sent. Send history has been refreshed';
 
@@ -1396,7 +1408,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsGoToChat => 'Go to chat';
+  String get reportsGoToChat => 'Go to messages';
 
   @override
   String get reportsScheduleWarning =>
@@ -1491,7 +1503,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsNoWorkoutsThisWeek => 'No workouts logged this week';
 
   @override
-  String get chartNoRecord => 'Not logged';
+  String get chartNoRecord => 'No record';
 
   @override
   String get chartNotYet => 'Not yet';
@@ -1683,10 +1695,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedTitle => 'Schedule';
 
   @override
-  String get schedDetailTitle => 'Session detail';
+  String get schedDetailTitle => 'Appointment details';
 
   @override
-  String get schedDeleteTitle => 'Delete session';
+  String get schedDeleteTitle => 'Delete appointment';
 
   @override
   String schedDeleteConfirm(String time, String name) {
@@ -1695,10 +1707,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedDeleteFailed =>
-      'Couldn\'t delete the session. Please try again';
+      'Couldn\'t delete the appointment. Please try again';
 
   @override
-  String get schedCompleteTitle => 'Complete session';
+  String get schedCompleteTitle => 'Complete appointment';
 
   @override
   String schedCompleteConfirm(String time, String name) {
@@ -1791,7 +1803,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedClientUnresolved =>
-      'Couldn\'t tell which member this session is for. Please pick the member.';
+      'Couldn\'t tell which member this appointment is for. Please pick the member.';
 
   @override
   String get schedRoutinesUpdated => 'Personal exercise updated.';
@@ -1828,26 +1840,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedEmptyWeek => 'Nothing scheduled this week.';
 
   @override
-  String get schedSlots => 'Booking slots';
+  String get schedSlots => 'Booking times';
 
   @override
-  String get schedNewSession => 'New session';
+  String get schedNewSession => 'New appointment';
 
   @override
   String get schedLoadFailed => 'Couldn\'t load the schedule';
 
   @override
   String get schedEmptyDay =>
-      'Nothing scheduled for this day.\nUse New session above to add one.';
+      'Nothing scheduled for this day.\nUse New appointment above to add one.';
 
   @override
-  String get schedSaveFailed => 'Couldn\'t save the session. Please try again';
+  String get schedSaveFailed =>
+      'Couldn\'t save the appointment. Please try again';
 
   @override
-  String get schedAddTitle => 'Add a session';
+  String get schedAddTitle => 'Add an appointment';
 
   @override
-  String get schedEditTitle => 'Edit session';
+  String get schedEditTitle => 'Edit appointment';
 
   @override
   String get schedFieldClient => 'Member';
@@ -1934,7 +1947,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String schedRepeatPreview(int count, String first, String last) {
-    return '$count sessions · $first – $last';
+    return '$count appointments · $first – $last';
   }
 
   @override
@@ -1944,8 +1957,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedRepeatNeedsEndDate => 'Pick an end date for the repeat.';
 
   @override
+  String get schedRepeatNoOccurrences =>
+      'None of the chosen days fall within the repeat period. Change the days or the end date.';
+
+  @override
+  String get schedNewNeedsClient =>
+      'You have no members yet. Connect a member before adding an appointment.';
+
+  @override
+  String get schedClientsLoading =>
+      'Loading your members. Please try again in a moment.';
+
+  @override
   String schedRepeatConflictTitle(int total, int count) {
-    return '$count of $total sessions clash';
+    return '$count of $total appointments clash';
   }
 
   @override
@@ -1955,22 +1980,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRepeatConflictHint =>
-      'Nothing was created. Change the time, or clear the sessions that clash.';
+      'Nothing was created. Change the time, or clear the appointments that clash.';
 
   @override
-  String get schedOverlapTitle => 'This time overlaps another session';
+  String get schedOverlapTitle => 'This time overlaps another appointment';
 
   @override
   String get schedOverlapHint =>
-      'Nothing was saved. Change the time or move the overlapping session, then save again.';
+      'Nothing was saved. Change the time or move the overlapping appointment, then save again.';
 
   @override
   String get slotOverlapHint =>
-      'The slot wasn\'t opened. Pick another time or move the overlapping session.';
+      'The time wasn\'t opened. Pick another time or move the overlapping appointment.';
 
   @override
   String get consultOverlapHint =>
-      'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.';
+      'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping appointment, then approve again.';
 
   @override
   String get schedNote => 'Trainer feedback';
@@ -2039,7 +2064,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Feedback for the member. Keep notes about the member in their member memo';
 
   @override
-  String get progSaving => 'Saving...';
+  String get progSaving => 'Saving…';
 
   @override
   String get progSaveAction => 'Save';
@@ -2051,7 +2076,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progExerciseName => 'Exercise';
 
   @override
-  String get progDeleteExercise => 'Remove exercise';
+  String get progDeleteExercise => 'Delete exercise';
 
   @override
   String progSetsValue(int sets) {
@@ -2085,7 +2110,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progEmptyHint =>
-      'Build one in the AI suggestions tab, or agree on it over chat first.';
+      'Build one in the AI suggestions tab, or agree on it over messages first.';
 
   @override
   String schedSentTo(String name) {
@@ -2098,17 +2123,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get slotPastTime =>
-      'Booking slots can only be opened for future times.';
+  String get slotPastTime => 'Only future times can be opened for booking.';
 
   @override
-  String get slotOpened => 'Booking slot opened.';
+  String get slotOpened => 'Booking time opened.';
 
   @override
   String get slotStartTime => 'Start time';
 
   @override
-  String get slotCloseTitle => 'Close booking slot';
+  String get slotCloseTitle => 'Close booking time';
 
   @override
   String get slotCloseBody =>
@@ -2122,11 +2146,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t complete the request. Please try again in a moment.';
 
   @override
-  String get slotManageTitle => 'Manage booking slots';
+  String get slotManageTitle => 'Manage open booking times';
 
   @override
   String get slotIntro =>
-      'Open times for members to book. Every upcoming slot is listed below by date.';
+      'Open times for members to book. Every upcoming open time is listed below by date.';
 
   @override
   String get slotOpenAction => 'Open';
@@ -2135,10 +2159,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotReload => 'Reload';
 
   @override
-  String get slotLoadFailed => 'Couldn\'t load reservation slots';
+  String get slotLoadFailed => 'Couldn\'t load open booking times';
 
   @override
-  String get slotEmpty => 'No booking slots are open.';
+  String get slotEmpty => 'No open booking times.';
 
   @override
   String get slotClosedSummary => 'Closed';
@@ -2147,11 +2171,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotBookedSummary => 'Booked';
 
   @override
-  String get slotOverlappedSummary => 'Overlaps a session';
+  String get slotOverlappedSummary => 'Overlaps an appointment';
 
   @override
   String get slotOverlappedHint =>
-      'Another session is booked at this time, so members see it as full. Close it if you will not use it.';
+      'Another appointment is booked at this time, so members see it as full. Close it if you will not use it.';
 
   @override
   String get slotCloseAction => 'Close bookings';
@@ -2173,7 +2197,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myTabSettings => 'Settings';
 
   @override
-  String get mySaving => 'Saving';
+  String get mySaving => 'Saving…';
 
   @override
   String get myEditProfile => 'Edit profile';
@@ -2241,13 +2265,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLoginAccount => 'Signed in as';
 
   @override
-  String get mySupportTitle => 'Customer Support';
+  String get mySupportTitle => 'Customer support';
 
   @override
   String get mySupportFaq => 'FAQ';
 
   @override
-  String get mySupportInquiry => '1:1 Inquiry';
+  String get mySupportInquiry => '1:1 inquiry';
 
   @override
   String get mySupportExternalHint => 'Opens the KakaoTalk channel';
@@ -2622,7 +2646,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminSuspendBody =>
-      'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT sessions are cancelled. Lifting the suspension does not restore those connections.';
+      'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT appointments are cancelled. Lifting the suspension does not restore those connections.';
 
   @override
   String adminUnsuspendTitle(String name) {
@@ -2707,7 +2731,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySupportSubtitle => 'Ask a question or read our policies';
 
   @override
-  String get myWithdrawSubtitle => 'Please check once before you leave';
+  String get myWithdrawSubtitle =>
+      'Please check once before you delete your account';
 
   @override
   String get myPageTitle => 'Profile & settings';
@@ -2747,7 +2772,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDiscardAction => 'Leave';
 
   @override
-  String get mySignOutConfirm => 'Log out of this browser?';
+  String get mySignOutConfirm => 'Sign out of this browser?';
 
   @override
   String get myThisMonth => 'This month';
@@ -2779,14 +2804,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifConsultationHint =>
-      'When a member requests a consultation or answers your invite';
+      'When a member requests a consultation or responds to your coaching request';
 
   @override
   String get myNotifReservation => 'Bookings';
 
   @override
   String get myNotifReservationHint =>
-      'When a member books or changes a session';
+      'When a member books or changes an appointment';
 
   @override
   String get myNotifMemberUpdates => 'Member updates';
@@ -3017,7 +3042,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachUnsentRoutinesBody =>
-      'The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.';
+      'The PT has ended but this has not reached the member yet. Open that PT in the schedule to send it.';
 
   @override
   String get coachSendUnsentRoutines => 'Open in schedule';
@@ -3071,7 +3096,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiGenerateFailed =>
-      'AI generation failed. Please try again in a moment';
+      'Couldn\'t generate with AI. Please try again in a moment';
 
   @override
   String aiGenerateInvalidConditions(int min, int max) {
@@ -3101,7 +3126,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiCustomRoutineName => 'AI custom suggestion';
 
   @override
-  String get aiAnalysing => 'AI is analysing…';
+  String get aiAnalysing => 'AI is analyzing…';
 
   @override
   String get aiGenerateCandidates => 'Generate candidates';
@@ -3233,7 +3258,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineEvidenceRecentRecord => 'Recent workout log';
 
   @override
-  String get aiPlanIntensityLow => 'Low';
+  String get aiPlanIntensityLow => 'Light';
 
   @override
   String aiPersonalStepFull(int count) {
@@ -3255,7 +3280,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalStepLoadFailed =>
-      'Could not load the AI personal-exercise suggestions';
+      'Couldn\'t load the AI personal-exercise suggestions';
 
   @override
   String get aiPersonalStepNoSuggestion =>
@@ -3284,7 +3309,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalDismissFailed =>
-      'Could not complete that. Please try again shortly.';
+      'Couldn\'t complete that. Please try again shortly.';
 
   @override
   String get aiStepSkipped => 'Skipped';
@@ -3351,7 +3376,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progNoRoutinesRegisterBody =>
-      'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.';
+      'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the appointment details in Schedule before sending the PT program.';
 
   @override
   String get progNoRoutinesRegisterSkip => 'Add without it';
@@ -3514,7 +3539,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiStatusPersonalizedBody(int count, int days) {
-    return 'Based on $count sessions over the last $days days.';
+    return 'Based on $count workout records over the last $days days.';
   }
 
   @override
@@ -3569,18 +3594,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmptyResponse => 'The response was empty.';
 
   @override
-  String get slotFutureOnly =>
-      'Booking slots can only be set for future times.';
+  String get slotFutureOnly => 'Only future times can be opened for booking.';
 
   @override
-  String get slotNotFound => 'Booking slot not found.';
+  String get slotNotFound => 'Open booking time not found.';
 
   @override
   String get slotTypeLockedByBooking =>
-      'Can\'t change the type of a slot that\'s already booked.';
+      'Can\'t change the type of a time that\'s already booked.';
 
   @override
   String get authErrNotTrainer => 'Please sign in with a trainer account.';
+
+  @override
+  String get authErrSocialEmailInUse =>
+      'An account already uses this email. Please sign in the way you first signed up.';
+
+  @override
+  String get authErrTooManyAttempts =>
+      'Too many attempts. Please try again in a moment.';
+
+  @override
+  String authErrTooManyAttemptsMinutes(int minutes) {
+    return 'Too many attempts. Please try again in $minutes min.';
+  }
+
+  @override
+  String get authErrSignedUpSignInFailed =>
+      'Your account was created. Please sign in.';
 
   @override
   String aiBasisGoalCompletion(String goal, int rate) {
@@ -3788,7 +3829,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDeleteAccount => 'Delete account';
 
   @override
-  String get myDeleteAction => 'Delete';
+  String get myDeleteAction => 'Delete account';
 
   @override
   String get myDeleteDemo => 'Demo mode has no account to delete';
@@ -3828,7 +3869,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myDeleteReauthSocialDone =>
-      'Social account confirmed. Press Delete to continue.';
+      'Social account confirmed. Press Delete account to continue.';
 
   @override
   String get myDeleteReauthSocialFailed =>
@@ -3839,7 +3880,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in isn\'t available in this version yet. Please contact support.';
 
   @override
-  String get myWithdrawReasonTitle => 'Are you sure you want to leave?';
+  String get myWithdrawReasonTitle =>
+      'Are you sure you want to delete your account?';
 
   @override
   String get myWithdrawReasonQuestion => 'What didn\'t work for you?';
@@ -3883,11 +3925,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepLeavingWork =>
-      'If it\'s just a break, you can keep your account. Leaving disconnects all your members.';
+      'If it\'s just a break, you can keep your account. Deleting it disconnects all your members.';
 
   @override
   String get myWithdrawKeepAlternative =>
-      'Leaving removes member records, programs and reports from your console for good.';
+      'Deleting your account removes member records, programs and reports from your console for good.';
 
   @override
   String get myWithdrawKeepOther =>
@@ -3895,7 +3937,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepDefault =>
-      'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.';
+      'Deleting your account removes your member connections and bookings, and your members are notified. This can\'t be undone.';
 
   @override
   String get myWithdrawNext => 'Next';
@@ -3904,7 +3946,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myWithdrawStay => 'Keep using';
 
   @override
-  String get myWithdrawContinue => 'Continue leaving';
+  String get myWithdrawContinue => 'Continue deleting';
 
   @override
   String get workoutKindPersonal => 'Personal exercise';
@@ -4072,7 +4114,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String searchDetailNextSession(String date, String time) {
-    return 'Next session $date $time';
+    return 'Next appointment $date $time';
   }
 
   @override
@@ -4287,7 +4329,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientGoalFat => 'Fat';
 
   @override
-  String get clientGoalBurnDaily => 'Daily burn';
+  String get clientGoalBurnDaily => 'Daily calories burned';
 
   @override
   String get clientGoalCardioWeekly => 'Weekly cardio';
@@ -4309,7 +4351,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientGoalDefaultHint =>
-      'Faded values are the defaults used until a goal is set. Empty fields use them.';
+      'Dimmed values are the defaults used until a goal is set. Empty fields use them.';
 
   @override
   String clientGoalSuggestionDiet(
@@ -4335,7 +4377,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientGoalSuggestionPersonal =>
-      'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
+      'Based on age, gender, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
 
   @override
   String get clientGoalSuggestionFallback =>
@@ -4521,7 +4563,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientFeedbackWeeklyNoNote => 'No note';
+  String get clientFeedbackWeeklyNoNote => 'No one-line feedback';
 
   @override
   String get clientFeedbackEmpty => 'No feedback exchanged yet.';
@@ -4573,7 +4615,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachScheduleOverlap =>
-      'Another session is already booked at that time, so nothing was added. Pick a different time and try again';
+      'Another appointment is already booked at that time, so nothing was added. Pick a different time and try again';
 
   @override
   String get programEditorNoExercises => 'Add at least one exercise';
@@ -4737,7 +4779,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programEditorReps => 'Reps';
 
   @override
-  String get programEditorWeight => 'Weight kg';
+  String get programEditorWeight => 'Weight (kg)';
 
   @override
   String reportsDemoSummarySteadyThisWeek(String name) {
@@ -5099,7 +5141,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSortLabel => 'Sort';
 
   @override
-  String get reportsSortPriority => 'Needs attention';
+  String get reportsSortPriority => 'Needs attention first';
 
   @override
   String get reportsSortName => 'Name A–Z';
@@ -5246,7 +5288,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsResendBody(String name, String date, String time) {
-    return 'You already sent $name this report on $date at $time. Sending it again delivers a second copy to their chat.';
+    return 'You already sent $name this report on $date at $time. Sending it again delivers a second copy to their messages.';
   }
 
   @override
@@ -5296,7 +5338,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsPreviewDelivery(String name) {
-    return 'Sent to $name\'s chat as a PDF file';
+    return 'Sent to $name as a PDF file in messages';
   }
 
   @override
@@ -5407,6 +5449,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsMemberFeedbackUnanswered => 'No answer';
 
   @override
+  String get reportsMemberFeedbackLoadFailed => 'Couldn\'t load';
+
+  @override
+  String get reportsMemberFeedbackLoadFailedHint =>
+      'Couldn\'t check whether the member answered. Reload the report in a moment';
+
+  @override
   String get reportsMemberFeedbackNoteLabel => 'One-line feedback';
 
   @override
@@ -5507,7 +5556,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsTrendNoHistory => 'No earlier week to compare';
 
   @override
-  String get reportsTrendRate => 'Weekly goal rate';
+  String get reportsTrendRate => 'Weekly goal progress';
 
   @override
   String reportsTrendAverage(int weeks) {
@@ -5516,7 +5565,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsTrendRateFalling(int weeks) {
-    return 'Goal rate down $weeks weeks running';
+    return 'Goal progress down $weeks weeks running';
   }
 
   @override
@@ -6066,7 +6115,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get authForgotPassword => 'Forgot your password?';
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authFindEmail => 'Forgot email?';
+
+  @override
+  String get findEmailTitle => 'Find your email';
+
+  @override
+  String get findEmailSubtitle =>
+      'Enter the name and phone number you signed up with to find your email.';
+
+  @override
+  String get findEmailAction => 'Find email';
+
+  @override
+  String get findEmailComingSoon => 'Finding your email is coming soon.';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
+
+  @override
+  String get signUpPhoneHelper =>
+      'Used to find your sign-up email if you forget it.';
 
   @override
   String get passwordResetTitle => 'Reset password';

@@ -218,6 +218,33 @@ def test_places_uses_kakao_when_configured(client, monkeypatch):
     assert body[0]["name"] == "카카오헬스장"
 
 
+def test_places_kakao_wait_does_not_hold_db_connection(client, monkeypatch):
+    """카카오를 기다리는 동안 요청 세션이 트랜잭션(연결)을 쥐지 않는다(#3242)."""
+    import app.api.v1.places as places_mod
+    from app.core.config import get_settings
+
+    seen: dict = {}
+    real_release = places_mod.release_connection
+
+    def spy_release(db):
+        seen["db"] = db
+        return real_release(db)
+
+    async def fake_search(lat, lng, category, radius_m, api_key, timeout):
+        seen["in_transaction"] = seen["db"].in_transaction()
+        return []
+
+    monkeypatch.setattr(places_mod, "release_connection", spy_release)
+    monkeypatch.setattr(places_mod.kakao, "search_nearby", fake_search)
+    s = get_settings()
+    monkeypatch.setattr(s, "kakao_rest_api_key", "test-key")
+    monkeypatch.setattr(s, "places_provider", "kakao")
+
+    r = client.get("/v1/places/nearby", params={"category": "fitness"})
+    assert r.status_code == 200, r.text
+    assert seen["in_transaction"] is False
+
+
 def test_places_input_validation(client):
     """좌표 범위·category 허용값 밖은 DB 500 이 아니라 422(리뷰 재-#5)."""
     assert client.get("/v1/places/nearby", params={"lat": 100}).status_code == 422

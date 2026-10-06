@@ -33,8 +33,8 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 /// v14 끼니별 AI 코멘트·사진, v15 과거 한 달치 식단(#671), v17 공유 픽스처(#757),
 /// v18 PT·기타 운동과 세트·횟수(#1265), v19 어제 스트레칭(#1361), v20 혜택 장부
 /// (#2664), v21 리포트 알림 갈래(#2660), v22 운동 출처·중량(#2662), v23 김민수 PT
-/// 요일(#2694).
-const int kSeedVersion = 23;
+/// 요일(#2694), v24 데모 알림 문구(#3201·#3202).
+const int kSeedVersion = 24;
 
 /// [kSeedVersion] 의 플래그 키.
 const String kSeedFlag = 'seeded_v$kSeedVersion';
@@ -51,6 +51,7 @@ Future<bool> _hadBenefitsSeed(AppDatabase db) async {
     'seeded_v20',
     'seeded_v21',
     'seeded_v22',
+    'seeded_v23',
   ]) {
     if (await db.readValue(flag) != null) return true;
   }
@@ -205,29 +206,29 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
           id: 'seed-noti-5',
           createdAt: now.subtract(const Duration(minutes: 30)),
           title: '새 개인운동이 왔어요',
-          body: '$kDemoTrainerName 트레이너님이 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.',
+          body: '$kDemoTrainerName 트레이너가 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.',
           category: 'routine',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-7',
           createdAt: now.subtract(const Duration(minutes: 45)),
           title: '주간 리포트가 도착했어요',
-          body: '$kDemoTrainerName 트레이너님이 주간 리포트를 보냈어요.',
+          body: '$kDemoTrainerName 트레이너가 주간 리포트를 보냈어요.',
           category: 'coach_report',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-2',
           createdAt: now.subtract(const Duration(hours: 1)),
-          title: 'PT 수업 완료',
-          body: '오늘 18:00 $kDemoTrainerName 트레이너와 12회차 PT를 마쳤어요!',
+          title: '12회차 PT를 마쳤어요',
+          body: '오늘 18:00 $kDemoTrainerName 트레이너와 한 PT를 운동 기록에 남겼어요.',
           // 실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027).
           category: 'pt_done',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-3',
           createdAt: now.subtract(const Duration(hours: 2)),
-          title: '트레이너 피드백 도착',
-          body: '마무리로 어깨 회전근개 스트레칭을 꼭 해주세요.',
+          title: '트레이너 피드백이 도착했어요',
+          body: '마무리로 어깨 회전근개 스트레칭을 꼭 해 주세요.',
           category: 'coach_chat',
         ),
         NotificationItemsCompanion.insert(
@@ -248,8 +249,8 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
         NotificationItemsCompanion.insert(
           id: 'seed-noti-4',
           createdAt: now.subtract(const Duration(hours: 28)),
-          title: '서비스 점검 안내',
-          body: '내일 02:00~03:00 점검 예정입니다.',
+          title: '서비스 점검이 예정돼 있어요',
+          body: '내일 02:00~03:00에 점검해요.',
           category: 'system',
           read: const Value(true),
         ),

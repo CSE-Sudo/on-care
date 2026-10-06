@@ -613,7 +613,7 @@ def _ensure_session_member_linked(
     if _is_consultation_booking(s):
         return
     if s.member_id and not has_active_client_link(db, trainer_id, s.member_id):
-        raise ClientLinkDetached("담당 회원을 찾을 수 없습니다.")
+        raise ClientLinkDetached("담당 회원을 찾을 수 없어요.")
 
 
 #: 담당 해제로 거둔 일정에 남기는 취소 사유(#2589). 트레이너만 보는 기록이다.
@@ -1564,6 +1564,21 @@ def _is_reservation_schedule(db: Session, session_id: str) -> bool:
         .where(TrainerReservation.schedule_id == session_id)
         .limit(1)
     ) is not None
+
+
+def _reservation_schedule_ids(db: Session, session_ids: set[str]) -> set[str]:
+    """[session_ids] 중 회원 예약이 소유한 일정. [_is_reservation_schedule] 의 묶음판.
+
+    일정 목록(`schedule`)과 회원 PT 목록(`member_mirror`)이 함께 쓴다."""
+    if not session_ids:
+        return set()
+    return set(
+        db.scalars(
+            select(TrainerReservation.schedule_id).where(
+                TrainerReservation.schedule_id.in_(sorted(session_ids))
+            )
+        ).all()
+    )
 
 
 def _clock_minutes(value: str) -> int:

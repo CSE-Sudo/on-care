@@ -220,10 +220,12 @@ void main() {
   testWidgets('피드백 요청만 실패하면 그 칸만 비고 리포트는 뜬다', (tester) async {
     await openReport(tester, dio: _server(feedback: null));
 
+    // 읽지 못한 것을 `아직 받지 못했어요` 로 그리지 않는다(#3246).
     expect(
-      find.byKey(const ValueKey<String>('report-feedback-empty')),
+      find.byKey(const ValueKey<String>('report-feedback-failed')),
       findsOneWidget,
     );
+    expect(find.text('· 아직 받지 못했어요'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('reports-weekly-retry')),
       findsNothing,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
+import 'package:oncare/features/auth/domain/social_login_rejection.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/member_social_login.dart';
@@ -207,7 +209,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       if (!mounted) return;
       setState(() => _loading = false);
       if (e is TrainerAccountSignInRejected) return;
-      showAppToast(context, l.authSocialSignInFailed, type: AppToastType.error);
+      // 확인 안 된 이메일이 기존 계정의 이메일과 같다(#1551) — 서버가 따로 계정을
+      // 만들지 않았으니, 처음 가입한 방법으로 들어오라고 알린다.
+      final bool emailInUse =
+          e is DioException &&
+          isSocialEmailInUse(e.response?.statusCode, e.response?.data);
+      showAppToast(
+        context,
+        emailInUse ? l.authSocialEmailInUse : l.authSocialSignInFailed,
+        type: AppToastType.error,
+      );
     }
   }
 
@@ -278,19 +289,31 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-            // 비밀번호를 잊은 회원이 메일로 되찾는 입구(#2824). 비밀번호 칸
-            // 바로 아래 오른쪽 — 막혔다는 걸 깨닫는 자리다.
-            Align(
-              alignment: Alignment.centerRight,
-              child: AppButton(
-                key: const ValueKey<String>('member-login-forgot-password'),
-                label: l.authForgotPassword,
-                onPressed: _loading
-                    ? null
-                    : () => context.push(AppRoutes.passwordReset),
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-              ),
+            // 이메일·비밀번호를 잊은 회원이 되찾는 입구(#2824). 비밀번호 칸
+            // 바로 아래 오른쪽 — 막혔다는 걸 깨닫는 자리다. 영어 문구가 길어
+            // 좁은 폭에서는 줄을 바꾼다.
+            Wrap(
+              alignment: WrapAlignment.end,
+              children: <Widget>[
+                AppButton(
+                  key: const ValueKey<String>('member-login-find-email'),
+                  label: l.authFindEmail,
+                  onPressed: _loading
+                      ? null
+                      : () => context.push(AppRoutes.findEmail),
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+                AppButton(
+                  key: const ValueKey<String>('member-login-forgot-password'),
+                  label: l.authForgotPassword,
+                  onPressed: _loading
+                      ? null
+                      : () => context.push(AppRoutes.passwordReset),
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+              ],
             ),
             const SizedBox(height: OnCareSpacing.s12),
             AppButton(

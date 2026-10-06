@@ -43,6 +43,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async {
     try {
@@ -54,6 +55,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
           'email': email,
           'password': password,
           'name': name,
+          'phone': phone,
           // 가입 전에 받은 이메일 인증 코드(#3038).
           'email_code': emailCode,
           // 체크한 동의(#2819) — 계정과 한 트랜잭션으로 남는다. 넘기지 않으면
@@ -84,7 +86,16 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
       throw _asAuth(e);
     }
     // Registration returns the created user, not a token — sign in next.
-    return login(email: email, password: password);
+    // 계정은 이미 만들어졌다 — 여기서 실패를 그대로 올리면 화면이 가입 실패로
+    // 알리고, 다시 누르면 409 다(#3248). 로그인으로 보내도록 따로 알린다.
+    try {
+      return await login(email: email, password: password);
+    } on AuthException catch (e) {
+      throw AuthException(
+        AuthFailure.signedUpSignInFailed,
+        detail: e.failure.name,
+      );
+    }
   }
 
   /// 422 본문의 비밀번호 코드 → 가입 실패 종류. 비밀번호 오류가 없으면 null.
@@ -184,6 +195,10 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
       return TrainerAuthTokens.fromJson(data);
     } on DioException catch (e) {
       final int? code = e.response?.statusCode;
+      // 소셜 로그인만 내는 응답이다(#1551) — 다른 요청에는 오지 않는다.
+      if (_isSocialEmailInUse(code, e.response?.data)) {
+        throw const AuthException(AuthFailure.socialEmailInUse);
+      }
       if (code == 401) throw AuthException(on401);
       if (code == 403 && on403 != null) throw AuthException(on403);
       throw _asAuth(e);
@@ -192,13 +207,36 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
     }
   }
 
+  /// 409 `detail: {code: social_email_in_use}` 인가(#1551).
+  static bool _isSocialEmailInUse(int? status, Object? body) {
+    final Object? detail = body is Map ? body['detail'] : null;
+    final Object? code = detail is Map ? detail['code'] : null;
+    return status == 409 && code == 'social_email_in_use';
+  }
+
   /// Converts a transport failure into a user-facing [AuthException].
+  ///
+  /// 429 는 시도 제한이다(#3248) — 로그인 연속 실패 잠금(15분)·IP 분당 한도·가입
+  /// 한도가 모두 같은 모양으로 온다. 예전에는 알 수 없는 오류로 묶여 잠긴 줄 모르고
+  /// 다시 눌렀고, 가입 화면에도 "로그인 중 문제" 가 떴다.
   AuthException _asAuth(DioException e) {
+    if (e.response?.statusCode == 429) {
+      return AuthException(
+        AuthFailure.tooManyAttempts,
+        retryAfter: _retryAfter(e.response?.headers.value('retry-after')),
+      );
+    }
     final err = AppError.fromDio(e);
     if (err is NetworkError) {
       return const AuthException(AuthFailure.network);
     }
     return const AuthException(AuthFailure.unknown);
+  }
+
+  /// `Retry-After` 의 초. 날짜 형식이나 깨진 값은 모름(null)이다.
+  static Duration? _retryAfter(String? raw) {
+    final int? seconds = int.tryParse(raw?.trim() ?? '');
+    return seconds == null || seconds <= 0 ? null : Duration(seconds: seconds);
   }
 }
 

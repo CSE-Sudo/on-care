@@ -236,7 +236,7 @@ def test_member_goal_change_reaches_the_trainer_in_english(client, db_session):
     assert not HANGUL.search(en["title"] + en["body"])
 
     [ko] = [n for n in _trainer_inbox(client, trainer_token) if n["category"] == "health_goal"]
-    assert ko["title"] == "회원 건강 목표 변경"
+    assert ko["title"] == "회원 건강 목표가 바뀌었어요"
     assert ko["body"] == "Alex 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활"
 
 
@@ -281,7 +281,7 @@ def test_reservation_booked_and_cancelled_in_english(client, db_session):
     en = _trainer_inbox(client, trainer_token, EN)[0]
     assert en["title"] == "Booking cancelled"
     assert en["body"] == f"Alex · {seoul.month}/{seoul.day} {seoul:%H:%M}"
-    assert _trainer_inbox(client, trainer_token)[0]["title"] == "예약이 취소되었습니다"
+    assert _trainer_inbox(client, trainer_token)[0]["title"] == "예약이 취소됐어요"
 
 
 def test_member_rename_reaches_the_trainer_in_english(client, db_session):
@@ -293,7 +293,7 @@ def test_member_rename_reaches_the_trainer_in_english(client, db_session):
     [en] = [n for n in _trainer_inbox(client, trainer_token, EN) if n["category"] == "member_name"]
     assert (en["title"], en["body"]) == ("Member renamed", "Alex changed their name to Alexandra.")
     [ko] = [n for n in _trainer_inbox(client, trainer_token) if n["category"] == "member_name"]
-    assert (ko["title"], ko["body"]) == ("회원 이름 변경", "Alex 회원이 이름을 바꿨어요: Alexandra")
+    assert (ko["title"], ko["body"]) == ("회원 이름이 바뀌었어요", "Alex 회원이 이름을 바꿨어요: Alexandra")
 
 
 # --------------------------------------------------------------------------
@@ -365,12 +365,12 @@ def test_trainer_message_reaches_the_member_in_english(client, db_session):
     en = _member_inbox(client, member_token, EN)[0]
     assert en["title"] == "Message from Coach Park"
     assert en["body"] == "Great session today"
-    assert en["action"] == {"label": "View chat", "target": "coach_chat"}
+    assert en["action"] == {"label": "View messages", "target": "coach_chat"}
     assert en["template"] == nt.MEMBER_COACH_MESSAGE
 
     ko = _member_inbox(client, member_token)[0]
     assert ko["title"] == "Coach Park 트레이너의 메시지"
-    assert ko["action"] == {"label": "대화 보기", "target": "coach_chat"}
+    assert ko["action"] == {"label": "메시지 보기", "target": "coach_chat"}
 
 
 def test_routine_assignment_reaches_the_member_in_english(client, db_session):
@@ -410,7 +410,7 @@ def test_trainer_goal_change_reaches_the_member_in_english(client, db_session):
     assert en["body"] == "Coach Park changed your health goals: Posture correction"
     assert en["action"] == {"label": "View goals", "target": "health_goals"}
     [ko] = [n for n in _member_inbox(client, member_token) if n["category"] == "health_goals"]
-    assert ko["body"] == "Coach Park 트레이너님이 건강 목표를 바꿨어요: 자세 교정"
+    assert ko["body"] == "Coach Park 트레이너가 건강 목표를 바꿨어요: 자세 교정"
     assert ko["action"] == {"label": "목표 보기", "target": "health_goals"}
 
 
@@ -423,7 +423,7 @@ ACTION_LABELS = {
     "reminder": ("기록하러 가기", "Log now"),
     "health_check": ("기록하러 가기", "Log now"),
     "achievement": ("대시보드 보기", "View dashboard"),
-    "coach_chat": ("대화 보기", "View chat"),
+    "coach_chat": ("메시지 보기", "View messages"),
     "coach_report": ("리포트 보기", "View report"),
     "routine": ("운동 보기", "View workouts"),
     "coach_invite": ("요청 확인", "View request"),
@@ -497,7 +497,7 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
     )
     assert row is not None
     # 저장 문장은 한국어다. 날짜는 0 을 채우지 않는 `10월 1일` 꼴(#3120).
-    assert (row.title, row.body) == ("새 일정이 등록되었어요", f"{ko_day} 19:00 · 상담")
+    assert (row.title, row.body) == ("새 일정이 등록됐어요", f"{ko_day} 19:00 · 상담")
     assert row.template_args == {"date": day, "time": "19:00", "type": "상담"}
 
     removed = client.delete(
@@ -506,11 +506,11 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
     assert removed.status_code in (200, 204), removed.text
 
     en = {n["title"]: n for n in _member_inbox(client, member_token, EN)}
-    assert en["New session scheduled"]["body"] == f"{en_day} 19:00 · Consultation"
-    assert en["Session cancelled"]["body"] == f"{en_day} 19:00 · Consultation"
+    assert en["New appointment scheduled"]["body"] == f"{en_day} 19:00 · Consultation"
+    assert en["Appointment cancelled"]["body"] == f"{en_day} 19:00 · Consultation"
     ko = {n["title"]: n for n in _member_inbox(client, member_token, KO)}
-    assert ko["새 일정이 등록되었어요"]["body"] == f"{ko_day} 19:00 · 상담"
-    assert ko["일정이 취소되었어요"]["body"] == f"{ko_day} 19:00 · 상담"
+    assert ko["새 일정이 등록됐어요"]["body"] == f"{ko_day} 19:00 · 상담"
+    assert ko["일정이 취소됐어요"]["body"] == f"{ko_day} 19:00 · 상담"
 
 
 @pytest.mark.parametrize(
@@ -528,7 +528,7 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
             {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
              "refunded": 7000},
             "benefits",
-            "Locker coupon cancelled",
+            "Personal locker coupon cancelled",
         ),
         (
             nt.MEMBER_CHALLENGE_RESULT,

@@ -11,6 +11,7 @@ import 'package:oncare/features/dashboard/presentation/controllers/dashboard_con
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/location_consent_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -103,6 +104,9 @@ Override sessionFeatureResetOverride() {
       // 다음 계정의 위치를 읽는다. 저장소는 데모 판별을 따라 저절로 바뀐다.
       ref.invalidate(locationConsentProvider);
       ref.invalidate(locationConsentPromptedProvider);
+      // 주변 헬스장을 찾을 자리(#3244) — 위치 동의만 비우면 앞 계정이 받아 둔
+      // 좌표로 다음 계정이 주변 검색을 해, 계정 단위 동의(#3136)를 건너뛴다.
+      ref.invalidate(gymSearchAreaProvider);
     };
   });
 }

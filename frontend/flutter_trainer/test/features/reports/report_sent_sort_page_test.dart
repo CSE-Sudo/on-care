@@ -184,7 +184,7 @@ void main() {
 
     Finder queueSortLabel() => find.descendant(
       of: find.byKey(const ValueKey<String>('reports-sort-button')),
-      matching: find.textContaining('우선 확인 순'),
+      matching: find.textContaining('관리 필요 우선'),
     );
     expect(queueSortLabel(), findsOneWidget);
     await _pick(tester, 'nameDescending');

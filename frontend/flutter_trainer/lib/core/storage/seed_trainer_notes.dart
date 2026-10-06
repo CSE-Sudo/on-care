@@ -225,8 +225,8 @@ const List<_SeedFollowUp> _followUps = <_SeedFollowUp>[
     client: 9,
     memberName: '배준혁',
     title: (
-      ko: '노쇼 반복 — 수업 시간대 재조정 제안',
-      en: 'Repeated no-shows — offer a new session time',
+      ko: '노쇼 반복 — PT 시간대 재조정 제안',
+      en: 'Repeated no-shows — offer a new PT time',
     ),
     dueInDays: -1,
     context: FollowUpContext.schedule,
@@ -488,7 +488,7 @@ const List<_SeedDraft> _drafts = <_SeedDraft>[
             weight: 0,
           ),
           (
-            name: (ko: '런닝', en: 'Running'),
+            name: (ko: '러닝', en: 'Running'),
             type: '유산소',
             minutes: 20,
             sets: 0,

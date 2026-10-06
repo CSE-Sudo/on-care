@@ -45,6 +45,7 @@ from app.core.config import get_settings
 from app.core.week import monday_of
 from app.db.demo_fixture import FixtureExercise, FixtureRoutine, load_fixture
 from app.db import seed_workouts
+from app.db.seed_member_logs import current_seed_sentence, current_seed_text
 from app.db.seed_roster import HISTORY_WEEKS
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
@@ -243,7 +244,7 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
         # 1일차.
         ("trainer", "민수님, 지난주 기록 정리해 봤는데 요일마다 완료율이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?", 5),
         ("client", "화요일이랑 목요일이 야근이 많아요 😥", 5),
-        ("trainer", "그럼 그 이틀은 15분짜리 짧은 루틴으로 바꿔 둘게요. 안 하는 것보다 훨씬 낫습니다", 5),
+        ("trainer", "그럼 그 이틀은 15분짜리 짧은 프로그램으로 바꿔 둘게요. 안 하는 것보다 훨씬 낫습니다", 5),
         ("client", "그 정도면 퇴근하고도 할 수 있을 것 같아요", 5),
         ("trainer", "혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요", 5),
         ("client", "네, 아침 8시 그대로예요", 5),
@@ -257,16 +258,16 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
         ("trainer", "이렇게 국은 건더기 위주로 드시면 돼요", 4),
         ("client", "오늘은 국물 안 마셨어요! 걷기도 25분 했습니다", 4),
         ("trainer", "좋아요 👏 그 한 가지만 지켜도 추이가 달라져요", 4),
-        ("trainer", "내일 루틴은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요", 4),
+        ("trainer", "내일 프로그램은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요", 4),
         # 3일차.
         ("trainer", "민수님, AI 식단 분석 잘 받았어요 👍 오늘 나트륨이 목표치를 좀 넘었는데 어떠셨어요?", 0),
         ("client", "찌개 먹을 때 국물을 많이 마셨나봐요 😅", 0),
         ("trainer", "그렇군요! 오늘 PT 후에 부상이나 불편한 데는 없으셨나요?", 0),
         ("client", "무릎이 가볍게 당기긴 했는데 괜찮아요", 0),
-        ("trainer", "확인했어요. AI가 오늘 식단 기반으로 유산소 루틴을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪", 0),
+        ("trainer", "확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪", 0),
     ],
     "user-jisu": [
-        ("trainer", "지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 런닝 25분 완료! 컨디션은 어때요?", 0),
+        ("trainer", "지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 러닝 25분 완료! 컨디션은 어때요?", 0),
         ("client", "생각보다 괜찮았어요. 숨이 금방 차더라고요 😮‍💨", 0),
         ("trainer", "심폐 지구력 올라가는 과정이에요 💪 AI 분석 보니까 당류는 목표 안에 있고, "
                     "루틴 다음 주부터 근력 비중 늘려볼게요. 식단도 AI 추천 참고해서 업데이트해 드릴게요", 0),
@@ -398,7 +399,7 @@ _SCHEDULE: list[tuple[str, str, str | None, str, int, str, str, list[dict]]] = [
     # 레그프레스 수업이라 회원 앱의 `18:00 · 벤치프레스` 와 같은 날이 달랐다(#2694).
     # 목록 자리는 그대로 둔다 — id(`seed-schedule-{날짜}-N`)가 밀리지 않게.
     (_FIXTURE_PT_TIME, "김민수", "user-7d4e9a2c5f18", "1:1 PT", _FIXTURE_PT_MINUTES, "완료", "", []),
-    ("12:00", "이지수", "user-jisu", "1:1 PT", 50, "완료", "데드리프트 자세 안정적. 다음 세션 60kg 도전.", [
+    ("12:00", "이지수", "user-jisu", "1:1 PT", 50, "완료", "데드리프트 자세 안정적. 다음 PT 60kg 도전.", [
         {"name": "데드리프트", "type": "근력", "sets": 4, "reps": 8, "weight": 55},
         {"name": "루마니안 데드리프트", "type": "근력", "sets": 3, "reps": 10, "weight": 40},
         # 플랭크는 버티는 운동이라 초로 적는다 — `reps: 3` 은 45초를 "3회" 라고
@@ -670,13 +671,19 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
         # 비워 둔다. 되붙이지 않으면 뒤따르는 주간 PT 시드가 이번 주에 그 회원의
         # 수업이 없다고 보고 한 번 더 깐다(#2695) — 주간 PT 행과 같은 처리다.
         by_id = {row.id: row for row in existing}
-        reattached = False
+        changed = False
         for i, (_time, _cname, mid, *_rest) in enumerate(_SCHEDULE):
             row = by_id.get(f"seed-schedule-{today}-{i}")
             if row is not None and row.member_id is None and mid and mid in valid:
                 row.member_id = mid
-                reattached = True
-        if reattached:
+                changed = True
+        # 오늘 이미 깐 타임라인의 메모도 옛 시드 문장이면 지금 문장으로(#3202).
+        for row in existing:
+            renamed = current_seed_sentence(row.note)
+            if renamed != row.note:
+                row.note = renamed
+                changed = True
+        if changed:
             _safe_commit(db)
         return
     fixture_today = _fixture_pt_day(clock.today())
@@ -896,7 +903,11 @@ def _seed_fixture_pt(db: Session, valid: set[str]) -> None:
     ).delete(synchronize_session=False)
     names = {user_id: name for user_id, _email, name, *_ in _MEMBERS}
     for row_id, day in wanted.items():
-        if db.get(models.TrainerSchedule, row_id) is not None:
+        existing = db.get(models.TrainerSchedule, row_id)
+        if existing is not None:
+            # 이미 깐 행의 메모가 옛 픽스처 문장이면 지금 문장으로 고친다(#3202).
+            # 트레이너가 고쳐 쓴 메모는 표에 없어 그대로다.
+            existing.note = current_seed_sentence(existing.note)
             continue
         db.add(models.TrainerSchedule(
             id=row_id,
@@ -1529,6 +1540,17 @@ def _seed_history(db: Session, member_id: str) -> None:
             )
         ).all()
     }
+    # 이미 있는 시드 행(`seed-hist-`)의 표시 문구는 지금 시드 표기로 고쳐 쓴다
+    # (#3201). 건너뛰기만 하면 한 번 시드된 DB(공유 Neon 포함)가 옛 표기(`런닝`)를
+    # 그대로 들고 있어, 실연동 화면이 목업과 다른 이름을 보인다. 이 행은 시드만
+    # 만들고 고치는 API 가 없다. 이행률·날짜·담당 트레이너는 처음 넣은 값을 둔다.
+    for hid, row in existing.items():
+        if not hid.startswith(f"seed-hist-{member_id}-"):
+            continue
+        row.kind_label = current_seed_text(row.kind_label)
+        row.exercises_json = current_seed_text(row.exercises_json)
+        row.client_feedback = current_seed_text(row.client_feedback)
+        row.trainer_note = current_seed_text(row.trainer_note)
     for d, (week, (_ago, rate, kind, exercises, feedback, note)) in days.items():
         factor = _COMPLETION_FACTORS[week % len(_COMPLETION_FACTORS)]
         hid = f"seed-hist-{member_id}-{d}"

@@ -527,6 +527,7 @@ class _FakeTrainerAuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async => _tokens;
 
@@ -1028,7 +1029,7 @@ void main() {
       expect(minsu.first.type, '유산소');
 
       final jisu = await repo.watchRoutine('seed-client-2').first;
-      expect(jisu.first.name, '인터벌 런닝');
+      expect(jisu.first.name, '인터벌 러닝');
     });
 
     test(
@@ -2011,7 +2012,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('인터벌 런닝'),
+            matching: find.text('인터벌 러닝'),
           ),
           findsOneWidget,
         );
@@ -2292,7 +2293,7 @@ void main() {
       expect(booked, hasLength(1));
       expect(booked.single.program, isNotEmpty);
 
-      // Drain the action toast timer (`스케줄로 이동하기`) so it isn't left
+      // Drain the action toast timer (`스케줄로 가기`) so it isn't left
       // pending.
       await tester.pump(OnCareMotion.toastActionVisible);
     });
@@ -2390,9 +2391,9 @@ void main() {
       await settle(tester);
 
       // 회원 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트와
-      // "스케줄로 이동하기" 액션이 완료 안내를 대신한다.
+      // "스케줄로 가기" 액션이 완료 안내를 대신한다.
       expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
-      expect(find.text('스케줄로 이동하기'), findsOneWidget);
+      expect(find.text('스케줄로 가기'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 4)); // reset window
       // 초기화된 편집기는 다시 빈 프로그램 정보 박스로 시작한다(#1028) —
@@ -2517,7 +2518,7 @@ void main() {
       await _sendProgram(tester);
       await settle(tester);
 
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
       expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
     });
 
@@ -3317,7 +3318,7 @@ void main() {
 
       await tapSend(tester);
 
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsOneWidget);
       expect(
         find.text('응답을 받지 못했어요. 회원의 받은 루틴을 확인한 뒤 필요한 경우에만 다시 보내주세요'),
         findsNothing,

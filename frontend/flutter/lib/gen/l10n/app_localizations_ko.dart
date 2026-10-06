@@ -9,7 +9,7 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
-  String get coachInviteUnavailable => '이미 처리되었거나 취소된 요청이에요.';
+  String get coachInviteUnavailable => '이미 처리됐거나 취소된 요청이에요.';
 
   @override
   String get appTitle => 'On-Care';
@@ -171,7 +171,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeAiAdviceBody =>
-      '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 나트륨이 높았으니 물을 충분히 마시고, 담당 트레이너가 강조한 어깨 스트레칭으로 건강하게 마무리해 보세요.';
+      '아침 식단과 저녁 PT는 완벽했어요! 점심 짬뽕으로 나트륨이 높았으니 물을 충분히 마시고, 담당 트레이너가 강조한 어깨 스트레칭으로 건강하게 마무리해 보세요.';
 
   @override
   String get homeAiAdviceNoRecord => '오늘 식단과 운동을 기록하면 하루를 돌아보는 AI 조언을 드릴게요.';
@@ -521,7 +521,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietOpenSettingsFailed =>
-      '설정을 열지 못했어요. 설정 > Oncare에서 카메라·사진 접근을 켜주세요';
+      '설정을 열지 못했어요. 설정 › Oncare에서 카메라·사진 접근을 켜 주세요';
 
   @override
   String get dietAnalyzing => '분석 중…';
@@ -556,21 +556,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAnalyzingBody => '사진 속 음식을 분석하고 있어요';
 
   @override
-  String get dietAnalysisFailedBody => '분석에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  String get dietAnalysisFailedBody => '분석하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get dietAnalysisUnsupportedFormat =>
-      '이 사진 형식은 분석할 수 없어요. JPG 또는 PNG 사진으로 다시 골라주세요.';
+      '이 사진 형식은 분석할 수 없어요. JPG 또는 PNG 사진으로 다시 골라 주세요.';
 
   @override
-  String get dietAnalysisBadRequest => '사진을 읽지 못했어요. 다른 사진으로 다시 골라주세요.';
+  String get dietAnalysisBadRequest => '사진을 읽지 못했어요. 다른 사진으로 다시 골라 주세요.';
 
   @override
   String get dietAnalysisUnauthorized => '로그인이 만료됐어요. 다시 로그인한 뒤 기록해 주세요.';
 
   @override
   String get dietAnalysisNotImplemented =>
-      '지금은 사진 분석을 사용할 수 없어요. 직접 입력으로 기록해 주세요.';
+      '지금은 사진 분석을 쓸 수 없어요. 직접 추가로 기록해 주세요.';
 
   @override
   String get dietAnalysisNoFood => '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 추가해 주세요.';
@@ -609,10 +609,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietNutritionResult => '영양 정보';
 
   @override
-  String get dietSaved => '식단이 저장되었어요';
+  String get dietSaved => '식단을 저장했어요';
 
   @override
-  String get dietSaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get dietSaveFailed => '저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get dietManualAlreadySaved => '앞서 보낸 끼니가 이미 저장돼 있어요. 기록을 확인해 주세요';
@@ -633,10 +633,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietDelete => '삭제';
 
   @override
-  String get dietDeleted => '식단이 삭제되었어요';
+  String get dietDeleted => '식단을 삭제했어요';
 
   @override
-  String get dietDeleteFailed => '삭제에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get dietDeleteFailed => '삭제하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get dietSave => '저장';
@@ -784,7 +784,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exStreakStart => '오늘 운동으로 연속 기록을 시작해 봐요.';
+  String get exStreakStart => '오늘 운동으로 연속 운동을 시작해 봐요.';
 
   @override
   String get exStreakProtected => '보호권으로 이어짐';
@@ -809,7 +809,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exCompletedPtNoProgram => '등록된 운동 프로그램이 없습니다.';
+  String get exCompletedPtNoProgram => '기록된 PT 프로그램이 없어요.';
 
   @override
   String get exAddExercise => '운동 추가';
@@ -826,7 +826,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exSave => '저장';
 
   @override
-  String get exExerciseType => '운동 종류';
+  String get exExerciseType => '운동 유형';
 
   @override
   String get exExerciseDate => '날짜';
@@ -883,7 +883,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exUnitKg => 'kg';
 
   @override
-  String get exEnterName => '운동 이름을 입력해주세요';
+  String get exEnterName => '운동 이름을 입력해 주세요';
 
   @override
   String get exExerciseDuration => '운동 시간';
@@ -907,7 +907,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exEnterSets => '세트 수를 입력해주세요';
+  String get exEnterSets => '세트 수를 입력해 주세요';
 
   @override
   String get exExerciseIntensity => '운동 강도';
@@ -916,7 +916,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exEstimatedCalories => '예상 소모 칼로리';
 
   @override
-  String get exCaloriesNeedName => '운동 이름을 적어주세요';
+  String get exCaloriesNeedName => '운동 이름을 적어 주세요';
 
   @override
   String get exCaloriesCalculating => '계산 중…';
@@ -927,10 +927,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exCaloriesRoughEstimate => '운동 종류 평균으로 낸 어림값이에요';
+  String get exCaloriesRoughEstimate => '운동 유형 평균으로 낸 어림값이에요';
 
   @override
-  String get exEnterDuration => '운동 시간을 입력해주세요';
+  String get exEnterDuration => '운동 시간을 입력해 주세요';
 
   @override
   String get exCannotEdit => '이 기록은 수정할 수 없어요';
@@ -1035,7 +1035,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exCannotDelete => '이 기록은 삭제할 수 없어요';
 
   @override
-  String get exSaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get exSaveFailed => '저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get exFindGym => '헬스장 찾기';
@@ -1153,7 +1153,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String exTrainerAvailability(String trainer) {
-    return '$trainer 빈 예약 시간';
+    return '$trainer 예약 가능 시간';
   }
 
   @override
@@ -1165,20 +1165,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exSlotTypePersonalTraining => '1:1 PT';
 
   @override
-  String get exSlotsEmpty => '예약 가능한 시간이 없어요';
+  String get exSlotsEmpty => '예약 가능 시간이 없어요';
 
   @override
-  String get exSlotsAllBooked => '예약 가능한 시간이 모두 찼어요';
+  String get exSlotsAllBooked => '예약 가능 시간이 모두 찼어요';
 
   @override
-  String get exSlotsLoadError => '예약 시간을 불러오지 못했어요.';
+  String get exSlotsLoadError => '예약 가능 시간을 불러오지 못했어요.';
 
   @override
-  String get exReserveFailed => '예약에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get exReserveFailed => '예약하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get exReserveTimeTaken =>
       '트레이너의 다른 일정과 겹쳐 이 시간은 예약할 수 없어요. 다른 시간을 골라 주세요';
+
+  @override
+  String get exReserveUpcomingExists =>
+      '이미 다가오는 예약이 있어요. 다른 시간으로 바꾸려면 먼저 예약을 취소해 주세요';
 
   @override
   String exReserveConfirmedSlotGym(String slot, String gym) {
@@ -1343,7 +1347,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myGraphStreak(int days) {
-    return '기록 연속 $days일';
+    return '연속 기록 $days일';
   }
 
   @override
@@ -1393,7 +1397,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myGraphProtectConfirmMessage(String date, int held) {
-    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 $held개).';
+    return '$date을 연속 기록에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 $held개).';
   }
 
   @override
@@ -1407,7 +1411,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myGraphProtectBuyConfirmMessage(String date, String cost) {
-    return '지금 가진 보호권이 없어요. $cost로 보호권을 구매하고 $date을 바로 기록 연속에 이어 붙여요.';
+    return '지금 가진 보호권이 없어요. $cost로 보호권을 구매하고 $date을 바로 연속 기록에 이어 붙여요.';
   }
 
   @override
@@ -1807,7 +1811,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myDietTrayIssued(String gym) {
-    return '$gym에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 채팅으로 물어보세요';
+    return '$gym에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 메시지로 물어보세요';
   }
 
   @override
@@ -1847,10 +1851,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myDietTrayExpireNotice =>
-      '기한 없이 쓸 수 있어요. 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 채팅으로 물어보세요.';
+      '기한 없이 쓸 수 있어요. 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 메시지로 물어보세요.';
 
   @override
-  String get myCouponStaffConfirmTitle => '쿠폰을 사용 완료할까요?';
+  String get myCouponStaffConfirmTitle => '쿠폰을 사용 처리할까요?';
 
   @override
   String get myCouponStaffConfirmMessage => '직원 확인용 · 사용 후 되돌릴 수 없어요';
@@ -1867,7 +1871,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCouponExpireNotice => '만료되면 포인트는 돌려받을 수 없어요.';
 
   @override
-  String get myCouponUse => '사용 완료';
+  String get myCouponUse => '사용 처리';
 
   @override
   String get myCouponUseDone => '사용 완료로 바꿨어요';
@@ -1893,7 +1897,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLogout => '로그아웃';
 
   @override
-  String get myLogoutConfirm => '로그아웃 하시겠어요?';
+  String get myLogoutConfirm => '로그아웃할까요?';
 
   @override
   String get emoteSheetTitle => '이모티콘';
@@ -1903,7 +1907,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String emoteBuyConfirm(int cost, int days) {
-    return '${cost}P로 $days일 동안 쓸까요?\n산 때부터 기간이 흘러가요.';
+    return '${cost}P로 $days일 동안 쓸까요?\n구매한 때부터 기간이 흘러가요.';
   }
 
   @override
@@ -1913,13 +1917,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteBought => '이제 이 이모티콘을 보낼 수 있어요';
 
   @override
-  String get emoteBuyFailed => '이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.';
+  String get emoteBuyFailed => '이모티콘을 구매하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get emoteAlreadyUnlocked => '이미 열려 있는 이모티콘이에요. 바로 보낼 수 있어요';
 
   @override
-  String get emoteTrainerRequired => '담당 트레이너가 있어야 이모티콘을 살 수 있어요';
+  String get emoteTrainerRequired => '담당 트레이너가 있어야 이모티콘을 구매할 수 있어요';
 
   @override
   String get emoteShortfall => '포인트가 부족해요';
@@ -1937,11 +1941,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get a11yEmote => '이모티콘';
 
   @override
-  String get myWithdrawTitle => '회원 탈퇴';
+  String get myWithdrawTitle => '계정 탈퇴';
 
   @override
   String get myWithdrawConfirm =>
-      '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화, 포인트와 사용 전 쿠폰·보호권·꾸밈 아이템도 사라집니다. 예정된 PT 예약과 대기 중인 상담 요청은 취소돼요. 되돌릴 수 없어요.';
+      '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화, 포인트와 사용 전 쿠폰·보호권·꾸밈 아이템도 사라져요. 예정된 PT 예약과 대기 중인 상담 요청은 취소돼요. 되돌릴 수 없어요.';
 
   @override
   String myWithdrawLosePoints(int points) {
@@ -1974,7 +1978,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get myWithdrawReasonTitle => '정말 탈퇴를 원하시나요?';
+  String get myWithdrawReasonTitle => '정말 탈퇴할까요?';
 
   @override
   String get myWithdrawReasonQuestion => '어떤 부분이 불편하셨나요?';
@@ -2016,19 +2020,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myWithdrawKeepHardToUse =>
-      '어디가 불편했는지 알려주시면 고칩니다. MY > 고객 지원의 1:1 문의로 바로 닿아요.';
+      '어디가 불편했는지 알려 주시면 고칠게요. MY › 고객 지원의 1:1 문의로 바로 닿아요.';
 
   @override
   String get myWithdrawKeepNotifications =>
-      '알림은 종류별로 끌 수 있어요. MY > 알림 설정에서 받고 싶은 것만 남겨 보세요.';
+      '알림은 종류별로 끌 수 있어요. MY › 알림 설정에서 받고 싶은 것만 남겨 보세요.';
 
   @override
   String get myWithdrawKeepAlternative =>
-      '앱을 지워도 기록은 그대로 남습니다. 탈퇴하면 그때 사라지고 되살릴 수 없어요.';
+      '앱을 지워도 기록은 그대로 남아요. 탈퇴하면 그때 사라지고 되살릴 수 없어요.';
 
   @override
   String get myWithdrawKeepOther =>
-      '무엇이든 알려주시면 반영합니다. MY > 고객 지원의 1:1 문의로 남겨 주세요.';
+      '무엇이든 알려 주시면 반영할게요. MY › 고객 지원의 1:1 문의로 남겨 주세요.';
 
   @override
   String get myWithdrawKeepDefault =>
@@ -2086,7 +2090,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNoTrainer => '담당 트레이너 없음';
 
   @override
-  String get myNoGymConnected => '아직 등록된 헬스장이 없어요';
+  String get myNoGymConnected => '아직 연결한 헬스장이 없어요';
 
   @override
   String get myGymLoadFailed => '헬스장 연결 정보를 불러오지 못했어요.';
@@ -2095,10 +2099,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySave => '저장';
 
   @override
-  String get myProfileSaved => '프로필이 저장되었어요';
+  String get myProfileSaved => '프로필을 저장했어요';
 
   @override
-  String get mySaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get mySaveFailed => '저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get myProfileEmailTaken => '이미 사용 중인 이메일이에요';
@@ -2144,7 +2148,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '트레이너가 개인운동·PT 프로그램을 보내거나 PT 기록·피드백을 남기면 알려요';
 
   @override
-  String get myNotifTrainerDesc => '트레이너가 대화로 보낸 메시지를 알려요';
+  String get myNotifTrainerDesc => '트레이너가 보낸 메시지를 알려요';
 
   @override
   String get myNotifWeeklyReportDesc => '담당 트레이너가 주간 리포트를 보내면 알려요';
@@ -2173,7 +2177,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myLegalPrivacyBody(String contact) {
-    return 'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 회원가입: 이메일, 비밀번호(암호화하여 저장), 이름. 소셜 로그인(카카오·구글)으로 가입하면 해당 서비스가 넘겨주는 회원 식별자와 이메일·이름을 받습니다.\n② 프로필과 첫 설정: 전화번호, 생년월일, 성별, 키, 체중, 건강 목표와 식단·운동 목표.\n③ 서비스 이용 중 회원이 남기는 정보: 식단 기록과 음식 사진, 운동 기록, 체중 등 건강 지표, AI 코치와의 대화, 트레이너와 주고받은 메시지와 첨부 사진, 상담·예약 신청 내용.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·기기 종류·운영체제·앱 버전.\n⑤ 위치 정보: 헬스장 찾기에서 위치정보 이용에 동의하고 현재 위치 사용을 허용한 경우에만 기기의 현재 좌표를 받아 주변 헬스장 검색에 씁니다. 좌표는 주변 검색을 위해 주식회사 카카오의 장소 검색에 전달되고, 요청을 처리한 뒤 바로 파기하며 계정에 저장하지 않습니다. 위치정보 이용 동의는 MY 탭에서 언제든지 철회할 수 있고, 동의하지 않아도 기본 검색 영역으로 헬스장 찾기를 쓸 수 있습니다. 자세한 내용은 위치기반서비스 이용약관을 따릅니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 개인정보는 회원 식별, 음식 사진 분석과 영양 계산 등 건강 관리 기능 제공, 맞춤형 AI 코칭, 담당 트레이너 연결, 서비스 개선 및 고객 문의 응대의 목적으로만 이용됩니다.\n\n3. 개인정보의 보유 및 이용 기간\n회원의 개인정보는 회원 탈퇴 시까지 보유·이용하며, 탈퇴하면 10항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 데이터 공유 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n탈퇴할 때 고른 탈퇴 사유는 회원과 연결되지 않는 사유 항목과 시각만 남깁니다.\n\n4. 개인정보의 제3자 제공\n회사는 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 담당 트레이너와의 공유는 5항, 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n5. 담당 트레이너와의 정보 공유 및 동의 철회\n회원이 상담 신청, 담당 요청 수락, 연결 코드 발급 중 하나로 데이터 공유에 동의하면 담당 트레이너는 회원의 식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항을 볼 수 있습니다. 회원은 MY 탭에서 담당 트레이너 또는 헬스장 연결을 삭제하여 언제든지 동의를 철회할 수 있으며, 트레이너가 담당을 해제한 경우에도 동의는 철회된 것으로 봅니다. 회사는 동의한 시각과 철회한 시각을 기록합니다. 철회한 뒤에는 트레이너가 회원의 새 기록을 볼 수 없고, 같은 트레이너와 다시 연결하려면 새로 동의해야 합니다. 다만 철회 전에 트레이너와 주고받은 대화와 전달된 리포트는 삭제되지 않고 남습니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: 음식 사진 인식, AI 코치 답변·추천 생성, AI 코치가 회원 기록을 찾아 쓰기 위한 검색 색인 생성(Gemini API)\n- 주식회사 카카오: 헬스장·장소 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 앱·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 회원과의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 회원 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 회원 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필·식단·운동·건강 기록과 대화 기록 / 데이터베이스 운영 / 회원 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치와의 대화 내용 / AI 분석·답변 생성과 검색 색인 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 기기 종류·운영체제·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n식단·운동 기록을 저장할 때마다 AI 코치용 검색 색인을 만들기 위해 그 내용이 ③으로 전송됩니다. 국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 민감정보(건강정보)의 처리\n식단·운동 기록, 신체 정보, 건강 목표, 건강상태·주의사항 등 건강에 관한 정보는 「개인정보 보호법」 제23조에 따라 가입할 때 다른 개인정보와 구분하여 별도로 동의를 받아 처리합니다. 담당 트레이너와의 공유는 5항의 동의가 있을 때만 이루어집니다.\n\n9. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 회원가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n10. 개인정보의 파기 절차 및 방법\n① 절차: 회원이 MY 탭에서 탈퇴하면 즉시 계정과 함께 프로필, 식단·운동 기록과 음식 사진, AI 코치 대화와 검색 색인, 알림, 소셜 로그인 연결, 담당 트레이너와의 연결과 대화(첨부 사진·리포트 PDF 파일 포함)를 삭제합니다. 대기 중인 상담 요청과 예약은 취소되고, 관련 트레이너에게 탈퇴 사실이 안내됩니다. 트레이너의 일정표에 이미 잡혀 있던 수업 기록에는 회원 표시 이름과 일시가 트레이너의 업무 기록으로 남습니다. 3항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n11. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 웹에서는 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n12. 개인정보의 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 전송 구간을 암호화하며, 회원 정보에 대한 트레이너의 접근을 담당 관계를 기준으로 제한합니다. 트레이너가 회원의 건강정보를 열람하면 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 기록하며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n13. 이용자의 권리와 행사 방법\n회원은 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필은 MY 탭에서 직접 고칠 수 있고, 탈퇴와 트레이너 공유 동의 철회도 MY 탭에서 할 수 있습니다. 그 밖의 요청은 14항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n14. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: $contact\n\n15. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n16. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 앱 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 위치정보 이용 동의 절차와 위치기반서비스 이용약관 안내 추가(1항 ⑤), 소셜 로그인 수단에서 네이버·애플 제외\n- 2026년 10월 3일: 처리 위탁·국외 이전·민감정보·만 14세 미만·파기 절차·자동 수집 장치·안전성 확보 조치·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 5일';
+    return 'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 회원가입: 이메일, 비밀번호(암호화하여 저장), 이름. 소셜 로그인(카카오·구글)으로 가입하면 해당 서비스가 넘겨주는 회원 식별자와 이메일·이름을 받습니다.\n② 프로필과 첫 설정: 전화번호, 생년월일, 성별, 키, 체중, 건강 목표와 식단·운동 목표.\n③ 서비스 이용 중 회원이 남기는 정보: 식단 기록과 음식 사진, 운동 기록, 체중 등 건강 지표, AI 코치와의 대화, 트레이너와 주고받은 메시지와 첨부 사진, 상담·예약 신청 내용.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·기기 종류·운영체제·앱 버전.\n⑤ 위치 정보: 헬스장 찾기에서 위치정보 이용에 동의하고 현재 위치 사용을 허용한 경우에만 기기의 현재 좌표를 받아 주변 헬스장 검색에 씁니다. 좌표는 주변 검색을 위해 주식회사 카카오의 장소 검색에 전달되고, 요청을 처리한 뒤 바로 파기하며 계정에 저장하지 않습니다. 위치정보 이용 동의는 MY 탭에서 언제든지 철회할 수 있고, 동의하지 않아도 기본 검색 영역으로 헬스장 찾기를 쓸 수 있습니다. 자세한 내용은 위치기반서비스 이용약관을 따릅니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 개인정보는 회원 식별, 음식 사진 분석과 영양 계산 등 건강 관리 기능 제공, 맞춤형 AI 코칭, 담당 트레이너 연결, 서비스 개선 및 고객 문의 응대의 목적으로만 이용됩니다.\n\n3. 개인정보의 보유 및 이용 기간\n회원의 개인정보는 회원 탈퇴 시까지 보유·이용하며, 탈퇴하면 10항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 데이터 공유 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n탈퇴할 때 고른 탈퇴 사유는 회원과 연결되지 않는 사유 항목과 시각만 남깁니다.\n\n4. 개인정보의 제3자 제공\n회사는 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 담당 트레이너와의 공유는 5항, 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n5. 담당 트레이너와의 정보 공유 및 동의 철회\n회원이 상담 신청, 담당 요청 수락, 연결 코드 발급 중 하나로 데이터 공유에 동의하면 담당 트레이너는 회원의 식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항을 볼 수 있습니다. 회원은 MY 탭에서 담당 트레이너 또는 헬스장 연결을 해제하여 언제든지 동의를 철회할 수 있으며, 트레이너가 담당을 해제한 경우에도 동의는 철회된 것으로 봅니다. 회사는 동의한 시각과 철회한 시각을 기록합니다. 철회한 뒤에는 트레이너가 회원의 새 기록을 볼 수 없고, 같은 트레이너와 다시 연결하려면 새로 동의해야 합니다. 다만 철회 전에 트레이너와 주고받은 대화와 전달된 리포트는 삭제되지 않고 남습니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: 음식 사진 인식, AI 코치 답변·추천 생성, AI 코치가 회원 기록을 찾아 쓰기 위한 검색 색인 생성(Gemini API)\n- 주식회사 카카오: 헬스장·장소 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 앱·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 회원과의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 회원 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 회원 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필·식단·운동·건강 기록과 대화 기록 / 데이터베이스 운영 / 회원 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치와의 대화 내용 / AI 분석·답변 생성과 검색 색인 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 기기 종류·운영체제·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n식단·운동 기록을 저장할 때마다 AI 코치용 검색 색인을 만들기 위해 그 내용이 ③으로 전송됩니다. 국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 민감정보(건강정보)의 처리\n식단·운동 기록, 신체 정보, 건강 목표, 건강상태·주의사항 등 건강에 관한 정보는 「개인정보 보호법」 제23조에 따라 가입할 때 다른 개인정보와 구분하여 별도로 동의를 받아 처리합니다. 담당 트레이너와의 공유는 5항의 동의가 있을 때만 이루어집니다.\n\n9. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 회원가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n10. 개인정보의 파기 절차 및 방법\n① 절차: 회원이 MY 탭에서 탈퇴하면 즉시 계정과 함께 프로필, 식단·운동 기록과 음식 사진, AI 코치 대화와 검색 색인, 알림, 소셜 로그인 연결, 담당 트레이너와의 연결과 대화(첨부 사진·리포트 PDF 파일 포함)를 삭제합니다. 대기 중인 상담 요청과 예약은 취소되고, 관련 트레이너에게 탈퇴 사실이 안내됩니다. 트레이너의 일정표에 이미 잡혀 있던 수업 기록에는 회원 표시 이름과 일시가 트레이너의 업무 기록으로 남습니다. 3항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n11. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 웹에서는 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n12. 개인정보의 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 전송 구간을 암호화하며, 회원 정보에 대한 트레이너의 접근을 담당 관계를 기준으로 제한합니다. 트레이너가 회원의 건강정보를 열람하면 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 기록하며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n13. 이용자의 권리와 행사 방법\n회원은 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필은 MY 탭에서 직접 고칠 수 있고, 탈퇴와 트레이너 공유 동의 철회도 MY 탭에서 할 수 있습니다. 그 밖의 요청은 14항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n14. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: $contact\n\n15. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n16. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 앱 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 위치정보 이용 동의 절차와 위치기반서비스 이용약관 안내 추가(1항 ⑤), 소셜 로그인 수단에서 네이버·애플 제외, 동의 철회 방법을 앱 화면과 같은 말(연결 해제)로 정리(5항)\n- 2026년 10월 3일: 처리 위탁·국외 이전·민감정보·만 14세 미만·파기 절차·자동 수집 장치·안전성 확보 조치·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 5일';
   }
 
   @override
@@ -2273,7 +2277,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myAppName => 'On-Care';
 
   @override
-  String get coachHeaderPill => 'AI 건강 도우미';
+  String get coachHeaderPill => 'AI 코치';
 
   @override
   String get coachHeaderSubtitle => '오늘의 맞춤 조언을 모아봤어요';
@@ -2286,7 +2290,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachCardDietBody =>
-      '아침 식단은 균형 있게 잘 챙겼어요. 다만 점심으로 드신 짬뽕은 나트륨과 당류 부담이 있을 수 있으니, 오늘은 물을 충분히 섭취해 주세요. 이후 식사에서는 채소와 단백질을 함께 챙겨 균형을 맞춰보세요.';
+      '아침 식단은 균형 있게 잘 챙겼어요. 다만 점심으로 드신 짬뽕은 나트륨과 당류 부담이 있을 수 있으니, 오늘은 물을 충분히 섭취해 주세요. 이후 식사에서는 채소와 단백질을 함께 챙겨 균형을 맞춰 보세요.';
 
   @override
   String get coachCardExerciseTag => '운동';
@@ -2296,7 +2300,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachCardExerciseBody =>
-      '이번 주 운동을 세 번 마쳤어요. 꾸준히 이어가고 있는 점이 좋습니다. 어깨 회전근개 스트레칭을 충분히 진행하고, 가벼운 유산소 운동으로 마무리해 주세요. 운동 후에는 무리한 활동보다 충분한 휴식과 수분 섭취로 회복을 도와주세요.';
+      '이번 주 운동을 세 번 마쳤어요. 꾸준히 이어가고 있는 점이 좋아요. 어깨 회전근개 스트레칭을 충분히 진행하고, 가벼운 유산소 운동으로 마무리해 주세요. 운동 후에는 무리한 활동보다 충분한 휴식과 수분 섭취로 회복을 도와주세요.';
 
   @override
   String get coachCardWaterTag => '수분';
@@ -2314,7 +2318,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSheetEmptyBody => '오늘 먹은 음식과 운동을 기록해 보세요.';
 
   @override
-  String get coachInviteTitle => '담당 요청이 왔어요';
+  String get coachInviteTitle => '담당 요청이 도착했어요';
 
   @override
   String coachInviteFrom(String name) {
@@ -2360,7 +2364,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatLoadFailed => '대화를 불러오지 못했어요';
 
   @override
-  String get coachChatUnassigned => '담당이 해제되어 더 이상 대화를 보낼 수 없어요';
+  String get coachChatUnassigned => '담당이 해제되어 더 이상 메시지를 보낼 수 없어요';
 
   @override
   String coachChatEmptyTitle(String trainer) {
@@ -2371,7 +2375,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatEmptyBody => '오늘 먹은 식단 사진이나 운동하며 궁금한 점을 보내 보세요';
 
   @override
-  String get coachChatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';
+  String get coachChatSendFailed => '메시지를 보내지 못했어요. 다시 시도해 주세요';
 
   @override
   String get coachPhotoAttach => '사진 보내기';
@@ -2524,7 +2528,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicPaidInsufficient(String shortfall) {
-    return '포인트가 $shortfall 모자라요. 식단·운동을 기록하면 포인트가 쌓여요.';
+    return '포인트가 $shortfall 부족해요. 식단·운동을 기록하면 포인트가 쌓여요.';
   }
 
   @override
@@ -2571,10 +2575,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightDelete => '삭제';
 
   @override
-  String get aicInsightDeleteConfirm => '이 감지를 참고 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
+  String get aicInsightDeleteConfirm =>
+      '이 감지를 참고 기록에서 삭제할까요? 대화에 쓴 말은 그대로 남아요.';
 
   @override
-  String get aicInsightDeleteFailed => '지우지 못했어요. 잠시 후 다시 시도해 주세요.';
+  String get aicInsightDeleteFailed => '삭제하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get aicInsightHistoryTitle => '참고 기록';
@@ -2597,15 +2602,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicRetentionNotice(int days) {
-    return 'AI 챗봇 대화는 최근 $days일 동안만 보관돼요';
+    return 'AI 코치 대화는 최근 $days일 동안만 보관돼요';
   }
 
   @override
-  String get aicTrainerConnectedTitle => '담당 트레이너와 대화해 주세요';
+  String get aicTrainerConnectedTitle => '담당 트레이너에게 메시지를 보내 주세요';
 
   @override
   String aicTrainerConnectedBody(String name) {
-    return '$name 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 챗봇 대신 트레이너와 채팅해요';
+    return '$name 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 코치 대신 트레이너와 메시지를 주고받아요';
   }
 
   @override
@@ -2690,10 +2695,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachInviteConsentAgree => '동의하고 연결';
 
   @override
-  String get exConsultSlotTitle => '예약 가능한 시간';
+  String get exConsultSlotTitle => '예약 가능 시간';
 
   @override
-  String get exConsultSlotRequired => '예약 가능한 시간을 선택해주세요.';
+  String get exConsultSlotRequired => '예약 가능 시간을 선택해 주세요.';
 
   @override
   String get exConsultSlotsEmptyTitle => '지금은 예약 가능한 상담 시간이 없어요.';
@@ -2709,10 +2714,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exConsultSlotsError => '예약 가능한 시간을 불러오지 못했어요.';
+  String get exConsultSlotsError => '예약 가능 시간을 불러오지 못했어요.';
 
   @override
-  String get exConsultSlotTaken => '방금 다른 회원이 그 시간을 예약했어요. 다른 시간을 선택해주세요.';
+  String get exConsultSlotTaken => '방금 다른 회원이 그 시간을 예약했어요. 다른 시간을 선택해 주세요.';
 
   @override
   String exConsultTooManyPending(int count) {
@@ -2772,7 +2777,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exOptionOther => '기타';
 
   @override
-  String get exOtherGoalHint => '구체적인 운동 목표는 문의 내용에 작성해주세요.';
+  String get exOtherGoalHint => '구체적인 운동 목표는 문의 내용에 작성해 주세요.';
 
   @override
   String get exPreferredDate => '희망 날짜';
@@ -2784,16 +2789,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultMessage => '문의 내용';
 
   @override
-  String get exConsultMessageHint => '운동 경험이나 상담 시 참고할 내용을 자유롭게 작성해주세요.';
+  String get exConsultMessageHint => '운동 경험이나 상담 시 참고할 내용을 자유롭게 작성해 주세요.';
 
   @override
   String get exSendConsultRequest => '상담 신청';
 
   @override
-  String get exGoalRequired => '운동 목표를 선택해주세요.';
+  String get exGoalRequired => '운동 목표를 선택해 주세요.';
 
   @override
-  String get exOtherGoalDetailRequired => '구체적인 운동 목표를 문의 내용에 입력해주세요.';
+  String get exOtherGoalDetailRequired => '구체적인 운동 목표를 문의 내용에 입력해 주세요.';
 
   @override
   String get exConsultTargetNotFound => '상담 대상 정보를 찾을 수 없어요.';
@@ -2802,10 +2807,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultPendingExists => '이미 확인 대기 중인 상담 요청이 있어요.';
 
   @override
-  String get exConsultReceived => '상담 요청이 접수되었어요';
+  String get exConsultReceived => '상담 요청이 접수됐어요';
 
   @override
-  String get exConsultCompletionInfo => '상대방이 요청을 확인하면 안내해드릴게요.';
+  String get exConsultCompletionInfo => '상대방이 요청을 확인하면 안내해 드릴게요.';
 
   @override
   String get exConsultStatus => '현재 상태';
@@ -2939,7 +2944,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authPasswordEmpty => '비밀번호를 입력해 주세요';
 
   @override
-  String get authSignInFailed => '로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요';
+  String get authSignInFailed => '로그인하지 못했어요. 이메일·비밀번호를 확인해 주세요';
 
   @override
   String get authSignInNetworkFailed => '인터넷 연결을 확인하고 다시 시도해 주세요';
@@ -2948,10 +2953,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSignInUnavailable => '지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요';
 
   @override
-  String get authSessionExpired => '로그인이 만료되었어요. 다시 로그인해 주세요';
+  String get authSessionExpired => '로그인이 만료됐어요. 다시 로그인해 주세요';
 
   @override
-  String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get authSocialSignInFailed => '소셜 로그인을 하지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get authSocialEmailInUse =>
+      '이 이메일로 가입한 계정이 있어요. 처음 가입한 방법으로 로그인해 주세요.';
 
   @override
   String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요';
@@ -3096,7 +3105,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpEmailTaken => '이미 가입된 이메일이에요. 로그인해 주세요.';
 
   @override
-  String get signUpFailed => '회원가입에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  String get signUpFailed => '회원가입을 하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get consentAll => '전체 동의';
@@ -3157,7 +3166,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardDone => '완료';
 
   @override
-  String get onboardSaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get onboardSaveFailed => '저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get onboardBasicTitle => '기본 정보';
@@ -3243,7 +3252,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
+    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 직접 기록 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
   }
 
   @override
@@ -3402,7 +3411,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiCoachWelcome =>
-      '안녕하세요, AI 건강 코치 온이예요 🙂\n식단·운동 기록을 보고 도와드릴게요. 무엇이든 편하게 물어보세요.';
+      '안녕하세요, AI 건강 코치 온이에요 🙂\n식단·운동 기록을 보고 도와드릴게요. 무엇이든 편하게 물어보세요.';
 
   @override
   String get aiCoachFailure => '앗, 잠시 문제가 생겼어요. 잠시 후 다시 시도해 주세요.';
@@ -3569,7 +3578,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalUnsetHint => '흐린 값은 목표를 세우기 전의 기본 기준이에요';
 
   @override
-  String get myGoalsSaved => '건강 목표가 저장되었어요';
+  String get myGoalsSaved => '건강 목표를 저장했어요';
 
   @override
   String myGoalRange(int min, int max) {
@@ -3595,13 +3604,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsGuideTitle => '포인트 적립 안내';
 
   @override
-  String get myPointsDietAdd => '식단 추가';
+  String get myPointsDietAdd => '식단 기록';
 
   @override
   String get myPointsRoutineComplete => '개인운동 완료';
 
   @override
-  String get myPointsExerciseAdd => '운동 직접 추가';
+  String get myPointsExerciseAdd => '운동 직접 기록';
 
   @override
   String myPointsRuleWithDailyCap(String action, int count) {
@@ -3640,16 +3649,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineLogged => '운동 기록에 반영했어요';
 
   @override
-  String get coachRoutineGone => '이 프로그램은 더 이상 없어요. 목록을 새로 불러와 주세요';
+  String get coachRoutineGone => '이 개인운동은 더 이상 없어요. 목록을 새로 불러와 주세요';
 
   @override
   String get coachRoutineNetworkError => '네트워크 연결을 확인하고 다시 시도해 주세요';
 
   @override
-  String get coachRoutineLogFailed => '완료 기록에 실패했어요.';
+  String get coachRoutineLogFailed => '완료로 기록하지 못했어요.';
 
   @override
-  String get coachRoutineDone => '수행 완료';
+  String get coachRoutineDone => '완료';
 
   @override
   String get coachRoutineUndo => '완료 취소';
@@ -3663,14 +3672,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineUndone => '완료를 취소했어요';
 
   @override
-  String get coachRoutineUndoFailed => '완료 취소에 실패했어요.';
+  String get coachRoutineUndoFailed => '완료를 취소하지 못했어요.';
 
   @override
   String get coachRoutineCancel => '이 개인운동 삭제';
 
   @override
   String coachRoutineCancelConfirm(String name) {
-    return '\'$name\'을(를) 목록에서 지울까요? 이미 수행한 기록은 그대로 남아요.';
+    return '\'$name\'을(를) 목록에서 삭제할까요? 이미 수행한 기록은 그대로 남아요.';
   }
 
   @override
@@ -3689,7 +3698,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineCancelFailed => '개인운동을 삭제하지 못했어요';
 
   @override
-  String get coachRoutineCompleteTitle => '개인운동 수행 완료';
+  String get coachRoutineCompleteTitle => '개인운동 완료';
 
   @override
   String get coachRoutineIntensity => '수행 강도';
@@ -3703,7 +3712,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineSubmit => '완료';
 
   @override
-  String get coachChatWithTrainer => '트레이너와 채팅';
+  String get coachChatWithTrainer => '트레이너에게 메시지';
 
   @override
   String get coachTrainerLoading => '담당 트레이너를 불러오는 중이에요';
@@ -3757,13 +3766,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertMarkAllRead => '모두 읽음';
 
   @override
-  String get alertEmpty => '알림이 없습니다';
+  String get alertEmpty => '아직 받은 알림이 없어요';
 
   @override
   String get alertLoadFailed => '최신 알림을 불러오지 못했어요';
 
   @override
-  String get alertMarkAllReadFailed => '모두 읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get alertMarkAllReadFailed => '모두 읽음 처리하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get alertCoachChatFailed =>
@@ -3798,7 +3807,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String demoAlertRoutineBody(String trainerName) {
-    return '$trainerName 트레이너님이 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.';
+    return '$trainerName 트레이너가 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.';
   }
 
   @override
@@ -3806,22 +3815,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String demoAlertReportBody(String trainerName) {
-    return '$trainerName 트레이너님이 주간 리포트를 보냈어요.';
+    return '$trainerName 트레이너가 주간 리포트를 보냈어요.';
   }
 
   @override
-  String get demoAlertPtDoneTitle => 'PT 수업 완료';
+  String get demoAlertPtDoneTitle => '12회차 PT를 마쳤어요';
 
   @override
   String demoAlertPtDoneBody(String trainerName) {
-    return '오늘 18:00 $trainerName 트레이너와 12회차 PT를 마쳤어요!';
+    return '오늘 18:00 $trainerName 트레이너와 한 PT를 운동 기록에 남겼어요.';
   }
 
   @override
-  String get demoAlertTrainerFeedbackTitle => '트레이너 피드백 도착';
+  String get demoAlertTrainerFeedbackTitle => '트레이너 피드백이 도착했어요';
 
   @override
-  String get demoAlertTrainerFeedbackBody => '마무리로 어깨 회전근개 스트레칭을 꼭 해주세요.';
+  String get demoAlertTrainerFeedbackBody => '마무리로 어깨 회전근개 스트레칭을 꼭 해 주세요.';
 
   @override
   String get demoAlertWeeklyGoalTitle => '이번 주 운동 목표까지 조금 남았어요';
@@ -3836,10 +3845,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get demoAlertMealStreakBody => '보름 넘게 하루도 빠짐없이 식단을 기록하고 있어요.';
 
   @override
-  String get demoAlertMaintenanceTitle => '서비스 점검 안내';
+  String get demoAlertMaintenanceTitle => '서비스 점검이 예정돼 있어요';
 
   @override
-  String get demoAlertMaintenanceBody => '내일 02:00~03:00 점검 예정입니다.';
+  String get demoAlertMaintenanceBody => '내일 02:00~03:00에 점검해요.';
 
   @override
   String get exPtFeedbackTitle => '오늘의 피드백';
@@ -3891,7 +3900,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get a11yRemoveFood => '음식 지우기';
 
   @override
-  String get a11yPrevWeek => '지난 주';
+  String get a11yPrevWeek => '지난주';
 
   @override
   String get a11yNextWeek => '다음 주';
@@ -4755,7 +4764,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get weeklyFeedbackNowButton => '지금 피드백 보내기';
 
   @override
-  String get authForgotPassword => '비밀번호를 잊으셨나요?';
+  String get authForgotPassword => '비밀번호 찾기';
+
+  @override
+  String get authFindEmail => '아이디 찾기';
+
+  @override
+  String get findEmailTitle => '아이디 찾기';
+
+  @override
+  String get findEmailSubtitle => '가입할 때 입력한 이름과 휴대폰 번호로 가입 이메일을 찾아요.';
+
+  @override
+  String get findEmailAction => '아이디 찾기';
+
+  @override
+  String get findEmailComingSoon => '아이디 찾기는 준비 중이에요.';
 
   @override
   String get passwordChangeTitle => '비밀번호 변경';
@@ -4773,7 +4797,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passwordChangeNote => '이 기기는 로그인이 유지되고, 다른 기기에서는 다시 로그인해야 해요.';
 
   @override
-  String get passwordChangeAction => '비밀번호 바꾸기';
+  String get passwordChangeAction => '변경';
 
   @override
   String get passwordChangeDone => '비밀번호를 바꿨어요';
@@ -4848,7 +4872,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passwordResetDemoNote => '데모 모드에서는 메일이 가지 않아요. 코드 칸을 미리 채워 두었어요.';
 
   @override
-  String get passwordResetUnavailable => '지금은 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.';
+  String get passwordResetUnavailable =>
+      '지금은 재설정 메일을 보낼 수 없어요. 고객 지원으로 문의해 주세요.';
 
   @override
   String get passwordResetDoneTitle => '비밀번호를 바꿨어요';
@@ -4900,7 +4925,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reauthTitle => '본인 확인';
 
   @override
-  String get reauthEmailMessage => '이메일을 바꾸면 로그인 아이디와 비밀번호 재설정 메일 주소가 바뀝니다.';
+  String get reauthEmailMessage => '이메일을 바꾸면 로그인 아이디와 비밀번호 재설정 메일 주소가 바뀌어요.';
+
+  @override
+  String get emailChangeCodeTitle => '새 이메일 인증';
+
+  @override
+  String emailChangeCodeMessage(String email) {
+    return '$email 로 6자리 인증 코드를 보냈어요. 이 주소가 내 것인지 확인하려면 코드를 입력해 주세요.';
+  }
+
+  @override
+  String get emailChangeCodeNext => '다음';
 
   @override
   String get reauthPasswordPrompt => '계속하려면 현재 비밀번호를 입력해 주세요.';
@@ -4921,14 +4957,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reauthSocialRequired => '소셜 계정으로 다시 로그인해 주세요';
 
   @override
-  String get reauthSocialInvalid => '소셜 계정 확인에 실패했어요. 다시 로그인해 주세요.';
+  String get reauthSocialInvalid => '소셜 계정을 확인하지 못했어요. 다시 로그인해 주세요.';
 
   @override
   String get reauthSocialUnavailable =>
       '이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요.';
 
   @override
-  String get releaseUpdateTitle => '앱이 업데이트되었어요';
+  String get releaseUpdateTitle => '앱이 업데이트됐어요';
 
   @override
   String get releaseUpdateMessage =>

@@ -78,6 +78,6 @@ void main() {
       expect(find.text(text), findsOneWidget, reason: text);
     }
     expect(find.textContaining('are not deleted'), findsOneWidget);
-    expect(find.text('Hide details'), findsOneWidget);
+    expect(find.text('Show less'), findsOneWidget);
   });
 }
