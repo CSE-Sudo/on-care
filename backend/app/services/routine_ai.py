@@ -17,7 +17,7 @@ LLM 생성과 이 규칙형 생성기로의 폴백은 `trainer_routine_options_s
 from __future__ import annotations
 
 from app.core.locale import Locale, localized
-from app.services import goal_defaults
+from app.services import goal_defaults, korean_josa
 
 SODIUM_TARGET_MG = goal_defaults.DAILY_SODIUM_MG
 
@@ -451,7 +451,8 @@ def _pattern_based_plans(
         ),
         "rationale": _clip_rationale(
             localized(
-                f"기존 핵심 운동({core_label})은 유지하고 '{extra_name}'을(를) 더해 "
+                f"기존 핵심 운동({core_label})은 유지하고 '{extra_name}'"
+                f"{korean_josa.particle(extra_name, '을', '를')} 더해 "
                 "운동량을 점진적으로 늘림.",
                 f"Keeps the core exercises ({core_label}) and adds "
                 f"'{exercise_name(extra_name, locale)}' to gradually raise the "
