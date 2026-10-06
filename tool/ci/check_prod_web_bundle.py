@@ -106,7 +106,7 @@ def check(app: str, build_dir: Path, app_dir: Path | None = None) -> list[str]:
 
     demo_tree = build_dir / "assets" / "assets" / "demo"
     if demo_tree.exists():
-        problems.append(f"{demo_tree.relative_to(build_dir)} 가 산출물에 있다")
+        problems.append(f"{demo_tree.relative_to(build_dir).as_posix()} 가 산출물에 있다")
 
     for name, data in manifest_texts(build_dir).items():
         if DEMO_ASSET_PREFIX.encode("utf-8") in data:

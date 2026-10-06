@@ -129,7 +129,7 @@ class FrontendCspTest(unittest.TestCase):
     def test_header_connect_src_is_within_meta(self) -> None:
         meta = self.metas[0]["connect-src"]
         for source in self.app_csp["connect-src"]:
-            if source.startswith("https://") or source.startswith("${"):
+            if source.startswith(("https://", "${")):
                 self.assertIn("https:", meta)
             else:
                 self.assertIn(source, meta)
