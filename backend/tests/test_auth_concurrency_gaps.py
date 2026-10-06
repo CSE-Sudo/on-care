@@ -7,7 +7,8 @@
 3. 비밀번호 재설정 요청 — 메일을 응답 뒤로 미룬다. 계정이 있을 때만 SMTP 를 기다리면
    응답 시간으로 가입 여부가 드러났다.
 4. 토큰 칸 길이 상한 — 무인증 경로의 토큰 칸에 4096자 상한.
-5. 소셜 로그인 — 쉬는 계정은 401, 같은 신원의 첫 로그인이 겹치면 같은 계정으로.
+5. 소셜 로그인 — 쉬는 계정은 401(연결 행도 남기지 않는다, #3252), 같은 신원의 첫
+   로그인이 겹치면 같은 계정으로.
 
 앞부분은 DB 없이 돈다. `client`·`db_session` 픽스처를 쓰는 뒷부분은 CI 의 Postgres 에서 돈다.
 """
@@ -508,6 +509,46 @@ def test_suspended_account_gets_no_social_tokens(client, db_session, monkeypatch
         assert "inactive" in (audit.detail or "")
     finally:
         _drop_user(db_session, user_id)
+
+
+def test_suspended_account_gets_no_link_from_a_first_social_login(
+    client, db_session, monkeypatch
+):
+    """쉬는 계정의 이메일과 같은 소셜 신원이 처음 들어와도 연결 행을 남기지 않는다(#3252).
+
+    예전에는 연결을 먼저 커밋하고 401 을 줬다 — 정지가 풀리면 주인이 연결한 적 없는
+    소셜 계정으로 바로 로그인됐다.
+    """
+    email = f"suspended-social-{uuid4().hex[:8]}@oncare.com"
+    user = models.User(
+        id=f"user-{uuid4().hex[:12]}", email=email, name="쉬는 계정",
+        hashed_password="", is_active=False,
+    )
+    db_session.add(user)
+    db_session.commit()
+    identity = SocialIdentity(
+        provider="kakao", provider_user_id=f"kakao-gap-{uuid4().hex[:8]}",
+        email=email, name="소셜",
+    )
+    # #1551(PR #3210) 뒤에는 provider 가 확인한 이메일만 기존 계정을 찾는다. 그 전에는
+    # 없는 칸이라 붙여도 아무 일이 없다.
+    identity.email_verified = True
+    _fake_social(monkeypatch, identity)
+    try:
+        res = client.post("/v1/auth/social/kakao", json={"token": "any"})
+        assert res.status_code == 401
+        assert "access_token" not in res.json()
+        db_session.expire_all()
+        assert _social_user_id(db_session, identity) is None
+        audit = db_session.scalars(
+            select(models.AuditLog)
+            .where(models.AuditLog.event == "auth.social", models.AuditLog.user_id == user.id)
+            .order_by(models.AuditLog.id.desc())
+        ).first()
+        assert audit is not None and audit.success is False
+        assert "inactive" in (audit.detail or "")
+    finally:
+        _drop_user(db_session, user.id)
 
 
 def test_racing_first_social_login_lands_on_the_same_account(
