@@ -290,6 +290,87 @@ def test_program_schedule_attach_target_follows_the_selected_time(
         _delete_program_test_sessions(db_session, day)
 
 
+def test_program_schedule_saves_feedback_on_a_new_session(client, db_session):
+    """`일정 추가` 로 쓴 피드백이 새 PT 일정의 `note` 에 담긴다. (#2374)
+
+    예정 PT 라 회원 응답에는 아직 실리지 않는다(#2515).
+    """
+    token = _tok(client)
+    day = (clock.today() + timedelta(days=65)).isoformat()
+    _delete_program_test_sessions(db_session, day)
+
+    try:
+        created = client.post(
+            _PROGRAM_SCHEDULE_URL,
+            json={**_program_command_body(day, "걷기"), "note": "  하체 위주로 짰어요  "},
+            headers=_h(token),
+        )
+        assert created.status_code == 201, created.text
+        assert created.json()["attached_to_existing"] is False
+        assert created.json()["session"]["note"] == "하체 위주로 짰어요"
+
+        sessions = client.get(
+            "/v1/me/coach/sessions", headers=_member_h(client)
+        ).json()
+        mine = [s for s in sessions if s["id"] == created.json()["session"]["id"]]
+        assert mine and mine[0]["note"] == ""
+    finally:
+        _delete_program_test_sessions(db_session, day)
+
+
+def test_program_schedule_appends_feedback_to_an_attached_session(
+    client, db_session
+):
+    """기존 회차에 붙일 때 피드백은 덮지 않고 이어 붙인다. 비우면 그대로 둔다. (#2374)"""
+    token = _tok(client)
+    day = (clock.today() + timedelta(days=66)).isoformat()
+    _delete_program_test_sessions(db_session, day)
+
+    def book(time_: str, note: str) -> str:
+        booked = client.post(
+            "/v1/trainer/schedule",
+            json={
+                "date": day,
+                "time": time_,
+                "client_name": "이지수",
+                "member_id": "user-jisu",
+                "type": "1:1 PT",
+                "duration_minutes": 60,
+                "note": note,
+            },
+            headers=_h(token),
+        )
+        assert booked.status_code == 201, booked.text
+        return booked.json()["id"]
+
+    def add(time_: str, note: str):
+        response = client.post(
+            _PROGRAM_SCHEDULE_URL,
+            json={**_program_command_body(day, "걷기"), "time": time_, "note": note},
+            headers=_h(token),
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["attached_to_existing"] is True
+        return response.json()["session"]
+
+    try:
+        with_note = book("09:00", "어깨 조심")
+        empty = book("13:00", "")
+
+        appended = add("09:00", "하체 위주로 짰어요")
+        assert appended["id"] == with_note
+        assert appended["note"] == "어깨 조심\n하체 위주로 짰어요"
+
+        kept = add("09:00", "   ")
+        assert kept["note"] == "어깨 조심\n하체 위주로 짰어요"
+
+        filled = add("13:00", "하체 위주로 짰어요")
+        assert filled["id"] == empty
+        assert filled["note"] == "하체 위주로 짰어요"
+    finally:
+        _delete_program_test_sessions(db_session, day)
+
+
 def test_concurrent_program_schedule_commands_create_one_session(
     client, db_session
 ):

@@ -1774,6 +1774,7 @@ def assign_program_with_schedule(
     session_id: str | None = None,
     personal_routines: Sequence[PersonalRoutineItem] = (),
     suggestion_ids: Sequence[str] = (),
+    note: str = "",
 ) -> ProgramScheduleOut | None:
     """프로그램을 회원에게 배정하고 PT 일정에 올린다 — 둘 다 되거나 둘 다 안 된다. (#1580)
 
@@ -1793,6 +1794,9 @@ def assign_program_with_schedule(
 
     [suggestion_ids] 는 그 개인운동을 채운 대기 중 AI 제안이다(#2747). 같은
     트랜잭션에서 닫는다 — 등록이 실패하면 제안도 대기로 남는다.
+
+    [note] 는 이 PT 의 트레이너 피드백이다(#2374). 기존 회차에 붙일 때는
+    [_append_feedback] 로 이어 붙인다.
     """
     client_link = db.scalar(
         select(TrainerClient)
@@ -1861,7 +1865,7 @@ def assign_program_with_schedule(
             member_id=member_id,
             type_="1:1 PT",
             duration_minutes=duration_minutes,
-            note="",
+            note=note.strip(),
             program_json=program_json,
             client_request_id=(
                 _schedule_request_key(client_request_id) if client_request_id else None
@@ -1869,6 +1873,7 @@ def assign_program_with_schedule(
         )
     else:
         target.program_json = program_json
+        target.note = _append_feedback(target.note, note)
         session = target
     # 이 PT 에 이미 붙어 있던(아직 보내지 않은) 프로그램·개인운동은 걷어낸다.
     # 프로그램을 다시 짜서 보내면 `program_json` 은 덮어쓰는데 붙은 줄만 뒤에
@@ -1915,6 +1920,19 @@ def assign_program_with_schedule(
         attached_to_existing=target is not None,
         personal_routines=[_routine_out(db, rt) for rt in personal],
     )
+
+
+def _append_feedback(existing: str | None, addition: str) -> str:
+    """기존 회차의 피드백 뒤에 `일정 추가` 로 쓴 피드백을 줄을 바꿔 붙인다. (#2374)
+
+    트레이너가 스케줄 탭에서 먼저 적어 둔 글을 말없이 지우지 않는다. 새 글이
+    비어 있으면 기존 글을 그대로 둔다 — 칸을 비워 보냈다고 피드백이 사라지면 안 된다.
+    """
+    before = (existing or "").strip()
+    added = addition.strip()
+    if not added:
+        return existing or ""
+    return f"{before}\n{added}" if before else added
 
 
 def _member_visible_slot(s: TrainerSchedule) -> tuple[str, str, str, int]:
