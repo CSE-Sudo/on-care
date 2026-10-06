@@ -2228,8 +2228,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load notification settings. Please try again';
 
   @override
-  String get myNotifNewMessageHint =>
-      'Get an inbox alert and a sidebar count when a member messages you';
+  String get myNotifNewMessageHint => 'Messages from members';
 
   @override
   String get myLanguageApp => 'Display language';
@@ -2804,21 +2803,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifConsultationHint =>
-      'When a member requests a consultation or responds to your coaching request';
+      'Consultation requests and cancellations, replies to your coaching requests';
 
   @override
   String get myNotifReservation => 'Bookings';
 
   @override
-  String get myNotifReservationHint =>
-      'When a member books or changes an appointment';
+  String get myNotifReservationHint => 'Bookings and cancellations';
 
   @override
   String get myNotifMemberUpdates => 'Member updates';
 
   @override
   String get myNotifMemberUpdatesHint =>
-      'When a member changes goals or name, or disconnects';
+      'Weekly feedback, goal or name changes, disconnections';
 
   @override
   String get routineTypeCardio => 'Cardio';

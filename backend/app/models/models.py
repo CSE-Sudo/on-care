@@ -1403,6 +1403,17 @@ class TrainerProfile(Base):
     notify_new_message: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=true(), default=True
     )
+    # 종류별 수신 설정(#2420). 어떤 알림 종류가 어느 칸을 따르는지는
+    # `notification_service._TRAINER_SETTING_COLUMN` 이 정한다.
+    notify_consultation: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=true(), default=True
+    )
+    notify_reservation: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=true(), default=True
+    )
+    notify_member_updates: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=true(), default=True
+    )
     notify_session_reminder: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=true(), default=True
     )

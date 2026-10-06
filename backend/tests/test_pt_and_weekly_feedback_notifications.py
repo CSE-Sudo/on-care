@@ -26,7 +26,13 @@ from sqlalchemy import select, text
 
 from app.core import clock
 from app.core.security import create_access_token
-from app.models.models import Notification, TrainerClient, TrainerSchedule, User
+from app.models.models import (
+    Notification,
+    TrainerClient,
+    TrainerProfile,
+    TrainerSchedule,
+    User,
+)
 from app.services import notification_service
 from app.services import notification_templates as nt
 
@@ -529,6 +535,34 @@ def test_another_week_is_its_own_alert(client, db_session, pair):
 
     rows = _of(_trainer_inbox(client, pair), "weekly_feedback")
     assert sorted(r["target_date"] for r in rows) == ["2026-09-14", "2026-09-21"]
+
+
+def _turn_off_member_updates(db_session, p: Pair) -> None:
+    """트레이너의 담당 회원 소식 알림을 끈다(#2420)."""
+    db_session.add(TrainerProfile(trainer_id=p.trainer_id, notify_member_updates=False))
+    db_session.commit()
+
+
+def test_member_updates_off_silences_weekly_feedback(client, db_session, pair):
+    """주간 피드백은 담당 회원 소식 스위치를 따른다(#2420)."""
+    _turn_off_member_updates(db_session, pair)
+
+    _send_feedback(client, pair)
+
+    assert _of(_trainer_inbox(client, pair), "weekly_feedback") == []
+
+
+def test_member_updates_off_does_not_bump_an_unread_alert(client, db_session, pair):
+    """끈 뒤에 고쳐 내도 이미 받은 줄을 고쳐 맨 위로 올리지 않는다(#2420)."""
+    _send_feedback(client, pair, condition="good")
+    first = _of(_trainer_inbox(client, pair), "weekly_feedback")[0]
+    _turn_off_member_updates(db_session, pair)
+
+    _send_feedback(client, pair, condition="bad")
+
+    rows = _of(_trainer_inbox(client, pair), "weekly_feedback")
+    assert [row["id"] for row in rows] == [first["id"]]
+    assert rows[0]["body"] == first["body"]
 
 
 def test_rejected_feedback_creates_no_alert(client, db_session, pair):

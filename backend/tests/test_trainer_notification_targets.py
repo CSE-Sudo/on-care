@@ -434,7 +434,7 @@ def test_rejected_invite_is_its_own_kind(client, db_session):
 
 
 def test_invite_results_ignore_the_message_setting(client, db_session):
-    """메시지 알림을 꺼도 담당 요청 결과는 온다 — 끌 수 있는 종류가 아니다."""
+    """메시지 알림을 꺼도 담당 요청 결과는 온다 — 상담 요청 스위치를 따른다(#2420)."""
     _, trainer_token = _trainer(client, db_session)
     off = client.put(
         "/v1/trainer/me/settings",
@@ -450,6 +450,28 @@ def test_invite_results_ignore_the_message_setting(client, db_session):
 
     categories = {row["category"] for row in _inbox(client, trainer_token)}
     assert {"invite_accepted", "invite_rejected"} <= categories
+
+
+def test_consultation_off_silences_invite_results(client, db_session):
+    """담당 요청 수락·거절은 상담 요청 스위치를 따른다(#2420)."""
+    _, trainer_token = _trainer(client, db_session)
+    off = client.put(
+        "/v1/trainer/me/settings",
+        json={"notify_consultation": False},
+        headers=_auth(trainer_token),
+    )
+    assert off.status_code == 200, off.text
+
+    accepted_id, accepted_token = _member(client)
+    rejected_id, rejected_token = _member(client)
+    _accept(client, accepted_token, _invite(client, trainer_token, accepted_id))
+    _reject(client, rejected_token, _invite(client, trainer_token, rejected_id))
+
+    categories = {row["category"] for row in _inbox(client, trainer_token)}
+    assert not categories & {"invite_accepted", "invite_rejected"}
+    # 알림만 빠지고 담당 연결은 그대로 생긴다.
+    roster = client.get("/v1/trainer/clients", headers=_auth(trainer_token)).json()
+    assert accepted_id in {item["id"] for item in roster}
 
 
 def test_no_invite_result_is_filed_as_consultation(client, db_session):
@@ -569,6 +591,56 @@ def test_queue_for_trainer_leaves_target_date_empty_by_default(client, db_sessio
     assert row is not None
     db_session.expire_all()
     assert db_session.get(Notification, row.id).target_date is None
+
+
+#: 종류 → 따르는 설정 칸(#2420). 트레이너 웹 설정 › 알림의 네 스위치 묶음.
+_KIND_SETTING = {
+    notification_service.TRAINER_MESSAGE_KIND: "notify_new_message",
+    notification_service.TRAINER_CONSULTATION_KIND: "notify_consultation",
+    notification_service.TRAINER_CONSULT_WITHDRAWN_KIND: "notify_consultation",
+    notification_service.TRAINER_INVITE_ACCEPTED_KIND: "notify_consultation",
+    notification_service.TRAINER_INVITE_REJECTED_KIND: "notify_consultation",
+    notification_service.TRAINER_RESERVATION_KIND: "notify_reservation",
+    notification_service.TRAINER_HEALTH_GOAL_KIND: "notify_member_updates",
+    notification_service.TRAINER_MEMBER_NAME_KIND: "notify_member_updates",
+    notification_service.TRAINER_MEMBER_LEFT_KIND: "notify_member_updates",
+    notification_service.TRAINER_WEEKLY_FEEDBACK_KIND: "notify_member_updates",
+}
+
+
+def test_every_trainer_kind_has_a_switch():
+    """새 트레이너 종류를 더하면 어느 스위치를 따를지 함께 정한다(#2420).
+
+    표에 없는 종류는 항상 보내지므로, 빠뜨리면 끌 수 없는 알림이 조용히 생긴다.
+    """
+    kinds = {
+        value
+        for name, value in vars(notification_service).items()
+        if name.startswith("TRAINER_") and name.endswith("_KIND")
+    }
+    assert kinds == set(_KIND_SETTING)
+    assert notification_service._TRAINER_SETTING_COLUMN == _KIND_SETTING
+
+
+@pytest.mark.parametrize(
+    "column", ["notify_consultation", "notify_reservation", "notify_member_updates"]
+)
+def test_kind_switch_silences_only_its_own_kinds(client, db_session, column):
+    """칸 하나를 끄면 그 칸을 따르는 종류만 빠지고 나머지는 그대로 온다(#2420)."""
+    trainer, _ = _trainer(client, db_session)
+    profile = db_session.query(TrainerProfile).filter_by(trainer_id=trainer.id).one()
+    setattr(profile, column, False)
+    db_session.commit()
+
+    for kind, setting in _KIND_SETTING.items():
+        row = notification_service.queue_for_trainer(
+            db_session, trainer_id=trainer.id, kind=kind, title=f"테스트 {kind}"
+        )
+        if setting == column:
+            assert row is None, kind
+        else:
+            assert row is not None, kind
+    db_session.commit()
 
 
 def test_invite_kinds_are_distinct_from_existing_kinds():

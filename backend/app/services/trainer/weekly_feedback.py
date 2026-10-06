@@ -136,7 +136,14 @@ def _notify_trainer(
       알림함에 쌓이면 무엇이 최신인지 읽을 수 없다.
     - 이미 읽었으면 "피드백을 수정했어요" 로 한 건 더 만든다 — 트레이너가 본 답과
       달라졌다는 것을 알려야 한다.
+
+    담당 회원 소식 알림을 껐으면 고쳐 쓰지도 않는다(#2420) — 이미 받은 줄이 끈 뒤에
+    다시 맨 위로 올라오면 새 알림이 온 것과 같다.
     """
+    if not notification_service.trainer_wants(
+        db, trainer_id, notification_service.TRAINER_WEEKLY_FEEDBACK_KIND
+    ):
+        return None
     member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     week_iso = week.isoformat()
     args = {

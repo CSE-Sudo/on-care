@@ -604,9 +604,21 @@ def test_settings_defaults_come_from_the_server(client):
     assert r.status_code == 200, r.text
     body = r.json()
     assert set(body) == {
-        "notify_new_message", "notify_session_reminder", "reminder_lead_minutes",
+        "notify_new_message",
+        "notify_consultation",
+        "notify_reservation",
+        "notify_member_updates",
+        "notify_session_reminder",
+        "reminder_lead_minutes",
     }
-    assert body["notify_new_message"] is True
+    # 종류별 수신 설정(#2420)도 기본은 켬 — 기존 트레이너는 지금처럼 모두 받는다.
+    for key in (
+        "notify_new_message",
+        "notify_consultation",
+        "notify_reservation",
+        "notify_member_updates",
+    ):
+        assert body[key] is True, key
     assert body["notify_session_reminder"] is True
     assert body["reminder_lead_minutes"] == 30
 
@@ -632,6 +644,32 @@ def test_settings_update_persists_and_is_partial(client):
         client.put("/v1/trainer/me/settings", json=before, headers=_auth(token))
 
 
+def test_settings_kind_switches_persist_one_by_one(client):
+    """종류별 스위치는 서로 따로 저장된다(#2420)."""
+    token = _trainer_token(client)
+    before = client.get("/v1/trainer/me/settings", headers=_auth(token)).json()
+    kinds = ("notify_consultation", "notify_reservation", "notify_member_updates")
+    try:
+        client.put(
+            "/v1/trainer/me/settings",
+            json={key: True for key in kinds},
+            headers=_auth(token),
+        )
+        for key in kinds:
+            r = client.put(
+                "/v1/trainer/me/settings", json={key: False}, headers=_auth(token)
+            )
+            assert r.status_code == 200, r.text
+            # 다시 읽어도 그 칸만 꺼져 있다.
+            again = client.get("/v1/trainer/me/settings", headers=_auth(token)).json()
+            assert {k: again[k] for k in kinds} == {k: k != key for k in kinds}
+            client.put(
+                "/v1/trainer/me/settings", json={key: True}, headers=_auth(token)
+            )
+    finally:
+        client.put("/v1/trainer/me/settings", json=before, headers=_auth(token))
+
+
 def test_settings_reject_a_lead_time_outside_the_options(client):
     token = _trainer_token(client)
     r = client.put(
@@ -651,6 +689,9 @@ def test_settings_reject_an_explicit_null(client):
     token = _trainer_token(client)
     for payload in (
         {"notify_new_message": None},
+        {"notify_consultation": None},
+        {"notify_reservation": None},
+        {"notify_member_updates": None},
         {"notify_session_reminder": None},
         {"reminder_lead_minutes": None},
     ):

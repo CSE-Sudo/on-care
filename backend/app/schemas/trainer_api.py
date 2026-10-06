@@ -2584,8 +2584,16 @@ class TrainerTaskKeyChange(BaseModel):
 
 
 class TrainerNotificationSettings(BaseModel):
-    """트레이너 알림 수신 설정."""
+    """트레이너 알림 수신 설정.
+
+    `notify_consultation`·`notify_reservation`·`notify_member_updates` 는 종류별
+    수신 설정이다(#2420) — 어떤 알림이 어느 칸을 따르는지는
+    `notification_service._TRAINER_SETTING_COLUMN`.
+    """
     notify_new_message: bool
+    notify_consultation: bool
+    notify_reservation: bool
+    notify_member_updates: bool
     notify_session_reminder: bool
     reminder_lead_minutes: int
 
@@ -2593,9 +2601,12 @@ class TrainerNotificationSettings(BaseModel):
 class TrainerNotificationSettingsUpdate(PartialUpdate):
     """부분 수정 — 보낸 필드만 반영.
 
-    세 항목 모두 DB NOT NULL 이라 null 로 바꿀 수 있는 값이 아니다(#495).
+    모든 항목이 DB NOT NULL 이라 null 로 바꿀 수 있는 값이 아니다(#495).
     """
     notify_new_message: bool | None = None
+    notify_consultation: bool | None = None
+    notify_reservation: bool | None = None
+    notify_member_updates: bool | None = None
     notify_session_reminder: bool | None = None
     reminder_lead_minutes: int | None = None
 
@@ -2612,7 +2623,7 @@ class TrainerNotificationSettingsUpdate(PartialUpdate):
     def _reject_explicit_null(self) -> TrainerNotificationSettingsUpdate:
         """명시적 null 을 422 로 거른다.
 
-        세 컬럼 모두 DB NOT NULL 이라 null 을 그대로 반영하면 IntegrityError
+        모든 컬럼이 DB NOT NULL 이라 null 을 그대로 반영하면 IntegrityError
         500 이 난다. 누락은 '변경 없음', null 은 '잘못된 값' 으로 구분한다
         (TrainerMeUpdate · ScheduleUpdateRequest 와 같은 규약).
         """

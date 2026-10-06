@@ -3886,7 +3886,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifNewMessageHint.
   ///
   /// In en, this message translates to:
-  /// **'Get an inbox alert and a sidebar count when a member messages you'**
+  /// **'Messages from members'**
   String get myNotifNewMessageHint;
 
   /// No description provided for @myLanguageApp.
@@ -4876,7 +4876,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifConsultationHint.
   ///
   /// In en, this message translates to:
-  /// **'When a member requests a consultation or responds to your coaching request'**
+  /// **'Consultation requests and cancellations, replies to your coaching requests'**
   String get myNotifConsultationHint;
 
   /// No description provided for @myNotifReservation.
@@ -4888,7 +4888,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifReservationHint.
   ///
   /// In en, this message translates to:
-  /// **'When a member books or changes an appointment'**
+  /// **'Bookings and cancellations'**
   String get myNotifReservationHint;
 
   /// No description provided for @myNotifMemberUpdates.
@@ -4900,7 +4900,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifMemberUpdatesHint.
   ///
   /// In en, this message translates to:
-  /// **'When a member changes goals or name, or disconnects'**
+  /// **'Weekly feedback, goal or name changes, disconnections'**
   String get myNotifMemberUpdatesHint;
 
   /// No description provided for @routineTypeCardio.
