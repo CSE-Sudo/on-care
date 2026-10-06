@@ -95,6 +95,10 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
     user: User | None = None
     if email:
         user = db.scalar(select(User).where(func.lower(User.email) == email))
+    if user is not None and not user.is_active:
+        # 쉬는 계정에는 연결하지 않고 돌려준다 — 거절은 호출부가 한다(#3252). 연결부터
+        # 남기면 정지가 풀린 뒤 주인이 연결한 적 없는 소셜 계정으로 바로 로그인된다.
+        return user
     if user is None:
         user = User(
             id=f"user-{uuid.uuid4().hex[:12]}",

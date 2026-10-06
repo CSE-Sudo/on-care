@@ -28,6 +28,7 @@ import hmac
 import logging
 import secrets
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -213,6 +214,14 @@ def _compose_already_registered(
     return OutgoingMail(to=email, subject=subject, body="\n".join(lines))
 
 
+def _deliver(sender: Mailer, mail: OutgoingMail, what: str) -> None:
+    """메일 한 통을 보낸다. 실패는 던지지 않고 로그만 남긴다."""
+    try:
+        sender.send(mail)
+    except MailDeliveryError as exc:
+        log.error("%s 발송 실패: to=%s err=%s", what, mask_email(mail.to), exc)
+
+
 def request_code(
     db: Session,
     email: str,
@@ -222,12 +231,18 @@ def request_code(
     settings: Settings | None = None,
     mailer: Mailer | None = None,
     locale: Locale | None = None,
+    schedule: Callable[..., object] | None = None,
 ) -> IssuedCode | None:
     """코드를 만들어 보낸다. 이미 가입된 주소면 안내만 보내고 None.
 
     `email` 은 정규화(소문자)된 값이다. 서버가 메일을 보낼 수 없으면 [CodeUnavailable]
     — 주소와 무관한 서버 상태라 응답에 드러내도 된다. 발송 실패는 던지지 않고 로그만
     남긴다(응답이 갈리지 않게).
+
+    [schedule] 을 주면 메일을 그 자리에서 보내지 않고 `schedule(함수, *인자)` 로
+    넘긴다(라우터는 `BackgroundTasks.add_task`) — 비밀번호 재설정(#3238)과 같다(#3257).
+    동기 SMTP 발송을 기다리는 만큼 응답이 늦고 워커가 묶인다. 안내 메일과 코드 메일
+    모두 같은 길로 보낸다.
     """
     settings = settings or get_settings()
     if not settings.mail_enabled:
@@ -236,17 +251,23 @@ def request_code(
         raise ValueError(f"unknown purpose: {purpose}")
     sender = mailer or get_mailer(settings)
 
+    def send(mail: OutgoingMail, what: str) -> None:
+        if schedule is None:
+            _deliver(sender, mail, what)
+        else:
+            schedule(_deliver, sender, mail, what)
+
+    # 만료 코드 정리와 커밋은 가입된 주소에도 한다 — 아닌 주소만 DB 작업을 하면 그만큼
+    # 응답 시간이 갈린다. 비밀번호 재설정(#3238)과 같다.
+    purge_stale(db, now=now)
     registered = db.scalar(
         select(User.id).where(func.lower(User.email) == email.lower())
     )
     if registered is not None:
-        try:
-            sender.send(_compose_already_registered(email, settings, locale, purpose))
-        except MailDeliveryError as exc:
-            log.error("가입 안내 메일 발송 실패: to=%s err=%s", mask_email(email), exc)
+        db.commit()
+        send(_compose_already_registered(email, settings, locale, purpose), "가입 안내 메일")
         return None
 
-    purge_stale(db, now=now)
     # 새 코드를 보내면 앞서 보낸 코드는 닫는다 — 살아 있는 코드가 여럿이면 맞힐 확률이
     # 그만큼 커진다.
     _close_open_codes(db, email, purpose, now=now)
@@ -262,14 +283,12 @@ def request_code(
         )
     )
     db.commit()
-    try:
-        sender.send(
-            _compose_code(
-                email, code, settings.signup_email_code_minutes, settings, locale, purpose
-            )
-        )
-    except MailDeliveryError as exc:
-        log.error("가입 인증 메일 발송 실패: to=%s err=%s", mask_email(email), exc)
+    send(
+        _compose_code(
+            email, code, settings.signup_email_code_minutes, settings, locale, purpose
+        ),
+        "가입 인증 메일",
+    )
     return IssuedCode(email=email, purpose=purpose, code=code, expires_at=expires_at)
 
 
