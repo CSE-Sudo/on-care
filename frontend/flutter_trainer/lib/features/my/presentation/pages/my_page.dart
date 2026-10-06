@@ -2710,7 +2710,11 @@ class _ManagedClientRow extends StatelessWidget {
 /// 등록된 헬스장과 카카오 장소를 합쳐 준다 — 여기서는 어느 쪽인지 가리지 않는다.
 ///
 /// 고른 헬스장은 저장을 눌러야 바뀐다(다른 프로필 칸과 같다). 지도는 카카오
-/// JS 키가 주입된 빌드에서만 뜨고, 없으면 목록만으로 고른다.
+/// JS 키가 주입된 빌드에서만 뜨고, 없으면 목록만으로 고른다. 검색 전에는 현재
+/// 소속 헬스장을 중심·핀으로 보여 주고, 소속 위치가 없으면 들어오자마자 위치를
+/// 물어 주변 헬스장에서 시작한다(#3206). 지도는 검색 전에도
+/// 떠서 현재 소속을 보여 주고, 소속이 없으면 트레이너의 현재 위치에서 시작한다
+/// (#3206).
 class _GymPicker extends ConsumerStatefulWidget {
   const _GymPicker({
     required this.current,
@@ -2758,7 +2762,7 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   /// 지금 목록이 현재 위치 주변 결과인가(이름 검색 결과가 아니라).
   bool _nearby = false;
 
-  /// 지도 중심 — 내 위치, 고른 헬스장, 첫 결과 순. 기본은 서울시청.
+  /// 지도 중심 — 내 위치, 고른 헬스장, 첫 결과, 현재 소속 순. 기본은 서울시청.
   static const double _defaultLat = 37.5665;
   static const double _defaultLng = 126.9780;
   static const double _mapHeight = 240;
@@ -2766,6 +2770,19 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   /// 지도 확대 단계. 주변 찾기는 반경 2km 가 한눈에 들어오게 한 단계 넓힌다.
   static const int _mapLevel = 4;
   static const int _nearbyMapLevel = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    // 소속 위치가 없으면 지도를 보여 줄 기준이 없다 — 들어오자마자 위치를 물어
+    // 내 주변 헬스장에서 시작한다(#3206). 소속이 있으면 그 헬스장에서 시작하므로
+    // 묻지 않는다. 지도가 없는 빌드에서는 버튼으로만 찾는다.
+    if (isKakaoMapConfigured && !widget.current.hasLocation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _locate(auto: true);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -2847,11 +2864,14 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
     }
   }
 
-  /// 브라우저 위치를 얻어 주변 헬스장을 찾는다. 트레이너가 버튼을 눌렀을 때만
-  /// 부른다 — 권한 창이 이때 뜬다.
-  Future<void> _locate() async {
+  /// 브라우저 위치를 얻어 주변 헬스장을 찾는다. 권한 창이 이때 뜬다.
+  ///
+  /// 버튼을 눌렀을 때, 그리고 소속 위치가 없는 트레이너가 들어왔을 때([auto])
+  /// 부른다. 자동으로 부른 경우에는 실패 안내를 띄우지 않고(서울시청에서 시작한다),
+  /// 그새 이름을 치기 시작했으면 그 검색을 지우지 않는다.
+  Future<void> _locate({bool auto = false}) async {
     if (_locating) return;
-    _debounce?.cancel();
+    if (!auto) _debounce?.cancel();
     setState(() {
       _locating = true;
       _locationFailure = null;
@@ -2861,17 +2881,18 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           .read(trainerLocationServiceProvider)
           .locate();
       if (!mounted) return;
+      final bool typing = auto && _query.text.trim().isNotEmpty;
       // 주변 결과는 이름과 상관없다 — 남은 검색어가 목록을 설명하지 않게 비운다.
-      _query.clear();
+      if (!typing) _query.clear();
       setState(() {
         _position = position;
         _locating = false;
       });
-      await _loadNearby(position);
+      if (!typing) await _loadNearby(position);
     } on TrainerLocationFailure catch (failure) {
       if (!mounted) return;
       setState(() {
-        _locationFailure = failure;
+        if (!auto) _locationFailure = failure;
         _locating = false;
       });
     }
@@ -2885,13 +2906,43 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
         TrainerLocationFailure.unavailable => l.myGymLocationUnavailable,
       };
 
-  TrainerGymCandidate? get _focus {
+  ({double lat, double lng})? get _focus {
     final TrainerGymCandidate? picked = widget.picked;
-    if (picked != null && picked.hasLocation) return picked;
-    for (final TrainerGymCandidate gym in _results) {
-      if (gym.hasLocation) return gym;
+    if (picked != null && picked.hasLocation) {
+      return (lat: picked.lat!, lng: picked.lng!);
     }
+    for (final TrainerGymCandidate gym in _results) {
+      if (gym.hasLocation) return (lat: gym.lat!, lng: gym.lng!);
+    }
+    final TrainerGym current = widget.current;
+    if (current.hasLocation) return (lat: current.lat!, lng: current.lng!);
     return null;
+  }
+
+  /// 검색 결과가 없을 때(검색 전·검색어를 지운 뒤) 지도에 찍을 핀 — 고른
+  /// 헬스장, 없으면 현재 소속. 지도가 비어 보이지 않게 지금 위치를 보여 준다.
+  List<KakaoMapMarker> get _idleMarkers {
+    final TrainerGymCandidate? picked = widget.picked;
+    if (picked != null) {
+      return <KakaoMapMarker>[
+        if (picked.hasLocation)
+          KakaoMapMarker(
+            lat: picked.lat!,
+            lng: picked.lng!,
+            title: picked.name,
+            id: picked.id,
+          ),
+      ];
+    }
+    final TrainerGym current = widget.current;
+    return <KakaoMapMarker>[
+      if (current.hasLocation && current.name.trim().isNotEmpty)
+        KakaoMapMarker(
+          lat: current.lat!,
+          lng: current.lng!,
+          title: current.name,
+        ),
+    ];
   }
 
   void _pickById(KakaoMapMarker marker) {
@@ -2909,17 +2960,19 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
     final OnCareTokens tokens = context.oncare;
     final TrainerGymCandidate? picked = widget.picked;
     final String? pickedId = picked?.id ?? widget.current.id;
-    final List<KakaoMapMarker> markers = <KakaoMapMarker>[
-      for (final TrainerGymCandidate gym in _results)
-        if (gym.hasLocation)
-          KakaoMapMarker(
-            lat: gym.lat!,
-            lng: gym.lng!,
-            title: gym.name,
-            id: gym.id,
-          ),
-    ];
-    final TrainerGymCandidate? focus = _focus;
+    final List<KakaoMapMarker> markers = _results.isEmpty
+        ? _idleMarkers
+        : <KakaoMapMarker>[
+            for (final TrainerGymCandidate gym in _results)
+              if (gym.hasLocation)
+                KakaoMapMarker(
+                  lat: gym.lat!,
+                  lng: gym.lng!,
+                  title: gym.name,
+                  id: gym.id,
+                ),
+          ];
+    final ({double lat, double lng})? focus = _focus;
     final TrainerPosition? position = _position;
     final TrainerLocationFailure? locationFailure = _locationFailure;
     final double centerLat = position?.lat ?? focus?.lat ?? _defaultLat;

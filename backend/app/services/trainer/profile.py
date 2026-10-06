@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.models import (
-    TrainerClient, TrainerProfile, TrainerReservation, TrainerReservationSlot, User,
+    Place, TrainerClient, TrainerProfile, TrainerReservation, TrainerReservationSlot, User,
 )
 from app.schemas.trainer_api import (
     TrainerGymOut, TrainerMe,
@@ -122,8 +122,10 @@ def _certifications(profile: TrainerProfile) -> list[str]:
     return certs
 
 
-def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
+def build_trainer_me(db: Session, trainer: User, profile: TrainerProfile) -> TrainerMe:
     """`GET /trainer/me` 응답. 조회와 수정이 같은 표현을 쓰도록 분리."""
+    # 좌표는 소속 장소에만 있다 — 호환 문자열(gym_*)처럼 프로필에 복사해 두지 않는다.
+    place = db.get(Place, profile.gym_id) if profile.gym_id else None
     return TrainerMe(
         id=trainer.id,
         name=trainer.name,
@@ -139,6 +141,8 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
             address=profile.gym_address,
             hours=profile.gym_hours,
             phone=profile.gym_phone,
+            lat=place.lat if place else None,
+            lng=place.lng if place else None,
         ),
         is_admin=bool(trainer.is_admin),
         has_password=bool(trainer.hashed_password),
@@ -179,4 +183,4 @@ def update_trainer_profile(
             setattr(profile, column, fields[column])
     db.commit()
     db.refresh(profile)
-    return build_trainer_me(trainer, profile)
+    return build_trainer_me(db, trainer, profile)

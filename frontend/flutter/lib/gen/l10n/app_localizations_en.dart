@@ -3759,6 +3759,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalMacroApplySuggestion => 'Use suggested goals';
 
   @override
+  String myGoalPersonalCaloriesNote(int kcal) {
+    return 'Suggested for you: $kcal kcal a day · carbs, protein, fat and sugar follow it';
+  }
+
+  @override
+  String get myGoalPersonalCaloriesApply => 'Use suggested calories';
+
+  @override
   String get myGoalUnsetHint =>
       'Dimmed values are the baseline used before you set a goal';
 

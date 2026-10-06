@@ -1737,6 +1737,8 @@
   "myGoalCaloriesFromMacros": "탄단지 목표로 계산한 값이에요",
   "myGoalMacroSuggestionNote": "{kcal}kcal 기준 권장 배분: 탄수화물 {carbs}g · 단백질 {protein}g · 지방 {fat}g · 당류 {sugar}g",
   "myGoalMacroApplySuggestion": "권장값으로 채우기",
+  "myGoalPersonalCaloriesNote": "내 정보로 계산한 권장: 하루 {kcal}kcal · 탄·단·지·당류도 이 칼로리에 맞춰 채워요",
+  "myGoalPersonalCaloriesApply": "권장 칼로리로 채우기",
   "myGoalUnsetHint": "흐린 값은 목표를 세우기 전의 기본 기준이에요",
   "myGoalsSaved": "건강 목표를 저장했어요",
   "myGoalRange": "{min}~{max} 사이로 입력해 주세요",
