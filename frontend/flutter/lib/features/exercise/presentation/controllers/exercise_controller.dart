@@ -123,7 +123,9 @@ int exerciseAllPeriodWeeks(DateTime? firstRecord, DateTime today) {
   final DateTime firstMonday = mondayOfWeek(firstRecord);
   final DateTime thisMonday = mondayOfWeek(today);
   if (!firstMonday.isBefore(thisMonday)) return kExerciseMinPeriodWeeks;
-  final int weeks = thisMonday.difference(firstMonday).inDays ~/ 7 + 1;
+  // 달력으로 센다 — 서머타임 기기에서 `difference().inDays` 는 봄 전환을 사이에
+  // 두면 하루를 잃어 딱 떨어지는 주가 한 주 모자랐다(#3250).
+  final int weeks = calendarDaysBetween(firstMonday, thisMonday) ~/ 7 + 1;
   if (weeks > kExerciseMaxPeriodWeeks) return kExerciseMaxPeriodWeeks;
   return weeks < kExerciseMinPeriodWeeks ? kExerciseMinPeriodWeeks : weeks;
 }

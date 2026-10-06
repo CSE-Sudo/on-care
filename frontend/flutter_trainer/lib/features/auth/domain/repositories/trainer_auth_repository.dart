@@ -34,16 +34,27 @@ enum AuthFailure {
   network,
   emptyResponse,
   notTrainer,
+
+  /// 시도가 너무 많아 서버가 잠시 막았다(429) — 로그인 연속 실패 잠금·IP 분당
+  /// 한도·가입 한도(#3248). 남은 시간은 [AuthException.retryAfter] 에 있다.
+  tooManyAttempts,
+
+  /// 계정은 만들었지만 이어진 로그인·프로필 조회가 실패했다(#3248). 다시 가입을
+  /// 누르면 이미 가입된 이메일(409)이라, 로그인으로 보낸다.
+  signedUpSignInFailed,
   unknown,
 }
 
 /// 로그인·가입이 거부됐을 때 던진다. 사용자에게 보일 문구가 아니라
 /// [AuthFailure] 코드를 들고 나가며, 문구는 화면이 [authFailureText] 로 붙인다.
 class AuthException implements Exception {
-  const AuthException(this.failure, {this.detail});
+  const AuthException(this.failure, {this.detail, this.retryAfter});
 
   /// 무엇이 잘못됐는가. 화면이 이 값으로 문구를 고른다.
   final AuthFailure failure;
+
+  /// [AuthFailure.tooManyAttempts] 의 남은 시간 — 서버의 `Retry-After`. 모르면 null.
+  final Duration? retryAfter;
 
   /// 로그·디버깅용 상세(파서 메시지 등). **화면에 그리지 않는다** — 로케일도
   /// 모르고 사용자가 읽을 문장도 아니다. [toString] 에만 실린다.
@@ -164,6 +175,13 @@ String authFailureText(AppLocalizations l, AuthException e) {
     AuthFailure.network => l.authErrNetwork,
     AuthFailure.emptyResponse => l.authErrEmptyResponse,
     AuthFailure.notTrainer => l.authErrNotTrainer,
+    // 1분짜리 분당 한도와 15분 잠금이 같은 429 다 — 남은 시간이 있으면 분으로 말한다.
+    AuthFailure.tooManyAttempts => switch (e.retryAfter) {
+      final Duration wait when wait > Duration.zero =>
+        l.authErrTooManyAttemptsMinutes((wait.inSeconds + 59) ~/ 60),
+      _ => l.authErrTooManyAttempts,
+    },
+    AuthFailure.signedUpSignInFailed => l.authErrSignedUpSignInFailed,
     AuthFailure.unknown => l.authErrGeneric,
   };
 }

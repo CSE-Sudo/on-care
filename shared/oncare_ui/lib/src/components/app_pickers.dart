@@ -39,6 +39,7 @@ Future<DateTime?> showAppDatePicker({
   required DateTime lastDate,
   String? helpText,
   bool? showClose,
+  DateTime? currentDate,
 }) {
   return showAppDialog<DateTime>(
     context: context,
@@ -48,6 +49,7 @@ Future<DateTime?> showAppDatePicker({
       lastDate: lastDate,
       helpText: helpText,
       showClose: showClose,
+      currentDate: currentDate,
     ),
   );
 }
@@ -61,6 +63,7 @@ class AppDatePickerDialog extends StatefulWidget {
     required this.lastDate,
     this.helpText,
     this.showClose,
+    this.currentDate,
   });
 
   /// 창·입력창·버튼 키. 테스트가 이 창을 지목한다(옛 `portraitDatePicker*` 키).
@@ -83,6 +86,11 @@ class AppDatePickerDialog extends StatefulWidget {
   /// 오른쪽 위 닫기 X 를 둘지. 끄면 하단 `취소` 로만 닫는다. 비워 두면
   /// [AppDialog] 기본값을 따른다.
   final bool? showClose;
+
+  /// 달력에 테두리로 표시할 오늘(#3250). 비우면 기기 시각의 오늘이다 — 앱은 서비스
+  /// 기준 시각(KST)의 오늘을 넘긴다. 기기가 다른 시간대면 기기의 오늘이 하루
+  /// 어긋난다.
+  final DateTime? currentDate;
 
   @override
   State<AppDatePickerDialog> createState() => _AppDatePickerDialogState();
@@ -187,6 +195,7 @@ class _AppDatePickerDialogState extends State<AppDatePickerDialog> {
             selectedDate: _selected,
             firstDate: widget.firstDate,
             lastDate: widget.lastDate,
+            currentDate: widget.currentDate,
             onDateChanged: (DateTime date) => _handleCalendarChanged(l, date),
           ),
         ],

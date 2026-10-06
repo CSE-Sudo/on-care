@@ -15,9 +15,13 @@ ReportSheetWeekData _report({
   bool isCurrentWeek = false,
   List<int> caloriesWeek = const <int>[2000, 0, 1900, 2600, 1000, 0, 0],
   List<double> carbsWeek = const <double>[],
+  List<double> proteinWeek = const <double>[],
   List<double> sugarWeek = const <double>[],
+  List<int> sodiumWeek = const <int>[],
   List<int> mealCounts = const <int>[3, 0, 2, 3, 1, 0, 0],
   int? calorieTarget = 2000,
+  double? proteinTarget,
+  double? effectiveProteinTarget,
 }) => ReportSheetWeekData(
   memberName: '김회원',
   weekStart: DateTime(2026, 8, 10),
@@ -28,9 +32,13 @@ ReportSheetWeekData _report({
   isCurrentWeek: isCurrentWeek,
   caloriesWeek: caloriesWeek,
   carbsWeek: carbsWeek,
+  proteinWeek: proteinWeek,
   sugarWeek: sugarWeek,
+  sodiumWeek: sodiumWeek,
   mealCounts: mealCounts,
   calorieTarget: calorieTarget,
+  proteinTarget: proteinTarget,
+  effectiveProteinTarget: effectiveProteinTarget,
 );
 
 ReportSheetTrendData _trend(List<(int, int, int)> weeks) =>
@@ -136,6 +144,52 @@ void main() {
         sheet.diet[SheetDietItem.sodium]!.target,
         kGoalDefaultDailySodiumMg,
       );
+    });
+
+    test('단백질은 실효 목표로 견주고, 개인 목표가 없으면 칸을 고르지 않는다 (#3246)', () {
+      // 체중 80kg → 실효 목표 96g. 평균 90g 은 트레이너 화면에서 적정이다.
+      final SheetMeasure m = ReportSheet.of(
+        _report(
+          proteinWeek: const <double>[90, 0, 90],
+          effectiveProteinTarget: 96,
+        ),
+      ).diet[SheetDietItem.protein]!;
+      expect(m.target, 96);
+      expect(m.position, isNotNull);
+      expect(m.band, isNull);
+      expect(m.concerning, isNull);
+    });
+
+    test('탄단지는 개인 목표가 있을 때 ±25% 로 판정한다 (#3246)', () {
+      SheetBand? band(double mean) => ReportSheet.of(
+        _report(proteinWeek: <double>[mean], proteinTarget: 100),
+      ).diet[SheetDietItem.protein]!.band;
+
+      expect(band(76), SheetBand.normal);
+      expect(band(74), SheetBand.under);
+      expect(band(124), SheetBand.normal);
+      expect(band(126), SheetBand.over);
+    });
+
+    test('나트륨은 평균이 목표 안이어도 초과 사흘이면 초과다 (#3246)', () {
+      SheetMeasure sodium(List<int> week) => ReportSheet.of(
+        _report(sodiumAvg: 1900, sodiumWeek: week),
+      ).diet[SheetDietItem.sodium]!;
+
+      final SheetMeasure three = sodium(<int>[2100, 2100, 2100, 1300]);
+      expect(three.band, SheetBand.over);
+      expect(three.concerning, isTrue);
+      expect(sodium(<int>[2100, 2100, 1800, 1600]).band, SheetBand.normal);
+    });
+
+    test('당류는 평균이 기준 안이어도 초과 사흘이면 초과다 (#3246)', () {
+      SheetBand? band(List<double> week) => ReportSheet.of(
+        _report(sugarWeek: week),
+      ).diet[SheetDietItem.sugar]!.band;
+
+      // 기준 50g — 평균 46g 이지만 사흘을 넘겼다.
+      expect(band(<double>[60, 55, 52, 10, 53]), SheetBand.over);
+      expect(band(<double>[60, 55, 20, 10, 10]), SheetBand.normal);
     });
 
     test('출석은 진행 / 잡힌 수업이다', () {

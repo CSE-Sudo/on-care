@@ -27,6 +27,7 @@ import 'package:oncare/features/exercise/presentation/controllers/location_conse
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
+import 'package:oncare/features/my_health/presentation/widgets/email_change_code_dialog.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_error_state_for.dart';
@@ -532,7 +533,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     final bool emailChanged =
         email != null &&
         email.toLowerCase() != _base.email.trim().toLowerCase();
-    Future<void> send({AccountReauth? reauth}) async {
+    Future<void> send({AccountReauth? reauth, String? emailCode}) async {
       _base = await ref
           .read(accountRepositoryProvider)
           .updateProfile(
@@ -544,6 +545,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             heightCm: heightCm,
             weightKg: weightKg,
             reauth: reauth,
+            emailCode: emailCode,
             // 이메일이 바뀌면 다른 기기의 세션이 끊기고 이 기기에 새 토큰이
             // 온다 — 비밀번호 변경과 같이 받아 넣어야 로그인이 이어진다.
             onTokensReissued: _adoptTokens,
@@ -553,6 +555,14 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     }
 
     if (emailChanged) {
+      // 먼저 새 주소의 주인인지 확인한다(#3230) — 그 주소로 보낸 코드를 받아 온다.
+      // 본인 확인만으로는 남의 주소로 바꿔 그 주소를 선점할 수 있었다. 취소하면
+      // 편집 상태 그대로 둔다.
+      final String? emailCode = await showEmailChangeCodeDialog(
+        context: context,
+        email: email,
+      );
+      if (!mounted || emailCode == null) return;
       // 저장 버튼의 진행 표시는 켜지 않는다 — 창이 떠 있는 동안 진행 중인 것은
       // 창 안의 확정 버튼이고, 창 뒤에서 도는 표시는 회원에게 보이지도 않는다.
       final AccountReauthDialogOutcome outcome = await showAccountReauthDialog(
@@ -560,7 +570,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         message: l.reauthEmailMessage,
         confirmLabel: l.mySave,
         hasPassword: _base.hasPassword,
-        onSubmit: (AccountReauth reauth) => send(reauth: reauth),
+        onSubmit: (AccountReauth reauth) =>
+            send(reauth: reauth, emailCode: emailCode),
       );
       if (!mounted) return;
       switch (outcome.result) {
@@ -638,6 +649,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         _phoneRequiredByServer = true;
         _errors.validate(const <_ProfileField>[_ProfileField.phone]);
       case ProfileUpdateRejection.invalid:
+      // 코드가 틀렸거나 만료됐다(#3230) — 저장을 다시 누르면 새 코드를 받는다.
+      case ProfileUpdateRejection.emailCodeInvalid:
         break;
     }
     setState(() => _saving = false);
@@ -645,6 +658,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       ProfileUpdateRejection.emailTaken => l.myProfileEmailTaken,
       ProfileUpdateRejection.phoneRequired => l.myProfilePhoneRequired,
       ProfileUpdateRejection.invalid => l.myProfileInvalid,
+      ProfileUpdateRejection.emailCodeInvalid => l.signUpEmailCodeInvalid,
     };
   }
 

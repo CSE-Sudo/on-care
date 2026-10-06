@@ -154,4 +154,25 @@ void main() {
       0,
     );
   });
+
+  // 기기 시간대가 아니라 KST 로 읽는다(#3248) — 01:00Z 는 서울 10:00 이고,
+  // UTC 로는 10월 1일인 15:30Z 는 서울에서 10월 2일 00:30 이다.
+  test('시각은 KST 벽시계로 읽는다', () {
+    final AdminTrainerReport r = adminTrainerReportFromJson(
+      _report(status: 'resolved'),
+    );
+    expect(r.createdAt, DateTime(2026, 10, 1, 10));
+    expect(r.resolvedAt, DateTime(2026, 10, 2, 12));
+    expect(
+      adminTrainerFromJson(_trainer()).createdAt,
+      DateTime(2026, 10, 1, 10),
+    );
+    expect(
+      adminTrainerFromJson(<String, Object?>{
+        ..._trainer(),
+        'created_at': '2026-10-01T15:30:00Z',
+      }).createdAt,
+      DateTime(2026, 10, 2, 0, 30),
+    );
+  });
 }

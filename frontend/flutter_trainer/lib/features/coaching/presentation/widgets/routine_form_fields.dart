@@ -510,6 +510,8 @@ class RoutineDateField extends StatelessWidget {
               // 프로그램은 앞으로 할 운동도 잡는다 — 회원 기록과 달리 미래를
               // 막지 않는다.
               lastDate: DateTime(now.year + 2),
+              // 오늘 테두리는 기기 시각이 아니라 서울의 오늘이다(#3250).
+              currentDate: now,
             );
             if (picked != null) {
               onChanged(DateTime(picked.year, picked.month, picked.day));

@@ -71,7 +71,10 @@ class ReportReviewCards extends StatelessWidget {
   Widget _member() =>
       // ① 회원이 낸 답. 수치만으로는 같은 한 주가 `게으름` 으로도
       // `과부하` 로도 읽히는데, 그 둘은 다음 주 처방이 정반대다.
-      MemberFeedbackCard(feedback: report.memberFeedback);
+      MemberFeedbackCard(
+        feedback: report.memberFeedback,
+        failed: report.memberFeedbackFailed,
+      );
 
   Widget _week(AppLocalizations l) => ReportSectionCard(
     key: const ValueKey<String>('report-review-week'),

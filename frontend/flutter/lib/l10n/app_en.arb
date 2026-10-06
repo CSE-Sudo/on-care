@@ -762,6 +762,7 @@
   "exSlotsLoadError": "Couldn't load open booking times.",
   "exReserveFailed": "Couldn't book that time. Please try again.",
   "exReserveTimeTaken": "Your trainer already has something else at this time, so it can't be booked. Please pick another time.",
+  "exReserveUpcomingExists": "You already have an upcoming booking. To change the time, cancel it first.",
   "exReserveConfirmedSlotGym": "{slot} · {gym} booking confirmed",
   "@exReserveConfirmedSlotGym": {
     "placeholders": {
@@ -4172,6 +4173,23 @@
   "reauthEmailMessage": "Changing your email changes your sign-in ID and the address password reset emails go to.",
   "@reauthEmailMessage": {
     "description": "Re-auth dialog text before an email change (#3039)"
+  },
+  "emailChangeCodeTitle": "Verify your new email",
+  "@emailChangeCodeTitle": {
+    "description": "Title of the dialog that checks the new address before an email change (#3230)"
+  },
+  "emailChangeCodeMessage": "We sent a 6-digit code to {email}. Enter it to confirm this address is yours.",
+  "@emailChangeCodeMessage": {
+    "description": "Body of the new-email code dialog; email is the new address (#3230)",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailChangeCodeNext": "Next",
+  "@emailChangeCodeNext": {
+    "description": "Confirm button of the new-email code dialog; the re-auth dialog follows (#3230)"
   },
   "reauthPasswordPrompt": "Enter your current password to continue.",
   "reauthPasswordRequired": "Enter your current password",

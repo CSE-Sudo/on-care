@@ -581,6 +581,10 @@ class MockGymRepository implements GymRepository {
     if (!_slots[i].startsAt.isAfter(nowKst())) {
       throw StateError('slot already started: $slotId');
     }
+    // 실서버와 같이 다가오는 예약은 하나다(#3240). 취소한 예약은 목록에서 빠진다.
+    if (_reservations.any((MyReservation r) => r.startsAt.isAfter(nowKst()))) {
+      throw UpcomingReservationError(slotId);
+    }
     _slots[i] = _slots[i].copyWith(booked: true);
     _reservations.add(
       MyReservation(
