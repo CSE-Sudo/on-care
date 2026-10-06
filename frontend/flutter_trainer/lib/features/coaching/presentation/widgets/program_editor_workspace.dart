@@ -51,6 +51,8 @@ class ProgramEditorWorkspace extends StatefulWidget {
     this.saving = false,
     this.sending = false,
     this.sent = false,
+    this.feedback = '',
+    this.onFeedbackChanged,
   });
 
   final String clientGoal;
@@ -112,6 +114,14 @@ class ProgramEditorWorkspace extends StatefulWidget {
   /// 못 보내는지 알 수 없다.
   final bool sent;
 
+  /// 이 PT 의 트레이너 피드백 처음 값(#2374) — `일정 추가` 가 일정의 `note` 로
+  /// 함께 보낸다. 회원에게는 PT 를 마친 뒤에 보인다(#2515). 값은 호출부가
+  /// 회원별로 들고 있어, 편집기가 새로 서도(위저드 재반영·`이어서 쓰기`) 남는다.
+  final String feedback;
+
+  /// 피드백 칸을 고쳤다 — 호출부가 값을 적어 두고 자동 보관에 싣는다(#2873).
+  final ValueChanged<String>? onFeedbackChanged;
+
   @override
   State<ProgramEditorWorkspace> createState() => _ProgramEditorWorkspaceState();
 }
@@ -129,6 +139,9 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
   final TextEditingController _programName = TextEditingController();
   String? _addingToSession;
   final TextEditingController _exerciseName = TextEditingController();
+  late final TextEditingController _feedback = TextEditingController(
+    text: widget.feedback,
+  );
   String _newExerciseType = _kDefaultExerciseType;
 
   /// 세션을 만들 때 고른 유형. **서버에 저장하지 않는다**(#2222) — 유형은
@@ -208,6 +221,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
   void dispose() {
     _programName.dispose();
     _exerciseName.dispose();
+    _feedback.dispose();
     super.dispose();
   }
 
@@ -625,6 +639,24 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           // `일정 추가`(예전 `보내기`)가 확인창을 거쳐 실제로 배정+PT
           // 등록까지 한다. 실제 전송·등록 API 호출은 전부 호출부(`onSend`)
           // 가 한다 — 여기는 트리거와 등록일·시각 값만 쥔다.
+          //
+          // 그 위의 피드백 칸은 이 PT 의 트레이너 피드백이다(#2374) — 스케줄
+          // 탭 `트레이너 피드백` 과 같은 칸에 담기고, PT 를 마친 뒤 회원 앱에
+          // 보인다. 스케줄의 PT 입력칸과 같은 이름·안내·상한을 쓴다.
+          AppTextField(
+            key: const ValueKey<String>('program-schedule-feedback'),
+            controller: _feedback,
+            label: l.schedNote,
+            hint: l.schedNoteHint,
+            helper: l.schedNoteVisibleToMember,
+            minLines: 2,
+            maxLines: 4,
+            maxLength: AppTextLimits.entry,
+            showCounter: true,
+            enabled: !widget.sending,
+            onChanged: widget.onFeedbackChanged,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
           Wrap(
             alignment: WrapAlignment.end,
             crossAxisAlignment: WrapCrossAlignment.end,

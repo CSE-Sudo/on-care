@@ -99,4 +99,35 @@ void main() {
       );
     });
   });
+
+  group('intensityConflictsWithDirection (#2374)', () {
+    final TrainerClient low = _client(weekCompletion: <int>[50, 0, 40]);
+    final TrainerClient lowAndSodium = _client(
+      weekCompletion: <int>[50, 0, 40],
+      sodiumWeek: <int>[_over, _over, _over, _over],
+    );
+    final TrainerClient fine = _client(weekCompletion: <int>[90, 80]);
+
+    test('완료율이 낮은데 강도 높음이면 어긋난다', () {
+      expect(intensityConflictsWithDirection(low, 'high'), isTrue);
+      expect(intensityConflictsWithDirection(lowAndSodium, 'high'), isTrue);
+    });
+
+    test('강도가 높음이 아니면 어긋나지 않는다', () {
+      expect(intensityConflictsWithDirection(low, 'moderate'), isFalse);
+      expect(intensityConflictsWithDirection(low, 'low'), isFalse);
+    });
+
+    test('완료율이 괜찮거나 기록이 없으면 어긋나지 않는다', () {
+      expect(intensityConflictsWithDirection(fine, 'high'), isFalse);
+      expect(intensityConflictsWithDirection(_client(), 'high'), isFalse);
+      expect(
+        intensityConflictsWithDirection(
+          _client(sodiumWeek: <int>[_over, _over, _over, _over]),
+          'high',
+        ),
+        isFalse,
+      );
+    });
+  });
 }

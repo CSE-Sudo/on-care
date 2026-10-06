@@ -1621,14 +1621,12 @@ void main() {
       }
       await tester.pump();
 
-      // 회원에게 함께 보낼 메모는 AI 요청과 **다른 칸**이다 (#1028) — 여기 적은
-      // 것만 회원이 받는 루틴 사유로 나간다.
-      final clientNote = find.byKey(
-        const ValueKey<String>('final-trainer-memo'),
+      // 회원에게 전할 피드백 칸은 위저드에 없다 — 편집기 하단에서 `일정 추가` 와
+      // 함께 쓴다(#2374).
+      expect(
+        find.byKey(const ValueKey<String>('final-trainer-memo')),
+        findsNothing,
       );
-      await tester.ensureVisible(clientNote);
-      await tester.enterText(clientNote, '무릎 충격 주의');
-      await tester.pump();
 
       await tester.ensureVisible(
         find.byKey(const ValueKey<String>('complete-routine-review')),
@@ -1642,6 +1640,15 @@ void main() {
       expect(reviewed, isNull);
       expect(
         find.byKey(const ValueKey<String>('reviewed-routine-list')),
+        findsOneWidget,
+      );
+      // 프로그램 검토에도 피드백 칸·카드가 없고, 구성 요약이 선다(#2374).
+      expect(
+        find.byKey(const ValueKey<String>('final-trainer-memo')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('reviewed-summary')),
         findsOneWidget,
       );
       expect(assigned.memberId, isNull);

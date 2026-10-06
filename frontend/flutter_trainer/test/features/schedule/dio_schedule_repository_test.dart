@@ -502,6 +502,41 @@ void main() {
     },
   );
 
+  test(
+    'registerProgramSchedule carries the trainer feedback as note',
+    () async {
+      // 편집기 하단의 트레이너 피드백(#2374) — 앞뒤 공백은 떼고 싣는다.
+      const path = '/trainer/clients/m1/program-schedule';
+      when(
+        () => dio.post<Map<String, dynamic>>(path, data: any(named: 'data')),
+      ).thenAnswer(
+        (_) async =>
+            _okMap(path, <String, dynamic>{'attached_to_existing': true}),
+      );
+
+      await repo.registerProgramSchedule(
+        date: '2026-08-06',
+        clientId: 'm1',
+        clientName: '김민수',
+        time: '16:00',
+        durationMinutes: 75,
+        assignment: const <String, Object?>{'name': '하체'},
+        program: const <ProgramItem>[ProgramItem(name: '스쿼트', sets: 1)],
+        note: '  하체 위주로 짰어요 ',
+      );
+
+      final body =
+          verify(
+                () => dio.post<Map<String, dynamic>>(
+                  path,
+                  data: captureAny(named: 'data'),
+                ),
+              ).captured.single
+              as Map<String, Object?>;
+      expect(body['note'], '하체 위주로 짰어요');
+    },
+  );
+
   test('booked dates come from their own endpoint', () async {
     when(
       () => dio.get<List<dynamic>>('$_schedulePath/booked-dates'),

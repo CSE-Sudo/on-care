@@ -79,7 +79,6 @@ AiRoutineWizardSnapshot _wizard() => AiRoutineWizardSnapshot(
   personalSeeded: true,
   options: _options(),
   prompt: '하체 부담 적게',
-  trainerMemo: '무릎 상태 확인',
   minutes: 40,
   intensity: 'high',
   minutesTouched: true,
@@ -136,6 +135,7 @@ void main() {
       personalRoutines: const <RoutineExercise>[_plank],
       routineOnly: true,
       routineOnlyStart: DateTime(2026, 10, 5),
+      scheduleNote: '하체 위주로 짰어요',
     );
 
     final CoachingWorkspaceDraft? back = coachingWorkspaceFromDraft(
@@ -148,6 +148,8 @@ void main() {
     expect(back.phase, CoachingWorkspacePhase.editor);
     expect(back.routineOnly, isTrue);
     expect(back.routineOnlyStart, DateTime(2026, 10, 5));
+    // 편집기 하단의 트레이너 피드백도 돌아온다(#2374).
+    expect(back.scheduleNote, '하체 위주로 짰어요');
     expect(back.hasContent, isTrue);
 
     final ProgramEditorState editor = back.editor!;
@@ -186,7 +188,6 @@ void main() {
     expect(w.selectedKey, 'B');
     expect(w.personalSeeded, isTrue);
     expect(w.prompt, '하체 부담 적게');
-    expect(w.trainerMemo, '무릎 상태 확인');
     expect(w.minutes, 40);
     expect(w.intensity, 'high');
     expect(w.minutesTouched, isTrue);

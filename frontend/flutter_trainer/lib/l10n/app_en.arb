@@ -1937,19 +1937,6 @@
   "coachDeliveryNothing": "Nothing sent",
   "coachHistoryFailed": "Couldn't load history",
   "coachHistoryEmpty": "You haven't sent any programs yet",
-  "aiReasonSodium": "Sodium is over goal today, so lean into low-intensity cardio.",
-  "aiReasonBalanced": "Today's meals are balanced, so the current intensity is fine to keep.",
-  "aiReasonGoal": "Based on the {goal} goal and recent {last} activity.",
-  "@aiReasonGoal": {
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      },
-      "last": {
-        "type": "String"
-      }
-    }
-  },
   "aiTagExisting": "Existing suggestion",
   "aiTagCustom": "Custom",
   "aiExistingBlurb": "The existing suggestion, based on their recent meals and workouts.",
@@ -2106,7 +2093,6 @@
   "aiAddExerciseManually": "Add exercise manually",
   "aiExerciseNameExample": "e.g. leg press, 3 sets",
   "aiRegister": "Add",
-  "aiNoteForClient": "Feedback to send with it",
   "aiReviewedSuggestion": "Confirmed plan · {option}",
   "@aiReviewedSuggestion": {
     "placeholders": {
@@ -2115,6 +2101,24 @@
       }
     }
   },
+  "aiReviewSummary": "{total} min total · {count} exercises · {strength} strength · {cardio} cardio",
+  "@aiReviewSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "strength": {
+        "type": "int"
+      },
+      "cardio": {
+        "type": "int"
+      }
+    }
+  },
+  "aiReviewIntensityWarning": "Recent completion is low but intensity is set to high. Check whether to lower it.",
   "aiEditsApplied": "Your choice and edits are now in the final suggestion list.",
   "aiApplyToTemplate": "Apply to program",
   "aiAppliedToTemplate": "The AI suggestion was applied to the program.",
@@ -2319,7 +2323,6 @@
   },
   "aiNoRecentRoutine": "No record",
   "aiRecentRoutine": "Recent activity",
-  "aiNotePlaceholderHint": "The grey suggestion is only a prompt — only what you type is saved and sent.",
   "aiGenerateConditions": "Conditions",
   "aiCompareCandidates": "Compare the candidates",
   "aiConditionsAutoHint": "Leave blank to auto-fill from recent history or goals.",
