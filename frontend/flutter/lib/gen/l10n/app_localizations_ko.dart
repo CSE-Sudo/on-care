@@ -3667,8 +3667,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineCancel => '이 개인운동 삭제';
 
   @override
-  String coachRoutineCancelConfirm(String name) {
-    return '\'$name\'을(를) 목록에서 삭제할까요? 이미 수행한 기록은 그대로 남아요.';
+  String coachRoutineCancelConfirm(String name, String nameObj) {
+    return '\'$name\'$nameObj 목록에서 삭제할까요? 이미 수행한 기록은 그대로 남아요.';
   }
 
   @override

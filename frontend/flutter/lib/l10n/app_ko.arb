@@ -1783,7 +1783,7 @@
   "coachRoutineUndone": "완료를 취소했어요",
   "coachRoutineUndoFailed": "완료를 취소하지 못했어요.",
   "coachRoutineCancel": "이 개인운동 삭제",
-  "coachRoutineCancelConfirm": "'{name}'을(를) 목록에서 삭제할까요? 이미 수행한 기록은 그대로 남아요.",
+  "coachRoutineCancelConfirm": "'{name}'{nameObj} 목록에서 삭제할까요? 이미 수행한 기록은 그대로 남아요.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
       "name": {

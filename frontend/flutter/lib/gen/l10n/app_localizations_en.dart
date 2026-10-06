@@ -3869,7 +3869,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineCancel => 'Delete this personal exercise';
 
   @override
-  String coachRoutineCancelConfirm(String name) {
+  String coachRoutineCancelConfirm(String name, String nameObj) {
     return 'Delete \'$name\' from the list? Anything you already logged stays.';
   }
 
