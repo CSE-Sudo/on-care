@@ -40,12 +40,11 @@ Widget _app(Locale locale, Widget home) => ProviderScope(
 
 /// 확인 창을 여는 버튼 하나. 메시지는 화면이 쓰는 그 키로 만든다.
 Widget _opener(String Function(AppLocalizations l) message) => Scaffold(
-  body: Consumer(
-    builder: (BuildContext context, WidgetRef ref, _) => TextButton(
+  body: Builder(
+    builder: (BuildContext context) => TextButton(
       key: const Key('open'),
       onPressed: () => confirmDisconnect(
         context,
-        ref,
         message: message(AppLocalizations.of(context)),
         disconnect: (GymRepository repo) => repo.disconnectMyTrainer(),
       ),

@@ -982,9 +982,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exEnterDuration => 'Please enter a duration';
 
   @override
-  String get exCannotEdit => 'This record can\'t be edited';
-
-  @override
   String get exUpdated => 'Exercise record updated';
 
   @override

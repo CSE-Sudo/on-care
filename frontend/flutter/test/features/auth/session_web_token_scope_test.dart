@@ -330,6 +330,117 @@ void main() {
       expect(calls, isNot(contains('POST /auth/refresh')));
       expect(tab.read(_access), isNull);
       expect(tab.read(_refresh), isNull);
+      // 옛 키는 원래 주인(트레이너 웹)이 가져가게 남긴다(#3260).
+      expect(tab.read('access_token'), 'trainer-old-access');
+      expect(tab.read('refresh_token'), 'trainer-old-refresh');
     });
+
+    test('an expired pre-namespace token is never rotated', () async {
+      // 옛 키는 어느 앱 것인지 모른다 — 일회용 갱신 토큰을 돌리면 주인 앱이 그
+      // 세션을 잃는다(#3260). 새 키만 비우고 옛 키는 남긴다.
+      tab
+        ..write('access_token', 'old-access')
+        ..write('refresh_token', 'old-refresh');
+      final ProviderContainer c = container(
+        <String, List<(int, Map<String, Object?>)>>{
+          'GET /users/me': <(int, Map<String, Object?>)>[
+            (401, <String, Object?>{}),
+          ],
+          'POST /auth/refresh': <(int, Map<String, Object?>)>[
+            (
+              200,
+              <String, Object?>{
+                'access_token': 'should-not-happen',
+                'refresh_token': 'should-not-happen',
+              },
+            ),
+          ],
+        },
+      );
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle(c);
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+      expect(calls, isNot(contains('POST /auth/refresh')));
+      expect(tab.read(_access), isNull);
+      expect(tab.read(_refresh), isNull);
+      expect(tab.read('access_token'), 'old-access');
+      expect(tab.read('refresh_token'), 'old-refresh');
+    });
+
+    test('a trainer role keeps the legacy keys for the trainer web', () async {
+      tab
+        ..write('access_token', 'trainer-old-access')
+        ..write('refresh_token', 'trainer-old-refresh');
+      final ProviderContainer c = container(
+        <String, List<(int, Map<String, Object?>)>>{
+          'GET /users/me': <(int, Map<String, Object?>)>[
+            (200, <String, Object?>{'id': 't1', 'role': 'trainer'}),
+          ],
+        },
+      );
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle(c);
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+      expect(tab.read(_access), isNull);
+      expect(tab.read(_refresh), isNull);
+      expect(tab.read('access_token'), 'trainer-old-access');
+      expect(tab.read('refresh_token'), 'trainer-old-refresh');
+    });
+
+    test(
+      'sign-out drops the legacy keys so a reload stays signed out',
+      () async {
+        // 이 앱은 새 키로 로그인해 있고, 옛 키에는 확인하지 못한 토큰이 남은 탭이다.
+        tab
+          ..write(_access, 'tab-access')
+          ..write(_refresh, 'tab-refresh')
+          ..write('access_token', 'old-access')
+          ..write('refresh_token', 'old-refresh');
+        final ProviderContainer c = container(
+          <String, List<(int, Map<String, Object?>)>>{
+            'GET /users/me': <(int, Map<String, Object?>)>[
+              (200, <String, Object?>{'id': 'u1', 'role': 'member'}),
+            ],
+            'POST /auth/logout': <(int, Map<String, Object?>)>[
+              (204, <String, Object?>{}),
+            ],
+          },
+        );
+        c.read(sessionControllerProvider.notifier);
+        await _settle(c);
+        expect(
+          c.read(sessionControllerProvider).status,
+          SessionStatus.authenticated,
+        );
+
+        await c.read(sessionControllerProvider.notifier).signOut();
+
+        expect(tab.read(_access), isNull);
+        expect(tab.read('access_token'), isNull);
+        expect(tab.read('refresh_token'), isNull);
+
+        // 새로 고침: 같은 탭 저장소로 앱을 다시 띄운다.
+        calls.clear();
+        final ProviderContainer reloaded = container(
+          <String, List<(int, Map<String, Object?>)>>{
+            'GET /users/me': <(int, Map<String, Object?>)>[
+              (200, <String, Object?>{'id': 'u1', 'role': 'member'}),
+            ],
+          },
+        );
+        reloaded.read(sessionControllerProvider.notifier);
+        await _settle(reloaded);
+
+        expect(
+          reloaded.read(sessionControllerProvider).status,
+          SessionStatus.signedOut,
+        );
+        expect(calls, isNot(contains('GET /users/me')));
+      },
+    );
   });
 }

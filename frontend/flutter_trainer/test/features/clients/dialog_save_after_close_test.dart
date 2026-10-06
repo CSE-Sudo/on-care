@@ -403,4 +403,62 @@ void main() {
       expect(find.byType(AppDialog), findsNothing);
     });
   });
+
+  // 저장 결과·오류를 창 안에 보여 주므로 저장 중에는 닫히지 않는다(#3245).
+  testWidgets('운동 메모 저장 중에는 바깥을 눌러도 창이 닫히지 않는다', (tester) async {
+    final _HeldMemoRepository memos = _HeldMemoRepository();
+    await _pumpHost(
+      tester,
+      overrides: <Override>[
+        trainerMemoRepositoryProvider.overrideWithValue(memos),
+      ],
+      open: (BuildContext context) => showExerciseMemoDialog(
+        context,
+        clientId: 'm1',
+        memoRef: const TrainerMemoRef(
+          kind: TrainerMemoRefKind.ptSession,
+          id: 'hist-pt',
+          day: '2026-09-30',
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('exercise-memo-input')),
+      '스쿼트 때 왼쪽 무릎이 안으로 모임',
+    );
+    await tester.tap(find.text('저장'));
+    await tester.pump();
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(AppDialog), findsOneWidget);
+
+    memos.gate.complete();
+    await tester.pumpAndSettle();
+    expect(memos.creates, 1);
+  });
+
+  testWidgets('운동 메모 창은 저장 중이 아니면 바깥을 눌러 닫힌다', (tester) async {
+    await _pumpHost(
+      tester,
+      overrides: <Override>[
+        trainerMemoRepositoryProvider.overrideWithValue(_HeldMemoRepository()),
+      ],
+      open: (BuildContext context) => showExerciseMemoDialog(
+        context,
+        clientId: 'm1',
+        memoRef: const TrainerMemoRef(
+          kind: TrainerMemoRefKind.ptSession,
+          id: 'hist-pt',
+          day: '2026-09-30',
+        ),
+      ),
+    );
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppDialog), findsNothing);
+  });
 }

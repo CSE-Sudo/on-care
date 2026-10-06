@@ -208,7 +208,7 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
 
     // 헤더의 닫기 X 는 [AppDialog] 가 둔다 — 가운데 뜨는 창은 아래로 끌어
     // 내려 닫을 수 없으므로 배경을 눌러 닫는 것과 별개로 명시적인 닫기가 있다.
-    return AppDialog(
+    final Widget dialog = AppDialog(
       key: const ValueKey<String>('client-connect-dialog'),
       title: l.clientInviteTitle,
       size: AppDialogSize.medium,
@@ -277,6 +277,10 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
         ],
       ),
     );
+    // 찾기·연결·요청 거두기 중에는 배경·뒤로 가기로 닫히지 않는다(#3245) — 닫히면
+    // 실패 사유를 보여 줄 자리가 사라진다. 기다리는 동안이 아니면 지금처럼
+    // 배경을 눌러 닫는다.
+    return PopScope(canPop: !_busy, child: dialog);
   }
 }
 

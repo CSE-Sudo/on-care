@@ -25,6 +25,9 @@ Future<String?> showEmailChangeCodeDialog({
   required String email,
 }) => showAppDialog<String>(
   context: context,
+  // 창 안에서 코드를 요청하고 받은 코드를 적는다 — 바깥을 잘못 눌러 닫히면 적던
+  // 코드와 요청 결과가 사라진다. 앞의 본인 확인 창처럼 `취소` 로만 닫는다(#3245).
+  dismissible: false,
   builder: (_) => EmailChangeCodeDialog(email: email),
 );
 

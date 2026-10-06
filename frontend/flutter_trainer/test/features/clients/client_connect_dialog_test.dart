@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,6 +45,9 @@ class _FakeInviteRepository implements ClientInviteRepository {
   /// **연결**에 넘어간 코드들 — 확인 전에는 비어 있어야 한다.
   final List<String> redeemed = <String>[];
 
+  /// 있으면 연결이 이것이 끝날 때까지 기다린다 — 요청 중인 창을 본다.
+  Completer<void>? redeemGate;
+
   @override
   bool get supportsInvites => true;
 
@@ -58,6 +63,7 @@ class _FakeInviteRepository implements ClientInviteRepository {
   @override
   Future<PairedMember> redeemPairingCode(String code) async {
     redeemed.add(code);
+    await redeemGate?.future;
     final result = paired;
     if (result == null) throw const NotFoundError();
     return result;
@@ -258,6 +264,45 @@ void main() {
     expect(repository.redeemed, <String>['979030']);
   });
 
+  testWidgets('연결을 기다리는 동안에는 배경을 눌러도 닫히지 않는다 (#3245)', (tester) async {
+    final repository = _FakeInviteRepository(paired: _paired())
+      ..redeemGate = Completer<void>();
+    await pumpDialog(tester, repository);
+    await enterCode(tester, '979030');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-connect-register')),
+    );
+    await tester.pump();
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      find.byKey(const ValueKey<String>('client-connect-dialog')),
+      findsOneWidget,
+    );
+
+    repository.redeemGate!.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(repository.redeemed, <String>['979030']);
+  });
+
+  testWidgets('기다리는 요청이 없으면 배경을 눌러 닫는다', (tester) async {
+    final repository = _FakeInviteRepository(paired: _paired());
+    await pumpDialog(tester, repository);
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('client-connect-dialog')),
+      findsNothing,
+    );
+  });
+
   testWidgets('틀렸거나 만료된 코드는 왜인지 갈라 말하지 않는다', (tester) async {
     // 서버도 404 하나로 답한다 — 갈라 주면 어떤 코드가 존재하기는 했는지를
     // 알려 주는 셈이다.
@@ -379,7 +424,6 @@ void main() {
           id: 'tci-1',
           memberId: 'user-8f2a41c9d6e3',
           memberName: '박하늘',
-          memberEmail: '',
           status: ClientInviteStatus.pending,
           createdAt: DateTime(2026, 9, 29, 10),
         ),

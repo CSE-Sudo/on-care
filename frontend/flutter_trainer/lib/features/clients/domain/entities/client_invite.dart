@@ -141,7 +141,6 @@ class ClientInvite {
     required this.id,
     required this.memberId,
     required this.memberName,
-    required this.memberEmail,
     required this.status,
     required this.createdAt,
     this.message,
@@ -150,7 +149,6 @@ class ClientInvite {
   final String id;
   final String memberId;
   final String memberName;
-  final String memberEmail;
   final ClientInviteStatus status;
   final DateTime createdAt;
   final String? message;
@@ -161,7 +159,6 @@ class ClientInvite {
     id: json['id']! as String,
     memberId: json['member_id'] as String? ?? '',
     memberName: json['member_name'] as String? ?? '',
-    memberEmail: json['member_email'] as String? ?? '',
     status: ClientInviteStatus.parse(json['status']),
     // 보낸 시각이 없거나 깨졌으면 조용히 '지금' 으로 메우지 않는다 — 언제
     // 보냈는지가 트레이너가 기다릴지 다시 보낼지를 정하는 값이라, 틀린 값보다

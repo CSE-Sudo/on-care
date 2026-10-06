@@ -10,9 +10,10 @@ import 'package:web/web.dart' as web;
 /// 나누지 않는다. sessionStorage 에 접근할 수 없으면 메모리로 물러난다.
 ///
 /// 복제한 탭은 sessionStorage 를 복사해 받으므로, 토큰을 읽기 전에 복제인지
-/// 보고 받은 토큰을 버린다(#3248, [BrowserTabClaim]). 판정은 페이지마다 한
-/// 번이다 — 다시 부르면 같은 저장소를 돌려준다. 두 번 판정하면 이 탭이 남긴
-/// 표시를 보고 자기 자신을 복제로 여긴다.
+/// 보고 받은 토큰을 버린다(#3248, [BrowserTabClaim]). 복사해 받은 옛 키도
+/// 이 탭에서는 보이지 않는다(#3260). 판정은 페이지마다 한 번이다 — 다시
+/// 부르면 같은 저장소를 돌려준다. 두 번 판정하면 이 탭이 남긴 표시를 보고
+/// 자기 자신을 복제로 여긴다.
 TokenSessionStorage? createBrowserSessionStorage() =>
     _pageStorage ??= _createBrowserSessionStorage();
 
@@ -31,7 +32,7 @@ TokenSessionStorage _createBrowserSessionStorage() {
     return InMemoryTokenSessionStorage();
   }
   _claimTab(session);
-  return session;
+  return BrowserTabClaim.scoped(session);
 }
 
 void _claimTab(TokenSessionStorage session) {

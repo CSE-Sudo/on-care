@@ -391,4 +391,22 @@ void main() {
     expect(repo.emailCodeRequests, hasLength(2));
     expect(find.text(l.signUpEmailCodeUnavailable), findsNothing);
   });
+
+  // 적던 코드와 요청 결과가 사라지지 않게 `취소` 로만 닫는다(#3245).
+  testWidgets('코드 창은 바깥을 눌러도 닫히지 않는다', (WidgetTester tester) async {
+    final (AppLocalizations l, _) = await _openProfile(tester);
+
+    await tester.enterText(find.byKey(_email), 'minsu.new@oncare.com');
+    await _tapSave(tester, l);
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(_codeDialog(), findsOneWidget);
+
+    // 다시 받기 카운트다운을 멈추려고 창을 닫는다.
+    await tester.tap(
+      find.byKey(const ValueKey<String>('email-change-code-cancel')),
+    );
+    await tester.pumpAndSettle();
+    expect(_codeDialog(), findsNothing);
+  });
 }
