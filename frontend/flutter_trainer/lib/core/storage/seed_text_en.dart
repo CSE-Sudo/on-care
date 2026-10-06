@@ -18,7 +18,7 @@ part of 'seed_data.dart';
 const Map<String, String> _seedEnglish = <String, String>{
   '체중 감량 · 혈압 관리': 'Weight loss · Blood pressure',
   '오늘': 'Today',
-  '민수님, 지난주 기록 정리해 봤는데 요일마다 이행률이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?':
+  '민수님, 지난주 기록 정리해 봤는데 요일마다 완료율이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?':
       "Minsu, I went through last week's logs and your completion rate jumps around from day to day. Are some days always busier?",
   '화요일이랑 목요일이 야근이 많아요 😥': 'I usually work late on Tuesdays and Thursdays 😥',
   '그럼 그 이틀은 15분짜리 짧은 프로그램으로 바꿔 둘게요. 안 하는 것보다 훨씬 낫습니다':
@@ -28,10 +28,10 @@ const Map<String, String> _seedEnglish = <String, String>{
       "Are you still taking your blood pressure medication at the same time? I'll keep cardio away from it",
   '네, 아침 8시 그대로예요': 'Yes, still 8 a.m.',
   '확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂':
-      "Got it. I've sent Tuesday and Thursday as 15-minute low-intensity sessions 🙂",
+      "Got it. I've sent Tuesday and Thursday as 15-minute low-intensity workouts 🙂",
   '동작 순서는 이 파일로 정리해 뒀어요': "I've put the moves in order in this file",
   '민수님, 요즘 나트륨이 목표(2,000mg) 근처에서 자주 걸리네요. 국·찌개가 잦으신 편인가요?':
-      'Minsu, your sodium has been hovering around the 2,000mg target lately. Do you eat a lot of soups and stews?',
+      'Minsu, your sodium has been hovering around the 2,000 mg goal lately. Do you eat a lot of soups and stews?',
   '회사 구내식당이라 국물이 늘 나와요 😅': 'The office cafeteria always serves soup 😅',
   '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠':
       "Leaving half the broth cuts 400–500mg. Let's start with just that",
@@ -44,13 +44,13 @@ const Map<String, String> _seedEnglish = <String, String>{
   '내일 프로그램은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요':
       "I've bumped tomorrow's program up a little to a 20-minute walk. Let's keep this pace through the weekend",
   '민수님, AI 식단 분석 잘 받았어요 👍 오늘 나트륨이 목표치를 좀 넘었는데 어떠셨어요?':
-      'Minsu, I got your AI diet analysis 👍 Your sodium went a bit over target today. How was your day?',
+      'Minsu, I got your AI diet analysis 👍 Your sodium went a bit over your goal today. How was your day?',
   '찌개 먹을 때 국물을 많이 마셨나봐요 😅': 'I guess I drank a lot of the stew broth 😅',
   '그렇군요! 오늘 PT 후에 부상이나 불편한 데는 없으셨나요?':
       "I see! Any injuries or discomfort after today's PT?",
   '무릎이 가볍게 당기긴 했는데 괜찮아요': "My knee was a little sore, but it's fine",
-  '이번 주 리포트 등록해 뒀어요. 확인해 보세요': "This week's report is up. Take a look",
-  '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪':
+  '이번 주 리포트 보내 드렸어요. 확인해 보세요': "I sent you this week's report. Take a look",
+  '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪':
       "Got it. The AI suggested a cardio program based on today's meals, but given your knee I'll swap running for walking. See you at the next PT 💪",
   '체중 감량 · 체력 강화': 'Weight loss · Fitness',
   '어제': 'Yesterday',
@@ -63,35 +63,26 @@ const Map<String, String> _seedEnglish = <String, String>{
   '시금치나물': 'Seasoned spinach',
   '저녁': 'Dinner',
   '연어 샐러드': 'Salmon salad',
-  '인터벌 런닝': 'Interval running',
+  '인터벌 러닝': 'Interval running',
   '체지방 연소 효율↑': 'Better fat burning',
   '스쿼트': 'Squat',
   '하체 근력 강화': 'Lower-body strength',
   '플랭크': 'Plank',
   '코어 안정화': 'Core stability',
   'AI 개인운동': 'AI personal exercise',
-  '인터벌 런닝 25분 ✓': 'Interval running · 25 min ✓',
-  '스쿼트 3세트 · 12회 · 40kg ✓': 'Squat · 3 sets · 12 reps · 40kg ✓',
-  '플랭크 3세트 · 3회 · 0kg ✓': 'Plank · 3 sets · 3 reps · 0kg ✓',
-  '런닝이 힘들었는데 다 했어요! 숨이 많이 찼어요':
+  '러닝이 힘들었는데 다 했어요! 숨이 많이 찼어요':
       'The run was tough but I finished it all! I was really out of breath',
-  '심폐지구력 향상 중. 다음 주 런닝 강도 소폭 올릴 예정.':
+  '심폐지구력 향상 중. 다음 주 러닝 강도 소폭 올릴 예정.':
       'Cardio endurance improving. Will raise running intensity slightly next week.',
   'PT 세션 · 트레이너 지도': 'PT · Trainer-led',
-  '데드리프트 3세트 · 8회 · 55kg': 'Deadlift · 3 sets · 8 reps · 55kg',
-  '런지 3세트 · 12회 · 10kg': 'Lunge · 3 sets · 12 reps · 10kg',
-  '코어 서킷 2세트 · 12회 · 0kg': 'Core circuit · 2 sets · 12 reps · 0kg',
   '데드리프트 자세 교정 도움 많이 됐어요!': 'The deadlift form fixes really helped!',
-  '런닝 25분 ✓': 'Running · 25 min ✓',
-  '스쿼트 ✓': 'Squat ✓',
-  '플랭크 ✗ (피로)': 'Plank ✗ (fatigue)',
   '마지막 플랭크는 너무 지쳐서 못 했어요': 'I was too worn out for the last plank',
-  '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 런닝 25분 완료! 컨디션은 어때요?':
+  '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 러닝 25분 완료! 컨디션은 어때요?':
       'Jisu, your AI workout data came in — 25 minutes of interval running done today! How are you feeling?',
   '생각보다 괜찮았어요. 숨이 금방 차더라고요 😮‍💨':
       'Better than I expected. I got out of breath quickly though 😮‍💨',
   '심폐 지구력 올라가는 과정이에요 💪 AI 분석 보니까 당류는 목표 안에 있고, 프로그램 다음 주부터 근력 비중 늘려볼게요. 식단도 AI 추천 참고해서 업데이트해 드릴게요':
-      "That's your endurance building 💪 The AI analysis shows your sugar is within target, so from next week I'll add more strength work. I'll update your meal plan with the AI suggestions too",
+      "That's your endurance building 💪 The AI analysis shows your sugar is within your goal, so from next week I'll add more strength work. I'll update your meal plan with the AI suggestions too",
   '근력 향상': 'Strength',
   '5일 전': '5 days ago',
   '삶은 계란 3개': '3 boiled eggs',
@@ -106,16 +97,10 @@ const Map<String, String> _seedEnglish = <String, String>{
   '전신 근력 향상': 'Full-body strength',
   '유산소 쿨다운': 'Cardio cool-down',
   '나트륨 배출 지원': 'Helps flush sodium',
-  '벤치프레스 4세트 · 8회 · 65kg': 'Bench press · 4 sets · 8 reps · 65kg',
-  '인클라인 덤벨 3세트 · 10회 · 26kg':
-      'Incline dumbbell press · 3 sets · 10 reps · 26kg',
-  '트라이셉스 딥 3세트 · 12회 · 0kg': 'Triceps dip · 3 sets · 12 reps · 0kg',
+  '인클라인 덤벨': 'Incline dumbbell press',
   '가슴이 많이 타는 느낌이었어요. 좋았어요!': 'My chest was really burning. Loved it!',
   '벤치 중량 62.5kg → 65kg 도전 가능. 다음 PT 때 시도 예정.':
       'Ready to move bench from 62.5kg to 65kg. Will try at the next PT.',
-  '벤치프레스 ✓': 'Bench press ✓',
-  '데드리프트 ✗': 'Deadlift ✗',
-  '유산소 ✗': 'Cardio ✗',
   '회사 일이 생겨서 벤치만 하고 나왔어요':
       'Something came up at work, so I only did bench and left',
   '벤치프레스 ✗': 'Bench press ✗',
@@ -240,7 +225,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '의자 스쿼트 ✗': 'Chair squat ✗',
   '10분 걷다가 회사에서 전화 와서 끊었어요':
       'I walked 10 minutes, then work called and I had to stop',
-  '나트륨 3000 돌파 + 이행률 20%. 이번 주 안에 전화 상담 필요.':
+  '나트륨 3000 돌파 + 완료율 20%. 이번 주 안에 전화 상담 필요.':
       'Sodium over 3,000 + 20% completion. Needs a phone check-in this week.',
   '걷기 ✓': 'Walking ✓',
   '피곤해서 걷기만 했어요': 'I was tired, so I only walked',
@@ -308,7 +293,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '경사 걷기 ✓': 'Incline walk ✓',
   '풀업 어시스트 ✓': 'Assisted pull-up ✓',
   '늘 하던 만큼 했어요': 'Did the same as always',
-  '7주째 같은 이행률·같은 나트륨. 자극 변화 필요.':
+  '7주째 같은 완료율·같은 나트륨. 자극 변화 필요.':
       'Same completion and sodium for 7 weeks. Needs a new stimulus.',
   '지호님, 몇 주째 수치가 거의 안 움직여요. 프로그램을 좀 바꿔볼까요?':
       'Jiho, your numbers have barely moved for weeks. Shall we change up the program?',
@@ -361,8 +346,8 @@ const Map<String, String> _seedEnglish = <String, String>{
   '러닝머신 30분 ✓': 'Treadmill · 30 min ✓',
   '근력 서킷 25분 ✓': 'Strength circuit · 25 min ✓',
   '운동은 빠짐없이 하고 있어요': "I haven't missed a single workout",
-  '이행률 100%인데 나트륨 7일 연속 초과. 식단 상담으로 전환.':
-      '100% completion but sodium over target 7 days straight. Switch to diet counseling.',
+  '완료율 100%인데 나트륨 7일 연속 초과. 식단 상담으로 전환.':
+      '100% completion but sodium over goal 7 days straight. Switch to diet counseling.',
   '서진님, 운동은 7일 다 채우셨어요. 다만 나트륨이 계속 2500 위예요':
       'Seojin, you completed all 7 days of workouts. Your sodium keeps staying above 2,500, though',
   '국물을 못 끊겠어요': 'I just cannot give up the broth',
@@ -386,7 +371,12 @@ const Map<String, String> _seedEnglish = <String, String>{
   '이번 주는 3번만 채워보죠. 무리 안 하는 게 더 중요해요 🙂':
       "Let's aim for just three this week. Not overdoing it matters more 🙂",
   '야식': 'Late-night snack',
-  // 날짜별 루틴(`_routinePool`)은 값까지 실린 객체라 이름만 옮긴다(#2667).
+  // 운동 기록의 운동 이름 — 값까지 실린 객체라 이름만 옮긴다(#2667, #3003).
+  '개인운동': 'Personal exercise',
+  '주말 러닝': 'Weekend run',
+  '가벼운 등산': 'Easy hike',
+  '스텝업': 'Step-up',
+  '케이블 크런치': 'Cable crunch',
   '푸시업': 'Push-up',
   '덤벨 플라이': 'Dumbbell fly',
   '바벨 로우': 'Barbell row',
@@ -394,14 +384,14 @@ const Map<String, String> _seedEnglish = <String, String>{
   '숄더 프레스': 'Shoulder press',
   '사이드 레터럴': 'Lateral raise',
   '페이스 풀': 'Face pull',
-  '런닝': 'Running',
+  '러닝': 'Running',
   '사이클': 'Cycling',
   '힙 쓰러스트': 'Hip thrust',
   '카프 레이즈': 'Calf raise',
   '버피': 'Burpee',
   '마운틴 클라이머': 'Mountain climber',
-  '출근 전 수업. 상체 위주로 짧게 끊어 간다.':
-      'Session before work. Keep it short and upper-body focused.',
+  '출근 전 PT. 상체 위주로 짧게 끊어 간다.':
+      'PT before work. Keep it short and upper-body focused.',
   '랫풀다운': 'Lat pulldown',
   '숄더프레스': 'Shoulder press',
   '식단 기록 습관 점검. 저녁 외식 빈도를 함께 본다.':
@@ -418,46 +408,46 @@ const Map<String, String> _seedEnglish = <String, String>{
   '하체 중량 구간. 무릎 각도 확인하며 스쿼트 깊이를 잡는다.':
       'Heavy lower-body block. Set squat depth while watching the knee angle.',
   '체지방 감량 목표. 근력과 유산소를 반씩 섞는다.':
-      'Fat-loss goal. Split the session between strength and cardio.',
+      'Fat-loss goal. Split the PT between strength and cardio.',
   '고블릿 스쿼트': 'Goblet squat',
   '로잉머신': 'Rowing machine',
-  '수업 시간대 변경 상담. 오전 이동 가능 여부를 확인한다.':
-      'Consultation on changing session times. Check whether mornings work.',
-  '야간 수업. 다음 날 근육통을 고려해 볼륨을 낮게 잡는다.':
-      'Late session. Keep volume low to limit next-day soreness.',
+  'PT 시간대 변경 상담. 오전 이동 가능 여부를 확인한다.':
+      'Consultation on changing PT times. Check whether mornings work.',
+  '야간 PT. 다음 날 근육통을 고려해 볼륨을 낮게 잡는다.':
+      'Evening PT. Keep volume low to limit next-day soreness.',
   '전신 순환. 세트 사이 휴식을 45초로 줄여 본다.':
       'Full-body circuit. Try cutting rest between sets to 45 seconds.',
   '케틀벨 스윙': 'Kettlebell swing',
   '재활 마무리 단계. 통증 없는 범위에서만 중량을 올린다.':
       'Final stage of rehab. Only add weight within a pain-free range.',
-  '주 마지막 근력 수업. 상체 볼륨을 채운다.':
-      'Last strength session of the week. Fill out the upper-body volume.',
+  '주 마지막 근력 PT. 상체 볼륨을 채운다.':
+      'Last strength PT of the week. Fill out the upper-body volume.',
   '신규 상담. 운동 경험과 무릎 부상 이력을 듣는다.':
       'New consultation. Ask about training experience and past knee injuries.',
-  '주 2회 중 두 번째 수업. 월요일에 못 채운 하체를 넣는다.':
-      'Second of two weekly sessions. Add the lower-body work missed on Monday.',
+  '주 2회 중 두 번째 PT. 월요일에 못 채운 하체를 넣는다.':
+      'Second of two PTs this week. Add the lower-body work missed on Monday.',
   '레그프레스': 'Leg press',
   '런지': 'Lunge',
   '컨디션에 따라 유산소로 대체할 수 있다.':
       'Can be swapped for cardio depending on how they feel.',
-  '주말 수업. 평일보다 길게 가져가되 마무리 스트레칭을 넉넉히 둔다.':
-      'Weekend session. Run longer than weekdays, with plenty of stretching at the end.',
+  '주말 PT. 평일보다 길게 가져가되 마무리 스트레칭을 넉넉히 둔다.':
+      'Weekend PT. Run longer than weekdays, with plenty of stretching at the end.',
   '체스트프레스': 'Chest press',
   '시티드로우': 'Seated row',
-  '주말 보강 수업. 평일에 빠진 하체를 채운다.':
-      'Weekend make-up session. Cover the lower-body work missed during the week.',
+  '주말 보강 PT. 평일에 빠진 하체를 채운다.':
+      'Weekend make-up PT. Cover the lower-body work missed during the week.',
   '주말 상담. 헬스장 이용 시간대와 목표를 맞춰 본다.':
       'Weekend consultation. Match gym hours with their goals.',
-  '가벼운 마무리 수업. 다음 주 계획을 함께 정한다.':
-      'Light wrap-up session. Plan next week together.',
-  '오랜만의 수업. 가벼운 전신 운동으로 다시 리듬을 잡는다.':
-      'First session in a while. Light full-body work to get back into rhythm.',
-  '무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.':
-      'Knee range of motion needs checking. Adjust weights next session.',
+  '가벼운 마무리 PT. 다음 주 계획을 함께 정한다.':
+      'Light wrap-up PT. Plan next week together.',
+  '오랜만의 PT. 가벼운 전신 운동으로 다시 리듬을 잡는다.':
+      'First PT in a while. Light full-body work to get back into rhythm.',
+  '무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.':
+      'Knee range of motion needs checking. Adjust weights at the next PT.',
   '덤벨 숄더프레스': 'Dumbbell shoulder press',
   '플랭크 60초': 'Plank 60 sec',
-  '데드리프트 자세 안정적. 다음 세션 60kg 도전.':
-      'Deadlift form is solid. Try 60kg next session.',
+  '데드리프트 자세 안정적. 다음 PT 60kg 도전.':
+      'Deadlift form is solid. Try 60kg at the next PT.',
   '루마니안 데드리프트': 'Romanian deadlift',
   '코어 서킷': 'Core circuit',
   '인클라인 덤벨 프레스': 'Incline dumbbell press',
@@ -465,7 +455,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '오른쪽 어깨': 'Right shoulder',
   '야근이 많아서 저녁 운동을 못 갔어요. 벤치 할 때 어깨가 좀 걸리는 느낌이 있습니다.':
       'Lots of late nights, so I missed my evening workouts. My shoulder catches a bit on the bench.',
-  '지난 주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.':
+  '지난주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.':
       'I felt better than last week, but I kept missing protein at dinner.',
   '스쿼트 무게 올린 게 오히려 재밌었어요.': 'Going heavier on squats was actually fun.',
   '출장이 겹쳐서 헬스장에 못 갔습니다. 다음 주부터 다시 갈게요.':
@@ -501,10 +491,10 @@ const Map<String, String> _seedEnglish = <String, String>{
   '야근이 이어져서 운동 강도가 버거웠어요.':
       'Back-to-back late nights made the workouts feel too heavy.',
   '주말엔 기록을 또 잊었어요. 평일은 인터벌 다 채웠어요.':
-      'I forgot to log over the weekend again, but I finished every interval session on weekdays.',
+      'I forgot to log over the weekend again, but I finished every interval workout on weekdays.',
   '친구 결혼식이랑 모임이 겹쳐서 단 걸 많이 먹었어요.':
       "A friend's wedding and a get-together landed in the same week, so I ate a lot of sweets.",
-  '런닝할 때 숨찬 게 확실히 줄었어요!': "I'm definitely less out of breath when I run!",
+  '러닝할 때 숨찬 게 확실히 줄었어요!': "I'm definitely less out of breath when I run!",
   '플랭크 마지막 세트가 아직 힘들어요.': 'The last plank set is still tough.',
   '데드리프트 자세 교정 받은 뒤로 허리가 편해졌어요.':
       'My back feels better since you fixed my deadlift form.',
@@ -512,11 +502,11 @@ const Map<String, String> _seedEnglish = <String, String>{
       'First time doing intervals, and I was completely out of breath.',
   '주말에 등산 다녀왔는데 기록은 못 했어요.': "I went hiking on the weekend but didn't log it.",
   '스쿼트 무게를 좀 더 올려도 될 것 같아요.': 'I think I can go a bit heavier on squats.',
-  '회식이 두 번 있었어요. 그래도 다음 날 런닝은 했어요.':
+  '회식이 두 번 있었어요. 그래도 다음 날 러닝은 했어요.':
       'Two team dinners, but I still ran the next day.',
   '저녁을 샐러드로 바꾸니까 생각보다 배가 덜 고파요.':
       "Switching dinner to salad, I'm less hungry than I expected.",
-  '런닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.':
+  '러닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.':
       "I rolled my ankle slightly while running. It's fine now.",
   '회사 일 때문에 벤치만 하고 나온 날이 많았어요.':
       'Work kept pulling me away, so most days I only did bench and left.',
@@ -529,7 +519,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '데드리프트 자세가 이제 좀 잡히는 것 같아요.':
       'I think my deadlift form is finally coming together.',
   '출장 가서 호텔 헬스장에서 가볍게만 했어요.':
-      'On a business trip, so just a light session in the hotel gym.',
+      'On a business trip, so just a light workout in the hotel gym.',
   '벤치 62.5kg으로 5개 채웠어요.': 'Got 5 reps at 62.5kg on bench.',
   '다시 운동 시작하니 좋네요. 꾸준히 해 볼게요.':
       "It feels good to be training again. I'll keep it up.",
@@ -602,11 +592,11 @@ const Map<String, String> _seedEnglish = <String, String>{
   '회식 자리가 있었지만 소주는 한 잔만 마셨어요.':
       'There was a team dinner, but I only had one glass of soju.',
   '저녁에 가볍게 걸으니 잠이 잘 와요.': 'An easy evening walk helps me sleep.',
-  '혈압 수치가 목표 안에 들어왔어요!': 'My blood pressure is within the target!',
+  '혈압 수치가 목표 안에 들어왔어요!': 'My blood pressure is within my goal!',
   '야근이 계속돼서 자기 전에 스트레칭만 겨우 했어요.':
       'Late nights kept going, so I barely managed stretching before bed.',
-  '회식이 많아서 수업도 한 번 빠졌어요. 죄송해요.':
-      'Too many team dinners, and I even missed a session. Sorry.',
+  '회식이 많아서 PT도 한 번 빠졌어요. 죄송해요.':
+      'Too many team dinners, and I even missed a PT. Sorry.',
   '프로젝트 마감 주라 거의 못 했어요.': 'Project deadline week, so I hardly trained.',
   '퇴근하고 걷기 15분도 버거워요.': 'Even a 15-minute walk after work feels like a lot.',
   '5분짜리 플랭크 버전은 할 만했어요.': 'The 5-minute plank version was doable.',
@@ -616,8 +606,8 @@ const Map<String, String> _seedEnglish = <String, String>{
       'I keep reaching for cream buns as a late-night snack.',
   '아침에 커피만 마시는 습관을 고쳐 보려고요.':
       "I'm trying to stop having just coffee for breakfast.",
-  '저녁엔 자꾸 야근이 잡혀서 수업 시간을 옮기고 싶어요.':
-      'Evening overtime keeps coming up, so I would like to move my session time.',
+  '저녁엔 자꾸 야근이 잡혀서 PT 시간을 옮기고 싶어요.':
+      'Evening overtime keeps coming up, so I would like to move my PT time.',
   '무릎 통증 없이 다 했어요! 러닝머신 걷기도 해 보고 싶어요.':
       "Finished everything with no knee pain! I'd like to try treadmill walking too.",
   '마지막 가동범위 운동은 시간이 부족했어요.':
@@ -710,8 +700,8 @@ const Map<String, String> _seedEnglish = <String, String>{
   '북한산 등산': 'Bukhansan hike',
   '레그프레스 무게가 붙었어요. 마지막 세트가 힘들었어요.':
       'My leg press weight went up. The last set was tough.',
-  '하체 근력 향상 확인. 다음 세션 레그프레스 5kg 증량.':
-      'Lower-body strength is improving. Add 5kg to leg press next session.',
+  '하체 근력 향상 확인. 다음 PT 레그프레스 5kg 증량.':
+      'Lower-body strength is improving. Add 5kg to leg press at the next PT.',
   '레그컬': 'Leg curl',
   '카프레이즈': 'Calf raise',
   '마무리 러닝머신': 'Treadmill finisher',
@@ -733,8 +723,8 @@ const Map<String, String> _seedEnglish = <String, String>{
       'Focused on the hip-hinge pattern. Deadlift at 50kg, form first.',
   '벤치프레스 자세가 조금 익숙해졌어요.':
       'Bench press form feels a bit more familiar.',
-  '벤치프레스 35kg 4×10 안정. 다음 세션도 같은 무게로 반복.':
-      'Bench press 35kg 4×10 is stable. Repeat the same weight next session.',
+  '벤치프레스 35kg 4×10 안정. 다음 PT도 같은 무게로 반복.':
+      'Bench press 35kg 4×10 is stable. Repeat the same weight at the next PT.',
   '레그프레스 무게를 올렸는데 버틸 만했어요.':
       'I raised the leg press weight and it was manageable.',
   '하체 근력 향상. 레그프레스 65kg 로 올림.':
@@ -743,8 +733,8 @@ const Map<String, String> _seedEnglish = <String, String>{
   '어깨 가동범위 개선. 숄더프레스 10kg 유지하고 밴드 보강 계속.':
       'Shoulder range of motion improved. Keep shoulder press at 10kg and continue band work.',
   '다음 주엔 40kg 에 도전해 볼게요.': "I'll try 40kg next week.",
-  '벤치프레스 37.5kg 4×10 성공. 다음 세션 40kg.':
-      'Bench press 37.5kg 4×10 done. 40kg next session.',
+  '벤치프레스 37.5kg 4×10 성공. 다음 PT 40kg.':
+      'Bench press 37.5kg 4×10 done. 40kg at the next PT.',
   '자전거 라이딩': 'Bike ride',
   '어깨가 아직 조금 불편해서 무게를 낮췄어요.':
       'My shoulder is still a little uncomfortable, so I went lighter.',
@@ -756,8 +746,8 @@ const Map<String, String> _seedEnglish = <String, String>{
       'Checked baseline upper-body strength. Start bench at 35kg, form first.',
   '첫 PT 라 긴장했는데 생각보다 할 만했어요.':
       'I was nervous for my first PT, but it was easier than I thought.',
-  '첫 세션. 체력 수준 점검 위주로 가볍게 진행.':
-      'First session. Kept it light, mostly a fitness check.',
+  '첫 PT. 체력 수준 점검 위주로 가볍게 진행.':
+      'First PT. Kept it light, mostly a fitness check.',
   '혈압 안정에 효과적': 'Helps keep blood pressure steady',
   '혈액순환 개선': 'Improves circulation',
   '기초대사량 향상': 'Boosts basal metabolism',
@@ -765,8 +755,8 @@ const Map<String, String> _seedEnglish = <String, String>{
   // 시드 상담 일정의 상담 요청 문의 글과 지난 주 취소 사유 (#2669).
   '저녁 외식이 잦은데 식단 기록을 어떻게 이어 가면 좋을지 상담받고 싶어요.':
       'I eat out for dinner a lot. Could we talk about how to keep up my meal log?',
-  '수업을 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.':
-      "I'd like to ask whether my sessions could move to the morning.",
+  'PT를 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.':
+      "I'd like to ask whether my PT could move to the morning.",
   '예전에 무릎을 다친 적이 있어요. 무리 없이 시작할 수 있을지 궁금해요.':
       'I hurt my knee a while ago. Can I start without overdoing it?',
   '주말에만 운동할 수 있는데 그래도 꾸준히 할 수 있을까요?':
@@ -781,8 +771,8 @@ const Map<String, String> _seedEnglish = <String, String>{
       'My blood pressure is up again. Could we go over my workout intensity together?',
   '무릎 재활 목표를 다시 잡고 싶어요. 병원 소견도 받아 뒀어요.':
       "I'd like to reset my knee rehab goals. I have my doctor's notes too.",
-  '감기 기운이 있어 이번 수업은 쉬고 싶다고 연락함':
-      'Messaged ahead: feeling a cold coming on, wants to skip this session',
+  '감기 기운이 있어 이번 PT는 쉬고 싶다고 연락함':
+      'Messaged ahead: feeling a cold coming on, wants to skip this PT',
   // 지난 PT 메모·지난 상담(#2667).
   '인터벌 6세트 완주. 마지막 두 세트에서 호흡이 빨리 올라와 휴식을 90초로 늘림.':
       'Finished 6 interval sets. Breathing spiked in the last two, so rest went up to 90 seconds.',
@@ -808,10 +798,10 @@ const Map<String, String> _seedEnglish = <String, String>{
       'Reached a 45kg bench press while bulking. Moved the protein shake to right after training.',
   '재활 밴드 운동 통증 없이 완료. 다음 주 맨몸 런지 추가.':
       'Rehab band work done pain-free. Adding bodyweight lunges next week.',
-  '3주 만의 수업. 체력 저하가 커서 강도를 70%로 낮춰 진행.':
-      'First session in three weeks. Fitness dropped a lot, so intensity was lowered to 70%.',
-  '첫 수업. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.':
-      'First session. Focused on how to use the equipment; squat form is good.',
+  '3주 만의 PT. 체력 저하가 커서 강도를 70%로 낮춰 진행.':
+      'First PT in three weeks. Fitness dropped a lot, so intensity was lowered to 70%.',
+  '첫 PT. 기구 사용법 위주로 안내, 스쿼트 자세 좋음.':
+      'First PT. Focused on how to use the equipment; squat form is good.',
   '사이클 30분 + 하체 근력. 무릎 정렬 좋아짐.':
       'Cycling 30 minutes + lower-body strength. Knee alignment has improved.',
   '데드리프트 100kg 3×5. 그립 약해져 스트랩 사용 권유.':
@@ -824,8 +814,8 @@ const Map<String, String> _seedEnglish = <String, String>{
       'Increased walking pace. Blood pressure normal after exercise.',
   '체중 정체 이야기. 저녁 탄수화물 절반 줄이기로 합의.':
       'Talked about the weight plateau. Agreed to halve dinner carbs.',
-  '당일 취소 후 보강 수업. 컨디션 좋음.':
-      'Make-up session after a same-day cancellation. Feeling good.',
+  '당일 취소 후 보강 PT. 컨디션 좋음.':
+      'Make-up PT after a same-day cancellation. Feeling good.',
   '플랭크 90초 달성. 나트륨 높은 점심 메뉴 대안 안내.':
       'Held a 90-second plank. Suggested lower-sodium lunch options.',
   '인터벌 후 어지럼 없음. 물 섭취 늘리라고 안내.':
@@ -834,7 +824,7 @@ const Map<String, String> _seedEnglish = <String, String>{
       'Increased lower-body volume. Says eating more is hard.',
   '출산 후 코어 재활 4주차. 복직근 이개 1.5cm.':
       'Week 4 of postpartum core rehab. Diastasis recti at 1.5cm.',
-  '수업 시간대 바꾸고 싶다고 함. 상담 잡기로.':
+  'PT 시간대 바꾸고 싶다고 함. 상담 잡기로.':
       'Wants to change the PT time slot. Scheduling a consultation.',
   '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.':
       'Eating-habit consultation. Work dinners twice a week, so we start by cutting late-night snacks.',

@@ -93,6 +93,77 @@ void main() {
     });
   });
 
+  testWidgets('새로고침을 누르면 배너가 바로 사라지고 받으러 간 배포를 남긴다(#3204)', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpConsole(tester);
+      final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
+      await tester.tap(
+        find.descendant(
+          of: banner(),
+          matching: find.text(l.releaseUpdateReload),
+        ),
+      );
+      await tester.pump();
+      expect(banner(), findsNothing);
+      expect(probe.reloadedShaAtReload, <String?>[kNextSha]);
+
+      // 페이지가 아직 남아 있는 동안 확인이 와도 같은 배포로는 다시 뜨지 않는다.
+      probe.visible.add(null);
+      await settle(tester);
+      expect(banner(), findsNothing);
+    });
+  });
+
+  testWidgets('새로고침 뒤 옛 번들이 다시 떠도 같은 배포 안내가 돌아오지 않는다(#3204)', (tester) async {
+    probe.reloadedSha = kNextSha;
+    await withWideSurface(tester, () async {
+      await pumpConsole(tester);
+      expect(probe.fetchCount, greaterThanOrEqualTo(1));
+      expect(banner(), findsNothing);
+      expect(probe.reloadCount, 0);
+
+      probe
+        ..latest = kLaterSha
+        ..visible.add(null);
+      await settle(tester);
+      expect(banner(), findsOneWidget);
+    });
+  });
+
+  testWidgets('새로고침해서 새 배포가 뜨면 기록을 지우고 배너가 없다(#3204)', (tester) async {
+    probe.reloadedSha = kNextSha;
+    await withWideSurface(tester, () async {
+      await pumpConsole(tester, sha: kNextSha);
+      expect(banner(), findsNothing);
+      expect(probe.reloadedSha, isNull);
+    });
+  });
+
+  testWidgets('안내 문구는 배포 용어 없이 업데이트로 말한다(#3204)', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpConsole(tester);
+      expect(
+        find.descendant(of: banner(), matching: find.text('앱이 업데이트됐어요')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: banner(),
+          matching: find.text('새로고침하면 최신 버전으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: banner(), matching: find.text('새로고침')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: banner(), matching: find.textContaining('배포')),
+        findsNothing,
+      );
+    });
+  });
+
   testWidgets('닫으면 사라지고 같은 배포로는 다시 뜨지 않는다', (tester) async {
     await withWideSurface(tester, () async {
       await pumpConsole(tester);
@@ -154,6 +225,8 @@ void main() {
       expect(find.text(l.releaseUpdateTitle), findsOneWidget);
       expect(find.text(l.releaseUpdateReload), findsOneWidget);
       expect(find.byTooltip(l.releaseUpdateDismiss), findsOneWidget);
+      expect(l.releaseUpdateTitle, 'The app has been updated');
+      expect(l.releaseUpdateReload, 'Refresh');
     });
   });
 }

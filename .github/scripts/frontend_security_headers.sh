@@ -10,9 +10,12 @@
 #
 # 모든 경로: HSTS(max-age 1년 이상), X-Frame-Options DENY, nosniff, Referrer-Policy,
 #            CSP frame-ancestors 'none'
-# 앱 경로(/frontend/, /trainer/): CSP connect-src 에 API 출처가 있고 https: 전체·http:// ·
-#            localhost·127.0.0.1 이 없음
+# 앱 경로(/frontend/, /trainer/): CSP connect-src 에 API 출처가 있고 scheme 전체(https:·wss: 등)·
+#            `*`·호스트가 `*` 인 출처(https://* 등)·http:// ·ws:// ·localhost·127.0.0.1 이 없음
 set -uo pipefail
+# connect-src 를 단어로 나눠 돌 때 `*`·`https://*` 가 현재 폴더 파일 이름으로 펼쳐지면 차단 분기를
+# 지나친다(#3237). 이 스크립트는 파일 이름 펼치기를 쓰지 않으므로 끈다.
+set -f
 
 base="${1:-}"
 api_origin="${2:-}"
@@ -94,7 +97,7 @@ check_path() {
     esac
     for source in $connect; do
       case "$source" in
-        https:|http:|'*'|http://*|*localhost*|*127.0.0.1*)
+        https:|http:|wss:|ws:|'*'|http://*|ws://*|*://\*|*://\*:*|*://\*/*|*localhost*|*127.0.0.1*)
           fail "$path: CSP connect-src 가 좁혀지지 않았습니다('$source')." ;;
       esac
     done

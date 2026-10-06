@@ -284,13 +284,13 @@ void main() {
       expect(_cardTexts(tester, ExerciseKind.cardio), contains('목표 없음'));
     });
 
-    testWidgets('견줄 지난 주가 없으면 빈 줄 대신 그렇다고 적는다', (tester) async {
+    testWidgets('견줄 지난주가 없으면 빈 줄 대신 그렇다고 적는다', (tester) async {
       await _pump(
         tester,
         trend: _trend(weeks: <ReportTrendWeek>[_w(cardio: 75)]),
       );
 
-      expect(_cardTexts(tester, ExerciseKind.cardio), contains('견줄 지난 주가 없어요'));
+      expect(_cardTexts(tester, ExerciseKind.cardio), contains('견줄 지난주가 없어요'));
     });
 
     testWidgets('내리막은 몇 주째인지로 적는다 — 이번 주 수치가 말하지 못하는 것이다', (tester) async {
@@ -354,7 +354,7 @@ void main() {
         ),
       );
 
-      expect(find.text('추적 종목 2개 — 자동 선별됨'), findsOneWidget);
+      expect(find.text('추적 운동 2개 — 자동 선별됨'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('report-tracked-스쿼트')),
         findsOneWidget,
@@ -432,12 +432,12 @@ void main() {
           'Cardio',
           'of goal',
           '50%',
-          '640kcal',
+          '640 kcal',
           '75 min',
           'Weekly goal 150 min',
         ]),
       );
-      expect(find.text('Weekly goal rate'), findsOneWidget);
+      expect(find.text('Weekly goal progress'), findsOneWidget);
       expect(find.text('8-week average'), findsOneWidget);
     });
 

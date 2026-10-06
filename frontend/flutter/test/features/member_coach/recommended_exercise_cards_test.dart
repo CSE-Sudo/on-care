@@ -368,7 +368,7 @@ void main() {
 
     // 예전에는 조언(맨 위)과 추천 운동(맨 아래)이 멀리 떨어져 있었다.
     // 카드 제목은 `AI 코칭` 이 아니라 내용 그대로 `추천 개인운동` 이다 (#1130).
-    expect(find.text('추천 개인운동'), findsOneWidget);
+    expect(find.text('개인운동'), findsOneWidget);
     expect(find.text('AI 코칭'), findsNothing);
     // `PT 와 다음 PT 사이…` 안내 문구도 뺐다.
     expect(find.textContaining('다음 PT'), findsNothing);
@@ -446,7 +446,7 @@ void main() {
     // 코칭 포인트가 이 카드를 떠난 뒤로, 추천이 없으면 카드에 남는 말이 없다.
     expect(find.text('AI 코칭'), findsNothing);
     // 빈 추천 카드를 만들지 않는다 — AI 가 매번 운동을 지어낼 이유가 없다.
-    expect(find.text('추천 개인운동'), findsNothing);
+    expect(find.text('개인운동'), findsNothing);
     expect(find.text('현재 추천할 수 있는 AI 맞춤 운동이 없어요'), findsNothing);
   });
 
@@ -559,7 +559,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     // 화면에서 부르는 이름을 `개인운동` 으로 통일했다(#1457).
-    expect(find.text('개인운동 수행 완료'), findsOneWidget);
+    expect(find.text('개인운동 완료'), findsOneWidget);
     // 회원이 운동의 세부 내용을 지정하는 자리는 없다 — 실제 수행 시간 입력은
     // 내려갔고(#1360), 피드백 칸도 없앴다 — 불편은 채팅에서 감지한다(#1825).
     // 남은 값은 강도뿐이다.
@@ -842,7 +842,7 @@ void main() {
 
     final TextField input = tester.widget<TextField>(find.byType(TextField));
     expect(input.controller?.text, '다시 보낼 메시지');
-    expect(find.text('메시지 전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('메시지를 보내지 못했어요. 다시 시도해 주세요'), findsOneWidget);
   });
 
   testWidgets('PDF attachment를 파일명과 크기가 있는 카드로 표시한다', (tester) async {

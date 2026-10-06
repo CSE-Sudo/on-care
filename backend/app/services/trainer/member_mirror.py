@@ -1,20 +1,21 @@
 """트레이너 도메인 — 회원측 미러(내 담당 코치 / 받은 루틴 / 채팅 / 내 세션)."""
 from __future__ import annotations
 
+import json
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.models.models import (
     ChatMessage, HealthProfile,
-    TrainerClient, TrainerProfile, TrainerSchedule,
+    TrainerClient, TrainerProfile, TrainerRoutine, TrainerSchedule,
     User,
 )
 from app.schemas.trainer_api import (
     MemberCoachOut,
-    RoutineOut, ScheduleSessionOut, TrainerGymOut,
+    RoutineOut, ScheduleSessionOut, TrainerGymOut, UpcomingRoutinesOut,
 )
 from app.services import health_focus
 from app.services import (
@@ -26,15 +27,19 @@ from app.services import (
     routine_advice,
 )
 from app.services.trainer._common import (
+    DELIVERY_ROUTINE_ONLY,
+    ROUTINE_APPROVED,
     RoutineDay,
     RoutineDayInFuture,
     SCHEDULE_DONE,
     _active_link,
     _cancel_sessions_on_detach,
     _done_pt_numbers,
+    _reservation_schedule_ids,
     _schedule_out,
     get_member_trainer_id,
     member_routine_days,
+    routine_sent_on,
 )
 from app.services.trainer.routines import (
     build_routines,
@@ -208,13 +213,73 @@ def build_member_routines(
     today = clock.today()
     day = day or today
     if day > today:
-        raise RoutineDayInFuture("아직 오지 않은 날입니다.")
+        raise RoutineDayInFuture("아직 오지 않은 날이에요.")
     trainer_id = get_member_trainer_id(db, member_id)
     if trainer_id is None:
         if day == today:
             auto_routine_service.ensure_auto_routines(db, member_id)
         return build_routines(db, member_id, None, for_member=True, day=day)
     return build_routines(db, member_id, trainer_id, for_member=True, day=day)
+
+
+def build_member_upcoming_routines(
+    db: Session, member_id: str
+) -> UpcomingRoutinesOut | None:
+    """아직 시작하지 않은 개인운동 한 묶음 — 없으면 None. (#3106)
+
+    지금 담당이 보낸 승인된 `개인운동만` 중 시작일이 오늘보다 뒤인 것이다. 시작일이
+    되면 그날 목록([build_member_routines])으로 넘어가 여기서는 빠진다. 다른
+    트레이너가 보낸 것·아직 보내지 않은 것·거절된 후보는 승인된 지금 담당의 배정이
+    아니라 들지 않는다.
+
+    시작 전에 다른 것으로 다시 보내 하루도 걸리지 못하는 줄(`ended_on <=
+    active_from`, #2656)은 뺀다. 그래도 둘 이상이면 가장 최근에 보낸 묶음이다.
+    """
+    trainer_id = get_member_trainer_id(db, member_id)
+    if trainer_id is None:
+        return None
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id == member_id,
+            TrainerRoutine.status == ROUTINE_APPROVED,
+            TrainerRoutine.delivery_kind == DELIVERY_ROUTINE_ONLY,
+            TrainerRoutine.active_from > clock.today().isoformat(),
+            or_(
+                TrainerRoutine.ended_on.is_(None),
+                TrainerRoutine.ended_on > TrainerRoutine.active_from,
+            ),
+        )
+        .order_by(TrainerRoutine.created_at.desc(), TrainerRoutine.sort_order.desc())
+    ).all()
+    if not rows:
+        return None
+    newest = rows[0]
+    group = sorted(
+        (r for r in rows if r.active_from == newest.active_from),
+        key=lambda r: (r.sort_order, r.created_at),
+    )
+    return UpcomingRoutinesOut(
+        starts_on=date.fromisoformat(newest.active_from),
+        sent_on=routine_sent_on(newest),
+        names=[name for r in group for name in _exercise_names(r)],
+    )
+
+
+def _exercise_names(row: TrainerRoutine) -> list[str]:
+    """배정 한 줄에 든 운동 이름. 세션 하나로 보낸 묶음은 줄 이름이 묶음 이름이라
+    (`이번 주 개인운동`) 실린 운동에서 읽는다. 읽을 수 없으면 줄 이름이다."""
+    try:
+        items = json.loads(row.exercises_json or "[]")
+    except ValueError:
+        items = []
+    names = [
+        str(e.get("name")).strip()
+        for e in items
+        if isinstance(e, dict) and str(e.get("name") or "").strip()
+    ]
+    return names or [row.name]
 
 
 #: 회원 세션 목록 상한 — 시간이 지나며 누적되는 PT 세션을 최근 것 위주로 잘라 응답 크기를 묶는다.
@@ -240,11 +305,21 @@ def build_member_sessions(db: Session, member_id: str) -> list[ScheduleSessionOu
         .limit(_MEMBER_SESSIONS_LIMIT)
     ).all()
     numbers = _done_pt_numbers(db, member_id, trainer_id)
-    return [_member_schedule_out(s, numbers.get(s.id)) for s in rows]
+    # 예약 소유 여부를 행마다 묻지 않고 한 번에 모은다(#3242).
+    reserved = _reservation_schedule_ids(db, {s.id for s in rows})
+    return [
+        _member_schedule_out(
+            s, numbers.get(s.id), is_reservation=s.id in reserved
+        )
+        for s in rows
+    ]
 
 
 def _member_schedule_out(
-    s: TrainerSchedule, session_number: int | None = None
+    s: TrainerSchedule,
+    session_number: int | None = None,
+    *,
+    is_reservation: bool | None = None,
 ) -> ScheduleSessionOut:
     """회원에게 내보내는 세션 — `note` 는 **완료된 PT** 것만 싣는다(#2515).
 
@@ -252,10 +327,15 @@ def _member_schedule_out(
     트레이너만 보는 상담 기록(메모)이다. 트레이너 응답(`_schedule_out`)을 그대로 쓰면
     예정 PT 에 미리 적어 둔 글과 상담 기록까지 회원에게 간다. 회원 앱도 완료 PT 에서만
     그리므로, 그 밖의 `note` 는 여기서 비운다.
+
+    취소 사유도 비운다(#3239) — 트레이너가 취소하며 적은 내부 사유와 담당 해제
+    때 남는 `담당 해제`(`DETACH_CANCEL_REASON`)는 트레이너만 보는 기록이다.
+    회원 앱은 취소 주체·시각만 쓴다.
     """
-    out = _schedule_out(s)
+    out = _schedule_out(s, is_reservation=is_reservation)
     if s.status != SCHEDULE_DONE or s.type == "상담":
         out.note = ""
+    out.cancellation_reason = ""
     # 상담 요청 내용은 트레이너 카드용이다 — 회원은 `내 상담 요청` 에서 본다(#2584).
     out.consultation = None
     out.session_number = session_number

@@ -6,8 +6,6 @@ provider 가 준 이메일과 같은 기존 계정에 확인 없이 소셜 계�
 - adapter 가 provider 별 검증 플래그를 `SocialIdentity.email_verified` 로 옮기는지.
   - google: tokeninfo `email_verified`(문자열 "true"/"false", bool 도 받는다)
   - kakao: `kakao_account.is_email_valid` 와 `is_email_verified` 가 **둘 다** 참
-  - naver: 공식 검증 플래그가 없어 늘 거짓
-  - apple: `email_verified`(문자열·bool)
 - 확인되지 않은 이메일이 기존 계정의 이메일과 같으면 연결도, 새 계정도 만들지 않고
   409 `social_email_in_use` 로 "처음 가입한 방법으로 로그인" 을 안내한다.
 - 같은 계정이 없으면 새 계정을 만들되 그 주소를 계정 이메일로 쓰지 않는다
@@ -19,21 +17,15 @@ provider 가 준 이메일과 같은 기존 계정에 확인 없이 소셜 계�
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-import jwt
 import pytest
-from cryptography.hazmat.primitives.asymmetric import rsa
 from sqlalchemy import func, select
 
 from app.models.models import AuditLog, SocialAccount, User
-from app.services.social import apple as apple_mod
-from app.services.social.apple import AppleVerifier
 from app.services.social.base import SocialIdentity, SocialProviderResponseError
 from app.services.social.google import GoogleVerifier
 from app.services.social.kakao import KakaoVerifier
-from app.services.social.naver import NaverVerifier
 from tests.social_provider_fakes import (
     GOOGLE_CLAIMS,
     SECRET_TOKEN,
@@ -141,89 +133,6 @@ def test_kakao_malformed_flag_is_bad_response(monkeypatch):
         asyncio.run(KakaoVerifier().verify(SECRET_TOKEN))
 
 
-# ── naver ───────────────────────────────────────────────────────────
-
-
-@pytest.mark.parametrize("extra", [{}, {"email_verified": True}, {"is_email_verified": True}])
-def test_naver_email_is_never_verified(monkeypatch, extra):
-    """네이버 프로필에는 공식 검증 플래그가 없다. 비공식 필드가 와도 믿지 않는다."""
-    respond_json(
-        monkeypatch,
-        {"resultcode": "00", "message": "success",
-         "response": {"id": "n-1551", "email": "n1551@oncare.com", "name": "네이버", **extra}},
-    )
-
-    identity = asyncio.run(NaverVerifier().read_profile(SECRET_TOKEN))
-
-    assert identity.email == "n1551@oncare.com"
-    assert identity.email_verified is False
-
-
-# ── apple ───────────────────────────────────────────────────────────
-
-
-@pytest.fixture(scope="module")
-def apple_key():
-    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
-
-
-@pytest.fixture
-def apple(monkeypatch, apple_key):
-    """JWKS 대신 테스트 공개키로 검증한다(네트워크 없음)."""
-
-    class _Key:
-        key = apple_key.public_key()
-
-    class _Client:
-        def get_signing_key_from_jwt(self, token):
-            return _Key()
-
-    monkeypatch.setattr(apple_mod, "_allowed_audiences", lambda: ["com.oncare.app"])
-    monkeypatch.setattr(apple_mod, "_jwk_client", lambda: _Client())
-
-    def _verify(**claims) -> SocialIdentity:
-        now = datetime.now(tz=timezone.utc)
-        payload = {
-            "iss": apple_mod.APPLE_ISSUER,
-            "aud": "com.oncare.app",
-            "sub": "001551.apple",
-            "email": "a1551@privaterelay.appleid.com",
-            "iat": now,
-            "exp": now + timedelta(minutes=10),
-        }
-        payload.update(claims)
-        payload = {k: v for k, v in payload.items() if v is not None}
-        token = jwt.encode(payload, apple_key, algorithm="RS256", headers={"kid": "k1551"})
-        return asyncio.run(AppleVerifier().verify(token))
-
-    return _verify
-
-
-@pytest.mark.parametrize(
-    "flag, expected",
-    [
-        ("true", True),
-        (True, True),
-        ("false", False),
-        (False, False),
-        (None, False),
-        (1, False),  # 서명된 토큰이라 막지는 않지만 참으로 넘겨짚지 않는다
-    ],
-)
-def test_apple_reads_email_verified_string_or_bool(apple, flag, expected):
-    identity = apple(email_verified=flag)
-
-    assert identity.email == "a1551@privaterelay.appleid.com"
-    assert identity.email_verified is expected
-
-
-def test_apple_verified_flag_without_email_is_not_verified(apple):
-    identity = apple(email=None, email_verified="true")
-
-    assert identity.email == ""
-    assert identity.email_verified is False
-
-
 # ── API: 확인되지 않은 이메일은 기존 계정에 연결되지 않는다 ─────────────
 
 
@@ -287,7 +196,7 @@ def _fake_identity(monkeypatch, identity: SocialIdentity) -> None:
     monkeypatch.setattr(social_mod, "get_verifier", lambda provider: _FakeVerifier())
 
 
-@pytest.mark.parametrize("provider", ["google", "kakao", "naver", "apple"])
+@pytest.mark.parametrize("provider", ["google", "kakao"])
 def test_unverified_email_does_not_link_existing_account(client, db_session, monkeypatch, provider):
     owner = _existing_user(db_session)
     uid = f"{provider}-{uuid4().hex[:10]}"
@@ -358,7 +267,7 @@ def test_already_linked_account_logs_in_even_if_email_now_unverified(
     assert _me(client, r.json()["access_token"])["id"] == owner.id
 
 
-@pytest.mark.parametrize("provider", ["google", "kakao", "apple"])
+@pytest.mark.parametrize("provider", ["google", "kakao"])
 def test_verified_email_still_links_existing_account(client, db_session, monkeypatch, provider):
     owner = _existing_user(db_session)
     _fake_identity(

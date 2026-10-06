@@ -104,7 +104,7 @@ abstract class ReportSheetLocalizations {
   /// No description provided for @chartNoRecord.
   ///
   /// In en, this message translates to:
-  /// **'Not logged'**
+  /// **'No record'**
   String get chartNoRecord;
 
   /// No description provided for @dateMonthDay.
@@ -218,19 +218,19 @@ abstract class ReportSheetLocalizations {
   /// No description provided for @reportsPdfDocTitle.
   ///
   /// In en, this message translates to:
-  /// **'Weekly coaching report'**
+  /// **'Weekly report'**
   String get reportsPdfDocTitle;
 
   /// No description provided for @reportsPdfLabelCompletion.
   ///
   /// In en, this message translates to:
-  /// **'Workout completion'**
+  /// **'Workout completion rate'**
   String get reportsPdfLabelCompletion;
 
   /// No description provided for @reportsPdfLabelSessions.
   ///
   /// In en, this message translates to:
-  /// **'PT'**
+  /// **'PT done'**
   String get reportsPdfLabelSessions;
 
   /// No description provided for @reportsPdfNoData.
@@ -254,19 +254,19 @@ abstract class ReportSheetLocalizations {
   /// No description provided for @reportsPdfValueGram.
   ///
   /// In en, this message translates to:
-  /// **'{value}g'**
+  /// **'{value} g'**
   String reportsPdfValueGram(String value);
 
   /// No description provided for @reportsPdfValueKcal.
   ///
   /// In en, this message translates to:
-  /// **'{value}kcal'**
+  /// **'{value} kcal'**
   String reportsPdfValueKcal(String value);
 
   /// No description provided for @reportsPdfValueMg.
   ///
   /// In en, this message translates to:
-  /// **'{value}mg'**
+  /// **'{value} mg'**
   String reportsPdfValueMg(String value);
 
   /// No description provided for @reportsPdfValuePercent.
@@ -284,13 +284,13 @@ abstract class ReportSheetLocalizations {
   /// 리포트 PDF 한 장 결과지 (#2485).
   ///
   /// In en, this message translates to:
-  /// **'PT attendance'**
+  /// **'PT done'**
   String get reportsSheetAttendance;
 
   /// 리포트 PDF 한 장 결과지 (#2485).
   ///
   /// In en, this message translates to:
-  /// **'4-wk avg'**
+  /// **'4-week average'**
   String get reportsSheetAverageBase;
 
   /// 리포트 PDF 한 장 결과지 (#2485).
@@ -344,7 +344,7 @@ abstract class ReportSheetLocalizations {
   /// 리포트 PDF 한 장 결과지 (#2485).
   ///
   /// In en, this message translates to:
-  /// **'Done'**
+  /// **'Completion'**
   String get reportsSheetDailyCompletion;
 
   /// 리포트 PDF 한 장 결과지 (#2485).
@@ -446,7 +446,7 @@ abstract class ReportSheetLocalizations {
   /// 리포트 PDF 한 장 결과지 (#2485).
   ///
   /// In en, this message translates to:
-  /// **'Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.'**
+  /// **'Average of workout completion rate, PT done, meal logging and on-target calorie days. Items without records are left out.'**
   String get reportsSheetScoreFormula;
 
   /// 리포트 PDF 한 장 결과지 (#2485).
@@ -482,7 +482,7 @@ abstract class ReportSheetLocalizations {
   /// 리포트 PDF 한 장 결과지 (#2485).
   ///
   /// In en, this message translates to:
-  /// **'Weekly exercise achievement (8 weeks)'**
+  /// **'Weekly exercise goal progress (8 weeks)'**
   String get reportsSheetTrendWeekly;
 
   /// No description provided for @reportsTrendUnavailable.
@@ -590,7 +590,7 @@ abstract class ReportSheetLocalizations {
   /// No description provided for @reportsMemberFeedbackConditionBad.
   ///
   /// In en, this message translates to:
-  /// **'Really rough'**
+  /// **'Rough'**
   String get reportsMemberFeedbackConditionBad;
 
   /// No description provided for @reportsMemberFeedbackIntensityTooEasy.
@@ -602,13 +602,13 @@ abstract class ReportSheetLocalizations {
   /// No description provided for @reportsMemberFeedbackIntensityRight.
   ///
   /// In en, this message translates to:
-  /// **'About right'**
+  /// **'Just right'**
   String get reportsMemberFeedbackIntensityRight;
 
   /// No description provided for @reportsMemberFeedbackIntensityHard.
   ///
   /// In en, this message translates to:
-  /// **'Hard'**
+  /// **'A bit hard'**
   String get reportsMemberFeedbackIntensityHard;
 
   /// No description provided for @reportsMemberFeedbackIntensityTooHard.

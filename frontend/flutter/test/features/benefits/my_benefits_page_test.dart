@@ -1,6 +1,6 @@
 /// 내 혜택 목록과 쿠폰 화면. (#1787)
 ///
-/// 모든 쿠폰은 헬스장이 주는 혜택이고, 직원이 확인한 뒤 회원 휴대폰에서 `사용 완료` 를
+/// 모든 쿠폰은 헬스장이 주는 혜택이고, 직원이 확인한 뒤 회원 휴대폰에서 `사용 처리` 를
 /// 누른다. PT 재등록 쿠폰은 혜택·담당 트레이너·헬스장·만료일(D-n)을, 개인 락커 쿠폰은
 /// 혜택·헬스장·만료일을 보여 준다. 버튼 바로 위에 직원 확인 안내(PT 는 트레이너·헬스장
 /// 직원, 락커는 헬스장 직원)가 서고, 확인창도 직원 확인용이다. 카드 아래 만료 안내는
@@ -111,7 +111,7 @@ void main() {
           .widget<Text>(find.byKey(const Key('couponExpireNotice')))
           .data!
           .replaceAll('\u2060', ''),
-      contains('채팅으로 물어보세요'),
+      contains('메시지로 물어보세요'),
     );
     expect(
       find.descendant(
@@ -233,7 +233,7 @@ void main() {
     expect(usedTag.tone, AppTagTone.neutral);
   });
 
-  testWidgets('PT 재등록 쿠폰 화면은 트레이너·헬스장·D-n 과 직원 확인 안내·사용 완료 버튼을 보여 준다', (
+  testWidgets('PT 재등록 쿠폰 화면은 트레이너·헬스장·D-n 과 직원 확인 안내·사용 처리 버튼을 보여 준다', (
     tester,
   ) async {
     await pumpAt(
@@ -280,7 +280,7 @@ void main() {
       findsOneWidget,
     );
     expect(useButton(), findsOneWidget);
-    expect(tester.widget<AppButton>(useButton()).label, '사용 완료');
+    expect(tester.widget<AppButton>(useButton()).label, '사용 처리');
     expect(
       tester.getBottomLeft(staffNote()).dy,
       lessThan(tester.getTopLeft(useButton()).dy),
@@ -299,13 +299,13 @@ void main() {
     await tester.tap(useButton());
     await tester.pumpAndSettle();
 
-    expect(find.text('쿠폰을 사용 완료할까요?'), findsOneWidget);
+    expect(find.text('쿠폰을 사용 처리할까요?'), findsOneWidget);
     expect(find.text('직원 확인용 · 사용 후 되돌릴 수 없어요'), findsOneWidget);
     final AppButtonPair pair = tester.widget<AppButtonPair>(
       find.byType(AppButtonPair),
     );
     expect(pair.cancelLabel, '취소');
-    expect(pair.confirmLabel, '사용 완료');
+    expect(pair.confirmLabel, '사용 처리');
     // 확정은 파란(브랜드) 채움이다.
     expect(pair.destructive, isFalse);
 
@@ -320,7 +320,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(AppButtonPair),
-        matching: find.text('사용 완료'),
+        matching: find.text('사용 처리'),
       ),
     );
     await tester.pumpAndSettle();
@@ -362,7 +362,7 @@ void main() {
     await drainToast(tester);
   });
 
-  testWidgets('개인 락커 쿠폰은 헬스장만 보여 주고 헬스장 직원 확인 뒤 사용 완료를 누른다', (
+  testWidgets('개인 락커 쿠폰은 헬스장만 보여 주고 헬스장 직원 확인 뒤 사용 처리를 누른다', (
     tester,
   ) async {
     final FakeBenefitsRepository repo = FakeBenefitsRepository(
@@ -402,15 +402,15 @@ void main() {
       find.byType(AppButtonPair),
     );
     expect(pair.cancelLabel, '취소');
-    expect(pair.confirmLabel, '사용 완료');
+    expect(pair.confirmLabel, '사용 처리');
     expect(pair.destructive, isFalse);
-    expect(find.text('쿠폰을 사용 완료할까요?'), findsOneWidget);
+    expect(find.text('쿠폰을 사용 처리할까요?'), findsOneWidget);
     expect(find.text('직원 확인용 · 사용 후 되돌릴 수 없어요'), findsOneWidget);
 
     await tester.tap(
       find.descendant(
         of: find.byType(AppButtonPair),
-        matching: find.text('사용 완료'),
+        matching: find.text('사용 처리'),
       ),
     );
     await tester.pumpAndSettle();

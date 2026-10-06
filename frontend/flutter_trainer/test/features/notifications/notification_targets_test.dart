@@ -28,7 +28,7 @@ TrainerNotification _notice(
 }) => TrainerNotification(
   id: id,
   title: title,
-  body: '이지수 회원 · 10월 02일 10:00',
+  body: '이지수 회원 · 10월 2일 10:00',
   kind: kind,
   read: read,
   createdAt: DateTime.utc(2026, 9, 27, 10),
@@ -416,7 +416,7 @@ void main() {
               TrainerNotificationKind.inviteAccepted,
               id: 'noti-accept',
               subjectId: 'seed-client-1',
-              title: '담당 요청이 수락되었어요',
+              title: '담당 요청이 수락됐어요',
             ),
           ], locale: locale);
 
@@ -436,7 +436,7 @@ void main() {
               TrainerNotificationKind.inviteRejected,
               id: 'noti-reject',
               subjectId: 'user-stranger',
-              title: '담당 요청이 거절되었어요',
+              title: '담당 요청이 거절됐어요',
             ),
           ], locale: locale);
 
@@ -486,17 +486,17 @@ void main() {
             TrainerNotificationKind.inviteAccepted,
             id: 'noti-a',
             subjectId: 'seed-client-1',
-            title: '담당 요청이 수락되었어요',
+            title: '담당 요청이 수락됐어요',
           ),
           _notice(
             TrainerNotificationKind.inviteRejected,
             id: 'noti-r',
-            title: '담당 요청이 거절되었어요',
+            title: '담당 요청이 거절됐어요',
           ),
         ]);
 
-        expect(find.text('담당 요청이 수락되었어요'), findsOneWidget);
-        expect(find.text('담당 요청이 거절되었어요'), findsOneWidget);
+        expect(find.text('담당 요청이 수락됐어요'), findsOneWidget);
+        expect(find.text('담당 요청이 거절됐어요'), findsOneWidget);
         expect(find.byIcon(AppIcons.inviteAccepted), findsOneWidget);
         expect(find.byIcon(AppIcons.personOff), findsOneWidget);
         expect(tester.takeException(), isNull);

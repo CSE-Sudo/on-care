@@ -28,6 +28,7 @@ from app.schemas.exercise_api import (
     ExerciseSessionsCreate, ExerciseSessionsCreatedOut, ExerciseWeekResponse,
 )
 from app.schemas.points_api import PointsOut
+from app.schemas.record_dates import parse_ymd
 from app.services import (
     exercise_activity,
     exercise_records,
@@ -67,7 +68,7 @@ def _reject_if_derived(row: ExerciseSession) -> None:
     if row.source != "member":
         raise HTTPException(
             status_code=409,
-            detail="코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.",
+            detail="코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없어요.",
         )
 
 
@@ -116,14 +117,15 @@ def current_week(
     if week_start is None:
         week_start = monday_of_this_week_str()
     else:
-        # strptime 으로 엄격하게 본다. date.fromisoformat 은 3.11 부터
-        # `20260810` 같은 기본 형식도 받아, 앱의 로컬 목업(엄격한 YYYY-MM-DD)과
-        # 받아들이는 값의 집합이 갈린다.
+        # 표기 하나(`YYYY-MM-DD`)만 받는다. date.fromisoformat 은 3.11 부터
+        # `20260810` 같은 기본 형식도 받고, strptime 은 `2026-1-5` 를 받는다 —
+        # 그 값은 주 계산(`monday_of_str`)에서 형식 오류로 떨어져 조용히 이번 주가
+        # 됐다(#3243). 식단·트레이너 날짜와 같은 검사를 쓴다.
         try:
-            datetime.strptime(week_start, "%Y-%m-%d")
+            parse_ymd(week_start)
         except ValueError:
             raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 합니다."
+                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 해요."
             ) from None
         week_start = monday_of_str(week_start)
     rows = db.scalars(
@@ -439,7 +441,7 @@ def _replay_sessions(
     ):
         raise HTTPException(
             status_code=409,
-            detail="같은 client_request_id에 다른 운동 기록을 보낼 수 없습니다.",
+            detail="같은 client_request_id에 다른 운동 기록을 보낼 수 없어요.",
         )
     awarded = 0
     for row in rows:
@@ -524,7 +526,7 @@ def update_session(
         .where(ExerciseSession.user_id == current_user.id)
     )
     if row is None:
-        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없어요.")
     _reject_if_derived(row)
 
     # 날짜를 주지 않은 수정은 원래 있던 자리를 그대로 둔다 — 오늘로 끌어오면
@@ -574,7 +576,7 @@ def delete_session(
         .where(ExerciseSession.user_id == current_user.id)
     )
     if row is None:
-        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없어요.")
     _reject_if_derived(row)
     # 이 기록으로 받은 포인트를 회수한다 — 삭제와 같은 트랜잭션이다(#1786).
     points_service.revoke(

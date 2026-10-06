@@ -16,6 +16,9 @@ on:
       - "shared/oncare_rules/**"
       # 운영 환경변수의 원본 — Settings 키와 맞는지 tests/test_deploy_template.py 가 본다(#3016).
       - "infra/backend-service.yml"
+      # 운영 설정 기동 스모크·감사 허용 목록 검사 스크립트(#3163).
+      - ".github/scripts/backend_prod_boot_smoke.sh"
+      - "tool/ci/pip_audit_gate.py"
       - ".github/workflows/backend-ci.yml"
   pull_request:
     paths:
@@ -28,6 +31,9 @@ on:
       - "shared/oncare_rules/**"
       # 운영 환경변수의 원본 — Settings 키와 맞는지 tests/test_deploy_template.py 가 본다(#3016).
       - "infra/backend-service.yml"
+      # 운영 설정 기동 스모크·감사 허용 목록 검사 스크립트(#3163).
+      - ".github/scripts/backend_prod_boot_smoke.sh"
+      - "tool/ci/pip_audit_gate.py"
       - ".github/workflows/backend-ci.yml"
 
 # 토큰 권한을 저장소·조직 기본값에 맡기지 않고 여기서 최소로 선언한다(#1557).
@@ -39,9 +45,13 @@ concurrency:
   group: backend-ci-${{ github.workflow }}-${{ github.ref }}
   # PR 실행만 취소한다. 같은 브랜치에 새 커밋이 오면 옛 실행은 볼 값이 없다.
   #
-  # main 은 다르다. `github.ref` 가 병합마다 똑같이 `refs/heads/main` 이라,
-  # 연달아 병합하면 앞선 검증이 취소된다 — 병합 뒤 검증이 안전망인데 빠르게
-  # 병합할수록 그 안전망이 꺼진다(#807).
+  # main 은 취소하지 않는다(`cancel-in-progress: false`) — 진행 중인 실행은 끝까지 돈다(#807).
+  # 다만 GitHub 은 그룹마다 대기 실행을 하나만 두고 새 실행이 오면 대기 중이던 것을 취소한다.
+  # 앞 실행이 도는 동안 세 번 이상 연달아 병합하면 가운데 커밋의 실행은 취소되고, 그 변경을 담은
+  # 마지막 커밋만 검증된다(#3237). 커밋마다 그룹을 나누지 않는 것은 이 워크플로의 완료가
+  # 백엔드 배포(backend-deploy.yml) 를 부르기 때문이다 — 나란히 돌면 늦게 끝난 옛 커밋이 새 커밋 뒤에
+  # 배포될 수 있다. 같은 이유로 취소된 가운데 커밋의 실행을 나중에 다시 돌리지 않는다(그 커밋이
+  # 다시 배포된다).
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -240,18 +250,45 @@ jobs:
           fi
           exit "${leaked}"
 
+      - name: Boot with production settings
+        # 위 기동은 ENV=dev 라 운영에서만 켜지는 설정 가드·기동 점검·FORCE_HTTPS 를 지나지
+        # 않는다(#3163). 더미 운영 값으로 같은 이미지를 띄워 healthz·readyz(X-Forwarded-Proto:
+        # https)를 보고, 필수 운영 값을 하나씩 빼면 기동이 멈추는지 확인한다. 외부 호출은 없다.
+        run: bash ../.github/scripts/backend_prod_boot_smoke.sh oncare-backend:ci tests/fixtures/prod_smoke.env
+
       - name: Container logs
         if: always()
         run: docker logs oncare-backend 2>&1 | tail -n 200 || true
 
+  lint:
+    # 테스트가 닿지 않는 경로의 정의되지 않은 이름·쓰지 않는 import 를 병합 전에 잡는다(#3163).
+    # 규칙은 backend/ruff.toml(오류 계열 F·E9 만)에 있다.
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: backend/.python-version
+
+      - name: Install ruff
+        run: python -m pip install ruff==0.16.10
+
+      - name: ruff check
+        run: ruff check --output-format github .
+
   audit:
-    # 잠금 파일의 알려진 취약점을 드러낸다(#2837). 처음에는 **경고 모드**다 — 결과를
-    # 주석·요약에 남기고 잡은 통과시킨다. 기존 의존성의 취약점 정리가 끝나면
-    # AUDIT_MODE 를 fail 로 바꿔 막는다.
+    # 잠금 파일의 알려진 취약점이 있으면 실패한다(#2837 에서 경고 모드로 도입, #3163 에서 차단).
+    # 당장 고칠 수 없는 항목은 backend/audit-allowlist.toml 에 사유·재검토 날짜와 함께 올리고,
+    # 날짜가 지나면 다시 실패한다. 대조 규칙은 tool/ci/pip_audit_gate.py.
     name: Dependency audit (pip-audit)
     runs-on: ubuntu-latest
-    env:
-      AUDIT_MODE: warn
     defaults:
       run:
         working-directory: backend
@@ -269,22 +306,24 @@ jobs:
 
       - name: Audit locked dependencies
         # 잠금 파일이 해시까지 고정돼 있어 다시 풀지 않고(--disable-pip) 적힌 버전 그대로 본다.
+        # 취약점이 있으면 pip-audit 자체가 0 이 아닌 코드로 끝나므로, 통과·실패는 결과 JSON 을
+        # 허용 목록과 대조한 다음 단계가 정한다. JSON 이 없으면(조회 실패 등) 여기서 멈춘다.
+        # step 셸이 `bash -e` 라 종료 코드는 `|| status=$?` 로 받는다 — 그대로 두면 취약점이
+        # 하나만 있어도 여기서 끝나 허용 목록 대조까지 가지 못한다(#3235).
         run: |
           set -uo pipefail
+          status=0
           pip-audit --requirement requirements-dev.txt --require-hashes --disable-pip \
-            --progress-spinner off --desc on > audit.txt 2>&1
-          status=$?
-          cat audit.txt
-          {
-            echo "### pip-audit (${AUDIT_MODE})"
-            echo '```'
-            cat audit.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$status" -ne 0 ]; then
-            if [ "$AUDIT_MODE" = fail ]; then
-              echo "::error::알려진 취약점이 있는 의존성이 있습니다(위 표 참고)."
-              exit 1
-            fi
-            echo "::warning::알려진 취약점이 있는 의존성이 있습니다(위 표 참고). 지금은 경고 모드입니다."
+            --progress-spinner off --desc on --format json --output audit.json || status=$?
+          echo "pip-audit exit code: ${status}"
+          if [ ! -s audit.json ]; then
+            echo "::error::pip-audit 결과(audit.json)가 없습니다. 위 로그에서 조회 실패 원인을 확인하세요."
+            exit 1
           fi
+
+      - name: Check findings against the allowlist
+        run: >-
+          python ../tool/ci/pip_audit_gate.py
+          --audit audit.json
+          --allowlist audit-allowlist.toml
+          --summary "$GITHUB_STEP_SUMMARY"

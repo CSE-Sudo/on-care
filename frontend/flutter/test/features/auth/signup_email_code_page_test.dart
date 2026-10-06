@@ -294,7 +294,7 @@ void main() {
         registerBody: const <String, Object?>{
           'detail': <String, Object?>{
             'code': 'invalid_email_code',
-            'message': '인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.',
+            'message': '인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.',
           },
         },
       ),

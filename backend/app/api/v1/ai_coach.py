@@ -43,7 +43,7 @@ from app.services.trainer._common import get_member_trainer_id
 router = APIRouter(tags=["ai-coach"])
 
 #: 담당 트레이너가 연결된 회원에게 AI 챗봇 경로가 돌려주는 안내. (#1823)
-TRAINER_CONNECTED_DETAIL = "담당 트레이너가 연결된 회원은 AI 챗봇 대신 트레이너 채팅을 이용합니다."
+TRAINER_CONNECTED_DETAIL = "담당 트레이너가 연결된 회원은 AI 코치 대신 트레이너와 메시지를 주고받아요."
 
 
 def _ensure_ai_chat_allowed(db: Session, user_id: str) -> None:
@@ -132,11 +132,15 @@ def ai_coach_chat(
     429(`daily_limit`), 잔액이 모자라면 409(`insufficient_points`)다. `detail` 은
     `{code, message}` 이고 모자라면 `shortfall` 도 싣는다. AI 가 답했을 때만 세고
     차감한다. 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려준다.
+
+    몫은 LLM 을 부르기 전에 잠금 아래에서 잡고(#3240), AI 가 답하지 못하면 거둔다 —
+    동시에 보낸 요청이 한도·잔액을 넘지 못한다. 같은 키가 아직 답을 기다리는 중이면
+    409(`in_progress`)다.
     """
     _ensure_ai_chat_allowed(db, current_user.id)
     message = payload.message.strip()
     if not message:
-        raise HTTPException(status_code=400, detail="메시지가 비어 있습니다.")
+        raise HTTPException(status_code=400, detail="메시지가 비어 있어요.")
 
     if payload.client_request_id:
         replay = _replay(db, current_user.id, payload.client_request_id, message)
@@ -144,8 +148,11 @@ def ai_coach_chat(
             return replay
 
     try:
-        paid = ai_chat_quota_service.plan(
-            db, current_user.id, pay_with_points=payload.pay_with_points
+        usage_id = ai_chat_quota_service.reserve(
+            db,
+            current_user.id,
+            pay_with_points=payload.pay_with_points,
+            client_request_id=payload.client_request_id,
         )
     except ai_chat_quota_service.PointsConsentRequired as exc:
         raise HTTPException(
@@ -154,6 +161,10 @@ def ai_coach_chat(
     except ai_chat_quota_service.DailyLimitReached as exc:
         raise HTTPException(
             status_code=429, detail={"code": "daily_limit", "message": str(exc)}
+        ) from exc
+    except ai_chat_quota_service.ChatInProgress as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": "in_progress", "message": str(exc)}
         ) from exc
     except points_service.InsufficientPoints as exc:
         raise HTTPException(
@@ -165,25 +176,30 @@ def ai_coach_chat(
             },
         ) from exc
 
-    stored = conversation.load_messages(db, current_user.id)
-    history = stored or payload.history
+    try:
+        stored = conversation.load_messages(db, current_user.id)
+        history = stored or payload.history
 
-    reply, sources, generated = answer(db, current_user.id, message, history)
-    convo = conversation.append_exchange(
-        db, current_user.id, question=message, reply=reply, sources=sources
-    )
+        reply, sources, generated = answer(db, current_user.id, message, history)
+        convo = conversation.append_exchange(
+            db, current_user.id, question=message, reply=reply, sources=sources
+        )
+    except Exception:
+        # 서버 전체 AI 상한(503 `ai_capacity`)·저장 오류 — 회원이 답을 받지 못했다.
+        db.rollback()
+        ai_chat_quota_service.release(db, current_user.id, usage_id)
+        raise
     spent = 0
     balance_after: int | None = None
     if generated:
-        usage = ai_chat_quota_service.record(
-            db,
-            current_user.id,
-            paid=paid,
-            message_id=conversation.last_reply_id(db, convo),
-            client_request_id=payload.client_request_id,
+        usage = ai_chat_quota_service.complete(
+            db, usage_id, message_id=conversation.last_reply_id(db, convo)
         )
         spent = usage.cost
         balance_after = usage.balance_after
+    else:
+        # 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다.
+        ai_chat_quota_service.release(db, current_user.id, usage_id)
     return ChatReply(
         reply=reply,
         sources=sources,
@@ -284,7 +300,7 @@ def dismiss_ai_coach_insight(
     )
     # 남의 대화·트레이너 스레드(#3085)는 물론이고 없는 id 도 404 다 — 있는지 없는지를 알려 주지 않는다.
     if message is None:
-        raise HTTPException(status_code=404, detail="감지 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="감지 기록을 찾을 수 없어요.")
     message.insight_dismissed = True
     db.commit()
     return {"status": "dismissed"}

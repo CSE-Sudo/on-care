@@ -59,7 +59,7 @@ _EN_CAUTION_PARTS = {
 #: 반복 운동 이름으로 타입을 대략 짐작한다. 완료 기록엔 이름만 있고 타입이
 #: 없어서, 화면에 보여줄 타입 하나는 정해야 한다(#776).
 _STRETCH_KEYWORDS = ("스트레칭", "요가", "폼롤러")
-_CARDIO_KEYWORDS = ("걷기", "러닝", "자전거", "유산소", "인터벌", "달리기")
+_CARDIO_KEYWORDS = ("걷기", "러닝", "런닝", "자전거", "유산소", "인터벌", "달리기")
 
 
 #: 주의사항·대화에서 찾는 부담 부위와, 그 부위에 부담이 큰 운동 이름의 조각.
@@ -74,12 +74,12 @@ _CAUTION_RULES: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
     (
         "무릎",
         ("무릎", "슬개", "반월"),
-        ("러닝", "달리기", "점프", "스쿼트", "런지", "계단"),
+        ("러닝", "런닝", "달리기", "점프", "스쿼트", "런지", "계단"),
     ),
     (
         "허리",
         ("허리", "요추", "디스크"),
-        ("데드리프트", "윗몸", "점프", "러닝", "달리기"),
+        ("데드리프트", "윗몸", "점프", "러닝", "런닝", "달리기"),
     ),
     (
         "어깨",
@@ -89,7 +89,7 @@ _CAUTION_RULES: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
     (
         "발목",
         ("발목", "족저"),
-        ("러닝", "달리기", "점프", "줄넘기", "계단"),
+        ("러닝", "런닝", "달리기", "점프", "줄넘기", "계단"),
     ),
 )
 
@@ -177,11 +177,11 @@ def _caution_suffix(
                 "those areas."
             )
         else:
-            parts.append(f" 주의사항({', '.join(cautions)}) 반영: 해당 부위 부담 동작을 뺐습니다.")
+            parts.append(f" 주의사항({', '.join(cautions)}) 반영: 해당 부위 부담 동작을 뺐어요.")
     if escalate:
         parts.append(
             localized(
-                " 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.",
+                " 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.",
                 " Intensity was not raised — adjust after a professional check.",
                 locale,
             )
@@ -318,8 +318,8 @@ def rule_based_plans(
                 f"오늘 나트륨 {sodium_today_mg}mg"
                 f"{' (목표 초과)' if over else ''}, 최근 운동 완료율 "
                 f"{avg_completion_rate}% → 부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.",
-                f"Sodium today {sodium_today_mg}mg"
-                f"{' (over target)' if over else ''}, recent workout completion "
+                f"Sodium today {sodium_today_mg} mg"
+                f"{' (over goal)' if over else ''}, recent workout completion "
                 f"{avg_completion_rate}% → focusing on consistency with "
                 "low-strain cardio and stretching.",
                 locale,

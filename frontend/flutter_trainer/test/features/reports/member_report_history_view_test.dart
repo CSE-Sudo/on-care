@@ -159,8 +159,8 @@ void main() {
     );
     Finder inRow(String text) =>
         find.descendant(of: row, matching: find.text(text));
-    expect(inRow('8월 10일 – 8월 16일'), findsOneWidget);
-    expect(inRow('8월 16일 전송'), findsOneWidget);
+    expect(inRow('8월 10일 ~ 8월 16일'), findsOneWidget);
+    expect(inRow('8월 16일 보냄'), findsOneWidget);
     expect(inRow('안 읽음'), findsOneWidget);
     expect(inRow('지난 주 첫 줄'), findsOneWidget);
     expect(inRow('보기'), findsOneWidget);
@@ -186,7 +186,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: last, matching: find.text('3번 보냄')),
+      find.descendant(of: last, matching: find.text('3회 보냄')),
       findsOneWidget,
     );
     expect(
@@ -198,7 +198,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.descendant(of: older, matching: find.textContaining('번 보냄')),
+      find.descendant(of: older, matching: find.textContaining('회 보냄')),
       findsNothing,
     );
   });
@@ -240,13 +240,13 @@ void main() {
     final Finder unsent = find.byKey(const ValueKey('reports-history-unsent'));
     expect(unsent, findsOneWidget);
     expect(
-      find.descendant(of: unsent, matching: find.text('미전송')),
+      find.descendant(of: unsent, matching: find.text('안 보냄')),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: unsent,
-        matching: find.text('8월 17일 – 8월 23일 · 이번 주'),
+        matching: find.text('8월 17일 ~ 8월 23일 · 이번 주'),
       ),
       findsOneWidget,
     );
@@ -275,7 +275,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('reports-history-week-2026-08-17')),
-        matching: find.text('8월 17일 – 8월 23일 · 이번 주'),
+        matching: find.text('8월 17일 ~ 8월 23일 · 이번 주'),
       ),
       findsOneWidget,
     );

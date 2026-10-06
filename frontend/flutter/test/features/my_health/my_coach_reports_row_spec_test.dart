@@ -250,7 +250,7 @@ void main() {
       await _pumpMy(tester, locale: 'en');
       final AppLocalizations l = _l10n(tester);
 
-      expect(l.myCoachReportsEntry, 'Trainer reports');
+      expect(l.myCoachReportsEntry, 'Weekly reports');
       final TextStyle coach = _textStyleIn(
         tester,
         _coachRow(),

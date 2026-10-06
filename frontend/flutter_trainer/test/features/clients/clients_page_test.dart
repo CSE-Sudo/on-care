@@ -504,7 +504,7 @@ void main() {
       expect(find.text('전체 보기'), findsNothing);
       final clear = find.byKey(const ValueKey<String>('clients-preset-clear'));
       expect(
-        find.descendant(of: clear, matching: find.text('주의 회원')),
+        find.descendant(of: clear, matching: find.text('관리 필요')),
         findsOneWidget,
       );
       // 신호가 없는 이지수는 주의 회원이 아니다.
@@ -603,14 +603,14 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('신규 회원 등록 — 6자리 동기화 코드로 회원과 연결한다', (tester) async {
+    testWidgets('회원 연결 — 6자리 연결 코드로 회원과 연결한다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.clients,
       );
 
-      await tester.tap(find.text('신규 회원 등록'));
+      await tester.tap(find.text('회원 연결'));
       await settle(tester);
 
       // 이수아가 자기 앱에 띄운 코드다. 여섯 자리가 다 차면 바로 연결된다 —
@@ -647,7 +647,7 @@ void main() {
       );
     });
 
-    testWidgets('담당 종료한 회원도 동기화 코드로 같은 행을 되살린다', (tester) async {
+    testWidgets('담당 종료한 회원도 연결 코드로 같은 행을 되살린다', (tester) async {
       final container = await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
@@ -661,7 +661,7 @@ void main() {
       await settle(tester);
       expect(find.text('김민수'), findsNothing);
 
-      await tester.tap(find.text('신규 회원 등록'));
+      await tester.tap(find.text('회원 연결'));
       await settle(tester);
 
       await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
@@ -701,7 +701,7 @@ void main() {
         at: AppRoutes.clients,
       );
 
-      await tester.tap(find.text('신규 회원 등록'));
+      await tester.tap(find.text('회원 연결'));
       await settle(tester);
 
       // 김민수(seed-client-1)는 이미 담당 중이다.
@@ -726,7 +726,7 @@ void main() {
         locale: const Locale('en'),
       );
 
-      await tester.tap(find.text('Register new member'));
+      await tester.tap(find.text('Connect member'));
       await settle(tester);
 
       await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
@@ -751,7 +751,7 @@ void main() {
         at: AppRoutes.clients,
       );
 
-      await tester.tap(find.text('신규 회원 등록'));
+      await tester.tap(find.text('회원 연결'));
       await settle(tester);
 
       await enterSyncCode(tester, '000000');
@@ -805,7 +805,7 @@ void main() {
         const ValueKey<String>('client-seed-client-3'),
       );
       await scrollToClient(tester, clientCard);
-      expect(find.text('신규 회원 등록'), findsNothing);
+      expect(find.text('회원 연결'), findsNothing);
 
       await tester.tap(clientCard.last);
       await settle(tester);

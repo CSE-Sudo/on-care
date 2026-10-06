@@ -82,13 +82,20 @@ class _AiCoachingCardState extends ConsumerState<AiCoachingCard> {
     // 트레이너가 배정한 운동에 `취소` 까지 붙는다.
     final bool unassigned = coachState.hasValue && coach == null;
 
+    // 아직 시작하지 않은 개인운동(#3106) — **오늘** 화면에서만 목록 아래 한
+    // 줄로 알린다. 지난 날짜는 그날 걸려 있던 것을 보는 자리라 두지 않는다.
+    final UpcomingRoutines? upcoming = past
+        ? null
+        : ref.watch(coachUpcomingRoutinesProvider).valueOrNull;
+
     // 추천이 없으면 카드 자체를 그리지 않는다. 빈 카드는 자리만 차지하고
-    // 아무것도 알려 주지 않는다.
+    // 아무것도 알려 주지 않는다. 다만 예정이 있으면 카드를 남긴다 — 미래
+    // 시작일 알림을 받고 들어와 볼 곳이 없으면 안 된다(#3106).
     //
     // 예전에는 이 카드가 `이번 코칭 포인트` 도 함께 말했다. 지금은 화면 위쪽의
     // AI 맞춤 조언 카드가 그 말을 하므로 여기서는 뺐다 — 같은 말이 한 화면에
     // 두 번 있으면 안 된다. (#1021)
-    if (routines.isEmpty) return const SizedBox.shrink();
+    if (routines.isEmpty && upcoming == null) return const SizedBox.shrink();
 
     return AppCard(
       key: Key(past ? 'aiCoachingCardPast' : 'aiCoachingCard'),
@@ -216,8 +223,86 @@ class _AiCoachingCardState extends ConsumerState<AiCoachingCard> {
             ),
             const SizedBox(height: OnCareSpacing.s8),
           ],
+          if (upcoming != null) ...<Widget>[
+            // 오늘 체크할 목록과 섞이지 않게 선으로 가른다 — 예정 줄은 체크할
+            // 수 없다. 오늘 걸린 게 없으면 선 없이 이 줄만 선다.
+            if (routines.isNotEmpty) ...<Widget>[
+              const AppDivider(),
+              const SizedBox(height: OnCareSpacing.s8),
+            ],
+            UpcomingRoutinesLine(upcoming: upcoming),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// 예정 한 줄 — 달력 아이콘과 `8/22(토)부터 · 빠르게 걷기 · 런지 · 플랭크 외 1개`.
+/// (#3106)
+///
+/// 날짜만 강조색이다. 운동은 앞의 셋까지 적고 나머지는 개수로 접는다. 누르거나
+/// 체크할 수 없다 — 체크는 시작일에 오늘 목록으로 넘어온 뒤다.
+class UpcomingRoutinesLine extends StatelessWidget {
+  const UpcomingRoutinesLine({super.key, required this.upcoming});
+
+  final UpcomingRoutines upcoming;
+
+  /// 이름을 적는 운동 수. 나머지는 `외 N개` 로 접는다.
+  static const int shownNames = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final DateTime starts = upcoming.startsOn;
+    final String date = l.coachUpcomingDate(
+      starts.month,
+      starts.day,
+      switch (starts.weekday) {
+        DateTime.monday => l.dietWeekdayMon,
+        DateTime.tuesday => l.dietWeekdayTue,
+        DateTime.wednesday => l.dietWeekdayWed,
+        DateTime.thursday => l.dietWeekdayThu,
+        DateTime.friday => l.dietWeekdayFri,
+        DateTime.saturday => l.dietWeekdaySat,
+        _ => l.dietWeekdaySun,
+      },
+    );
+    final List<String> names = upcoming.names;
+    final int more = names.length - shownNames;
+    // `플랭크 외 1개` — 접은 개수는 마지막 이름 뒤에 띄어 붙인다.
+    final String rest = <String>[
+      names.take(shownNames).join(' · '),
+      if (more > 0) l.coachUpcomingMore(more),
+    ].join(' ');
+    return Row(
+      key: const Key('coachUpcomingRoutines'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const AppIcon(
+          AppIcons.calendar,
+          size: OnCareSize.iconSmall,
+          color: OnCareColors.textTertiary,
+        ),
+        const SizedBox(width: OnCareSpacing.s4),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: <InlineSpan>[
+                TextSpan(
+                  text: l.coachUpcomingStarts(date),
+                  style: TextStyle(color: tokens.brand.primary),
+                ),
+                TextSpan(text: ' · $rest'),
+              ],
+            ),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+        ),
+      ],
     );
   }
 }

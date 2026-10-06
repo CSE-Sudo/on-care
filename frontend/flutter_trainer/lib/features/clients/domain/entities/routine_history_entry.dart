@@ -131,6 +131,11 @@ const Map<String, String> _kindByStoredLabel = <String, String>{
   'AI 루틴 · 자율 운동': 'ai_personal',
   '배정 루틴 수행': 'assigned_routine',
   '개인운동': 'personal_routine',
+  // 영어 데모 시드가 저장하는 같은 이름(#3003) — 데모 DB 는 시드 언어로 이름을
+  // 옮겨 담아, 한국어 이름만 알면 영어 데모의 PT·개인운동 카드를 가르지 못한다.
+  'PT · Trainer-led': 'pt_session',
+  'AI personal exercise': 'ai_personal',
+  'Personal exercise': 'personal_routine',
 };
 
 /// 화면에 그리는 기록 종류 이름. (#1453, #2300)

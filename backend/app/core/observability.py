@@ -16,6 +16,7 @@ import logging
 import re
 import time
 import uuid
+from collections.abc import Collection
 from contextvars import ContextVar
 
 from fastapi import FastAPI, Request
@@ -86,8 +87,38 @@ def setup_logging(level: str = "INFO") -> None:
 _ACCESS_LOG_SKIP_SUFFIXES = ("/ping", "/healthz", "/readyz")
 
 
-def install(app: FastAPI) -> None:
-    """request-id 미들웨어 + 액세스 로그 + 전역 예외 핸들러를 앱에 설치한다."""
+def _cors_headers(request: Request, origins: Collection[str]) -> dict[str, str]:
+    """전역 500 응답에 붙일 CORS 헤더. `CORSMiddleware` 와 같은 규칙이다. (#3242)
+
+    전역 예외 핸들러는 가장 바깥 `ServerErrorMiddleware` 에서 돌아 CORS 미들웨어를
+    거치지 않는다. 헤더가 없으면 브라우저가 응답을 가려, 두 웹은 500 을 CORS 오류로만
+    보고 본문의 `request_id` 를 읽지 못한다. 그래서 여기서 같은 판정을 한 번 더 한다.
+
+    - 출처 목록에 `*` 가 있으면 자격증명 없이 `*`(main.py 의 설정과 같다).
+    - 목록에 있는 출처면 그 출처를 돌려주고 자격증명을 허용한다.
+    - 그 밖의 출처나 `Origin` 이 없는 요청(앱·서버 간 호출)에는 붙이지 않는다.
+    """
+    origin = request.headers.get("origin")
+    if not origin:
+        return {}
+    if "*" in origins:
+        return {"Access-Control-Allow-Origin": "*"}
+    if origin in origins:
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Vary": "Origin",
+        }
+    return {}
+
+
+def install(app: FastAPI, *, cors_origins: Collection[str] = ()) -> None:
+    """request-id 미들웨어 + 액세스 로그 + 전역 예외 핸들러를 앱에 설치한다.
+
+    [cors_origins] 는 `CORSMiddleware` 에 준 출처 목록이다 — 전역 500 응답에도 같은
+    CORS 헤더를 붙이는 데 쓴다([_cors_headers]).
+    """
+    cors_origins = tuple(cors_origins)
 
     @app.middleware("http")
     async def _request_context(request: Request, call_next):
@@ -143,11 +174,11 @@ def install(app: FastAPI) -> None:
             # 있다 — 언어는 요청에서 직접 읽는다(#2297).
             content={
                 "detail": localized(
-                    "내부 서버 오류가 발생했습니다.",
+                    "내부 서버 오류가 발생했어요.",
                     "An internal server error occurred.",
                     get_request_locale(request),
                 ),
                 "request_id": rid,
             },
-            headers={_REQUEST_ID_HEADER: rid},
+            headers={_REQUEST_ID_HEADER: rid, **_cors_headers(request, cors_origins)},
         )

@@ -637,7 +637,7 @@ const DemoShopItem kDemoProfilePet = DemoShopItem(
 const DemoShopItem kDemoStreakShield = DemoShopItem(
   id: DemoStreakShieldBook.itemId,
   title: '연속 기록 보호권',
-  benefit: '운동을 못 한 하루를 연속 기록에 이어 붙이기',
+  benefit: '기록하지 못한 하루를 연속 기록에 이어 붙이기',
   description:
       '아무것도 기록하지 못한 날을 연속 기록에 이어 붙여요. 최근 30일 안에서 쓰고, 최대 4개까지 가질 수 있어요.',
   cost: DemoStreakShieldBook.cost,

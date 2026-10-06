@@ -135,7 +135,7 @@ void main() {
       );
       expect(
         AccountReauthRejected.fromResponse(409, <String, Object?>{
-          'detail': '이미 사용 중인 이메일입니다.',
+          'detail': '이미 사용 중인 이메일이에요.',
         }),
         isNull,
       );
@@ -204,7 +204,7 @@ void main() {
 
     test('본인 확인 뒤의 409 는 지금처럼 이메일 중복이다', () async {
       final (DioAccountRepository repo, _) = _repo(409, <String, Object?>{
-        'detail': '이미 사용 중인 이메일입니다.',
+        'detail': '이미 사용 중인 이메일이에요.',
       });
       await expectLater(
         repo.updateProfile(

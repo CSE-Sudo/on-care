@@ -70,3 +70,20 @@ def test_cases_touch_every_caution_part() -> None:
     """사례가 표의 모든 부위를 한 번은 찾아낸다 — 부위를 더하면 사례도 더한다."""
     found = {part for c in _CASES["detect"] for part in c["cautions"]}
     assert found == {rule["part"] for rule in _FILE["tables"]["caution_rules"]}
+
+
+def test_running_spelled_runeng_is_avoided_for_knee_caution() -> None:
+    """트레이너가 `런닝` 이라고 적어도 AI 개인운동이 달리기 계열을 뺀다(#3215)."""
+    plan_a, plan_b = svc.rule_based_plans(
+        goal="체력 향상",
+        sodium_today_mg=1500,
+        avg_completion_rate=80,
+        available_minutes=40,
+        intensity_preference="high",
+        trainer_note="",
+        frequent_exercises=["런닝 30분", "플랭크"],
+        conditions="무릎 통증으로 런닝 자제",
+    )
+    names = [item["name"] for plan in (plan_a, plan_b) for item in plan["exercises"]]
+    assert names
+    assert not any(token in name for name in names for token in ("런닝", "러닝", "달리기"))

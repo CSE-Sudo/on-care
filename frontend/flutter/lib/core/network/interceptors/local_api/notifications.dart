@@ -107,7 +107,7 @@ extension _LocalApiNotifications on LocalApiInterceptor {
     final int n =
         await (_db.update(_db.notificationItems)..where((t) => t.id.equals(id)))
             .write(const NotificationItemsCompanion(read: Value(true)));
-    if (n == 0) return _notFound(options, '알림을 찾을 수 없습니다.');
+    if (n == 0) return _notFound(options, '알림을 찾을 수 없어요.');
     return _ok(options, <String, Object?>{'id': id, 'read': true});
   }
 
@@ -162,7 +162,7 @@ Map<String, Object?>? _demoActionFor(String category) => switch (category) {
     'target': 'dashboard',
   },
   'coach_chat' => const <String, Object?>{
-    'label': '대화 보기',
+    'label': '메시지 보기',
     'target': 'coach_chat',
   },
   'coach_report' => const <String, Object?>{
@@ -175,7 +175,7 @@ Map<String, Object?>? _demoActionFor(String category) => switch (category) {
     'label': '일정 보기',
     'target': 'exercise',
   },
-  // PT 수업 완료·피드백 — 운동 탭의 PT 기록(#3027).
+  // PT 완료·피드백 — 운동 탭의 PT 기록(#3027).
   'pt_done' => const <String, Object?>{
     'label': 'PT 기록 보기',
     'target': 'exercise',

@@ -208,7 +208,7 @@ def _item(**kw) -> dict:
             "벤치프레스 4세트 · 8회 · 62.5kg",
             _item(name="벤치프레스", type="strength", sets=4, reps=8, weight=62.5),
         ),
-        ("인터벌 런닝 25분 ✓", _item(name="인터벌 런닝", minutes=25)),
+        ("인터벌 러닝 25분 ✓", _item(name="인터벌 러닝", minutes=25)),
         # 이름에 공백이 있어도 이름으로 남는다
         (
             "인클라인 덤벨 3세트 · 10회 · 26kg",
@@ -506,9 +506,9 @@ def test_history_api_carries_raw_fields_alongside_korean_labels(client):
         # 한국어 옛 필드에는 영어가 섞이지 않는다
         assert "Today" not in entry["date_label"]
         assert "Yesterday" not in entry["date_label"]
-    # 시드의 AI 개인운동은 코드를 받는다
+    # 시드의 하루치 개인운동 카드는 코드를 받는다(#3003)
     assert any(
-        e["label"] == "AI 개인운동" and e["kind"] == "ai_personal" for e in hist
+        e["label"] == "개인운동" and e["kind"] == "personal_routine" for e in hist
     )
 
 

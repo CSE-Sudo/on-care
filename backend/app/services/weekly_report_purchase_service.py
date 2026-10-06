@@ -106,10 +106,12 @@ def exchange(
     """
     from app.services.trainer import _common as trainer_common_service
 
-    if client_request_id and _by_request(db, member_id, client_request_id):
-        return _exchange_out(db, member_id)
+    if client_request_id:
+        replayed = _by_request(db, member_id, client_request_id)
+        if replayed is not None:
+            return _replayed_out(db, member_id, replayed)
     if trainer_common_service.get_member_trainer_id(db, member_id) is not None:
-        raise TrainerAssigned("담당 트레이너가 리포트를 등록해 줘요.")
+        raise TrainerAssigned("담당 트레이너가 주간 리포트를 보내 줘요.")
 
     week = target_week()
     points_service.lock_balance(db, member_id)
@@ -142,8 +144,10 @@ def exchange(
         db.commit()
     except IntegrityError:
         db.rollback()
-        if client_request_id and _by_request(db, member_id, client_request_id):
-            return _exchange_out(db, member_id)
+        if client_request_id:
+            replayed = _by_request(db, member_id, client_request_id)
+            if replayed is not None:
+                return _replayed_out(db, member_id, replayed)
         if owns(db, member_id, week):
             raise WeekAlreadyOwned("이 주의 리포트는 이미 받았어요.") from None
         raise
@@ -161,11 +165,20 @@ def _by_request(
     )
 
 
-def _exchange_out(
-    db: Session, member_id: str, week: date | None = None
-) -> ExchangeOut:
+def _exchange_out(db: Session, member_id: str, week: date) -> ExchangeOut:
     return ExchangeOut(
-        weekly_report_week=(week or target_week()).isoformat(),
+        weekly_report_week=week.isoformat(),
         spent=COST,
         balance=points_service.balance(db, member_id),
     )
+
+
+def _replayed_out(
+    db: Session, member_id: str, row: WeeklyReportPurchase
+) -> ExchangeOut:
+    """같은 요청의 재시도 — 그때 산 주를 그대로 돌려준다. (#3240)
+
+    지금의 [target_week] 를 주면 월요일 0시(KST)를 넘긴 재시도가 사지 않은 주를
+    받았다고 답한다.
+    """
+    return _exchange_out(db, member_id, date.fromisoformat(row.week_start))

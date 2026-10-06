@@ -2,7 +2,7 @@
 
 트레이너가 예약이 걸린 자리를 옮기거나 늘리고 줄이면 회원 일정은 함께 바뀌었지만
 알림이 가지 않았다. 회원은 예약할 때 본 시각을 믿고 그대로 나간다. 일반 일정
-수정과 같은 알림(`일정이 변경되었어요`)이 같은 기준으로 가는지를 본다 — 실제로
+수정과 같은 알림(`일정이 변경됐어요`)이 같은 기준으로 가는지를 본다 — 실제로
 시각·길이가 달라진 경우만, 예약이 걸린 자리만.
 """
 from __future__ import annotations
@@ -15,20 +15,23 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.clock import SEOUL
+from app.core.security import create_access_token
 from app.models.models import (
     Notification,
     TrainerReservation,
     TrainerReservationSlot,
     TrainerSchedule,
 )
-from app.services import notification_service, reservation_service
+from app.services import notification_service, notification_templates, reservation_service
 from app.services.trainer import _common as trainer_common_service
 from app.services.trainer import schedule as trainer_schedule_service
 
 TRAINER_EMAIL = "trainer@oncare.com"
 MEMBER_EMAIL = "jisu@oncare.com"
 MEMBER_ID = "user-jisu"
-CHANGED_TITLE = "일정이 변경되었어요"
+#: 같은 트레이너의 다른 담당 회원(시드).
+OTHER_MEMBER_ID = "user-hayun"
+CHANGED_TITLE = "일정이 변경됐어요"
 
 
 # ---------------------------------------------------------------------------
@@ -407,7 +410,9 @@ def test_api_moving_booked_slot_notifies_member(client, db_session, created_slot
     notices = _changed_notices(db_session)
     assert len(notices) == before + 1
     date, time = _local(moved)
-    assert f"{date} {time} · 1:1 PT" in {row.body for row in notices}
+    # 알림 본문 날짜는 알림 틀의 `10월 1일` 꼴이다(#3120) — 같은 규칙으로 만든다.
+    shown = notification_templates._day(date, "ko")
+    assert f"{shown} {time} · 1:1 PT" in {row.body for row in notices}
     schedule = db_session.get(TrainerSchedule, booked["schedule_id"])
     assert (schedule.date, schedule.time) == (date, time)
 
@@ -537,7 +542,8 @@ def test_api_overlap_rejection_does_not_notify(client, db_session, created_slots
     first = _create_slot(client, trainer_token, created_slots)
     second = _create_slot(client, trainer_token, created_slots)
     booked = _book(client, member_token, first["id"], created_slots)
-    _book(client, member_token, second["id"], created_slots)
+    # 한 회원의 다가오는 예약은 하나라(#3240) 두 번째 자리는 다른 담당 회원이 잡는다.
+    _book(client, create_access_token(OTHER_MEMBER_ID), second["id"], created_slots)
     before = len(_changed_notices(db_session))
 
     response = _update(

@@ -71,12 +71,13 @@ Future<void> bootstrap() async {
   // 데모 시드와 목업 혜택 장부는 데모 모드에서만 깐다(#2914). drift 를 읽는
   // 소비자(로컬 인터셉터·목업 MY 저장소)가 모두 `useMockApi` 분기 안에만 있어,
   // 실서버 빌드가 시드하면 아무도 읽지 않는 데모 행을 기기에 써 넣기만 한다.
+  //
+  // 시드 함수는 기본 인자로 물려 있어, 상수 [kDemoCodeIncluded] 로 호출 자체를
+  // 감싸야 운영 릴리스 번들에서 시드가 빠진다(#3157).
   final db = AppDatabase();
-  final DemoBenefitsStore benefits = await prepareDemoStorage(
-    config,
-    db,
-    logger,
-  );
+  final DemoBenefitsStore benefits = kDemoCodeIncluded
+      ? await prepareDemoStorage(config, db, logger)
+      : DemoBenefitsStore.memory();
 
   // 전역 오류 처리기: 기기 로그에 남기고, 보고기가 켜져 있으면 에러 추적으로도 보낸다.
   installErrorHandlers(

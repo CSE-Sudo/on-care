@@ -1,8 +1,23 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_social_login/oncare_social_login.dart';
 
 /// Deployment environment. Selected at build time via `--dart-define=ENV`.
 enum Environment { dev, staging, prod }
+
+/// 데모 배포(GitHub Pages) 빌드 표시 — `--dart-define=DEMO_BUILD=true` (#3022).
+///
+/// 컴파일 타임 상수다. [kDemoCodeIncluded] 가 이 값으로 목업 코드의 포함 여부를 정한다.
+const bool kDemoBuild = bool.fromEnvironment('DEMO_BUILD');
+
+/// 목업·데모 코드(로컬 API·시드·목업 저장소)가 이 빌드에 들어가는가(#3157).
+///
+/// 데모 빌드이거나 릴리스가 아닌 빌드(`flutter run`·테스트·프로파일)면 참이다. 운영
+/// 릴리스 빌드(`DEMO_BUILD` 없음)에서는 **상수 false** 라 [AppConfig.useMockApi] 가
+/// 늘 false 로 접히고, 그 뒤의 목업 분기 전체를 dart2js·AOT 가 트리 셰이킹한다 —
+/// 데모 계정·시드 인물·로컬 API 가 운영 배포물에 실리지 않는다. 운영 빌드 산출물에
+/// 데모 문자열이 없는지는 `tool/ci/check_prod_web_bundle.py` 가 CI 에서 확인한다.
+const bool kDemoCodeIncluded = kDemoBuild || !kReleaseMode;
 
 /// 릴리스 빌드로 내보내면 안 되는 설정 조합 하나(#3022).
 ///
@@ -23,6 +38,11 @@ enum ReleaseProblem {
 
   /// 실서버를 부르는데 API 주소가 `https://` 가 아니거나 읽을 수 없다.
   insecureApiUrl,
+
+  /// 데모 빌드 표시(`DEMO_BUILD=true`) 없이 로그인 화면의 데모 진입
+  /// (`SHOW_DEMO_ENTRY=true`)이 켜졌다 — 실제 사용자가 데모 계정으로 들어가 데모
+  /// 데이터를 보게 된다(#3147).
+  demoEntryWithoutDemoBuild,
 }
 
 /// 실서버 주소로 쓸 수 없는 예약·로컬 호스트(RFC 2606·6761).
@@ -76,11 +96,12 @@ class AppConfig {
   const AppConfig({
     required this.environment,
     required this.apiBaseUrl,
-    required this.useMockApi,
+    required bool useMockApi,
     this.showDemoEntry = false,
     this.sentryDsn,
     this.demoBuild = false,
-  });
+    this.socialLogin = const SocialLoginConfig(),
+  }) : mockApiRequested = useMockApi;
 
   final Environment environment;
 
@@ -90,7 +111,15 @@ class AppConfig {
   /// When true, feature providers resolve to the in-memory / drift mock
   /// repositories instead of the Dio-backed ones. Used for the demo
   /// bypass and while running without a backend.
-  final bool useMockApi;
+  ///
+  /// [mockApiRequested] 는 빌드 값 그대로이고, 이 값은 [kDemoCodeIncluded] 를 함께
+  /// 본다 — 운영 릴리스에서는 늘 false 라 목업 분기가 번들에서 빠진다(#3157).
+  bool get useMockApi => kDemoCodeIncluded && mockApiRequested;
+
+  /// 빌드 값(`USE_MOCK_API`) 그대로 — 목업을 요청했는가. 릴리스 가드
+  /// ([releaseProblems])는 이 값을 본다. 운영 릴리스에 목업을 잘못 요청한 빌드도
+  /// 가드가 알아채야 해서다.
+  final bool mockApiRequested;
 
   /// 로그인 화면에 "로그인 없이 데모 둘러보기" 진입을 노출할지. (#1526)
   ///
@@ -118,6 +147,14 @@ class AppConfig {
   /// 넘기고, 운영 웹 빌드는 넘기지 않는다. 회원 앱과 같은 이름·같은 기본값이다.
   final bool demoBuild;
 
+  /// 카카오·구글 로그인 키(`KAKAO_LOGIN_REST_API_KEY`·`GOOGLE_WEB_CLIENT_ID`, #330).
+  /// 모두 공개 식별자다. 키가 없는 provider 는 로그인 화면에서 꺼진다.
+  final SocialLoginConfig socialLogin;
+
+  /// 소셜 로그인을 목업 저장소로 보내는가 — 고정 데모 토큰을 쓴다(데모·개발).
+  /// 실서버 빌드는 [socialLogin] 의 키로 provider 로그인을 연다(#330).
+  bool get usesMockSocialLogin => useMockApi;
+
   /// 실 네트워크로 나가는 요청이 있는가.
   bool get usesNetwork => !useMockApi;
 
@@ -128,11 +165,13 @@ class AppConfig {
   ///
   /// * 데모 빌드(`DEMO_BUILD=true` + 목업)는 `ENV=dev` 여도 된다.
   /// * 주소는 실서버 모드일 때만 본다. 목업 빌드는 주소를 넘기지 않는다.
+  /// * 데모 진입(`SHOW_DEMO_ENTRY`)은 데모 빌드에서만 된다(#3147).
   List<ReleaseProblem> releaseProblems() {
-    final bool demoMock = useMockApi && demoBuild;
+    final bool demoMock = mockApiRequested && demoBuild;
     return <ReleaseProblem>[
       if (isDev && !demoMock) ReleaseProblem.devEnvironment,
-      if (useMockApi && !demoBuild) ReleaseProblem.mockWithoutDemoBuild,
+      if (mockApiRequested && !demoBuild) ReleaseProblem.mockWithoutDemoBuild,
+      if (showDemoEntry && !demoBuild) ReleaseProblem.demoEntryWithoutDemoBuild,
       if (usesNetwork) ...apiBaseUrlProblems(apiBaseUrl),
     ];
   }
@@ -154,7 +193,7 @@ class AppConfig {
     const showDemoEntry = bool.fromEnvironment('SHOW_DEMO_ENTRY');
     const sentryDsn = String.fromEnvironment('SENTRY_DSN');
     // 데모 Pages 빌드만 넘긴다(#3022). 릴리스 가드가 목업을 허용하는 근거다.
-    const demoBuild = bool.fromEnvironment('DEMO_BUILD');
+    const demoBuild = kDemoBuild;
     return AppConfig(
       environment: env,
       apiBaseUrl: apiBaseUrl,
@@ -166,6 +205,7 @@ class AppConfig {
       sentryDsn: sentryDsn.isEmpty ? null : sentryDsn,
       // ignore: avoid_redundant_argument_values
       demoBuild: demoBuild,
+      socialLogin: SocialLoginConfig.fromEnvironment(),
     );
   }
 }

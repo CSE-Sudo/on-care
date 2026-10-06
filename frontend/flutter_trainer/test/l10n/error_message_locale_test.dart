@@ -90,7 +90,7 @@ void main() {
   });
 
   group('serverDetailOr', () {
-    const detail = '현재 비밀번호가 일치하지 않습니다.';
+    const detail = '현재 비밀번호가 일치하지 않아요.';
 
     test('한국어 화면은 서버 사유를 그대로 쓴다', () {
       expect(serverDetailOr(_ko, detail, _ko.myPwChangeFailed), detail);

@@ -56,7 +56,7 @@ def get_trainer(
     """
     trainer = gym_service.get_trainer(db, trainer_id, viewer_id=current_user.id)
     if trainer is None:
-        raise HTTPException(status_code=404, detail="트레이너를 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="트레이너를 찾을 수 없어요.")
     return trainer
 
 

@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import 'package:oncare_trainer/features/clients/domain/entities/routine_days.dart';
@@ -8,8 +6,8 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 개인운동 매일 완료 현황의 공통 조각 — 날짜 표기, 하루 완료 단계, 프로그램
-/// 화면 `개인운동 이행` 카드. (#2508, #2509)
+/// 개인운동 매일 완료 현황의 공통 조각 — 날짜 표기, 하루 완료 단계, `개인운동
+/// 이행` 칸. (#2508, #2509, #3004)
 ///
 /// 하루 단위 칸은 그날 완료 비율의 진하기다(배정 없음 · 하나도 안 함 · 일부 ·
 /// 절반 이상 · 모두).
@@ -57,8 +55,8 @@ DateTime _addDays(DateTime d, int days) =>
 
 const double _cellGap = OnCareSpacing.s4;
 
-/// 프로그램 화면 `개인운동 이행` 칸의 최대 한 변 — `6/6` 이 들어갈 만큼만.
-const double _stripCellMax = 36;
+/// `개인운동 이행` 칸 높이 — `6/6` 이 들어갈 만큼만.
+const double _stripCellHeight = 36;
 
 TextStyle _caption(BuildContext context, {Color? color}) => context.oncare
     .text(OnCareTypography.caption)
@@ -71,23 +69,11 @@ TextStyle _caption(BuildContext context, {Color? color}) => context.oncare
 /// 칠하며(아직 0개면 빈칸, 빨강 없음), 오지 않은 날은
 /// 빈칸이다.
 ///
-/// 두 자리가 같은 그림을 쓴다 — 프로그램 화면은 지금 걸린 개인운동을 보낸
-/// 날부터([ClientRoutineAdherenceStrip.new]), 운동 탭 `이번 주` 는 그 주
-/// 월요일부터([ClientRoutineAdherenceStrip.week]) 7칸이다. 부르는 쪽이 그릴
-/// 것이 없는 회원을 가린다.
+/// `이번 주` 는 그 주 월요일부터([ClientRoutineAdherenceStrip.week]), `전체` 는
+/// 고른 링의 보낸 날부터([ClientRoutineAdherenceStrip.period]) 7칸이다. 회원 상세
+/// 운동 탭과 프로그램 화면이 같은 카드로 쓴다(#3004). 부르는 쪽이 그릴 것이
+/// 없는 회원을 가린다.
 class ClientRoutineAdherenceStrip extends StatelessWidget {
-  /// 프로그램 화면 — [group] 을 보낸 날부터 7칸, 칸은 작은 정사각형이다.
-  ClientRoutineAdherenceStrip({
-    super.key,
-    required this.days,
-    required RoutineDayGroup group,
-    required this.today,
-  }) : start = group.activeFrom,
-       end = null,
-       fillWidth = false,
-       showSummary = true,
-       keyPrefix = 'program-routine-adherence';
-
   /// 운동 탭 `이번 주` — [monday] 부터 일요일까지, 칸이 카드 폭을 채운다.
   /// 요약은 칸 아래가 아니라 카드 제목 줄에 선다([routineWeekSummary]).
   const ClientRoutineAdherenceStrip.week({
@@ -97,8 +83,6 @@ class ClientRoutineAdherenceStrip extends StatelessWidget {
     required this.today,
   }) : start = monday,
        end = null,
-       fillWidth = true,
-       showSummary = false,
        keyPrefix = 'workout-routine-adherence';
 
   /// 운동 탭 `전체` — 고른 링([group])의 보낸 날부터 7칸, 폭을 채운다.
@@ -111,8 +95,6 @@ class ClientRoutineAdherenceStrip extends StatelessWidget {
     required this.today,
   }) : start = group.activeFrom,
        end = group.lastDay,
-       fillWidth = true,
-       showSummary = false,
        keyPrefix = 'workout-routine-all';
 
   final RoutineDays days;
@@ -125,71 +107,28 @@ class ClientRoutineAdherenceStrip extends StatelessWidget {
   /// 빈 테두리다 — "배정 없음" 회색으로 칠하면 비어 있던 날과 구분되지 않는다.
   final DateTime? end;
 
-  /// 칸이 폭을 나눠 채우는가. 거짓이면 [_stripCellMax] 한 변의 정사각형이다.
-  final bool fillWidth;
-
-  /// 칸 아래에 요약 한 줄을 두는가.
-  final bool showSummary;
-
-  /// 카드·칸·요약 키의 앞부분.
+  /// 칸 키의 앞부분.
   final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
     final List<DateTime> dates = <DateTime>[
       for (int i = 0; i < 7; i++) _addDays(start, i),
     ];
-    final _Stats stats = _Stats.of(days, start, today);
-    final String summary = stats.past == 0
-        ? l.coachRoutineAdherenceFirstDay
-        : <String>[
-            l.coachRoutineAdherenceSummary(stats.past, stats.full),
-            if (stats.lateDay case final RoutineDay d)
-              l.coachRoutineAdherenceLate(
-                weekdayLabels(l)[d.date.weekday - 1],
-                stats.lateCount,
-              ),
-          ].join(' · ');
-    return Column(
+    // 칸은 폭을 나눠 채우고 높이만 고정한다 — 카드 오른쪽에 빈칸이 남지 않게.
+    return Row(
       key: ValueKey<String>(keyPrefix),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 프로그램 화면은 칸을 작게 둔다 — 넓은 열에서 정사각형이 폭을 채우면
-        // 상자가 지나치게 커진다. 운동 탭은 폭을 나눠 채우고 높이만 그대로 둔다
-        // — 카드 오른쪽에 빈칸이 남지 않게.
-        LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            final double share = (constraints.maxWidth - _cellGap * 6) / 7;
-            final double cell = fillWidth
-                ? share
-                : math.min(_stripCellMax, share);
-            return Row(
-              children: <Widget>[
-                for (final (int i, DateTime d) in dates.indexed) ...<Widget>[
-                  if (i > 0) const SizedBox(width: _cellGap),
-                  SizedBox(
-                    width: cell,
-                    child: _AdherenceCell(
-                      date: d,
-                      today: today,
-                      days: days,
-                      keyPrefix: keyPrefix,
-                      ended: end != null && d.isAfter(end!),
-                      height: fillWidth ? _stripCellMax : null,
-                    ),
-                  ),
-                ],
-              ],
-            );
-          },
-        ),
-        if (showSummary) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s8),
-          Text(
-            summary,
-            key: ValueKey<String>('$keyPrefix-summary'),
-            style: _caption(context),
+        for (final (int i, DateTime d) in dates.indexed) ...<Widget>[
+          if (i > 0) const SizedBox(width: _cellGap),
+          Expanded(
+            child: _AdherenceCell(
+              date: d,
+              today: today,
+              days: days,
+              keyPrefix: keyPrefix,
+              ended: end != null && d.isAfter(end!),
+            ),
           ),
         ],
       ],
@@ -407,7 +346,6 @@ class _AdherenceCell extends StatelessWidget {
     required this.days,
     required this.keyPrefix,
     this.ended = false,
-    this.height,
   });
 
   final DateTime date;
@@ -417,9 +355,6 @@ class _AdherenceCell extends StatelessWidget {
 
   /// 묶음이 끝난 뒤의 날인가 — 오지 않은 날처럼 그린다.
   final bool ended;
-
-  /// 칸 높이. 비우면 폭과 같은 정사각형이다.
-  final double? height;
 
   @override
   Widget build(BuildContext context) {
@@ -470,10 +405,7 @@ class _AdherenceCell extends StatelessWidget {
               ),
             ),
     );
-    final double? height = this.height;
-    final Widget box = height == null
-        ? AspectRatio(aspectRatio: 1, child: cell)
-        : SizedBox(height: height, child: cell);
+    final Widget box = SizedBox(height: _stripCellHeight, child: cell);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[

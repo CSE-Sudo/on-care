@@ -135,7 +135,7 @@ def build_roster(
             )
         ).first()
         if anchor is None:
-            raise RosterCursorNotFound("이어 받을 자리를 찾을 수 없습니다.")
+            raise RosterCursorNotFound("이어 받을 자리를 찾을 수 없어요.")
         query = query.where(
             tuple_(TrainerClient.sort_order, TrainerClient.member_id) > tuple(anchor)
         )

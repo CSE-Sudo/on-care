@@ -39,7 +39,7 @@ MEMBER_REQUIRED = ["age14", "health", "privacy", "terms"]
 AUTH_ONLY_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/users/me/consents"): "동의를 제출하는 곳이다.",
     ("GET", "/v1/chat/attachments/{file_id}"): "회원·트레이너가 함께 쓰는 첨부 내려받기. "
-    "회원의 첨부는 동의 뒤의 채팅에서만 생긴다.",
+    "역할 의존성 대신 핸들러가 `ensure_consented` 로 직접 확인한다(#3239).",
 }
 
 
@@ -63,8 +63,9 @@ def _routes() -> list:
 # ---- 라우트 표 (DB 불필요) ----
 
 
-def test_exempt_routes_exist_and_use_a_member_dependency():
-    """예외 목록에 남은 항목이 실제 회원 라우트여야 한다 — 낡은 항목이 남지 않게."""
+def test_exempt_routes_exist_and_use_a_gated_dependency():
+    """예외 목록에 남은 항목이 실제 회원·트레이너 라우트여야 한다 — 낡은 항목이
+    남지 않게. 트레이너 항목은 #3155."""
     for method, path in CONSENT_EXEMPT_ROUTES:
         route = next(
             (r for r in _routes() if r.path == f"/v1{path}" and method in r.methods),
@@ -72,7 +73,7 @@ def test_exempt_routes_exist_and_use_a_member_dependency():
         )
         assert route is not None, (method, path)
         calls = _calls(route.dependant)
-        assert require_member in calls or get_current_user in calls, (method, path)
+        assert calls & {require_member, get_current_user, require_trainer}, (method, path)
 
 
 def test_every_route_that_takes_a_member_goes_through_the_consent_check():
@@ -313,22 +314,6 @@ def test_revoked_health_consent_blocks(client, db_session):
     _assert_consent_required(
         client.get("/v1/users/me/profile", headers=_auth(token)), missing=["health"]
     )
-
-
-def test_trainer_without_consent_is_not_gated(client, without_default_consent):
-    """트레이너의 필수 동의 강제는 이 이슈 범위 밖이다 — 트레이너 API 는 그대로."""
-    email = f"gate-trainer-{uuid4().hex[:10]}@oncare.com"
-    r = client.post(
-        "/v1/auth/trainer/register",
-        json={"email": email, "password": PASSWORD, "name": "트레이너"},
-    )
-    assert r.status_code == 201, r.text
-    login = client.post("/v1/auth/login", data={"username": email, "password": PASSWORD})
-    assert login.json()["consent_required"] is True
-
-    got = client.get("/v1/trainer/clients", headers=_auth(login.json()["access_token"]))
-
-    assert got.status_code == 200, got.text
 
 
 def test_seeded_demo_member_is_not_blocked(client):

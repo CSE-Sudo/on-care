@@ -16,12 +16,12 @@ from pathlib import PurePath
 from urllib.parse import quote
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 
-from app.api.deps import RequireUser
+from app.api.deps import RequireUser, ensure_consented
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.models.models import ChatMessage, TrainerClient
@@ -38,17 +38,23 @@ from app.services.trainer import _common as trainer_common_service
 router = APIRouter(tags=["chat-attachments"])
 logger = logging.getLogger(__name__)
 
-#: 어느 종류든 "찾을 수 없습니다" 로 끝난다. 권한이 없는 사람에게 파일의
+#: 어느 종류든 "찾을 수 없어요" 로 끝난다. 권한이 없는 사람에게 파일의
 #: 존재 여부를 알려 주지 않기 위해서다.
-_NOT_FOUND = "첨부를 찾을 수 없습니다."
+_NOT_FOUND = "첨부를 찾을 수 없어요."
 
 
 @router.get("/chat/attachments/{file_id}")
 def download_chat_attachment(
     file_id: str,
+    request: Request,
     user: RequireUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> StreamingResponse:
+    # 회원·트레이너가 함께 쓰는 경로라 역할 의존성 대신 `RequireUser` 로 받는다.
+    # 그래도 필수 동의 확인은 거친다(#3239) — 동의가 남은 트레이너가 회원 사진·
+    # 리포트 PDF 를 받으면 안 된다(#3155). 파일을 찾기 전에 막아, 동의가 남은
+    # 계정에는 file id 가 있는지도 드러나지 않는다.
+    ensure_consented(request, user, db)
     message = db.scalar(
         select(ChatMessage).where(
             ChatMessage.attachment_file_id == file_id,
@@ -107,7 +113,7 @@ def _store_unavailable() -> HTTPException:
     """저장소 장애. 파일이 없다는 404 와 구분해야 앱이 다시 시도할 수 있다."""
     logger.exception("첨부 저장소를 읽지 못했습니다.")
     return HTTPException(
-        status_code=503, detail="첨부를 잠시 불러올 수 없습니다. 다시 시도해 주세요."
+        status_code=503, detail="첨부를 잠시 불러올 수 없어요. 다시 시도해 주세요."
     )
 
 
@@ -186,14 +192,14 @@ def receive_chat_image(
             if existing.body != text or existing.attachment_type != "image":
                 raise HTTPException(
                     status_code=409,
-                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
+                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없어요.",
                 )
             return trainer_chat_service.chat_message_out(existing, viewer)
 
     settings = get_settings()
     data = image.file.read(settings.max_chat_image_bytes + 1)
     if len(data) > settings.max_chat_image_bytes:
-        raise HTTPException(status_code=413, detail="이미지 용량이 너무 큽니다.")
+        raise HTTPException(status_code=413, detail="이미지 용량이 너무 커요.")
     try:
         chat_image_storage.sniff(data)
     except chat_image_storage.UnsupportedImage as exc:

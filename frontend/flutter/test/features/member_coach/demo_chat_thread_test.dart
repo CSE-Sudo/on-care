@@ -23,7 +23,7 @@ import 'package:oncare_core/clock.dart';
 const List<(CoachSender, String)> kDemoThread = <(CoachSender, String)>[
   (
     CoachSender.trainer,
-    '민수님, 지난주 기록 정리해 봤는데 요일마다 이행률이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?',
+    '민수님, 지난주 기록 정리해 봤는데 요일마다 완료율이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?',
   ),
   (CoachSender.me, '화요일이랑 목요일이 야근이 많아요 😥'),
   (CoachSender.trainer, '그럼 그 이틀은 15분짜리 짧은 프로그램으로 바꿔 둘게요. 안 하는 것보다 훨씬 낫습니다'),
@@ -46,10 +46,10 @@ const List<(CoachSender, String)> kDemoThread = <(CoachSender, String)>[
   (CoachSender.me, '찌개 먹을 때 국물을 많이 마셨나봐요 😅'),
   (CoachSender.trainer, '그렇군요! 오늘 PT 후에 부상이나 불편한 데는 없으셨나요?'),
   (CoachSender.me, '무릎이 가볍게 당기긴 했는데 괜찮아요'),
-  (CoachSender.trainer, '이번 주 리포트 등록해 뒀어요. 확인해 보세요'),
+  (CoachSender.trainer, '이번 주 리포트 보내 드렸어요. 확인해 보세요'),
   (
     CoachSender.trainer,
-    '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
+    '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
   ),
 ];
 

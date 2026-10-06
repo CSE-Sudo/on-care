@@ -158,7 +158,7 @@ void main() {
         widget is TextField &&
         widget.decoration?.hintText == '회원에게 전달할 코칭 피드백을 작성하세요.',
   );
-  const String failedToast = '리포트 전송에 실패했어요. 다시 시도해 주세요';
+  const String failedToast = '리포트를 보내지 못했어요. 다시 시도해 주세요';
   const String alreadyToast = '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
 
   Future<void> openAtSend(WidgetTester tester, _FlakyServer server) async {

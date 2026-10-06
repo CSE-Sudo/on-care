@@ -23,6 +23,21 @@ _YMD = re.compile(r"\d{4}-\d{2}-\d{2}")
 from app.schemas.partial_update import PartialUpdate
 
 from app.schemas.diet import DietAnalysis, RecognizedFood
+from app.services.recognizer.parse import AMOUNT_G_MAX, NAME_MAX
+
+#: 회원이 보내는 음식 한 줄·한 끼니의 상한(#3243). 저장 칸(`Integer`)을 넘는 값이
+#: 500 이 되지 않게 하는 선이고, 앱이 보낼 수 있는 값은 모두 받는다 — 공공 DB 가장
+#: 진한 값(기름 921kcal·소금 9,900mg / 100g)에 인식 양 상한(5,000g)을 곱한 값보다
+#: 크게 둔다. 손대지 않은 음식을 그대로 되돌려 보내도 걸리지 않아야 한다.
+#: 상한은 입력 모델에만 둔다 — `RecognizedFood` 는 저장된 기록을 다시 읽는 데도
+#: 쓰여 거기 두면 옛 기록이 읽히지 않는다(`schemas/diet.py`).
+FOOD_CALORIES_MAX = 50_000
+FOOD_SODIUM_MG_MAX = 500_000
+#: 한 끼니 음식 수 상한. 사진 한 장은 20개까지라(`recognizer/parse.FOODS_MAX`) 여유를 둔다.
+FOODS_MAX = 50
+#: 끼니 합계 상한 — 음식 한 줄 상한 × 음식 수. 이 안이면 `Integer` 를 넘지 않는다.
+ENTRY_CALORIES_MAX = FOOD_CALORIES_MAX * FOODS_MAX
+ENTRY_SODIUM_MG_MAX = FOOD_SODIUM_MG_MAX * FOODS_MAX
 
 
 class Macros(BaseModel):
@@ -108,7 +123,16 @@ class EditedFood(RecognizedFood):
     **빠지면 `member` 다.** 인식기 쪽 기본값 `estimate` 를 물려받으면, 이 필드를
     보내지 않던 앱이 저장할 때마다 손대지 않은 음식까지 "인식기 추정" 이 됐다.
     수정 경로로 들어온 숫자를 인식기 추정이라 부르는 것은 사실이 아니다.
+
+    이름 길이·열량·나트륨에는 상한이 있다(#3243, [FOOD_CALORIES_MAX]).
     """
+    name: str = Field(..., max_length=NAME_MAX, description="음식 이름(한국어)")
+    calories: int | None = Field(
+        None, ge=0, le=FOOD_CALORIES_MAX, description="칼로리 kcal"
+    )
+    sodium_mg: int | None = Field(
+        None, ge=0, le=FOOD_SODIUM_MG_MAX, description="나트륨 mg"
+    )
     source: FoodSource = "member"
 
 
@@ -124,11 +148,11 @@ def _past_or_today(value: str | None) -> str | None:
     # 표기뿐이라 형태부터 걸러 낸다 — 두 표기가 섞이면 화면과 로그에서
     # 같은 날짜가 다른 문자열로 남는다.
     if not _YMD.fullmatch(value):
-        raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.")
+        raise ValueError("date 는 YYYY-MM-DD 형식이어야 해요.")
     try:
         parsed = _date.fromisoformat(value)
     except ValueError as e:
-        raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.") from e
+        raise ValueError("date 는 YYYY-MM-DD 형식이어야 해요.") from e
     return not_after_today(parsed).isoformat()
 
 
@@ -145,7 +169,7 @@ def analyze_record_date(value: str | None) -> _date | None:
         return None
     parsed = _date.fromisoformat(checked)
     if parsed < _date(clock.today().year - 1, 1, 1):
-        raise ValueError("date 는 작년 1월 1일보다 앞설 수 없습니다.")
+        raise ValueError("date 는 작년 1월 1일보다 앞설 수 없어요.")
     return parsed
 
 
@@ -168,12 +192,12 @@ class DietEntryUpdate(PartialUpdate):
     #: 빈 목록은 받지 않는다. 음식이 하나도 없는 끼니는 수정이 아니라 삭제이고
     #: (앱도 그때 삭제할지 묻는다), 실수로 빈 배열이 오면 그 기록의 영양이
     #: 소리 없이 0 이 된다.
-    foods: list[EditedFood] | None = Field(None, min_length=1)
-    total_calories: int | None = Field(None, ge=0)
+    foods: list[EditedFood] | None = Field(None, min_length=1, max_length=FOODS_MAX)
+    total_calories: int | None = Field(None, ge=0, le=ENTRY_CALORIES_MAX)
     carbs_g: float | None = Field(None, ge=0, allow_inf_nan=False)
     protein_g: float | None = Field(None, ge=0, allow_inf_nan=False)
     fat_g: float | None = Field(None, ge=0, allow_inf_nan=False)
-    sodium_mg: int | None = Field(None, ge=0)
+    sodium_mg: int | None = Field(None, ge=0, le=ENTRY_SODIUM_MG_MAX)
     sugar_g: float | None = Field(None, ge=0, allow_inf_nan=False)
 
     @field_validator("date")
@@ -200,7 +224,7 @@ class DietEntryCreate(BaseModel):
     date: str | None = None
     meal_type: MealTypeLiteral
     #: 음식이 하나도 없는 끼니는 기록이 아니다.
-    foods: list[EditedFood] = Field(..., min_length=1)
+    foods: list[EditedFood] = Field(..., min_length=1, max_length=FOODS_MAX)
     #: 재시도 중복 저장 방지 키(선택). 사진 분석과 같은 컬럼·같은 제약을 쓴다.
     idempotency_key: str | None = Field(None, min_length=1, max_length=64)
 
@@ -225,8 +249,9 @@ class FoodNutritionRequest(BaseModel):
     둘 다 없으면 찾은 셈 치지 않는다 — 확정할 수 없는 숫자를 "공공 DB 근거" 로
     내주지 않는 것이 보정(`nutrition/enrich`)과 같은 원칙이다.
     """
-    name: str
-    amount_g: float | None = Field(None, gt=0, allow_inf_nan=False)
+    name: str = Field(..., max_length=NAME_MAX)
+    #: 사진 분석과 같은 양 상한이다(#3243). 넘는 양으로 낸 제안값은 저장 상한에 걸린다.
+    amount_g: float | None = Field(None, gt=0, le=AMOUNT_G_MAX, allow_inf_nan=False)
 
 
 class FoodNutritionOut(BaseModel):

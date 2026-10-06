@@ -405,7 +405,7 @@ void main() {
       await pumpIn(tester, const Locale('ko'));
 
       expect(find.text('트레이너가 개인운동·PT 프로그램을 보내거나 PT 기록·피드백을 남기면 알려요'), findsOneWidget);
-      expect(find.text('트레이너가 대화로 보낸 메시지를 알려요'), findsOneWidget);
+      expect(find.text('트레이너가 보낸 메시지를 알려요'), findsOneWidget);
       expect(find.text('담당 트레이너가 주간 리포트를 보내면 알려요'), findsOneWidget);
     });
 
@@ -452,7 +452,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('When your trainer sends you a chat message'),
+        find.text('When your trainer sends you a message'),
         findsOneWidget,
       );
       expect(

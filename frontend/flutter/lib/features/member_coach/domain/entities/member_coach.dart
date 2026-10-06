@@ -32,6 +32,28 @@ class MemberCoach {
 /// `trainer._common.member_routine_days` 와 같은 모양이다.
 typedef RoutineDay = ({DateTime date, List<CoachRoutine> routines});
 
+/// 아직 시작하지 않은 개인운동 한 묶음 — `GET /me/coach/routines/upcoming`. (#3106)
+///
+/// 트레이너가 `개인운동만` 을 미래 시작일로 보내면 알림은 바로 오지만, 오늘
+/// 목록은 시작일부터 그 운동을 싣는다. 운동 탭은 이 값으로 오늘 목록 아래에
+/// `8/22(토)부터 · 빠르게 걷기 · …` 한 줄을 둔다. 체크는 시작일부터다.
+class UpcomingRoutines {
+  const UpcomingRoutines({
+    required this.startsOn,
+    required this.sentOn,
+    required this.names,
+  });
+
+  /// 걸리기 시작하는 날(KST 날짜).
+  final DateTime startsOn;
+
+  /// 트레이너가 보낸 날(KST 날짜).
+  final DateTime sentOn;
+
+  /// 묶음의 운동 이름(배정 순서).
+  final List<String> names;
+}
+
 /// A routine the member received from their coach — `/me/coach/routines`.
 class CoachRoutine {
   const CoachRoutine({

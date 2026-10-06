@@ -216,7 +216,7 @@ void main() {
         const ValueKey<String>('session-personal-routines'),
       );
       await revealInPanel(tester, routines);
-      expect(find.text('전송됨'), findsOneWidget);
+      expect(find.text('보냄'), findsOneWidget);
       expect(find.textContaining('아직 회원에게'), findsNothing);
     });
 
@@ -369,7 +369,7 @@ void main() {
       await revealInPanel(tester, unsent);
       expect(unsent, findsOneWidget);
       expect(find.textContaining('저강도 걷기'), findsWidgets);
-      expect(find.text('전송됨'), findsOneWidget);
+      expect(find.text('보냄'), findsOneWidget);
       expect(send, findsNothing);
       expect(find.textContaining('프로그램을 보낼 때'), findsNothing);
     });

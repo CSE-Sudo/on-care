@@ -96,6 +96,9 @@ abstract class TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    // 가입 화면이 받은 휴대폰 번호(`010-0000-0000`). 트레이너 프로필에 담겨
+    // 아이디(가입 이메일) 찾기에 쓰인다. 번호 칸이 없던 옛 호출은 빈 값이다.
+    String phone = '',
     List<String>? consents,
   });
 

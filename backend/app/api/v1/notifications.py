@@ -49,7 +49,7 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     "health_check": ("기록하러 가기", "Log now", "dashboard"),
     "achievement": ("대시보드 보기", "View dashboard", "dashboard"),
     # 트레이너가 한 일 — 예전에는 전부 `system` 으로 뭉쳐 갈 곳이 없었다(#636).
-    notification_service.MEMBER_COACH_CHAT: ("대화 보기", "View chat", "coach_chat"),
+    notification_service.MEMBER_COACH_CHAT: ("메시지 보기", "View messages", "coach_chat"),
     # 주간 리포트 — 리포트 카드가 있는 코치 대화로 간다. 메시지와 목적지는 같고
     # 알림함 아이콘만 다르다(#2085).
     notification_service.MEMBER_COACH_REPORT: ("리포트 보기", "View report", "coach_chat"),
@@ -59,7 +59,7 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     # 목록을 함께 보여 주는 곳이다. 예전에는 회원 앱에 일정을 볼 자리가 없어(#1928)
     # 액션을 달지 않았고, 일정 알림만 눌러도 아무 화면이 열리지 않았다.
     notification_service.MEMBER_SCHEDULE: ("일정 보기", "View schedule", "exercise"),
-    # PT 수업 완료·피드백 도착 — 운동 탭의 PT 기록(완료 PT 카드와 피드백)(#3027).
+    # PT 완료·피드백 도착 — 운동 탭의 PT 기록(완료 PT 카드와 피드백)(#3027).
     notification_service.MEMBER_PT_DONE: ("PT 기록 보기", "View PT record", "exercise"),
     notification_service.MEMBER_COACH_INVITE: ("요청 확인", "View request", "exercise"),
     notification_service.MEMBER_CONSULTATION: ("트레이너 보기", "View trainer", "exercise"),
@@ -81,10 +81,10 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
 #: 알림별 목적지(`Notification.action_target`, #2690)의 라벨. 갈래별 표와 목적지가
 #: 같으면 그 라벨을 쓰고, 여기 없는 목적지는 "보기" 다.
 _LABEL_BY_TARGET: dict[str, tuple[str, str]] = {
-    "diet": ("식단 보기", "View meals"),
+    "diet": ("식단 보기", "View diet"),
     "exercise": ("운동 보기", "View workouts"),
     "dashboard": ("홈 보기", "View home"),
-    "coach_chat": ("대화 보기", "View chat"),
+    "coach_chat": ("메시지 보기", "View messages"),
 }
 
 
@@ -270,7 +270,7 @@ def mark_read(
 ) -> dict:
     row = db.scalar(select(Notification).where(Notification.id == notification_id))
     if row is None or row.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="알림을 찾을 수 없어요.")
     row.read = True
     db.commit()
     return {"id": notification_id, "read": True}
@@ -285,7 +285,7 @@ def delete_notification(
     """알림 삭제(본인 소유만)."""
     row = db.scalar(select(Notification).where(Notification.id == notification_id))
     if row is None or row.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="알림을 찾을 수 없어요.")
     db.delete(row)
     db.commit()
     return {"status": "deleted"}

@@ -21,12 +21,13 @@ from app.api.v1 import chat_attachments
 from app.core import clock
 from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
+from app.schemas.record_dates import parse_ymd
 from app.schemas.text_limits import TEXT_LONG_MAX
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
     MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
     MemberWeeklyFeedbackSaveRequest, RoutineCompleteOut, RoutineOut,
-    ScheduleSessionOut, WeeklyReportOut,
+    ScheduleSessionOut, UpcomingRoutinesOut, WeeklyReportOut,
 )
 from app.services import (
     emote_service,
@@ -46,7 +47,7 @@ router = APIRouter(tags=["member-coach"])
 def _my_trainer_or_404(db: Session, member_id: str) -> str:
     trainer_id = trainer_common_service.get_member_trainer_id(db, member_id)
     if trainer_id is None:
-        raise HTTPException(status_code=404, detail="담당 트레이너가 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 트레이너가 없어요.")
     return trainer_id
 
 
@@ -58,7 +59,7 @@ def my_coach(
     """내 담당 트레이너 요약."""
     coach = trainer_member_mirror_service.build_member_coach(db, current_user.id)
     if coach is None:
-        raise HTTPException(status_code=404, detail="담당 트레이너가 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 트레이너가 없어요.")
     return coach
 
 
@@ -123,6 +124,23 @@ def my_routines(
         return trainer_member_mirror_service.build_member_routines(db, current_user.id, day)
     except trainer_common_service.RoutineDayInFuture as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get(
+    "/me/coach/routines/upcoming", response_model=UpcomingRoutinesOut | None
+)
+def my_upcoming_routines(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> UpcomingRoutinesOut | None:
+    """아직 시작하지 않은 개인운동 한 묶음 — 없으면 `null`. (#3106)
+
+    미래 시작일로 받은 `개인운동만` 은 시작일 전까지 그날 목록에 없다. 회원 앱은
+    이 값으로 오늘 목록 아래에 `8/22(토)부터 · …` 한 줄을 둔다. 체크는 시작일부터다.
+    """
+    return trainer_member_mirror_service.build_member_upcoming_routines(
+        db, current_user.id
+    )
 
 
 @router.post(
@@ -250,7 +268,7 @@ def my_chat(
         try:
             before_dt = datetime.fromisoformat(before)
         except ValueError as e:
-            raise HTTPException(status_code=422, detail="before 는 ISO datetime 이어야 합니다.") from e
+            raise HTTPException(status_code=422, detail="before 는 ISO datetime 이어야 해요.") from e
     return trainer_chat_service.build_chat_thread(
         db, trainer_id, current_user.id,
         limit=limit, before=before_dt, before_id=before_id, viewer="member",
@@ -290,7 +308,7 @@ def send_to_coach(
         # 본문은 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽는다.
         text = text or "(이모티콘)"
     if not text:
-        raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없습니다.")
+        raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없어요.")
     try:
         return trainer_chat_service.send_message(
             db,
@@ -435,17 +453,27 @@ def _feedback_week(week_start: str | None) -> date:
     기본값이 **지난 주**인 까닭: 이 답은 끝난 한 주를 돌아보며 적는 것이고,
     트레이너는 주 초에 그 주의 리포트를 쓴다. 기본을 이번 주로 두면 아직
     절반도 지나지 않은 주에 `한 주 컨디션` 을 묻게 된다.
+
+    **아직 오지 않은 주는 받지 않는다(#3243).** 지나지 않은 한 주를 돌아볼 수는
+    없고, 미래 주에 저장된 답은 그 주가 와도 이미 낸 것으로 보여 다시 묻지 않는다.
+    이번 주는 받는다 — 주말에 그 주를 정리해 보내는 회원이 있다. 리포트 주차
+    (`_my_report_week`)와 같은 규칙이다.
     """
-    if week_start:
-        try:
-            day = date.fromisoformat(week_start)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
-            ) from exc
-    else:
-        day = trainer_reports_service.week_start_of(clock.today()) - timedelta(days=7)
-    return trainer_reports_service.week_start_of(day)
+    this_week = trainer_reports_service.week_start_of(clock.today())
+    if not week_start:
+        return this_week - timedelta(days=7)
+    try:
+        day = parse_ymd(week_start)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 해요."
+        ) from exc
+    week = trainer_reports_service.week_start_of(day)
+    if week > this_week:
+        raise HTTPException(
+            status_code=422, detail="아직 오지 않은 주에는 피드백을 남길 수 없어요."
+        )
+    return week
 
 
 @router.get("/me/coach/weekly-feedback", response_model=MemberWeeklyFeedbackOut)
@@ -509,15 +537,15 @@ def _my_report_week(week_start: str | None) -> date:
     if not week_start:
         return today
     try:
-        day = date.fromisoformat(week_start)
+        day = parse_ymd(week_start)
     except ValueError as exc:
         raise HTTPException(
-            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
+            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 해요."
         ) from exc
     week = trainer_reports_service.week_start_of(day)
     if week > today:
         raise HTTPException(
-            status_code=422, detail="아직 오지 않은 주는 조회할 수 없습니다."
+            status_code=422, detail="아직 오지 않은 주는 조회할 수 없어요."
         )
     return week
 

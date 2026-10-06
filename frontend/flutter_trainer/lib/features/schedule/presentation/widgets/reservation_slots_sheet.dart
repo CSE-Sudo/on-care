@@ -373,7 +373,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     );
   }
 
-  /// 날짜 묶음 머리 — `오늘 · 9월 23일 (화)` 처럼 스케줄 머리와 같은 표기다.
+  /// 날짜 묶음 머리 — `오늘 · 9/23 (화)` 처럼 스케줄 머리와 같은 표기다.
   Widget _dayHeader(
     OnCareTokens tokens,
     AppLocalizations l,

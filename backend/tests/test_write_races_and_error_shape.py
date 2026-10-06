@@ -204,7 +204,7 @@ def test_profile_email_race_is_409_not_500(client, db_session, cleanup, monkeypa
     )
 
     assert response.status_code == 409, response.text
-    assert response.json() == {"detail": "이미 사용 중인 이메일입니다."}
+    assert response.json() == {"detail": "이미 사용 중인 이메일이에요."}
     db_session.expire_all()
     assert db_session.get(User, member_id).email == own_email
 
@@ -415,11 +415,17 @@ def test_scheduled_routine_list_queries_do_not_grow_with_rows(
     member_id, _, _ = _member(client)
     trainer_id = _trainer(db_session)
     _set_goal_and_weight(db_session, member_id)
+    # 담당·동의 경계 안의 회원이어야 목록이 찬다(#3239) — 빈 목록끼리 견주면
+    # 쿼리 수가 늘 같아 검사가 아무것도 보지 못한다.
+    _link(db_session, trainer_id, member_id, active=True)
     one = _schedule_with_routines(db_session, trainer_id, member_id, 1)
     many = _schedule_with_routines(db_session, trainer_id, member_id, 6)
 
     # 운동 참조표 캐시 같은 첫 호출 비용을 먼저 치른다.
     trainer_schedule_service.list_scheduled_routines(db_session, trainer_id, one)
+    assert len(
+        trainer_schedule_service.list_scheduled_routines(db_session, trainer_id, many)
+    ) == 6
     db_session.expire_all()
     single = _count_queries(
         db_session,
@@ -441,6 +447,8 @@ def test_scheduled_routine_list_still_fills_effect_from_goals(
     member_id, _, _ = _member(client)
     trainer_id = _trainer(db_session)
     _set_goal_and_weight(db_session, member_id)
+    # 담당·동의 경계 안의 회원이어야 목록을 돌려준다(#3239).
+    _link(db_session, trainer_id, member_id, active=True)
     schedule_id = _schedule_with_routines(db_session, trainer_id, member_id, 3)
 
     rows = trainer_schedule_service.list_scheduled_routines(db_session, trainer_id, schedule_id)

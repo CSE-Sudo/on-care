@@ -25,6 +25,23 @@ void main() {
       expect(parts.map((p) => p.$1), <String>['스쿼트', '플랭크', '코어 스트레칭']);
     });
 
+    test('주의사항의 런닝 표기도 달리기 계열을 뺀다 (#3215)', () {
+      final List<String> cautions = cautionsIn(
+        '무릎 통증으로 런닝 자제',
+        const <String>[],
+      );
+      expect(cautions, <String>['무릎']);
+      final parts = safeParts(<(String, String, int)>[
+        ('런닝 30분', '유산소', 2),
+        ('플랭크', '근력', 1),
+      ], cautions);
+      expect(parts.map((p) => p.$1), <String>['플랭크', '코어 스트레칭']);
+      // `러닝` 이 `러닝머신` 에 걸리듯 `런닝` 도 `런닝머신` 에 걸린다.
+      expect(avoidsFor('러닝머신', cautions), isTrue);
+      expect(avoidsFor('런닝머신', cautions), isTrue);
+      expect(guessExerciseType('런닝'), '유산소');
+    });
+
     test('주의할 말이 없으면 구성을 그대로 둔다 — 같은 목록이다', () {
       final List<(String, String, int)> parts = <(String, String, int)>[
         ('인터벌 러닝', '유산소', 3),
@@ -42,6 +59,11 @@ void main() {
       expect(historyExerciseName('걷기 ✓ (10분만)'), '걷기');
       expect(historyExerciseName('플랭크 ✗ (피로)'), '');
       expect(historyExerciseName(<String, Object?>{'name': '벤치프레스'}), '벤치프레스');
+      // 값으로 적힌 기록은 `done: false` 가 안 한 운동이다(#2508).
+      expect(
+        historyExerciseName(<String, Object?>{'name': '데드리프트', 'done': false}),
+        '',
+      );
       expect(
         frequentExercises(<List<Object?>>[
           <Object?>['걷기 25분 ✓', '데드리프트 ✗'],
@@ -70,13 +92,15 @@ void main() {
           trainerNote: '',
         );
 
-    test('반복 운동이 있는 회원은 그 운동으로 짠다 (정하윤 걷기)', () async {
-      final RoutineOptions o = await generate('seed-client-4');
+    // 이지수는 매주 같은 PT(데드리프트·런지·코어 서킷)를 받는다 — 실서버 시드
+    // (`seed_member_data._HISTORY`)와 같은 기록이다(#3003).
+    test('반복 운동이 있는 회원은 그 운동으로 짠다 (이지수 데드리프트)', () async {
+      final RoutineOptions o = await generate('seed-client-2');
 
       expect(o.planA.label, '기존 패턴 유지형');
       expect(o.planB.label, '점진적 강화형');
-      expect(o.planA.exercises.map((e) => e.name), contains('걷기'));
-      expect(o.planA.rationale, contains('반복 확인된 운동(걷기)'));
+      expect(o.planA.exercises.map((e) => e.name), contains('데드리프트'));
+      expect(o.planA.rationale, contains('반복 확인된 운동(데드리프트'));
       expect(o.generatedBy, 'rule');
       expect(
         o.planA.exercises.fold<int>(0, (int a, e) => a + e.minutes),
@@ -110,10 +134,11 @@ void main() {
     });
 
     test('추천 상태·기록 횟수를 서버와 같은 규칙으로 센다 (#2674)', () async {
-      // 김민수는 6주에 걸친 기록 — 맞춤, 이지수는 기록 몇 회 — 학습 중,
-      // 임도현은 기록 없음 — 템플릿.
+      // 김민수는 6주에 걸친 기록 — 맞춤, 정하윤은 PT 이력 없이 개인운동만
+      // 받는다 — 하루치 개인운동 카드는 추천 근거가 아니라 템플릿(#3003),
+      // 임도현은 기록 없음 — 템플릿. 실서버 시드와 같은 판정이다.
       final RoutineOptions kim = await generate('seed-client-1');
-      final RoutineOptions jisu = await generate('seed-client-2');
+      final RoutineOptions hayun = await generate('seed-client-4');
       final RoutineOptions dohyun = await generate('seed-client-7');
 
       expect(
@@ -122,7 +147,10 @@ void main() {
       );
       expect(kim.analysis.historySessionCount, greaterThanOrEqualTo(6));
       expect(kim.analysis.analysisPeriodDays, 42);
-      expect(jisu.analysis.recommendationStatus, RecommendationStatus.learning);
+      expect(
+        hayun.analysis.recommendationStatus,
+        RecommendationStatus.template,
+      );
       expect(
         dohyun.analysis.recommendationStatus,
         RecommendationStatus.template,
@@ -131,6 +159,11 @@ void main() {
       // 기록이 적으면 조건을 제안하지 않는다 — 서버와 같다.
       expect(dohyun.analysis.suggestedAvailableMinutes, isNull);
       // 기록이 쌓인 회원은 가장 최근 배정의 시간으로 조건을 제안한다.
+      final RoutineOptions jisu = await generate('seed-client-2');
+      expect(
+        jisu.analysis.recommendationStatus,
+        RecommendationStatus.personalized,
+      );
       expect(jisu.analysis.suggestedAvailableMinutes, isNotNull);
     });
 

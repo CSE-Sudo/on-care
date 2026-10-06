@@ -37,7 +37,7 @@ Map<String, Object?> _json({
   String id = 'noti-withdrawn',
   String category = 'consult_withdrawn',
   String title = _koTitle,
-  String body = '지수 회원 · 2026-10-01',
+  String body = '지수 회원 · 10월 1일',
   Object? subjectId,
   Object? args = const <String, Object?>{
     'member_name': '지수',
@@ -169,7 +169,7 @@ void main() {
       expect(n.targetDate, isNull);
       expect(trainerNotificationText(_en, n), (
         title: _koTitle,
-        body: '지수 회원 · 2026-10-01',
+        body: '지수 회원 · 10월 1일',
       ));
     });
 
@@ -200,14 +200,14 @@ void main() {
     test('한국어는 서버가 저장한 문장과 같다', () {
       expect(trainerNotificationText(_ko, _notice()), (
         title: _koTitle,
-        body: '지수 회원 · 2026-10-01',
+        body: '지수 회원 · 10월 1일',
       ));
     });
 
     test('영어는 서버 영어 조립과 같다', () {
       expect(trainerNotificationText(_en, _notice()), (
         title: _enTitle,
-        body: '지수 · 2026-10-01',
+        body: '지수 · 10/1',
       ));
     });
 
@@ -272,8 +272,8 @@ void main() {
   group('알림함', () {
     for (final (Locale locale, String title, String body)
         in const <(Locale, String, String)>[
-          (Locale('ko'), _koTitle, '지수 회원 · 2026-10-01'),
-          (Locale('en'), _enTitle, '지수 · 2026-10-01'),
+          (Locale('ko'), _koTitle, '지수 회원 · 10월 1일'),
+          (Locale('en'), _enTitle, '지수 · 10/1'),
         ]) {
       testWidgets('화면 언어로 제목·본문을 보인다 (${locale.languageCode})', (tester) async {
         await withWideSurface(tester, () async {
@@ -338,7 +338,7 @@ void main() {
             _json(
               id: 'noti-left',
               category: 'member_left',
-              title: '회원 탈퇴',
+              title: '회원이 탈퇴했어요',
               body: '지수 회원이 탈퇴했어요.',
               args: <String, Object?>{'member_name': '지수'},
               targetDate: null,
@@ -347,7 +347,7 @@ void main() {
         ]);
 
         expect(find.text(_koTitle), findsOneWidget);
-        expect(find.text('회원 탈퇴'), findsOneWidget);
+        expect(find.text('회원이 탈퇴했어요'), findsOneWidget);
         expect(find.byIcon(AppIcons.eventBusy), findsOneWidget);
         expect(find.byIcon(AppIcons.memberLeft), findsOneWidget);
       });

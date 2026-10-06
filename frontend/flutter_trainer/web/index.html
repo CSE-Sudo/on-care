@@ -29,13 +29,16 @@
     - font-src·connect-src: 엔진의 대체 글꼴(fonts.gstatic.com)과 CanvasKit wasm 내려받기.
     - connect-src 의 https: 는 API 주소가 빌드마다 달라서다(로컬 개발은 localhost).
     - frame-src blob: 는 `printing` 의 웹 인쇄용 iframe, worker-src 는 pdf.js·drift 워커.
+    - accounts.google.com/gsi/: 구글 로그인 버튼(Google Identity Services, #330) — 스크립트·
+      버튼 스타일·버튼 iframe. 카카오 웹 로그인은 팝업(kauth.kakao.com)과 같은 출처 콜백
+      페이지(kakao_login_callback.html)라 따로 열 출처가 없다.
     운영(AWS CloudFront)은 infra/frontend-hosting.yml 의 FrontendAppResponseHeadersPolicy 가
     같은 지시어를 응답 헤더로 내리고 connect-src 를 API 출처로 좁힌다(#3017). 브라우저는 둘을
     함께 적용하므로 운영에서는 헤더 쪽이 한도다. frame-ancestors·HSTS 는 meta 로는 걸리지 않아
     헤더에서만 붙는다. GitHub Pages 데모는 응답 헤더를 바꿀 수 없어 이 meta 만 적용된다.
     지시어를 바꾸면 템플릿도 같이 바꾼다 — tool/ci/test_frontend_csp.py 가 둘을 비교한다.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; worker-src 'self' blob:; frame-src 'self' blob: https://accounts.google.com/gsi/; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- 라이트 전용이다(#1604). 브라우저가 다크 모드여도 첫 프레임 전 배경·스크롤바가
@@ -102,22 +105,14 @@
   <title>On-Care 트레이너</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Ensure full Korean + emoji glyph coverage for the HTML web renderer.
-       Flutter renders text inside the <flt-glass-pane> shadow DOM with an empty
-       font-family, which can drop some Hangul/emoji glyphs (칭/짐/촌 등이 두부로
-       보이는 증상). Setting the font on the shadow HOST (flt-glass-pane /
-       flutter-view / body) lets the shadow content inherit it. Native
-       (iOS/Android) rendering is unaffected. 사용자 앱(frontend/flutter)의
-       동일 픽스와 폰트 스택을 맞춘다 — 두 앱의 한글이 달라 보이면 안 된다. -->
-  <style>
-    flt-glass-pane, flutter-view, body {
-      font-family: 'Apple SD Gothic Neo', 'AppleGothic', 'Malgun Gothic',
-        'Noto Sans KR', 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Noto Color Emoji', sans-serif !important;
-    }
-  </style>
-  <!-- 위 스타일을 shadow DOM 변화마다 다시 거는 스크립트(인라인 금지 — CSP). -->
-  <script src="js/font_fix.js"></script>
+  <!-- 한글·이모지 표시: 웹은 CanvasKit 으로만 그린다. 한글은 앱에 번들한 Pretendard,
+       그 밖의 글자(이모지 등)는 엔진의 대체 글꼴(fonts.gstatic.com — CSP font-src 허용)이
+       맡는다. HTML 렌더러용 글꼴 보정 스타일·스크립트는 CanvasKit 에서 효과가 없어
+       지웠다(#3159). -->
+  <!-- 예전 빌드가 설치한 서비스 워커를 지운다(#3204). 지금 빌드는 워커를 등록하지
+       않는다(web/flutter_bootstrap.js). 남은 워커가 옛 main.dart.js 를 내주면 새로고침해도
+       새 배포로 바뀌지 않는다. 인라인 금지(CSP)라 같은 출처 파일로 둔다. -->
+  <script src="js/sw_cleanup.js"></script>
 </head>
 <body>
   <!-- 부팅 중 로딩 표시(#3152). 첫 프레임 전 화면 전체를 덮고, 첫 프레임에서 지운다. -->
