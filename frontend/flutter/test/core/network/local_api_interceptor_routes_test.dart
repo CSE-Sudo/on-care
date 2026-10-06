@@ -53,6 +53,8 @@ const List<String> _exactRoutes = <String>[
   'POST /users/me/consents',
   'GET /users/me/profile',
   'PUT /users/me',
+  // 이메일 변경 인증 코드(#3230).
+  'POST /users/me/email/code',
   'DELETE /users/me',
   'POST /users/me/onboarding',
   'POST /users/me/onboarding/skip',

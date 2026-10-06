@@ -46,6 +46,7 @@ from app.schemas.health_goal_ranges import (
     WeeklyWorkoutGoal,
 )
 from app.schemas.partial_update import PartialUpdate
+from app.schemas.record_dates import is_hhmm, parse_ymd
 from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
 from app.services.password_policy import check_new_password
@@ -55,18 +56,22 @@ from app.services import exercise_types
 
 
 def _validate_ymd(v: str) -> str:
+    """`YYYY-MM-DD` 이고 달력에 있는 날. 원문을 그대로 저장하므로 표기 하나만 받는다.
+
+    `fromisoformat` 만 쓰면 `20261005`·`2026-W40-1` 도 통과해, 문자열로 저장된 날짜의
+    범위 조회·정렬·`until < date` 비교가 어긋났다(#3243).
+    """
     try:
-        _date.fromisoformat(v)  # 2026-99-99 / 2026-02-31 등 달력상 불가능한 값 거부
+        parse_ymd(v)  # 2026-99-99 / 2026-02-31 등 달력상 불가능한 값도 거부
     except ValueError as e:
         raise ValueError("유효한 날짜(YYYY-MM-DD)가 아닙니다.") from e
     return v
 
 
 def _validate_hhmm(v: str) -> str:
-    try:
-        _datetime.strptime(v, "%H:%M")  # 25:99 / 빈 문자열 등 거부
-    except ValueError as e:
-        raise ValueError("유효한 시간(HH:MM)이 아닙니다.") from e
+    """`HH:MM`(두 자리). `strptime` 은 `9:5` 도 받아 시각 정렬이 어긋났다(#3243)."""
+    if not is_hhmm(v):  # 25:99 / 빈 문자열 / 9:5 등 거부
+        raise ValueError("유효한 시간(HH:MM)이 아닙니다.")
     return v
 
 
@@ -2307,6 +2312,17 @@ class MemberWeeklyFeedbackSaveRequest(BaseModel):
     #: 한 줄은 길게 받지 않는다 — 30초 안에 끝나야 매주 돌아온다.
     note: str = Field(default="", max_length=TEXT_LINE_MAX)
 
+    @field_validator("pain_on")
+    @classmethod
+    def _v_pain_on(cls, v: str) -> str:
+        """비었거나 `YYYY-MM-DD`. (#3243)
+
+        검사가 없어 `pain_area` 가 있을 때 10자를 넘는 값은 칸(`String(10)`)에서 500,
+        짧은 날짜 아닌 값은 그대로 저장돼 트레이너 화면의 `(MM.DD)` 가 깨졌다.
+        """
+        v = v.strip()
+        return _validate_ymd(v) if v else v
+
 
 class ReportGoalsOut(BaseModel):
     """그 주에 적용돼 있는 목표. (#2232)
@@ -2608,12 +2624,15 @@ class TrainerClientInviteCreate(BaseModel):
 
 
 class TrainerClientInviteOut(BaseModel):
-    """트레이너가 보고 있는 '보낸 요청' 카드."""
+    """트레이너가 보고 있는 '보낸 요청' 카드.
+
+    회원 이메일은 싣지 않는다(#3239) — 수락 전인 요청만으로 회원의 연락처가
+    트레이너에게 가면 안 된다. 연결 코드 미리보기(`PairedMemberOut`)와 같은 범위다.
+    """
 
     id: str
     member_id: str
     member_name: str
-    member_email: str
     message: str | None = None
     status: Literal["pending", "accepted", "rejected", "cancelled"]
     created_at: _datetime

@@ -217,14 +217,14 @@ void main() {
       // 저장하면 새로 만들어지는지/그 행을 고치는지는 데이터 계층의 차이일
       // 뿐, 편집 창 자체(제목·안내 문구·버튼 문구)는 똑같아야 한다.
       await _pumpDialog(tester, _FakeTemplateRepository(), template: _starter);
-      expect(find.text('템플릿 편집'), findsOneWidget);
+      expect(find.text('템플릿 수정'), findsOneWidget);
       expect(find.text('새 템플릿'), findsNothing);
       expect(find.text('기본 구성이에요. 고치면 내 템플릿으로 저장돼요'), findsNothing);
       expect(find.text('내 템플릿으로 저장'), findsNothing);
       expect(find.text('저장'), findsOneWidget);
 
       await _pumpDialog(tester, _FakeTemplateRepository(), template: _mine);
-      expect(find.text('템플릿 편집'), findsOneWidget);
+      expect(find.text('템플릿 수정'), findsOneWidget);
       expect(find.text('저장'), findsOneWidget);
     });
 

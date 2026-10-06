@@ -72,6 +72,8 @@ MEMBER_HEALTH_GOAL = "member_health_goal"
 MEMBER_CONSULT_APPROVED = "member_consult_approved"
 MEMBER_CONSULT_REJECTED = "member_consult_rejected"
 MEMBER_CONSULT_EXPIRED = "member_consult_expired"
+#: 상담 요청을 받은 트레이너가 확인하기 전에 탈퇴했다(#3241).
+MEMBER_CONSULT_TRAINER_LEFT = "member_consult_trainer_left"
 MEMBER_TRAINER_LEFT = "member_trainer_left"
 MEMBER_TRAINER_LEFT_BOOKING = "member_trainer_left_booking"
 MEMBER_TRAINER_DISCONNECTED = "member_trainer_disconnected"
@@ -604,6 +606,22 @@ def _member_consult_expired(args: Args, locale: Locale) -> Rendered:
     )
 
 
+@_template(MEMBER_CONSULT_TRAINER_LEFT)
+def _member_consult_trainer_left(args: Args, locale: Locale) -> Rendered:
+    name = _text(args, "trainer_name")
+    if locale == "ko":
+        return (
+            "상담 요청이 취소되었어요",
+            f"{name or '트레이너'} 트레이너가 서비스를 떠나 상담 요청이 취소되었어요. "
+            "다른 트레이너에게 요청해 보세요.",
+        )
+    return (
+        "Consultation request cancelled",
+        f"{name or 'The trainer'} left the service, so your consultation request was "
+        "cancelled. Try requesting another trainer.",
+    )
+
+
 @_template(MEMBER_TRAINER_LEFT)
 def _member_trainer_left(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "trainer_name")
@@ -754,16 +772,16 @@ def _member_schedule_series(args: Args, locale: Locale) -> Rendered:
 #: 쿠폰 항목 id → 영어 혜택 이름. 한국어는 인자 `benefit`(교환 당시 문구)을 쓴다.
 #: 모르는 항목은 저장된 한국어 문구로 돌아간다.
 _BENEFIT_EN: dict[str, str] = {
-    "pt_renewal": "₩30,000 off PT re-registration",
+    "pt_renewal": "₩30,000 off PT renewal",
     "locker_month": "free personal locker for 1 month",
-    "diet_tray": "standard meal tray for photo analysis",
+    "diet_tray": "free analysis tray",
 }
 
 #: 취소된 쿠폰의 제목. 항목마다 다르다.
 _COUPON_CANCELLED_TITLE: dict[str, tuple[str, str]] = {
-    "pt_renewal": ("재등록 쿠폰이 취소됐어요", "PT re-registration coupon cancelled"),
-    "diet_tray": ("식판 수령 쿠폰이 취소됐어요", "Meal tray coupon cancelled"),
-    "locker_month": ("락커 쿠폰이 취소됐어요", "Locker coupon cancelled"),
+    "pt_renewal": ("PT 재등록 할인 쿠폰이 취소됐어요", "PT renewal discount coupon cancelled"),
+    "diet_tray": ("식판 수령 쿠폰이 취소됐어요", "Tray pickup coupon cancelled"),
+    "locker_month": ("개인 락커 쿠폰이 취소됐어요", "Personal locker coupon cancelled"),
 }
 
 #: 쿠폰이 취소된 까닭 코드 → (한국어 앞말, 영어 까닭).

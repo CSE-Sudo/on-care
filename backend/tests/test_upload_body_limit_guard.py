@@ -98,17 +98,51 @@ def test_main_rules_cover_every_upload_path_with_its_own_limit():
         assert rule is not None, path
         assert rule.max_bytes == limit, path
 
-    # JSON 으로 대량 텍스트를 받는 경로와 일반 쓰기 경로는 묶지 않는다.
-    for path in ("/v1/coach-docs", "/v1/me/coach/chat", "/v1/trainer/clients/u/chat"):
-        assert mw.rule_for(path) is None, path
-    # 정규식은 전체 일치다 — 한 단계 더 깊은 경로나 빈 id 는 묶지 않는다.
+    # 일반 쓰기 경로는 업로드 상한이 아니라 기본 상한을 받는다(#3238).
+    from app.main import DEFAULT_MAX_BODY_BYTES
+
+    for path in ("/v1/me/coach/chat", "/v1/trainer/clients/u/chat"):
+        assert mw.rule_for(path).max_bytes == DEFAULT_MAX_BODY_BYTES, path
+    # 정규식은 전체 일치다 — 한 단계 더 깊은 경로나 빈 id 는 업로드 상한에 묶지 않는다.
     for path in (
         "/v1/trainer/clients/u/chat/image/extra",
         "/v1/trainer/clients//chat/image",
     ):
-        assert mw.rule_for(path) is None, path
-    # 트레이너 AI 코칭 API 는 지웠다(#3085) — 상한 규칙도 함께 없앴다.
-    assert mw.rule_for("/v1/trainer/clients/user-1/ai-coach") is None
+        assert mw.rule_for(path).max_bytes == DEFAULT_MAX_BODY_BYTES, path
+    # 트레이너 AI 코칭 API 는 지웠다(#3085) — 업로드 상한 규칙도 함께 없앴다.
+    assert (
+        mw.rule_for("/v1/trainer/clients/user-1/ai-coach").max_bytes
+        == DEFAULT_MAX_BODY_BYTES
+    )
+
+
+def test_every_path_has_a_default_limit_and_auth_is_tighter():
+    """업로드가 아닌 경로도 상한이 있다(#3238). 무인증 `/auth/*` 는 더 좁다."""
+    from app.main import (
+        AUTH_MAX_BODY_BYTES,
+        COACH_DOC_MAX_BODY_BYTES,
+        DEFAULT_MAX_BODY_BYTES,
+        body_limit_rules,
+    )
+
+    mw = _middleware(body_limit_rules(_settings()))
+    for path in (
+        "/v1/auth/login",
+        "/v1/auth/register",
+        "/v1/auth/refresh",
+        "/v1/auth/social/kakao",
+        "/v1/auth/password-reset/request",
+    ):
+        assert mw.rule_for(path).max_bytes == AUTH_MAX_BODY_BYTES, path
+    for path in ("/v1/users/me", "/v1/exercise/records", "/healthz", "/"):
+        assert mw.rule_for(path).max_bytes == DEFAULT_MAX_BODY_BYTES, path
+    # 문서 원문을 JSON 으로 받는 관리자 적재만 기본보다 크게 연다.
+    assert (
+        mw.rule_for("/v1/coach/documents/public").max_bytes == COACH_DOC_MAX_BODY_BYTES
+    )
+    assert AUTH_MAX_BODY_BYTES < DEFAULT_MAX_BODY_BYTES < COACH_DOC_MAX_BODY_BYTES
+    # 기본 상한은 맨 끝이다 — 앞의 경로별 규칙을 가리지 않는다.
+    assert body_limit_rules(_settings())[-1].path == "/"
 
 
 def test_main_rules_follow_the_settings():
@@ -162,9 +196,15 @@ def test_every_file_upload_route_has_a_body_limit():
     mw = _app_body_limit()
     upload_routes = [r for r in api_routes(app) if _takes_a_file(r)]
     assert upload_routes, "파일을 받는 라우트를 하나도 못 찾았다 — 판정이 깨졌다"
-    missing = [r.path for r in upload_routes if mw.rule_for(_sample_path(r)) is None]
+    # 모든 경로에 기본 상한이 있으므로(#3238) "규칙이 있다" 만으로는 부족하다 —
+    # 기본 상한(`/`)에만 걸리면 정상 사진이 1MB 에서 413 을 맞는다.
+    missing = [
+        r.path
+        for r in upload_routes
+        if (rule := mw.rule_for(_sample_path(r))) is None or rule.path == "/"
+    ]
     assert missing == [], (
-        "파일을 받는 라우트에 본문 상한이 없다. app/main.py 의 body_limit_rules 에 "
+        "파일을 받는 라우트에 업로드 본문 상한이 없다. app/main.py 의 body_limit_rules 에 "
         "더할 것: " + ", ".join(missing)
     )
 
@@ -256,6 +296,31 @@ def test_chunked_oversized_upload_is_413(app_client, path, field, word):
     )
     assert r.status_code == 413, r.text
     assert word in r.json()["detail"]
+
+
+@pytest.mark.parametrize("path", ["/v1/auth/login", "/v1/auth/register", "/v1/auth/refresh"])
+def test_oversized_auth_body_is_413_before_parsing(app_client, path):
+    """무인증 경로도 큰 본문을 읽기 전에 끊는다(#3238) — DB·라우터에 닿지 않는다."""
+    from app.main import AUTH_MAX_BODY_BYTES
+
+    r = app_client.post(
+        path,
+        content=b"a" * (AUTH_MAX_BODY_BYTES + 1),
+        headers={"Content-Type": "application/json"},
+    )
+    assert r.status_code == 413, r.text
+    assert r.json() == {"detail": "요청이 너무 큽니다."}
+
+
+def test_oversized_json_body_elsewhere_is_413(app_client):
+    from app.main import DEFAULT_MAX_BODY_BYTES
+
+    r = app_client.put(
+        "/v1/users/me",
+        content=b"a" * (DEFAULT_MAX_BODY_BYTES + 1),
+        headers={"Content-Type": "application/json", "Authorization": "Bearer x"},
+    )
+    assert r.status_code == 413, r.text
 
 
 # ---- 미들웨어 단위: 정규식 규칙도 본문을 읽기 전에 끊는다 (DB 불필요) ----

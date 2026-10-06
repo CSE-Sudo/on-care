@@ -35,6 +35,7 @@ from app.services.trainer._common import (
     _active_link,
     _cancel_sessions_on_detach,
     _done_pt_numbers,
+    _reservation_schedule_ids,
     _schedule_out,
     get_member_trainer_id,
     member_routine_days,
@@ -304,11 +305,21 @@ def build_member_sessions(db: Session, member_id: str) -> list[ScheduleSessionOu
         .limit(_MEMBER_SESSIONS_LIMIT)
     ).all()
     numbers = _done_pt_numbers(db, member_id, trainer_id)
-    return [_member_schedule_out(s, numbers.get(s.id)) for s in rows]
+    # 예약 소유 여부를 행마다 묻지 않고 한 번에 모은다(#3242).
+    reserved = _reservation_schedule_ids(db, {s.id for s in rows})
+    return [
+        _member_schedule_out(
+            s, numbers.get(s.id), is_reservation=s.id in reserved
+        )
+        for s in rows
+    ]
 
 
 def _member_schedule_out(
-    s: TrainerSchedule, session_number: int | None = None
+    s: TrainerSchedule,
+    session_number: int | None = None,
+    *,
+    is_reservation: bool | None = None,
 ) -> ScheduleSessionOut:
     """회원에게 내보내는 세션 — `note` 는 **완료된 PT** 것만 싣는다(#2515).
 
@@ -316,10 +327,15 @@ def _member_schedule_out(
     트레이너만 보는 상담 기록(메모)이다. 트레이너 응답(`_schedule_out`)을 그대로 쓰면
     예정 PT 에 미리 적어 둔 글과 상담 기록까지 회원에게 간다. 회원 앱도 완료 PT 에서만
     그리므로, 그 밖의 `note` 는 여기서 비운다.
+
+    취소 사유도 비운다(#3239) — 트레이너가 취소하며 적은 내부 사유와 담당 해제
+    때 남는 `담당 해제`(`DETACH_CANCEL_REASON`)는 트레이너만 보는 기록이다.
+    회원 앱은 취소 주체·시각만 쓴다.
     """
-    out = _schedule_out(s)
+    out = _schedule_out(s, is_reservation=is_reservation)
     if s.status != SCHEDULE_DONE or s.type == "상담":
         out.note = ""
+    out.cancellation_reason = ""
     # 상담 요청 내용은 트레이너 카드용이다 — 회원은 `내 상담 요청` 에서 본다(#2584).
     out.consultation = None
     out.session_number = session_number

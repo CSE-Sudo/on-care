@@ -116,17 +116,23 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
     final AppLocalizations l = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
     final repository = ref.read(clientInviteRepositoryProvider);
+    // 연결하는 사이 창을 닫아도 명단·일정은 다시 읽는다(#3249). 닫힌 창의 `ref`
+    // 는 StateError 를 내고 아래 catch 가 삼켜, 연결된 회원이 명단에 늦게 떴다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       await repository.redeemPairingCode(_code.text.trim());
-      ref.invalidate(pendingClientInvitesProvider);
+      container.invalidate(pendingClientInvitesProvider);
       // 데모(즉시 연결)와 실 API 모두 고객 탭이 이 목록을 본다.
-      ref.invalidate(clientsProvider);
+      container.invalidate(clientsProvider);
       // 미등록 동안 걸러졌던 오늘 일정·안읽음 배지도 다시 보인다(#1623).
-      invalidateClientVisibilityDependentViews(ref);
+      invalidateClientVisibilityDependentViewsIn(container);
       if (!mounted) return;
       navigator.pop();
       showAppToast(
@@ -161,10 +167,16 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
   Future<void> _cancel(ClientInvite invite) async {
     if (_busy) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 취소하는 사이 창을 닫으면 `ref` 가 StateError 를 냈다 — AppError 만 받는
+    // 아래 catch 를 지나 그대로 새어 나갔다(#3249).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() => _busy = true);
     try {
       await ref.read(clientInviteRepositoryProvider).cancel(invite.id);
-      ref.invalidate(pendingClientInvitesProvider);
+      container.invalidate(pendingClientInvitesProvider);
       if (!mounted) return;
       showAppToast(
         context,

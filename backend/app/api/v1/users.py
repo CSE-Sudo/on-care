@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Annotated
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -29,11 +29,10 @@ from app.core.locale import get_request_locale
 from app.core.rate_limit import (
     PasswordChangeGuard,
     check_key,
+    claim_attempt,
     clear_failures,
-    ensure_unlocked,
     limiter,
     rate_limit,
-    record_failure,
     register_email_key,
 )
 from app.services import audit as audit_service
@@ -51,6 +50,7 @@ from app.schemas.user import (
     AccountDeletionPreview,
     ConsentStatus,
     ConsentSubmit,
+    EmailChangeCodeRequest,
     MemberPasswordChange,
     OptionalConsentState,
     PasswordChanged,
@@ -375,6 +375,13 @@ def update_me(
     `services/reauth.py`). 바꾸면 토큰 세대가 올라 다른 기기가 모두 로그아웃되고,
     응답의 새 토큰 한 쌍으로 이 기기가 이어 쓴다. 예전 주소로 변경 안내 메일이 간다
     — 본인이 아니면 알아챌 수 있다. 이름·연락처만 고치는 저장은 예전과 같다.
+
+    새 주소의 주인인지도 확인한다(#3230). 본인 확인만으로는 자기 계정의 이메일을
+    **남의** 주소로 바꿀 수 있었다 — 그 주소로 가입하려는 주인은 409 를 받고, 그 주소의
+    소셜 로그인은 바꾼 사람의 계정으로 들어왔다. 이제 `POST /users/me/email/code` 로
+    새 주소에 보낸 코드(`email_code`)가 맞아야 바뀐다. 바뀌기 전까지 이메일과
+    `email_verified_at` 은 옛 주소 그대로이고, 바뀌면 `email_verified_at` 이 이 확인
+    시각이 된다(확인을 끈 서버에서는 null — 확인하지 않은 주소다).
     """
     data = payload.model_dump(exclude_unset=True)
 
@@ -403,6 +410,17 @@ def update_me(
         )
         if dup is not None:
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일이에요.")
+        if email_changed:
+            # 중복 확인(409) 뒤에 코드를 본다 — 가입과 같은 순서다. 틀린 코드는 시도
+            # 횟수를 커밋하므로 아직 세션에 아무것도 얹지 않은 이 자리여야 한다.
+            user.email_verified_at = _consume_signup_code(
+                db,
+                request,
+                email=new_email,
+                code=payload.email_code,
+                purpose=signup_email_code.EMAIL_CHANGE,
+                event=audit_service.EMAIL_CHANGE_CODE_VERIFY,
+            )
         user.email = new_email
         # 위 중복 조회는 빠른 실패용이다. 같은 새 이메일로 바꾸는 요청(또는 같은
         # 이메일 가입)이 겹치면 둘 다 조회를 통과하고 `users.email` 유일 제약에서
@@ -624,8 +642,9 @@ def change_my_password(
     시도 제한(#3087): IP 한도에 더해 트레이너와 같은 **계정 단위 실패 잠금**을 건다.
     접근 토큰을 손에 넣은 쪽이 IP 를 바꿔 가며 현재 비밀번호를 맞혀 보면, 맞히는
     순간 다른 기기 토큰까지 끊고 계정을 가져간다. `login_lockout_seconds` 창 안에
-    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 다. 잠금 판정은
-    비밀번호 확인보다 먼저 하고, 소셜 전용 계정(409)은 세지 않는다.
+    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 다. 시도는 비밀번호
+    확인보다 먼저 세고 맞으면 지운다(#3238) — 동시 요청도 한도만큼만 확인에 들어간다.
+    소셜 전용 계정(409)은 세지 않는다.
     """
     if not user.hashed_password:
         raise HTTPException(
@@ -633,9 +652,8 @@ def change_my_password(
             detail="소셜 로그인 계정은 비밀번호가 없어 바꿀 수 없어요.",
         )
     guard = PasswordChangeGuard(user.id)
-    guard.ensure_unlocked()
+    guard.claim()
     if not verify_password(payload.current_password, user.hashed_password):
-        guard.record_failure()
         audit(
             db,
             event="auth.password_change",
@@ -696,13 +714,20 @@ _INVALID_EMAIL_CODE = {
 
 
 def _consume_signup_code(
-    db: Session, request: Request, *, email: str, code: str | None, purpose: str
+    db: Session,
+    request: Request,
+    *,
+    email: str,
+    code: str | None,
+    purpose: str,
+    event: str = "auth.signup_code_verify",
 ) -> datetime | None:
     """가입 요청의 인증 코드를 확인하고 쓴 것으로 표시한다(#3038).
 
     확인한 시각(`users.email_verified_at`)을 돌려준다. 서버가 확인을 끈 경우
     (`SIGNUP_EMAIL_VERIFICATION=false`, 테스트·E2E)는 보지 않고 None. 코드 사용 표시는
     커밋하지 않는다 — 계정 생성과 한 트랜잭션이라, 가입이 실패하면 코드도 살아 있다.
+    로그인 이메일 변경(#3230)도 같은 규약으로 부른다(`event` 만 다르다).
     """
     if not get_settings().signup_email_verification:
         return None
@@ -714,13 +739,98 @@ def _consume_signup_code(
     except signup_email_code.InvalidEmailCode:
         audit(
             db,
-            event="auth.signup_code_verify",
+            event=event,
             ip=client_ip(request),
             success=False,
             detail=masked_email(email),
         )
         raise HTTPException(status_code=400, detail=_INVALID_EMAIL_CODE) from None
     return now
+
+
+def _limit_email_code(settings, *, email: str, purpose: str) -> None:
+    """한 이메일로 보내는 코드 메일 수와 다시 받기 간격(#3038, #3230).
+
+    이메일 버킷은 가입·이메일 변경이 **같이** 쓴다 — 두 길을 번갈아 불러 한 주소에
+    메일을 두 배로 쏟아붓지 못하게 한다. 다시 받기 간격은 용도마다 따로다.
+    """
+    if not settings.rate_limit_enabled:
+        return
+    limiter.check(
+        f"signup-code-email:{email}",
+        settings.signup_email_code_per_window,
+        settings.signup_email_code_window_minutes * 60.0,
+    )
+    if settings.signup_email_code_resend_seconds > 0:
+        limiter.check(
+            f"signup-code-resend:{purpose}:{email}",
+            1,
+            float(settings.signup_email_code_resend_seconds),
+        )
+
+
+@router.post(
+    "/users/me/email/code",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=SignupEmailCodeSent,
+    dependencies=[Depends(rate_limit("users-email-code"))],
+)
+def request_email_change_code(
+    payload: EmailChangeCodeRequest,
+    user: RequireMember,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> SignupEmailCodeSent:
+    """로그인 이메일을 바꾸기 전에 **새** 주소로 6자리 인증 코드를 보낸다(#3230).
+
+    받은 코드를 `PUT /users/me` 의 `email_code` 로 함께 보내야 이메일이 바뀐다.
+    응답은 그 주소의 가입 여부와 무관하게 **같다**(202) — 이미 다른 계정이 쓰는 주소에는
+    코드 대신 "이미 계정이 있어 바꿀 수 없다" 는 안내가 간다. 접근 토큰만 가진 사람이
+    아무 주소나 넣어 가입 여부를 알아내지 못하게 한다(409 는 본인 확인을 거친
+    `PUT /users/me` 에서만 준다).
+
+    지금 쓰는 주소와 같으면(대소문자 무시) 확인할 것이 없어 422 다. 시도 제한은 가입
+    코드와 같은 세 겹(IP·이메일·다시 받기)에 회원 id 버킷을 더한다. 메일 발송 수단이
+    없으면 503 이다.
+    """
+    settings = get_settings()
+    if payload.email == user.email.lower():
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "email_unchanged", "message": "지금 쓰는 이메일과 같아요."},
+        )
+    check_key(
+        f"email-change-code:user:{user.id}",
+        settings.signup_email_code_per_window,
+        settings.signup_email_code_window_minutes * 60.0,
+    )
+    _limit_email_code(settings, email=payload.email, purpose=signup_email_code.EMAIL_CHANGE)
+    try:
+        issued = signup_email_code.request_code(
+            db,
+            payload.email,
+            signup_email_code.EMAIL_CHANGE,
+            now=clock.now(),
+            settings=settings,
+            locale=get_request_locale(request),
+        )
+    except signup_email_code.CodeUnavailable:
+        raise HTTPException(
+            status_code=503,
+            detail="지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.",
+        ) from None
+    audit(
+        db,
+        event=audit_service.EMAIL_CHANGE_CODE_REQUEST,
+        user_id=user.id,
+        ip=client_ip(request),
+        success=issued is not None,
+        detail=masked_email(payload.email),
+    )
+    return SignupEmailCodeSent(
+        expires_in_minutes=settings.signup_email_code_minutes,
+        resend_after_seconds=settings.signup_email_code_resend_seconds,
+    )
 
 
 @router.post(
@@ -747,18 +857,7 @@ def request_signup_email_code(
     서버에 메일 발송 수단이 없으면(운영인데 SMTP 설정이 비었을 때) 503 이다.
     """
     settings = get_settings()
-    if settings.rate_limit_enabled:
-        limiter.check(
-            f"signup-code-email:{payload.email}",
-            settings.signup_email_code_per_window,
-            settings.signup_email_code_window_minutes * 60.0,
-        )
-        if settings.signup_email_code_resend_seconds > 0:
-            limiter.check(
-                f"signup-code-resend:{payload.purpose}:{payload.email}",
-                1,
-                float(settings.signup_email_code_resend_seconds),
-            )
+    _limit_email_code(settings, email=payload.email, purpose=payload.purpose)
     try:
         issued = signup_email_code.request_code(
             db,
@@ -936,11 +1035,15 @@ def login(
     곳에 모인다. 잠금 판정은 비밀번호 확인보다 먼저 한다 — 잠긴 동안에는 맞는
     비밀번호인지 여부도 응답에 드러나지 않는다. 없는 이메일도 똑같이 세고 잠가
     가입 여부가 갈리지 않게 한다.
+
+    시도는 확인 **전에** 세고(`claim_attempt`), 맞으면 지운다(#3238). 잠금을 보고
+    나서 틀린 뒤에 세면, 그 사이 bcrypt 확인을 기다리는 동시 요청이 모두 잠금 판정을
+    통과해 한 창에서 한도보다 훨씬 많이 맞혀 볼 수 있었다.
     """
     settings = get_settings()
     lock_key = _login_lock_key(form.username)
     lock_window = float(settings.login_lockout_seconds)
-    ensure_unlocked(lock_key, settings.login_max_failures, lock_window)
+    claim_attempt(lock_key, settings.login_max_failures, lock_window)
     # 가입이 소문자로 저장하므로 입력도 같은 규칙으로 맞춰 찾는다(#2816) — 모바일
     # 키보드가 첫 글자를 대문자로 바꿔도 같은 계정이다.
     user = db.scalar(
@@ -951,7 +1054,6 @@ def login(
         or not user.is_active
         or not verify_password(form.password, user.hashed_password)
     ):
-        record_failure(lock_key, lock_window)
         audit(
             db,
             event="auth.login",
@@ -1126,6 +1228,7 @@ def logout(
 def request_password_reset(
     payload: PasswordResetRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ) -> PasswordResetRequested:
     """재설정 코드를 메일로 보낸다. 회원·트레이너 공용.
@@ -1137,6 +1240,9 @@ def request_password_reset(
     한 이메일로 보내는 메일 수 한도(`PASSWORD_RESET_EMAIL_PER_WINDOW`). 뒤의 것은
     여러 IP 에서 한 사람에게 메일을 쏟아붓는 것을 막는다 — 계정이 없는 주소도 똑같이
     세므로 429 로 가입 여부가 드러나지 않는다.
+
+    메일은 응답을 보낸 뒤에 보낸다(#3238). 그 자리에서 보내면 SMTP 를 기다리는 만큼
+    계정이 있는 주소만 응답이 늦어, 본문이 같아도 시간으로 가입 여부가 드러난다.
 
     서버에 메일 발송 수단이 없으면(운영인데 SMTP 설정이 비었을 때) 503 이다.
     """
@@ -1154,11 +1260,12 @@ def request_password_reset(
             now=clock.now(),
             settings=settings,
             locale=get_request_locale(request),
+            schedule=background_tasks.add_task,
         )
     except password_reset.ResetUnavailable:
         raise HTTPException(
             status_code=503,
-            detail="지금은 비밀번호 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.",
+            detail="지금은 비밀번호 재설정 메일을 보낼 수 없어요. 고객 지원으로 문의해 주세요.",
         ) from None
     audit(
         db,

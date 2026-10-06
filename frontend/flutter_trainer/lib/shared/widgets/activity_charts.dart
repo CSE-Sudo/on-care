@@ -35,6 +35,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/widgets/chart_a11y_labels.dart';
+import 'package:oncare_trainer/shared/widgets/period_chart_selection_bounds.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 소모 칼로리 색. **트레이너 메인 색**이다 (#1168).
@@ -778,7 +779,7 @@ class BurnBarChart extends StatelessWidget {
           builder: (BuildContext context, Widget? _) => PeriodScrollChart(
             count: calories.length,
             height: chartHeight,
-            selectedIndex: selection.selected,
+            selectedIndex: selection.selectedWithin(calories.length),
             onSelected: selection.select,
             onVisibleRangeChanged: selection.setVisible,
             daysPerScreen: _slotsPerScreen,

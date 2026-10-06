@@ -16,6 +16,7 @@ import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dar
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/weekly_feedback_labels.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 주간 피드백 시트를 연다. 보냈으면 true 로 닫힌다.
@@ -234,6 +235,8 @@ class _WeeklyFeedbackSheetState extends ConsumerState<WeeklyFeedbackSheet> {
     final DateTime last = widget.weekStart.add(const Duration(days: 6));
     final DateTime? picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: nowKst(),
       initialDate: _painOn ?? widget.weekStart,
       // 그 주 안의 날만 고른다 — 이 답이 가리키는 것은 한 주다.
       firstDate: widget.weekStart,

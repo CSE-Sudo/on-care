@@ -28,6 +28,8 @@ class SheetMeasure {
     required this.high,
     this.axisMax = 2,
     this.overIsFine = false,
+    this.judged = true,
+    this.overByDays = false,
   });
 
   /// 이번 주 값. 기록이 없으면 null.
@@ -46,6 +48,15 @@ class SheetMeasure {
   /// 목표를 넘겨도 걱정할 일이 아닌 항목인가(운동량).
   final bool overIsFine;
 
+  /// 칸을 가를 기준이 있는가. 회원이 적어 둔 목표가 없는 탄·단·지는 막대만
+  /// 긋고 칸은 고르지 않는다 — 서버 리포트 요약도 개인 목표가 있을 때만 균형을
+  /// 판정한다(#3246). 지어낸 기준으로 `부족`·`초과` 를 칠하지 않는다.
+  final bool judged;
+
+  /// 평균은 목표 안이어도 넘긴 날이 많아 `초과` 로 보는가(나트륨·당류). 서버
+  /// 요약의 `평균 초과 또는 초과일 > 2일` 규칙의 뒤쪽이다(#3246).
+  final bool overByDays;
+
   /// 목표 대비 비율. 값이 없거나 목표가 없으면 null.
   double? get ratio {
     final double? v = value;
@@ -59,12 +70,12 @@ class SheetMeasure {
   /// `초과` 칸이 있는가. 100% 가 끝인 항목(수행률·출석)에는 없다.
   bool get hasOver => high < axisMax;
 
-  /// 막대가 선 칸. 값이 없으면 null.
+  /// 막대가 선 칸. 값이 없거나 판정 기준이 없으면([judged]) null.
   SheetBand? get band {
     final double? r = ratio;
-    if (r == null) return null;
+    if (r == null || !judged) return null;
     if (hasUnder && r < low) return SheetBand.under;
-    if (hasOver && r > high) return SheetBand.over;
+    if (hasOver && (r > high || overByDays)) return SheetBand.over;
     return SheetBand.normal;
   }
 
@@ -216,10 +227,10 @@ class ReportSheet {
   /// 주별 운동 달성률(0~1, 오래된 주 → 이번 주). 기록 없는 주는 null.
   final List<double?> weeklyRates;
 
-  /// 적정 범위 — 칼로리는 판정 허용 폭과 같고, 탄단지는 ① 영양 막대가
-  /// `모자람` 을 짚는 80% 를 아래 끝으로 쓴다.
-  static const double _macroLow = 0.8;
-  static const double _macroHigh = 1.2;
+  /// 적정 범위 — 칼로리·탄단지 모두 서버 리포트 요약의 판정 허용 폭과 같다
+  /// (#3246).
+  static const double _macroLow = 1 - macroTolerance;
+  static const double _macroHigh = 1 + macroTolerance;
   static const double _exerciseLow = 0.8;
   static const double _exerciseHigh = 1.2;
 
@@ -231,38 +242,49 @@ class ReportSheet {
           low: 1 - calorieTolerance,
           high: 1 + calorieTolerance,
         ),
+        // 탄·단·지는 목표가 없으면 기본값으로 막대만 긋고, 칸은 회원이 적어 둔
+        // 목표가 있을 때만 고른다 — 서버 리포트 요약과 같은 규칙이다(#3246).
+        // 단백질 막대는 트레이너 화면과 같은 실효 목표(#2898)로 견준다.
         SheetDietItem.carbs: SheetMeasure(
           value: recordedMean(r.carbsWeek),
           target: r.carbsTarget ?? kReportCarbsTargetG.toDouble(),
           low: _macroLow,
           high: _macroHigh,
+          judged: _isSet(r.carbsTarget),
         ),
         SheetDietItem.protein: SheetMeasure(
           value: recordedMean(r.proteinWeek),
-          target: r.proteinTarget ?? kReportProteinTargetG.toDouble(),
+          target: r.proteinGoal,
           low: _macroLow,
           high: _macroHigh,
+          judged: _isSet(r.proteinTarget),
         ),
         SheetDietItem.fat: SheetMeasure(
           value: recordedMean(r.fatWeek),
           target: r.fatTarget ?? kReportFatTargetG.toDouble(),
           low: _macroLow,
           high: _macroHigh,
+          judged: _isSet(r.fatTarget),
         ),
-        // 나트륨·당류는 상한만 있다 — 적게 먹어서 걱정할 항목이 아니다.
+        // 나트륨·당류는 상한만 있다 — 적게 먹어서 걱정할 항목이 아니다. 평균이
+        // 목표 안이어도 넘긴 날이 사흘 이상이면 `초과` 다(서버와 같은 규칙).
         SheetDietItem.sodium: SheetMeasure(
           value: r.sodiumAvg?.toDouble() ?? recordedMean(r.sodiumWeek),
-          target: (r.sodiumTarget ?? kReportSodiumTargetMg).toDouble(),
+          target: r.sodiumGoal.toDouble(),
           low: 0,
           high: 1,
+          overByDays: r.sodiumOverGoalDays > kReportSodiumOverDays,
         ),
         SheetDietItem.sugar: SheetMeasure(
           value: r.sugarMean,
           target: r.sugarLimit,
           low: 0,
           high: 1,
+          overByDays: r.sugarOverLimitDays > kReportSugarOverDays,
         ),
       };
+
+  static bool _isSet(double? target) => target != null && target > 0;
 
   static Map<SheetExerciseItem, SheetMeasure> _exercise(
     ReportSheetWeek r,

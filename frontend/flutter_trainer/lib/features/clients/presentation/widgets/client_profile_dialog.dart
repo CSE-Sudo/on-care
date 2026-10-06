@@ -1367,9 +1367,16 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
   Future<void> _run(Future<void> Function() write, String fallback) async {
     if (_busy) return;
     setState(() => _busy = true);
+    // 저장하는 사이 창을 닫아도 메모 목록은 다시 읽어야 한다. 닫힌 창의 `ref` 는
+    // StateError 를 내고 아래 catch 가 삼켜, 저장된 메모가 목록에 안 보였다
+    // (#3249). 컨테이너는 앱과 수명이 같다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       await write();
-      ref.invalidate(trainerMemosProvider(widget.clientId));
+      container.invalidate(trainerMemosProvider(widget.clientId));
       if (!mounted) return;
       setState(() => _busy = false);
     } on AppError catch (error) {
@@ -1415,6 +1422,8 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
       } else {
         await repo.create(widget.clientId, body: body, category: _category);
       }
+      // 창이 닫혔으면 입력란도 이미 해제됐다 — 비우지 않고 목록 갱신만 잇는다.
+      if (!mounted) return;
       _draft.clear();
       _category = TrainerMemoCategory.none;
       _record = null;

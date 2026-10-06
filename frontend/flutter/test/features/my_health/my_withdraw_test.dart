@@ -6,6 +6,8 @@
 /// 고른 것마다 탈퇴 말고 무엇으로 풀리는지 답한다.
 library;
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,6 +46,9 @@ class _CountingAccountRepository extends MockAccountRepository {
   int deletes = 0;
   List<String> lastReasons = const <String>[];
 
+  /// 채워 두면 탈퇴 요청이 이것이 끝날 때까지 서버에 머문다(#3245).
+  Completer<void>? gate;
+
   @override
   Future<void> deleteAccount({
     List<String> reasons = const <String>[],
@@ -51,6 +56,7 @@ class _CountingAccountRepository extends MockAccountRepository {
   }) async {
     deletes++;
     lastReasons = reasons;
+    await gate?.future;
     if (fails) throw Exception('offline');
     // 본인 확인 판정은 대역의 것 그대로다 — 틀리면 400 처럼 거절한다.
     await super.deleteAccount(reasons: reasons, reauth: reauth);
@@ -316,6 +322,67 @@ void main() {
     expect(prefs.homeGuideDone, isFalse);
     // 언어는 기기 설정이라 남는다.
     expect(prefs.localeCode, 'ko');
+    expect(find.text('로그인 화면'), findsOneWidget);
+  });
+
+  testWidgets('탈퇴 요청이 도는 동안에는 바깥·뒤로 가기로 창이 닫히지 않는다 (#3245)', (
+    WidgetTester tester,
+  ) async {
+    final (
+      AppLocalizations l,
+      _CountingAccountRepository repo,
+      AppPrefs prefs,
+    ) = await _pumpWithdraw(
+      tester,
+    );
+    await _openWithdraw(tester, l);
+    await _reachConfirm(tester);
+    repo.gate = Completer<void>();
+    await _confirmWithPassword(tester);
+    await tester.pump();
+
+    // 바깥을 누르고, 뒤로 가기를 보낸다.
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(AccountReauthDialog), findsOneWidget);
+
+    repo.gate!.complete();
+    await _settleDeletion(tester);
+
+    expect(repo.deletes, 1);
+    expect(prefs.onboardingDone, isFalse);
+    expect(find.text('로그인 화면'), findsOneWidget);
+  });
+
+  testWidgets('요청 중 창이 다른 길로 닫혀도 탈퇴가 끝나면 로그아웃한다 (#3245)', (
+    WidgetTester tester,
+  ) async {
+    final (
+      AppLocalizations l,
+      _CountingAccountRepository repo,
+      AppPrefs prefs,
+    ) = await _pumpWithdraw(
+      tester,
+    );
+    await _openWithdraw(tester, l);
+    await _reachConfirm(tester);
+    repo.gate = Completer<void>();
+    await _confirmWithPassword(tester);
+    await tester.pump();
+
+    // 창만 걷어 낸다 — 결과 없이 닫히면 부른 쪽은 `취소` 로 받는다.
+    Navigator.of(tester.element(find.byType(AccountReauthDialog))).pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(AccountReauthDialog), findsNothing);
+    expect(find.byType(WithdrawPage), findsOneWidget);
+
+    repo.gate!.complete();
+    await _settleDeletion(tester);
+
+    expect(repo.deletes, 1);
+    expect(prefs.onboardingDone, isFalse);
     expect(find.text('로그인 화면'), findsOneWidget);
   });
 

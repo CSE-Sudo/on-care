@@ -73,12 +73,21 @@ def record_streak_days(
     오늘은 아직 기록하지 않았을 수 있으므로, 오늘이 비어 있으면 어제부터 센다 —
     그러지 않으면 자정이 지나는 순간 어제까지 쌓은 연속이 0 으로 보인다.
     [protected] 는 보호권으로 이어 붙인 날(YYYY-MM-DD)로, 기록한 날처럼 센다.
-    [limit] 은 조회를 묶는 상한이다.
+    [limit] 은 거슬러 올라가는 일수의 상한이다.
+
+    기록한 날은 범위를 한 번에 읽는다(#3242). 하루씩 [has_record] 로 물으면 1년을
+    이어 쓴 회원 한 명의 화면 하나가 쿼리 수백 번(최대 약 730)이 된다.
     """
     protected = protected or set()
+    # 오늘이 비어 있으면 어제부터 [limit] 일을 세므로, 가장 이른 날은 today - limit 이다.
+    earliest = today - timedelta(days=limit)
+    days = diet_days(db, member_id, earliest, today) | exercise_days(
+        db, member_id, earliest, today
+    )
 
     def recorded(day: date) -> bool:
-        return day.isoformat() in protected or has_record(db, member_id, day)
+        key = day.isoformat()
+        return key in protected or key in days
 
     start = today if recorded(today) else today - timedelta(days=1)
     count = 0

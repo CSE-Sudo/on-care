@@ -443,7 +443,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeCalorieIntake.
   ///
   /// In en, this message translates to:
-  /// **'Today\'s calories'**
+  /// **'Calories eaten today'**
   String get homeCalorieIntake;
 
   /// No description provided for @homeAchieveRate.
@@ -467,7 +467,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeExerciseBurned.
   ///
   /// In en, this message translates to:
-  /// **'Calories'**
+  /// **'Calories burned'**
   String get homeExerciseBurned;
 
   /// No description provided for @homeMealReasonSodium.
@@ -557,7 +557,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeMealReasonFiber.
   ///
   /// In en, this message translates to:
-  /// **'Rich in dietary fiber'**
+  /// **'Rich in fiber'**
   String get homeMealReasonFiber;
 
   /// No description provided for @homeMealTagLowFat.
@@ -707,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietNutritionSummary.
   ///
   /// In en, this message translates to:
-  /// **'Nutrition'**
+  /// **'Nutrition summary'**
   String get dietNutritionSummary;
 
   /// Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)
@@ -971,7 +971,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietCameraPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Camera permission is needed to photograph your meal. Tap Take Photo to try again.'**
+  /// **'Camera permission is needed to photograph your meal. Tap \"Take a photo\" to try again.'**
   String get dietCameraPermissionDenied;
 
   /// No description provided for @dietCameraPermissionPermanentlyDenied.
@@ -983,7 +983,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietPhotoPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Photo permission is needed to choose a meal photo. Tap Choose Photo to try again.'**
+  /// **'Photo permission is needed to choose a meal photo. Tap \"Choose a photo\" to try again.'**
   String get dietPhotoPermissionDenied;
 
   /// No description provided for @dietPhotoPermissionPermanentlyDenied.
@@ -1019,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietOpenSettingsFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t open Settings. Turn on camera and photo access under Settings > Oncare.'**
+  /// **'Couldn\'t open Settings. Turn on camera and photo access under Settings › Oncare.'**
   String get dietOpenSettingsFailed;
 
   /// No description provided for @dietAnalyzing.
@@ -1109,7 +1109,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAnalysisNotImplemented.
   ///
   /// In en, this message translates to:
-  /// **'Photo analysis is unavailable right now. Please log the meal manually.'**
+  /// **'Photo analysis is unavailable right now. Please add the meal manually.'**
   String get dietAnalysisNotImplemented;
 
   /// No description provided for @dietAnalysisNoFood.
@@ -1505,7 +1505,7 @@ abstract class AppLocalizations {
   /// No description provided for @exStreakCheer.
   ///
   /// In en, this message translates to:
-  /// **'{days} days in a row!'**
+  /// **'{days, plural, =1{1 day in a row!} other{{days} days in a row!}}'**
   String exStreakCheer(int days);
 
   /// No description provided for @exStreakStart.
@@ -1553,7 +1553,7 @@ abstract class AppLocalizations {
   /// No description provided for @exCompletedPtNoProgram.
   ///
   /// In en, this message translates to:
-  /// **'No workout program was recorded.'**
+  /// **'No PT program was recorded.'**
   String get exCompletedPtNoProgram;
 
   /// No description provided for @exAddExercise.
@@ -2201,19 +2201,19 @@ abstract class AppLocalizations {
   /// No description provided for @exSlotsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No times available'**
+  /// **'No open booking times'**
   String get exSlotsEmpty;
 
   /// No description provided for @exSlotsAllBooked.
   ///
   /// In en, this message translates to:
-  /// **'All available times are fully booked'**
+  /// **'All open booking times are fully booked'**
   String get exSlotsAllBooked;
 
   /// No description provided for @exSlotsLoadError.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load available times.'**
+  /// **'Couldn\'t load open booking times.'**
   String get exSlotsLoadError;
 
   /// No description provided for @exReserveFailed.
@@ -2228,10 +2228,16 @@ abstract class AppLocalizations {
   /// **'Your trainer already has something else at this time, so it can\'t be booked. Please pick another time.'**
   String get exReserveTimeTaken;
 
+  /// No description provided for @exReserveUpcomingExists.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an upcoming booking. To change the time, cancel it first.'**
+  String get exReserveUpcomingExists;
+
   /// No description provided for @exReserveConfirmedSlotGym.
   ///
   /// In en, this message translates to:
-  /// **'{slot} · {gym} reservation confirmed'**
+  /// **'{slot} · {gym} booking confirmed'**
   String exReserveConfirmedSlotGym(String slot, String gym);
 
   /// No description provided for @exReserveConfirm.
@@ -2471,13 +2477,13 @@ abstract class AppLocalizations {
   /// No description provided for @myShopGraphColorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour'**
+  /// **'Graph color'**
   String get myShopGraphColorTitle;
 
   /// No description provided for @myShopGraphColorDescription.
   ///
   /// In en, this message translates to:
-  /// **'Pick a new colour for the record graph on the points screen. Colours you unlock stay yours.'**
+  /// **'Pick a new color for the record graph on the points screen. Colors you unlock stay yours.'**
   String get myShopGraphColorDescription;
 
   /// No description provided for @myGraphTitle.
@@ -2519,7 +2525,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphDayNone.
   ///
   /// In en, this message translates to:
-  /// **'{date} · nothing logged'**
+  /// **'{date} · No record'**
   String myGraphDayNone(String date);
 
   /// No description provided for @myGraphDayDiet.
@@ -2609,13 +2615,13 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphColorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour'**
+  /// **'Graph color'**
   String get myGraphColorTitle;
 
   /// No description provided for @myGraphColorPickTitle.
   ///
   /// In en, this message translates to:
-  /// **'Pick a colour to unlock'**
+  /// **'Pick a color to unlock'**
   String get myGraphColorPickTitle;
 
   /// No description provided for @myGraphColorLocked.
@@ -2627,7 +2633,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphColorDone.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour changed'**
+  /// **'Graph color changed'**
   String get myGraphColorDone;
 
   /// No description provided for @myGraphColorExchangeConfirm.
@@ -2639,13 +2645,13 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphColorUnlocked.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour unlocked'**
+  /// **'Graph color unlocked'**
   String get myGraphColorUnlocked;
 
   /// No description provided for @myGraphColorFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t change the colour'**
+  /// **'Couldn\'t change the color'**
   String get myGraphColorFailed;
 
   /// No description provided for @myGraphColorBlue.
@@ -2939,7 +2945,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPointsReasonGraphColor.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour'**
+  /// **'Graph color'**
   String get myPointsReasonGraphColor;
 
   /// No description provided for @myPointsReasonEmotePass.
@@ -3167,7 +3173,7 @@ abstract class AppLocalizations {
   /// No description provided for @myCouponTrainer.
   ///
   /// In en, this message translates to:
-  /// **'Trainer'**
+  /// **'Your trainer'**
   String get myCouponTrainer;
 
   /// No description provided for @myCouponGym.
@@ -3269,7 +3275,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDietTrayIssued.
   ///
   /// In en, this message translates to:
-  /// **'Pick it up at {gym}. Before you go, ask your trainer in chat whether it\'s ready'**
+  /// **'Pick it up at {gym}. Before you go, message your trainer to check whether it\'s ready'**
   String myDietTrayIssued(String gym);
 
   /// No description provided for @myDietTrayReceived.
@@ -3341,7 +3347,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDietTrayExpireNotice.
   ///
   /// In en, this message translates to:
-  /// **'No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.'**
+  /// **'No expiry. Before you go to the gym, message your trainer to check whether the tray is ready.'**
   String get myDietTrayExpireNotice;
 
   /// No description provided for @myCouponStaffConfirmTitle.
@@ -3419,13 +3425,13 @@ abstract class AppLocalizations {
   /// No description provided for @myLogout.
   ///
   /// In en, this message translates to:
-  /// **'Log out'**
+  /// **'Sign out'**
   String get myLogout;
 
   /// No description provided for @myLogoutConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Log out of your account?'**
+  /// **'Sign out of your account?'**
   String get myLogoutConfirm;
 
   /// No description provided for @emoteSheetTitle.
@@ -3635,13 +3641,13 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepHardToUse.
   ///
   /// In en, this message translates to:
-  /// **'Tell us what got in the way and we will fix it. The 1:1 inquiry under MY > Customer support reaches us directly.'**
+  /// **'Tell us what got in the way and we will fix it. The 1:1 inquiry under MY › Customer support reaches us directly.'**
   String get myWithdrawKeepHardToUse;
 
   /// No description provided for @myWithdrawKeepNotifications.
   ///
   /// In en, this message translates to:
-  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.'**
+  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY › Notification settings.'**
   String get myWithdrawKeepNotifications;
 
   /// No description provided for @myWithdrawKeepAlternative.
@@ -3653,7 +3659,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepOther.
   ///
   /// In en, this message translates to:
-  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY > Customer support.'**
+  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY › Customer support.'**
   String get myWithdrawKeepOther;
 
   /// No description provided for @myWithdrawKeepDefault.
@@ -3869,7 +3875,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifTrainerDesc.
   ///
   /// In en, this message translates to:
-  /// **'When your trainer sends you a chat message'**
+  /// **'When your trainer sends you a message'**
   String get myNotifTrainerDesc;
 
   /// No description provided for @myNotifWeeklyReportDesc.
@@ -3923,7 +3929,7 @@ abstract class AppLocalizations {
   /// Privacy policy body. {contact} is the privacy officer contact, filled from LegalContact.privacyOfficerEmail in shared/oncare_core (the single definition point, #3005).
   ///
   /// In en, this message translates to:
-  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao or Google), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you agree to the use of location information in gym search and allow your current location, we receive the device\'s current coordinates and use them to search for nearby gyms. The coordinates are passed to Kakao Corp.\'s place search to find nearby places, destroyed right after the request is handled, and not saved to your account. You can withdraw location consent at any time in the MY tab, and without it you can still use gym search with the default search area. Details are set out in the Location-Based Services Terms.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member\'s personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach\'s search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information, health goals, and health notes & cautions is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer\'s schedule keep your display name and the date and time as the trainer\'s work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers\' access to member information by assignment. When a trainer opens a member\'s health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 5 October 2026: changed the contact address of the personal information protection officer, added the location consent step and the Location-Based Services Terms to (5) of section 1, and removed Naver and Apple from the social login options\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 5 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
+  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao or Google), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you agree to the use of location information in gym search and allow your current location, we receive the device\'s current coordinates and use them to search for nearby gyms. The coordinates are passed to Kakao Corp.\'s place search to find nearby places, destroyed right after the request is handled, and not saved to your account. You can withdraw location consent at any time in the MY tab, and without it you can still use gym search with the default search area. Details are set out in the Location-Based Services Terms.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member\'s personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a connection code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by disconnecting your trainer or gym in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach\'s search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information, health goals, and health notes & cautions is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer\'s schedule keep your display name and the date and time as the trainer\'s work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers\' access to member information by assignment. When a trainer opens a member\'s health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 5 October 2026: changed the contact address of the personal information protection officer, added the location consent step and the Location-Based Services Terms to (5) of section 1, removed Naver and Apple from the social login options, and aligned the wording for withdrawing consent with the app (connection code, disconnect) in section 5\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 5 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
   String myLegalPrivacyBody(String contact);
 
   /// No description provided for @myLegalTermsEffectiveDate.
@@ -4103,13 +4109,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachHeaderPill.
   ///
   /// In en, this message translates to:
-  /// **'AI health assistant'**
+  /// **'AI Coach'**
   String get coachHeaderPill;
 
   /// No description provided for @coachHeaderSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Here are today\'s tailored tips'**
+  /// **'Here\'s today\'s tailored advice'**
   String get coachHeaderSubtitle;
 
   /// No description provided for @coachCardDietTag.
@@ -4181,7 +4187,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteTitle.
   ///
   /// In en, this message translates to:
-  /// **'A trainer wants to coach you'**
+  /// **'Coaching request received'**
   String get coachInviteTitle;
 
   /// No description provided for @coachInviteFrom.
@@ -4241,13 +4247,13 @@ abstract class AppLocalizations {
   /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In en, this message translates to:
-  /// **'Personal trainer'**
+  /// **'Your trainer'**
   String get coachChatSubtitle;
 
   /// Button above the trainer chat thread that fetches the previous page (#1943).
   ///
   /// In en, this message translates to:
-  /// **'Load older messages'**
+  /// **'Load earlier messages'**
   String get coachChatLoadOlder;
 
   /// No description provided for @coachChatLoadFailed.
@@ -4319,7 +4325,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachPhotoRetry.
   ///
   /// In en, this message translates to:
-  /// **'Retry'**
+  /// **'Send again'**
   String get coachPhotoRetry;
 
   /// Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665).
@@ -4385,7 +4391,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachReportPdfFileName.
   ///
   /// In en, this message translates to:
-  /// **'weekly-report_{date}.pdf'**
+  /// **'weekly_report_{date}.pdf'**
   String coachReportPdfFileName(String date);
 
   /// No description provided for @coachChatInputHint.
@@ -4619,13 +4625,13 @@ abstract class AppLocalizations {
   /// No description provided for @aicInsightDeleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Remove this detection from your reference notes? What you wrote stays in the conversation.'**
+  /// **'Delete this detection from your reference notes? What you wrote stays in the conversation.'**
   String get aicInsightDeleteConfirm;
 
   /// No description provided for @aicInsightDeleteFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t remove it. Please try again in a moment.'**
+  /// **'Couldn\'t delete it. Please try again in a moment.'**
   String get aicInsightDeleteFailed;
 
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
@@ -4661,19 +4667,19 @@ abstract class AppLocalizations {
   /// AI coach chat: how long the conversation is kept (#1823).
   ///
   /// In en, this message translates to:
-  /// **'AI chat history is kept for the last {days} days'**
+  /// **'AI Coach chats are kept for the last {days} days'**
   String aicRetentionNotice(int days);
 
   /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
   ///
   /// In en, this message translates to:
-  /// **'Chat with your trainer'**
+  /// **'Message your trainer'**
   String get aicTrainerConnectedTitle;
 
   /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
   ///
   /// In en, this message translates to:
-  /// **'You\'re connected with {name}. Members with a trainer chat with their trainer instead of the AI chatbot'**
+  /// **'You\'re connected with {name}. Members with a trainer message their trainer instead of using the AI Coach'**
   String aicTrainerConnectedBody(String name);
 
   /// No description provided for @aicQuickReply1.
@@ -4775,7 +4781,7 @@ abstract class AppLocalizations {
   /// No description provided for @exAssignedTrainer.
   ///
   /// In en, this message translates to:
-  /// **'Assigned trainer'**
+  /// **'Your trainer'**
   String get exAssignedTrainer;
 
   /// No description provided for @exConsultDataSharingNotice.
@@ -4829,13 +4835,13 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultSlotTitle.
   ///
   /// In en, this message translates to:
-  /// **'Available times'**
+  /// **'Open booking times'**
   String get exConsultSlotTitle;
 
   /// No description provided for @exConsultSlotRequired.
   ///
   /// In en, this message translates to:
-  /// **'Please choose an available time.'**
+  /// **'Please choose an open booking time.'**
   String get exConsultSlotRequired;
 
   /// No description provided for @exConsultSlotsEmptyTitle.
@@ -4859,7 +4865,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultSlotsError.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load the available times.'**
+  /// **'Couldn\'t load the open booking times.'**
   String get exConsultSlotsError;
 
   /// No description provided for @exConsultSlotTaken.
@@ -5189,7 +5195,7 @@ abstract class AppLocalizations {
   /// No description provided for @authRestoreRetry.
   ///
   /// In en, this message translates to:
-  /// **'Try again'**
+  /// **'Retry'**
   String get authRestoreRetry;
 
   /// No description provided for @authRestoreSignIn.
@@ -5311,6 +5317,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t sign in with your social account. Please try again in a moment'**
   String get authSocialSignInFailed;
+
+  /// Error toast on sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551).
+  ///
+  /// In en, this message translates to:
+  /// **'An account already uses this email. Please sign in the way you first signed up.'**
+  String get authSocialEmailInUse;
 
   /// No description provided for @authSocialComingSoon.
   ///
@@ -5471,7 +5483,7 @@ abstract class AppLocalizations {
   /// No description provided for @trainerShareDetailLess.
   ///
   /// In en, this message translates to:
-  /// **'Hide details'**
+  /// **'Show less'**
   String get trainerShareDetailLess;
 
   /// No description provided for @trainerShareRecipientLabel.
@@ -5789,7 +5801,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the home AI advice card (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Today\'s AI summary'**
+  /// **'Today\'s combined AI advice'**
   String get guideHomeAdviceTitle;
 
   /// Spotlight guide step: the home AI advice card (#1857).
@@ -5867,7 +5879,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// No description provided for @guideSampleFoodScrambledEggs.
@@ -6556,7 +6568,7 @@ abstract class AppLocalizations {
   /// Shown when the routine is missing.
   ///
   /// In en, this message translates to:
-  /// **'This program no longer exists. Please refresh the list'**
+  /// **'This personal exercise no longer exists. Please refresh the list'**
   String get coachRoutineGone;
 
   /// Shown when the network is unavailable.
@@ -6610,7 +6622,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineCancelConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Remove \'{name}\' from the list? Anything you already logged stays.'**
+  /// **'Delete \'{name}\' from the list? Anything you already logged stays.'**
   String coachRoutineCancelConfirm(String name);
 
   /// Title of the dialog confirming undoing a completed recommended workout.
@@ -6670,7 +6682,7 @@ abstract class AppLocalizations {
   /// Opens the chat with the assigned trainer.
   ///
   /// In en, this message translates to:
-  /// **'Chat with trainer'**
+  /// **'Message trainer'**
   String get coachChatWithTrainer;
 
   /// Tooltip while the assigned trainer is being fetched.
@@ -6730,7 +6742,7 @@ abstract class AppLocalizations {
   /// Notification category label for screen readers.
   ///
   /// In en, this message translates to:
-  /// **'Trainer'**
+  /// **'Your trainer'**
   String get alertCategoryTrainer;
 
   /// Notification category label for screen readers.
@@ -6976,7 +6988,7 @@ abstract class AppLocalizations {
   /// No description provided for @a11yOpenCoaching.
   ///
   /// In en, this message translates to:
-  /// **'Open coaching tips'**
+  /// **'Open coaching advice'**
   String get a11yOpenCoaching;
 
   /// No description provided for @a11ySendMessage.
@@ -8061,7 +8073,7 @@ abstract class AppLocalizations {
   /// No description provided for @passwordChangeAction.
   ///
   /// In en, this message translates to:
-  /// **'Change password'**
+  /// **'Change'**
   String get passwordChangeAction;
 
   /// No description provided for @passwordChangeDone.
@@ -8297,6 +8309,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Changing your email changes your sign-in ID and the address password reset emails go to.'**
   String get reauthEmailMessage;
+
+  /// Title of the dialog that checks the new address before an email change (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your new email'**
+  String get emailChangeCodeTitle;
+
+  /// Body of the new-email code dialog; email is the new address (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {email}. Enter it to confirm this address is yours.'**
+  String emailChangeCodeMessage(String email);
+
+  /// Confirm button of the new-email code dialog; the re-auth dialog follows (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get emailChangeCodeNext;
 
   /// No description provided for @reauthPasswordPrompt.
   ///

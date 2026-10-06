@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/errors/app_error.dart';
@@ -97,6 +98,7 @@ Future<ProviderContainer> _openResultSheet(
   _FailingDietRepository repository, {
   Locale locale = const Locale('ko'),
   bool inDemoSession = false,
+  DateTime? date,
 }) async {
   final ProviderContainer container = ProviderContainer(
     overrides: <Override>[
@@ -125,7 +127,7 @@ Future<ProviderContainer> _openResultSheet(
           builder: (BuildContext context) => Scaffold(
             body: Center(
               child: ElevatedButton(
-                onPressed: () => showDietAddSheet(context),
+                onPressed: () => showDietAddSheet(context, date: date),
                 child: const Text('open'),
               ),
             ),
@@ -216,7 +218,7 @@ void main() {
     final _FailingDietRepository repo = _FailingDietRepository(501);
     await _openResultSheet(tester, repo);
 
-    expect(find.textContaining('사진 분석을 사용할 수 없어요'), findsOneWidget);
+    expect(find.textContaining('사진 분석을 쓸 수 없어요'), findsOneWidget);
     expect(_actionLabel(tester), '닫기');
   });
 
@@ -274,6 +276,26 @@ void main() {
     expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
     expect(find.byKey(const Key('dietAnalysisFailureAction')), findsNothing);
     expect(repo.attempts, 1);
+  });
+
+  testWidgets('어제를 보며 분석이 실패해 직접 추가하면 그 화면도 어제로 열린다 (#3244)', (
+    WidgetTester tester,
+  ) async {
+    final DateTime yesterday = DateTime(2026, 8, 19);
+    await _openResultSheet(
+      tester,
+      _RejectingDietRepository(DietAnalysisFailure.noFood),
+      date: yesterday,
+    );
+
+    await tester.tap(find.byKey(const Key('dietAnalysisFailureSecondary')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('meal-create-date'))).data,
+      DateFormat.yMMMd('ko').format(yesterday),
+    );
   });
 
   testWidgets('오늘 분석을 다 쓰면 직접 추가가 주 버튼이고 다시 시도는 없다', (

@@ -790,11 +790,11 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('버튼은 `정렬: 우선 확인 순` 으로 시작하고 토글은 없다', (tester) async {
+    testWidgets('버튼은 `정렬: 관리 필요 우선` 으로 시작하고 토글은 없다', (tester) async {
       await openWorkbench(tester, clients: trio);
 
       expect(
-        find.descendant(of: sortButton(), matching: find.text('정렬: 우선 확인 순')),
+        find.descendant(of: sortButton(), matching: find.text('정렬: 관리 필요 우선')),
         findsOneWidget,
       );
       expect(
@@ -805,7 +805,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(AppSegmentedToggle<ReportQueueSort>), findsNothing);
-      // 기본값은 우선 확인 순 — 이행률이 가장 낮은 회원이 맨 위.
+      // 기본값은 관리 필요 우선 — 이행률이 가장 낮은 회원이 맨 위.
       expect(order(tester).first, 'c');
     });
 
@@ -819,7 +819,7 @@ void main() {
       }
       expect(find.text('이름 오름차순'), findsOneWidget);
       expect(find.text('이름 내림차순'), findsOneWidget);
-      // 체크는 지금 고른 우선 확인 순에만 선다.
+      // 체크는 지금 고른 관리 필요 우선에만 선다.
       MenuItemButton menuItem(ReportQueueSort sort) =>
           tester.widget<MenuItemButton>(item(sort));
       expect(menuItem(ReportQueueSort.priority).leadingIcon, isA<AppIcon>());
@@ -850,7 +850,7 @@ void main() {
 
       await choose(tester, ReportQueueSort.priority);
       expect(order(tester).first, 'c');
-      expect(find.text('정렬: 우선 확인 순'), findsOneWidget);
+      expect(find.text('정렬: 관리 필요 우선'), findsOneWidget);
     });
 
     testWidgets('주를 옮겨도 고른 정렬이 남는다', (tester) async {
@@ -871,7 +871,7 @@ void main() {
     testWidgets('영어 문구', (tester) async {
       await openWorkbench(tester, clients: trio, locale: const Locale('en'));
 
-      expect(find.text('Sort: Needs attention'), findsOneWidget);
+      expect(find.text('Sort: Needs attention first'), findsOneWidget);
       await tester.tap(sortButton());
       await settle(tester);
       expect(find.text('Name A–Z'), findsOneWidget);

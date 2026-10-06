@@ -157,7 +157,7 @@ LOCKER_MONTH = ShopItem(
 STREAK_SHIELD = ShopItem(
     id=streak_shield_service.ITEM_ID,
     title="연속 기록 보호권",
-    benefit="운동을 못 한 하루를 연속 기록에 이어 붙이기",
+    benefit="기록하지 못한 하루를 연속 기록에 이어 붙이기",
     description="아무것도 기록하지 못한 날을 연속 기록에 이어 붙여요. 최근 30일 안에서 쓰고, 최대 4개까지 가질 수 있어요.",
     cost=streak_shield_service.COST,
     valid_days=0,
@@ -195,7 +195,7 @@ WEEKLY_REPORT = ShopItem(
     id=weekly_report_purchase_service.ITEM_ID,
     title="주간 리포트",
     benefit="지난주 식단·운동 리포트",
-    description="지난주 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.",
+    description="지난주 식단·운동 기록과 참고 기록으로 한 주를 돌아보는 리포트를 만들어요.",
     cost=weekly_report_purchase_service.COST,
     valid_days=0,
 )

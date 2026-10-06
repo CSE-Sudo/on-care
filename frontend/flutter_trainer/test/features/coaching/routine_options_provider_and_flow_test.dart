@@ -939,6 +939,75 @@ void main() {
       expect(personal![0].reason, '숨이 차면 속도를 낮추세요');
     });
 
+    testWidgets('근력으로 바꾸거나 초로 재면 보이는 기본값이 값으로도 남는다 (#3247)', (tester) async {
+      List<RoutineExercise>? personal;
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+          RoutineSuggestion(
+            id: 'sug-2',
+            name: '코어 스트레칭',
+            minutes: 10,
+            type: '스트레칭',
+            reason: '허리를 편하게',
+          ),
+        ],
+        onReviewCompleted: (exercises, items, kind) => personal = items,
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('routine-category-personal-0-근력')),
+      );
+      await tester.pumpAndSettle();
+      // 두 번째 줄도 근력으로 바꾼 뒤 초로 잰다.
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-edit-1')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('routine-category-personal-1-근력')),
+      );
+      await tester.pumpAndSettle();
+      final seconds = find.byKey(
+        const ValueKey<String>('routine-measure-personal-1-seconds'),
+      );
+      await tester.ensureVisible(seconds);
+      await tester.pumpAndSettle();
+      await tester.tap(seconds);
+      await tester.pumpAndSettle();
+
+      final apply = find.byKey(
+        const ValueKey<String>('complete-personal-routines'),
+      );
+      await tester.ensureVisible(apply);
+      await tester.pumpAndSettle();
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      // 화면이 보여 준 3세트·10회·60초가 저장 값이다 — 0 이면 전송이 세트·
+      // 횟수를 빼고 보낸다.
+      expect(personal, isNotNull);
+      expect(personal![0].sets, 3);
+      expect(personal![0].reps, 10);
+      expect(personal![0].isHold, isFalse);
+      expect(personal![1].sets, 3);
+      expect(personal![1].isHold, isTrue);
+      expect(personal![1].holdSeconds, 60);
+    });
+
     testWidgets('접힌 줄에서 효과를 바로 고치고, 비운 줄은 자동 문구에 맡긴다 '
         '(#2570)', (tester) async {
       List<RoutineExercise>? personal;
@@ -1409,7 +1478,7 @@ void main() {
         const ValueKey<String>('generation-minutes'),
       );
       expect(
-        find.descendant(of: generationMinutes, matching: find.text('총 운동시간')),
+        find.descendant(of: generationMinutes, matching: find.text('총 운동 시간')),
         findsOneWidget,
       );
       expect(

@@ -104,7 +104,7 @@ abstract class ReportSheetLocalizations {
   /// No description provided for @chartNoRecord.
   ///
   /// In en, this message translates to:
-  /// **'Not logged'**
+  /// **'No record'**
   String get chartNoRecord;
 
   /// No description provided for @dateMonthDay.
@@ -290,7 +290,7 @@ abstract class ReportSheetLocalizations {
   /// 리포트 PDF 한 장 결과지 (#2485).
   ///
   /// In en, this message translates to:
-  /// **'4-wk avg'**
+  /// **'4-week average'**
   String get reportsSheetAverageBase;
 
   /// 리포트 PDF 한 장 결과지 (#2485).
@@ -482,7 +482,7 @@ abstract class ReportSheetLocalizations {
   /// 리포트 PDF 한 장 결과지 (#2485).
   ///
   /// In en, this message translates to:
-  /// **'Weekly exercise achievement (8 weeks)'**
+  /// **'Weekly exercise goal progress (8 weeks)'**
   String get reportsSheetTrendWeekly;
 
   /// No description provided for @reportsTrendUnavailable.

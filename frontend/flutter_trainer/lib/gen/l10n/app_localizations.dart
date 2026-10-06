@@ -275,7 +275,7 @@ abstract class AppLocalizations {
   /// No description provided for @navConsultations.
   ///
   /// In en, this message translates to:
-  /// **'Requests'**
+  /// **'Consultation requests'**
   String get navConsultations;
 
   /// No description provided for @actionSave.
@@ -1151,7 +1151,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSortRecentMessage.
   ///
   /// In en, this message translates to:
-  /// **'Recent conversations'**
+  /// **'Recent messages'**
   String get clientsSortRecentMessage;
 
   /// No description provided for @clientsFilterLabel.
@@ -1183,6 +1183,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No members match {filter}'**
   String clientsEmptyForFilter(String filter);
+
+  /// No description provided for @clientsEmptyForManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'No members match these filters'**
+  String get clientsEmptyForManagement;
 
   /// No description provided for @clientsMemberCount.
   ///
@@ -1235,13 +1241,13 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSignalNoShow.
   ///
   /// In en, this message translates to:
-  /// **'No-shows'**
+  /// **'No-shows/cancels'**
   String get clientsSignalNoShow;
 
   /// No description provided for @clientsSignalNoShowCount.
   ///
   /// In en, this message translates to:
-  /// **'{count} no-shows'**
+  /// **'{count} no-shows/cancels'**
   String clientsSignalNoShowCount(int count);
 
   /// No description provided for @clientsSignalRoutineMissed.
@@ -1475,7 +1481,7 @@ abstract class AppLocalizations {
   /// No description provided for @memberHealthDietGoal.
   ///
   /// In en, this message translates to:
-  /// **'Nutrition goals'**
+  /// **'Diet goals'**
   String get memberHealthDietGoal;
 
   /// No description provided for @memberHealthExerciseGoal.
@@ -1523,7 +1529,7 @@ abstract class AppLocalizations {
   /// No description provided for @memberHealthGoalBurnDaily.
   ///
   /// In en, this message translates to:
-  /// **'Daily burn (kcal)'**
+  /// **'Daily calories burned (kcal)'**
   String get memberHealthGoalBurnDaily;
 
   /// No description provided for @memberHealthGoalCardioWeekly.
@@ -1781,7 +1787,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientTabWorkout.
   ///
   /// In en, this message translates to:
-  /// **'Workouts'**
+  /// **'Exercise'**
   String get clientTabWorkout;
 
   /// No description provided for @clientNotFound.
@@ -1883,7 +1889,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientSignalLess.
   ///
   /// In en, this message translates to:
-  /// **'Less'**
+  /// **'Show less'**
   String get clientSignalLess;
 
   /// No description provided for @clientSignalMore.
@@ -2387,7 +2393,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietCalorieIntake.
   ///
   /// In en, this message translates to:
-  /// **'Calories today'**
+  /// **'Calories eaten today'**
   String get dietCalorieIntake;
 
   /// No description provided for @dietAchieveRate.
@@ -2516,6 +2522,18 @@ abstract class AppLocalizations {
   /// **'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it'**
   String get reportsSendStaleBody;
 
+  /// No description provided for @reportsSendFeedbackFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the member\'s feedback'**
+  String get reportsSendFeedbackFailedTitle;
+
+  /// Notice on the send step when the member feedback request failed; sending is blocked (#3246).
+  ///
+  /// In en, this message translates to:
+  /// **'Sending now would show the member as not having answered. Reload it, then send'**
+  String get reportsSendFeedbackFailedBody;
+
   /// Toast when the server says this report send was already processed (409, #2773).
   ///
   /// In en, this message translates to:
@@ -2531,7 +2549,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsGoToChat.
   ///
   /// In en, this message translates to:
-  /// **'Go to chat'**
+  /// **'Go to messages'**
   String get reportsGoToChat;
 
   /// No description provided for @reportsScheduleWarning.
@@ -2693,7 +2711,7 @@ abstract class AppLocalizations {
   /// No description provided for @chartNoRecord.
   ///
   /// In en, this message translates to:
-  /// **'Not logged'**
+  /// **'No record'**
   String get chartNoRecord;
 
   /// No description provided for @chartNotYet.
@@ -3202,7 +3220,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedSlots.
   ///
   /// In en, this message translates to:
-  /// **'Booking slots'**
+  /// **'Booking times'**
   String get schedSlots;
 
   /// No description provided for @schedNewSession.
@@ -3415,6 +3433,24 @@ abstract class AppLocalizations {
   /// **'Pick an end date for the repeat.'**
   String get schedRepeatNeedsEndDate;
 
+  /// No description provided for @schedRepeatNoOccurrences.
+  ///
+  /// In en, this message translates to:
+  /// **'None of the chosen days fall within the repeat period. Change the days or the end date.'**
+  String get schedRepeatNoOccurrences;
+
+  /// No description provided for @schedNewNeedsClient.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no members yet. Connect a member before adding an appointment.'**
+  String get schedNewNeedsClient;
+
+  /// No description provided for @schedClientsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your members. Please try again in a moment.'**
+  String get schedClientsLoading;
+
   /// No description provided for @schedRepeatConflictTitle.
   ///
   /// In en, this message translates to:
@@ -3448,7 +3484,7 @@ abstract class AppLocalizations {
   /// No description provided for @slotOverlapHint.
   ///
   /// In en, this message translates to:
-  /// **'The slot wasn\'t opened. Pick another time or move the overlapping appointment.'**
+  /// **'The time wasn\'t opened. Pick another time or move the overlapping appointment.'**
   String get slotOverlapHint;
 
   /// No description provided for @consultOverlapHint.
@@ -3580,7 +3616,7 @@ abstract class AppLocalizations {
   /// No description provided for @progSaving.
   ///
   /// In en, this message translates to:
-  /// **'Saving...'**
+  /// **'Saving…'**
   String get progSaving;
 
   /// No description provided for @progSaveAction.
@@ -3604,7 +3640,7 @@ abstract class AppLocalizations {
   /// No description provided for @progDeleteExercise.
   ///
   /// In en, this message translates to:
-  /// **'Remove exercise'**
+  /// **'Delete exercise'**
   String get progDeleteExercise;
 
   /// No description provided for @progSetsValue.
@@ -3634,7 +3670,7 @@ abstract class AppLocalizations {
   /// No description provided for @progEmptyHint.
   ///
   /// In en, this message translates to:
-  /// **'Build one in the AI suggestions tab, or agree on it over chat first.'**
+  /// **'Build one in the AI suggestions tab, or agree on it over messages first.'**
   String get progEmptyHint;
 
   /// No description provided for @schedSentTo.
@@ -3652,13 +3688,13 @@ abstract class AppLocalizations {
   /// No description provided for @slotPastTime.
   ///
   /// In en, this message translates to:
-  /// **'Booking slots can only be opened for future times.'**
+  /// **'Only future times can be opened for booking.'**
   String get slotPastTime;
 
   /// No description provided for @slotOpened.
   ///
   /// In en, this message translates to:
-  /// **'Booking slot opened.'**
+  /// **'Booking time opened.'**
   String get slotOpened;
 
   /// No description provided for @slotStartTime.
@@ -3670,7 +3706,7 @@ abstract class AppLocalizations {
   /// No description provided for @slotCloseTitle.
   ///
   /// In en, this message translates to:
-  /// **'Close booking slot'**
+  /// **'Close booking time'**
   String get slotCloseTitle;
 
   /// No description provided for @slotCloseBody.
@@ -3694,13 +3730,13 @@ abstract class AppLocalizations {
   /// No description provided for @slotManageTitle.
   ///
   /// In en, this message translates to:
-  /// **'Manage booking slots'**
+  /// **'Manage open booking times'**
   String get slotManageTitle;
 
   /// No description provided for @slotIntro.
   ///
   /// In en, this message translates to:
-  /// **'Open times for members to book. Every upcoming slot is listed below by date.'**
+  /// **'Open times for members to book. Every upcoming open time is listed below by date.'**
   String get slotIntro;
 
   /// No description provided for @slotOpenAction.
@@ -3718,13 +3754,13 @@ abstract class AppLocalizations {
   /// No description provided for @slotLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load reservation slots'**
+  /// **'Couldn\'t load open booking times'**
   String get slotLoadFailed;
 
   /// No description provided for @slotEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No booking slots are open.'**
+  /// **'No open booking times.'**
   String get slotEmpty;
 
   /// No description provided for @slotClosedSummary.
@@ -3790,7 +3826,7 @@ abstract class AppLocalizations {
   /// No description provided for @mySaving.
   ///
   /// In en, this message translates to:
-  /// **'Saving'**
+  /// **'Saving…'**
   String get mySaving;
 
   /// No description provided for @myEditProfile.
@@ -4708,7 +4744,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Please check once before you leave'**
+  /// **'Please check once before you delete your account'**
   String get myWithdrawSubtitle;
 
   /// No description provided for @myPageTitle.
@@ -4786,7 +4822,7 @@ abstract class AppLocalizations {
   /// No description provided for @mySignOutConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Log out of this browser?'**
+  /// **'Sign out of this browser?'**
   String get mySignOutConfirm;
 
   /// No description provided for @myThisMonth.
@@ -4840,7 +4876,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifConsultationHint.
   ///
   /// In en, this message translates to:
-  /// **'When a member requests a consultation or answers your invite'**
+  /// **'When a member requests a consultation or responds to your coaching request'**
   String get myNotifConsultationHint;
 
   /// No description provided for @myNotifReservation.
@@ -5398,7 +5434,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAnalysing.
   ///
   /// In en, this message translates to:
-  /// **'AI is analysing…'**
+  /// **'AI is analyzing…'**
   String get aiAnalysing;
 
   /// No description provided for @aiGenerateCandidates.
@@ -5638,7 +5674,7 @@ abstract class AppLocalizations {
   /// Intensity of an AI A/B plan whose contract value is 낮음 (#2301).
   ///
   /// In en, this message translates to:
-  /// **'Low'**
+  /// **'Light'**
   String get aiPlanIntensityLow;
 
   /// No description provided for @aiPersonalStepFull.
@@ -6202,19 +6238,19 @@ abstract class AppLocalizations {
   /// No description provided for @slotFutureOnly.
   ///
   /// In en, this message translates to:
-  /// **'Booking slots can only be set for future times.'**
+  /// **'Only future times can be opened for booking.'**
   String get slotFutureOnly;
 
   /// No description provided for @slotNotFound.
   ///
   /// In en, this message translates to:
-  /// **'Booking slot not found.'**
+  /// **'Open booking time not found.'**
   String get slotNotFound;
 
   /// No description provided for @slotTypeLockedByBooking.
   ///
   /// In en, this message translates to:
-  /// **'Can\'t change the type of a slot that\'s already booked.'**
+  /// **'Can\'t change the type of a time that\'s already booked.'**
   String get slotTypeLockedByBooking;
 
   /// No description provided for @authErrNotTrainer.
@@ -6222,6 +6258,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please sign in with a trainer account.'**
   String get authErrNotTrainer;
+
+  /// Error toast on trainer sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551).
+  ///
+  /// In en, this message translates to:
+  /// **'An account already uses this email. Please sign in the way you first signed up.'**
+  String get authErrSocialEmailInUse;
+
+  /// No description provided for @authErrTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in a moment.'**
+  String get authErrTooManyAttempts;
+
+  /// No description provided for @authErrTooManyAttemptsMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in {minutes} min.'**
+  String authErrTooManyAttemptsMinutes(int minutes);
+
+  /// No description provided for @authErrSignedUpSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account was created. Please sign in.'**
+  String get authErrSignedUpSignInFailed;
 
   /// No description provided for @aiBasisGoalCompletion.
   ///
@@ -6544,7 +6604,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDeleteAction.
   ///
   /// In en, this message translates to:
-  /// **'Delete'**
+  /// **'Delete account'**
   String get myDeleteAction;
 
   /// No description provided for @myDeleteDemo.
@@ -6610,7 +6670,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDeleteReauthSocialDone.
   ///
   /// In en, this message translates to:
-  /// **'Social account confirmed. Press Delete to continue.'**
+  /// **'Social account confirmed. Press Delete account to continue.'**
   String get myDeleteReauthSocialDone;
 
   /// No description provided for @myDeleteReauthSocialFailed.
@@ -6628,7 +6688,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawReasonTitle.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to leave?'**
+  /// **'Are you sure you want to delete your account?'**
   String get myWithdrawReasonTitle;
 
   /// No description provided for @myWithdrawReasonQuestion.
@@ -6706,13 +6766,13 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepLeavingWork.
   ///
   /// In en, this message translates to:
-  /// **'If it\'s just a break, you can keep your account. Leaving disconnects all your members.'**
+  /// **'If it\'s just a break, you can keep your account. Deleting it disconnects all your members.'**
   String get myWithdrawKeepLeavingWork;
 
   /// No description provided for @myWithdrawKeepAlternative.
   ///
   /// In en, this message translates to:
-  /// **'Leaving removes member records, programs and reports from your console for good.'**
+  /// **'Deleting your account removes member records, programs and reports from your console for good.'**
   String get myWithdrawKeepAlternative;
 
   /// No description provided for @myWithdrawKeepOther.
@@ -6724,7 +6784,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepDefault.
   ///
   /// In en, this message translates to:
-  /// **'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.'**
+  /// **'Deleting your account removes your member connections and bookings, and your members are notified. This can\'t be undone.'**
   String get myWithdrawKeepDefault;
 
   /// No description provided for @myWithdrawNext.
@@ -6742,7 +6802,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawContinue.
   ///
   /// In en, this message translates to:
-  /// **'Continue leaving'**
+  /// **'Continue deleting'**
   String get myWithdrawContinue;
 
   /// No description provided for @workoutKindPersonal.
@@ -7366,7 +7426,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientGoalBurnDaily.
   ///
   /// In en, this message translates to:
-  /// **'Daily burn'**
+  /// **'Daily calories burned'**
   String get clientGoalBurnDaily;
 
   /// No description provided for @clientGoalCardioWeekly.
@@ -7408,7 +7468,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientGoalDefaultHint.
   ///
   /// In en, this message translates to:
-  /// **'Faded values are the defaults used until a goal is set. Empty fields use them.'**
+  /// **'Dimmed values are the defaults used until a goal is set. Empty fields use them.'**
   String get clientGoalDefaultHint;
 
   /// No description provided for @clientGoalSuggestionDiet.
@@ -7438,7 +7498,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientGoalSuggestionPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)'**
+  /// **'Based on age, gender, height, weight, and health goals (2020 KDRIs and WHO guidelines)'**
   String get clientGoalSuggestionPersonal;
 
   /// No description provided for @clientGoalSuggestionFallback.
@@ -7720,7 +7780,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientFeedbackWeeklyNoNote.
   ///
   /// In en, this message translates to:
-  /// **'No note'**
+  /// **'No one-line feedback'**
   String get clientFeedbackWeeklyNoNote;
 
   /// No description provided for @clientFeedbackEmpty.
@@ -8058,7 +8118,7 @@ abstract class AppLocalizations {
   /// No description provided for @programEditorWeight.
   ///
   /// In en, this message translates to:
-  /// **'Weight kg'**
+  /// **'Weight (kg)'**
   String get programEditorWeight;
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
@@ -8610,7 +8670,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsSortPriority.
   ///
   /// In en, this message translates to:
-  /// **'Needs attention'**
+  /// **'Needs attention first'**
   String get reportsSortPriority;
 
   /// No description provided for @reportsSortName.
@@ -8844,7 +8904,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsResendBody.
   ///
   /// In en, this message translates to:
-  /// **'You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.'**
+  /// **'You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their messages.'**
   String reportsResendBody(String name, String date, String time);
 
   /// No description provided for @reportsResendConfirm.
@@ -8934,7 +8994,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPreviewDelivery.
   ///
   /// In en, this message translates to:
-  /// **'Sent to {name}\'s chat as a PDF file'**
+  /// **'Sent to {name} as a PDF file in messages'**
   String reportsPreviewDelivery(String name);
 
   /// No description provided for @reportsPreviewEditHint.
@@ -9117,6 +9177,18 @@ abstract class AppLocalizations {
   /// **'No answer'**
   String get reportsMemberFeedbackUnanswered;
 
+  /// Member feedback card value when the feedback request failed, kept apart from 'No answer' (#3246).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load'**
+  String get reportsMemberFeedbackLoadFailed;
+
+  /// No description provided for @reportsMemberFeedbackLoadFailedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check whether the member answered. Reload the report in a moment'**
+  String get reportsMemberFeedbackLoadFailedHint;
+
   /// No description provided for @reportsMemberFeedbackNoteLabel.
   ///
   /// In en, this message translates to:
@@ -9288,7 +9360,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsTrendRate.
   ///
   /// In en, this message translates to:
-  /// **'Weekly goal rate'**
+  /// **'Weekly goal progress'**
   String get reportsTrendRate;
 
   /// No description provided for @reportsTrendAverage.
@@ -9300,7 +9372,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsTrendRateFalling.
   ///
   /// In en, this message translates to:
-  /// **'Goal rate down {weeks} weeks running'**
+  /// **'Goal progress down {weeks} weeks running'**
   String reportsTrendRateFalling(int weeks);
 
   /// No description provided for @reportsTrendTracked.

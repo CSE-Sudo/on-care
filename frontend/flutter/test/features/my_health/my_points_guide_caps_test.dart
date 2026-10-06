@@ -60,15 +60,15 @@ void main() {
   testWidgets('한국어 안내창은 규칙마다 하루 한도를 적는다', (WidgetTester tester) async {
     await openGuide(tester, const Locale('ko'));
 
-    expect(inDialog('식단 추가 (하루 3회)'), findsOneWidget);
-    expect(inDialog('운동 직접 추가 (하루 3회)'), findsOneWidget);
+    expect(inDialog('식단 기록 (하루 3회)'), findsOneWidget);
+    expect(inDialog('운동 직접 기록 (하루 3회)'), findsOneWidget);
     expect(inDialog('개인운동 완료 (하루 1회)'), findsOneWidget);
     // 포인트는 예전처럼 줄 오른쪽에 선다.
     expect(inDialog('+50P'), findsNWidgets(2));
     expect(inDialog('+20P'), findsOneWidget);
     expect(
       tester.getTopLeft(inDialog('+20P')).dx,
-      greaterThan(tester.getTopRight(inDialog('운동 직접 추가 (하루 3회)')).dx),
+      greaterThan(tester.getTopRight(inDialog('운동 직접 기록 (하루 3회)')).dx),
     );
   });
 

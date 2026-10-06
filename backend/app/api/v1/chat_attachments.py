@@ -16,12 +16,12 @@ from pathlib import PurePath
 from urllib.parse import quote
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 
-from app.api.deps import RequireUser
+from app.api.deps import RequireUser, ensure_consented
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.models.models import ChatMessage, TrainerClient
@@ -46,9 +46,15 @@ _NOT_FOUND = "첨부를 찾을 수 없어요."
 @router.get("/chat/attachments/{file_id}")
 def download_chat_attachment(
     file_id: str,
+    request: Request,
     user: RequireUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> StreamingResponse:
+    # 회원·트레이너가 함께 쓰는 경로라 역할 의존성 대신 `RequireUser` 로 받는다.
+    # 그래도 필수 동의 확인은 거친다(#3239) — 동의가 남은 트레이너가 회원 사진·
+    # 리포트 PDF 를 받으면 안 된다(#3155). 파일을 찾기 전에 막아, 동의가 남은
+    # 계정에는 file id 가 있는지도 드러나지 않는다.
+    ensure_consented(request, user, db)
     message = db.scalar(
         select(ChatMessage).where(
             ChatMessage.attachment_file_id == file_id,

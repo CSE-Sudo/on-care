@@ -102,12 +102,14 @@ void main() {
       ]);
     });
 
-    test('한국어 문구는 예전 서버 문장과 글자 하나 다르지 않다', () {
+    // 예전 서버 문장(`최근 근력운동 비중 높음`)은 서버가 코드로 되돌려 읽는다 —
+    // 화면 문구는 띄어쓰기만 다른 곳과 맞췄다(#3201).
+    test('한국어 문구는 예전 서버 문장과 같은 말이다', () {
       expect(
         <String>[for (final c in _allCodes) routineEvidenceLabel(_ko, c)],
         <String>[
           '최근 PT 피드백 반영',
-          '최근 근력운동 비중 높음',
+          '최근 근력 운동 비중 높음',
           '혈압 관리 목표',
           '최근 유산소 비중 낮음',
           '최근 운동 기록 반영',
@@ -145,14 +147,14 @@ void main() {
   });
 
   group('강도 계약값 → 화면 문구', () {
-    test('한국어 화면은 계약값 그대로다', () {
-      expect(routinePlanIntensityLabel(_ko, '낮음'), '낮음');
+    test('한국어 화면은 계약값을 강도 표시와 같은 말로 읽는다 (#3201)', () {
+      expect(routinePlanIntensityLabel(_ko, '낮음'), '가벼움');
       expect(routinePlanIntensityLabel(_ko, '보통'), '보통');
       expect(routinePlanIntensityLabel(_ko, '높음'), '높음');
     });
 
     test('영어 화면은 영어로 옮긴다', () {
-      expect(routinePlanIntensityLabel(_en, '낮음'), 'Low');
+      expect(routinePlanIntensityLabel(_en, '낮음'), 'Light');
       expect(routinePlanIntensityLabel(_en, '보통'), 'Moderate');
       expect(routinePlanIntensityLabel(_en, '높음'), 'High');
     });

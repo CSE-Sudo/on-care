@@ -31,10 +31,13 @@ final Map<AuthFailure, String Function(AppLocalizations)> _expected =
       AuthFailure.emailCodeRequired: (l) => l.signUpCodeRequired,
       AuthFailure.sessionExpired: (l) => l.authErrSessionExpired,
       AuthFailure.noSocialToken: (l) => l.authErrNoSocialToken,
+      AuthFailure.socialEmailInUse: (l) => l.authErrSocialEmailInUse,
       AuthFailure.emptyCredentials: (l) => l.authErrEmptyCredentials,
       AuthFailure.network: (l) => l.authErrNetwork,
       AuthFailure.emptyResponse: (l) => l.authErrEmptyResponse,
       AuthFailure.notTrainer: (l) => l.authErrNotTrainer,
+      AuthFailure.tooManyAttempts: (l) => l.authErrTooManyAttempts,
+      AuthFailure.signedUpSignInFailed: (l) => l.authErrSignedUpSignInFailed,
       AuthFailure.unknown: (l) => l.authErrGeneric,
     };
 
@@ -50,6 +53,22 @@ void main() {
       );
       expect(authFailureText(_en, e), _en.authErrEmptyResponse);
       expect(authFailureText(_ko, e), _ko.authErrEmptyResponse);
+    });
+
+    test('시도 제한은 남은 시간을 분으로 올려 말한다 (#3248)', () {
+      const AuthException locked = AuthException(
+        AuthFailure.tooManyAttempts,
+        retryAfter: Duration(seconds: 841),
+      );
+      expect(
+        authFailureText(_ko, locked),
+        _ko.authErrTooManyAttemptsMinutes(15),
+      );
+      expect(
+        authFailureText(_en, locked),
+        _en.authErrTooManyAttemptsMinutes(15),
+      );
+      expect(authFailureText(_ko, locked), contains('15분'));
     });
 
     test('빠짐없이 모든 실패 코드를 본다', () {

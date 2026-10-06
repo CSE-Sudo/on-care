@@ -43,6 +43,7 @@ void main() {
       DateTime? lastDate,
       Size viewSize = const Size(800, 1400),
       bool? showClose,
+      DateTime? currentDate,
     }) async {
       tester.view.physicalSize = viewSize;
       tester.view.devicePixelRatio = 1;
@@ -64,6 +65,7 @@ void main() {
                     lastDate: lastDate ?? DateTime(2027),
                     helpText: helpText,
                     showClose: showClose,
+                    currentDate: currentDate,
                   ),
                 );
               },
@@ -534,6 +536,20 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(results, <DateTime?>[DateTime(2026, 8, 24)]);
+    });
+
+    testWidgets('오늘은 넘겨받은 날을 달력에 그대로 건넨다 (#3250)', (WidgetTester tester) async {
+      // 기기가 서울이 아니어도 앱이 정한 오늘(KST)에 테두리가 선다.
+      await openPicker(tester, currentDate: DateTime(2026, 8, 20));
+
+      expect(
+        tester
+            .widget<AppCalendarDatePicker>(
+              find.byKey(AppDatePickerDialog.calendarKey),
+            )
+            .currentDate,
+        DateTime(2026, 8, 20),
+      );
     });
 
     testWidgets('showClose 를 끄면 X 없이 취소로만 닫는다 (#2170)', (

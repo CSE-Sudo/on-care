@@ -33,8 +33,8 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 /// v14 끼니별 AI 코멘트·사진, v15 과거 한 달치 식단(#671), v17 공유 픽스처(#757),
 /// v18 PT·기타 운동과 세트·횟수(#1265), v19 어제 스트레칭(#1361), v20 혜택 장부
 /// (#2664), v21 리포트 알림 갈래(#2660), v22 운동 출처·중량(#2662), v23 김민수 PT
-/// 요일(#2694).
-const int kSeedVersion = 23;
+/// 요일(#2694), v24 데모 알림 문구(#3201·#3202).
+const int kSeedVersion = 24;
 
 /// [kSeedVersion] 의 플래그 키.
 const String kSeedFlag = 'seeded_v$kSeedVersion';
@@ -51,6 +51,7 @@ Future<bool> _hadBenefitsSeed(AppDatabase db) async {
     'seeded_v20',
     'seeded_v21',
     'seeded_v22',
+    'seeded_v23',
   ]) {
     if (await db.readValue(flag) != null) return true;
   }

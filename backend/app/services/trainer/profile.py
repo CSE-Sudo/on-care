@@ -33,7 +33,8 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
     예약 행을 먼저 치우지 않으면 그 CASCADE 가 FK 에서 막힌다.
 
     나머지(프로필·채팅·루틴·일정·슬롯·이력·알림)는 `users.id` CASCADE 가 처리한다.
-    상담 요청의 `trainer_id`·`decided_by` 는 SET NULL 이라 요청 이력은 남는다.
+    상담 요청의 `trainer_id`·`decided_by` 는 SET NULL 이라 요청 이력은 남는다. 아직
+    답하지 않은 요청은 그 전에 취소로 닫는다(#3241).
     """
 
     # 이 트레이너의 슬롯에 걸린 예약을 먼저 치운다. 좌석을 되돌릴 필요는 없다 —
@@ -84,6 +85,12 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
             template=notification_templates.MEMBER_TRAINER_LEFT,
             template_args={"trainer_name": trainer_name},
         )
+    # 아직 답하지 않은 상담 요청은 취소하고 회원에게 알린다(#3241). 두면 받을
+    # 사람이 없는 `pending` 이 회원의 대기 상한에 계속 잡힌다.
+    from app.services import consultation_service
+
+    consultation_service.cancel_pending_for_trainer_deletion(db, trainer)
+
     # 예약만 있고 지금 담당은 아닌 회원에게도 알린다 — 잡아 둔 수업이 사라진다.
     # 담당이 끝난 과거 회원이라도 예약이 남아 있으면 여기서 받는다(#3024).
     for member_id in sorted(booked_member_ids - set(active_member_ids)):

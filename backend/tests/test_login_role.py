@@ -47,6 +47,8 @@ def test_social_login_reports_account_role(client, db_session, monkeypatch):
         provider_user_id=f"kakao-{uuid4().hex[:8]}",
         email=email,
         name="소셜",
+        # 확인된 이메일이어야 그 주소로 계정이 생긴다(#1551) — 아래에서 이메일로 계정을 찾는다.
+        email_verified=True,
     )
 
     class _FakeVerifier:

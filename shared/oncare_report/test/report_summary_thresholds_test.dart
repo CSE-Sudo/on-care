@@ -26,6 +26,12 @@ void main() {
     expect(calorieTolerance, thresholds['calorie_tolerance']);
   });
 
+  test('탄단지 허용 폭과 나트륨·당류 초과일 기준이 서버와 같다 (#3246)', () {
+    expect(macroTolerance, thresholds['macro_tolerance']);
+    expect(kReportSodiumOverDays, thresholds['sodium_over_days']);
+    expect(kReportSugarOverDays, thresholds['sugar_over_days']);
+  });
+
   test('이행률 좋음 기준이 서버와 같다', () {
     expect(kReportGoodCompletionThreshold, thresholds['good_completion']);
   });

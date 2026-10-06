@@ -30,6 +30,8 @@ on:
       # 운영 빌드의 데모 자산 선언 제거와 운영 번들 검사(#3157).
       - "frontend/tool/strip_demo_assets.py"
       - "tool/ci/check_prod_web_bundle.py"
+      # 화면 하드코딩 검사 도구와 규칙(#1698) — 트레이너 웹 검사가 여기서 돈다. 규칙만 바뀌어도 돈다(#3237).
+      - "tool/ui_guard/**"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -58,19 +60,23 @@ on:
       # 운영 빌드의 데모 자산 선언 제거와 운영 번들 검사(#3157).
       - "frontend/tool/strip_demo_assets.py"
       - "tool/ci/check_prod_web_bundle.py"
+      # 화면 하드코딩 검사 도구와 규칙(#1698) — 트레이너 웹 검사가 여기서 돈다. 규칙만 바뀌어도 돈다(#3237).
+      - "tool/ui_guard/**"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: trainer-ci-${{ github.workflow }}-${{ github.ref }}
-  # PR 실행만 취소한다. 같은 브랜치에 새 커밋이 오면 옛 실행은 볼 값이 없다.
+  # PR 은 브랜치마다 한 그룹이라 새 커밋이 오면 옛 실행을 취소한다 — 옛 실행은 볼 값이 없다.
   #
-  # main 은 다르다. `github.ref` 가 병합마다 똑같이 `refs/heads/main` 이라,
-  # 연달아 병합하면 앞선 검증이 취소된다 — 병합 뒤 검증이 안전망인데 빠르게
-  # 병합할수록 그 안전망이 꺼진다. 2026-08-16 에 실제로 네 커밋이 검증되지
-  # 않은 채 지나갔고, 다섯 번째에서야 깨진 것이 드러났다(#807).
+  # main push 는 커밋마다 그룹을 따로 둔다. 병합 뒤 검증이 안전망인데, 2026-08-16 에 연달아
+  # 병합한 네 커밋이 검증되지 않은 채 지나갔고 다섯 번째에서야 깨진 것이 드러났다(#807).
+  # `cancel-in-progress: false` 만으로는 막지 못한다 — 진행 중인 실행은 지키지만 GitHub 은
+  # 그룹마다 대기 실행을 하나만 두고 새 실행이 오면 대기 중이던 것을 취소해, 세 번 이상 연달아
+  # 병합하면 가운데 커밋의 검증이 취소된다(#3237). 이 워크플로의 완료를 받아 배포하는 곳은 없어
+  # (프런트 배포 게이트는 커밋별 결과를 읽기만 한다) 커밋끼리 나란히 돌아도 된다.
+  group: trainer-ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:

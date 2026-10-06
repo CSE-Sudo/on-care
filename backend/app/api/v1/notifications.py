@@ -49,7 +49,7 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     "health_check": ("기록하러 가기", "Log now", "dashboard"),
     "achievement": ("대시보드 보기", "View dashboard", "dashboard"),
     # 트레이너가 한 일 — 예전에는 전부 `system` 으로 뭉쳐 갈 곳이 없었다(#636).
-    notification_service.MEMBER_COACH_CHAT: ("대화 보기", "View chat", "coach_chat"),
+    notification_service.MEMBER_COACH_CHAT: ("메시지 보기", "View messages", "coach_chat"),
     # 주간 리포트 — 리포트 카드가 있는 코치 대화로 간다. 메시지와 목적지는 같고
     # 알림함 아이콘만 다르다(#2085).
     notification_service.MEMBER_COACH_REPORT: ("리포트 보기", "View report", "coach_chat"),
@@ -81,10 +81,10 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
 #: 알림별 목적지(`Notification.action_target`, #2690)의 라벨. 갈래별 표와 목적지가
 #: 같으면 그 라벨을 쓰고, 여기 없는 목적지는 "보기" 다.
 _LABEL_BY_TARGET: dict[str, tuple[str, str]] = {
-    "diet": ("식단 보기", "View meals"),
+    "diet": ("식단 보기", "View diet"),
     "exercise": ("운동 보기", "View workouts"),
     "dashboard": ("홈 보기", "View home"),
-    "coach_chat": ("대화 보기", "View chat"),
+    "coach_chat": ("메시지 보기", "View messages"),
 }
 
 
