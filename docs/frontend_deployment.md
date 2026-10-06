@@ -107,6 +107,8 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 
 되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다. 취소된 E2E CI 를 나중에 다시 돌려도 운영에 떠 있는 릴리스보다 옛 커밋은 올라가지 않습니다 — 그 자동 실행은 빌드 전에 건너뜁니다(#3254). 일부러 옛 커밋으로 되돌릴 때는 수동 실행에 그 SHA 를 넣습니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
 
+배포 스크립트(`.github/scripts/*`, `tool/ci/check_prod_web_bundle.py` 등)는 백엔드와 같은 원칙으로 **배포하는 커밋의 것**을 씁니다 — 워크플로 YAML 만 `main` 의 것입니다([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 2절). 옛 커밋을 수동으로 배포할 때는 그 사이에 스크립트의 인자·종료 코드 약속이 바뀌지 않았는지 먼저 봅니다(`git diff <대상>..main -- .github/scripts tool/ci .github/workflows/aws-frontend-deploy.yml`). 바뀌었으면 `main` 의 YAML 이 옛 스크립트를 다른 뜻으로 부를 수 있습니다. 예외는 옛 커밋 재배포 가드(`deploy_freshness.sh`)로, 옛 커밋 트리에는 없어 `main` 의 것을 씁니다.
+
 ## Vercel 연동 정리
 
 공식 서비스는 Vercel 을 쓰지 않습니다. 예전에는 Vercel 프로젝트가 이 저장소에 연결되어 `main` 갱신마다 Production 배포를, PR 마다 Preview 배포와 Bot 댓글을 만들었습니다(마지막 Vercel 배포 기록은 2026-08-08). GitHub Pages 로 가는 중간 단계가 아니라 같은 커밋을 따로 배포하는 중복 경로였고, 2026-08-08 에 루트 `vercel.json`(`git.deploymentEnabled: false`)으로 자동 배포를 막았습니다.

@@ -182,6 +182,13 @@ staging → `staging`).
 않는다. `main` 에서 실행하며 40자리 커밋 SHA 와 대상(`all`·`staging`·`production`)을 고른다. 워크플로가
 GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 기록을 확인한 뒤에만 배포한다.
 
+**스크립트는 배포하는 커밋의 것을 쓴다.** 워크플로 YAML 은 언제나 `main` 의 것이지만, 각 환경 배포
+(`backend-deploy-service.yml`)는 대상 커밋을 체크아웃해 그 커밋의 템플릿·`.github/scripts/*` 를
+부른다. 그래서 옛 커밋을 수동으로 배포(되돌리기)할 때는 그 사이에 스크립트의 **인자·종료 코드
+약속**이 바뀌지 않았는지 먼저 본다 — 바뀌었으면 `main` 의 YAML 이 옛 스크립트를 다른 뜻으로 부를
+수 있다(`git diff <대상>..main -- .github/scripts infra .github/workflows`). 예외는 옛 커밋 재배포
+가드(`deploy_freshness.sh`)뿐이다 — 옛 커밋 트리에는 이 스크립트가 없어 `main` 의 것을 쓴다.
+
 ### 되돌리기
 
 - **자동**: 위 4단계. 스택 갱신 자체가 실패하면 CloudFormation 이 스스로 직전 상태로 돌아간다.
