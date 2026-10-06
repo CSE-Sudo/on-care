@@ -216,7 +216,7 @@ void main() {
     final _FailingDietRepository repo = _FailingDietRepository(501);
     await _openResultSheet(tester, repo);
 
-    expect(find.textContaining('사진 분석을 사용할 수 없어요'), findsOneWidget);
+    expect(find.textContaining('사진 분석을 쓸 수 없어요'), findsOneWidget);
     expect(_actionLabel(tester), '닫기');
   });
 

@@ -95,7 +95,7 @@ void main() {
     for (final (String lang, String subtitle, String promise)
         in <(String, String, String)>[
           ('ko', '담당 트레이너', '상담 가능'),
-          ('en', 'Personal trainer', 'Available'),
+          ('en', 'Your trainer', 'Available'),
         ]) {
       testWidgets('부제는 관계만 적고 상태를 약속하지 않는다 · $lang (#2089)', (
         WidgetTester tester,

@@ -135,7 +135,7 @@ Future<void> _pickType(WidgetTester tester, String label) async {
 }
 
 void main() {
-  testWidgets('운동 종류마다 그 종류의 예시를 보여 준다', (WidgetTester tester) async {
+  testWidgets('운동 유형마다 그 유형의 예시를 보여 준다', (WidgetTester tester) async {
     await _openSheet(tester);
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byKey(const Key('exerciseAddContent'))),

@@ -443,7 +443,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeCalorieIntake.
   ///
   /// In en, this message translates to:
-  /// **'Today\'s calories'**
+  /// **'Calories eaten today'**
   String get homeCalorieIntake;
 
   /// No description provided for @homeAchieveRate.
@@ -467,7 +467,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeExerciseBurned.
   ///
   /// In en, this message translates to:
-  /// **'Calories'**
+  /// **'Calories burned'**
   String get homeExerciseBurned;
 
   /// No description provided for @homeMealReasonSodium.
@@ -557,7 +557,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeMealReasonFiber.
   ///
   /// In en, this message translates to:
-  /// **'Rich in dietary fiber'**
+  /// **'Rich in fiber'**
   String get homeMealReasonFiber;
 
   /// No description provided for @homeMealTagLowFat.
@@ -707,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietNutritionSummary.
   ///
   /// In en, this message translates to:
-  /// **'Nutrition'**
+  /// **'Nutrition summary'**
   String get dietNutritionSummary;
 
   /// Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)
@@ -971,7 +971,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietCameraPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Camera permission is needed to photograph your meal. Tap Take Photo to try again.'**
+  /// **'Camera permission is needed to photograph your meal. Tap \"Take a photo\" to try again.'**
   String get dietCameraPermissionDenied;
 
   /// No description provided for @dietCameraPermissionPermanentlyDenied.
@@ -983,7 +983,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietPhotoPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Photo permission is needed to choose a meal photo. Tap Choose Photo to try again.'**
+  /// **'Photo permission is needed to choose a meal photo. Tap \"Choose a photo\" to try again.'**
   String get dietPhotoPermissionDenied;
 
   /// No description provided for @dietPhotoPermissionPermanentlyDenied.
@@ -1019,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietOpenSettingsFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t open Settings. Turn on camera and photo access under Settings > Oncare.'**
+  /// **'Couldn\'t open Settings. Turn on camera and photo access under Settings › Oncare.'**
   String get dietOpenSettingsFailed;
 
   /// No description provided for @dietAnalyzing.
@@ -1109,7 +1109,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAnalysisNotImplemented.
   ///
   /// In en, this message translates to:
-  /// **'Photo analysis is unavailable right now. Please log the meal manually.'**
+  /// **'Photo analysis is unavailable right now. Please add the meal manually.'**
   String get dietAnalysisNotImplemented;
 
   /// No description provided for @dietAnalysisNoFood.
@@ -1505,7 +1505,7 @@ abstract class AppLocalizations {
   /// No description provided for @exStreakCheer.
   ///
   /// In en, this message translates to:
-  /// **'{days} days in a row!'**
+  /// **'{days, plural, =1{1 day in a row!} other{{days} days in a row!}}'**
   String exStreakCheer(int days);
 
   /// No description provided for @exStreakStart.
@@ -1553,7 +1553,7 @@ abstract class AppLocalizations {
   /// No description provided for @exCompletedPtNoProgram.
   ///
   /// In en, this message translates to:
-  /// **'No workout program was recorded.'**
+  /// **'No PT program was recorded.'**
   String get exCompletedPtNoProgram;
 
   /// No description provided for @exAddExercise.
@@ -2201,19 +2201,19 @@ abstract class AppLocalizations {
   /// No description provided for @exSlotsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No times available'**
+  /// **'No open booking times'**
   String get exSlotsEmpty;
 
   /// No description provided for @exSlotsAllBooked.
   ///
   /// In en, this message translates to:
-  /// **'All available times are fully booked'**
+  /// **'All open booking times are fully booked'**
   String get exSlotsAllBooked;
 
   /// No description provided for @exSlotsLoadError.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load available times.'**
+  /// **'Couldn\'t load open booking times.'**
   String get exSlotsLoadError;
 
   /// No description provided for @exReserveFailed.
@@ -2231,7 +2231,7 @@ abstract class AppLocalizations {
   /// No description provided for @exReserveConfirmedSlotGym.
   ///
   /// In en, this message translates to:
-  /// **'{slot} · {gym} reservation confirmed'**
+  /// **'{slot} · {gym} booking confirmed'**
   String exReserveConfirmedSlotGym(String slot, String gym);
 
   /// No description provided for @exReserveConfirm.
@@ -2471,13 +2471,13 @@ abstract class AppLocalizations {
   /// No description provided for @myShopGraphColorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour'**
+  /// **'Graph color'**
   String get myShopGraphColorTitle;
 
   /// No description provided for @myShopGraphColorDescription.
   ///
   /// In en, this message translates to:
-  /// **'Pick a new colour for the record graph on the points screen. Colours you unlock stay yours.'**
+  /// **'Pick a new color for the record graph on the points screen. Colors you unlock stay yours.'**
   String get myShopGraphColorDescription;
 
   /// No description provided for @myGraphTitle.
@@ -2519,7 +2519,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphDayNone.
   ///
   /// In en, this message translates to:
-  /// **'{date} · nothing logged'**
+  /// **'{date} · No record'**
   String myGraphDayNone(String date);
 
   /// No description provided for @myGraphDayDiet.
@@ -2609,13 +2609,13 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphColorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour'**
+  /// **'Graph color'**
   String get myGraphColorTitle;
 
   /// No description provided for @myGraphColorPickTitle.
   ///
   /// In en, this message translates to:
-  /// **'Pick a colour to unlock'**
+  /// **'Pick a color to unlock'**
   String get myGraphColorPickTitle;
 
   /// No description provided for @myGraphColorLocked.
@@ -2627,7 +2627,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphColorDone.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour changed'**
+  /// **'Graph color changed'**
   String get myGraphColorDone;
 
   /// No description provided for @myGraphColorExchangeConfirm.
@@ -2639,13 +2639,13 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphColorUnlocked.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour unlocked'**
+  /// **'Graph color unlocked'**
   String get myGraphColorUnlocked;
 
   /// No description provided for @myGraphColorFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t change the colour'**
+  /// **'Couldn\'t change the color'**
   String get myGraphColorFailed;
 
   /// No description provided for @myGraphColorBlue.
@@ -2939,7 +2939,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPointsReasonGraphColor.
   ///
   /// In en, this message translates to:
-  /// **'Graph colour'**
+  /// **'Graph color'**
   String get myPointsReasonGraphColor;
 
   /// No description provided for @myPointsReasonEmotePass.
@@ -3167,7 +3167,7 @@ abstract class AppLocalizations {
   /// No description provided for @myCouponTrainer.
   ///
   /// In en, this message translates to:
-  /// **'Trainer'**
+  /// **'Your trainer'**
   String get myCouponTrainer;
 
   /// No description provided for @myCouponGym.
@@ -3269,7 +3269,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDietTrayIssued.
   ///
   /// In en, this message translates to:
-  /// **'Pick it up at {gym}. Before you go, ask your trainer in chat whether it\'s ready'**
+  /// **'Pick it up at {gym}. Before you go, message your trainer to check whether it\'s ready'**
   String myDietTrayIssued(String gym);
 
   /// No description provided for @myDietTrayReceived.
@@ -3341,7 +3341,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDietTrayExpireNotice.
   ///
   /// In en, this message translates to:
-  /// **'No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.'**
+  /// **'No expiry. Before you go to the gym, message your trainer to check whether the tray is ready.'**
   String get myDietTrayExpireNotice;
 
   /// No description provided for @myCouponStaffConfirmTitle.
@@ -3419,13 +3419,13 @@ abstract class AppLocalizations {
   /// No description provided for @myLogout.
   ///
   /// In en, this message translates to:
-  /// **'Log out'**
+  /// **'Sign out'**
   String get myLogout;
 
   /// No description provided for @myLogoutConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Log out of your account?'**
+  /// **'Sign out of your account?'**
   String get myLogoutConfirm;
 
   /// No description provided for @emoteSheetTitle.
@@ -3635,13 +3635,13 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepHardToUse.
   ///
   /// In en, this message translates to:
-  /// **'Tell us what got in the way and we will fix it. The 1:1 inquiry under MY > Customer support reaches us directly.'**
+  /// **'Tell us what got in the way and we will fix it. The 1:1 inquiry under MY › Customer support reaches us directly.'**
   String get myWithdrawKeepHardToUse;
 
   /// No description provided for @myWithdrawKeepNotifications.
   ///
   /// In en, this message translates to:
-  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.'**
+  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY › Notification settings.'**
   String get myWithdrawKeepNotifications;
 
   /// No description provided for @myWithdrawKeepAlternative.
@@ -3653,7 +3653,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepOther.
   ///
   /// In en, this message translates to:
-  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY > Customer support.'**
+  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY › Customer support.'**
   String get myWithdrawKeepOther;
 
   /// No description provided for @myWithdrawKeepDefault.
@@ -3869,7 +3869,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifTrainerDesc.
   ///
   /// In en, this message translates to:
-  /// **'When your trainer sends you a chat message'**
+  /// **'When your trainer sends you a message'**
   String get myNotifTrainerDesc;
 
   /// No description provided for @myNotifWeeklyReportDesc.
@@ -4103,13 +4103,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachHeaderPill.
   ///
   /// In en, this message translates to:
-  /// **'AI health assistant'**
+  /// **'AI Coach'**
   String get coachHeaderPill;
 
   /// No description provided for @coachHeaderSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Here are today\'s tailored tips'**
+  /// **'Here\'s today\'s tailored advice'**
   String get coachHeaderSubtitle;
 
   /// No description provided for @coachCardDietTag.
@@ -4181,7 +4181,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteTitle.
   ///
   /// In en, this message translates to:
-  /// **'A trainer wants to coach you'**
+  /// **'Coaching request received'**
   String get coachInviteTitle;
 
   /// No description provided for @coachInviteFrom.
@@ -4241,13 +4241,13 @@ abstract class AppLocalizations {
   /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In en, this message translates to:
-  /// **'Personal trainer'**
+  /// **'Your trainer'**
   String get coachChatSubtitle;
 
   /// Button above the trainer chat thread that fetches the previous page (#1943).
   ///
   /// In en, this message translates to:
-  /// **'Load older messages'**
+  /// **'Load earlier messages'**
   String get coachChatLoadOlder;
 
   /// No description provided for @coachChatLoadFailed.
@@ -4319,7 +4319,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachPhotoRetry.
   ///
   /// In en, this message translates to:
-  /// **'Retry'**
+  /// **'Send again'**
   String get coachPhotoRetry;
 
   /// Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665).
@@ -4385,7 +4385,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachReportPdfFileName.
   ///
   /// In en, this message translates to:
-  /// **'weekly-report_{date}.pdf'**
+  /// **'weekly_report_{date}.pdf'**
   String coachReportPdfFileName(String date);
 
   /// No description provided for @coachChatInputHint.
@@ -4619,13 +4619,13 @@ abstract class AppLocalizations {
   /// No description provided for @aicInsightDeleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Remove this detection from your reference notes? What you wrote stays in the conversation.'**
+  /// **'Delete this detection from your reference notes? What you wrote stays in the conversation.'**
   String get aicInsightDeleteConfirm;
 
   /// No description provided for @aicInsightDeleteFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t remove it. Please try again in a moment.'**
+  /// **'Couldn\'t delete it. Please try again in a moment.'**
   String get aicInsightDeleteFailed;
 
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
@@ -4661,19 +4661,19 @@ abstract class AppLocalizations {
   /// AI coach chat: how long the conversation is kept (#1823).
   ///
   /// In en, this message translates to:
-  /// **'AI chat history is kept for the last {days} days'**
+  /// **'AI Coach chats are kept for the last {days} days'**
   String aicRetentionNotice(int days);
 
   /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
   ///
   /// In en, this message translates to:
-  /// **'Chat with your trainer'**
+  /// **'Message your trainer'**
   String get aicTrainerConnectedTitle;
 
   /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
   ///
   /// In en, this message translates to:
-  /// **'You\'re connected with {name}. Members with a trainer chat with their trainer instead of the AI chatbot'**
+  /// **'You\'re connected with {name}. Members with a trainer message their trainer instead of using the AI Coach'**
   String aicTrainerConnectedBody(String name);
 
   /// No description provided for @aicQuickReply1.
@@ -4775,7 +4775,7 @@ abstract class AppLocalizations {
   /// No description provided for @exAssignedTrainer.
   ///
   /// In en, this message translates to:
-  /// **'Assigned trainer'**
+  /// **'Your trainer'**
   String get exAssignedTrainer;
 
   /// No description provided for @exConsultDataSharingNotice.
@@ -4829,13 +4829,13 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultSlotTitle.
   ///
   /// In en, this message translates to:
-  /// **'Available times'**
+  /// **'Open booking times'**
   String get exConsultSlotTitle;
 
   /// No description provided for @exConsultSlotRequired.
   ///
   /// In en, this message translates to:
-  /// **'Please choose an available time.'**
+  /// **'Please choose an open booking time.'**
   String get exConsultSlotRequired;
 
   /// No description provided for @exConsultSlotsEmptyTitle.
@@ -4859,7 +4859,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultSlotsError.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load the available times.'**
+  /// **'Couldn\'t load the open booking times.'**
   String get exConsultSlotsError;
 
   /// No description provided for @exConsultSlotTaken.
@@ -5189,7 +5189,7 @@ abstract class AppLocalizations {
   /// No description provided for @authRestoreRetry.
   ///
   /// In en, this message translates to:
-  /// **'Try again'**
+  /// **'Retry'**
   String get authRestoreRetry;
 
   /// No description provided for @authRestoreSignIn.
@@ -5471,7 +5471,7 @@ abstract class AppLocalizations {
   /// No description provided for @trainerShareDetailLess.
   ///
   /// In en, this message translates to:
-  /// **'Hide details'**
+  /// **'Show less'**
   String get trainerShareDetailLess;
 
   /// No description provided for @trainerShareRecipientLabel.
@@ -5789,7 +5789,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the home AI advice card (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Today\'s AI summary'**
+  /// **'Today\'s combined AI advice'**
   String get guideHomeAdviceTitle;
 
   /// Spotlight guide step: the home AI advice card (#1857).
@@ -5867,7 +5867,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// No description provided for @guideSampleFoodScrambledEggs.
@@ -6556,7 +6556,7 @@ abstract class AppLocalizations {
   /// Shown when the routine is missing.
   ///
   /// In en, this message translates to:
-  /// **'This program no longer exists. Please refresh the list'**
+  /// **'This personal exercise no longer exists. Please refresh the list'**
   String get coachRoutineGone;
 
   /// Shown when the network is unavailable.
@@ -6610,7 +6610,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineCancelConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Remove \'{name}\' from the list? Anything you already logged stays.'**
+  /// **'Delete \'{name}\' from the list? Anything you already logged stays.'**
   String coachRoutineCancelConfirm(String name);
 
   /// Title of the dialog confirming undoing a completed recommended workout.
@@ -6670,7 +6670,7 @@ abstract class AppLocalizations {
   /// Opens the chat with the assigned trainer.
   ///
   /// In en, this message translates to:
-  /// **'Chat with trainer'**
+  /// **'Message trainer'**
   String get coachChatWithTrainer;
 
   /// Tooltip while the assigned trainer is being fetched.
@@ -6730,7 +6730,7 @@ abstract class AppLocalizations {
   /// Notification category label for screen readers.
   ///
   /// In en, this message translates to:
-  /// **'Trainer'**
+  /// **'Your trainer'**
   String get alertCategoryTrainer;
 
   /// Notification category label for screen readers.
@@ -6976,7 +6976,7 @@ abstract class AppLocalizations {
   /// No description provided for @a11yOpenCoaching.
   ///
   /// In en, this message translates to:
-  /// **'Open coaching tips'**
+  /// **'Open coaching advice'**
   String get a11yOpenCoaching;
 
   /// No description provided for @a11ySendMessage.
@@ -8061,7 +8061,7 @@ abstract class AppLocalizations {
   /// No description provided for @passwordChangeAction.
   ///
   /// In en, this message translates to:
-  /// **'Change password'**
+  /// **'Change'**
   String get passwordChangeAction;
 
   /// No description provided for @passwordChangeDone.

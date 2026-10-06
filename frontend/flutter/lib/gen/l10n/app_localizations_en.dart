@@ -210,7 +210,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeDietNutritionTitle => 'Diet & nutrition';
 
   @override
-  String get homeCalorieIntake => 'Today\'s calories';
+  String get homeCalorieIntake => 'Calories eaten today';
 
   @override
   String get homeAchieveRate => 'Progress';
@@ -225,7 +225,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load this week\'s workout history.';
 
   @override
-  String get homeExerciseBurned => 'Calories';
+  String get homeExerciseBurned => 'Calories burned';
 
   @override
   String get homeMealReasonSodium => 'Great for sodium control';
@@ -270,7 +270,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeMealNamulBibimbap => 'Namul bibimbap';
 
   @override
-  String get homeMealReasonFiber => 'Rich in dietary fiber';
+  String get homeMealReasonFiber => 'Rich in fiber';
 
   @override
   String get homeMealTagLowFat => 'Low fat';
@@ -359,7 +359,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietWeekdaySun => 'Sun';
 
   @override
-  String get dietNutritionSummary => 'Nutrition';
+  String get dietNutritionSummary => 'Nutrition summary';
 
   @override
   String get dietAmount => 'Serving size';
@@ -508,7 +508,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietCameraPermissionDenied =>
-      'Camera permission is needed to photograph your meal. Tap Take Photo to try again.';
+      'Camera permission is needed to photograph your meal. Tap \"Take a photo\" to try again.';
 
   @override
   String get dietCameraPermissionPermanentlyDenied =>
@@ -516,7 +516,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietPhotoPermissionDenied =>
-      'Photo permission is needed to choose a meal photo. Tap Choose Photo to try again.';
+      'Photo permission is needed to choose a meal photo. Tap \"Choose a photo\" to try again.';
 
   @override
   String get dietPhotoPermissionPermanentlyDenied =>
@@ -539,7 +539,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietOpenSettingsFailed =>
-      'Couldn\'t open Settings. Turn on camera and photo access under Settings > Oncare.';
+      'Couldn\'t open Settings. Turn on camera and photo access under Settings › Oncare.';
 
   @override
   String get dietAnalyzing => 'Analyzing…';
@@ -592,7 +592,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietAnalysisNotImplemented =>
-      'Photo analysis is unavailable right now. Please log the meal manually.';
+      'Photo analysis is unavailable right now. Please add the meal manually.';
 
   @override
   String get dietAnalysisNoFood =>
@@ -810,7 +810,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exStreakCheer(int days) {
-    return '$days days in a row!';
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days in a row!',
+      one: '1 day in a row!',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -839,7 +845,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exCompletedPtNoProgram => 'No workout program was recorded.';
+  String get exCompletedPtNoProgram => 'No PT program was recorded.';
 
   @override
   String get exAddExercise => 'Add exercise';
@@ -1221,13 +1227,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exSlotTypePersonalTraining => '1:1 PT';
 
   @override
-  String get exSlotsEmpty => 'No times available';
+  String get exSlotsEmpty => 'No open booking times';
 
   @override
-  String get exSlotsAllBooked => 'All available times are fully booked';
+  String get exSlotsAllBooked => 'All open booking times are fully booked';
 
   @override
-  String get exSlotsLoadError => 'Couldn\'t load available times.';
+  String get exSlotsLoadError => 'Couldn\'t load open booking times.';
 
   @override
   String get exReserveFailed => 'Couldn\'t book that time. Please try again.';
@@ -1238,7 +1244,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exReserveConfirmedSlotGym(String slot, String gym) {
-    return '$slot · $gym reservation confirmed';
+    return '$slot · $gym booking confirmed';
   }
 
   @override
@@ -1384,11 +1390,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myBenefitsShieldNoneUsed => 'No protected days yet';
 
   @override
-  String get myShopGraphColorTitle => 'Graph colour';
+  String get myShopGraphColorTitle => 'Graph color';
 
   @override
   String get myShopGraphColorDescription =>
-      'Pick a new colour for the record graph on the points screen. Colours you unlock stay yours.';
+      'Pick a new color for the record graph on the points screen. Colors you unlock stay yours.';
 
   @override
   String get myGraphTitle => 'Record graph';
@@ -1416,7 +1422,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myGraphDayNone(String date) {
-    return '$date · nothing logged';
+    return '$date · No record';
   }
 
   @override
@@ -1475,10 +1481,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'You bought a shield but couldn\'t use it. It\'s kept in My benefits.';
 
   @override
-  String get myGraphColorTitle => 'Graph colour';
+  String get myGraphColorTitle => 'Graph color';
 
   @override
-  String get myGraphColorPickTitle => 'Pick a colour to unlock';
+  String get myGraphColorPickTitle => 'Pick a color to unlock';
 
   @override
   String myGraphColorLocked(String cost) {
@@ -1486,7 +1492,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myGraphColorDone => 'Graph colour changed';
+  String get myGraphColorDone => 'Graph color changed';
 
   @override
   String myGraphColorExchangeConfirm(String color, String cost) {
@@ -1494,10 +1500,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myGraphColorUnlocked => 'Graph colour unlocked';
+  String get myGraphColorUnlocked => 'Graph color unlocked';
 
   @override
-  String get myGraphColorFailed => 'Couldn\'t change the colour';
+  String get myGraphColorFailed => 'Couldn\'t change the color';
 
   @override
   String get myGraphColorBlue => 'Blue';
@@ -1683,7 +1689,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsReasonShield => 'Streak shield';
 
   @override
-  String get myPointsReasonGraphColor => 'Graph colour';
+  String get myPointsReasonGraphColor => 'Graph color';
 
   @override
   String get myPointsReasonEmotePass => 'Chat emotes for 24 hours';
@@ -1825,7 +1831,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myCouponTrainer => 'Trainer';
+  String get myCouponTrainer => 'Your trainer';
 
   @override
   String get myCouponGym => 'Gym';
@@ -1889,7 +1895,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myDietTrayIssued(String gym) {
-    return 'Pick it up at $gym. Before you go, ask your trainer in chat whether it\'s ready';
+    return 'Pick it up at $gym. Before you go, message your trainer to check whether it\'s ready';
   }
 
   @override
@@ -1930,7 +1936,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myDietTrayExpireNotice =>
-      'No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.';
+      'No expiry. Before you go to the gym, message your trainer to check whether the tray is ready.';
 
   @override
   String get myCouponStaffConfirmTitle => 'Mark this coupon as used?';
@@ -1975,10 +1981,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myLogout => 'Log out';
+  String get myLogout => 'Sign out';
 
   @override
-  String get myLogoutConfirm => 'Log out of your account?';
+  String get myLogoutConfirm => 'Sign out of your account?';
 
   @override
   String get emoteSheetTitle => 'Emotes';
@@ -2124,11 +2130,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepHardToUse =>
-      'Tell us what got in the way and we will fix it. The 1:1 inquiry under MY > Customer support reaches us directly.';
+      'Tell us what got in the way and we will fix it. The 1:1 inquiry under MY › Customer support reaches us directly.';
 
   @override
   String get myWithdrawKeepNotifications =>
-      'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.';
+      'Notifications can be switched off one kind at a time. Keep only what you want under MY › Notification settings.';
 
   @override
   String get myWithdrawKeepAlternative =>
@@ -2136,7 +2142,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepOther =>
-      'Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY > Customer support.';
+      'Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY › Customer support.';
 
   @override
   String get myWithdrawKeepDefault =>
@@ -2253,7 +2259,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback';
 
   @override
-  String get myNotifTrainerDesc => 'When your trainer sends you a chat message';
+  String get myNotifTrainerDesc => 'When your trainer sends you a message';
 
   @override
   String get myNotifWeeklyReportDesc =>
@@ -2390,10 +2396,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myAppName => 'On-Care';
 
   @override
-  String get coachHeaderPill => 'AI health assistant';
+  String get coachHeaderPill => 'AI Coach';
 
   @override
-  String get coachHeaderSubtitle => 'Here are today\'s tailored tips';
+  String get coachHeaderSubtitle => 'Here\'s today\'s tailored advice';
 
   @override
   String get coachCardDietTag => 'Diet';
@@ -2431,7 +2437,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSheetEmptyBody => 'Try logging today\'s meals and workouts.';
 
   @override
-  String get coachInviteTitle => 'A trainer wants to coach you';
+  String get coachInviteTitle => 'Coaching request received';
 
   @override
   String coachInviteFrom(String name) {
@@ -2468,10 +2474,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
-  String get coachChatSubtitle => 'Personal trainer';
+  String get coachChatSubtitle => 'Your trainer';
 
   @override
-  String get coachChatLoadOlder => 'Load older messages';
+  String get coachChatLoadOlder => 'Load earlier messages';
 
   @override
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
@@ -2513,7 +2519,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachPhotoSendFailed => 'Couldn\'t send the photo';
 
   @override
-  String get coachPhotoRetry => 'Retry';
+  String get coachPhotoRetry => 'Send again';
 
   @override
   String get coachPhotoDiscard => 'Remove';
@@ -2555,7 +2561,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String coachReportPdfFileName(String date) {
-    return 'weekly-report_$date.pdf';
+    return 'weekly_report_$date.pdf';
   }
 
   @override
@@ -2707,11 +2713,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aicInsightDeleteConfirm =>
-      'Remove this detection from your reference notes? What you wrote stays in the conversation.';
+      'Delete this detection from your reference notes? What you wrote stays in the conversation.';
 
   @override
   String get aicInsightDeleteFailed =>
-      'Couldn\'t remove it. Please try again in a moment.';
+      'Couldn\'t delete it. Please try again in a moment.';
 
   @override
   String get aicInsightHistoryTitle => 'Reference notes';
@@ -2734,15 +2740,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicRetentionNotice(int days) {
-    return 'AI chat history is kept for the last $days days';
+    return 'AI Coach chats are kept for the last $days days';
   }
 
   @override
-  String get aicTrainerConnectedTitle => 'Chat with your trainer';
+  String get aicTrainerConnectedTitle => 'Message your trainer';
 
   @override
   String aicTrainerConnectedBody(String name) {
-    return 'You\'re connected with $name. Members with a trainer chat with their trainer instead of the AI chatbot';
+    return 'You\'re connected with $name. Members with a trainer message their trainer instead of using the AI Coach';
   }
 
   @override
@@ -2795,7 +2801,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTrainerConsultType => 'Trainer consultation';
 
   @override
-  String get exAssignedTrainer => 'Assigned trainer';
+  String get exAssignedTrainer => 'Your trainer';
 
   @override
   String get exConsultDataSharingNotice =>
@@ -2829,10 +2835,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachInviteConsentAgree => 'Agree and connect';
 
   @override
-  String get exConsultSlotTitle => 'Available times';
+  String get exConsultSlotTitle => 'Open booking times';
 
   @override
-  String get exConsultSlotRequired => 'Please choose an available time.';
+  String get exConsultSlotRequired => 'Please choose an open booking time.';
 
   @override
   String get exConsultSlotsEmptyTitle =>
@@ -2849,7 +2855,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exConsultSlotsError => 'Couldn\'t load the available times.';
+  String get exConsultSlotsError => 'Couldn\'t load the open booking times.';
 
   @override
   String get exConsultSlotTaken =>
@@ -3043,7 +3049,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t restore your sign-in — the connection looks unstable.';
 
   @override
-  String get authRestoreRetry => 'Try again';
+  String get authRestoreRetry => 'Retry';
 
   @override
   String get authRestoreSignIn => 'Go to sign in';
@@ -3201,7 +3207,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainerShareDetailMore => 'Show details';
 
   @override
-  String get trainerShareDetailLess => 'Hide details';
+  String get trainerShareDetailLess => 'Show less';
 
   @override
   String get trainerShareRecipientLabel => 'Shared with';
@@ -3378,7 +3384,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideDone => 'Done';
 
   @override
-  String get guideHomeAdviceTitle => 'Today\'s AI summary';
+  String get guideHomeAdviceTitle => 'Today\'s combined AI advice';
 
   @override
   String get guideHomeAdviceBody =>
@@ -3424,7 +3430,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout yourself +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
   }
 
   @override
@@ -3829,7 +3835,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachRoutineGone =>
-      'This program no longer exists. Please refresh the list';
+      'This personal exercise no longer exists. Please refresh the list';
 
   @override
   String get coachRoutineNetworkError => 'Check your connection and try again';
@@ -3859,7 +3865,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String coachRoutineCancelConfirm(String name) {
-    return 'Remove \'$name\' from the list? Anything you already logged stays.';
+    return 'Delete \'$name\' from the list? Anything you already logged stays.';
   }
 
   @override
@@ -3893,7 +3899,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineSubmit => 'Done';
 
   @override
-  String get coachChatWithTrainer => 'Chat with trainer';
+  String get coachChatWithTrainer => 'Message trainer';
 
   @override
   String get coachTrainerLoading => 'Loading your trainer…';
@@ -3925,7 +3931,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategoryPtDone => 'PT record';
 
   @override
-  String get alertCategoryTrainer => 'Trainer';
+  String get alertCategoryTrainer => 'Your trainer';
 
   @override
   String get alertCategoryConsultation => 'Consultation request';
@@ -4078,7 +4084,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get a11yHidePassword => 'Hide password';
 
   @override
-  String get a11yOpenCoaching => 'Open coaching tips';
+  String get a11yOpenCoaching => 'Open coaching advice';
 
   @override
   String get a11ySendMessage => 'Send message';
@@ -5053,7 +5059,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This device stays signed in. Other devices will need to sign in again.';
 
   @override
-  String get passwordChangeAction => 'Change password';
+  String get passwordChangeAction => 'Change';
 
   @override
   String get passwordChangeDone => 'Password changed';

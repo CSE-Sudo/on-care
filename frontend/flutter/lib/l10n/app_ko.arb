@@ -208,7 +208,7 @@
   "dietPhotoUnsupportedFormat": "지원하지 않는 사진 형식이에요. JPG 또는 PNG 사진으로 다시 시도해 주세요",
   "dietPhotoTooLarge": "사진 용량이 너무 커요. 다른 사진으로 다시 시도해 주세요",
   "dietOpenSettings": "설정 열기",
-  "dietOpenSettingsFailed": "설정을 열지 못했어요. 설정 > Oncare에서 카메라·사진 접근을 켜 주세요",
+  "dietOpenSettingsFailed": "설정을 열지 못했어요. 설정 › Oncare에서 카메라·사진 접근을 켜 주세요",
   "dietAnalyzing": "분석 중…",
   "dietAnalysisFailed": "분석 실패",
   "dietRecordDate": "기록 날짜",
@@ -223,7 +223,7 @@
   "dietAnalysisUnsupportedFormat": "이 사진 형식은 분석할 수 없어요. JPG 또는 PNG 사진으로 다시 골라 주세요.",
   "dietAnalysisBadRequest": "사진을 읽지 못했어요. 다른 사진으로 다시 골라 주세요.",
   "dietAnalysisUnauthorized": "로그인이 만료됐어요. 다시 로그인한 뒤 기록해 주세요.",
-  "dietAnalysisNotImplemented": "지금은 사진 분석을 사용할 수 없어요. 직접 입력으로 기록해 주세요.",
+  "dietAnalysisNotImplemented": "지금은 사진 분석을 쓸 수 없어요. 직접 추가로 기록해 주세요.",
   "dietAnalysisNoFood": "사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 추가해 주세요.",
   "dietAnalysisDailyLimit": "오늘 사진 분석 횟수를 다 썼어요. 내일 다시 쓸 수 있고, 지금은 직접 추가로 기록할 수 있어요.",
   "dietAnalysisRateLimited": "사진 분석 요청이 너무 잦아요. 잠시 후 다시 시도하거나 직접 추가해 주세요.",
@@ -305,19 +305,19 @@
       }
     }
   },
-  "exStreakStart": "오늘 운동으로 연속 기록을 시작해 봐요.",
+  "exStreakStart": "오늘 운동으로 연속 운동을 시작해 봐요.",
   "exStreakProtected": "보호권으로 이어짐",
   "exToday": "오늘",
   "exLoadError": "운동 정보를 불러오지 못했어요.",
   "exCompletedPtTitle": "오늘 완료한 PT",
   "exCompletedPtTime": "{time} 완료",
   "exPtSessionNumber": "{count}회차",
-  "exCompletedPtNoProgram": "등록된 운동 프로그램이 없어요.",
+  "exCompletedPtNoProgram": "기록된 PT 프로그램이 없어요.",
   "exAddExercise": "운동 추가",
   "exDurationMinutes": "{minutes}분",
   "exEditExercise": "운동 기록 수정",
   "exSave": "저장",
-  "exExerciseType": "운동 종류",
+  "exExerciseType": "운동 유형",
   "exExerciseDate": "날짜",
   "exExerciseName": "운동 이름",
   "exExerciseNameHintCardio": "예) 러닝머신, 실내 자전거",
@@ -366,7 +366,7 @@
       }
     }
   },
-  "exCaloriesRoughEstimate": "운동 종류 평균으로 낸 어림값이에요",
+  "exCaloriesRoughEstimate": "운동 유형 평균으로 낸 어림값이에요",
   "@exCaloriesRoughEstimate": {
     "description": "이름이 종목으로 접히지 않아 유형 평균으로 때운 값 (#1312)"
   },
@@ -473,7 +473,7 @@
   "exGymWeekdayHours": "평일 {hours}",
   "exGymWeekendHours": "주말 {hours}",
   "exTrainerDedicated": "전담 트레이너",
-  "exTrainerAvailability": "{trainer} 빈 예약 시간",
+  "exTrainerAvailability": "{trainer} 예약 가능 시간",
   "exSlotWhen": "{date} {time}",
   "@exSlotWhen": {
     "placeholders": {
@@ -486,9 +486,9 @@
     }
   },
   "exSlotTypePersonalTraining": "1:1 PT",
-  "exSlotsEmpty": "예약 가능한 시간이 없어요",
-  "exSlotsAllBooked": "예약 가능한 시간이 모두 찼어요",
-  "exSlotsLoadError": "예약 시간을 불러오지 못했어요.",
+  "exSlotsEmpty": "예약 가능 시간이 없어요",
+  "exSlotsAllBooked": "예약 가능 시간이 모두 찼어요",
+  "exSlotsLoadError": "예약 가능 시간을 불러오지 못했어요.",
   "exReserveFailed": "예약하지 못했어요. 잠시 후 다시 시도해 주세요",
   "exReserveTimeTaken": "트레이너의 다른 일정과 겹쳐 이 시간은 예약할 수 없어요. 다른 시간을 골라 주세요",
   "exReserveConfirmedSlotGym": "{slot} · {gym} 예약이 확정됐어요",
@@ -592,7 +592,7 @@
       }
     }
   },
-  "myGraphStreak": "기록 연속 {days}일",
+  "myGraphStreak": "연속 기록 {days}일",
   "@myGraphStreak": {
     "placeholders": {
       "days": {
@@ -656,7 +656,7 @@
   "myGraphProtectAction": "보호권 사용",
   "myGraphProtectConfirmAction": "사용",
   "myGraphProtectConfirmTitle": "보호권을 사용할까요?",
-  "myGraphProtectConfirmMessage": "{date}을 기록 연속에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 {held}개).",
+  "myGraphProtectConfirmMessage": "{date}을 연속 기록에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 {held}개).",
   "@myGraphProtectConfirmMessage": {
     "placeholders": {
       "date": {
@@ -670,7 +670,7 @@
   "myGraphProtectDone": "연속을 이어 붙였어요",
   "myGraphProtectFailed": "보호권을 사용하지 못했어요",
   "myGraphProtectBuyConfirmTitle": "보호권을 구매할까요?",
-  "myGraphProtectBuyConfirmMessage": "지금 가진 보호권이 없어요. {cost}로 보호권을 구매하고 {date}을 바로 기록 연속에 이어 붙여요.",
+  "myGraphProtectBuyConfirmMessage": "지금 가진 보호권이 없어요. {cost}로 보호권을 구매하고 {date}을 바로 연속 기록에 이어 붙여요.",
   "@myGraphProtectBuyConfirmMessage": {
     "placeholders": {
       "date": {
@@ -1032,7 +1032,7 @@
   },
   "myDietTrayNeedTrainer": "담당 트레이너를 연결하면 받을 수 있어요",
   "myDietTrayClaimable": "조건을 채웠어요! 담당 트레이너의 헬스장에서 받아요",
-  "myDietTrayIssued": "{gym}에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 채팅으로 물어보세요",
+  "myDietTrayIssued": "{gym}에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 메시지로 물어보세요",
   "@myDietTrayIssued": {
     "placeholders": {
       "gym": {
@@ -1051,8 +1051,8 @@
   "myDietTrayCouponBenefit": "분석용 규격 식판",
   "myDietTrayStaffNote": "헬스장 직원에게 식판을 받은 뒤 눌러 주세요",
   "myDietTrayIssuedOn": "받은 날",
-  "myDietTrayExpireNotice": "기한 없이 쓸 수 있어요. 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 채팅으로 물어보세요.",
-  "myCouponStaffConfirmTitle": "쿠폰을 사용 완료할까요?",
+  "myDietTrayExpireNotice": "기한 없이 쓸 수 있어요. 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 메시지로 물어보세요.",
+  "myCouponStaffConfirmTitle": "쿠폰을 사용 처리할까요?",
   "myCouponStaffConfirmMessage": "직원 확인용 · 사용 후 되돌릴 수 없어요",
   "myCouponUsedAt": "사용 시각",
   "myCouponUsedBanner": "{time}에 사용 완료했어요",
@@ -1064,7 +1064,7 @@
     }
   },
   "myCouponExpireNotice": "만료되면 포인트는 돌려받을 수 없어요.",
-  "myCouponUse": "사용 완료",
+  "myCouponUse": "사용 처리",
   "myCouponUseDone": "사용 완료로 바꿨어요",
   "myCouponUseFailed": "사용 처리하지 못했어요. 다시 시도해 주세요.",
   "myCouponNotFound": "쿠폰을 찾을 수 없어요",
@@ -1075,18 +1075,18 @@
   "myLogoutConfirm": "로그아웃할까요?",
   "emoteSheetTitle": "이모티콘",
   "emoteBuyTitle": "이모티콘 구매",
-  "emoteBuyConfirm": "{cost}P로 {days}일 동안 쓸까요?\n산 때부터 기간이 흘러가요.",
+  "emoteBuyConfirm": "{cost}P로 {days}일 동안 쓸까요?\n구매한 때부터 기간이 흘러가요.",
   "emoteBuyAction": "구매",
   "emoteBought": "이제 이 이모티콘을 보낼 수 있어요",
-  "emoteBuyFailed": "이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "emoteBuyFailed": "이모티콘을 구매하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "emoteAlreadyUnlocked": "이미 열려 있는 이모티콘이에요. 바로 보낼 수 있어요",
-  "emoteTrainerRequired": "담당 트레이너가 있어야 이모티콘을 살 수 있어요",
+  "emoteTrainerRequired": "담당 트레이너가 있어야 이모티콘을 구매할 수 있어요",
   "emoteShortfall": "포인트가 부족해요",
   "emoteLoadFailed": "이모티콘을 불러오지 못했어요",
   "emoteSendFailed": "이모티콘을 보내지 못했어요",
   "a11yOpenEmotes": "이모티콘",
   "a11yEmote": "이모티콘",
-  "myWithdrawTitle": "회원 탈퇴",
+  "myWithdrawTitle": "계정 탈퇴",
   "myWithdrawConfirm": "탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화, 포인트와 사용 전 쿠폰·보호권·꾸밈 아이템도 사라져요. 예정된 PT 예약과 대기 중인 상담 요청은 취소돼요. 되돌릴 수 없어요.",
   "myWithdrawLosePoints": "• 보유 포인트 {points}P가 사라져요",
   "myWithdrawLoseCoupons": "• 사용 전 쿠폰 {count}장이 사라져요",
@@ -1094,7 +1094,7 @@
   "myWithdrawCancelConsultations": "• 대기 중인 상담 요청 {count}건이 취소돼요",
   "myWithdrawAction": "탈퇴",
   "myWithdrawFailed": "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.",
-  "myWithdrawReasonTitle": "정말 탈퇴를 원하시나요?",
+  "myWithdrawReasonTitle": "정말 탈퇴할까요?",
   "myWithdrawReasonQuestion": "어떤 부분이 불편하셨나요?",
   "myWithdrawReasonHint": "복수 선택 가능",
   "myWithdrawReasonPrivacy": "개인정보 노출이 걱정돼요",
@@ -1107,10 +1107,10 @@
   "myWithdrawKeepTitle": "탈퇴하기 전에",
   "myWithdrawKeepPrivacy": "회원님의 기록은 절대 불특정 타인에게 공개하지 않아요. 볼 수 있는 사람은 회원님과 연결된 담당 트레이너뿐이고, 트레이너 연결을 해제하면 회원님만 볼 수 있어요 — MY 탭의 내 헬스장 · 트레이너에서 바로 해제할 수 있어요.",
   "myWithdrawKeepRarelyUsed": "매일 다 적지 않아도 괜찮아요. 가운데 + 를 누르면 어느 화면에서든 끼니 하나, 운동 하나를 바로 남길 수 있어요.",
-  "myWithdrawKeepHardToUse": "어디가 불편했는지 알려 주시면 고칠게요. MY > 고객 지원의 1:1 문의로 바로 닿아요.",
-  "myWithdrawKeepNotifications": "알림은 종류별로 끌 수 있어요. MY > 알림 설정에서 받고 싶은 것만 남겨 보세요.",
+  "myWithdrawKeepHardToUse": "어디가 불편했는지 알려 주시면 고칠게요. MY › 고객 지원의 1:1 문의로 바로 닿아요.",
+  "myWithdrawKeepNotifications": "알림은 종류별로 끌 수 있어요. MY › 알림 설정에서 받고 싶은 것만 남겨 보세요.",
   "myWithdrawKeepAlternative": "앱을 지워도 기록은 그대로 남아요. 탈퇴하면 그때 사라지고 되살릴 수 없어요.",
-  "myWithdrawKeepOther": "무엇이든 알려 주시면 반영할게요. MY > 고객 지원의 1:1 문의로 남겨 주세요.",
+  "myWithdrawKeepOther": "무엇이든 알려 주시면 반영할게요. MY › 고객 지원의 1:1 문의로 남겨 주세요.",
   "myWithdrawKeepDefault": "지금까지 쌓은 식단·운동 기록과 포인트, 사용 전 쿠폰은 탈퇴와 함께 사라지고 되살릴 수 없어요. 예정된 예약도 취소돼요.",
   "myWithdrawStay": "계속 사용하기",
   "myWithdrawContinue": "탈퇴 계속",
@@ -1154,7 +1154,7 @@
   "myGymDisconnectTooltip": "헬스장 연결 해제",
   "myTrainerDisconnectTooltip": "트레이너 연결 해제",
   "myNoTrainer": "담당 트레이너 없음",
-  "myNoGymConnected": "아직 등록된 헬스장이 없어요",
+  "myNoGymConnected": "아직 연결한 헬스장이 없어요",
   "myGymLoadFailed": "헬스장 연결 정보를 불러오지 못했어요.",
   "mySave": "저장",
   "myProfileSaved": "프로필을 저장했어요",
@@ -1173,7 +1173,7 @@
   "myNotifTrainer": "트레이너 메시지",
   "myNotifWeeklyReport": "트레이너 주간 리포트",
   "myNotifExerciseDesc": "트레이너가 개인운동·PT 프로그램을 보내거나 PT 기록·피드백을 남기면 알려요",
-  "myNotifTrainerDesc": "트레이너가 대화로 보낸 메시지를 알려요",
+  "myNotifTrainerDesc": "트레이너가 보낸 메시지를 알려요",
   "myNotifWeeklyReportDesc": "담당 트레이너가 주간 리포트를 보내면 알려요",
   "myNotifAlwaysSent": "PT 일정 등록·변경·취소와 담당 트레이너 연결·해제 알림은 항상 보내요",
   "mySupportFaq": "자주 묻는 질문",
@@ -1212,7 +1212,7 @@
   "buildInfoDevelopment": "개발 빌드",
   "buildInfoReleasedAt": "{date} KST 배포",
   "myAppName": "On-Care",
-  "coachHeaderPill": "AI 건강 도우미",
+  "coachHeaderPill": "AI 코치",
   "coachHeaderSubtitle": "오늘의 맞춤 조언을 모아봤어요",
   "coachCardDietTag": "식단",
   "coachCardDietTitle": "아침 식단 훌륭, 점심 나트륨 주의",
@@ -1225,7 +1225,7 @@
   "coachSheetErrorBody": "연결 상태를 확인하고 다시 시도해 주세요.",
   "coachSheetEmptyTitle": "기록이 쌓이면 조언을 드릴게요",
   "coachSheetEmptyBody": "오늘 먹은 음식과 운동을 기록해 보세요.",
-  "coachInviteTitle": "담당 요청이 왔어요",
+  "coachInviteTitle": "담당 요청이 도착했어요",
   "coachInviteFrom": "{name} 트레이너",
   "@coachInviteFrom": {
     "placeholders": {
@@ -1259,7 +1259,7 @@
   "coachChatSubtitle": "담당 트레이너",
   "coachChatLoadOlder": "이전 메시지 더 보기",
   "coachChatLoadFailed": "대화를 불러오지 못했어요",
-  "coachChatUnassigned": "담당이 해제되어 더 이상 대화를 보낼 수 없어요",
+  "coachChatUnassigned": "담당이 해제되어 더 이상 메시지를 보낼 수 없어요",
   "coachChatEmptyTitle": "{trainer}님과 대화를 시작해 보세요",
   "coachChatEmptyBody": "오늘 먹은 식단 사진이나 운동하며 궁금한 점을 보내 보세요",
   "coachChatSendFailed": "메시지를 보내지 못했어요. 다시 시도해 주세요",
@@ -1355,7 +1355,7 @@
     }
   },
   "aicPaidConfirmAction": "포인트로 보내기",
-  "aicPaidInsufficient": "포인트가 {shortfall} 모자라요. 식단·운동을 기록하면 포인트가 쌓여요.",
+  "aicPaidInsufficient": "포인트가 {shortfall} 부족해요. 식단·운동을 기록하면 포인트가 쌓여요.",
   "@aicPaidInsufficient": {
     "placeholders": {
       "shortfall": {
@@ -1383,16 +1383,16 @@
   "aicInsightDiscomfort": "통증 감지",
   "aicInsightNegative": "부정적 반응 감지",
   "aicInsightDelete": "삭제",
-  "aicInsightDeleteConfirm": "이 감지를 참고 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.",
-  "aicInsightDeleteFailed": "지우지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "aicInsightDeleteConfirm": "이 감지를 참고 기록에서 삭제할까요? 대화에 쓴 말은 그대로 남아요.",
+  "aicInsightDeleteFailed": "삭제하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "aicInsightHistoryTitle": "참고 기록",
   "aicInsightHistoryAction": "참고 기록",
   "aicInsightHistorySubtitle": "최근 {days}일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요",
   "aicInsightHistoryEmpty": "최근 {days}일 동안 감지된 내용이 없어요",
   "aicInsightHistoryFailed": "참고 기록을 불러오지 못했어요",
-  "aicRetentionNotice": "AI 챗봇 대화는 최근 {days}일 동안만 보관돼요",
-  "aicTrainerConnectedTitle": "담당 트레이너와 대화해 주세요",
-  "aicTrainerConnectedBody": "{name} 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 챗봇 대신 트레이너와 채팅해요",
+  "aicRetentionNotice": "AI 코치 대화는 최근 {days}일 동안만 보관돼요",
+  "aicTrainerConnectedTitle": "담당 트레이너에게 메시지를 보내 주세요",
+  "aicTrainerConnectedBody": "{name} 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 코치 대신 트레이너와 메시지를 주고받아요",
   "aicQuickReply1": "오늘 저녁 메뉴 추천해줘",
   "aicQuickReply2": "오늘 운동은 얼마나 하면 좋을까?",
   "aicQuickReply3": "오늘 나트륨 얼마나 먹었어?",
@@ -1425,8 +1425,8 @@
     }
   },
   "coachInviteConsentAgree": "동의하고 연결",
-  "exConsultSlotTitle": "예약 가능한 시간",
-  "exConsultSlotRequired": "예약 가능한 시간을 선택해 주세요.",
+  "exConsultSlotTitle": "예약 가능 시간",
+  "exConsultSlotRequired": "예약 가능 시간을 선택해 주세요.",
   "exConsultSlotsEmptyTitle": "지금은 예약 가능한 상담 시간이 없어요.",
   "exConsultSlotsEmptyBody": "{gym} {phone} 로 문의해 상담 시간을 요청해 주세요.",
   "@exConsultSlotsEmptyBody": {
@@ -1447,7 +1447,7 @@
       }
     }
   },
-  "exConsultSlotsError": "예약 가능한 시간을 불러오지 못했어요.",
+  "exConsultSlotsError": "예약 가능 시간을 불러오지 못했어요.",
   "exConsultSlotTaken": "방금 다른 회원이 그 시간을 예약했어요. 다른 시간을 선택해 주세요.",
   "exConsultTooManyPending": "답을 기다리는 상담 요청이 이미 {count}건 있어요. 답을 받거나 요청을 취소한 뒤 다시 신청해 주세요.",
   "@exConsultTooManyPending": {
@@ -1643,7 +1643,7 @@
   "guideMySettingsTitle": "설정",
   "guideMySettingsBody": "프로필과 건강 목표, 알림을 여기서 바꿔요. 이 안내도 여기서 다시 볼 수 있어요",
   "guidePointsTitle": "포인트",
-  "guidePointsBody": "기록할 때마다 포인트가 쌓여요.\n식단 기록 +{diet}P, 운동 추가 +{exercise}P, 개인운동 완료 +{routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요",
+  "guidePointsBody": "기록할 때마다 포인트가 쌓여요.\n식단 기록 +{diet}P, 운동 직접 기록 +{exercise}P, 개인운동 완료 +{routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요",
   "guideSampleFoodScrambledEggs": "스크램블에그",
   "guideSampleFoodWholeWheatToast": "통밀 토스트",
   "guideSampleFoodChickenSalad": "닭가슴살 샐러드",
@@ -1744,9 +1744,9 @@
   "myNotifLoadFailed": "알림 설정을 불러오지 못했어요",
   "myNotifLoadFailedBody": "지금 보이는 값은 기본값이라 저장된 설정과 다를 수 있어요",
   "myPointsGuideTitle": "포인트 적립 안내",
-  "myPointsDietAdd": "식단 추가",
+  "myPointsDietAdd": "식단 기록",
   "myPointsRoutineComplete": "개인운동 완료",
-  "myPointsExerciseAdd": "운동 직접 추가",
+  "myPointsExerciseAdd": "운동 직접 기록",
   "myPointsRuleWithDailyCap": "{action} (하루 {count}회)",
   "@myPointsRuleWithDailyCap": {
     "placeholders": {
@@ -1766,10 +1766,10 @@
   "coachRoutinePastEditHint": "빠뜨린 체크를 지금 할 수 있어요. 트레이너에게는 나중에 체크한 것으로 보여요.",
   "coachRoutinePastEditDone": "완료",
   "coachRoutineLogged": "운동 기록에 반영했어요",
-  "coachRoutineGone": "이 프로그램은 더 이상 없어요. 목록을 새로 불러와 주세요",
+  "coachRoutineGone": "이 개인운동은 더 이상 없어요. 목록을 새로 불러와 주세요",
   "coachRoutineNetworkError": "네트워크 연결을 확인하고 다시 시도해 주세요",
   "coachRoutineLogFailed": "완료로 기록하지 못했어요.",
-  "coachRoutineDone": "수행 완료",
+  "coachRoutineDone": "완료",
   "coachRoutineUndo": "완료 취소",
   "coachRoutineUndoConfirm": "'{name}' 완료를 취소할까요? 운동 기록에서도 빠져요.",
   "@coachRoutineUndoConfirm": {
@@ -1782,7 +1782,7 @@
   "coachRoutineUndone": "완료를 취소했어요",
   "coachRoutineUndoFailed": "완료를 취소하지 못했어요.",
   "coachRoutineCancel": "이 개인운동 삭제",
-  "coachRoutineCancelConfirm": "'{name}'을(를) 목록에서 지울까요? 이미 수행한 기록은 그대로 남아요.",
+  "coachRoutineCancelConfirm": "'{name}'을(를) 목록에서 삭제할까요? 이미 수행한 기록은 그대로 남아요.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
       "name": {
@@ -1795,11 +1795,11 @@
   "coachRoutineKeep": "유지",
   "coachRoutineCancelled": "개인운동을 삭제했어요",
   "coachRoutineCancelFailed": "개인운동을 삭제하지 못했어요",
-  "coachRoutineCompleteTitle": "개인운동 수행 완료",
+  "coachRoutineCompleteTitle": "개인운동 완료",
   "coachRoutineIntensity": "수행 강도",
   "coachRoutinePlannedIntensity": "권장 {level}",
   "coachRoutineSubmit": "완료",
-  "coachChatWithTrainer": "트레이너와 채팅",
+  "coachChatWithTrainer": "트레이너에게 메시지",
   "coachTrainerLoading": "담당 트레이너를 불러오는 중이에요",
   "coachTrainerNone": "담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요",
   "coachTrainerRetrying": "담당 트레이너 정보를 불러오지 못해 다시 불러오고 있어요",
@@ -1888,7 +1888,7 @@
   "a11ySendMessage": "메시지 보내기",
   "a11yClearSearch": "검색어 지우기",
   "a11yRemoveFood": "음식 지우기",
-  "a11yPrevWeek": "지난 주",
+  "a11yPrevWeek": "지난주",
   "a11yNextWeek": "다음 주",
   "exConsultHistoryCancelTitle": "상담 요청을 취소할까요?",
   "exConsultHistoryCancelAction": "요청 취소",
@@ -2106,7 +2106,7 @@
   "passwordChangeNewHint": "새 비밀번호 (영문·숫자 포함 8자 이상)",
   "passwordChangeConfirmHint": "새 비밀번호 확인",
   "passwordChangeNote": "이 기기는 로그인이 유지되고, 다른 기기에서는 다시 로그인해야 해요.",
-  "passwordChangeAction": "비밀번호 바꾸기",
+  "passwordChangeAction": "변경",
   "passwordChangeDone": "비밀번호를 바꿨어요",
   "passwordChangeWrongCurrent": "현재 비밀번호가 맞지 않아요",
   "passwordChangeSameAsCurrent": "현재와 다른 비밀번호를 입력해 주세요",
@@ -2130,7 +2130,7 @@
   "passwordResetConfirmAction": "새 비밀번호 저장",
   "passwordResetResend": "코드 다시 받기",
   "passwordResetDemoNote": "데모 모드에서는 메일이 가지 않아요. 코드 칸을 미리 채워 두었어요.",
-  "passwordResetUnavailable": "지금은 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.",
+  "passwordResetUnavailable": "지금은 재설정 메일을 보낼 수 없어요. 고객 지원으로 문의해 주세요.",
   "passwordResetDoneTitle": "비밀번호를 바꿨어요",
   "passwordResetDoneBody": "새 비밀번호로 다시 로그인해 주세요. 모든 기기의 로그인이 끝났어요.",
   "passwordResetBackToSignIn": "로그인하러 가기",

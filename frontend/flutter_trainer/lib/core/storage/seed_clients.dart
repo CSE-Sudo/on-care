@@ -196,7 +196,7 @@ const List<_Client> _clients = <_Client>[
       ),
       _Chat(
         'trainer',
-        '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
+        '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
         '18:18',
         dayIndex: 2,
       ),
@@ -250,7 +250,7 @@ const List<_Client> _clients = <_Client>[
       ),
     ],
     aiRoutine: <_Routine>[
-      _Routine('인터벌 런닝', 25, '유산소', '체지방 연소 효율↑', intensity: 'high'),
+      _Routine('인터벌 러닝', 25, '유산소', '체지방 연소 효율↑', intensity: 'high'),
       _Routine('스쿼트', 15, '근력', '하체 근력 강화', sets: 3, reps: 12, weight: 40),
       _Routine('플랭크', 10, '근력', '코어 안정화', sets: 3, holdSeconds: 30),
     ],
@@ -291,7 +291,7 @@ const List<_Client> _clients = <_Client>[
     chat: <_Chat>[
       _Chat(
         'trainer',
-        '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 런닝 25분 완료! 컨디션은 어때요?',
+        '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 러닝 25분 완료! 컨디션은 어때요?',
         '20:05',
       ),
       _Chat('client', '생각보다 괜찮았어요. 숨이 금방 차더라고요 😮‍💨', '20:08'),

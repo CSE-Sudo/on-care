@@ -365,12 +365,12 @@ def test_trainer_message_reaches_the_member_in_english(client, db_session):
     en = _member_inbox(client, member_token, EN)[0]
     assert en["title"] == "Message from Coach Park"
     assert en["body"] == "Great session today"
-    assert en["action"] == {"label": "View chat", "target": "coach_chat"}
+    assert en["action"] == {"label": "View messages", "target": "coach_chat"}
     assert en["template"] == nt.MEMBER_COACH_MESSAGE
 
     ko = _member_inbox(client, member_token)[0]
     assert ko["title"] == "Coach Park 트레이너의 메시지"
-    assert ko["action"] == {"label": "대화 보기", "target": "coach_chat"}
+    assert ko["action"] == {"label": "메시지 보기", "target": "coach_chat"}
 
 
 def test_routine_assignment_reaches_the_member_in_english(client, db_session):
@@ -423,7 +423,7 @@ ACTION_LABELS = {
     "reminder": ("기록하러 가기", "Log now"),
     "health_check": ("기록하러 가기", "Log now"),
     "achievement": ("대시보드 보기", "View dashboard"),
-    "coach_chat": ("대화 보기", "View chat"),
+    "coach_chat": ("메시지 보기", "View messages"),
     "coach_report": ("리포트 보기", "View report"),
     "routine": ("운동 보기", "View workouts"),
     "coach_invite": ("요청 확인", "View request"),
@@ -528,7 +528,7 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
             {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
              "refunded": 7000},
             "benefits",
-            "Locker coupon cancelled",
+            "Personal locker coupon cancelled",
         ),
         (
             nt.MEMBER_CHALLENGE_RESULT,

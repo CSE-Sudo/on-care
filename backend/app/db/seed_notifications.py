@@ -161,6 +161,20 @@ def seed_demo_notifications(db: Session, user_id: str, *, now: datetime | None =
                 )
                 .values(category=item.category)
             )
+        # 문구를 고쳐도 이미 시드된 DB 는 옛 제목·본문을 그대로 든다(#3201·#3202).
+        # 이 행들은 틀(`template`)이 없어 저장 문자열이 그대로 보이므로 지금 시드
+        # 값으로 덮어쓴다. 읽음 여부·시각은 회원 쪽 상태라 두고, 틀이 있는 행(실서비스
+        # 알림)은 건드리지 않는다.
+        for item in DEMO_NOTIFICATIONS:
+            db.execute(
+                update(models.Notification)
+                .where(
+                    models.Notification.id == item.id,
+                    models.Notification.user_id == user_id,
+                    models.Notification.template.is_(None),
+                )
+                .values(title=item.title, body=item.body)
+            )
         db.commit()
         return 0
     base = now or datetime.now(timezone.utc)
