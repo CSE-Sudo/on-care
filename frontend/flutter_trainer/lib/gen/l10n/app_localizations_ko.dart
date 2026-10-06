@@ -3043,6 +3043,23 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get aiBasisConditionLabel => '생성 조건';
+
+  @override
+  String aiBasisConditionValue(String conditions, String source) {
+    return '$conditions ($source)';
+  }
+
+  @override
+  String get aiBasisConditionByTrainer => '트레이너 지정';
+
+  @override
+  String get aiBasisConditionAuto => '기록 기반 자동';
+
+  @override
+  String get aiBasisConditionMixed => '일부 지정';
+
+  @override
   String get aiChatEvidenceTitle => '참고한 최근 대화';
 
   @override

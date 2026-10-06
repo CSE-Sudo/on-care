@@ -5593,6 +5593,36 @@ abstract class AppLocalizations {
   /// **'\"{request}\"'**
   String aiBasisRequestValue(String request);
 
+  /// No description provided for @aiBasisConditionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Conditions'**
+  String get aiBasisConditionLabel;
+
+  /// No description provided for @aiBasisConditionValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{conditions} ({source})'**
+  String aiBasisConditionValue(String conditions, String source);
+
+  /// No description provided for @aiBasisConditionByTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'set by you'**
+  String get aiBasisConditionByTrainer;
+
+  /// No description provided for @aiBasisConditionAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'auto from history'**
+  String get aiBasisConditionAuto;
+
+  /// No description provided for @aiBasisConditionMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'partly set by you'**
+  String get aiBasisConditionMixed;
+
   /// No description provided for @aiChatEvidenceTitle.
   ///
   /// In en, this message translates to:

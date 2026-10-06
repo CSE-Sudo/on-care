@@ -2042,6 +2042,21 @@
       }
     }
   },
+  "aiBasisConditionLabel": "Conditions",
+  "aiBasisConditionValue": "{conditions} ({source})",
+  "@aiBasisConditionValue": {
+    "placeholders": {
+      "conditions": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "aiBasisConditionByTrainer": "set by you",
+  "aiBasisConditionAuto": "auto from history",
+  "aiBasisConditionMixed": "partly set by you",
   "aiChatEvidenceTitle": "Recent conversation used",
   "aiChatEvidenceLink": "{count} conversation lines used",
   "@aiChatEvidenceLink": {

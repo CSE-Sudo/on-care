@@ -1643,6 +1643,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           analysis: options.analysis,
           generatedBy: options.generatedBy,
           trainerRequest: _prompt.text.trim(),
+          minutes: _minutes,
+          intensity: _intensity,
+          minutesSetByTrainer: _minutesTouched,
+          intensitySetByTrainer: _intensityTouched,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         // 세 안은 하나만 고르는 묶음이다 — 카드마다 선 라디오가 이 묶음을 본다.
@@ -2827,6 +2831,10 @@ class _RecommendationStatusBanner extends StatelessWidget {
     required this.analysis,
     required this.generatedBy,
     required this.trainerRequest,
+    required this.minutes,
+    required this.intensity,
+    required this.minutesSetByTrainer,
+    required this.intensitySetByTrainer,
   });
 
   final MemberAnalysis analysis;
@@ -2836,6 +2844,15 @@ class _RecommendationStatusBanner extends StatelessWidget {
 
   /// 1단계에서 트레이너가 적은 요청. 비어 있으면 줄을 그리지 않는다.
   final String trainerRequest;
+
+  /// 이번 생성의 총 시간·강도(`low`/`moderate`/`high`). 트레이너가 건드리지
+  /// 않은 값은 서버가 기록에서 정한 값으로 채워져 있다(#776).
+  final int minutes;
+  final String intensity;
+
+  /// 각 조건을 트레이너가 직접 정했는지 — 아니면 기록 기반 자동이다.
+  final bool minutesSetByTrainer;
+  final bool intensitySetByTrainer;
 
   @override
   Widget build(BuildContext context) {
@@ -2867,6 +2884,22 @@ class _RecommendationStatusBanner extends StatelessWidget {
       ),
       if (analysis.frequentExercises.isNotEmpty)
         (l.aiFrequentExercisesLabel, analysis.frequentExercises.join(', ')),
+      // 후보의 총 시간·강도를 직접 정하는 값이라 1단계와 겹쳐도 근거로 둔다.
+      (
+        l.aiBasisConditionLabel,
+        l.aiBasisConditionValue(
+          l.aiTotalAndIntensity(minutes, switch (intensity) {
+            'low' => l.intensityLight,
+            'high' => l.intensityHigh,
+            _ => l.intensityModerate,
+          }),
+          switch ((minutesSetByTrainer, intensitySetByTrainer)) {
+            (true, true) => l.aiBasisConditionByTrainer,
+            (false, false) => l.aiBasisConditionAuto,
+            _ => l.aiBasisConditionMixed,
+          },
+        ),
+      ),
       (
         l.aiBasisMethodLabel,
         generatedBy == 'rule' ? l.aiBasisMethodRule : l.aiBasisMethodAi,

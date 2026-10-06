@@ -3216,6 +3216,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get aiBasisConditionLabel => 'Conditions';
+
+  @override
+  String aiBasisConditionValue(String conditions, String source) {
+    return '$conditions ($source)';
+  }
+
+  @override
+  String get aiBasisConditionByTrainer => 'set by you';
+
+  @override
+  String get aiBasisConditionAuto => 'auto from history';
+
+  @override
+  String get aiBasisConditionMixed => 'partly set by you';
+
+  @override
   String get aiChatEvidenceTitle => 'Recent conversation used';
 
   @override
