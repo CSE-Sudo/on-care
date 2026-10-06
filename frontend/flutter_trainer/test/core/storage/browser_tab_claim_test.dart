@@ -4,8 +4,11 @@
 /// 회전하면 서버가 재사용으로 보고 세션 전체를 끊어 두 탭이 함께 로그아웃됐다.
 library;
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/storage/token_keys.dart';
 import 'package:oncare_trainer/core/storage/browser_tab_claim.dart';
+import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/core/storage/token_session_storage.dart';
 
 const List<String> _tokenKeys = <String>['access', 'refresh'];
@@ -106,5 +109,75 @@ void main() {
     claim(tab);
 
     expect(markers.read('oncare.member.something'), 'x');
+  });
+
+  group('옛 키 (#3260)', () {
+    InMemoryTokenSessionStorage preNamespaceTab() =>
+        InMemoryTokenSessionStorage()
+          ..write(legacyAccessTokenKey, 'old-a')
+          ..write(legacyRefreshTokenKey, 'old-r');
+
+    InMemoryTokenSessionStorage duplicateOf(InMemoryTokenSessionStorage from) =>
+        _copyOf(from, <String>[
+          legacyAccessTokenKey,
+          legacyRefreshTokenKey,
+          BrowserTabClaim.tabIdKey,
+        ]);
+
+    test('복제한 탭은 옛 키를 지우지 않고 보지도 않는다', () {
+      final InMemoryTokenSessionStorage original = preNamespaceTab();
+      claim(original);
+      final InMemoryTokenSessionStorage duplicate = duplicateOf(original);
+
+      claim(duplicate);
+      final TokenSessionStorage scoped = BrowserTabClaim.scoped(duplicate);
+
+      expect(scoped.read(legacyAccessTokenKey), isNull);
+      expect(scoped.read(legacyRefreshTokenKey), isNull);
+      scoped
+        ..remove(legacyAccessTokenKey)
+        ..write(legacyRefreshTokenKey, 'x');
+      // 탭 저장소의 옛 키는 그대로다 — 건드리지 않는다.
+      expect(duplicate.read(legacyAccessTokenKey), 'old-a');
+      expect(duplicate.read(legacyRefreshTokenKey), 'old-r');
+      // 원래 탭은 지금처럼 옛 키를 본다.
+      expect(
+        BrowserTabClaim.scoped(original).read(legacyAccessTokenKey),
+        'old-a',
+      );
+    });
+
+    test('복제한 탭을 새로 고쳐도 옛 키를 보지 않는다', () {
+      final InMemoryTokenSessionStorage original = preNamespaceTab();
+      claim(original);
+      final InMemoryTokenSessionStorage duplicate = duplicateOf(original);
+      final String id = claim(duplicate);
+
+      BrowserTabClaim.release(markers, id); // pagehide
+      claim(duplicate);
+
+      expect(
+        BrowserTabClaim.scoped(duplicate).read(legacyAccessTokenKey),
+        isNull,
+      );
+    });
+
+    test('복제한 탭의 토큰 저장소는 원래 탭의 옛 토큰을 옮겨 오지 않는다', () async {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{});
+      final InMemoryTokenSessionStorage original = preNamespaceTab();
+      claim(original);
+      final InMemoryTokenSessionStorage duplicate = duplicateOf(original);
+      claim(duplicate);
+
+      final SecureTokenStore store = SecureTokenStore(
+        const FlutterSecureStorage(),
+        sessionStorage: BrowserTabClaim.scoped(duplicate),
+      );
+
+      expect(await store.readAccessToken(), isNull);
+      expect(await store.readRefreshToken(), isNull);
+      expect(duplicate.read(TokenKeyspace.trainer.accessKey), isNull);
+      expect(duplicate.read(legacyAccessTokenKey), 'old-a');
+    });
   });
 }
