@@ -1,7 +1,8 @@
 """AI 루틴 C안 — 지난 PT 흐름상 다음 차례(#3282).
 
-차례는 규칙이 정한다: 최근 완료 PT 중 가장 오래 안 한 프로그램, 한 가지만
-반복했으면 그 프로그램, 기록이 없으면 기본 분할 시작안. C안은 늘 있다.
+차례는 규칙이 정한다: 두 번 이상 반복된 프로그램이 둘 이상이면(순환) 그중
+가장 오래 안 한 것, 순환이 보이지 않으면 가장 최근 PT, 기록이 없으면 전신
+기본 프로그램. C안은 늘 있다.
 """
 from __future__ import annotations
 
@@ -42,20 +43,36 @@ def _sessions(*programs) -> list[PtSession]:
     ]
 
 
-def test_no_records_starts_a_basic_split():
+def test_no_records_starts_full_body():
     nxt = choose_next([], today=TODAY)
     assert nxt.kind == "start"
     assert nxt.items
-    assert "하체" in nxt.basis
+    assert "전신" in nxt.basis
 
 
-def test_picks_the_program_done_longest_ago():
-    # 최신부터: 가슴 · 하체 · 어깨 · 가슴 — 어깨가 가장 오래전(3주 전).
-    nxt = choose_next(_sessions(CHEST, LEGS, SHOULDER, CHEST), today=TODAY)
+def test_picks_the_rotated_program_done_longest_ago():
+    # 최신부터: 가슴 · 하체 · 어깨 · 가슴 · 하체 · 어깨 — 어깨가 가장 오래전(3주 전).
+    nxt = choose_next(
+        _sessions(CHEST, LEGS, SHOULDER, CHEST, LEGS, SHOULDER), today=TODAY
+    )
     assert nxt.kind == "rotation"
     assert nxt.items == SHOULDER
     assert nxt.days_ago == 21
     assert "숄더프레스" in nxt.label
+
+
+def test_programs_that_never_repeat_continue_the_latest():
+    # 전신·서킷처럼 매번 구성이 다르면 순환이 아니다 — 가장 오래된 회차를
+    # "차례" 로 고르지 않고 가장 최근 PT 를 이어 간다.
+    nxt = choose_next(_sessions(CHEST, LEGS, SHOULDER), today=TODAY)
+    assert nxt.kind == "continue"
+    assert nxt.items == CHEST
+
+
+def test_one_repeated_program_is_not_a_rotation():
+    nxt = choose_next(_sessions(LEGS, CHEST, SHOULDER, CHEST), today=TODAY)
+    assert nxt.kind == "continue"
+    assert nxt.items == LEGS
 
 
 def test_finishing_stretch_and_cardio_do_not_split_programs():

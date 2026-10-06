@@ -3,10 +3,11 @@
 A·B안이 회원 분석으로 새로 짜는 안이라면, C안은 트레이너가 지금까지 PT 에서
 돌려 온 프로그램 가운데 이번에 할 차례인 것을 골라 최근 상태에 맞게 고친 안이다.
 
-* **차례는 규칙이 정한다.** 최근 완료한 PT 의 프로그램을 운동 구성으로 묶고,
-  그중 가장 오래 안 한 프로그램을 이번 차례로 본다. 한 가지만 반복해 왔으면
-  같은 흐름을 이어 간다. 기록이 없으면 기본 분할의 첫 순서(하체)로 시작한다 —
-  C안은 늘 있다.
+* **차례는 규칙이 정한다.** 최근 완료한 PT 의 프로그램을 운동 구성으로 묶는다.
+  두 번 이상 반복된 프로그램이 둘 이상이면 순환으로 보고 그중 가장 오래 안 한
+  것을 이번 차례로 본다. PT 가 늘 분할로 진행되지는 않는다 — 전신·서킷처럼
+  반복이 보이지 않으면 가장 최근 프로그램을 이어 가며 고친다. 기록이 없으면
+  전신 기본 프로그램으로 시작한다 — C안은 늘 있다.
 * **고치는 것은 AI 가 기본이다.** 기준 프로그램과 회원 분석을 함께 넘겨 통증
   부위·완료율·생성 조건에 맞게 고치게 한다. AI 가 실패하거나 데모일 때는 아래
   [rule_plan_c] 가 같은 기준으로 규칙만큼 고친다.
@@ -27,17 +28,18 @@ from app.services import routine_ai
 #: 차례를 볼 최근 완료 PT 수. 주 1~2회 PT 면 한두 달이다.
 NEXT_PT_LOOKBACK = 8
 
-#: 기록이 없을 때 시작하는 기본 분할의 첫 순서 — 하체(#3282).
-#: (이름, 유형, 세트, 횟수, 분). 근력은 세트·횟수로, 나머지는 분으로 적는다.
+#: 기록이 없을 때 시작하는 전신 기본 프로그램(#3282). PT 가 늘 분할로 진행되지
+#: 않는다 — 주 1~2회·초보·체중 관리 회원은 전신이 가장 흔해, 특정 부위 분할의
+#: 첫날보다 전신이 무난한 출발점이다. (이름, 유형, 세트, 횟수, 분).
 _START_PROGRAM: tuple[tuple[str, str, int | None, int | None, int], ...] = (
-    ("스쿼트", "근력", 3, 12, 10),
-    ("힙 브릿지", "근력", 3, 15, 8),
+    ("스쿼트", "근력", 3, 12, 8),
+    ("푸시업", "근력", 3, 10, 8),
+    ("밴드 로우", "근력", 3, 12, 8),
     ("플랭크", "근력", 3, None, 6),
     ("저강도 걷기", "유산소", None, None, 10),
-    ("코어 스트레칭", "스트레칭", None, None, 6),
 )
 
-_EN_START_NAMES = {"힙 브릿지": "Glute bridge"}
+_EN_START_NAMES = {"푸시업": "Push-up", "밴드 로우": "Band row"}
 
 #: 근력 한 세트를 분으로 어림한다 — 기록에 시간이 없는 근력 줄의 길이.
 _MINUTES_PER_SET = 3
@@ -109,7 +111,7 @@ def _label(items: tuple[PtItem, ...]) -> str:
 def choose_next(
     sessions: list[PtSession], *, today: date, locale: Locale = "ko"
 ) -> NextPt:
-    """[sessions](최신 먼저) 에서 이번 차례를 고른다. 비어 있으면 기본 분할 시작."""
+    """[sessions](최신 먼저) 에서 이번 차례를 고른다. 비어 있으면 전신 기본으로 시작."""
     sessions = [s for s in sessions if s.items][:NEXT_PT_LOOKBACK]
     if not sessions:
         items = tuple(
@@ -124,66 +126,78 @@ def choose_next(
         )
         return NextPt(
             kind="start",
-            label=localized("기본 분할 시작 · 하체", "Starter split · lower body", locale),
+            label=localized("전신 기본", "Full-body starter", locale),
             items=items,
             basis=localized(
-                "PT 기록이 아직 없어 기본 분할의 첫 순서(하체)로 시작해요",
-                "No PT records yet — starting with the first day of a basic split "
-                "(lower body)",
+                "PT 기록이 아직 없어 전신 기본 프로그램으로 시작해요",
+                "No PT records yet — starting with a full-body basic program",
                 locale,
             ),
         )
 
-    # 프로그램마다 마지막으로 한 회차(가장 최근 쪽 위치)를 센다.
+    # 프로그램마다 마지막으로 한 회차(가장 최근 쪽 위치)와 한 횟수를 센다.
     last_seen: dict[frozenset[str], int] = {}
+    times: dict[frozenset[str], int] = {}
     for index, session in enumerate(sessions):
-        last_seen.setdefault(_signature(session.items), index)
+        signature = _signature(session.items)
+        last_seen.setdefault(signature, index)
+        times[signature] = times.get(signature, 0) + 1
     count = len(sessions)
 
-    if len(last_seen) == 1:
-        latest = sessions[0]
-        label = _label(latest.items)
+    # 두 번 이상 한 프로그램이 둘 이상이어야 순환이다. 매번 구성이 다른
+    # 전신·서킷 PT 에서 가장 오래된 회차를 "차례" 로 고르면 근거 없는 차례가 된다.
+    repeated = [sig for sig, n in times.items() if n >= 2]
+    if len(repeated) >= 2:
+        signature = max(repeated, key=lambda sig: last_seen[sig])
+        chosen = sessions[last_seen[signature]]
+        label = _label(chosen.items)
+        days = (today - chosen.day).days
         return NextPt(
-            kind="continue",
+            kind="rotation",
             label=label,
-            items=latest.items,
-            basis=(
-                localized(
-                    f"지난 PT 1회의 프로그램({label})을 이어 가요",
-                    f"Continuing the program from the last PT ({label})",
-                    locale,
-                )
-                if count == 1
-                else localized(
-                    f"최근 {count}회 같은 프로그램({label})을 이어 와서 같은 흐름을 유지해요",
-                    f"The last {count} sessions repeated the same program ({label}) "
-                    "— keeping that flow",
-                    locale,
-                )
+            items=chosen.items,
+            basis=localized(
+                f"최근 {count}회에서 번갈아 한 프로그램 {len(repeated)}가지 중 "
+                f"'{label}'을 가장 오래 안 했어요({days}일 전) → 이번 차례",
+                f"Of the {len(repeated)} programs alternated over the last {count} "
+                f"sessions, '{label}' was done longest ago ({days} days) → up next",
+                locale,
             ),
             session_count=count,
-            days_ago=(today - latest.day).days,
+            days_ago=days,
         )
 
-    # 가장 오래 안 한 프로그램 — 마지막 회차가 가장 뒤(오래전)에 있는 것.
-    signature, index = max(last_seen.items(), key=lambda kv: kv[1])
-    chosen = sessions[index]
-    label = _label(chosen.items)
-    days = (today - chosen.day).days
-    kinds = len(last_seen)
-    return NextPt(
-        kind="rotation",
-        label=label,
-        items=chosen.items,
-        basis=localized(
-            f"최근 {count}회에서 돌린 프로그램 {kinds}가지 중 '{label}'을 "
-            f"가장 오래 안 했어요({days}일 전) → 이번 차례",
-            f"Of the {kinds} programs rotated over the last {count} sessions, "
-            f"'{label}' was done longest ago ({days} days) → up next",
+    # 순환이 보이지 않으면 가장 최근 PT 를 이어 가며 고친다.
+    latest = sessions[0]
+    label = _label(latest.items)
+    if count == 1:
+        basis = localized(
+            f"지난 PT 1회의 프로그램({label})을 이어 가요",
+            f"Continuing the program from the last PT ({label})",
             locale,
-        ),
+        )
+    elif len(last_seen) == 1:
+        basis = localized(
+            f"최근 {count}회 같은 프로그램({label})을 이어 와서 같은 흐름을 유지해요",
+            f"The last {count} sessions repeated the same program ({label}) "
+            "— keeping that flow",
+            locale,
+        )
+    else:
+        basis = localized(
+            f"최근 {count}회에서 번갈아 하는 프로그램이 보이지 않아 "
+            f"지난 PT({label})를 이어 가요",
+            f"No alternating programs over the last {count} sessions — "
+            f"continuing the last PT ({label})",
+            locale,
+        )
+    return NextPt(
+        kind="continue",
+        label=label,
+        items=latest.items,
+        basis=basis,
         session_count=count,
-        days_ago=days,
+        days_ago=(today - latest.day).days,
     )
 
 
@@ -356,8 +370,8 @@ def finding(next_pt: NextPt, locale: Locale = "ko") -> dict:
             "finding": localized("PT 기록 없음", "No PT records", locale),
             "source": localized("PT 기록", "PT records", locale),
             "action": localized(
-                "C안은 기본 분할의 첫 순서(하체)로 시작",
-                "Plan C starts with the first day of a basic split (lower body)",
+                "C안은 전신 기본 프로그램으로 시작",
+                "Plan C starts with a full-body basic program",
                 locale,
             ),
         }
@@ -368,8 +382,8 @@ def finding(next_pt: NextPt, locale: Locale = "ko") -> dict:
     )
     if next_pt.kind == "continue":
         text = localized(
-            f"같은 프로그램 반복: {next_pt.label}",
-            f"Same program repeated: {next_pt.label}",
+            f"이어 갈 지난 PT: {next_pt.label}",
+            f"Last PT to continue: {next_pt.label}",
             locale,
         )
     else:

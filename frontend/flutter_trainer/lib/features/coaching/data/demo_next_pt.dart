@@ -12,18 +12,19 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_options
 /// 차례를 볼 최근 완료 PT 수 — 서버 `NEXT_PT_LOOKBACK`.
 const int demoNextPtLookback = 8;
 
-/// 기록이 없을 때 시작하는 기본 분할의 첫 순서(하체) — 서버 `_START_PROGRAM`.
+/// 기록이 없을 때 시작하는 전신 기본 프로그램 — 서버 `_START_PROGRAM`.
 const List<(String, String, int?, int?, int)> _startProgram =
     <(String, String, int?, int?, int)>[
-      ('스쿼트', '근력', 3, 12, 10),
-      ('힙 브릿지', '근력', 3, 15, 8),
+      ('스쿼트', '근력', 3, 12, 8),
+      ('푸시업', '근력', 3, 10, 8),
+      ('밴드 로우', '근력', 3, 12, 8),
       ('플랭크', '근력', 3, null, 6),
       ('저강도 걷기', '유산소', null, null, 10),
-      ('코어 스트레칭', '스트레칭', null, null, 6),
     ];
 
 const Map<String, String> _enStartNames = <String, String>{
-  '힙 브릿지': 'Glute bridge',
+  '푸시업': 'Push-up',
+  '밴드 로우': 'Band row',
 };
 
 const int _minutesPerSet = 3;
@@ -144,7 +145,7 @@ DemoNextPt chooseNextPt(
   if (recent.isEmpty) {
     return DemoNextPt(
       kind: 'start',
-      label: t('기본 분할 시작 · 하체', 'Starter split · lower body'),
+      label: t('전신 기본', 'Full-body starter'),
       items: <DemoPtItem>[
         for (final (String name, String type, int? sets, int? reps, int min)
             in _startProgram)
@@ -159,19 +160,21 @@ DemoNextPt chooseNextPt(
           ),
       ],
       basis: t(
-        'PT 기록이 아직 없어 기본 분할의 첫 순서(하체)로 시작해요',
-        'No PT records yet — starting with the first day of a basic split '
-            '(lower body)',
+        'PT 기록이 아직 없어 전신 기본 프로그램으로 시작해요',
+        'No PT records yet — starting with a full-body basic program',
       ),
     );
   }
 
-  // 프로그램마다 마지막으로 한 회차(최근 쪽 위치)를 센다. 집합은 내용으로
-  // 비교해야 하므로 정렬한 이름 묶음을 열쇠로 쓴다.
+  // 프로그램마다 마지막으로 한 회차(최근 쪽 위치)와 한 횟수를 센다. 집합은
+  // 내용으로 비교해야 하므로 정렬한 이름 묶음을 열쇠로 쓴다.
   final Map<String, int> lastSeen = <String, int>{};
+  final Map<String, int> times = <String, int>{};
   for (var i = 0; i < recent.length; i++) {
     final List<String> sig = _signature(recent[i].items).toList()..sort();
-    lastSeen.putIfAbsent(sig.join('\u0000'), () => i);
+    final String key = sig.join('\u0000');
+    lastSeen.putIfAbsent(key, () => i);
+    times[key] = (times[key] ?? 0) + 1;
   }
   final int count = recent.length;
   int daysSince(DateTime day) => DateTime.utc(
@@ -180,45 +183,61 @@ DemoNextPt chooseNextPt(
     today.day,
   ).difference(DateTime.utc(day.year, day.month, day.day)).inDays;
 
-  if (lastSeen.length == 1) {
-    final DemoPtSession latest = recent.first;
-    final String label = _label(latest.items);
+  // 두 번 이상 한 프로그램이 둘 이상이어야 순환이다 — 서버와 같다.
+  final List<String> repeated = <String>[
+    for (final MapEntry<String, int> e in times.entries)
+      if (e.value >= 2) e.key,
+  ];
+  if (repeated.length >= 2) {
+    final String key = repeated.reduce(
+      (String a, String b) => lastSeen[a]! >= lastSeen[b]! ? a : b,
+    );
+    final DemoPtSession chosen = recent[lastSeen[key]!];
+    final String label = _label(chosen.items);
+    final int days = daysSince(chosen.day);
+    final int kinds = repeated.length;
     return DemoNextPt(
-      kind: 'continue',
+      kind: 'rotation',
       label: label,
-      items: latest.items,
-      basis: count == 1
-          ? t(
-              '지난 PT 1회의 프로그램($label)을 이어 가요',
-              'Continuing the program from the last PT ($label)',
-            )
-          : t(
-              '최근 $count회 같은 프로그램($label)을 이어 와서 같은 흐름을 유지해요',
-              'The last $count sessions repeated the same program ($label) '
-                  '— keeping that flow',
-            ),
+      items: chosen.items,
+      basis: t(
+        "최근 $count회에서 번갈아 한 프로그램 $kinds가지 중 '$label'을 "
+            '가장 오래 안 했어요($days일 전) → 이번 차례',
+        'Of the $kinds programs alternated over the last $count sessions, '
+            "'$label' was done longest ago ($days days) → up next",
+      ),
       sessionCount: count,
-      daysAgo: daysSince(latest.day),
+      daysAgo: days,
     );
   }
 
-  final int index = lastSeen.values.reduce((int a, int b) => a > b ? a : b);
-  final DemoPtSession chosen = recent[index];
-  final String label = _label(chosen.items);
-  final int days = daysSince(chosen.day);
-  final int kinds = lastSeen.length;
+  // 순환이 보이지 않으면 가장 최근 PT 를 이어 가며 고친다.
+  final DemoPtSession latest = recent.first;
+  final String label = _label(latest.items);
+  final String basis = count == 1
+      ? t(
+          '지난 PT 1회의 프로그램($label)을 이어 가요',
+          'Continuing the program from the last PT ($label)',
+        )
+      : lastSeen.length == 1
+      ? t(
+          '최근 $count회 같은 프로그램($label)을 이어 와서 같은 흐름을 유지해요',
+          'The last $count sessions repeated the same program ($label) '
+              '— keeping that flow',
+        )
+      : t(
+          '최근 $count회에서 번갈아 하는 프로그램이 보이지 않아 '
+              '지난 PT($label)를 이어 가요',
+          'No alternating programs over the last $count sessions — '
+              'continuing the last PT ($label)',
+        );
   return DemoNextPt(
-    kind: 'rotation',
+    kind: 'continue',
     label: label,
-    items: chosen.items,
-    basis: t(
-      "최근 $count회에서 돌린 프로그램 $kinds가지 중 '$label'을 "
-          '가장 오래 안 했어요($days일 전) → 이번 차례',
-      'Of the $kinds programs rotated over the last $count sessions, '
-          "'$label' was done longest ago ($days days) → up next",
-    ),
+    items: latest.items,
+    basis: basis,
     sessionCount: count,
-    daysAgo: days,
+    daysAgo: daysSince(latest.day),
   );
 }
 
@@ -409,15 +428,15 @@ RoutineFinding nextPtFinding(DemoNextPt next, {required bool en}) {
       finding: t('PT 기록 없음', 'No PT records'),
       source: t('PT 기록', 'PT records'),
       action: t(
-        'C안은 기본 분할의 첫 순서(하체)로 시작',
-        'Plan C starts with the first day of a basic split (lower body)',
+        'C안은 전신 기본 프로그램으로 시작',
+        'Plan C starts with a full-body basic program',
       ),
     );
   }
   return RoutineFinding(
     kind: 'rotation',
     finding: next.kind == 'continue'
-        ? t('같은 프로그램 반복: ${next.label}', 'Same program repeated: ${next.label}')
+        ? t('이어 갈 지난 PT: ${next.label}', 'Last PT to continue: ${next.label}')
         : t(
             '가장 오래 안 한 프로그램: ${next.label}(${next.daysAgo}일 전)',
             'Done longest ago: ${next.label} (${next.daysAgo} days)',
