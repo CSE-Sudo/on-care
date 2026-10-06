@@ -244,7 +244,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final slots = ref.watch(reservationSlotsProvider);
-    return Column(
+    final Widget sheet = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -373,6 +373,11 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
         ),
       ],
     );
+    // 자리 열기·닫기 중에는 배경·뒤로 가기·닫기 X 로 닫히지 않는다(#3245) — 닫히면
+    // 겹침 목록과 실패 안내를 보여 줄 자리가 사라진다. 기다리는 동안이 아니면
+    // 지금처럼 닫힌다. 틀(AppDialog)은 스케줄 화면이 짓지만 PopScope 는 같은
+    // 경로에 걸린다.
+    return PopScope(canPop: !_saving, child: sheet);
   }
 
   /// 날짜 묶음 머리 — `오늘 · 9/23 (화)` 처럼 스케줄 머리와 같은 표기다.

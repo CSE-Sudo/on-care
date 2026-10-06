@@ -67,8 +67,16 @@ class _ExternalSlotRepository implements ReservationSlotRepository {
     String? sessionType,
   }) => throw UnimplementedError();
 
+  /// 있으면 자리 닫기가 이것이 끝날 때까지 기다린다 — 요청 중인 창을 본다(#3245).
+  Completer<void>? closeGate;
+
   @override
-  Future<ReservationSlot> close(String id) => throw UnimplementedError();
+  Future<ReservationSlot> close(String id) async {
+    final Completer<void>? gate = closeGate;
+    if (gate == null) throw UnimplementedError();
+    await gate.future;
+    return _slots.firstWhere((ReservationSlot s) => s.id == id);
+  }
 
   @override
   void dispose() => unawaited(_revisions.close());
@@ -385,6 +393,50 @@ void main() {
       expect(repository.listCalls, greaterThan(1));
       expect(find.text('김하늘'), findsOneWidget);
     });
+    // 닫히면 겹침 목록·실패 안내를 보여 줄 자리가 사라진다(#3245).
+    testWidgets('자리를 닫는 동안에는 배경을 눌러도 창이 닫히지 않는다 (#3245)', (tester) async {
+      final repository = _ExternalSlotRepository(<ReservationSlot>[
+        _slot(booked: false),
+      ])..closeGate = Completer<void>();
+      addTearDown(repository.dispose);
+      await openSheet(
+        tester,
+        extraOverrides: <Override>[
+          reservationSlotRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      final Finder sheet = find.byType(ReservationSlotsSheet);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('slot-row-slot-1')),
+          matching: find.byIcon(AppIcons.delete),
+        ),
+      );
+      await settle(tester);
+      // 확인창(닫기 X 없음)의 `닫기` 가 확인 버튼이다.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppDialog).last,
+          matching: find.text('닫기'),
+        ),
+      );
+      await settle(tester);
+
+      await tester.tapAt(const Offset(4, 4));
+      await settle(tester);
+      expect(sheet, findsOneWidget);
+
+      repository.closeGate!.complete();
+      await settle(tester);
+      expect(sheet, findsOneWidget);
+
+      // 기다리는 요청이 없으면 지금처럼 배경을 눌러 닫는다.
+      await tester.tapAt(const Offset(4, 4));
+      await settle(tester);
+      expect(sheet, findsNothing);
+    });
+
     testWidgets('일정과 겹친 자리는 겹침 표시를 달고 지울 수 있다 (#2761)', (tester) async {
       final repository = _ExternalSlotRepository(<ReservationSlot>[
         _slot(booked: false, overlapped: true),

@@ -567,6 +567,12 @@ mixin _AdminRunner<T extends ConsumerStatefulWidget> on ConsumerState<T> {
         appErrorMessage(l, e, fallback: l.adminActionFailed),
         type: AppToastType.error,
       );
+    } catch (_) {
+      // 저장소가 [AppError] 로 감싸지 못한 예외도 안내한다(#3262). 받지 않으면
+      // 토스트 없이 처리되지 않은 비동기 오류로 새어 나가, 운영자는 처리가
+      // 됐는지 알 수 없다. 목록은 아래에서 똑같이 다시 읽는다.
+      if (!mounted) return;
+      showAppToast(context, l.adminActionFailed, type: AppToastType.error);
     } finally {
       container
         ..invalidate(adminReportsProvider)

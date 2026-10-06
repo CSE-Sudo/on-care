@@ -134,4 +134,25 @@ void main() {
       isNull,
     );
   });
+
+  // 배너·검색의 다음 예약·스케줄 탭 회원 선택이 한 판정을 쓴다(#3261).
+  test('배너는 sessionHasEnded 가 끝났다고 보는 순간 물러난다', () {
+    for (final ScheduleSession s in <ScheduleSession>[
+      _s('pt', '15:00'),
+      _s('zero', '15:00', minutes: 0),
+      _s('late', '23:30', minutes: 60),
+    ]) {
+      for (int minute = 14 * 60; minute < 24 * 60; minute += 1) {
+        final DateTime now = _at(minute ~/ 60, minute % 60);
+        expect(
+          pickNextSession(<ScheduleSession>[s], now) != null,
+          !sessionHasEnded(s, now),
+          reason: '${s.id} @ ${now.hour}:${now.minute}',
+        );
+      }
+    }
+    expect(sessionEndMinutes(_s('pt', '15:00')), 15 * 60 + 50);
+    expect(sessionEndMinutes(_s('zero', '15:00', minutes: 0)), 15 * 60 + 1);
+    expect(sessionEndMinutes(_s('broken', '오후 3시')), isNull);
+  });
 }
