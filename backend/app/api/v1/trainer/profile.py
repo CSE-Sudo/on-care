@@ -54,7 +54,7 @@ def trainer_me(
     db: Annotated[Session, Depends(get_db)],
 ) -> TrainerMe:
     profile = _require_profile(db, trainer.id)
-    return trainer_profile_service.build_trainer_me(trainer, profile)
+    return trainer_profile_service.build_trainer_me(db, trainer, profile)
 
 
 @router.put("/trainer/me", response_model=TrainerMe)

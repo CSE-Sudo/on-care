@@ -35,7 +35,8 @@ final trainerLocationServiceProvider = Provider<TrainerLocationService>(
 /// 브라우저 위치(Geolocation API)로 현재 좌표를 얻는다(#3223).
 ///
 /// 회원 앱과 같은 geolocator 를 쓴다 — 웹에서는 브라우저의 위치 권한 창이 뜬다.
-/// 트레이너가 버튼을 눌렀을 때만 부르고, 들어오자마자 조용히 위치를 읽지 않는다.
+/// 트레이너가 버튼을 눌렀을 때, 그리고 소속 위치가 없는 트레이너가 헬스장 찾기에
+/// 들어왔을 때(#3206) 부른다 — 어느 쪽이든 브라우저 권한 창을 거친다.
 /// 실패는 [TrainerLocationFailure] 로 던진다.
 class TrainerLocationService {
   const TrainerLocationService();
