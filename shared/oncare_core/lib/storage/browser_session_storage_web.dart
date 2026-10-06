@@ -1,9 +1,9 @@
 import 'dart:js_interop';
 import 'dart:math';
 
+import 'package:oncare_core/storage/browser_tab_claim.dart';
 import 'package:oncare_core/storage/token_keys.dart';
-import 'package:oncare_trainer/core/storage/browser_tab_claim.dart';
-import 'package:oncare_trainer/core/storage/token_session_storage.dart';
+import 'package:oncare_core/storage/token_session_storage.dart';
 import 'package:web/web.dart' as web;
 
 /// 웹: 브라우저 sessionStorage 에 둔다(#2828). 탭을 닫으면 사라지고 다른 탭과
@@ -13,13 +13,14 @@ import 'package:web/web.dart' as web;
 /// 보고 받은 토큰을 버린다(#3248, [BrowserTabClaim]). 복사해 받은 옛 키도
 /// 이 탭에서는 보이지 않는다(#3260). 판정은 페이지마다 한 번이다 — 다시
 /// 부르면 같은 저장소를 돌려준다. 두 번 판정하면 이 탭이 남긴 표시를 보고
-/// 자기 자신을 복제로 여긴다.
-TokenSessionStorage? createBrowserSessionStorage() =>
-    _pageStorage ??= _createBrowserSessionStorage();
+/// 자기 자신을 복제로 여긴다. 키 이름공간은 [space] 를 따른다(#3271).
+TokenSessionStorage? createBrowserSessionStorage(TokenKeyspace space) =>
+    _pageStorage[space] ??= _createBrowserSessionStorage(space);
 
-TokenSessionStorage? _pageStorage;
+final Map<TokenKeyspace, TokenSessionStorage> _pageStorage =
+    <TokenKeyspace, TokenSessionStorage>{};
 
-TokenSessionStorage _createBrowserSessionStorage() {
+TokenSessionStorage _createBrowserSessionStorage(TokenKeyspace space) {
   final _BrowserSessionStorage session;
   try {
     final web.Storage storage = web.window.sessionStorage;
@@ -31,24 +32,21 @@ TokenSessionStorage _createBrowserSessionStorage() {
   } on Object {
     return InMemoryTokenSessionStorage();
   }
-  _claimTab(session);
-  return BrowserTabClaim.scoped(session);
+  final BrowserTabClaim claim = BrowserTabClaim(space);
+  _claimTab(session, claim);
+  return claim.scoped(session);
 }
 
-void _claimTab(TokenSessionStorage session) {
+void _claimTab(TokenSessionStorage session, BrowserTabClaim claim) {
   final TabMarkerStore markers;
   try {
     markers = _LocalTabMarkers(web.window.localStorage);
   } on Object {
     return; // 공유 저장소가 없으면 복제를 알아챌 수 없다 — 예전처럼 둔다.
   }
-  final String id = BrowserTabClaim.claim(
+  final String id = claim.claim(
     tab: session,
     markers: markers,
-    tokenKeys: <String>[
-      TokenKeyspace.trainer.accessKey,
-      TokenKeyspace.trainer.refreshKey,
-    ],
     newTabId: _newTabId,
     now: _epochNow(),
   );
@@ -57,7 +55,7 @@ void _claimTab(TokenSessionStorage session) {
     'pagehide',
     ((web.Event _) {
       try {
-        BrowserTabClaim.release(markers, id);
+        claim.release(markers, id);
       } on Object {
         // 지우지 못한 표시는 다음 복구에서 복제로 보일 뿐이다.
       }
@@ -68,7 +66,7 @@ void _claimTab(TokenSessionStorage session) {
     ((web.PageTransitionEvent event) {
       if (!event.persisted) return;
       try {
-        BrowserTabClaim.mark(markers, id, _epochNow());
+        claim.mark(markers, id, _epochNow());
       } on Object {
         // 위와 같다.
       }

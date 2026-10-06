@@ -1,5 +1,5 @@
 import 'package:oncare_core/storage/token_keys.dart';
-import 'package:oncare_trainer/core/storage/token_session_storage.dart';
+import 'package:oncare_core/storage/token_session_storage.dart';
 
 /// 여러 탭이 함께 보는 표시 저장소(웹 localStorage). 열린 탭의 표시를 둔다.
 abstract interface class TabMarkerStore {
@@ -28,7 +28,8 @@ class InMemoryTabMarkerStore implements TabMarkerStore {
   Iterable<String> get keys => List<String>.of(_values.keys);
 }
 
-/// 복제한 탭이 원래 탭의 토큰을 함께 쓰지 않게 한다(#3248).
+/// 복제한 탭이 원래 탭의 토큰을 함께 쓰지 않게 한다(#3248). 두 앱이 함께
+/// 쓴다(#3271) — 앱마다 다른 것은 [space](탭 저장소 키 이름공간과 토큰 키)다.
 ///
 /// 웹 토큰은 탭 단위 저장소(sessionStorage, #2828)에 있다. 그런데 브라우저의
 /// `탭 복제` 는 sessionStorage 를 **복사**한다. 두 탭이 같은 refresh 토큰을 따로
@@ -49,32 +50,40 @@ class InMemoryTabMarkerStore implements TabMarkerStore {
 /// 복사해 받는다. 그 값은 원래 탭의 것이라 이 탭이 옮겨 쓰면 같은 일이 생긴다.
 /// 옛 키는 어느 앱 것인지 모르므로 지우지도 않고, 이 탭에서는 [scoped] 가 없는
 /// 값으로 보이게 한다(#3260).
+///
+/// 두 앱은 한 출처라 탭 저장소·공유 저장소를 같이 본다. 키에 [space] 의
+/// 이름공간을 붙여 서로의 id·표시를 건드리지 않는다.
 class BrowserTabClaim {
-  BrowserTabClaim._();
+  const BrowserTabClaim(this.space);
 
-  /// 탭 저장소에 둔 이 탭의 id.
-  static const String tabIdKey = 'oncare.trainer.tab_id';
-
-  /// 복제로 판정된 탭이라는 표시(탭 저장소). 새로 고쳐도 남아, 이 탭은 계속
-  /// 옛 키를 보지 않는다 — 복사해 받은 옛 키는 끝까지 원래 탭의 것이다.
-  static const String legacyBlindKey = 'oncare.trainer.legacy_keys_blind';
-
-  /// 공유 저장소의 열린 탭 표시 키 앞부분. 값은 표시를 남긴 시각(ms)이다.
-  static const String markerPrefix = 'oncare.trainer.open_tab.';
+  /// 이 앱의 이름공간 — 탭 저장소 키 앞부분과 버릴 토큰 키를 정한다.
+  final TokenKeyspace space;
 
   /// 이보다 오래된 표시는 치운다 — 비정상 종료로 남은 것이다. refresh 토큰의
   /// 기본 수명(30일)이 지나면 남은 탭의 토큰도 어차피 쓸 수 없다.
   static const Duration markerLifetime = Duration(days: 30);
+
+  /// 탭 저장소에 둔 이 탭의 id.
+  String get tabIdKey => '${space.prefix}.tab_id';
+
+  /// 복제로 판정된 탭이라는 표시(탭 저장소). 새로 고쳐도 남아, 이 탭은 계속
+  /// 옛 키를 보지 않는다 — 복사해 받은 옛 키는 끝까지 원래 탭의 것이다.
+  String get legacyBlindKey => '${space.prefix}.legacy_keys_blind';
+
+  /// 공유 저장소의 열린 탭 표시 키 앞부분. 값은 표시를 남긴 시각(ms)이다.
+  String get markerPrefix => '${space.prefix}.open_tab.';
+
+  /// 복제한 탭이 버리는 이 앱의 토큰 키.
+  List<String> get tokenKeys => <String>[space.accessKey, space.refreshKey];
 
   /// 이 탭의 id 를 정하고 열린 탭으로 표시한다. 정한 id 를 돌려준다.
   ///
   /// 복사해 받은 저장소면 [tokenKeys] 를 탭 저장소에서 지우고 [legacyBlindKey] 를
   /// 남긴다. 옛 키는 건드리지 않는다. 공유 저장소를 쓸 수 없으면(사생활 보호
   /// 모드 등) 복제를 알아챌 수 없어 그대로 둔다.
-  static String claim({
+  String claim({
     required TokenSessionStorage tab,
     required TabMarkerStore markers,
-    required List<String> tokenKeys,
     required String Function() newTabId,
     required DateTime now,
   }) {
@@ -101,18 +110,18 @@ class BrowserTabClaim {
   /// 토큰 저장소가 쓸 탭 저장소. 복제로 판정된 탭이면 옛 키를 읽으면 없고,
   /// 쓰거나 지워도 그대로인 저장소로 감싼다 — 옛 키 이전이 원래 탭의 토큰을
   /// 옮겨 오지 않는다. 그 밖의 키는 그대로 지나간다.
-  static TokenSessionStorage scoped(TokenSessionStorage tab) =>
+  TokenSessionStorage scoped(TokenSessionStorage tab) =>
       tab.read(legacyBlindKey) == null ? tab : _LegacyBlindStorage(tab);
 
   /// [id] 탭이 열려 있다고 표시한다(`pageshow` 로 돌아왔을 때도 부른다).
-  static void mark(TabMarkerStore markers, String id, DateTime now) =>
+  void mark(TabMarkerStore markers, String id, DateTime now) =>
       markers.write('$markerPrefix$id', '${now.millisecondsSinceEpoch}');
 
   /// [id] 탭이 떠난다(`pagehide`). 표시를 지운다.
-  static void release(TabMarkerStore markers, String id) =>
+  void release(TabMarkerStore markers, String id) =>
       markers.remove('$markerPrefix$id');
 
-  static void _prune(TabMarkerStore markers, DateTime now) {
+  void _prune(TabMarkerStore markers, DateTime now) {
     final int oldest = now.subtract(markerLifetime).millisecondsSinceEpoch;
     for (final String key in markers.keys) {
       if (!key.startsWith(markerPrefix)) continue;

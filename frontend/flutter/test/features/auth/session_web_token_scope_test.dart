@@ -15,6 +15,7 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 import 'package:oncare/core/storage/token_session_storage.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_core/storage/browser_tab_claim.dart';
 import 'package:oncare_core/storage/token_keys.dart';
 
 /// 이 앱의 토큰 키(#3054). 두 앱이 같은 탭 저장소를 써서 키에 앱 이름이 붙는다.
@@ -199,6 +200,43 @@ void main() {
     expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
     expect(tab.read(_access), isNull);
     expect(tab.read(_refresh), isNull);
+  });
+
+  // 탭을 복제하면 sessionStorage 가 복사된다 — 두 탭이 같은 갱신 토큰을 따로
+  // 돌리면 서버가 재사용으로 보고 세션을 끊는다(#3271, 트레이너 웹 #3248).
+  test('a duplicated tab starts signed out; the original keeps its session', () async {
+    const BrowserTabClaim tabs = BrowserTabClaim(TokenKeyspace.member);
+    final InMemoryTabMarkerStore markers = InMemoryTabMarkerStore();
+    final DateTime now = DateTime.utc(2026, 10, 6, 3);
+    int issued = 0;
+    String newId() => 'tab-${++issued}';
+    final InMemoryTokenSessionStorage original = InMemoryTokenSessionStorage()
+      ..write(_access, 'tab-access')
+      ..write(_refresh, 'tab-refresh');
+    tabs.claim(tab: original, markers: markers, newTabId: newId, now: now);
+    final InMemoryTokenSessionStorage duplicate = InMemoryTokenSessionStorage();
+    for (final String key in <String>[_access, _refresh, tabs.tabIdKey]) {
+      final String? value = original.read(key);
+      if (value != null) duplicate.write(key, value);
+    }
+    tabs.claim(tab: duplicate, markers: markers, newTabId: newId, now: now);
+    tab = duplicate;
+    final ProviderContainer c = container(
+      <String, List<(int, Map<String, Object?>)>>{
+        'GET /users/me': <(int, Map<String, Object?>)>[
+          (200, <String, Object?>{'id': 'u1', 'role': 'member'}),
+        ],
+      },
+    );
+
+    c.read(sessionControllerProvider.notifier);
+    await _settle(c);
+
+    expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+    expect(calls, isNot(contains('GET /users/me')));
+    // 원래 탭의 세션은 그대로다.
+    expect(original.read(_access), 'tab-access');
+    expect(original.read(_refresh), 'tab-refresh');
   });
 
   group('same origin as the trainer web (#3054)', () {
