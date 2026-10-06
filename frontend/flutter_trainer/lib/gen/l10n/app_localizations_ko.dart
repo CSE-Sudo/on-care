@@ -3015,7 +3015,32 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiDirectionNoData => '기록이 쌓이면 판단해요';
 
   @override
-  String get aiBasisRuleBased => ' · 규칙 기반 생성';
+  String get aiBasisGoalLabel => '목표';
+
+  @override
+  String get aiBasisCompletionLabel => '평균 완료율';
+
+  @override
+  String aiBasisCompletionValue(int rate) {
+    return '$rate%';
+  }
+
+  @override
+  String get aiBasisMethodLabel => '생성 방식';
+
+  @override
+  String get aiBasisMethodRule => '규칙 기반';
+
+  @override
+  String get aiBasisMethodAi => 'AI 생성';
+
+  @override
+  String get aiBasisRequestLabel => '트레이너 요청';
+
+  @override
+  String aiBasisRequestValue(String request) {
+    return '\"$request\"';
+  }
 
   @override
   String get aiChatEvidenceTitle => '참고한 최근 대화';
@@ -3433,16 +3458,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authErrSignedUpSignInFailed => '가입은 완료됐어요. 로그인해 주세요.';
-
-  @override
-  String aiBasisGoalCompletion(String goal, int rate) {
-    return '$goal · 완료율 $rate% 기준';
-  }
-
-  @override
-  String aiBasisTrainerRequest(String request) {
-    return '요청: \"$request\"';
-  }
 
   @override
   String aiTotalAndIntensity(int total, String intensity) {

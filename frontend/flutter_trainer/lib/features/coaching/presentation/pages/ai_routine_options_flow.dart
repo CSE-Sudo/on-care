@@ -1637,31 +1637,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         // 기록이 적은 회원에게도 그 사실을 말한다 — 데모·실서버 같다(#2674).
         // 참고한 대화 링크도 이 배너 안에 둔다 — 무엇을 근거로 만들었는지가
         // 한 상자에 모인다.
-        _RecommendationStatusBanner(analysis: options.analysis),
-        const SizedBox(height: OnCareSpacing.s8),
-        Text(
-          l.aiBasisGoalCompletion(
-                healthFocusGoalLabel(l, options.analysis.goal),
-                options.analysis.avgCompletionRate,
-              ) +
-              (options.generatedBy == 'rule' ? l.aiBasisRuleBased : ''),
-          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+        // 목표·완료율·생성 방식·트레이너 요청도 배너 안 표로 모은다 — 예전에는
+        // 배너 밖 한 줄 캡션이라 근거가 두 군데로 갈렸다.
+        _RecommendationStatusBanner(
+          analysis: options.analysis,
+          generatedBy: options.generatedBy,
+          trainerRequest: _prompt.text.trim(),
         ),
-        // 1단계에서 트레이너가 직접 적은 요청이 있으면 그대로 덧붙인다 —
-        // 이 화면이 "무엇을 근거로" 만들어졌는지 트레이너 자신의 조건까지
-        // 보여준다. 새 상태가 아니라 이미 있는 [_prompt] 를 그대로 읽는다.
-        if (_prompt.text.trim().isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            l.aiBasisTrainerRequest(_prompt.text.trim()),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _text(
-              OnCareTypography.caption,
-              OnCareColors.textSecondary,
-            ).copyWith(fontStyle: FontStyle.italic),
-          ),
-        ],
         const SizedBox(height: OnCareSpacing.s12),
         // 세 안은 하나만 고르는 묶음이다 — 카드마다 선 라디오가 이 묶음을 본다.
         RadioGroup<String>(
@@ -2841,9 +2823,19 @@ class _ChatEvidenceDialog extends StatelessWidget {
 /// when the AI had nothing personal to go on, and a settled member sees
 /// what pattern the candidates are grounded in.
 class _RecommendationStatusBanner extends StatelessWidget {
-  const _RecommendationStatusBanner({required this.analysis});
+  const _RecommendationStatusBanner({
+    required this.analysis,
+    required this.generatedBy,
+    required this.trainerRequest,
+  });
 
   final MemberAnalysis analysis;
+
+  /// 서버가 알려 준 생성 방식(`rule` 이면 규칙 기반).
+  final String generatedBy;
+
+  /// 1단계에서 트레이너가 적은 요청. 비어 있으면 줄을 그리지 않는다.
+  final String trainerRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -2867,15 +2859,21 @@ class _RecommendationStatusBanner extends StatelessWidget {
       ),
     };
     final bool hasChat = analysis.recentMessages.isNotEmpty;
-    final Widget? frequent = analysis.frequentExercises.isEmpty
-        ? null
-        : Text(
-            '${l.aiFrequentExercisesLabel}: '
-            '${analysis.frequentExercises.join(', ')}',
-            style: tokens
-                .text(OnCareTypography.strong(OnCareTypography.caption))
-                .copyWith(color: OnCareColors.textPrimary),
-          );
+    final List<(String, String)> rows = <(String, String)>[
+      (l.aiBasisGoalLabel, healthFocusGoalLabel(l, analysis.goal)),
+      (
+        l.aiBasisCompletionLabel,
+        l.aiBasisCompletionValue(analysis.avgCompletionRate),
+      ),
+      if (analysis.frequentExercises.isNotEmpty)
+        (l.aiFrequentExercisesLabel, analysis.frequentExercises.join(', ')),
+      (
+        l.aiBasisMethodLabel,
+        generatedBy == 'rule' ? l.aiBasisMethodRule : l.aiBasisMethodAi,
+      ),
+      if (trainerRequest.isNotEmpty)
+        (l.aiBasisRequestLabel, l.aiBasisRequestValue(trainerRequest)),
+    ];
     // AI 가 이번 후보를 무엇에 기대 만들었는지 알리는 안내다 — 회색 상자로
     // 두면 입력 칸처럼 읽혔다(#2468).
     return SizedBox(
@@ -2883,23 +2881,47 @@ class _RecommendationStatusBanner extends StatelessWidget {
       child: AppBanner(
         title: title,
         message: body,
-        child: frequent == null && !hasChat
-            ? null
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  ?frequent,
-                  // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그
-                  // 부위에 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는
-                  // 것이 사실이다(#2674).
-                  if (hasChat) ...<Widget>[
-                    if (frequent != null)
-                      const SizedBox(height: OnCareSpacing.s4),
-                    _ChatEvidence(lines: analysis.recentMessages),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            for (final (String label, String value) in rows)
+              Padding(
+                padding: const EdgeInsets.only(bottom: OnCareSpacing.s2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SizedBox(
+                      width: 88,
+                      child: Text(
+                        label,
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        value,
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(OnCareTypography.caption),
+                            )
+                            .copyWith(color: OnCareColors.textPrimary),
+                      ),
+                    ),
                   ],
-                ],
+                ),
               ),
+            // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
+            // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다
+            // (#2674).
+            if (hasChat) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s4),
+              _ChatEvidence(lines: analysis.recentMessages),
+            ],
+          ],
+        ),
       ),
     );
   }
