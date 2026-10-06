@@ -10,6 +10,8 @@ seed_member_health_data 를 먼저 돌린 상태를 검증한다.
 """
 from __future__ import annotations
 
+import json
+
 from datetime import date, timedelta
 
 from sqlalchemy import func, select
@@ -318,8 +320,10 @@ def test_fixture_pt_days_have_a_1800_class(client, db_session):
     assert sorted(r.date for r in rows) == pt_days
     for row in rows:
         assert (row.time, row.duration_minutes, row.status) == ("18:00", 50, "완료")
-        # 지난 수업은 트레이너 웹 데모처럼 프로그램을 비운다.
-        assert row.program_json == "[]", row.id
+        # 지난 수업의 프로그램은 그날 회원 앱이 그리는 운동이고 보낸 것으로
+        # 둔다 — AI 연계안(#3282)이 이 순환을 근거로 쓴다.
+        assert json.loads(row.program_json), row.id
+        assert row.program_sent_at is not None, row.id
 
 
 def test_fixture_member_today_class_is_1800_with_fixture_program(client, db_session):

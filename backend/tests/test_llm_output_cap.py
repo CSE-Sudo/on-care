@@ -220,6 +220,8 @@ def test_truncated_routine_json_falls_back_to_rules(ceiling, monkeypatch):
     from app.services import trainer_routine_options_service as svc
     llm = _Recording(_ROUTINE_JSON, truncated=True)
     monkeypatch.setattr(svc, "build_member_analysis", lambda *_: _routine_analysis())
+    # 이 테스트는 DB 없이 돈다 — 연계안 기준(#3282)은 기록 없음으로 둔다.
+    monkeypatch.setattr(svc, "build_next_pt", lambda *_a, **_k: svc.routine_next_pt.choose_next([], today=svc.clock.today()))
     monkeypatch.setattr(svc, "get_coach_llm", lambda *a, **k: llm)
     before = metrics.snapshot()["counters"].get(
         "routine_options.fallback{reason=contract}", 0
