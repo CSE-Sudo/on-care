@@ -677,6 +677,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         ),
         firstDate: first.subtract(const Duration(days: 365)),
         lastDate: today.add(const Duration(days: 7 * maxSeriesOccurrences)),
+        // 기기 날짜가 아니라 KST 오늘에 테두리를 세운다(#3267).
+        currentDate: today,
       );
       if (range == null || !mounted) return;
       setState(() {
