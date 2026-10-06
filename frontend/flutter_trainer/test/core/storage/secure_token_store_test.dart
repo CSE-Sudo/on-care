@@ -157,6 +157,17 @@ void main() {
       expect(await persisted(), isEmpty);
     });
 
+    test('mobile never treats a token as unconfirmed legacy', () async {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{
+        'access_token': 'old-a',
+        'refresh_token': 'old-r',
+      });
+      final SecureTokenStore store = SecureTokenStore(secure);
+
+      expect(await store.readAccessToken(), 'old-a');
+      expect(await store.isUnconfirmedLegacy('old-a'), isFalse);
+    });
+
     test('mobile keeps namespaced tokens over legacy ones', () async {
       FlutterSecureStorage.setMockInitialValues(<String, String>{
         access: 'new-a',
@@ -303,6 +314,31 @@ void main() {
           expect(session.read('refresh_token'), isNull);
         },
       );
+
+      test('a copied legacy token is unconfirmed until claimed', () async {
+        final String? copied = await store.readAccessToken();
+
+        expect(await store.isUnconfirmedLegacy(copied!), isTrue);
+        await store.claimLegacyKeys(copied);
+        expect(await store.isUnconfirmedLegacy(copied), isFalse);
+      });
+
+      test('a copy left by an earlier page is still unconfirmed', () async {
+        session
+          ..write(access, 'old-a')
+          ..write(refresh, 'old-r');
+
+        expect(await store.isUnconfirmedLegacy('old-a'), isTrue);
+      });
+
+      test('this app own token is not an unconfirmed legacy one', () async {
+        session
+          ..write(access, 'mine-a')
+          ..write(refresh, 'mine-r');
+
+        expect(await store.readAccessToken(), 'mine-a');
+        expect(await store.isUnconfirmedLegacy('mine-a'), isFalse);
+      });
 
       test('sign-out removes the legacy keys too', () async {
         session

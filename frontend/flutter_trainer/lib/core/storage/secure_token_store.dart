@@ -121,6 +121,23 @@ class SecureTokenStore {
     await deleteLegacyTokenKeys(_sessionAccess(session));
   }
 
+  /// [access] 가 역할 확인 전의 옛 키 토큰인가(#3260, 웹).
+  ///
+  /// 옛 키는 어느 앱 것인지 모른다. 세션 복원이 이 토큰으로 401 을 받으면
+  /// 갱신 토큰을 **회전하지 않는다** — 갱신 토큰은 일회용이고 재사용은 세션
+  /// 폐기라, 다른 앱의 것을 돌리면 주인 앱이 나중에 그 세션을 잃는다. 이 앱의
+  /// 새 키만 비우고 옛 키는 남겨, 주인 앱도 같은 규칙으로 다룬다. 역할 확인을
+  /// 통과해 [claimLegacyKeys] 가 옛 키를 지운 뒤에는 거짓이다. 모바일은 이 앱만
+  /// 쓰는 저장소라 늘 거짓이다.
+  Future<bool> isUnconfirmedLegacy(String access) async {
+    final TokenSessionStorage? session = _session;
+    if (session == null || access.isEmpty) return false;
+    await _migrateLegacyKeys();
+    final String? legacy = session.read(legacyAccessTokenKey);
+    if (legacy == null || legacy.isEmpty) return false;
+    return legacy == access || legacy == _copiedLegacyAccess;
+  }
+
   /// 이름공간 없던 옛 키의 토큰을 한 번 옮긴다(#3054).
   ///
   /// 모바일은 이 앱만 쓰는 저장소라 옮긴 토큰이 이 앱의 것이다 — 업데이트한

@@ -335,6 +335,40 @@ void main() {
       expect(tab.read('refresh_token'), 'trainer-old-refresh');
     });
 
+    test('an expired pre-namespace token is never rotated', () async {
+      // 옛 키는 어느 앱 것인지 모른다 — 일회용 갱신 토큰을 돌리면 주인 앱이 그
+      // 세션을 잃는다(#3260). 새 키만 비우고 옛 키는 남긴다.
+      tab
+        ..write('access_token', 'old-access')
+        ..write('refresh_token', 'old-refresh');
+      final ProviderContainer c = container(
+        <String, List<(int, Map<String, Object?>)>>{
+          'GET /users/me': <(int, Map<String, Object?>)>[
+            (401, <String, Object?>{}),
+          ],
+          'POST /auth/refresh': <(int, Map<String, Object?>)>[
+            (
+              200,
+              <String, Object?>{
+                'access_token': 'should-not-happen',
+                'refresh_token': 'should-not-happen',
+              },
+            ),
+          ],
+        },
+      );
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle(c);
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+      expect(calls, isNot(contains('POST /auth/refresh')));
+      expect(tab.read(_access), isNull);
+      expect(tab.read(_refresh), isNull);
+      expect(tab.read('access_token'), 'old-access');
+      expect(tab.read('refresh_token'), 'old-refresh');
+    });
+
     test('a trainer role keeps the legacy keys for the trainer web', () async {
       tab
         ..write('access_token', 'trainer-old-access')

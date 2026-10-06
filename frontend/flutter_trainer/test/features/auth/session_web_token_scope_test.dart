@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_core/storage/token_keys.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/core/storage/token_session_storage.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/mock_trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
@@ -35,18 +37,29 @@ final String _access = TokenKeyspace.trainer.accessKey;
 final String _refresh = TokenKeyspace.trainer.refreshKey;
 
 /// 회원 앱이 옛 키에 남긴 토큰은 `/trainer/me` 가 거절한다(403 → [NotTrainerException]).
+/// `expired-` 로 시작하는 토큰은 만료(401)다. 회전 요청을 센다.
 class _RoleCheckingRepository extends MockTrainerAuthRepository {
-  const _RoleCheckingRepository();
+  _RoleCheckingRepository();
+
+  final List<String> refreshed = <String>[];
 
   @override
   Future<TrainerProfile> fetchProfile(String accessToken) async {
     if (accessToken.startsWith('member-')) throw const NotTrainerException();
+    if (accessToken.startsWith('expired-')) throw const UnauthorizedError();
     return super.fetchProfile(accessToken);
+  }
+
+  @override
+  Future<TrainerAuthTokens> refresh(String refreshToken) async {
+    refreshed.add(refreshToken);
+    return super.refresh(refreshToken);
   }
 }
 
 void main() {
   late InMemoryTokenSessionStorage tab;
+  late _RoleCheckingRepository auth;
 
   ProviderContainer container({
     Map<String, String> persisted = const <String, String>{},
@@ -58,16 +71,17 @@ void main() {
       overrides: <Override>[
         appConfigProvider.overrideWithValue(_mockConfig),
         tokenSessionStorageProvider.overrideWithValue(tab),
-        trainerAuthRepositoryProvider.overrideWithValue(
-          const _RoleCheckingRepository(),
-        ),
+        trainerAuthRepositoryProvider.overrideWithValue(auth),
       ],
     );
     addTearDown(c.dispose);
     return c;
   }
 
-  setUp(() => tab = InMemoryTokenSessionStorage());
+  setUp(() {
+    tab = InMemoryTokenSessionStorage();
+    auth = _RoleCheckingRepository();
+  });
 
   test('login keeps both tokens in the tab, not localStorage', () async {
     final ProviderContainer c = container();
@@ -206,6 +220,37 @@ void main() {
       expect(tab.read(_access), 'demo-existing');
       expect(tab.read('access_token'), isNull);
       expect(tab.read('refresh_token'), isNull);
+    });
+
+    test('an expired pre-namespace token is never rotated', () async {
+      // 옛 키는 어느 앱 것인지 모른다 — 일회용 갱신 토큰을 돌리면 주인 앱이 그
+      // 세션을 잃는다(#3260). 새 키만 비우고 옛 키는 남긴다.
+      tab
+        ..write('access_token', 'expired-old-access')
+        ..write('refresh_token', 'old-refresh');
+      final ProviderContainer c = container();
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle();
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+      expect(auth.refreshed, isEmpty);
+      expect(tab.read(_access), isNull);
+      expect(tab.read(_refresh), isNull);
+      expect(tab.read('access_token'), 'expired-old-access');
+      expect(tab.read('refresh_token'), 'old-refresh');
+    });
+
+    test('an expired token of this app still rotates', () async {
+      tab
+        ..write(_access, 'expired-mine')
+        ..write(_refresh, 'mine-refresh');
+      final ProviderContainer c = container();
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle();
+
+      expect(auth.refreshed, <String>['mine-refresh']);
     });
 
     test('a pre-namespace member token is left for the member app', () async {

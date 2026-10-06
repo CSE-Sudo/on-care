@@ -247,7 +247,9 @@ class SessionController extends StateNotifier<SessionState>
         return;
       }
       if (code == 401) {
-        if (allowRefresh && refresh.isNotEmpty) {
+        if (allowRefresh &&
+            refresh.isNotEmpty &&
+            !await _isUnconfirmedLegacy(access)) {
           await _refreshAndResolve(refresh);
         } else {
           await _expire();
@@ -259,6 +261,19 @@ class SessionController extends StateNotifier<SessionState>
     } catch (_) {
       if (!mounted || _userActionStarted) return;
       _keepTokensAndSignOut();
+    }
+  }
+
+  /// [access] 가 역할 확인 전의 옛 키 토큰이면 회전하지 않는다(#3260) — 다른 앱의
+  /// 일회용 갱신 토큰일 수 있다. [_expire] 가 이 앱의 새 키만 비우고 옛 키는
+  /// 남긴다. 확인하지 못하면 회전하지 않는 쪽으로 둔다.
+  Future<bool> _isUnconfirmedLegacy(String access) async {
+    try {
+      return await _ref
+          .read(secureTokenStoreProvider)
+          .isUnconfirmedLegacy(access);
+    } catch (_) {
+      return true;
     }
   }
 
