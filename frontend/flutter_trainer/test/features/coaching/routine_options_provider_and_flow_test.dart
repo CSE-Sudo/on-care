@@ -1512,7 +1512,10 @@ void main() {
       // 옆으로, 좁으면 아래로 쌓이므로 카드 자체를 본다.
       expect(find.textContaining('회복안 · 회복·지속 중심'), findsOneWidget);
       expect(find.textContaining('강화안 · 강도·운동량 중심'), findsOneWidget);
-      expect(find.textContaining('기존 AI 추천'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('routine-option-recommended')),
+        findsNothing,
+      );
       final optionHeights = <String>['A', 'B']
           .map(
             (key) => tester
