@@ -20,14 +20,12 @@ from pathlib import Path
 import pytest
 
 from app.services import (
-    diet_service,
     exercise_advice,
     exercise_service,
     exercise_types,
     period_window,
     routine_advice,
 )
-from app.services.diet_service import DietDayTotals
 from app.services.exercise_service import ExerciseDayTotals
 from app.services.trainer._common import RoutineDay, RoutineDayItem
 
@@ -35,10 +33,6 @@ from app.services.trainer._common import RoutineDay, RoutineDayItem
 MAX_LEN = 45
 
 PERIODS = (period_window.PERIOD_TODAY, period_window.PERIOD_WEEK, period_window.PERIOD_ALL)
-
-
-def _diet_day(day: date, sodium: int) -> DietDayTotals:
-    return DietDayTotals(date=day, calories=700, sodium_mg=sodium, sugar_g=8.0)
 
 
 def _exercise_day(day: date, minutes: int = 30, kind: str = "cardio") -> ExerciseDayTotals:
@@ -53,29 +47,12 @@ def _exercise_day(day: date, minutes: int = 30, kind: str = "cardio") -> Exercis
 @pytest.mark.parametrize("period", PERIODS)
 def test_empty_records_get_their_own_message(period):
     """기록이 없으면 없다고 말한다. 기간별로 다른 안내다."""
-    assert diet_service.period_coach_message([], period)
     assert exercise_service.period_coach_message([], period)
 
 
 def test_empty_messages_differ_between_periods():
     """셋이 같은 문장이면 토글이 아무 일도 하지 않는 것처럼 보인다."""
-    assert len({diet_service.period_coach_message([], p) for p in PERIODS}) == 3
     assert len({exercise_service.period_coach_message([], p) for p in PERIODS}) == 3
-
-
-def test_diet_periods_look_at_different_material():
-    today = date(2026, 8, 27)  # 목요일
-    monday = today - timedelta(days=today.weekday())
-    days = [_diet_day(monday + timedelta(days=i), 2600) for i in range(3)]
-    days.append(_diet_day(today, 1200))
-
-    day_view = diet_service.period_coach_message(days, period_window.PERIOD_TODAY)
-    week = diet_service.period_coach_message(days, period_window.PERIOD_WEEK)
-
-    # 오늘은 오늘 합계를, 이번 주는 초과한 날 수를 말한다.
-    assert "1,200mg" in day_view
-    assert "이번 주 3일" in week
-    assert day_view != week
 
 
 def test_exercise_periods_look_at_different_material():
@@ -90,21 +67,6 @@ def test_exercise_periods_look_at_different_material():
     # 유산소만 한 주 — 쏠림을 먼저 짚고 다른 유형을 권한다.
     assert "유산소" in week and "근력" in week
     assert day_view != week
-
-
-@pytest.mark.parametrize(
-    "days",
-    [
-        [],
-        [_diet_day(date(2026, 8, 27), 3400)],
-        [_diet_day(date(2026, 8, 27), 1200)],
-        [_diet_day(date(2026, 8, 24) + timedelta(days=i), 2600) for i in range(4)],
-    ],
-)
-@pytest.mark.parametrize("period", PERIODS)
-def test_diet_messages_stay_short(days, period):
-    message = diet_service.period_coach_message(days, period)
-    assert len(message) <= MAX_LEN, message
 
 
 @pytest.mark.parametrize(

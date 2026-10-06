@@ -187,7 +187,7 @@ void main() {
   group('AlertAction', () {
     test('앱이 아는 target 은 이동할 수 있다', () {
       const AlertAction action = AlertAction(
-        label: '대화 보기',
+        label: '메시지 보기',
         target: AlertTarget.coachChat,
       );
 

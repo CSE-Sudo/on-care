@@ -177,7 +177,7 @@ void main() {
         find.byKey(const ValueKey<String>('coach-chat-unassigned')),
         findsOneWidget,
       );
-      expect(find.text('담당이 해제되어 더 이상 대화를 보낼 수 없어요'), findsOneWidget);
+      expect(find.text('담당이 해제되어 더 이상 메시지를 보낼 수 없어요'), findsOneWidget);
       // 일반 불러오기 실패 문구와는 다르다.
       expect(find.text('대화를 불러오지 못했어요'), findsNothing);
 

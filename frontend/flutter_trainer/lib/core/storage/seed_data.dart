@@ -38,10 +38,14 @@ part 'seed_workouts.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v54']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v55']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v55` 는 시드 문구의 표기를 정리했다(#3201·#3202) — 운동 이름 `런닝`→`러닝`,
+/// `이행률`→`완료율`, PT 메모의 `수업`·`세션`→`PT`, 알림 제목. 올리지 않으면 오늘
+/// 이미 시드된 브라우저가 자정까지 옛 표기를 보인다.
 ///
 /// `_v54` 는 회원별 개인운동·운동 기록을 실서버 시드와 맞추고(#3003), 회원마다
 /// 받은 개인운동 기간 수를 다르게 심었다(#2508, `seed_rings.dart`). 올리지 않으면
@@ -217,7 +221,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v54') == today &&
+  if (await db.readValue('trainer_seeded_v55') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -934,7 +938,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v54', today);
+    await db.putValue('trainer_seeded_v55', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -2832,7 +2836,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 1,
       condition: 'good',
       intensity: 'right',
-      note: '지난 주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
+      note: '지난주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
     ),
     _Feedback(
       weeksAgo: 2,
@@ -2898,7 +2902,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       note: '야근이 이어져서 운동 강도가 버거웠어요.',
     ),
   ],
-  // 이지수 — 잘 따라오는 쪽. 주말 기록만 자주 빠지고, 런닝 숨참·플랭크 피로가 차츰 풀린다.
+  // 이지수 — 잘 따라오는 쪽. 주말 기록만 자주 빠지고, 러닝 숨참·플랭크 피로가 차츰 풀린다.
   2: <_Feedback>[
     _Feedback(
       weeksAgo: 0,
@@ -2922,7 +2926,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 3,
       condition: 'great',
       intensity: 'right',
-      note: '런닝할 때 숨찬 게 확실히 줄었어요!',
+      note: '러닝할 때 숨찬 게 확실히 줄었어요!',
     ),
     _Feedback(
       weeksAgo: 4,
@@ -2958,7 +2962,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 9,
       condition: 'ok',
       intensity: 'right',
-      note: '회식이 두 번 있었어요. 그래도 다음 날 런닝은 했어요.',
+      note: '회식이 두 번 있었어요. 그래도 다음 날 러닝은 했어요.',
     ),
     _Feedback(
       weeksAgo: 11,
@@ -2972,7 +2976,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       intensity: 'hard',
       painArea: '왼쪽 발목',
       painDay: 4,
-      note: '런닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.',
+      note: '러닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.',
     ),
   ],
   // 박성호 — 휴면. 몸이 아니라 일정(출장·회사 일)이 막고 있고, 나올 때는 벤치 중량에 욕심이

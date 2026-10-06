@@ -504,7 +504,7 @@ void main() {
       expect(find.text('전체 보기'), findsNothing);
       final clear = find.byKey(const ValueKey<String>('clients-preset-clear'));
       expect(
-        find.descendant(of: clear, matching: find.text('주의 회원')),
+        find.descendant(of: clear, matching: find.text('관리 필요')),
         findsOneWidget,
       );
       // 신호가 없는 이지수는 주의 회원이 아니다.

@@ -94,6 +94,34 @@ def test_signup_creates_a_working_trainer_without_a_gym(client):
     assert "verification" not in me.json()
 
 
+def test_signup_keeps_the_phone_on_the_trainer_profile(client):
+    """가입 화면이 받은 번호는 트레이너 프로필에 담기고, 한 가지 표기로 맞춰진다."""
+    payload = {**_payload(), "phone": "01012345678"}
+    response = client.post("/v1/auth/trainer/register", json=payload)
+    assert response.status_code == 201, response.text
+
+    me = client.get("/v1/trainer/me", headers=_auth(_login(client, payload["email"])))
+    assert me.status_code == 200, me.text
+    assert me.json()["phone"] == "010-1234-5678"
+
+
+def test_signup_without_a_phone_still_works(client):
+    """번호 칸이 없던 옛 빌드의 가입도 받는다 — 번호는 비어 있고 MY 에서 넣는다."""
+    payload = _payload()
+    response = client.post("/v1/auth/trainer/register", json=payload)
+    assert response.status_code == 201, response.text
+
+    me = client.get("/v1/trainer/me", headers=_auth(_login(client, payload["email"])))
+    assert me.json()["phone"] == ""
+
+
+def test_signup_rejects_a_malformed_phone(client):
+    """회원 가입과 같은 형식 규칙이다(#1780) — 010 숫자 11자리가 아니면 422."""
+    payload = {**_payload(), "phone": "02-123-4567"}
+    response = client.post("/v1/auth/trainer/register", json=payload)
+    assert response.status_code == 422, response.text
+
+
 def test_a_signed_up_trainer_can_pick_a_gym(client, db_session):
     """가입 뒤 소속을 고르는 길이 이어져 있다 — 초대 코드가 하던 일을 대신한다."""
     gym = _gym(db_session)

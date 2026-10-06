@@ -196,7 +196,7 @@ void main() {
       report: _report(proteinWeek: const <double>[60, 60, 60, 60, 60, 60, 60]),
     );
 
-    expect(find.textContaining('단백질이(가) 목표에 많이 모자라요'), findsOneWidget);
+    expect(find.textContaining('단백질이(가) 목표보다 많이 부족해요'), findsOneWidget);
   });
 
   testWidgets('셋 다 모자라도 가장 많이 모자란 하나만 짚는다', (tester) async {
@@ -209,8 +209,8 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('목표에 많이 모자라요'), findsOneWidget);
-    expect(find.textContaining('단백질이(가) 목표에'), findsOneWidget);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsOneWidget);
+    expect(find.textContaining('단백질이(가) 목표보다'), findsOneWidget);
   });
 
   testWidgets('모자람 줄은 지난 주 목표를 근거로 잇지 않는다 (#2400)', (tester) async {
@@ -219,7 +219,7 @@ void main() {
       report: _report(proteinWeek: const <double>[60, 60, 60, 60, 60, 60, 60]),
     );
 
-    expect(find.textContaining('단백질이(가) 목표에'), findsOneWidget);
+    expect(find.textContaining('단백질이(가) 목표보다'), findsOneWidget);
     expect(find.textContaining('지난 주 목표'), findsNothing);
     expect(find.textContaining('판정된 근거'), findsNothing);
   });
@@ -232,7 +232,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('목표에 많이 모자라요'), findsNothing);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsNothing);
   });
 
   testWidgets('딱 80%인 주도 짚지 않는다 — 경계값', (tester) async {
@@ -241,7 +241,7 @@ void main() {
       report: _report(proteinWeek: const <double>[96, 96, 96, 96, 96, 96, 96]),
     );
 
-    expect(find.textContaining('목표에 많이 모자라요'), findsNothing);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsNothing);
   });
 
   testWidgets('목표를 안 적어 뒀어도 크게 모자라면 짚는다 — 기본값이 기준이 된다 (#2232)', (tester) async {
@@ -255,7 +255,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('목표에 많이 모자라요'), findsOneWidget);
+    expect(find.textContaining('목표보다 많이 부족해요'), findsOneWidget);
   });
 
   testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {

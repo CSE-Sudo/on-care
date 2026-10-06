@@ -106,7 +106,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navReports => 'Reports';
 
   @override
-  String get navConsultations => 'Requests';
+  String get navConsultations => 'Consultation requests';
 
   @override
   String get actionSave => 'Save';
@@ -591,7 +591,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSortNameDescending => 'Name Z–A';
 
   @override
-  String get clientsSortRecentMessage => 'Recent conversations';
+  String get clientsSortRecentMessage => 'Recent messages';
 
   @override
   String get clientsFilterLabel => 'Filters';
@@ -643,11 +643,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSignalRecordGapLong => 'No logs 30d+';
 
   @override
-  String get clientsSignalNoShow => 'No-shows';
+  String get clientsSignalNoShow => 'No-shows/cancels';
 
   @override
   String clientsSignalNoShowCount(int count) {
-    return '$count no-shows';
+    return '$count no-shows/cancels';
   }
 
   @override
@@ -781,7 +781,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Keep trainer-only notes in Memo.';
 
   @override
-  String get memberHealthDietGoal => 'Nutrition goals';
+  String get memberHealthDietGoal => 'Diet goals';
 
   @override
   String get memberHealthExerciseGoal => 'Exercise goals';
@@ -805,7 +805,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthGoalFat => 'Daily fat goal (g)';
 
   @override
-  String get memberHealthGoalBurnDaily => 'Daily burn (kcal)';
+  String get memberHealthGoalBurnDaily => 'Daily calories burned (kcal)';
 
   @override
   String get memberHealthGoalCardioWeekly => 'Weekly cardio (min)';
@@ -950,7 +950,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientTabDiet => 'Diet';
 
   @override
-  String get clientTabWorkout => 'Workouts';
+  String get clientTabWorkout => 'Exercise';
 
   @override
   String get clientNotFound => 'Member not found';
@@ -1005,7 +1005,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDormantActivate => 'Tap to mark active';
 
   @override
-  String get clientSignalLess => 'Less';
+  String get clientSignalLess => 'Show less';
 
   @override
   String clientSignalMore(int count) {
@@ -1290,7 +1290,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientNutritionSummary => 'Nutrition summary';
 
   @override
-  String get dietCalorieIntake => 'Calories today';
+  String get dietCalorieIntake => 'Calories eaten today';
 
   @override
   String get dietAchieveRate => 'Progress';
@@ -1397,7 +1397,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsGoToChat => 'Go to chat';
+  String get reportsGoToChat => 'Go to messages';
 
   @override
   String get reportsScheduleWarning =>
@@ -1492,7 +1492,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsNoWorkoutsThisWeek => 'No workouts logged this week';
 
   @override
-  String get chartNoRecord => 'Not logged';
+  String get chartNoRecord => 'No record';
 
   @override
   String get chartNotYet => 'Not yet';
@@ -1829,7 +1829,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedEmptyWeek => 'Nothing scheduled this week.';
 
   @override
-  String get schedSlots => 'Booking slots';
+  String get schedSlots => 'Booking times';
 
   @override
   String get schedNewSession => 'New appointment';
@@ -1968,7 +1968,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get slotOverlapHint =>
-      'The slot wasn\'t opened. Pick another time or move the overlapping appointment.';
+      'The time wasn\'t opened. Pick another time or move the overlapping appointment.';
 
   @override
   String get consultOverlapHint =>
@@ -2041,7 +2041,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Feedback for the member. Keep notes about the member in their member memo';
 
   @override
-  String get progSaving => 'Saving...';
+  String get progSaving => 'Saving…';
 
   @override
   String get progSaveAction => 'Save';
@@ -2053,7 +2053,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progExerciseName => 'Exercise';
 
   @override
-  String get progDeleteExercise => 'Remove exercise';
+  String get progDeleteExercise => 'Delete exercise';
 
   @override
   String progSetsValue(int sets) {
@@ -2087,7 +2087,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progEmptyHint =>
-      'Build one in the AI suggestions tab, or agree on it over chat first.';
+      'Build one in the AI suggestions tab, or agree on it over messages first.';
 
   @override
   String schedSentTo(String name) {
@@ -2100,17 +2100,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get slotPastTime =>
-      'Booking slots can only be opened for future times.';
+  String get slotPastTime => 'Only future times can be opened for booking.';
 
   @override
-  String get slotOpened => 'Booking slot opened.';
+  String get slotOpened => 'Booking time opened.';
 
   @override
   String get slotStartTime => 'Start time';
 
   @override
-  String get slotCloseTitle => 'Close booking slot';
+  String get slotCloseTitle => 'Close booking time';
 
   @override
   String get slotCloseBody =>
@@ -2124,11 +2123,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t complete the request. Please try again in a moment.';
 
   @override
-  String get slotManageTitle => 'Manage booking slots';
+  String get slotManageTitle => 'Manage open booking times';
 
   @override
   String get slotIntro =>
-      'Open times for members to book. Every upcoming slot is listed below by date.';
+      'Open times for members to book. Every upcoming open time is listed below by date.';
 
   @override
   String get slotOpenAction => 'Open';
@@ -2137,10 +2136,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotReload => 'Reload';
 
   @override
-  String get slotLoadFailed => 'Couldn\'t load reservation slots';
+  String get slotLoadFailed => 'Couldn\'t load open booking times';
 
   @override
-  String get slotEmpty => 'No booking slots are open.';
+  String get slotEmpty => 'No open booking times.';
 
   @override
   String get slotClosedSummary => 'Closed';
@@ -2175,7 +2174,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myTabSettings => 'Settings';
 
   @override
-  String get mySaving => 'Saving';
+  String get mySaving => 'Saving…';
 
   @override
   String get myEditProfile => 'Edit profile';
@@ -2709,7 +2708,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySupportSubtitle => 'Ask a question or read our policies';
 
   @override
-  String get myWithdrawSubtitle => 'Please check once before you leave';
+  String get myWithdrawSubtitle =>
+      'Please check once before you delete your account';
 
   @override
   String get myPageTitle => 'Profile & settings';
@@ -2749,7 +2749,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDiscardAction => 'Leave';
 
   @override
-  String get mySignOutConfirm => 'Log out of this browser?';
+  String get mySignOutConfirm => 'Sign out of this browser?';
 
   @override
   String get myThisMonth => 'This month';
@@ -2781,7 +2781,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifConsultationHint =>
-      'When a member requests a consultation or answers your invite';
+      'When a member requests a consultation or responds to your coaching request';
 
   @override
   String get myNotifReservation => 'Bookings';
@@ -3103,7 +3103,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiCustomRoutineName => 'AI custom suggestion';
 
   @override
-  String get aiAnalysing => 'AI is analysing…';
+  String get aiAnalysing => 'AI is analyzing…';
 
   @override
   String get aiGenerateCandidates => 'Generate candidates';
@@ -3235,7 +3235,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineEvidenceRecentRecord => 'Recent workout log';
 
   @override
-  String get aiPlanIntensityLow => 'Low';
+  String get aiPlanIntensityLow => 'Light';
 
   @override
   String aiPersonalStepFull(int count) {
@@ -3571,15 +3571,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmptyResponse => 'The response was empty.';
 
   @override
-  String get slotFutureOnly =>
-      'Booking slots can only be set for future times.';
+  String get slotFutureOnly => 'Only future times can be opened for booking.';
 
   @override
-  String get slotNotFound => 'Booking slot not found.';
+  String get slotNotFound => 'Open booking time not found.';
 
   @override
   String get slotTypeLockedByBooking =>
-      'Can\'t change the type of a slot that\'s already booked.';
+      'Can\'t change the type of a time that\'s already booked.';
 
   @override
   String get authErrNotTrainer => 'Please sign in with a trainer account.';
@@ -3790,7 +3789,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDeleteAccount => 'Delete account';
 
   @override
-  String get myDeleteAction => 'Delete';
+  String get myDeleteAction => 'Delete account';
 
   @override
   String get myDeleteDemo => 'Demo mode has no account to delete';
@@ -3830,7 +3829,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myDeleteReauthSocialDone =>
-      'Social account confirmed. Press Delete to continue.';
+      'Social account confirmed. Press Delete account to continue.';
 
   @override
   String get myDeleteReauthSocialFailed =>
@@ -3841,7 +3840,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in isn\'t available in this version yet. Please contact support.';
 
   @override
-  String get myWithdrawReasonTitle => 'Are you sure you want to leave?';
+  String get myWithdrawReasonTitle =>
+      'Are you sure you want to delete your account?';
 
   @override
   String get myWithdrawReasonQuestion => 'What didn\'t work for you?';
@@ -3885,11 +3885,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepLeavingWork =>
-      'If it\'s just a break, you can keep your account. Leaving disconnects all your members.';
+      'If it\'s just a break, you can keep your account. Deleting it disconnects all your members.';
 
   @override
   String get myWithdrawKeepAlternative =>
-      'Leaving removes member records, programs and reports from your console for good.';
+      'Deleting your account removes member records, programs and reports from your console for good.';
 
   @override
   String get myWithdrawKeepOther =>
@@ -3897,7 +3897,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepDefault =>
-      'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.';
+      'Deleting your account removes your member connections and bookings, and your members are notified. This can\'t be undone.';
 
   @override
   String get myWithdrawNext => 'Next';
@@ -3906,7 +3906,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myWithdrawStay => 'Keep using';
 
   @override
-  String get myWithdrawContinue => 'Continue leaving';
+  String get myWithdrawContinue => 'Continue deleting';
 
   @override
   String get workoutKindPersonal => 'Personal exercise';
@@ -4289,7 +4289,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientGoalFat => 'Fat';
 
   @override
-  String get clientGoalBurnDaily => 'Daily burn';
+  String get clientGoalBurnDaily => 'Daily calories burned';
 
   @override
   String get clientGoalCardioWeekly => 'Weekly cardio';
@@ -4311,7 +4311,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientGoalDefaultHint =>
-      'Faded values are the defaults used until a goal is set. Empty fields use them.';
+      'Dimmed values are the defaults used until a goal is set. Empty fields use them.';
 
   @override
   String clientGoalSuggestionDiet(
@@ -4337,7 +4337,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientGoalSuggestionPersonal =>
-      'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
+      'Based on age, gender, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
 
   @override
   String get clientGoalSuggestionFallback =>
@@ -4523,7 +4523,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientFeedbackWeeklyNoNote => 'No note';
+  String get clientFeedbackWeeklyNoNote => 'No one-line feedback';
 
   @override
   String get clientFeedbackEmpty => 'No feedback exchanged yet.';
@@ -4739,7 +4739,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programEditorReps => 'Reps';
 
   @override
-  String get programEditorWeight => 'Weight kg';
+  String get programEditorWeight => 'Weight (kg)';
 
   @override
   String reportsDemoSummarySteadyThisWeek(String name) {
@@ -5101,7 +5101,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSortLabel => 'Sort';
 
   @override
-  String get reportsSortPriority => 'Needs attention';
+  String get reportsSortPriority => 'Needs attention first';
 
   @override
   String get reportsSortName => 'Name A–Z';
@@ -5248,7 +5248,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsResendBody(String name, String date, String time) {
-    return 'You already sent $name this report on $date at $time. Sending it again delivers a second copy to their chat.';
+    return 'You already sent $name this report on $date at $time. Sending it again delivers a second copy to their messages.';
   }
 
   @override
@@ -5298,7 +5298,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsPreviewDelivery(String name) {
-    return 'Sent to $name\'s chat as a PDF file';
+    return 'Sent to $name as a PDF file in messages';
   }
 
   @override
@@ -5509,7 +5509,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsTrendNoHistory => 'No earlier week to compare';
 
   @override
-  String get reportsTrendRate => 'Weekly goal rate';
+  String get reportsTrendRate => 'Weekly goal progress';
 
   @override
   String reportsTrendAverage(int weeks) {
@@ -5518,7 +5518,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsTrendRateFalling(int weeks) {
-    return 'Goal rate down $weeks weeks running';
+    return 'Goal progress down $weeks weeks running';
   }
 
   @override
@@ -6068,7 +6068,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get authForgotPassword => 'Forgot your password?';
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authFindEmail => 'Forgot email?';
+
+  @override
+  String get findEmailTitle => 'Find your email';
+
+  @override
+  String get findEmailSubtitle =>
+      'Enter the name and phone number you signed up with to find your email.';
+
+  @override
+  String get findEmailAction => 'Find email';
+
+  @override
+  String get findEmailComingSoon => 'Finding your email is coming soon.';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
+
+  @override
+  String get signUpPhoneHelper =>
+      'Used to find your sign-up email if you forget it.';
 
   @override
   String get passwordResetTitle => 'Reset password';

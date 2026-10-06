@@ -77,7 +77,7 @@
   "navSchedule": "Schedule",
   "navCoaching": "Programs",
   "navReports": "Reports",
-  "navConsultations": "Requests",
+  "navConsultations": "Consultation requests",
   "actionSave": "Save",
   "actionSaved": "Saved",
   "actionCancel": "Cancel",
@@ -371,7 +371,7 @@
   "clientsSortPriority": "Needs attention first",
   "clientsSortName": "Name A–Z",
   "clientsSortNameDescending": "Name Z–A",
-  "clientsSortRecentMessage": "Recent conversations",
+  "clientsSortRecentMessage": "Recent messages",
   "clientsFilterLabel": "Filters",
   "clientsPickHint": "Pick a member on the left to open\ntheir chat, meals and workouts here",
   "clientsEmpty": "No members yet",
@@ -417,8 +417,8 @@
     }
   },
   "clientsSignalRecordGapLong": "No logs 30d+",
-  "clientsSignalNoShow": "No-shows",
-  "clientsSignalNoShowCount": "{count} no-shows",
+  "clientsSignalNoShow": "No-shows/cancels",
+  "clientsSignalNoShowCount": "{count} no-shows/cancels",
   "@clientsSignalNoShowCount": {
     "placeholders": {
       "count": {
@@ -510,7 +510,7 @@
   "memberHealthConditions": "Conditions and cautions",
   "memberHealthConditionsShared": "The member sees this too · Used for recommendations",
   "memberHealthConditionsPrivateHint": "Keep trainer-only notes in Memo.",
-  "memberHealthDietGoal": "Nutrition goals",
+  "memberHealthDietGoal": "Diet goals",
   "memberHealthExerciseGoal": "Exercise goals",
   "memberHealthGoalCalories": "Daily calorie goal (kcal)",
   "memberHealthGoalSodium": "Daily sodium goal (mg)",
@@ -518,7 +518,7 @@
   "memberHealthGoalCarbs": "Daily carbs goal (g)",
   "memberHealthGoalProtein": "Daily protein goal (g)",
   "memberHealthGoalFat": "Daily fat goal (g)",
-  "memberHealthGoalBurnDaily": "Daily burn (kcal)",
+  "memberHealthGoalBurnDaily": "Daily calories burned (kcal)",
   "memberHealthGoalCardioWeekly": "Weekly cardio (min)",
   "memberHealthGoalStrengthWeekly": "Weekly strength (sets)",
   "memberHealthGoalFlexibilityWeekly": "Weekly stretching (min)",
@@ -585,7 +585,7 @@
   "chatImageSendFailed": "Couldn't send the photo. Please try again",
   "chatImageAlreadySent": "An earlier send of this photo already went through. Please check the conversation.",
   "clientTabDiet": "Diet",
-  "clientTabWorkout": "Workouts",
+  "clientTabWorkout": "Exercise",
   "clientNotFound": "Member not found",
   "clientBackToList": "Back to members",
   "clientList": "Member list",
@@ -624,7 +624,7 @@
   "metricFat": "Fat",
   "clientDormant": "Dormant",
   "clientDormantActivate": "Tap to mark active",
-  "clientSignalLess": "Less",
+  "clientSignalLess": "Show less",
   "clientSignalMore": "+{count}",
   "@clientSignalMore": {
     "placeholders": {
@@ -812,7 +812,7 @@
   "dietEmpty": "No meals logged yet",
   "dietDayEmpty": "No record",
   "clientNutritionSummary": "Nutrition summary",
-  "dietCalorieIntake": "Calories today",
+  "dietCalorieIntake": "Calories eaten today",
   "dietAchieveRate": "Progress",
   "consultStatusRejected": "Declined",
   "dateToday": "Today",
@@ -919,7 +919,7 @@
     "description": "Toast when the server says this report send was already processed (409, #2773)."
   },
   "reportsSent": "Report sent to {name}",
-  "reportsGoToChat": "Go to chat",
+  "reportsGoToChat": "Go to messages",
   "@reportsSent": {
     "placeholders": {
       "name": {
@@ -977,7 +977,7 @@
   },
   "reportsCompletionByDay": "Weekly workout completion rate",
   "reportsNoWorkoutsThisWeek": "No workouts logged this week",
-  "chartNoRecord": "Not logged",
+  "chartNoRecord": "No record",
   "chartNotYet": "Not yet",
   "chartOverGoal": "{amount} {unit} over goal",
   "@chartOverGoal": {
@@ -1315,7 +1315,7 @@
     }
   },
   "schedEmptyWeek": "Nothing scheduled this week.",
-  "schedSlots": "Booking slots",
+  "schedSlots": "Booking times",
   "schedNewSession": "New appointment",
   "schedLoadFailed": "Couldn't load the schedule",
   "schedEmptyDay": "Nothing scheduled for this day.\nUse New appointment above to add one.",
@@ -1399,7 +1399,7 @@
   "schedRepeatConflictHint": "Nothing was created. Change the time, or clear the appointments that clash.",
   "schedOverlapTitle": "This time overlaps another appointment",
   "schedOverlapHint": "Nothing was saved. Change the time or move the overlapping appointment, then save again.",
-  "slotOverlapHint": "The slot wasn't opened. Pick another time or move the overlapping appointment.",
+  "slotOverlapHint": "The time wasn't opened. Pick another time or move the overlapping appointment.",
   "consultOverlapHint": "The member's chosen time is already booked, so the request wasn't approved. Move the overlapping appointment, then approve again.",
   "schedNote": "Trainer feedback",
   "schedEditNote": "Edit feedback",
@@ -1421,11 +1421,11 @@
   "progAddTitle": "Add program",
   "progAddExercise": "Add exercise",
   "progNoteHint": "Feedback for the member. Keep notes about the member in their member memo",
-  "progSaving": "Saving...",
+  "progSaving": "Saving…",
   "progSaveAction": "Save",
   "progSaveNoteAction": "Save",
   "progExerciseName": "Exercise",
-  "progDeleteExercise": "Remove exercise",
+  "progDeleteExercise": "Delete exercise",
   "progSetsValue": "{sets, plural, =1{1 set} other{{sets} sets}}",
   "@progSetsValue": {
     "placeholders": {
@@ -1451,7 +1451,7 @@
     }
   },
   "progEmpty": "No program planned yet",
-  "progEmptyHint": "Build one in the AI suggestions tab, or agree on it over chat first.",
+  "progEmptyHint": "Build one in the AI suggestions tab, or agree on it over messages first.",
   "schedSentTo": "Sent to {name}",
   "@schedSentTo": {
     "placeholders": {
@@ -1468,19 +1468,19 @@
       }
     }
   },
-  "slotPastTime": "Booking slots can only be opened for future times.",
-  "slotOpened": "Booking slot opened.",
+  "slotPastTime": "Only future times can be opened for booking.",
+  "slotOpened": "Booking time opened.",
   "slotStartTime": "Start time",
-  "slotCloseTitle": "Close booking slot",
+  "slotCloseTitle": "Close booking time",
   "slotCloseBody": "Any existing booking stays; only new bookings stop.",
   "slotClosed": "New bookings closed.",
   "slotActionFailed": "Couldn't complete the request. Please try again in a moment.",
-  "slotManageTitle": "Manage booking slots",
-  "slotIntro": "Open times for members to book. Every upcoming slot is listed below by date.",
+  "slotManageTitle": "Manage open booking times",
+  "slotIntro": "Open times for members to book. Every upcoming open time is listed below by date.",
   "slotOpenAction": "Open",
   "slotReload": "Reload",
-  "slotLoadFailed": "Couldn't load reservation slots",
-  "slotEmpty": "No booking slots are open.",
+  "slotLoadFailed": "Couldn't load open booking times",
+  "slotEmpty": "No open booking times.",
   "slotClosedSummary": "Closed",
   "slotBookedSummary": "Booked",
   "slotOverlappedSummary": "Overlaps an appointment",
@@ -1491,7 +1491,7 @@
   "myGymChangeFailed": "Couldn't change your gym. The rest of your profile was saved.",
   "myTabProfile": "My profile",
   "myTabSettings": "Settings",
-  "mySaving": "Saving",
+  "mySaving": "Saving…",
   "myEditProfile": "Edit profile",
   "mySaved": "Changes saved",
   "myCertifications": "Certifications",
@@ -1776,7 +1776,7 @@
   "myLanguageSubtitle": "Choose the console language",
   "myAccountSubtitle": "Manage your sign-in account and password",
   "mySupportSubtitle": "Ask a question or read our policies",
-  "myWithdrawSubtitle": "Please check once before you leave",
+  "myWithdrawSubtitle": "Please check once before you delete your account",
   "myPageTitle": "Profile & settings",
   "myProfileTitle": "Profile",
   "myEmail": "Email",
@@ -1789,7 +1789,7 @@
   "myDiscardBody": "Your changes won't be saved.",
   "myKeepEditing": "Keep editing",
   "myDiscardAction": "Leave",
-  "mySignOutConfirm": "Log out of this browser?",
+  "mySignOutConfirm": "Sign out of this browser?",
   "myThisMonth": "This month",
   "myIntroEmpty": "No introduction yet. Add one in Edit profile — members see it.",
   "myCertsEmpty": "No certifications yet",
@@ -1798,7 +1798,7 @@
   "myClientManagementNoteTitle": "Disconnecting keeps member records",
   "myClientManagementNote": "Their records stay in the member app. To coach them again, enter the connection code they give you under Connect member on the Members tab.",
   "myNotifConsultation": "Consultation requests",
-  "myNotifConsultationHint": "When a member requests a consultation or answers your invite",
+  "myNotifConsultationHint": "When a member requests a consultation or responds to your coaching request",
   "myNotifReservation": "Bookings",
   "myNotifReservationHint": "When a member books or changes an appointment",
   "myNotifMemberUpdates": "Member updates",
@@ -1978,7 +1978,7 @@
   "@aiCustomRoutineName": {
     "description": "Routine name sent when the trainer leaves the name blank (#2301)."
   },
-  "aiAnalysing": "AI is analysing…",
+  "aiAnalysing": "AI is analyzing…",
   "aiGenerateCandidates": "Generate candidates",
   "aiReviewDone": "Finish review",
   "aiRoutineFor": "AI suggestion · {name}",
@@ -2061,7 +2061,7 @@
   "@routineEvidenceRecentRecord": {
     "description": "Evidence chip; server code recent_record (#2301)."
   },
-  "aiPlanIntensityLow": "Low",
+  "aiPlanIntensityLow": "Light",
   "@aiPlanIntensityLow": {
     "description": "Intensity of an AI A/B plan whose contract value is 낮음 (#2301)."
   },
@@ -2302,9 +2302,9 @@
   "authErrNetwork": "Please check your network connection.",
   "authErrGeneric": "Something went wrong signing in. Please try again in a moment.",
   "authErrEmptyResponse": "The response was empty.",
-  "slotFutureOnly": "Booking slots can only be set for future times.",
-  "slotNotFound": "Booking slot not found.",
-  "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
+  "slotFutureOnly": "Only future times can be opened for booking.",
+  "slotNotFound": "Open booking time not found.",
+  "slotTypeLockedByBooking": "Can't change the type of a time that's already booked.",
   "authErrNotTrainer": "Please sign in with a trainer account.",
   "aiBasisGoalCompletion": "{goal} · based on a {rate}% completion rate",
   "@aiBasisGoalCompletion": {
@@ -2553,7 +2553,7 @@
     }
   },
   "myDeleteAccount": "Delete account",
-  "myDeleteAction": "Delete",
+  "myDeleteAction": "Delete account",
   "myDeleteDemo": "Demo mode has no account to delete",
   "myDeleteTitle": "Delete your account?",
   "myDeleteBody": "Your profile, messages with members, the PT programs and personal exercises you sent, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can't be undone.",
@@ -2564,11 +2564,11 @@
   "myDeleteReauthSocialAction": "Sign in again with your social account",
   "myDeleteReauthKakao": "Sign in again with Kakao",
   "myDeleteReauthGoogle": "Sign in again with Google",
-  "myDeleteReauthSocialDone": "Social account confirmed. Press Delete to continue.",
+  "myDeleteReauthSocialDone": "Social account confirmed. Press Delete account to continue.",
   "myDeleteReauthSocialFailed": "Couldn't confirm your social account. Please sign in again.",
   "myDeleteReauthSocialUnavailable": "Social sign-in isn't available in this version yet. Please contact support.",
   "@myDeleteReauthSocialUnavailable": {"description": "Shown in the account-deletion confirmation when no social sign-in is configured for this build (#330)."},
-  "myWithdrawReasonTitle": "Are you sure you want to leave?",
+  "myWithdrawReasonTitle": "Are you sure you want to delete your account?",
   "myWithdrawReasonQuestion": "What didn't work for you?",
   "myWithdrawReasonHint": "Pick as many as you like, or skip.",
   "myWithdrawReasonRarelyUsed": "I rarely use it",
@@ -2581,13 +2581,13 @@
   "myWithdrawKeepRarelyUsed": "Turn on alerts so you don't miss member messages and bookings. Change them in Settings › Notifications.",
   "myWithdrawKeepHardToUse": "Tell us what felt awkward via 1:1 inquiry and we'll work on it.",
   "myWithdrawKeepMissingFeature": "Tell us which feature you need via 1:1 inquiry — we'll consider it next.",
-  "myWithdrawKeepLeavingWork": "If it's just a break, you can keep your account. Leaving disconnects all your members.",
-  "myWithdrawKeepAlternative": "Leaving removes member records, programs and reports from your console for good.",
+  "myWithdrawKeepLeavingWork": "If it's just a break, you can keep your account. Deleting it disconnects all your members.",
+  "myWithdrawKeepAlternative": "Deleting your account removes member records, programs and reports from your console for good.",
   "myWithdrawKeepOther": "Your feedback via 1:1 inquiry would help us a lot.",
-  "myWithdrawKeepDefault": "Leaving removes your member connections and bookings, and your members are notified. This can't be undone.",
+  "myWithdrawKeepDefault": "Deleting your account removes your member connections and bookings, and your members are notified. This can't be undone.",
   "myWithdrawNext": "Next",
   "myWithdrawStay": "Keep using",
-  "myWithdrawContinue": "Continue leaving",
+  "myWithdrawContinue": "Continue deleting",
   "@myDeleteConfirmPrompt": {
     "placeholders": {
       "name": {
@@ -2974,14 +2974,14 @@
   "clientGoalCarbs": "Carbs",
   "clientGoalProtein": "Protein",
   "clientGoalFat": "Fat",
-  "clientGoalBurnDaily": "Daily burn",
+  "clientGoalBurnDaily": "Daily calories burned",
   "clientGoalCardioWeekly": "Weekly cardio",
   "clientGoalStrengthWeekly": "Weekly strength",
   "clientGoalStretchWeekly": "Weekly stretching",
   "clientBodyHeight": "Height",
   "clientBodyWeight": "Weight",
   "clientUnitCm": "cm",
-  "clientGoalDefaultHint": "Faded values are the defaults used until a goal is set. Empty fields use them.",
+  "clientGoalDefaultHint": "Dimmed values are the defaults used until a goal is set. Empty fields use them.",
   "clientGoalSuggestionDiet": "Suggested: {kcal} kcal · carbs {carbs} g · sugar {sugar} g · protein {protein} g · fat {fat} g · sodium {sodium} mg",
   "@clientGoalSuggestionDiet": {
     "placeholders": {
@@ -3022,7 +3022,7 @@
       }
     }
   },
-  "clientGoalSuggestionPersonal": "Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)",
+  "clientGoalSuggestionPersonal": "Based on age, gender, height, weight, and health goals (2020 KDRIs and WHO guidelines)",
   "clientGoalSuggestionFallback": "Age, height, or weight is missing, so only the health goals adjust the defaults",
   "clientGoalApplySuggestion": "Use suggested goals",
   "clientTrainerMemoHint": "Note what you want to remember about this member",
@@ -3186,7 +3186,7 @@
       }
     }
   },
-  "clientFeedbackWeeklyNoNote": "No note",
+  "clientFeedbackWeeklyNoNote": "No one-line feedback",
   "clientFeedbackEmpty": "No feedback exchanged yet.",
   "clientFeedbackLoadFailed": "Couldn't load feedback. Try again in a moment",
   "clientFeedbackSearchHint": "Search feedback (text, source, direction)",
@@ -3364,7 +3364,7 @@
   },
   "programEditorSets": "Sets",
   "programEditorReps": "Reps",
-  "programEditorWeight": "Weight kg",
+  "programEditorWeight": "Weight (kg)",
   "reportsDemoSummarySteadyThisWeek": "{name} kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.",
   "@reportsDemoSummarySteadyThisWeek": {
     "description": "데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.",
@@ -3765,7 +3765,7 @@
     }
   },
   "reportsSortLabel": "Sort",
-  "reportsSortPriority": "Needs attention",
+  "reportsSortPriority": "Needs attention first",
   "reportsSortName": "Name A–Z",
   "reportsSortNameDescending": "Name Z–A",
   "reportsSentSortUnread": "Unread first",
@@ -3887,7 +3887,7 @@
   },
   "reportsHistoryPdf": "PDF",
   "reportsResendTitle": "Already sent",
-  "reportsResendBody": "You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.",
+  "reportsResendBody": "You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their messages.",
   "@reportsResendBody": {
     "placeholders": {
       "name": {
@@ -3915,7 +3915,7 @@
   "reportsPreviewTitle": "What the member receives",
   "reportsPreviewRecipient": "To",
   "reportsPreviewWeek": "Week",
-  "reportsPreviewDelivery": "Sent to {name}'s chat as a PDF file",
+  "reportsPreviewDelivery": "Sent to {name} as a PDF file in messages",
   "@reportsPreviewDelivery": {
     "placeholders": {
       "name": {
@@ -4094,7 +4094,7 @@
   },
   "reportsTrendFlat": "About the same as last week",
   "reportsTrendNoHistory": "No earlier week to compare",
-  "reportsTrendRate": "Weekly goal rate",
+  "reportsTrendRate": "Weekly goal progress",
   "reportsTrendAverage": "{weeks}-week average",
   "@reportsTrendAverage": {
     "placeholders": {
@@ -4103,7 +4103,7 @@
       }
     }
   },
-  "reportsTrendRateFalling": "Goal rate down {weeks} weeks running",
+  "reportsTrendRateFalling": "Goal progress down {weeks} weeks running",
   "@reportsTrendRateFalling": {
     "placeholders": {
       "weeks": {
@@ -4909,7 +4909,23 @@
       }
     }
   },
-  "authForgotPassword": "Forgot your password?",
+  "authForgotPassword": "Forgot password?",
+  "authFindEmail": "Forgot email?",
+  "@authFindEmail": {
+    "description": "Text button next to 'Forgot password?' on sign-in that opens the find-email screen."
+  },
+  "findEmailTitle": "Find your email",
+  "findEmailSubtitle": "Enter the name and phone number you signed up with to find your email.",
+  "findEmailAction": "Find email",
+  "findEmailComingSoon": "Finding your email is coming soon.",
+  "@findEmailComingSoon": {
+    "description": "Toast shown when the find-email button is pressed while the lookup is not available yet."
+  },
+  "signUpPhoneHint": "010-0000-0000",
+  "@signUpPhoneHint": {
+    "description": "Placeholder of the phone field on trainer sign-up and find-email."
+  },
+  "signUpPhoneHelper": "Used to find your sign-up email if you forget it.",
   "passwordResetTitle": "Reset password",
   "passwordResetRequestSubtitle": "We'll email a reset code to the address you signed up with.",
   "passwordResetSendAction": "Send code",

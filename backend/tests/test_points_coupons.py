@@ -35,8 +35,8 @@ GYM_NAME = "쿠폰 테스트짐"
 #: 회원이 연결한 헬스장(`member_gyms`). 트레이너 프로필의 헬스장 문구와 일부러 다르다.
 MEMBER_GYM_NAME = "쿠폰 락커짐"
 
-RENEWAL_CANCELLED = "재등록 쿠폰이 취소됐어요"
-LOCKER_CANCELLED = "락커 쿠폰이 취소됐어요"
+RENEWAL_CANCELLED = "PT 재등록 할인 쿠폰이 취소됐어요"
+LOCKER_CANCELLED = "개인 락커 쿠폰이 취소됐어요"
 
 
 def _headers(user_id: str) -> dict[str, str]:

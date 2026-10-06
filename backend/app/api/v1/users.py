@@ -1265,7 +1265,7 @@ def request_password_reset(
     except password_reset.ResetUnavailable:
         raise HTTPException(
             status_code=503,
-            detail="지금은 비밀번호 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.",
+            detail="지금은 비밀번호 재설정 메일을 보낼 수 없어요. 고객 지원으로 문의해 주세요.",
         ) from None
     audit(
         db,

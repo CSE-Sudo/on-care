@@ -50,7 +50,7 @@ const Map<String, String> _seedEnglish = <String, String>{
       "I see! Any injuries or discomfort after today's PT?",
   '무릎이 가볍게 당기긴 했는데 괜찮아요': "My knee was a little sore, but it's fine",
   '이번 주 리포트 보내 드렸어요. 확인해 보세요': "I sent you this week's report. Take a look",
-  '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪':
+  '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪':
       "Got it. The AI suggested a cardio program based on today's meals, but given your knee I'll swap running for walking. See you at the next PT 💪",
   '체중 감량 · 체력 강화': 'Weight loss · Fitness',
   '어제': 'Yesterday',
@@ -63,21 +63,21 @@ const Map<String, String> _seedEnglish = <String, String>{
   '시금치나물': 'Seasoned spinach',
   '저녁': 'Dinner',
   '연어 샐러드': 'Salmon salad',
-  '인터벌 런닝': 'Interval running',
+  '인터벌 러닝': 'Interval running',
   '체지방 연소 효율↑': 'Better fat burning',
   '스쿼트': 'Squat',
   '하체 근력 강화': 'Lower-body strength',
   '플랭크': 'Plank',
   '코어 안정화': 'Core stability',
   'AI 개인운동': 'AI personal exercise',
-  '런닝이 힘들었는데 다 했어요! 숨이 많이 찼어요':
+  '러닝이 힘들었는데 다 했어요! 숨이 많이 찼어요':
       'The run was tough but I finished it all! I was really out of breath',
-  '심폐지구력 향상 중. 다음 주 런닝 강도 소폭 올릴 예정.':
+  '심폐지구력 향상 중. 다음 주 러닝 강도 소폭 올릴 예정.':
       'Cardio endurance improving. Will raise running intensity slightly next week.',
   'PT 세션 · 트레이너 지도': 'PT · Trainer-led',
   '데드리프트 자세 교정 도움 많이 됐어요!': 'The deadlift form fixes really helped!',
   '마지막 플랭크는 너무 지쳐서 못 했어요': 'I was too worn out for the last plank',
-  '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 런닝 25분 완료! 컨디션은 어때요?':
+  '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 러닝 25분 완료! 컨디션은 어때요?':
       'Jisu, your AI workout data came in — 25 minutes of interval running done today! How are you feeling?',
   '생각보다 괜찮았어요. 숨이 금방 차더라고요 😮‍💨':
       'Better than I expected. I got out of breath quickly though 😮‍💨',
@@ -384,7 +384,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '숄더 프레스': 'Shoulder press',
   '사이드 레터럴': 'Lateral raise',
   '페이스 풀': 'Face pull',
-  '런닝': 'Running',
+  '러닝': 'Running',
   '사이클': 'Cycling',
   '힙 쓰러스트': 'Hip thrust',
   '카프 레이즈': 'Calf raise',
@@ -455,7 +455,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '오른쪽 어깨': 'Right shoulder',
   '야근이 많아서 저녁 운동을 못 갔어요. 벤치 할 때 어깨가 좀 걸리는 느낌이 있습니다.':
       'Lots of late nights, so I missed my evening workouts. My shoulder catches a bit on the bench.',
-  '지난 주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.':
+  '지난주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.':
       'I felt better than last week, but I kept missing protein at dinner.',
   '스쿼트 무게 올린 게 오히려 재밌었어요.': 'Going heavier on squats was actually fun.',
   '출장이 겹쳐서 헬스장에 못 갔습니다. 다음 주부터 다시 갈게요.':
@@ -494,7 +494,7 @@ const Map<String, String> _seedEnglish = <String, String>{
       'I forgot to log over the weekend again, but I finished every interval workout on weekdays.',
   '친구 결혼식이랑 모임이 겹쳐서 단 걸 많이 먹었어요.':
       "A friend's wedding and a get-together landed in the same week, so I ate a lot of sweets.",
-  '런닝할 때 숨찬 게 확실히 줄었어요!': "I'm definitely less out of breath when I run!",
+  '러닝할 때 숨찬 게 확실히 줄었어요!': "I'm definitely less out of breath when I run!",
   '플랭크 마지막 세트가 아직 힘들어요.': 'The last plank set is still tough.',
   '데드리프트 자세 교정 받은 뒤로 허리가 편해졌어요.':
       'My back feels better since you fixed my deadlift form.',
@@ -502,11 +502,11 @@ const Map<String, String> _seedEnglish = <String, String>{
       'First time doing intervals, and I was completely out of breath.',
   '주말에 등산 다녀왔는데 기록은 못 했어요.': "I went hiking on the weekend but didn't log it.",
   '스쿼트 무게를 좀 더 올려도 될 것 같아요.': 'I think I can go a bit heavier on squats.',
-  '회식이 두 번 있었어요. 그래도 다음 날 런닝은 했어요.':
+  '회식이 두 번 있었어요. 그래도 다음 날 러닝은 했어요.':
       'Two team dinners, but I still ran the next day.',
   '저녁을 샐러드로 바꾸니까 생각보다 배가 덜 고파요.':
       "Switching dinner to salad, I'm less hungry than I expected.",
-  '런닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.':
+  '러닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.':
       "I rolled my ankle slightly while running. It's fine now.",
   '회사 일 때문에 벤치만 하고 나온 날이 많았어요.':
       'Work kept pulling me away, so most days I only did bench and left.',

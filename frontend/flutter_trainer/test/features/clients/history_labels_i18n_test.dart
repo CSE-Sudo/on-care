@@ -267,9 +267,9 @@ void main() {
       expect(bench.weight, 62.5);
 
       final ClientExerciseItem run = ClientExerciseItem.fromLegacyLine(
-        '인터벌 런닝 25분 ✓',
+        '인터벌 러닝 25분 ✓',
       );
-      expect(run.name, '인터벌 런닝');
+      expect(run.name, '인터벌 러닝');
       expect(run.minutes, 25);
 
       final ClientExerciseItem legacyOrder = ClientExerciseItem.fromLegacyLine(

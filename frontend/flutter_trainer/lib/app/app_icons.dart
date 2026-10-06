@@ -97,6 +97,9 @@ class AppIcons {
   // --- 사람·계정 ---
   static const IconData person = Symbols.person_rounded;
 
+  /// 휴대폰 번호 칸(가입·아이디 찾기). 회원 앱과 같은 기호다.
+  static const IconData phone = Symbols.call_rounded;
+
   /// 초대 거절·노쇼·이탈 위험.
   static const IconData personOff = Symbols.person_off_rounded;
 

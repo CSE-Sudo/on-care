@@ -479,7 +479,7 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "reason": "trainer",
          "refunded": 21000},
         "",
-        "재등록 쿠폰이 취소됐어요",
+        "PT 재등록 할인 쿠폰이 취소됐어요",
         "담당 트레이너 연결이 해제되어 PT 재등록 30,000원 할인 쿠폰을 취소하고 "
         "21,000P를 돌려드렸어요.",
     ),
@@ -488,7 +488,7 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "reason": "trainer",
          "refunded": 0},
         "",
-        "재등록 쿠폰이 취소됐어요",
+        "PT 재등록 할인 쿠폰이 취소됐어요",
         "담당 트레이너 연결이 해제되어 PT 재등록 30,000원 할인 쿠폰을 취소하고 0P를 돌려드렸어요.",
     ),
     (
@@ -504,7 +504,7 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
          "refunded": 7000},
         "",
-        "락커 쿠폰이 취소됐어요",
+        "개인 락커 쿠폰이 취소됐어요",
         "헬스장 연결이 해제되어 개인 락커 1개월 무료 쿠폰을 취소하고 7,000P를 돌려드렸어요.",
     ),
     # 주간 챌린지 — `weekly_challenge_service` 의 결과 판정.
@@ -989,7 +989,7 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
          "last_day": "2026-10-04"},
         (
             "Coupon expiring soon",
-            "Your ₩30,000 off PT re-registration coupon expires in 3 days (10/4). "
+            "Your ₩30,000 off PT renewal coupon expires in 3 days (10/4). "
             "Points can't be refunded once it expires.",
         ),
     ),
@@ -1018,8 +1018,8 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "reason": "trainer",
          "refunded": 21000},
         (
-            "PT re-registration coupon cancelled",
-            "Your ₩30,000 off PT re-registration coupon was cancelled because your "
+            "PT renewal discount coupon cancelled",
+            "Your ₩30,000 off PT renewal coupon was cancelled because your "
             "trainer connection ended. We refunded 21,000P.",
         ),
     ),
@@ -1028,8 +1028,8 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         {"item": "diet_tray", "benefit": "분석용 규격 식판", "reason": "trainer",
          "refunded": None},
         (
-            "Meal tray coupon cancelled",
-            "Your standard meal tray for photo analysis coupon was cancelled because "
+            "Tray pickup coupon cancelled",
+            "Your free analysis tray coupon was cancelled because "
             "your trainer connection ended.",
         ),
     ),
@@ -1038,7 +1038,7 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
          "refunded": 7000},
         (
-            "Locker coupon cancelled",
+            "Personal locker coupon cancelled",
             "Your free personal locker for 1 month coupon was cancelled because your "
             "gym connection ended. We refunded 7,000P.",
         ),
@@ -1412,11 +1412,11 @@ def test_coupon_cancelled_for_paused_gym_benefits_reads_in_both_languages():
         "refunded": 7000,
     }
     ko_title, ko_body = nt.render(nt.MEMBER_COUPON_CANCELLED, args, "ko")
-    assert ko_title == "락커 쿠폰이 취소됐어요"
+    assert ko_title == "개인 락커 쿠폰이 취소됐어요"
     assert "헬스장 혜택 제공을 잠시 멈추게 되어" in ko_body
     assert "7,000P" in ko_body
     en_title, en_body = nt.render(nt.MEMBER_COUPON_CANCELLED, args, "en")
-    assert en_title == "Locker coupon cancelled"
+    assert en_title == "Personal locker coupon cancelled"
     assert "gym benefits are paused" in en_body
     assert "7,000P" in en_body
 

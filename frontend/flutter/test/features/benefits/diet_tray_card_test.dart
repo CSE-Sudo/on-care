@@ -112,7 +112,7 @@ void main() {
     expect(find.byKey(const Key('dietTrayProgress')), findsNothing);
     expect(
       statusLine(tester),
-      '온케어짐 신촌점에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 채팅으로 물어보세요',
+      '온케어짐 신촌점에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 메시지로 물어보세요',
     );
     await tester.pump(const Duration(seconds: 10));
     await tester.pumpAndSettle();

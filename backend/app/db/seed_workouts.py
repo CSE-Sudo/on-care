@@ -86,7 +86,7 @@ def _r(name, minutes, type_, reason, *, sets=None, reps=None, hold=None,
 #: 회원별 개인운동 세 줄(배정 순서). 데모 `seed_clients.dart` 의 `aiRoutine` 과 같다.
 ROUTINES: dict[str, tuple[SeedRoutine, ...]] = {
     "user-jisu": (
-        _r("인터벌 런닝", 25, "유산소", "체지방 연소 효율↑", intensity="high"),
+        _r("인터벌 러닝", 25, "유산소", "체지방 연소 효율↑", intensity="high"),
         _r("스쿼트", 15, "근력", "하체 근력 강화", sets=3, reps=12, weight=40),
         _r("플랭크", 10, "근력", "코어 안정화", sets=3, hold=30),
     ),
