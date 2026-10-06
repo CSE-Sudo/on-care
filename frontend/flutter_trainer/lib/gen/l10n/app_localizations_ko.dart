@@ -3046,6 +3046,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiBasisConditionLabel => '생성 조건';
 
   @override
+  String aiBasisConditionMax(int total, String intensity) {
+    return '최대 $total분 · 강도 $intensity';
+  }
+
+  @override
   String aiBasisConditionValue(String conditions, String source) {
     return '$conditions ($source)';
   }

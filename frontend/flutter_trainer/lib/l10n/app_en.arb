@@ -2043,6 +2043,17 @@
     }
   },
   "aiBasisConditionLabel": "Conditions",
+  "aiBasisConditionMax": "Up to {total} min · {intensity}",
+  "@aiBasisConditionMax": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "intensity": {
+        "type": "String"
+      }
+    }
+  },
   "aiBasisConditionValue": "{conditions} ({source})",
   "@aiBasisConditionValue": {
     "placeholders": {

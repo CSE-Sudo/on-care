@@ -5599,6 +5599,12 @@ abstract class AppLocalizations {
   /// **'Conditions'**
   String get aiBasisConditionLabel;
 
+  /// No description provided for @aiBasisConditionMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to {total} min · {intensity}'**
+  String aiBasisConditionMax(int total, String intensity);
+
   /// No description provided for @aiBasisConditionValue.
   ///
   /// In en, this message translates to:

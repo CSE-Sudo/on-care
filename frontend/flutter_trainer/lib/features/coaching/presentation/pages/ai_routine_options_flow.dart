@@ -2888,7 +2888,9 @@ class _RecommendationStatusBanner extends StatelessWidget {
       (
         l.aiBasisConditionLabel,
         l.aiBasisConditionValue(
-          l.aiTotalAndIntensity(minutes, switch (intensity) {
+          // 총 시간은 후보가 넘지 않는 **상한**이다 — A안은 일부러 더 짧게
+          // 짠다(#776). `총 30분` 이라 적으면 22분 후보가 조건을 어긴 듯 읽힌다.
+          l.aiBasisConditionMax(minutes, switch (intensity) {
             'low' => l.intensityLight,
             'high' => l.intensityHigh,
             _ => l.intensityModerate,

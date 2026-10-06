@@ -3219,6 +3219,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiBasisConditionLabel => 'Conditions';
 
   @override
+  String aiBasisConditionMax(int total, String intensity) {
+    return 'Up to $total min · $intensity';
+  }
+
+  @override
   String aiBasisConditionValue(String conditions, String source) {
     return '$conditions ($source)';
   }

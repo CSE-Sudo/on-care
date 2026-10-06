@@ -1332,6 +1332,7 @@
   "aiBasisRequestLabel": "트레이너 요청",
   "aiBasisRequestValue": "\"{request}\"",
   "aiBasisConditionLabel": "생성 조건",
+  "aiBasisConditionMax": "최대 {total}분 · 강도 {intensity}",
   "aiBasisConditionValue": "{conditions} ({source})",
   "aiBasisConditionByTrainer": "트레이너 지정",
   "aiBasisConditionAuto": "기록 기반 자동",
