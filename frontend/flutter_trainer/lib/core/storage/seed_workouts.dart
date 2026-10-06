@@ -153,6 +153,45 @@ String _routineCode(String type) => switch (type) {
   _ => 'other',
 };
 
+/// 처방과 다른 강도로 한 개인운동 — 회원 번호 → (배정 순서, 수행 강도). (#3263)
+///
+/// 그 개인운동을 한 **가장 최근 지난 날** 하루만 이 강도로 남긴다
+/// ([_performedOffDay]). 트레이너 화면은 그날 줄에 처방 강도를 기준 자리에 두고
+/// `수행 높음` 을 덧붙인다(#3249) — 시드에 이런 날이 없으면 시연에서 그 태그를 보일
+/// 날이 없다. 오늘은 회원이 직접 체크하므로 들지 않는다. 백엔드
+/// `seed_workouts.PERFORMED_OFF` 와 같다.
+const Map<int, (int, String)> _performedOff = <int, (int, String)>{
+  // 이지수 — 스쿼트(처방 보통)를 세게 했다.
+  2: (1, 'high'),
+};
+
+/// [_performedOff] 의 개인운동을 처방과 다르게 한 날 — 오늘 전에 그 운동을 한 가장
+/// 최근 날. 없으면 null. 백엔드 `performed_off_day` 와 같다.
+DateTime? _performedOffDay(_Client client, DateTime now) {
+  final (int, String)? off = _performedOff[client.id];
+  if (off == null) return null;
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  DateTime? latest;
+  for (final _SeedDay d in _seedDays(client, now)) {
+    if (!d.date.isBefore(today)) continue;
+    if (_doneCount(d.completion, client.aiRoutine.length) <= off.$1) continue;
+    if (latest == null || d.date.isAfter(latest)) latest = d.date;
+  }
+  return latest;
+}
+
+/// 그날 [order] 번째 개인운동을 회원이 한 강도 — 대개 처방 그대로다.
+String _performedIntensity(
+  _Client client,
+  int order,
+  DateTime date,
+  DateTime? offDay,
+) {
+  final (int, String)? off = _performedOff[client.id];
+  if (off != null && date == offDay && order == off.$1) return off.$2;
+  return client.aiRoutine[order].intensity;
+}
+
 /// 그날 완료한 개인운동 수 — 이행률만큼 반올림(`_RateDone` 과 같은 셈).
 int _doneCount(int completion, int routines) =>
     (routines * completion / 100).round();
@@ -183,18 +222,22 @@ Map<String, Object?> _routineAmounts(
 List<Map<String, Object?>> _personalRows(
   _Client client,
   int completion,
-  _SeedText t,
-) => <Map<String, Object?>>[
-  for (final _Routine r in client.aiRoutine.take(
-    _doneCount(completion, client.aiRoutine.length),
-  ))
+  _SeedText t, {
+  required DateTime date,
+  required DateTime? offDay,
+}) => <Map<String, Object?>>[
+  for (final (int i, _Routine r)
+      in client.aiRoutine
+          .take(_doneCount(completion, client.aiRoutine.length))
+          .indexed)
     () {
       final Map<String, Object?> row = _routineAmounts(r, t);
       return <String, Object?>{
         ...row,
         'calories': _seedKcal(row),
         'source': 'assigned_routine',
-        'intensity': r.intensity,
+        // 회원이 한 강도 — 처방과 다르게 한 날(#3263)만 다르다.
+        'intensity': _performedIntensity(client, i, date, offDay),
       };
     }(),
 ];
@@ -232,6 +275,7 @@ Iterable<ClientRoutineHistoryCompanion> _personalCards(
 ) sync* {
   final DateTime today = DateTime(now.year, now.month, now.day);
   final DateTime seedSince = today.subtract(const Duration(days: 27));
+  final DateTime? offDay = _performedOffDay(client, now);
   for (final _SeedDay d in _seedDays(client, now)) {
     if (!_seedsPersonalOn(client, d.date, today)) continue;
     final int done = _doneCount(d.completion, client.aiRoutine.length);
@@ -252,7 +296,9 @@ Iterable<ClientRoutineHistoryCompanion> _personalCards(
           if (i < done)
             <String, Object?>{
               ..._routineAmounts(r, t),
-              'intensity': r.intensity,
+              // 한 강도와 처방 강도 — 둘이 다른 날(#3263) 트레이너 화면이
+              // `수행 …` 을 붙인다. 서버 `_personal_done_item` 과 같다.
+              'intensity': _performedIntensity(client, i, d.date, offDay),
               'prescribed_intensity': r.intensity,
             }
           else if (missedLines)

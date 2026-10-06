@@ -16,10 +16,12 @@ ReportSheetWeekData _report({
   List<int> caloriesWeek = const <int>[2000, 0, 1900, 2600, 1000, 0, 0],
   List<double> carbsWeek = const <double>[],
   List<double> proteinWeek = const <double>[],
+  List<double> fatWeek = const <double>[],
   List<double> sugarWeek = const <double>[],
   List<int> sodiumWeek = const <int>[],
   List<int> mealCounts = const <int>[3, 0, 2, 3, 1, 0, 0],
   int? calorieTarget = 2000,
+  double? carbsTarget,
   double? proteinTarget,
   double? effectiveProteinTarget,
 }) => ReportSheetWeekData(
@@ -33,10 +35,12 @@ ReportSheetWeekData _report({
   caloriesWeek: caloriesWeek,
   carbsWeek: carbsWeek,
   proteinWeek: proteinWeek,
+  fatWeek: fatWeek,
   sugarWeek: sugarWeek,
   sodiumWeek: sodiumWeek,
   mealCounts: mealCounts,
   calorieTarget: calorieTarget,
+  carbsTarget: carbsTarget,
   proteinTarget: proteinTarget,
   effectiveProteinTarget: effectiveProteinTarget,
 );
@@ -169,6 +173,32 @@ void main() {
       expect(band(74), SheetBand.under);
       expect(band(124), SheetBand.normal);
       expect(band(126), SheetBand.over);
+    });
+
+    test('트레이너 웹 탄단지 막대가 쓰는 macros 는 결과지 식단 줄과 같다 (#3259)', () {
+      final ReportSheetWeekData r = _report(
+        carbsWeek: const <double>[150],
+        carbsTarget: 250,
+        proteinWeek: const <double>[40],
+        effectiveProteinTarget: 96,
+        fatWeek: const <double>[30],
+      );
+      final Map<SheetDietItem, SheetMeasure> diet = ReportSheet.of(r).diet;
+      final Map<SheetDietItem, SheetMeasure> macros = ReportSheet.macros(r);
+
+      expect(macros.keys, <SheetDietItem>[
+        SheetDietItem.carbs,
+        SheetDietItem.protein,
+        SheetDietItem.fat,
+      ]);
+      for (final SheetDietItem item in macros.keys) {
+        expect(macros[item]!.target, diet[item]!.target, reason: '$item');
+        expect(macros[item]!.band, diet[item]!.band, reason: '$item');
+      }
+      // 개인 목표가 있는 탄수화물만 판정한다.
+      expect(macros[SheetDietItem.carbs]!.band, SheetBand.under);
+      expect(macros[SheetDietItem.protein]!.band, isNull);
+      expect(macros[SheetDietItem.fat]!.band, isNull);
     });
 
     test('나트륨은 평균이 목표 안이어도 초과 사흘이면 초과다 (#3246)', () {

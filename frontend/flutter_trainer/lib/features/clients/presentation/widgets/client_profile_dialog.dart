@@ -18,6 +18,7 @@ import 'package:oncare_trainer/shared/services/member_health_profile_provider.da
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_trainer/shared/utils/focus_change_label.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
+import 'package:oncare_trainer/shared/widgets/dialog_busy_scope.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 회원 상세 헤더에서 여는 두 창 — 신체·목표와 메모.
@@ -44,13 +45,16 @@ Future<void> showClientProfileDialog(
   bool openFeedback = false,
 }) => showAppDialog<void>(
   context: context,
-  builder: (_) => ClientProfileDialog(
-    clientId: clientId,
-    clientName: clientName,
-    ageYears: ageYears,
-    section: section,
-    openHealthNotes: openHealthNotes,
-    openFeedback: openFeedback,
+  // 평소에는 바깥 누름·뒤로 가기로 닫히고, 저장·메모 요청이 도는 동안만 막는다.
+  builder: (_) => DialogBusyScope(
+    child: ClientProfileDialog(
+      clientId: clientId,
+      clientName: clientName,
+      ageYears: ageYears,
+      section: section,
+      openHealthNotes: openHealthNotes,
+      openFeedback: openFeedback,
+    ),
   ),
 );
 
@@ -558,6 +562,9 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       context,
       listen: false,
     );
+    // 저장이 도는 동안은 창이 닫히지 않는다 — 결과 토스트가 창과 함께 사라지면
+    // 저장됐는지 모른 채 창을 다시 연다.
+    final VoidCallback release = DialogBusyScope.hold(context);
     try {
       final Map<String, Object?> changed = await _changedValues();
       if (changed.isEmpty) {
@@ -603,6 +610,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       final l = AppLocalizations.of(context);
       showAppToast(context, l.memberHealthSaveFailed, type: AppToastType.error);
       setState(() => _saving = false);
+    } finally {
+      release();
     }
   }
 
@@ -1374,6 +1383,8 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
       context,
       listen: false,
     );
+    // 메모를 쓰고 고치고 지우는 동안은 창이 닫히지 않는다.
+    final VoidCallback release = DialogBusyScope.hold(context);
     try {
       await write();
       container.invalidate(trainerMemosProvider(widget.clientId));
@@ -1393,6 +1404,8 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
       if (!mounted) return;
       setState(() => _busy = false);
       _toast(fallback);
+    } finally {
+      release();
     }
   }
 

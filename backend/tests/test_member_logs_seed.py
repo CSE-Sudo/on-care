@@ -186,6 +186,37 @@ def test_pt_history_days_carry_the_pt_exercises(db_session):
                     assert s.sets
 
 
+def test_one_personal_day_is_done_at_a_different_intensity(db_session):
+    """이지수의 스쿼트를 한 가장 최근 지난 날 하루만 처방(보통)과 다르게 `high` 다(#3263).
+
+    트레이너 화면은 그날 줄에 `수행 높음` 을 붙인다(#3249). 그 밖의 개인운동 수행은
+    처방 그대로다 — 데모 시드(`_performedOff`)와 같은 날·같은 강도다.
+    """
+    from app.db import seed_workouts
+    from app.db.seed_member_data import _PERSONAL_SESSION_PREFIX
+    from app.models.models import ExerciseSession
+
+    member = "user-jisu"
+    order, performed = seed_workouts.PERFORMED_OFF[member]
+    routines = seed_workouts.ROUTINES[member]
+    prefix = f"{_PERSONAL_SESSION_PREFIX}{member}-"
+    sessions = db_session.scalars(
+        select(ExerciseSession).where(ExerciseSession.id.like(f"{prefix}%"))
+    ).all()
+    assert sessions
+    # id 는 `머리 + 회원 - 날짜 - 배정 순서` 다.
+    keyed = {
+        (date.fromisoformat(s.id[len(prefix):len(prefix) + 10]), int(s.id.rsplit("-", 1)[1])): s
+        for s in sessions
+    }
+    off_day = max(day for day, o in keyed if o == order)
+    assert off_day < clock.today()
+    for (day, o), s in keyed.items():
+        expected = performed if (day, o) == (off_day, order) else routines[o].intensity
+        assert s.intensity == expected, (day, o, s.name)
+    assert keyed[(off_day, order)].name == routines[order].name
+
+
 def test_personal_routines_are_the_members_own(db_session):
     """확장 회원의 개인운동·완료는 회원별 표 그대로다 — 데모와 같은 운동(#3003).
 
