@@ -1913,6 +1913,10 @@ class ProgramScheduleRequest(BaseModel):
     suggestion_ids: list[_SuggestionId] = Field(
         default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
+    #: 이 PT 의 트레이너 피드백(#2374) — 일정의 `note` 에 담긴다. 회원에게는 PT 를
+    #: 완료한 뒤에 보인다(#2515). 기존 회차에 붙일 때 그 회차에 피드백이 있으면
+    #: 덮지 않고 줄을 바꿔 이어 붙인다. 비우면 일정의 피드백을 건드리지 않는다.
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)

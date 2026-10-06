@@ -133,6 +133,7 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) async {
     registerCalls++;
     // Keep the write in flight across client-switching/scroll animations.
@@ -147,6 +148,7 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
       program: program,
       sessionId: sessionId,
       personalRoutines: personalRoutines,
+      note: note,
     );
     completedFor.add(clientId);
     return attached;
@@ -173,6 +175,9 @@ class _CapturingScheduleRepository extends DriftScheduleRepository {
   final List<List<RoutineExercise>> personalRoutineCalls =
       <List<RoutineExercise>>[];
 
+  /// 시도마다 함께 온 트레이너 피드백(#2374).
+  final List<String> notes = <String>[];
+
   @override
   Future<bool> registerProgramSchedule({
     required String date,
@@ -184,10 +189,12 @@ class _CapturingScheduleRepository extends DriftScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) async {
     registerCalls++;
     assignments.add(assignment);
     personalRoutineCalls.add(personalRoutines);
+    notes.add(note);
     if (error != null) throw error!;
     this.clientId = clientId;
     this.time = time;
@@ -3600,6 +3607,61 @@ void main() {
       expect(scheduleRepo.personalRoutineCalls.single, isNotEmpty);
     });
 
+    testWidgets('편집기 하단에 쓴 트레이너 피드백을 확인창에 보이고 일정 추가로 보낸다', (tester) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
+
+      // 피드백 칸은 편집기 하단에 있다(#2374) — 위저드에는 없다.
+      await _revealBuilt(tester, 'program-schedule-feedback');
+      final field = find.byKey(
+        const ValueKey<String>('program-schedule-feedback'),
+      );
+      expect(field, findsOneWidget);
+      await _ensureCentered(tester, field);
+      await tester.enterText(field, '하체 위주로 짰어요');
+      await tester.pump();
+
+      await tapEditorSend(tester);
+      expect(
+        find.byKey(const ValueKey<String>('program-assign-feedback')),
+        findsOneWidget,
+      );
+      expect(find.text('하체 위주로 짰어요'), findsWidgets);
+      expect(find.text('PT를 마치면 회원 앱에 피드백으로 보여요'), findsWidgets);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+      );
+      await settle(tester);
+
+      expect(scheduleRepo.registerCalls, 1);
+      expect(scheduleRepo.notes.single, '하체 위주로 짰어요');
+    });
+
+    testWidgets('피드백을 비워 두면 확인창에 피드백 줄이 없다', (tester) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
+
+      await tapEditorSend(tester);
+      expect(
+        find.byKey(const ValueKey<String>('program-assign-feedback')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+      );
+      await settle(tester);
+
+      expect(scheduleRepo.notes.single, isEmpty);
+    });
+
     testWidgets('개인운동 없이 추가를 고르면 개인운동 없이 일정에 올린다', (tester) async {
       final scheduleRepo = await openCoaching(tester);
       await openManualEditor(tester);
@@ -3894,6 +3956,9 @@ class _AttachScheduleRepository extends DriftScheduleRepository {
   final List<String> updatedFor = <String>[];
   final List<List<RoutineExercise>> updatedItems = <List<RoutineExercise>>[];
 
+  /// 시도마다 함께 온 트레이너 피드백(#2374).
+  final List<String> notes = <String>[];
+
   @override
   Future<bool> registerProgramSchedule({
     required String date,
@@ -3905,9 +3970,11 @@ class _AttachScheduleRepository extends DriftScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) async {
     registerCalls++;
     personalRoutineCalls.add(personalRoutines);
+    notes.add(note);
     return true;
   }
 

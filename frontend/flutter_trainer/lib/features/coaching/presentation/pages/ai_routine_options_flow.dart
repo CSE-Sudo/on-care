@@ -159,11 +159,11 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
 class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 조건 설정 단계의 자연어 요청. 그대로 `trainer_note` 로 나간다 (#1028).
   ///
-  /// 고객에게 함께 보낼 메모([_trainerMemo])와 **다른 칸**이다 — 하나로 묶여
-  /// 있던 동안에는 "하체 부담 적은 40분으로 만들어줘" 같은 AI 지시문이 그대로
-  /// 회원이 읽는 루틴 사유로 나갔다.
+  /// 회원에게 전할 트레이너 피드백과 **다른 칸**이다 — 하나로 묶여 있던 동안에는
+  /// "하체 부담 적은 40분으로 만들어줘" 같은 AI 지시문이 그대로 회원이 읽는 루틴
+  /// 사유로 나갔다. 피드백은 위저드가 아니라 편집기 하단에서 `일정 추가` 와 함께
+  /// 쓴다(#2374).
   final TextEditingController _prompt = TextEditingController();
-  final TextEditingController _trainerMemo = TextEditingController();
   final TextEditingController _newExerciseName = TextEditingController();
 
   /// 이 화면의 맨 위(진행 단계 표시줄) 를 가리킨다 — [_scrollToTop] 이 이
@@ -186,10 +186,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     super.initState();
     final RoutineContextSourceStore? store = _sourceStore();
     if (store != null) _sources = store.read(_sourceAccount());
-    // 글자를 칠 때는 이 화면이 다시 그려지지 않는다 — 요청·메모 칸의 변경도
+    // 글자를 칠 때는 이 화면이 다시 그려지지 않는다 — 요청 칸의 변경도
     // 자동 보관에 실리게 따로 듣는다(#2873).
     _prompt.addListener(_emitSnapshot);
-    _trainerMemo.addListener(_emitSnapshot);
     final AiRoutineWizardSnapshot? saved = widget.initialSnapshot;
     if (saved != null && !widget._attachMode) {
       _restoreSnapshot(saved);
@@ -235,7 +234,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             null,
       ]);
     _prompt.text = saved.prompt;
-    _trainerMemo.text = saved.trainerMemo;
     _minutes = saved.minutes;
     _intensity = saved.intensity;
     _minutesTouched = saved.minutesTouched;
@@ -253,7 +251,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     personalSeeded: _personalSeeded,
     options: _options,
     prompt: _prompt.text,
-    trainerMemo: _trainerMemo.text,
     minutes: _minutes,
     intensity: _intensity,
     minutesTouched: _minutesTouched,
@@ -416,7 +413,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       );
     }
     _prompt.dispose();
-    _trainerMemo.dispose();
     _newExerciseName.dispose();
     super.dispose();
   }
@@ -424,19 +420,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 역할 글자에 색을 입힌다.
   TextStyle _text(TextStyle role, Color color) =>
       context.oncare.text(role).copyWith(color: color);
-
-  String _analysisSuggestion(AppLocalizations l) {
-    final client = widget.client;
-    final sodium = client.sodiumOverBudget
-        ? l.aiReasonSodium
-        : l.aiReasonBalanced;
-    // 보낸 적이 없으면 예전처럼 저장된 `-` 를 그대로 둔다.
-    final last = lastRoutineLabel(l, client);
-    // 목표는 저장 값(한국어)이 아니라 화면 언어로 적는다(#2467).
-    final goal = healthFocusGoalLabel(l, client.goal);
-    return '${l.aiReasonGoal(goal, last.isEmpty ? client.lastRoutine : last)} '
-        '$sodium';
-  }
 
   List<_RoutineChoice> _choicesOf(AppLocalizations l) {
     final options = _options;
@@ -950,8 +933,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _generatedOptions(),
           const SizedBox(height: OnCareSpacing.sectionGap),
           _routineEditor(),
-          const SizedBox(height: OnCareSpacing.s16),
-          _trainerMemoField(),
         ],
         _Step.personal => <Widget>[_personalRoutineEditor()],
         _Step.review => <Widget>[_reviewedRoutineList()],
@@ -2412,38 +2393,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  Widget _trainerMemoField() {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          AppSectionHeader(title: l.schedNote),
-          const SizedBox(height: OnCareSpacing.s8),
-          AppTextField(
-            key: const ValueKey<String>('final-trainer-memo'),
-            controller: _trainerMemo,
-            label: l.aiNoteForClient,
-            hint: _analysisSuggestion(l),
-            helper: l.schedNoteVisibleToMember,
-            minLines: 2,
-            maxLines: 4,
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            l.aiNotePlaceholderHint,
-            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _reviewedRoutineList() {
     final AppLocalizations l = AppLocalizations.of(context);
     final Color brand = context.oncare.brand.primary;
     final optionName = _optionDisplayName(l, _selectedKey);
-    final memo = _trainerMemo.text.trim();
     return Column(
       key: const ValueKey<String>('reviewed-routine-list'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2453,6 +2406,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           icon: AppIcons.checkCircle,
           subtitle: l.aiEditsApplied,
         ),
+        const SizedBox(height: OnCareSpacing.s12),
+        _reviewSummary(l),
         const SizedBox(height: OnCareSpacing.s12),
         // 줄 **사이**에만 간격을 둔다 — 끝에 남는 간격은 아래 진행 줄과의
         // 거리를 다른 단계보다 벌린다(#2476).
@@ -2493,45 +2448,52 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ),
           ),
         ],
-        if (memo.isNotEmpty) const SizedBox(height: OnCareSpacing.s8),
-        if (memo.isNotEmpty)
-          AppCard(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const AppIcon(
-                  AppIcons.note,
-                  size: OnCareSize.iconMedium,
-                  // 메모다. 주의가 아니므로 빨강으로 올리지 않는다(#690).
-                  color: OnCareColors.cautionFill,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        l.schedNote,
-                        style: _text(
-                          OnCareTypography.strong(OnCareTypography.caption),
-                          OnCareColors.cautionFill,
-                        ),
-                      ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Text(
-                        memo,
-                        style: _text(
-                          OnCareTypography.bodySmall,
-                          OnCareColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      ],
+    );
+  }
+
+  /// 확정한 구성의 요약과 강도 확인 줄(#2374). AI 를 부르지 않고 지금 목록과
+  /// 회원 현황만 쓴다.
+  ///
+  /// 강도 확인은 1단계 `권장 방향`과 같은 기준이다
+  /// ([intensityConflictsWithDirection], #2373). 불편감 메모는
+  /// 1단계 `최근 7일 확인 필요` 칸이 이미 보여 주므로 여기 다시 두지 않는다.
+  Widget _reviewSummary(AppLocalizations l) {
+    final int total = _edited.fold<int>(
+      0,
+      (sum, exercise) => sum + exercise.minutes,
+    );
+    final int strength = _edited.where((e) => e.type == '근력').length;
+    final int cardio = _edited.where((e) => e.type == '유산소').length;
+    final bool warn = intensityConflictsWithDirection(
+      widget.client,
+      _intensity,
+    );
+    return AppCard(
+      key: const ValueKey<String>('reviewed-summary'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l.aiReviewSummary(total, _edited.length, strength, cardio),
+            style: _text(
+              OnCareTypography.strong(OnCareTypography.bodySmall),
+              OnCareColors.textPrimary,
             ),
           ),
-      ],
+          if (warn) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(
+              l.aiReviewIntensityWarning,
+              key: const ValueKey<String>('reviewed-intensity-warning'),
+              style: _text(
+                OnCareTypography.strong(OnCareTypography.caption),
+                OnCareColors.danger,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

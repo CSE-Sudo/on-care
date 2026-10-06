@@ -16,6 +16,9 @@ typedef ProgramAssignConfirmation = ({String? sessionId});
 /// 시간으로 새 일정을 만든다고, 하나면 그 회차에 연결되고 고른 시간은 쓰지
 /// 않는다고 저장 전에 말한다. 여럿이면 연결할 회차를 고르기 전까지 확인 버튼이
 /// 잠긴다 — 가장 이른 회차를 멋대로 고르지 않는다. 취소하면 null.
+///
+/// [feedback] 은 편집기 하단에 쓴 이 PT 의 트레이너 피드백이다(#2374). 비어
+/// 있지 않으면 저장 전에 한 번 더 보여 주고, 회원에게 언제 보이는지 함께 적는다.
 Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
   BuildContext context, {
   required String clientName,
@@ -24,6 +27,7 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
   required TimeOfDay registerEndTime,
   List<ScheduleSession> candidates = const <ScheduleSession>[],
   List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+  String feedback = '',
 }) {
   String? chosen = candidates.length == 1 ? candidates.single.id : null;
   return showAppDialog<ProgramAssignConfirmation>(
@@ -99,33 +103,59 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
               ),
             );
           }
+          final TextStyle strongStyle = dialogContext.oncare
+              .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+              .copyWith(color: OnCareColors.textPrimary);
+          final String note = feedback.trim();
           // PT 와 함께 갈 개인운동(#2223). 편집기에는 개인운동 자리가 없어,
           // 저장 직전의 이 창이 둘을 한 화면에서 확인하는 자리다.
-          final Widget content = personalRoutines.isEmpty
+          final Widget content = personalRoutines.isEmpty && note.isEmpty
               ? body
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     body,
-                    const SizedBox(height: OnCareSpacing.s16),
-                    Text(
-                      l.progPersonalRoutinesTitle,
-                      key: const ValueKey<String>(
-                        'program-assign-personal-routines',
+                    if (personalRoutines.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: OnCareSpacing.s16),
+                      Text(
+                        l.progPersonalRoutinesTitle,
+                        key: const ValueKey<String>(
+                          'program-assign-personal-routines',
+                        ),
+                        style: strongStyle,
                       ),
-                      style: dialogContext.oncare
-                          .text(
-                            OnCareTypography.strong(OnCareTypography.bodySmall),
-                          )
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s4),
-                    for (final routine in personalRoutines)
-                      Padding(
-                        padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-                        child: Text('· ${routine.name}', style: bodyStyle),
+                      const SizedBox(height: OnCareSpacing.s4),
+                      for (final routine in personalRoutines)
+                        Padding(
+                          padding: const EdgeInsets.only(top: OnCareSpacing.s2),
+                          child: Text('· ${routine.name}', style: bodyStyle),
+                        ),
+                    ],
+                    // 이 PT 의 트레이너 피드백(#2374) — 한 줄로 줄여 보이고,
+                    // 회원에게는 PT 를 마친 뒤에 보인다는 것을 함께 적는다.
+                    if (note.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: OnCareSpacing.s16),
+                      Text(
+                        l.schedNote,
+                        key: const ValueKey<String>('program-assign-feedback'),
+                        style: strongStyle,
                       ),
+                      const SizedBox(height: OnCareSpacing.s4),
+                      Text(
+                        note,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: bodyStyle,
+                      ),
+                      const SizedBox(height: OnCareSpacing.s2),
+                      Text(
+                        l.schedNoteVisibleToMember,
+                        style: dialogContext.oncare
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ],
                   ],
                 );
           return AppDialog(

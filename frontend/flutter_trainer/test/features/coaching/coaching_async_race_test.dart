@@ -49,6 +49,7 @@ class _HoldingScheduleRepository extends DriftScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) {
     registerCalls++;
     return super.registerProgramSchedule(
@@ -61,6 +62,7 @@ class _HoldingScheduleRepository extends DriftScheduleRepository {
       program: program,
       sessionId: sessionId,
       personalRoutines: personalRoutines,
+      note: note,
     );
   }
 }

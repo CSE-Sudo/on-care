@@ -291,6 +291,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   final Map<String, ProgramEditorState> _editorStates =
       <String, ProgramEditorState>{};
 
+  /// 회원별로 편집기 하단에 쓴 트레이너 피드백(#2374). `일정 추가` 가 PT 일정의
+  /// `note` 로 함께 보낸다. 편집기가 새로 서도(위저드 재반영) 남도록 여기 둔다.
+  final Map<String, String> _scheduleNotes = <String, String>{};
+
   /// `이어서 쓰기` 로 되살릴 편집기·위저드. 그 판번호의 편집기·위저드에만
   /// 넘긴다 — 보낸 뒤 새로 서는 편집기·위저드는 빈 채로 선다.
   ({String clientId, int revision, ProgramEditorState draft})? _restoredEditor;
@@ -351,6 +355,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           _personalRoutines[client.id] ?? const <RoutineExercise>[],
       routineOnly: _routineOnlyClients.contains(client.id),
       routineOnlyStart: _routineOnlyStart[client.id],
+      scheduleNote: _scheduleNotes[client.id] ?? '',
     );
     saver.schedule(
       client.id,
@@ -362,6 +367,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   void _discardAutosave(String clientId) {
     _editorStates.remove(clientId);
     _wizardSnapshots.remove(clientId);
+    _scheduleNotes.remove(clientId);
     final CoachingDraftAutosaver? saver = _autosaver;
     if (saver != null) unawaited(saver.discard(clientId));
   }
@@ -441,6 +447,12 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   void _restoreAutosave(TrainerClient client, CoachingWorkspaceDraft draft) {
     final String id = client.id;
     setState(() {
+      // 편집기보다 먼저 둔다 — 새로 서는 편집기가 이 값을 처음 값으로 읽는다.
+      if (draft.scheduleNote.isEmpty) {
+        _scheduleNotes.remove(id);
+      } else {
+        _scheduleNotes[id] = draft.scheduleNote;
+      }
       final ProgramEditorState? editor = draft.editor;
       if (editor != null) {
         _editorRevision++;
@@ -544,6 +556,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _unresolvedClientId = null;
       // 앞 회원의 편집기·위저드는 새로 선다 — 작성 내용도 함께 사라진다.
       _unsentWorkClients.clear();
+      _scheduleNotes.clear();
       _sent = false;
       _registerDate = _todayKst();
       _registerStartTime = const TimeOfDay(hour: 10, minute: 0);
@@ -852,6 +865,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!mounted || !_isStillSelected(client.id)) return;
     final personalRoutines =
         _personalRoutines[client.id] ?? const <RoutineExercise>[];
+    // 확인창에 보인 피드백을 그대로 보낸다 — 창을 띄운 뒤의 입력은 잠겨 있다.
+    final String note = (_scheduleNotes[client.id] ?? '').trim();
     final confirmation = await showProgramAssignConfirmDialog(
       context,
       clientName: client.name,
@@ -863,6 +878,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       // 개인운동 자리가 없어, 여기가 둘을 한 화면에서 확인하는 유일한 곳이다
       // (#2223).
       personalRoutines: personalRoutines,
+      feedback: note,
     );
     if (confirmation == null || !mounted || !_isStillSelected(client.id)) {
       return;
@@ -924,6 +940,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       // 개인운동이 달라지면 다른 전송이다 — 같은 키를 쓰면 바뀐 개인운동이
       // 재시도에서 조용히 무시된다.
       personalRoutinesToJson(personalRoutines),
+      // 피드백이 달라져도 다른 전송이다 — 같은 키면 바뀐 글이 재시도에서 무시된다.
+      note,
     ]);
     setState(() => _sendingClientIds.add(sentFor));
     final bool attachedToExisting;
@@ -940,6 +958,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             program: _draftProgram(draft),
             sessionId: confirmation.sessionId,
             personalRoutines: personalRoutines,
+            note: note,
           );
     } catch (error) {
       if (!mounted) return;
@@ -1939,6 +1958,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                       _registerStartTime = range.start;
                       _registerEndTime = range.end;
                     }),
+                    feedback: _scheduleNotes[client.id] ?? '',
+                    // 글자를 칠 때마다 다시 그리지 않는다 — 값만 적고 보관에 건다.
+                    onFeedbackChanged: (String value) {
+                      _scheduleNotes[client.id] = value;
+                      _unsentWorkClients.add(client.id);
+                      _scheduleAutosave(client, draftName);
+                    },
                   ),
                   // 편집기는 PT 구성만 다룬다 — 함께 갈 개인운동은 그 **안쪽**
                   // 아래에 붙인다. 바깥 목록에 끼워 넣으면 개인운동이 생기는
