@@ -4074,7 +4074,18 @@
     }
   },
   "weeklyFeedbackNowButton": "Send feedback now",
-  "authForgotPassword": "Forgot your password?",
+  "authForgotPassword": "Forgot password?",
+  "authFindEmail": "Forgot email?",
+  "@authFindEmail": {
+    "description": "Text button next to 'Forgot your password?' on sign-in that opens the find-email screen."
+  },
+  "findEmailTitle": "Find your email",
+  "findEmailSubtitle": "Enter the name and phone number you signed up with to find your email.",
+  "findEmailAction": "Find email",
+  "findEmailComingSoon": "Finding your email is coming soon.",
+  "@findEmailComingSoon": {
+    "description": "Toast shown when the find-email button is pressed while the lookup is not available yet."
+  },
   "passwordChangeTitle": "Change password",
   "passwordChangeCurrentHint": "Current password",
   "passwordChangeNewHint": "New password (8+ characters, letters and numbers)",

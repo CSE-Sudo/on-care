@@ -6068,7 +6068,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get authForgotPassword => 'Forgot your password?';
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authFindEmail => 'Forgot email?';
+
+  @override
+  String get findEmailTitle => 'Find your email';
+
+  @override
+  String get findEmailSubtitle =>
+      'Enter the name and phone number you signed up with to find your email.';
+
+  @override
+  String get findEmailAction => 'Find email';
+
+  @override
+  String get findEmailComingSoon => 'Finding your email is coming soon.';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
+
+  @override
+  String get signUpPhoneHelper =>
+      'Used to find your sign-up email if you forget it.';
 
   @override
   String get passwordResetTitle => 'Reset password';

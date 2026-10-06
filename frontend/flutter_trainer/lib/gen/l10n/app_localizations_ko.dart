@@ -5812,7 +5812,28 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get authForgotPassword => '비밀번호를 잊으셨나요?';
+  String get authForgotPassword => '비밀번호 찾기';
+
+  @override
+  String get authFindEmail => '아이디 찾기';
+
+  @override
+  String get findEmailTitle => '아이디 찾기';
+
+  @override
+  String get findEmailSubtitle => '가입할 때 입력한 이름과 휴대폰 번호로 가입 이메일을 찾아요.';
+
+  @override
+  String get findEmailAction => '아이디 찾기';
+
+  @override
+  String get findEmailComingSoon => '아이디 찾기는 준비 중이에요.';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
+
+  @override
+  String get signUpPhoneHelper => '가입한 이메일을 잊었을 때 찾는 데 쓰는 연락처예요';
 
   @override
   String get passwordResetTitle => '비밀번호 재설정';

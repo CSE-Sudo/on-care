@@ -4909,7 +4909,23 @@
       }
     }
   },
-  "authForgotPassword": "Forgot your password?",
+  "authForgotPassword": "Forgot password?",
+  "authFindEmail": "Forgot email?",
+  "@authFindEmail": {
+    "description": "Text button next to 'Forgot password?' on sign-in that opens the find-email screen."
+  },
+  "findEmailTitle": "Find your email",
+  "findEmailSubtitle": "Enter the name and phone number you signed up with to find your email.",
+  "findEmailAction": "Find email",
+  "findEmailComingSoon": "Finding your email is coming soon.",
+  "@findEmailComingSoon": {
+    "description": "Toast shown when the find-email button is pressed while the lookup is not available yet."
+  },
+  "signUpPhoneHint": "010-0000-0000",
+  "@signUpPhoneHint": {
+    "description": "Placeholder of the phone field on trainer sign-up and find-email."
+  },
+  "signUpPhoneHelper": "Used to find your sign-up email if you forget it.",
   "passwordResetTitle": "Reset password",
   "passwordResetRequestSubtitle": "We'll email a reset code to the address you signed up with.",
   "passwordResetSendAction": "Send code",

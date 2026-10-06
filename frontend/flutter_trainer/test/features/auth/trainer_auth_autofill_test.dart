@@ -61,6 +61,7 @@ class _AuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) {
     registerCalls++;
@@ -398,6 +399,7 @@ void main() {
         'trainer-signup-code',
         demo ? MockSignupEmailCodeRepository.demoCode : '123456',
       );
+      await _type(tester, 'trainer-signup-phone', '01012345678');
       await _type(tester, password, 'signup-pw-1234');
       await _type(tester, confirm, 'signup-pw-1234');
       // 필수 동의 없이는 가입 버튼이 꺼져 있다(#2819).

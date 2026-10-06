@@ -14,7 +14,6 @@ String? authInputErrorText(AppLocalizations l, AppInputError? error) =>
       AppInputError.emailEmpty => l.authErrEmailEmpty,
       AppInputError.emailInvalid => l.authErrEmailInvalid,
       AppInputError.emailTooLong => l.authErrEmailTooLong,
-      // 트레이너 가입에는 전화번호 칸이 없다. 공용 종류를 빠짐없이 옮기려고 둔다.
       AppInputError.phoneInvalid => l.authErrPhoneInvalid,
       AppInputError.passwordEmpty => l.authErrPasswordEmpty,
       AppInputError.passwordWeak => l.authErrPasswordWeak,
