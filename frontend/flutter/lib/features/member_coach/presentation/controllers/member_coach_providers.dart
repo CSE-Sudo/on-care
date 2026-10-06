@@ -118,6 +118,18 @@ final coachRoutinesProvider = FutureProvider<List<CoachRoutine>>((ref) {
   return ref.watch(memberCoachRepositoryProvider).fetchRoutines();
 });
 
+/// 아직 시작하지 않은 개인운동 한 묶음 — 오늘 목록 아래 예정 한 줄. (#3106)
+///
+/// 오늘 목록([coachRoutinesProvider])을 지켜본다 — 앱 복귀·알림·담당 수락처럼
+/// 오늘 목록을 다시 읽는 곳마다 따로 적지 않아도 함께 다시 읽고, 시작일이 되어
+/// 예정이 오늘 목록으로 넘어가는 순간에도 둘이 같은 날을 말한다.
+final coachUpcomingRoutinesProvider = FutureProvider<UpcomingRoutines?>((
+  ref,
+) async {
+  ref.watch(coachRoutinesProvider);
+  return ref.watch(memberCoachRepositoryProvider).fetchUpcomingRoutines();
+}, name: 'coachUpcomingRoutines');
+
 /// 지난 날짜의 추천 개인운동 — 그날 걸려 있던 목록과 그날 완료. (#2161)
 ///
 /// 읽기 전용이다. 키는 날짜만 남긴 값이라 같은 날을 시각만 달리 불러도 한 번만

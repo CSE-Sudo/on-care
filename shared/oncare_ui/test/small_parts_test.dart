@@ -75,14 +75,14 @@ void main() {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           AppKeyValueRow(label: '받는 사람', value: '김민수'),
-          AppKeyValueRow(label: '주', value: '9월 21일 – 9월 27일'),
+          AppKeyValueRow(label: '주', value: '9월 21일 ~ 9월 27일'),
         ],
       ),
     );
 
     expect(
       tester.getTopLeft(find.text('김민수')).dx,
-      tester.getTopLeft(find.text('9월 21일 – 9월 27일')).dx,
+      tester.getTopLeft(find.text('9월 21일 ~ 9월 27일')).dx,
     );
     expect(
       tester.getTopLeft(find.text('김민수')).dx,

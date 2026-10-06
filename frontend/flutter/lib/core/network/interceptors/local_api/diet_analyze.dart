@@ -72,7 +72,7 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
         _analyzeRequestFields(options);
     // 다섯 값 밖의 끼니는 저장하지 않는다 — 실서버와 같은 422(#2882).
     if (!_mealTypes.contains(mealType)) {
-      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+      return _unprocessable(options, 'meal_type 이 올바르지 않아요.');
     }
     final Uint8List? photoBytes = _requestPhotoBytes(options);
 
@@ -194,8 +194,8 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
       }
     }
     final String coach = english
-        ? 'Sodium is low at 185mg, so this is an easy meal on that front. '
-              'Sugar is a little over half of your daily target (50g), and '
+        ? 'Sodium is low at 185 mg, so this is an easy meal on that front. '
+              'Sugar is a little over half of your daily target (50 g), and '
               'half of that comes from the frozen yogurt itself. Keep the '
               'toppings mostly fruit and nuts like you did here.'
         : '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
@@ -378,7 +378,7 @@ String? _analyzeDateError(String date) {
   if (error != null) return error;
   final DateTime parsed = DateTime.parse(date);
   if (parsed.isBefore(DateTime(nowKst().year - 1))) {
-    return 'date 는 작년 1월 1일보다 앞설 수 없습니다.';
+    return 'date 는 작년 1월 1일보다 앞설 수 없어요.';
   }
   return null;
 }

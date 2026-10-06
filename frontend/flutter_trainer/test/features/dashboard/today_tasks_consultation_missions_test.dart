@@ -107,9 +107,9 @@ void main() {
           slotStartsAt: DateTime(2026, 8, 27, 19, 30),
         ),
       );
-      expect(when, contains('8월 27일'));
+      expect(when, contains('8/27 ('));
       expect(when, contains('19:30'));
-      expect(when, isNot(contains('8월 25일')));
+      expect(when, isNot(contains('8/25 (')));
     });
 
     test('자리가 없으면 희망 날짜와 희망 시각', () {
@@ -117,7 +117,7 @@ void main() {
         ko,
         _request('c1', '회원', timeCode: '18:00-19:00'),
       );
-      expect(when, contains('8월 25일'));
+      expect(when, contains('8/25 ('));
       expect(when, contains('18:00–19:00'));
     });
 

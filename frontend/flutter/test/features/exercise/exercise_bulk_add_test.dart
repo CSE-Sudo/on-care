@@ -265,7 +265,7 @@ void main() {
 
     await _tapKey(tester, _addAnother);
 
-    expect(find.text('운동 이름을 입력해주세요'), findsOneWidget);
+    expect(find.text('운동 이름을 입력해 주세요'), findsOneWidget);
     expect(find.textContaining('추가할 운동'), findsNothing);
   });
 

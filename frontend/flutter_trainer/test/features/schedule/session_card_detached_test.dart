@@ -156,14 +156,14 @@ void main() {
     );
   });
 
-  testWidgets('영어 화면은 Former client 로 쓴다', (tester) async {
+  testWidgets('영어 화면은 Former member 로 쓴다', (tester) async {
     await _pumpCard(
       tester,
       scheduleSessionFromJson(_json(detached: true)),
       locale: const Locale('en'),
     );
 
-    expect(find.text('Former client'), findsOneWidget);
+    expect(find.text('Former member'), findsOneWidget);
     expect(find.text('해제 회원'), findsNothing);
   });
 

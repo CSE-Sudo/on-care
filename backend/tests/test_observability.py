@@ -47,7 +47,7 @@ def test_global_500_hides_detail_and_carries_request_id():
     assert r.status_code == 500
     assert "SECRET" not in r.text and "hunter2" not in r.text  # 내부 상세 미노출
     body = r.json()
-    assert body["detail"] == "내부 서버 오류가 발생했습니다."
+    assert body["detail"] == "내부 서버 오류가 발생했어요."
     assert body["request_id"] == "trace-abc"
     assert r.headers.get("X-Request-ID") == "trace-abc"
 
@@ -92,6 +92,7 @@ _COORDINATE_REQUESTS = [
     f"/v1/gyms?lat={_LAT}&lng={_LNG}",
     f"/v1/gyms/1?lat={_LAT}&lng={_LNG}",
     f"/v1/trainer/gyms/search?query={_SEARCH_WORD}&lat={_LAT}&lng={_LNG}",
+    f"/v1/trainer/gyms/nearby?lat={_LAT}&lng={_LNG}",
 ]
 
 

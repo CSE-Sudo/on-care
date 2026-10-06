@@ -22,7 +22,7 @@ import 'package:oncare_trainer/shared/utils/focus_change_label.dart';
 TrainerNotification _notice(Map<String, Object?> overrides) =>
     TrainerNotification.fromJson(<String, Object?>{
       'id': 'n1',
-      'title': '회원 건강 목표 변경',
+      'title': '회원 건강 목표가 바뀌었어요',
       'body': '지수 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활',
       'category': 'health_goal',
       'read': false,
@@ -54,7 +54,7 @@ void main() {
 
     test('주의사항 알림은 신체·목표 창의 건강 목표 탭까지 연다 (#2619)', () {
       final TrainerNotification notice = _notice(<String, Object?>{
-        'title': '회원 주의사항 변경',
+        'title': '회원 주의사항이 바뀌었어요',
         'body': '지수 회원이 건강상태·주의사항을 바꿨어요',
         'template': 'trainer_health_notes',
         'args': <String, Object?>{'member_name': '지수', 'with_focus': false},
@@ -88,7 +88,7 @@ void main() {
 
     test('회원 이름 변경 알림도 그 회원 상세로 간다 (#2065)', () {
       final TrainerNotification notice = _notice(<String, Object?>{
-        'title': '회원 이름 변경',
+        'title': '회원 이름이 바뀌었어요',
         'body': '지수 회원이 이름을 바꿨어요: 이수진',
         'category': 'member_name',
         'subject_id': 'user-jisu',

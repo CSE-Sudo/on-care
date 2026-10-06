@@ -51,6 +51,7 @@ class _AuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async {
     registeredConsents = consents;
@@ -208,7 +209,7 @@ void main() {
 
       await m.container
           .read(sessionControllerProvider.notifier)
-          .socialLogin(provider: 'kakao');
+          .socialLogin(provider: 'kakao', token: 'demo-kakao-token');
 
       expect(
         m.container.read(sessionControllerProvider).consentRequired,

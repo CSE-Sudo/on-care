@@ -153,7 +153,7 @@ String feedbackDirectionLabel(AppLocalizations l, ClientFeedback item) =>
     ? l.clientFeedbackFromMember
     : l.clientFeedbackToMember;
 
-/// 주간 피드백 세 문항을 한 줄로 — `컨디션 지쳤어요 · 운동 강도 힘들었어요 · 통증 무릎`.
+/// 주간 피드백 세 문항을 한 줄로 — `컨디션 지쳤어요 · 운동 강도 조금 힘들었어요 · 통증 무릎`.
 /// 리포트 화면 ② 칸과 같은 문항 이름·답 문구다.
 String weeklyAnswersLine(AppLocalizations l, MemberWeeklyFeedback weekly) =>
     <String>[

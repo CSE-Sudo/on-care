@@ -185,13 +185,13 @@ void main() {
   testWidgets('현재 비밀번호 불일치는 예전처럼 현재 비밀번호 칸 아래다', (tester) async {
     await _openDialog(
       tester,
-      error: const ValidationError(message: '현재 비밀번호가 일치하지 않습니다.'),
+      error: const ValidationError(message: '현재 비밀번호가 일치하지 않아요.'),
     );
 
     await _fill(tester, next: 'abcd1234');
     await _confirm(tester);
 
-    expect(_under('password-current', '현재 비밀번호가 일치하지 않습니다.'), findsOneWidget);
+    expect(_under('password-current', '현재 비밀번호가 일치하지 않아요.'), findsOneWidget);
   });
 
   // 서버는 비밀번호를 바꾸면 그 전 토큰을 모두 무효로 한다 — 이 기기는 응답의
@@ -238,7 +238,7 @@ void main() {
     late ProviderContainer container;
     await _openDialog(
       tester,
-      error: const ValidationError(message: '현재 비밀번호가 일치하지 않습니다.'),
+      error: const ValidationError(message: '현재 비밀번호가 일치하지 않아요.'),
       reissued: const TrainerAuthTokens(access: 'never', refresh: 'never'),
       onContainer: (c) => container = c,
     );
@@ -406,14 +406,14 @@ void main() {
     });
 
     test('400 은 서버 사유를 그대로 싣는다', () async {
-      answer(400, <String, Object?>{'detail': '현재 비밀번호가 일치하지 않습니다.'});
+      answer(400, <String, Object?>{'detail': '현재 비밀번호가 일치하지 않아요.'});
       await expectLater(
         repo.changePassword(currentPassword: 'old', newPassword: 'x'),
         throwsA(
           isA<ValidationError>().having(
             (e) => e.message,
             'message',
-            '현재 비밀번호가 일치하지 않습니다.',
+            '현재 비밀번호가 일치하지 않아요.',
           ),
         ),
       );

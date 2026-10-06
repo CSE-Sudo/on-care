@@ -97,7 +97,7 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         return
     if data_consent_service.blocks_access(link):
         raise ClientConsentRequired(
-            "회원이 데이터 공유 동의를 철회했습니다. 담당 요청을 보내 회원의 동의를 다시 받아 주세요."
+            "회원이 데이터 공유 동의를 철회했어요. 담당 요청을 보내 회원의 동의를 다시 받아 주세요."
         )
     occupied = db.scalar(
         select(TrainerClient.id).where(
@@ -106,7 +106,7 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         )
     )
     if occupied is not None:
-        raise ClientLinkDetached("이미 다른 트레이너가 담당 중인 회원입니다.")
+        raise ClientLinkDetached("이미 다른 트레이너가 담당 중인 회원이에요.")
     link.active = True
     link.dormant = False
     try:
@@ -117,7 +117,7 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         # 에 걸린 것이다. 500 대신 조회로 막았을 때와 같은 409 로 옮긴다(#2911).
         db.rollback()
         raise ClientLinkDetached(
-            "이미 다른 트레이너가 담당 중인 회원입니다."
+            "이미 다른 트레이너가 담당 중인 회원이에요."
         ) from None
 
 
@@ -139,7 +139,7 @@ def set_client_active(
     아니다.
     """
     if not link.active:
-        raise ClientLinkDetached("담당 관계가 해제된 회원입니다.")
+        raise ClientLinkDetached("담당 관계가 해제된 회원이에요.")
     if link.dormant is not (not active):
         link.dormant = not active
         db.commit()

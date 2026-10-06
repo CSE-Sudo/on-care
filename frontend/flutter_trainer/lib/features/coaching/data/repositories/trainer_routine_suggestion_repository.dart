@@ -133,7 +133,7 @@ class MockTrainerRoutineSuggestionRepository
       name: '흉추 회전 스트레칭',
       minutes: 10,
       type: '스트레칭',
-      reason: '2일 전 PT 가 있었어요. 다음 수업 전까지 등 위쪽을 풀어 어깨 부담을 덜어 두기 좋아요.',
+      reason: '2일 전 PT 가 있었어요. 다음 PT 전까지 등 위쪽을 풀어 어깨 부담을 덜어 두기 좋아요.',
       evidence: <String>[RoutineEvidence.recentPtFeedback],
     ),
     // 근력 후보를 하나 둔다 — 세트·횟수·중량을 묻는 자리가 데모에서도 보여야

@@ -97,6 +97,9 @@ class AppIcons {
   // --- 사람·계정 ---
   static const IconData person = Symbols.person_rounded;
 
+  /// 휴대폰 번호 칸(가입·아이디 찾기). 회원 앱과 같은 기호다.
+  static const IconData phone = Symbols.call_rounded;
+
   /// 초대 거절·노쇼·이탈 위험.
   static const IconData personOff = Symbols.person_off_rounded;
 
@@ -229,6 +232,10 @@ class AppIcons {
   /// 모두 읽음.
   static const IconData markAllRead = Symbols.done_all_rounded;
   static const IconData search = Symbols.search_rounded;
+
+  /// 현재 위치 — 소속 헬스장 찾기의 `현재 위치로 찾기`(#3223). 회원앱 헬스장
+  /// 찾기의 현재 위치 버튼과 같은 그림이다.
+  static const IconData location = Symbols.location_on_rounded;
   static const IconData send = Symbols.send_rounded;
   static const IconData refresh = Symbols.refresh_rounded;
   static const IconData undo = Symbols.undo_rounded;

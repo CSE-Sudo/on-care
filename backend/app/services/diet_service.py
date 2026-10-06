@@ -387,12 +387,14 @@ def period_coach_message(
     today = days[-1]
     if today.over_sodium:
         return say(
-            f"오늘 나트륨 {today.sodium_mg}mg 로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
-            f"Sodium is at {today.sodium_mg}mg today, over the limit. Keep the rest of your meals light.",
+            f"오늘 나트륨 {today.sodium_mg:,}mg으로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
+            f"Sodium is at {today.sodium_mg:,} mg today, over the limit. "
+            "Keep the rest of your meals light.",
         )
     return say(
-        f"오늘 나트륨 {today.sodium_mg}mg 로 권장량 안이에요. 이대로 마무리해요.",
-        f"Sodium is at {today.sodium_mg}mg today, within the limit. Finish the day like this.",
+        f"오늘 나트륨 {today.sodium_mg:,}mg으로 권장량 안이에요. 이대로 마무리해요.",
+        f"Sodium is at {today.sodium_mg:,} mg today, within the limit. "
+        "Finish the day like this.",
     )
 
 
@@ -742,7 +744,7 @@ def save_manual_entry(
         if _sugar_exceeds_carbs(food.carbs_g, food.sugar_g, carbs_recorded=True):
             raise NutritionInconsistentError(
                 f"{number}번째 음식({food.name})의 당류는 탄수화물보다 "
-                f"클 수 없습니다. 당류 {food.sugar_g}g, 탄수화물 {food.carbs_g}g"
+                f"클 수 없어요. 당류 {food.sugar_g}g, 탄수화물 {food.carbs_g}g"
             )
     totals = totals_from_foods(payload.foods)
     foods_for_storage = store_foods(payload.foods)
@@ -830,7 +832,7 @@ def _replayed_manual_entry(existing: DietEntry, payload: DietEntryCreate) -> Die
     )
     if not same:
         raise IdempotencyConflictError(
-            "같은 idempotency_key로 다른 끼니를 저장할 수 없습니다."
+            "같은 idempotency_key로 다른 끼니를 저장할 수 없어요."
         )
     return _entry_out(existing)
 
@@ -886,7 +888,7 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
             ):
                 raise NutritionInconsistentError(
                     f"{number}번째 음식({food.name})의 당류는 탄수화물보다 "
-                    f"클 수 없습니다. 당류 {food.sugar_g}g, 탄수화물 {food.carbs_g}g"
+                    f"클 수 없어요. 당류 {food.sugar_g}g, 탄수화물 {food.carbs_g}g"
                 )
     else:
         # 부분 수정이라 한쪽만 오는 일이 있어, 바꾸기 전에 저장된 값과 합친
@@ -900,7 +902,7 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
             carbs_recorded=payload.carbs_g is not None or carbs_recorded,
         ):
             raise NutritionInconsistentError(
-                "당류는 탄수화물보다 클 수 없습니다. "
+                "당류는 탄수화물보다 클 수 없어요. "
                 f"당류 {merged_sugar}g, 탄수화물 {merged_carbs}g"
             )
     if payload.date is not None:

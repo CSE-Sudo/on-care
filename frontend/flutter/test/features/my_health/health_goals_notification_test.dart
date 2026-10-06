@@ -81,12 +81,12 @@ void main() {
 
     await _tapSave(tester);
 
-    expect(find.text('건강 목표가 저장되었어요'), findsOneWidget);
+    expect(find.text('건강 목표를 저장했어요'), findsOneWidget);
     expect(find.byType(MaterialBanner), findsNothing);
     // 위쪽에 뜬다 — 아래로 되돌아가면 시트·하단 바에 가리므로 여기서 걸린다.
     final Size screen = tester.view.physicalSize / tester.view.devicePixelRatio;
     expect(
-      tester.getRect(find.text('건강 목표가 저장되었어요')).center.dy,
+      tester.getRect(find.text('건강 목표를 저장했어요')).center.dy,
       lessThan(screen.height / 4),
     );
     // 화면은 그대로 있고, 칸은 다시 닫혀 연필이 돌아온다.
@@ -111,7 +111,7 @@ void main() {
 
     await _tapSave(tester);
 
-    expect(find.text('저장에 실패했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('저장하지 못했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
     expect(find.byType(MaterialBanner), findsNothing);
     expect(find.text('식단 목표'), findsOneWidget);
 

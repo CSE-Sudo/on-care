@@ -195,7 +195,7 @@ void main() {
   testWidgets('안내 문구는 배포 용어 없이 업데이트로 말한다(#3204)', (WidgetTester tester) async {
     await pumpShell(tester);
     expect(
-      find.descendant(of: banner(), matching: find.text('앱이 업데이트되었어요')),
+      find.descendant(of: banner(), matching: find.text('앱이 업데이트됐어요')),
       findsOneWidget,
     );
     expect(

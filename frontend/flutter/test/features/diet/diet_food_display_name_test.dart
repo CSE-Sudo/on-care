@@ -233,7 +233,7 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Take a Photo'));
+    await tester.tap(find.text('Take a photo'));
     await tester.pumpAndSettle();
 
     final String recognized = tester

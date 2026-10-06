@@ -123,7 +123,8 @@ flutter build ios --release --dart-define-from-file=config/release.json
 
 - `pubspec.yaml` `version: X.Y.Z+N` 형식.
   - `X.Y.Z` = 마케팅 버전 (앱 스토어 표시).
-  - `N` = 빌드 번호 (Android `versionCode`, iOS `CFBundleVersion`).
+  - `N` = 로컬 빌드의 기본 빌드 번호. 릴리스 빌드는 이 값 대신 커밋 수를 `--build-number` 로 넣어
+    Android `versionCode`, iOS `CFBundleVersion` 을 채운다(#3226, `docs/mobile_release.md` 1절).
 - 메이저 (`X`): 호환되지 않는 변경 (API 큰 변동).
 - 마이너 (`Y`): 신규 피처.
 - 패치 (`Z`): 버그 수정.

@@ -520,7 +520,7 @@ void main() {
       }, options: anyStatus);
       expect(res.statusCode, 422);
       // 식단 기록과 같은 문구다.
-      expect(res.data!['detail'], 'date 는 오늘보다 뒤일 수 없습니다.');
+      expect(res.data!['detail'], 'date 는 오늘보다 뒤일 수 없어요.');
       expect(await sessionCount(), before);
       final next = await dio.get<Map<String, Object?>>(
         '/exercise/weeks/current',

@@ -46,13 +46,13 @@ def test_each_alert_opens_the_same_screen_as_the_app_demo():
     # 회원 앱 데모 목록(`demo_alert_keys.dart` 의 `kDemoAlertActionBySeedId`)과 같다.
     # 리마인더라도 운동 목표는 운동이다(#2690).
     assert _target("새 개인운동이 왔어요") == "exercise"
-    assert _target("이번 주 리포트가 등록됐어요") == "coach_chat"
-    assert _target("PT 수업 완료") == "exercise"
-    assert _target("트레이너 피드백 도착") == "coach_chat"
+    assert _target("주간 리포트가 도착했어요") == "coach_chat"
+    assert _target("12회차 PT를 마쳤어요") == "exercise"
+    assert _target("트레이너 피드백이 도착했어요") == "coach_chat"
     assert _target("이번 주 운동 목표까지 조금 남았어요") == "exercise"
     assert _target("식단 기록을 꾸준히 이어가고 있어요") == "dashboard"
     # 공지는 갈 곳이 없다 — 앱 데모도 같은 알림에 목적지를 두지 않는다.
-    assert _target("서비스 점검 안내") is None
+    assert _target("서비스 점검이 예정돼 있어요") is None
 
 
 def test_alert_specific_target_keeps_the_category_label_when_it_matches():
@@ -86,8 +86,8 @@ def test_report_and_feedback_use_different_categories():
     둘이 같은 갈래면 회원 앱 알림함에서 리포트도 말풍선으로 보인다.
     """
     by_title = {n.title: n.category for n in DEMO_NOTIFICATIONS}
-    assert by_title["이번 주 리포트가 등록됐어요"] == notification_service.MEMBER_COACH_REPORT
-    assert by_title["트레이너 피드백 도착"] == notification_service.MEMBER_COACH_CHAT
+    assert by_title["주간 리포트가 도착했어요"] == notification_service.MEMBER_COACH_REPORT
+    assert by_title["트레이너 피드백이 도착했어요"] == notification_service.MEMBER_COACH_CHAT
 
 
 def test_categories_are_known_backend_categories():
@@ -110,7 +110,7 @@ def test_categories_are_known_backend_categories():
 def test_pt_completion_alert_uses_the_same_category_as_the_server():
     """실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027) — 아이콘·라벨이 같아야 한다."""
     by_title = {n.title: n for n in DEMO_NOTIFICATIONS}
-    item = by_title["PT 수업 완료"]
+    item = by_title["12회차 PT를 마쳤어요"]
     assert item.category == notification_service.MEMBER_PT_DONE
     assert item.target == "exercise"
 

@@ -164,7 +164,7 @@ void main() {
       await _tapFooter(tester, '저장');
 
       expect(_results, <bool>[true]);
-      expect(find.text('식단이 저장되었어요'), findsOneWidget);
+      expect(find.text('식단을 저장했어요'), findsOneWidget);
     });
 
     testWidgets('`닫기` 도 저장 성공으로 닫힌다', (WidgetTester tester) async {

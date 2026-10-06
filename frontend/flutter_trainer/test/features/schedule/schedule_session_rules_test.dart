@@ -155,7 +155,7 @@ void main() {
 
     test('마무리된 세션 거절(409)은 서버 사유를 담은 ServerError 다', () async {
       const path = '/trainer/schedule/sched-1';
-      const reason = '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';
+      const reason = '완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있어요.';
       when(
         () => dio.put<Map<String, dynamic>>(path, data: any(named: 'data')),
       ).thenThrow(_error(path, 409, <String, dynamic>{'detail': reason}));
@@ -172,7 +172,7 @@ void main() {
 
     test('예약 일정 삭제 거절(409)도 사유를 잃지 않는다 (#2756)', () async {
       const path = '/trainer/schedule/sched-1';
-      const reason = '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없습니다.';
+      const reason = '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없어요.';
       when(
         () => dio.delete<Map<String, dynamic>>(path),
       ).thenThrow(_error(path, 409, <String, dynamic>{'detail': reason}));
@@ -238,7 +238,7 @@ void main() {
         _error(path, 409, <String, dynamic>{
           'detail': <String, dynamic>{
             'code': scheduleOverlapCode,
-            'message': '같은 시간에 이미 다른 일정이 있습니다.',
+            'message': '같은 시간에 이미 다른 일정이 있어요.',
             'conflicts': <dynamic>[_json(id: 'other', date: '2026-10-08')],
           },
         }),

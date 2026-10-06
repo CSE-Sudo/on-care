@@ -119,7 +119,7 @@ def trainer_notifications(
         # tie-break 만 오면 어디서 자를지 알 수 없다. 조용히 첫 쪽을 주면
         # 클라이언트가 같은 알림을 다시 이어 붙인다.
         raise HTTPException(
-            status_code=422, detail="before_id 는 before 와 함께 보내야 합니다."
+            status_code=422, detail="before_id 는 before 와 함께 보내야 해요."
         )
     rows, last = notification_service.list_for_trainer(
         db, trainer.id, limit=limit, before=cursor, before_id=before_id
@@ -172,7 +172,7 @@ def trainer_read_notification(
         )
     )
     if row is None:
-        raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="알림을 찾을 수 없어요.")
     row.read = True
     db.commit()
     return {"id": row.id, "read": True}

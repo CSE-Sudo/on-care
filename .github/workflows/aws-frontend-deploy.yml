@@ -190,6 +190,13 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.sha }}
           persist-credentials: false
+          # 빌드 번호는 커밋 수다(#3226). 얕은 체크아웃이면 1 로 나와 스탬프 단계가 멈춘다.
+          fetch-depth: 0
+
+      # 두 앱 고객 지원의 버전 줄(#3226). 빌드 번호(커밋 수)와 배포 일시(UTC)를 한 번만 만들어
+      # 두 웹 빌드가 같은 값을 받게 한다. 같은 커밋이면 데모 Pages 빌드와도 번호가 같다.
+      - name: Stamp release build number and date
+        run: bash .github/scripts/release_build_stamp.sh "$GITHUB_ENV"
 
       # 랜딩의 앱 바로가기는 상대 경로라 이 배포에서는 같은 도메인의 /frontend/·/trainer/ 로
       # 간다(#2841). 절대 주소(무료 DNS 데모 등)가 들어오면 운영 방문자가 데모로 넘어가므로 빌드 전에 막는다.
@@ -265,12 +272,20 @@ jobs:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_MEMBER }}
+          # 카카오·구글 로그인(#330). 공개 식별자라 변수로 둔다. 비우면 그 버튼은 '준비 중'.
+          KAKAO_LOGIN_REST_API_KEY: ${{ vars.KAKAO_LOGIN_REST_API_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
         run: |
           set -euo pipefail
           args=(
             --release --base-href "/frontend/"
             --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
+            --build-number="$BUILD_NUMBER"
+            --dart-define=BUILD_NUMBER="$BUILD_NUMBER"
+            --dart-define=RELEASE_DATE="$RELEASE_DATE"
             --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+            --dart-define=KAKAO_LOGIN_REST_API_KEY="$KAKAO_LOGIN_REST_API_KEY"
+            --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
             --dart-define=USE_MOCK_API=false
             --dart-define=API_BASE_URL="$API_BASE_URL"
             --dart-define=ENV=prod
@@ -306,12 +321,20 @@ jobs:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_TRAINER }}
+          # 카카오·구글 로그인(#330). 회원 웹과 같은 값이다. 비우면 그 버튼은 '준비 중'.
+          KAKAO_LOGIN_REST_API_KEY: ${{ vars.KAKAO_LOGIN_REST_API_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
         run: |
           set -euo pipefail
           args=(
             --release --base-href "/trainer/"
             --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
+            --build-number="$BUILD_NUMBER"
+            --dart-define=BUILD_NUMBER="$BUILD_NUMBER"
+            --dart-define=RELEASE_DATE="$RELEASE_DATE"
             --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+            --dart-define=KAKAO_LOGIN_REST_API_KEY="$KAKAO_LOGIN_REST_API_KEY"
+            --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
             --dart-define=USE_MOCK_API=false
             --dart-define=API_BASE_URL="$API_BASE_URL"
             --dart-define=ENV=prod

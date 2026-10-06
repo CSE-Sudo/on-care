@@ -8,7 +8,7 @@
   "schedCancel": "취소",
   "schedNoShow": "노쇼 처리",
   "schedCancelTitle": "이 PT를 취소할까요?",
-  "schedCancelConfirm": "{time} {name} 님 PT가 취소로 기록됩니다. 일정은 지워지지 않아요.",
+  "schedCancelConfirm": "{time} {name} 님 PT가 취소로 기록돼요. 일정은 지워지지 않아요.",
   "@schedCancelConfirm": {
     "placeholders": {
       "time": {
@@ -23,10 +23,10 @@
   "schedCancelByMember": "회원 취소",
   "schedCancelByTrainer": "트레이너 취소",
   "schedCancelByOther": "기타",
-  "schedCancelReasonHint": "사유 (선택, 트레이너만 봅니다)",
+  "schedCancelReasonHint": "사유 (선택, 트레이너만 봐요)",
   "schedCancelFailed": "취소 처리하지 못했어요. 잠시 후 다시 시도해 주세요",
   "schedNoShowTitle": "노쇼로 기록할까요?",
-  "schedNoShowConfirm": "{time} {name} 님이 오지 않은 것으로 기록됩니다.",
+  "schedNoShowConfirm": "{time} {name} 님이 오지 않은 것으로 기록돼요.",
   "@schedNoShowConfirm": {
     "placeholders": {
       "time": {
@@ -49,8 +49,8 @@
       }
     }
   },
-  "schedDeleteMeansRemove": "기록이 지워집니다. 진행되지 않은 PT는 취소·노쇼로 남기세요.",
-  "schedDeleteMeansRemoveFinished": "기록이 지워집니다. 이미 완료한 일정이라 되돌릴 수 없어요.",
+  "schedDeleteMeansRemove": "기록이 지워져요. 진행되지 않은 PT는 취소·노쇼로 남기세요.",
+  "schedDeleteMeansRemoveFinished": "기록이 지워져요. 이미 완료한 일정이라 되돌릴 수 없어요.",
   "scheduleStatusGap": "공백",
   "sessionTypePersonalTraining": "1:1 PT",
   "sessionTypeConsultation": "상담",
@@ -116,10 +116,11 @@
   "consentPageFailed": "동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "authHasAccount": "이미 계정이 있으신가요?",
   "authErrEmptyCredentials": "이메일과 비밀번호를 입력해 주세요",
-  "authSocialSignInFailed": "소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
+  "authSocialSignInFailed": "소셜 로그인을 하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "authSocialComingSoon": "소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.",
-  "authErrSignInFailed": "로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
-  "authSessionExpired": "로그인이 만료되었어요. 다시 로그인해 주세요.",
+  "authSocialPopupBlocked": "로그인 창이 차단됐어요. 이 사이트의 팝업을 허용한 뒤 다시 시도해 주세요.",
+  "authErrSignInFailed": "로그인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "authSessionExpired": "로그인이 만료됐어요. 다시 로그인해 주세요.",
   "authErrNameEmpty": "이름을 입력해 주세요",
   "authErrNameTooLong": "이름은 100자까지 입력할 수 있어요",
   "authErrEmailEmpty": "이메일을 입력해 주세요",
@@ -131,11 +132,11 @@
   "authErrPhoneInvalid": "전화번호를 010-0000-0000 형식으로 입력해 주세요",
   "authErrBirthDateInvalid": "생년월일을 1996-03-21 형식으로 입력해 주세요",
   "authErrPasswordMismatch": "비밀번호가 일치하지 않아요",
-  "authErrSignUpFailed": "가입에 실패했어요. 잠시 후 다시 시도해 주세요.",
+  "authErrSignUpFailed": "가입하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "dashTitle": "대시보드",
-  "dashActivityRecommendRoutine": "프로그램 구성을 조정해보세요.",
+  "dashActivityRecommendRoutine": "프로그램 구성을 조정해 보세요.",
   "dashActivityRecommendChat": "메시지에서 안부를 물어보세요.",
-  "dashActivityRecommendDiet": "식단에서 피드백을 남겨보세요.",
+  "dashActivityRecommendDiet": "식단에서 피드백을 남겨 보세요.",
   "dashActivityTabProgram": "프로그램",
   "dashActivityTabChat": "메시지",
   "dashActivityTabClient": "회원",
@@ -182,10 +183,10 @@
   "dashPreparePt": "PT 준비하기",
   "dashLeaveMemo": "메모 남기기",
   "dashLeaveFeedback": "피드백 남기기",
-  "dashSessionSent": "전송됨",
+  "dashSessionSent": "보냄",
   "dashSessionPrepared": "준비됨",
   "dashSessionNoteWritten": "작성 완료",
-  "dashSessionSentNo": "전송 안됨",
+  "dashSessionSentNo": "안 보냄",
   "dashSessionPreparedNo": "준비 안됨",
   "dashSessionNoteNotWritten": "메모 없음",
   "weekdayMon": "월",
@@ -196,7 +197,7 @@
   "weekdaySat": "토",
   "weekdaySun": "일",
   "clientsLoadFailed": "회원 정보를 불러오지 못했어요",
-  "clientsNew": "신규 회원 등록",
+  "clientsNew": "회원 연결",
   "clientsTitle": "회원 관리",
   "clientsManagementAttention": "관리 필요",
   "clientsFiltersClearAll": "전체 초기화",
@@ -208,11 +209,11 @@
   "clientsFilterLabel": "필터",
   "clientsPickHint": "왼쪽에서 회원을 선택하면\n대화·식단·운동 기록이 여기에 열려요",
   "clientsEmpty": "아직 담당 회원이 없어요",
-  "clientsEmptyConnectHint": "연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청함에도 표시돼요.",
+  "clientsEmptyConnectHint": "연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청에도 표시돼요.",
   "clientsEmptyForFilter": "{filter}에 해당하는 회원이 없어요",
   "clientsMemberCount": "{total}명",
   "clientsMemberCountFiltered": "{total}명 중 {shown}명",
-  "clientWeeklyRoutineAdherence": "주간 이행률",
+  "clientWeeklyRoutineAdherence": "주간 완료율",
   "clientRoutineAdherenceUnmeasured": "미집계",
   "clientsSignalDiscomfort": "통증·불편",
   "clientsSignalRecordGap": "기록 끊김",
@@ -224,10 +225,10 @@
   "clientsSignalExerciseGoalLow": "운동 목표 미달",
   "clientsSignalExerciseGoalLowPercent": "운동 목표 {percent}%",
   "clientsSignalCalorieOff": "칼로리 목표 이탈",
-  "clientsSignalCalorieOver": "칼로리 과다",
+  "clientsSignalCalorieOver": "칼로리 초과",
   "clientsSignalCalorieUnder": "칼로리 부족",
   "clientsSignalProteinLow": "단백질 부족",
-  "clientsSignalCalorieOverPercent": "칼로리 {percent}% 과다",
+  "clientsSignalCalorieOverPercent": "칼로리 {percent}% 초과",
   "clientsSignalCalorieUnderPercent": "칼로리 {percent}% 부족",
   "clientsSignalProteinPercent": "단백질 목표의 {percent}%",
   "clientsSignalRoutineMissedDays": "개인운동 {days}일 미수행",
@@ -260,13 +261,13 @@
   "memberHealthConditionsPrivateHint": "트레이너만 볼 내용은 메모에 남겨 주세요.",
   "memberHealthDietGoal": "식단 목표",
   "memberHealthExerciseGoal": "운동 목표",
-  "memberHealthGoalCalories": "일일 칼로리 제한 (kcal)",
-  "memberHealthGoalSodium": "일일 나트륨 제한 (mg)",
-  "memberHealthGoalSugar": "일일 당류 제한 (g)",
-  "memberHealthGoalCarbs": "일일 탄수화물 제한 (g)",
-  "memberHealthGoalProtein": "일일 단백질 제한 (g)",
-  "memberHealthGoalFat": "일일 지방 제한 (g)",
-  "memberHealthGoalBurnDaily": "일일 소모 칼로리 (kcal)",
+  "memberHealthGoalCalories": "하루 칼로리 목표 (kcal)",
+  "memberHealthGoalSodium": "하루 나트륨 목표 (mg)",
+  "memberHealthGoalSugar": "하루 당류 목표 (g)",
+  "memberHealthGoalCarbs": "하루 탄수화물 목표 (g)",
+  "memberHealthGoalProtein": "하루 단백질 목표 (g)",
+  "memberHealthGoalFat": "하루 지방 목표 (g)",
+  "memberHealthGoalBurnDaily": "하루 소모 칼로리 (kcal)",
   "memberHealthGoalCardioWeekly": "주간 유산소 (분)",
   "memberHealthGoalStrengthWeekly": "주간 근력 (세트)",
   "memberHealthGoalFlexibilityWeekly": "주간 스트레칭 (분)",
@@ -281,15 +282,15 @@
       }
     }
   },
-  "clientInviteTitle": "신규 회원 등록",
-  "clientInviteIntro": "회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.",
-  "clientInviteIntroImmediate": "회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.",
-  "clientConnectCodeLabel": "동기화 코드",
+  "clientInviteTitle": "회원 연결",
+  "clientInviteIntro": "회원 앱 MY 탭의 6자리 연결 코드를 입력하면 바로 연결돼요.",
+  "clientInviteIntroImmediate": "회원 앱 MY 탭의 6자리 연결 코드를 입력하면 바로 연결돼요.",
+  "clientConnectCodeLabel": "연결 코드",
   "clientConnectCodeRequired": "6자리를 모두 입력해 주세요",
   "clientConnectCodeInvalid": "코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요",
   "clientConnectAlreadyManaged": "이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요",
-  "clientInviteConnectAction": "회원 등록",
-  "clientInviteConnected": "{name}님을 회원으로 등록했어요",
+  "clientInviteConnectAction": "연결",
+  "clientInviteConnected": "{name}님과 연결했어요",
   "@clientInviteConnected": {
     "placeholders": {
       "name": {
@@ -340,13 +341,13 @@
   "metricCalories": "칼로리",
   "metricSodium": "나트륨",
   "metricSugar": "당류",
-  "clientDietMacrosMissing": "탄·단·지 기록 없음",
+  "clientDietMacrosMissing": "탄단지 기록 없음",
   "clientDietDayTotal": "하루 합계",
   "clientDietDayMealsFailed": "끼니 기록을 불러오지 못했어요",
   "@clientDietDayMealsFailed": {
     "description": "회원 상세 식단 기록에서 펼친 날의 끼니 조회 실패 안내 (#2892)"
   },
-  "clientDietTotalCalories": "총 {calories} kcal",
+  "clientDietTotalCalories": "총 {calories}kcal",
   "@clientDietTotalCalories": {
     "description": "트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
     "placeholders": {
@@ -383,12 +384,12 @@
   },
   "clientStatusChangeFailed": "상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요",
   "chatTooLong": "메시지가 너무 길어요 (최대 1000자)",
-  "chatSendFailed": "메시지 전송에 실패했어요. 다시 시도해 주세요",
+  "chatSendFailed": "메시지를 보내지 못했어요. 다시 시도해 주세요",
   "chatLoadFailed": "대화를 불러오지 못했어요",
   "chatLoadOlder": "이전 메시지 더 보기",
   "chatLoadOlderFailed": "이전 메시지를 불러오지 못했어요 · 다시 시도",
   "chatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",
-  "chatReportRegistered": "리포트가 등록되었어요",
+  "chatReportRegistered": "주간 리포트를 보냈어요",
   "chatReportOpenInReports": "리포트 탭으로 가기",
   "chatRoutineDelivered": "운동을 보냈어요",
   "chatRoutineDeliveredPt": "PT 프로그램과 개인운동을 보냈어요",
@@ -470,7 +471,7 @@
   "consultRejectTitle": "상담 요청 거절",
   "consultRejectNotice": "입력한 사유는 회원에게 알림으로 전달돼요.",
   "consultRejectHint": "예) 요청하신 시간에 다른 일정이 있어요.",
-  "consultStatusPending": "대기중",
+  "consultStatusPending": "대기 중",
   "consultStatusAccepted": "승인됨",
   "workoutRecords": "운동 기록",
   "workoutRecordsShowMore": "더보기",
@@ -501,16 +502,16 @@
   "dateWeeksAgo": "{count}주 전",
   "historyDate": "{month}/{day}",
   "historyDateRelative": "{date} ({relative})",
-  "dateMonthDayWeekday": "{month}월 {day}일 ({weekday})",
+  "dateMonthDayWeekday": "{month}/{day} ({weekday})",
   "datePrefixed": "{prefix} · {date}",
   "dateMonthDay": "{month}월 {day}일",
-  "dateRange": "{start} – {end}",
+  "dateRange": "{start} ~ {end}",
   "reportsTitle": "리포트",
   "reportsSubtitle": "주간 변화를 확인하고 회원에게 전달하세요",
   "reportsLoadFailed": "리포트를 불러오지 못했어요",
   "reportsNoClients": "담당 회원이 없어 리포트를 만들 수 없어요",
   "reportsWeekly": "주간 리포트",
-  "reportsSendFailed": "리포트 전송에 실패했어요. 다시 시도해 주세요",
+  "reportsSendFailed": "리포트를 보내지 못했어요. 다시 시도해 주세요",
   "reportsSendStaleTitle": "그사이 회원 기록이 바뀌었어요",
   "reportsSendStaleBody": "아직 보내지 않았어요. 새 수치로 다시 만든 리포트를 확인한 뒤 보내 주세요",
   "reportsSendAlreadyDone": "이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요",
@@ -557,7 +558,7 @@
   "clientTrendCaloriesBurned": "소모 칼로리",
   "reportsPickClient": "회원 선택",
   "reportsClientWeekly": "{name}님 주간 리포트",
-  "reportsCompletionByDay": "주간 운동 이행률",
+  "reportsCompletionByDay": "주간 운동 완료율",
   "reportsNoWorkoutsThisWeek": "이번 주 운동 기록이 없어요",
   "chartNoRecord": "기록 없음",
   "chartNotYet": "아직 오지 않은 날",
@@ -573,10 +574,10 @@
     }
   },
   "reportsSendNeedsFeedback": "피드백을 입력하면 전송할 수 있어요",
-  "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내드려요.",
+  "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내 드려요.",
   "reportBodyCompletionGood": "운동은 평균 {avg}%로 잘 따라오셨어요.",
   "reportBodyCompletionSteady": "운동은 평균 {avg}%로 꾸준히 해 주셨어요.",
-  "reportBodyCompletionLow": "운동 이행률은 평균 {avg}%였어요. 많이 바쁘셨나 봐요.",
+  "reportBodyCompletionLow": "운동 완료율은 평균 {avg}%였어요. 많이 바쁘셨나 봐요.",
   "reportBodySilentDays": "{days}에는 기록이 하나도 없었어요. 그 요일이 늘 바쁘시면 15분짜리 짧은 프로그램으로 바꿔 둘게요.",
   "@reportBodySilentDays": {
     "placeholders": {
@@ -594,7 +595,7 @@
     }
   },
   "reportBodySkipped": "다만 {names} 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.",
-  "reportBodySodiumOver": "나트륨은 하루 평균 {avg}mg이었고, 목표({target}mg)를 넘긴 날이 {days}일이었어요. 국물을 절반만 남기셔도 하루 400~500mg은 줄어듭니다.",
+  "reportBodySodiumOver": "나트륨은 하루 평균 {avg}mg이었고, 목표({target}mg)를 넘긴 날이 {days}일이었어요. 국물을 절반만 남기셔도 하루 400~500mg은 줄어요.",
   "reportBodySodiumOk": "나트륨은 하루 평균 {avg}mg으로 목표({target}mg) 안에서 잘 지키고 계세요.",
   "reportBodyPraise": "정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!",
   "reportBodyEncourage": "위 내용만 하나씩 같이 챙겨 가면 충분히 좋아질 거예요. 프로그램은 제가 조정해서 올려둘게요.",
@@ -705,7 +706,7 @@
       }
     }
   },
-  "reportBodySugarOver": "당류는 하루 평균 {avg}g이었고, 기준({target}g)을 넘긴 날이 {days}일이었어요.",
+  "reportBodySugarOver": "당류는 하루 평균 {avg}g이었고, 목표({target}g)를 넘긴 날이 {days}일이었어요.",
   "@reportBodySugarOver": {
     "placeholders": {
       "avg": {
@@ -719,7 +720,7 @@
       }
     }
   },
-  "reportBodySugarOk": "당류는 하루 평균 {avg}g으로 기준({target}g) 안이었어요.",
+  "reportBodySugarOk": "당류는 하루 평균 {avg}g으로 목표({target}g) 안이었어요.",
   "@reportBodySugarOk": {
     "placeholders": {
       "avg": {
@@ -755,7 +756,7 @@
   "schedDetailTitle": "상세 일정",
   "schedDeleteTitle": "일정 삭제",
   "schedDeleteConfirm": "{time} {name}님 PT 일정을 삭제할까요?",
-  "schedDeleteFailed": "일정 삭제에 실패했어요. 다시 시도해 주세요",
+  "schedDeleteFailed": "일정을 삭제하지 못했어요. 다시 시도해 주세요",
   "schedCompleteTitle": "일정 완료",
   "schedCompleteConfirm": "{time} {name}님 PT를 완료할까요?",
   "@schedCompleteConfirm": {
@@ -768,13 +769,13 @@
       }
     }
   },
-  "schedCompleteFailed": "완료 처리에 실패했어요. 다시 시도해 주세요",
+  "schedCompleteFailed": "완료 처리하지 못했어요. 다시 시도해 주세요",
   "schedGroupProgram": "PT 프로그램",
   "schedDetachedMember": "해제 회원",
   "schedDetachedMemberHint": "담당이 끝난 회원이라 회원 정보는 볼 수 없어요",
   "schedReservationLockedHint": "회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.",
-  "schedEndedLockedHint": "끝난 PT는 메모·프로그램만 고칠 수 있어요.",
-  "schedDoneLockedHint": "완료한 PT는 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.",
+  "schedEndedLockedHint": "끝난 PT는 피드백·프로그램만 고칠 수 있어요.",
+  "schedDoneLockedHint": "완료한 PT는 피드백·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.",
   "schedGroupPersonal": "개인운동",
   "schedRoutinesGoesOnComplete": "이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.",
   "schedRoutinesNotSentYet": "아직 회원에게 가지 않았어요.",
@@ -786,7 +787,7 @@
   "schedRoutinesSend": "개인운동 보내기",
   "schedRoutinesSkip": "보내지 않음",
   "schedSendProgramWithRoutines": "{date} PT 프로그램 · 개인운동 보내기",
-  "schedRoutineSent": "전송됨",
+  "schedRoutineSent": "보냄",
   "@schedSendProgramWithRoutines": {
     "placeholders": {
       "name": {
@@ -803,7 +804,7 @@
   "schedRoutinesSkipFailed": "보내지 않기로 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "schedRoutinesLoadFailed": "개인운동을 불러오지 못했어요",
   "schedClientUnresolved": "이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.",
-  "schedRoutinesUpdated": "개인운동을 고커어요.",
+  "schedRoutinesUpdated": "개인운동을 고쳤어요.",
   "schedRoutinesUpdateFailed": "개인운동을 고치지 못했어요. 다시 시도해 주세요.",
   "schedAddRoutines": "개인운동 추가",
   "schedRoutinesAdded": "개인운동을 붙였어요.",
@@ -817,7 +818,7 @@
   "schedNewSession": "새 일정",
   "schedLoadFailed": "스케줄을 불러오지 못했어요",
   "schedEmptyDay": "이 날짜에는 일정이 없어요.\n위의 「새 일정」으로 추가해 보세요.",
-  "schedSaveFailed": "일정 저장에 실패했어요. 다시 시도해 주세요",
+  "schedSaveFailed": "일정을 저장하지 못했어요. 다시 시도해 주세요",
   "schedAddTitle": "새 일정 추가",
   "schedEditTitle": "일정 수정",
   "schedFieldClient": "회원",
@@ -842,7 +843,7 @@
   "schedTimePickerEndMinute": "종료 분",
   "schedTimePickerPrevStep": "이전 단계",
   "schedTimePickerNextStep": "다음 단계",
-  "schedTimePickerEndBeforeStart": "종료 시간이 시작 시간보다 빠릅니다",
+  "schedTimePickerEndBeforeStart": "종료 시간이 시작 시간보다 빨라요",
   "schedClockHourSemantics": "{hour}시",
   "schedRepeat": "반복",
   "schedRepeatWeekly": "매주",
@@ -862,7 +863,7 @@
   },
   "schedRepeatNeedsDays": "반복할 요일을 골라 주세요.",
   "schedRepeatNeedsEndDate": "반복 종료일을 골라 주세요.",
-  "schedRepeatConflictTitle": "총 {total}회 중 {count}개의 일정이 겹칩니다",
+  "schedRepeatConflictTitle": "총 {total}회 중 {count}개의 일정이 겹쳐요",
   "@schedRepeatConflictTitle": {
     "placeholders": {
       "total": {
@@ -896,7 +897,7 @@
   "schedEditNote": "피드백 수정",
   "schedAddNote": "피드백 추가",
   "schedNoNote": "아직 남긴 메모가 없어요",
-  "schedNoteOnlyHint": "상담은 프로그램 대신 메모로 남깁니다.",
+  "schedNoteOnlyHint": "상담은 프로그램 대신 메모로 남겨요.",
   "schedNoteHint": "회원에게 전할 피드백을 입력하세요. 회원 특이사항은 회원 상세 메모에 남겨 주세요",
   "schedNoteVisibleToMember": "PT를 마치면 회원 앱에 피드백으로 보여요",
   "schedConsultNote": "상담 메모",
@@ -907,7 +908,7 @@
   "schedAddAction": "추가",
   "schedSaveAction": "저장",
   "progInvalid": "운동 이름과 세트 수를 확인해 주세요",
-  "progSaveFailed": "프로그램 저장에 실패했어요. 다시 시도해 주세요",
+  "progSaveFailed": "프로그램을 저장하지 못했어요. 다시 시도해 주세요",
   "progEditTitle": "프로그램 수정",
   "progAddTitle": "프로그램 추가",
   "progAddExercise": "운동 추가",
@@ -929,29 +930,29 @@
   },
   "progEmpty": "아직 계획된 프로그램이 없어요",
   "progEmptyHint": "AI 추천 탭에서 프로그램을 만들어 보내거나, 채팅으로 미리 조율해 보세요.",
-  "schedSentTo": "{name}님에게 전송됨",
+  "schedSentTo": "{name}님에게 보냄",
   "schedSentProgramTo": "{date} PT 프로그램 보내기",
   "slotPastTime": "현재보다 이후 시간만 예약 슬롯으로 만들 수 있어요.",
-  "slotOpened": "예약 슬롯을 열었습니다.",
+  "slotOpened": "예약 슬롯을 열었어요.",
   "slotStartTime": "시작 시간",
   "slotCloseTitle": "예약 슬롯 닫기",
-  "slotCloseBody": "이미 잡힌 예약은 유지되고, 신규 예약만 중단됩니다.",
-  "slotClosed": "신규 예약을 닫았습니다.",
-  "slotActionFailed": "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  "slotCloseBody": "이미 잡힌 예약은 유지되고, 신규 예약만 멈춰요.",
+  "slotClosed": "신규 예약을 닫았어요.",
+  "slotActionFailed": "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "slotManageTitle": "예약 슬롯 관리",
-  "slotIntro": "회원이 예약할 시간을 엽니다. 아래에 앞으로 열린 슬롯이 날짜별로 모입니다.",
+  "slotIntro": "회원이 예약할 시간을 열어요. 아래에 앞으로 열린 슬롯이 날짜별로 모여요.",
   "slotOpenAction": "열기",
   "slotReload": "다시 불러오기",
   "slotLoadFailed": "예약 슬롯을 불러오지 못했어요",
-  "slotEmpty": "열린 예약 슬롯이 없습니다.",
+  "slotEmpty": "열린 예약 슬롯이 없어요.",
   "slotClosedSummary": "예약 닫힘",
   "slotBookedSummary": "예약됨",
   "slotOverlappedSummary": "일정과 겹침",
   "slotOverlappedHint": "이 시간에 다른 일정이 있어 회원에게는 마감으로 보여요. 쓰지 않을 자리면 닫아 주세요.",
   "slotCloseAction": "예약 닫기",
   "myCareerInvalid": "경력은 0~80 사이의 연수로 입력해 주세요.",
-  "myProfileSaveFailed": "프로필을 저장하지 못했습니다.",
-  "myGymChangeFailed": "소속 헬스장 변경에 실패했습니다. 나머지 프로필 정보는 저장됐어요.",
+  "myProfileSaveFailed": "프로필을 저장하지 못했어요.",
+  "myGymChangeFailed": "소속 헬스장을 바꾸지 못했어요. 나머지 프로필 정보는 저장됐어요.",
   "myTabProfile": "내 정보",
   "myTabSettings": "설정",
   "mySaving": "저장 중",
@@ -964,7 +965,7 @@
   "myNotifNotReady": "곧 끌 수 있어요 — 지금은 항상 받아요",
   "myNotifLoading": "알림 설정을 불러오는 중이에요",
   "myNotifLoadFailed": "알림 설정을 불러오지 못했어요. 다시 시도해 주세요",
-  "myNotifNewMessageHint": "회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려드려요",
+  "myNotifNewMessageHint": "회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려 드려요",
   "myLanguageApp": "화면 언어",
   "myLanguageHint": "고른 언어는 이 브라우저에만 저장돼요. 다른 기기에서는 그 브라우저 설정을 따라요.",
   "myLanguageSystem": "브라우저 설정 따르기",
@@ -981,6 +982,8 @@
   "mySupportExternalHint": "카카오톡 채널로 연결돼요",
   "mySupportOpenFailed": "링크를 열지 못했어요. 잠시 후 다시 시도해 주세요",
   "myAppVersion": "On-Care 트레이너 · 버전 {version}",
+  "buildInfoDevelopment": "개발 빌드",
+  "buildInfoReleasedAt": "{date} KST 배포",
   "myAppName": "On-Care 트레이너",
   "myLegalTermsTitle": "이용약관",
   "myLegalPrivacyTitle": "개인정보 처리방침",
@@ -1003,6 +1006,7 @@
   "myStatClients": "담당 회원",
   "myClientManagement": "회원 관리",
   "myClientRemove": "연결 해제",
+  "myClientRemoveConfirm": "해제",
   "myClientRemoveTitle": "{name} 회원과 연결을 해제할까요?",
   "@myClientRemoveTitle": {
     "placeholders": {
@@ -1028,6 +1032,13 @@
   "myGymSearching": "찾는 중이에요",
   "myGymSearchEmpty": "찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.",
   "myGymSearchFailed": "헬스장을 찾지 못했어요. 잠시 뒤 다시 시도해 주세요.",
+  "myGymLocateAction": "현재 위치로 찾기",
+  "myGymNearbyCaption": "현재 위치에서 가까운 헬스장이에요. 위치는 저장하지 않아요.",
+  "myGymNearbyEmpty": "현재 위치 2km 안에서 헬스장을 찾지 못했어요. 이름으로 찾아 보세요.",
+  "myGymLocationDenied": "위치 사용을 허용하면 주변 헬스장을 찾을 수 있어요.",
+  "myGymLocationBlocked": "브라우저 사이트 설정에서 위치 사용을 허용한 뒤 다시 눌러 주세요.",
+  "myGymLocationDisabled": "기기의 위치 서비스를 켠 뒤 다시 눌러 주세요.",
+  "myGymLocationUnavailable": "현재 위치를 가져오지 못했어요. 다시 시도하거나 이름으로 찾아 보세요.",
   "myGymCurrent": "현재 소속",
   "myGymPicked": "저장하면 이 헬스장으로 바뀌어요",
   "myGymNone": "아직 없어요",
@@ -1093,7 +1104,7 @@
   "myPwCurrentRequired": "현재 비밀번호를 입력해 주세요",
   "myPwMismatch": "새 비밀번호가 서로 달라요",
   "myPwChangeFailed": "비밀번호를 변경할 수 없어요",
-  "myPwChangeRetry": "변경에 실패했어요. 잠시 후 다시 시도해 주세요",
+  "myPwChangeRetry": "변경하지 못했어요. 잠시 후 다시 시도해 주세요",
   "myPwCurrent": "현재 비밀번호",
   "myPwNew": "새 비밀번호 (영문·숫자 포함 {min}자 이상)",
   "myPwConfirm": "새 비밀번호 확인",
@@ -1124,13 +1135,13 @@
   "myGymEmpty": "소속 헬스장이 아직 없어요. 프로필 수정에서 설정해 주세요.",
   "myEditVisibleBody": "전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 그대로 나와요.",
   "myClientManagementNoteTitle": "연결을 해제해도 회원 기록은 남아요",
-  "myClientManagementNote": "회원 앱의 기록은 남아요. 다시 담당하려면 회원 탭의 신규 회원 등록에서 회원 ID로 연결해 주세요.",
+  "myClientManagementNote": "회원 앱의 기록은 남아요. 다시 담당하려면 회원 탭의 회원 연결에서 회원에게 받은 연결 코드를 입력해 주세요.",
   "myNotifConsultation": "상담 요청",
-  "myNotifConsultationHint": "회원이 상담을 신청하거나 초대에 답하면 알려드려요",
+  "myNotifConsultationHint": "회원이 상담을 신청하거나 초대에 답하면 알려 드려요",
   "myNotifReservation": "예약",
-  "myNotifReservationHint": "회원이 예약을 신청하거나 바꾸면 알려드려요",
+  "myNotifReservationHint": "회원이 예약을 신청하거나 바꾸면 알려 드려요",
   "myNotifMemberUpdates": "담당 회원 소식",
-  "myNotifMemberUpdatesHint": "회원이 목표·이름을 바꾸거나 연결을 끊으면 알려드려요",
+  "myNotifMemberUpdatesHint": "회원이 목표·이름을 바꾸거나 연결을 끊으면 알려 드려요",
   "routineTypeCardio": "유산소",
   "routineTypeStrength": "근력",
   "routineTypeStretching": "스트레칭",
@@ -1155,11 +1166,11 @@
   "routineFieldMeasure": "재는 방법",
   "routineFieldWeight": "중량",
   "routineFieldCalories": "예상 소모 칼로리",
-  "routineCaloriesNeedName": "운동 이름을 적어주세요",
+  "routineCaloriesNeedName": "운동 이름을 적어 주세요",
   "@routineCaloriesNeedName": {
     "description": "이름을 적기 전에는 확정된 소모 칼로리를 띄우지 않는다 (#1312)"
   },
-  "routineCaloriesRoughEstimate": "운동 종류 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록됩니다",
+  "routineCaloriesRoughEstimate": "운동 종류 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록돼요",
   "@routineCaloriesRoughEstimate": {
     "description": "트레이너 폼은 수행할 회원의 체중을 모르므로 늘 어림값이다 (#1312)"
   },
@@ -1169,7 +1180,7 @@
   "routineUnitReps": "회",
   "routineUnitSeconds": "초",
   "routineUnitKg": "kg",
-  "routineKcalValue": "{count} kcal",
+  "routineKcalValue": "{count}kcal",
   "@routineKcalValue": {
     "placeholders": {
       "count": {
@@ -1183,7 +1194,7 @@
   "intensityHigh": "높음",
   "coachTitle": "프로그램",
   "coachSubtitle": "회원별 운동 프로그램을 만들고 배정·관리하세요",
-  "coachSendFailed": "전송에 실패했어요. 다시 시도해 주세요",
+  "coachSendFailed": "보내지 못했어요. 다시 시도해 주세요",
   "coachSwitchClientTitle": "다른 회원으로 바꿀까요?",
   "coachSwitchClientBody": "아직 보내지 않은 작성 내용이 있어요. 회원을 바꾸면 지금 짠 프로그램과 개인운동이 사라져요.",
   "coachSwitchClientConfirm": "바꾸기",
@@ -1204,7 +1215,7 @@
       }
     }
   },
-  "coachRegisteredOn": "{date} 스케줄에 등록됐어요",
+  "coachRegisteredOn": "{date} 일정에 추가했어요",
   "coachRegisteredAttachedExisting": "{date}에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요",
   "@coachRegisteredAttachedExisting": {
     "placeholders": {
@@ -1253,7 +1264,7 @@
   "aiOptionRecovery": "회복안",
   "aiOptionPush": "강화안",
   "aiOptionExisting": "기존안",
-  "aiGenerateFailed": "AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요",
+  "aiGenerateFailed": "AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요",
   "aiGenerateInvalidConditions": "생성 조건을 확인해 주세요. 총 운동 시간은 {min}~{max}분 사이여야 해요",
   "@aiGenerateInvalidConditions": {
     "placeholders": {
@@ -1532,16 +1543,16 @@
   "slotFlexible": "조율 가능",
   "unknownMember": "알 수 없는 회원",
   "filterAll": "전체",
-  "authErrInvalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
-  "authErrEmailTaken": "이미 가입된 이메일입니다.",
+  "authErrInvalidCredentials": "이메일 또는 비밀번호가 올바르지 않아요.",
+  "authErrEmailTaken": "이미 가입된 이메일이에요.",
   "authErrSessionExpired": "로그인이 만료됐어요. 다시 로그인해 주세요.",
   "authErrNoSocialToken": "소셜 로그인 토큰이 없어요",
   "authErrNetwork": "네트워크 연결을 확인해 주세요.",
   "authErrGeneric": "로그인 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.",
   "authErrEmptyResponse": "응답이 비어 있어요.",
-  "slotFutureOnly": "현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.",
-  "slotNotFound": "예약 슬롯을 찾을 수 없습니다.",
-  "slotTypeLockedByBooking": "이미 예약된 자리의 종류는 바꿀 수 없습니다.",
+  "slotFutureOnly": "지금보다 이후 시간만 예약 슬롯으로 설정할 수 있어요.",
+  "slotNotFound": "예약 슬롯을 찾을 수 없어요.",
+  "slotTypeLockedByBooking": "이미 예약된 자리의 종류는 바꿀 수 없어요.",
   "authErrNotTrainer": "트레이너 계정으로 로그인해 주세요.",
   "aiBasisGoalCompletion": "{goal} · 완료율 {rate}% 기준",
   "aiBasisTrainerRequest": "요청: \"{request}\"",
@@ -1560,27 +1571,27 @@
   "notifLoadMore": "지난 알림 더 보기",
   "notifLoadMoreFailed": "지난 알림을 불러오지 못했어요",
   "notifNoEarlier": "더 지난 알림이 없어요",
-  "notifTplHealthGoalTitle": "회원 건강 목표 변경",
+  "notifTplHealthGoalTitle": "회원 건강 목표가 바뀌었어요",
   "notifTplHealthGoalBody": "{name} 회원이 건강 목표를 바꿨어요: {goals}",
-  "notifTplHealthNotesTitle": "회원 주의사항 변경",
+  "notifTplHealthNotesTitle": "회원 주의사항이 바뀌었어요",
   "notifTplHealthNotesBody": "{name} 회원이 건강상태·주의사항을 바꿨어요",
   "notifTplHealthNotesWithGoalsBody": "{name} 회원이 건강 목표와 건강상태·주의사항을 바꿨어요",
   "notifTplNoGoals": "목표 없음",
-  "notifTplMemberRenamedTitle": "회원 이름 변경",
+  "notifTplMemberRenamedTitle": "회원 이름이 바뀌었어요",
   "notifTplMemberRenamedBody": "{oldName} 회원이 이름을 바꿨어요: {newName}",
-  "notifTplMemberWithdrawnTitle": "회원 탈퇴",
+  "notifTplMemberWithdrawnTitle": "회원이 탈퇴했어요",
   "notifTplMemberWithdrawnBody": "{name} 회원이 탈퇴했어요.",
-  "notifTplMemberDisconnectedTitle": "담당 연결 해제",
-  "notifTplMemberDisconnectedBody": "{name} 회원이 담당 연결을 끊었어요.",
+  "notifTplMemberDisconnectedTitle": "담당 연결이 해제됐어요",
+  "notifTplMemberDisconnectedBody": "{name} 회원이 담당 연결을 해제했어요.",
   "notifTplConsultRequestedTitle": "새 상담 요청이 도착했어요",
   "notifTplConsultCancelledTitle": "상담 요청이 취소됐어요",
   "notifTplConsultWithdrawnTitle": "회원 탈퇴로 상담 요청이 취소됐어요",
-  "notifTplInviteAcceptedTitle": "담당 요청이 수락되었어요",
-  "notifTplInviteAcceptedBody": "{name} 회원이 담당으로 연결되었어요.",
-  "notifTplInviteRejectedTitle": "담당 요청이 거절되었어요",
+  "notifTplInviteAcceptedTitle": "담당 요청이 수락됐어요",
+  "notifTplInviteAcceptedBody": "{name} 회원이 담당으로 연결됐어요.",
+  "notifTplInviteRejectedTitle": "담당 요청이 거절됐어요",
   "notifTplInviteRejectedBody": "{name} 회원이 담당 요청을 거절했어요.",
   "notifTplReservationBookedTitle": "새 예약이 들어왔어요",
-  "notifTplReservationCancelledTitle": "예약이 취소되었습니다",
+  "notifTplReservationCancelledTitle": "예약이 취소됐어요",
   "notifTplMemberWithDetail": "{name} 회원 · {detail}",
   "notifTplMemberOnly": "{name} 회원",
   "notifTplWhen": "{month}월 {day}일 {time}",
@@ -1593,7 +1604,7 @@
   "notifTplWeeklyFeedbackIntensity": "운동 강도 {value}",
   "notifTplWeeklyFeedbackPain": "통증 있음",
   "notifAllRead": "모두 확인했어요",
-  "notifReadAllFailed": "읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요",
+  "notifReadAllFailed": "읽음 처리하지 못했어요. 잠시 후 다시 시도해 주세요",
   "notifUnreadCount": "읽지 않은 알림 {count}건",
   "myDeleteAccount": "계정 탈퇴",
   "myDeleteAction": "탈퇴",
@@ -1608,8 +1619,9 @@
   "myDeleteReauthKakao": "카카오로 다시 로그인",
   "myDeleteReauthGoogle": "구글로 다시 로그인",
   "myDeleteReauthSocialDone": "소셜 계정을 확인했어요. 탈퇴를 누르면 진행돼요.",
-  "myDeleteReauthSocialFailed": "소셜 계정 확인에 실패했어요. 다시 로그인해 주세요.",
-  "myWithdrawReasonTitle": "정말 탈퇴하시겠어요?",
+  "myDeleteReauthSocialFailed": "소셜 계정을 확인하지 못했어요. 다시 로그인해 주세요.",
+  "myDeleteReauthSocialUnavailable": "이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요.",
+  "myWithdrawReasonTitle": "정말 탈퇴할까요?",
   "myWithdrawReasonQuestion": "어떤 점이 아쉬우셨나요?",
   "myWithdrawReasonHint": "여러 개 골라도 되고, 고르지 않아도 넘어갈 수 있어요.",
   "myWithdrawReasonRarelyUsed": "자주 사용하지 않아요",
@@ -1719,7 +1731,7 @@
       }
     }
   },
-  "workoutRoutineAllCount": "{count}번 보냄",
+  "workoutRoutineAllCount": "{count}회 보냄",
   "@workoutRoutineAllCount": {
     "placeholders": {
       "count": {
@@ -1782,30 +1794,7 @@
       }
     }
   },
-  "coachRoutineAdherenceTitle": "개인운동 이행",
-  "coachRoutineAdherenceSummary": "지난 {days}일 중 모두 완료 {full}일",
-  "@coachRoutineAdherenceSummary": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "full": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceLate": "{weekday}요일 {count}건은 다음 날 체크",
-  "@coachRoutineAdherenceLate": {
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceFirstDay": "오늘 보낸 개인운동이에요",
+  "coachRoutineAdherenceTitle": "개인운동 완료",
   "coachRoutineAdherenceCell": "{date}: {done}/{total} 완료",
   "@coachRoutineAdherenceCell": {
     "placeholders": {
@@ -1820,7 +1809,7 @@
       }
     }
   },
-  "workoutTotalBurned": "총 소모 {calories} kcal",
+  "workoutTotalBurned": "총 소모 {calories}kcal",
   "@workoutTotalBurned": {
     "placeholders": {
       "calories": {
@@ -1828,7 +1817,7 @@
       }
     }
   },
-  "workoutLineBurned": "소모 {calories} kcal",
+  "workoutLineBurned": "소모 {calories}kcal",
   "@workoutLineBurned": {
     "placeholders": {
       "calories": {
@@ -1836,7 +1825,7 @@
       }
     }
   },
-  "workoutLineEstimated": "예상 소모 {calories} kcal",
+  "workoutLineEstimated": "예상 소모 {calories}kcal",
   "@workoutLineEstimated": {
     "placeholders": {
       "calories": {
@@ -1873,7 +1862,7 @@
   "searchDetailNextSession": "다음 예약 {date} {time}",
   "searchDetailNoUpcoming": "예정된 예약 없음",
   "searchDetailLastRoutine": "마지막 프로그램 {when}",
-  "searchDetailCompletion": "이번 주 이행률 {percent}%",
+  "searchDetailCompletion": "이번 주 완료율 {percent}%",
   "navOperationsGroup": "운영",
   "navCoachingGroup": "코칭",
   "dashTodayTasks": "오늘 할 일",
@@ -1889,7 +1878,7 @@
   "dashTodoReport": "리포트",
   "dashTodoConsultationSubtitle": "희망 {when}",
   "dashTodoCarriedOverDemoSubtitle": "어제 남긴 식단 피드백",
-  "dashTodoProgramSubtitle": "최근 등록한 프로그램 없음",
+  "dashTodoProgramSubtitle": "최근 보낸 프로그램 없음",
   "dashTodoReportSubtitle": "이번 주 리포트 작성 대상",
   "dashTaskSaveFailed": "할 일 상태를 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
   "dashTaskLoadFailed": "할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
@@ -2280,18 +2269,18 @@
   "programEditorSets": "세트",
   "programEditorReps": "횟수",
   "programEditorWeight": "중량 kg",
-  "reportsDemoSummarySteadyThisWeek": "{name}님은 이번 주 운동과 식단을 계획대로 잘 이어 갔어요. 지금 리듬을 지키면서 다음 주에는 운동 강도를 조금 올려 봐도 좋겠습니다.",
-  "reportsDemoSummarySteadyPastWeek": "{name}님은 그 주 운동과 식단을 계획대로 잘 이어 갔어요. 이 리듬을 지키면서 운동 강도를 조금씩 올려 봐도 좋겠습니다.",
-  "reportsDemoSummaryCompletionThisWeek": "{name}님은 이번 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.",
-  "reportsDemoSummaryCompletionPastWeek": "{name}님은 그 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.",
-  "reportsDemoSummarySkippedThisWeek": "{name}님이 이번 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.",
-  "reportsDemoSummarySkippedPastWeek": "{name}님이 그 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.",
+  "reportsDemoSummarySteadyThisWeek": "{name}님은 이번 주 운동과 식단을 계획대로 잘 이어 갔어요. 지금 리듬을 지키면서 다음 주에는 운동 강도를 조금 올려 봐도 좋겠어요.",
+  "reportsDemoSummarySteadyPastWeek": "{name}님은 그 주 운동과 식단을 계획대로 잘 이어 갔어요. 이 리듬을 지키면서 운동 강도를 조금씩 올려 봐도 좋겠어요.",
+  "reportsDemoSummaryCompletionThisWeek": "{name}님은 이번 주 운동 완료율이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.",
+  "reportsDemoSummaryCompletionPastWeek": "{name}님은 그 주 운동 완료율이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.",
+  "reportsDemoSummarySkippedThisWeek": "{name}님이 이번 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠어요.",
+  "reportsDemoSummarySkippedPastWeek": "{name}님이 그 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠어요.",
   "reportsDemoSummarySodiumThisWeek": "{name}님은 이번 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.",
   "reportsDemoSummarySodiumPastWeek": "{name}님은 그 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.",
   "reportsDemoSummarySugarThisWeek": "{name}님은 이번 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.",
   "reportsDemoSummarySugarPastWeek": "{name}님은 그 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.",
-  "reportsDemoSummaryCaloriesThisWeek": "{name}님의 이번 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.",
-  "reportsDemoSummaryCaloriesPastWeek": "{name}님의 그 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.",
+  "reportsDemoSummaryCaloriesThisWeek": "{name}님의 이번 주 섭취 칼로리가 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.",
+  "reportsDemoSummaryCaloriesPastWeek": "{name}님의 그 주 섭취 칼로리가 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.",
   "reportsDemoSummaryMacroThisWeek": "{name}님은 이번 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.",
   "reportsDemoSummaryMacroPastWeek": "{name}님은 그 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.",
   "reportsBackToList": "회원 목록",
@@ -2324,7 +2313,7 @@
     "description": "Report AI card when the summary returns 429 daily_limit. No retry button — retrying gives the same result today (#3032)."
   },
   "reportsPdfFallbackClient": "회원",
-  "reportsPdfDocTitle": "주간 코칭 리포트",
+  "reportsPdfDocTitle": "주간 리포트",
   "reportsPdfClient": "회원  {name}",
   "@reportsPdfClient": {
     "placeholders": {
@@ -2373,13 +2362,13 @@
       }
     }
   },
-  "reportsPdfLabelCompletion": "운동 수행률",
-  "reportsPdfLabelSessions": "PT 진행",
-  "reportsPdfLabelSessionCount": "PT 진행 횟수",
+  "reportsPdfLabelCompletion": "운동 완료율",
+  "reportsPdfLabelSessions": "완료 PT",
+  "reportsPdfLabelSessionCount": "완료 PT",
   "reportsPdfLabelSodiumOver": "나트륨 목표 초과",
-  "reportsPdfLabelCalories": "평균 열량",
+  "reportsPdfLabelCalories": "평균 칼로리",
   "reportsPdfLabelSugar": "평균 당류",
-  "reportsPdfLabelCaloriesShort": "열량",
+  "reportsPdfLabelCaloriesShort": "칼로리",
   "reportsPdfLabelSodiumShort": "나트륨",
   "reportsPdfLabelSugarShort": "당류",
   "reportsPdfValuePercent": "{value}%",
@@ -2511,7 +2500,7 @@
   "coachTemplateMenu": "템플릿 메뉴",
   "routineFormDecrease": "줄이기",
   "routineFormIncrease": "늘리기",
-  "reportsPending": "미전송",
+  "reportsPending": "안 보냄",
   "reportsCountPeople": "{count}명",
   "@reportsCountPeople": {
     "placeholders": {
@@ -2525,7 +2514,7 @@
   "reportsSortName": "이름 오름차순",
   "reportsSortNameDescending": "이름 내림차순",
   "reportsSentSortUnread": "안 읽은 회원 먼저",
-  "reportsSendProgress": "{done} / {total} 전송",
+  "reportsSendProgress": "{done} / {total} 보냄",
   "@reportsSendProgress": {
     "placeholders": {
       "done": {
@@ -2546,12 +2535,12 @@
     }
   },
   "reportsQueueAllSent": "이번 주 리포트를 모두 보냈어요",
-  "reportsSentColumn": "전송 완료",
+  "reportsSentColumn": "보냄",
   "reportsSentColumnEmpty": "아직 보낸 리포트가 없어요",
   "reportsSentSubtitle": "보낸 리포트 보기",
   "reportsOpenDraft": "열기",
   "reportsReasonUnknown": "수치를 불러오는 중",
-  "reportsReasonCompletion": "이행 {percent}%",
+  "reportsReasonCompletion": "완료율 {percent}%",
   "@reportsReasonCompletion": {
     "placeholders": {
       "percent": {
@@ -2559,7 +2548,7 @@
       }
     }
   },
-  "reportsReasonSessionDone": "PT {count}회 전량 소화",
+  "reportsReasonSessionDone": "완료 PT {count}회",
   "@reportsReasonSessionDone": {
     "placeholders": {
       "count": {
@@ -2586,7 +2575,7 @@
   "reportsReasonFullLog": "7일 전량 기록",
   "reportsReasonOnboarding": "신규 · 적응 중",
   "reportsReasonSteady": "순조로움",
-  "reportsSentOn": "{date} 전송",
+  "reportsSentOn": "{date} 보냄",
   "@reportsSentOn": {
     "placeholders": {
       "date": {
@@ -2605,7 +2594,7 @@
       }
     }
   },
-  "reportsSentAt": "{date} {time} 전송",
+  "reportsSentAt": "{date} {time} 보냄",
   "@reportsSentAt": {
     "placeholders": {
       "date": {
@@ -2628,13 +2617,13 @@
     }
   },
   "reportsHistoryBack": "지난 리포트",
-  "reportsHistoryUnsent": "미전송",
+  "reportsHistoryUnsent": "안 보냄",
   "reportsHistoryThisWeek": "이번 주",
   "reportsHistoryEmpty": "아직 보낸 리포트가 없어요",
   "reportsHistoryLoadFailed": "지난 리포트를 불러오지 못했어요",
   "reportsHistoryMore": "더 보기",
   "reportsHistoryMoreFailed": "더 불러오지 못했어요. 다시 눌러 주세요.",
-  "reportsHistorySendCount": "{count}번 보냄",
+  "reportsHistorySendCount": "{count}회 보냄",
   "@reportsHistorySendCount": {
     "placeholders": {
       "count": {
@@ -2659,7 +2648,7 @@
     }
   },
   "reportsResendConfirm": "다시 보내기",
-  "reportsSendHistoryFailed": "전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.",
+  "reportsSendHistoryFailed": "전송 이력을 불러오지 못했어요. 이미 보낸 회원이 안 보냄으로 보일 수 있어요.",
   "reportsStepReview": "확인",
   "reportsStepWrite": "작성",
   "reportsStepSend": "보내기",
@@ -2788,17 +2777,17 @@
   "reportsMemberFeedbackConditionGood": "좋았어요",
   "reportsMemberFeedbackConditionOk": "보통이었어요",
   "reportsMemberFeedbackConditionTired": "지쳤어요",
-  "reportsMemberFeedbackConditionBad": "많이 힘들었어요",
+  "reportsMemberFeedbackConditionBad": "많이 안 좋았어요",
   "reportsMemberFeedbackIntensityTooEasy": "너무 쉬웠어요",
-  "reportsMemberFeedbackIntensityRight": "적당했어요",
-  "reportsMemberFeedbackIntensityHard": "힘들었어요",
+  "reportsMemberFeedbackIntensityRight": "딱 맞았어요",
+  "reportsMemberFeedbackIntensityHard": "조금 힘들었어요",
   "reportsMemberFeedbackIntensityTooHard": "너무 힘들었어요",
   "reportsTrendUnavailable": "이 주의 운동 기록을 불러오지 못했어요",
   "reportsTrendNoGoal": "목표 없음",
   "reportsExerciseTrend": "운동 추세",
   "reportsWriteFromScratch": "직접 작성하기",
   "reportsCardWeekTitle": "이번 주",
-  "reportsCardWeekSubtitle": "한 축에 겹쳐 보면 같이 무너진 날이 보입니다",
+  "reportsCardWeekSubtitle": "한 축에 겹쳐 보면 같이 무너진 날이 보여요",
   "reportsAiSubtitle": "AI가 수치에서 자동 작성",
   "reportsMemberFeedbackMeta": "주 1회 · {date} 제출",
   "@reportsMemberFeedbackMeta": {
@@ -2915,7 +2904,7 @@
   "summaryBasisPersonal": "개인 목표",
   "summaryDirOver": "초과",
   "summaryDirUnder": "부족",
-  "summaryCompletionLow": "운동 이행률 평균 {pct}% · 기준 {threshold}% 미만",
+  "summaryCompletionLow": "운동 완료율 평균 {pct}% · 기준 {threshold}% 미만",
   "@summaryCompletionLow": {
     "placeholders": {
       "pct": {
@@ -2926,7 +2915,7 @@
       }
     }
   },
-  "summaryCompletionTopic": "운동 이행률 {pct}%",
+  "summaryCompletionTopic": "운동 완료율 {pct}%",
   "@summaryCompletionTopic": {
     "placeholders": {
       "pct": {
@@ -2934,7 +2923,7 @@
       }
     }
   },
-  "summaryCompletionAvg": "운동 이행률 평균 {pct}%",
+  "summaryCompletionAvg": "운동 완료율 평균 {pct}%",
   "@summaryCompletionAvg": {
     "placeholders": {
       "pct": {
@@ -3107,7 +3096,7 @@
       }
     }
   },
-  "summaryHeadlineSteady": "{name} 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.",
+  "summaryHeadlineSteady": "{name} 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋아요.",
   "@summaryHeadlineSteady": {
     "placeholders": {
       "name": {
@@ -3123,7 +3112,7 @@
       }
     }
   },
-  "summaryHeadlineGoodCare": "{name} 회원은 {kept} 잘 지켰고, 다음 주는 {top} 함께 챙기면 좋겠습니다.{rest}",
+  "summaryHeadlineGoodCare": "{name} 회원은 {kept} 잘 지켰고, 다음 주는 {top} 함께 챙기면 좋겠어요.{rest}",
   "@summaryHeadlineGoodCare": {
     "placeholders": {
       "name": {
@@ -3140,7 +3129,7 @@
       }
     }
   },
-  "summaryHeadlineNeedsAdjust": "{name} 회원은 {top} 목표를 벗어나 다음 주 조정이 필요합니다.{rest}",
+  "summaryHeadlineNeedsAdjust": "{name} 회원은 {top} 목표를 벗어나 다음 주 조정이 필요해요.{rest}",
   "@summaryHeadlineNeedsAdjust": {
     "placeholders": {
       "name": {
@@ -3170,21 +3159,21 @@
   "clientDietAnalysisWeekCause": "{weekday, select, 0{월요일} 1{화요일} 2{수요일} 3{목요일} 4{금요일} 5{토요일} other{일요일}} {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}}에 먹은 {food}({foodValue}) 영향이 가장 컸어요.",
   "clientDietAnalysisWeekProteinShort": "{scope, select, last{지난주} other{이번 주}} 기록한 {logged}일 중 {days}일 단백질이 목표의 80%에 못 미쳤어요.",
   "clientDietAnalysisWeekGood": "{scope, select, last{지난주} other{이번 주}} 기록한 {days}일 모두 목표 안에서 드셨어요.",
-  "clientDietAnalysisWeekBreakfastSnackFood": "아침 대신 먹은 것은 {food} {count}번이 가장 많았어요.",
+  "clientDietAnalysisWeekBreakfastSnackFood": "아침 대신 먹은 것은 {food} {count}회가 가장 많았어요.",
   "clientDietAnalysisWeekProteinAvg": "모자란 날은 하루 평균 {value} 정도였어요.",
   "clientDietAnalysisWeekGoodAvg": "하루 평균 {kcal}, 단백질 {protein}을 드셨어요.",
   "clientDietAnalysisWeekVsLast": "지난주({prevLogged}일 중 {prevDays}일){way, select, more{보다 늘었어요} less{보다 줄었어요} other{와 비슷해요}}.",
   "clientDietAnalysisAllFew": "최근 4주 기록이 {days}일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
-  "clientDietAnalysisAllSlotSodium": "최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 나트륨이 {days}번 목표의 절반을 넘었어요.",
+  "clientDietAnalysisAllSlotSodium": "최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 나트륨이 {days}회 목표의 절반을 넘었어요.",
   "clientDietAnalysisAllCarbHeavy": "최근 4주 섭취 열량 중 탄수화물이 {pct}%로 높은 편이에요.",
   "clientDietAnalysisAllProteinLight": "최근 4주 섭취 열량 중 단백질이 {pct}%로 낮은 편이에요.",
   "clientDietAnalysisAllProteinTrendUp": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 {after}일로 늘었어요.",
   "clientDietAnalysisAllProteinTrendDown": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 {after}일로 줄었어요.",
-  "clientDietAnalysisAllFrequent": "최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 메뉴로 {food} {count}번이 가장 많았어요.",
+  "clientDietAnalysisAllFrequent": "최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 메뉴로 {food} {count}회가 가장 많았어요.",
   "clientDietAnalysisAllRepeated": "최근 4주 음식 기록에서 {food1}·{food2} 비중이 높아요.",
   "clientDietAnalysisAllGood": "최근 4주 동안 {days}일 기록했고, 흐름이 고른 편이에요.",
-  "clientDietAnalysisFoodsOne": "{food1} {count1}번이 대부분이에요.",
-  "clientDietAnalysisFoodsTwo": "{food1} {count1}번, {food2} {count2}번이 대부분이에요.",
+  "clientDietAnalysisFoodsOne": "{food1} {count1}회가 대부분이에요.",
+  "clientDietAnalysisFoodsTwo": "{food1} {count1}회, {food2} {count2}회가 대부분이에요.",
   "clientDietRecQuestion": "{slot, select, breakfast{아침으로} lunch{점심으로} dinner{저녁으로} lateNight{야식으로} other{간식으로}} 이 메뉴를 회원에게 추천할까요?",
   "clientDietRecQuestionNext": "다음 식사로 이 메뉴를 회원에게 추천할까요?",
   "clientDietRecCounter": "AI 추천 {index} / {total}",
@@ -3203,7 +3192,14 @@
   "clientDietRecConfirmFailed": "추천을 저장하지 못했어요. 다시 시도해 주세요.",
   "clientDietRecNutrition": "{kcal}kcal · 단백질 {protein}g · 나트륨 {sodium}mg",
   "clientDietRecSlot": "{slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}}",
-  "authForgotPassword": "비밀번호를 잊으셨나요?",
+  "authForgotPassword": "비밀번호 찾기",
+  "authFindEmail": "아이디 찾기",
+  "findEmailTitle": "아이디 찾기",
+  "findEmailSubtitle": "가입할 때 입력한 이름과 휴대폰 번호로 가입 이메일을 찾아요.",
+  "findEmailAction": "아이디 찾기",
+  "findEmailComingSoon": "아이디 찾기는 준비 중이에요.",
+  "signUpPhoneHint": "010-0000-0000",
+  "signUpPhoneHelper": "가입한 이메일을 잊었을 때 찾는 데 쓰는 연락처예요",
   "passwordResetTitle": "비밀번호 재설정",
   "passwordResetRequestSubtitle": "가입한 이메일로 재설정 코드를 보내 드려요.",
   "passwordResetSendAction": "코드 받기",
@@ -3237,10 +3233,29 @@
   "signUpCodeTooMany": "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.",
   "signUpCodeUnavailable": "지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.",
   "signUpCodeRequestFailed": "인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.",
-  "releaseUpdateTitle": "앱이 업데이트되었어요",
+  "releaseUpdateTitle": "앱이 업데이트됐어요",
   "releaseUpdateMessage": "새로고침하면 최신 버전으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.",
   "releaseUpdateReload": "새로고침",
   "releaseUpdateDismiss": "안내 닫기",
   "errorNetworkUnstable": "연결이 불안정합니다. 네트워크를 확인하고 다시 시도해 주세요.",
-  "errorServerTemporary": "서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요."
+  "errorServerTemporary": "서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.",
+  "myGymInfoEdit": "헬스장 정보 수정",
+  "myGymInfoSubtitle": "회원 앱 헬스장 목록과 상세에 그대로 보여요. 같은 헬스장 트레이너 누구나 고칠 수 있고, 마지막에 저장한 내용이 남아요.",
+  "myGymInfoCardTitle": "회원에게 보이는 헬스장 정보",
+  "myGymWeekdayHours": "평일 영업시간",
+  "myGymWeekendHours": "주말 영업시간",
+  "myGymHoursHint": "예: 06:00 - 23:00",
+  "myGymPhone": "대표 전화",
+  "myGymPhoneHint": "예: 02-123-4567",
+  "myGymTags": "태그",
+  "myGymAddTag": "태그 추가...",
+  "myGymTagsEmpty": "아직 태그가 없어요.",
+  "myGymInfoLoadFailed": "헬스장 정보를 불러오지 못했어요.",
+  "myGymInfoSaveFailed": "헬스장 정보를 저장하지 못했어요.",
+  "a11yRemoveGymTag": "태그 지우기",
+  "myGymTagsHint": "회원 앱 헬스장 카드에 칩으로 보여요. 최대 {max}개, 한 개에 {length}자까지 적을 수 있어요.",
+  "myGymTagsFull": "태그는 {max}개까지 넣을 수 있어요",
+  "myGymTagTooLong": "태그는 {length}자까지 적을 수 있어요",
+  "myGymHoursWeekday": "평일 {hours}",
+  "myGymHoursWeekend": "주말 {hours}"
 }

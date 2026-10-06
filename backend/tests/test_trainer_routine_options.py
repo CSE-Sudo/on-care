@@ -857,6 +857,8 @@ def test_exercise_name_drops_marks_and_skips_undone_exercises():
     assert fn("걷기 ✓") == "걷기"
     assert fn("데드리프트 ✗") == ""
     assert fn("플랭크 ✗ (피로)") == ""
+    # 값으로 적힌 기록은 `done: false` 가 안 한 운동이다(#2508).
+    assert fn({"name": "데드리프트", "type": "strength", "done": False}) == ""
 
 
 def test_guess_intensity_maps_exercise_type_to_a_preference():

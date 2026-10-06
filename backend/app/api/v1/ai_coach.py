@@ -43,7 +43,7 @@ from app.services.trainer._common import get_member_trainer_id
 router = APIRouter(tags=["ai-coach"])
 
 #: 담당 트레이너가 연결된 회원에게 AI 챗봇 경로가 돌려주는 안내. (#1823)
-TRAINER_CONNECTED_DETAIL = "담당 트레이너가 연결된 회원은 AI 챗봇 대신 트레이너 채팅을 이용합니다."
+TRAINER_CONNECTED_DETAIL = "담당 트레이너가 연결된 회원은 AI 챗봇 대신 트레이너 채팅을 이용해요."
 
 
 def _ensure_ai_chat_allowed(db: Session, user_id: str) -> None:
@@ -136,7 +136,7 @@ def ai_coach_chat(
     _ensure_ai_chat_allowed(db, current_user.id)
     message = payload.message.strip()
     if not message:
-        raise HTTPException(status_code=400, detail="메시지가 비어 있습니다.")
+        raise HTTPException(status_code=400, detail="메시지가 비어 있어요.")
 
     if payload.client_request_id:
         replay = _replay(db, current_user.id, payload.client_request_id, message)
@@ -284,7 +284,7 @@ def dismiss_ai_coach_insight(
     )
     # 남의 대화·트레이너 스레드(#3085)는 물론이고 없는 id 도 404 다 — 있는지 없는지를 알려 주지 않는다.
     if message is None:
-        raise HTTPException(status_code=404, detail="감지 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="감지 기록을 찾을 수 없어요.")
     message.insight_dismissed = True
     db.commit()
     return {"status": "dismissed"}

@@ -23,7 +23,8 @@ from app.models.models import (
 )
 from app.schemas.user import AccountDeleteRequest, PasswordChanged
 from app.schemas.trainer_api import (
-    TrainerGymAffiliation, TrainerGymCandidate, TrainerKakaoGymSelect,
+    TrainerGymAffiliation, TrainerGymCandidate, TrainerGymProfileOut,
+    TrainerGymProfileUpdate, TrainerKakaoGymSelect,
     TrainerMe, TrainerMeUpdate,
     TrainerNotificationSettings, TrainerNotificationSettingsUpdate,
     TrainerPasswordChange,
@@ -67,7 +68,7 @@ def trainer_update_me(
     fields = payload.model_dump(exclude_unset=True)
     if not fields:
         # 빈 PATCH 를 성공으로 처리하면 클라이언트가 저장됐다고 오해한다.
-        raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
+        raise HTTPException(status_code=400, detail="수정할 항목이 없어요.")
     try:
         return trainer_profile_service.update_trainer_profile(db, trainer, profile, fields)
     except trainer_profile_service.GymTextNotEditable as e:
@@ -75,8 +76,8 @@ def trainer_update_me(
         # 422 가 아니라 409.
         raise HTTPException(
             status_code=409,
-            detail="헬스장 정보는 직접 수정할 수 없습니다. "
-                   "헬스장을 검색해 소속을 설정하세요.",
+            detail="헬스장 정보는 직접 수정할 수 없어요. "
+                   "헬스장을 검색해 소속을 설정해 주세요.",
         ) from e
 
 
@@ -95,7 +96,7 @@ def trainer_set_gym(
     profile = _require_profile(db, trainer.id)
     me = trainer_gym_service.set_trainer_gym(db, trainer, profile, payload.gym_id)
     if me is None:
-        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없어요.")
     return me
 
 
@@ -113,11 +114,27 @@ async def trainer_search_gyms(
     호출이 실패하면 등록된 헬스장만 나온다.
     """
     if (lat is None) != (lng is None):
-        raise HTTPException(status_code=422, detail="lat 과 lng 는 함께 보내야 합니다.")
+        raise HTTPException(status_code=422, detail="lat 과 lng 는 함께 보내야 해요.")
     q = query.strip()
     if not q:
         raise HTTPException(status_code=422, detail="검색어를 입력하세요.")
     return await trainer_gym_search.search(db, q, lat, lng)
+
+
+@router.get("/trainer/gyms/nearby", response_model=list[TrainerGymCandidate])
+async def trainer_nearby_gyms(
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    lat: float = Query(ge=-90, le=90, description="트레이너의 현재 위도"),
+    lng: float = Query(ge=-180, le=180, description="트레이너의 현재 경도"),
+) -> list[TrainerGymCandidate]:
+    """현재 위치 주변의 소속 후보 헬스장 — 가까운 순. (#3223)
+
+    `trainer_gym_search.NEARBY_RADIUS_M` 안의 등록 헬스장과 카카오 결과를 합친다.
+    고르는 길은 이름 검색 결과와 같다(`registered` 로 갈린다). 좌표는 이 요청의
+    거리 계산에만 쓰고 저장하지 않는다.
+    """
+    return await trainer_gym_search.nearby(db, lat, lng)
 
 
 @router.put("/trainer/me/gym/kakao", response_model=TrainerMe)
@@ -138,11 +155,49 @@ async def trainer_set_kakao_gym(
         )
     except trainer_gym_search.GymLookupUnavailable as e:
         raise HTTPException(
-            status_code=503, detail="지금은 헬스장을 확인할 수 없습니다. 잠시 뒤 다시 시도하세요."
+            status_code=503, detail="지금은 헬스장을 확인할 수 없어요. 잠시 뒤 다시 시도해 주세요."
         ) from e
     if me is None:
-        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없어요.")
     return me
+
+
+_NO_GYM_DETAIL = "소속 헬스장이 없습니다. 헬스장을 먼저 설정하세요."
+
+
+@router.get("/trainer/me/gym/profile", response_model=TrainerGymProfileOut)
+def trainer_gym_profile(
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> TrainerGymProfileOut:
+    """소속 헬스장의 영업시간·전화·태그. 소속이 없으면 409. (#2700)"""
+    profile = _require_profile(db, trainer.id)
+    try:
+        return trainer_gym_service.get_trainer_gym_profile(db, profile)
+    except trainer_gym_service.NoGymAffiliation as e:
+        raise HTTPException(status_code=409, detail=_NO_GYM_DETAIL) from e
+
+
+@router.put("/trainer/me/gym/profile", response_model=TrainerGymProfileOut)
+def trainer_update_gym_profile(
+    payload: TrainerGymProfileUpdate,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> TrainerGymProfileOut:
+    """소속 헬스장의 영업시간·전화·태그 부분 수정. (#2700)
+
+    소속 트레이너 누구나 고칠 수 있고 마지막 저장이 남는다. 소속이 없으면 409 —
+    값이 틀린 게 아니라 고칠 헬스장이 없는 상태라서다. 평점은 받지 않는다(422).
+    같은 헬스장 소속 트레이너 모두의 `gym.hours`·`gym.phone` 이 함께 바뀐다.
+    """
+    profile = _require_profile(db, trainer.id)
+    fields = payload.model_dump(exclude_unset=True)
+    if not fields:
+        raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
+    try:
+        return trainer_gym_service.update_trainer_gym_profile(db, profile, fields)
+    except trainer_gym_service.NoGymAffiliation as e:
+        raise HTTPException(status_code=409, detail=_NO_GYM_DETAIL) from e
 
 
 @router.delete("/trainer/me/gym", response_model=TrainerMe)
@@ -196,7 +251,7 @@ def trainer_change_password(
         )
         # 현재 비밀번호 불일치는 401 이 아니라 400 — 토큰은 유효하므로
         # 클라이언트가 로그아웃 처리로 오인하면 안 된다.
-        raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
+        raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않아요.")
     guard.clear()
     if verify_password(payload.new_password, trainer.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
@@ -301,7 +356,7 @@ def trainer_update_settings(
     """알림 수신 설정 부분 수정."""
     fields = payload.model_dump(exclude_unset=True)
     if not fields:
-        raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
+        raise HTTPException(status_code=400, detail="수정할 항목이 없어요.")
     return trainer_notification_settings_service.update_notification_settings(
         db, _require_profile(db, trainer.id), fields
     )

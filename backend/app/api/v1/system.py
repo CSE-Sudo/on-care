@@ -75,7 +75,7 @@ def readyz(db: Annotated[Session, Depends(get_db)]) -> dict[str, str]:
         db.rollback()
         # 원인(접속 문자열 등)은 서버 로그에만. 클라이언트엔 일반화된 503.
         logger.exception("readiness check failed — DB unavailable")
-        raise HTTPException(status_code=503, detail="서비스가 아직 준비되지 않았습니다.")
+        raise HTTPException(status_code=503, detail="서비스가 아직 준비되지 않았어요.")
     return {"status": "ready"}
 
 
