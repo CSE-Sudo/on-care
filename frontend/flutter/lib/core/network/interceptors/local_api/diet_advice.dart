@@ -168,7 +168,9 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
         positive(profile['daily_sugar_g']) ?? kGoalDefaultDailySugarG;
     final int calorieLimit =
         positive(profile['daily_calories']) ?? kGoalDefaultDailyCalories;
-    final int proteinGoal = positive(profile['daily_protein_g']) ?? 0;
+    // 단백질은 실효 목표로 본다 — 개인 목표 → 체중 × 1.2g → 60g(#3270). 서버
+    // `build_context` 와 같고, 식단 조언과 같은 분모다.
+    final int proteinGoal = demoDietTargets(profile).proteinG;
 
     final Set<String> signals = <String>{
       if (n > 0) ...<String>{
@@ -178,8 +180,7 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
           'calorie_high'
         else if (avgCalories > 0 && avgCalories <= calorieLimit * _recLowRatio)
           'calorie_low',
-        if (proteinGoal > 0 && avgProtein <= proteinGoal * _recLowRatio)
-          'protein_low',
+        if (avgProtein <= proteinGoal * kCoachProteinLowRatio) 'protein_low',
       },
     };
 
@@ -307,6 +308,7 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
 const int _recLookbackDays = 3;
 
 /// 한도의 몇 % 이상이면 과다, 미만이면 부족인지. 서버 `_HIGH_RATIO`·`_LOW_RATIO`.
+/// 단백질 부족 비율은 회원 코칭 문턱 `kCoachProteinLowRatio` 를 쓴다(#3270).
 const double _recHighRatio = 0.9;
 
 const double _recLowRatio = 0.6;

@@ -84,6 +84,10 @@ class TrainerGymOut(BaseModel):
     address: str
     hours: str
     phone: str
+    #: 소속 헬스장 좌표(`places.lat`·`lng`). 트레이너 웹이 헬스장 찾기 지도를 검색
+    #: 전에도 현재 소속 위치로 띄우는 데 쓴다(#3206). 소속이 없거나 좌표가 없으면 None.
+    lat: float | None = None
+    lng: float | None = None
 
 
 class TrainerMe(BaseModel):
