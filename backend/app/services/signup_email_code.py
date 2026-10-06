@@ -257,14 +257,17 @@ def request_code(
         else:
             schedule(_deliver, sender, mail, what)
 
+    # 만료 코드 정리와 커밋은 가입된 주소에도 한다 — 아닌 주소만 DB 작업을 하면 그만큼
+    # 응답 시간이 갈린다. 비밀번호 재설정(#3238)과 같다.
+    purge_stale(db, now=now)
     registered = db.scalar(
         select(User.id).where(func.lower(User.email) == email.lower())
     )
     if registered is not None:
+        db.commit()
         send(_compose_already_registered(email, settings, locale, purpose), "가입 안내 메일")
         return None
 
-    purge_stale(db, now=now)
     # 새 코드를 보내면 앞서 보낸 코드는 닫는다 — 살아 있는 코드가 여럿이면 맞힐 확률이
     # 그만큼 커진다.
     _close_open_codes(db, email, purpose, now=now)

@@ -469,6 +469,33 @@ def test_registered_notice_is_scheduled_too(client, db_session, cleanup):
     assert not _CODE.search(notice.body)
 
 
+def test_registered_address_also_purges_stale_codes(client, db_session, cleanup):
+    """가입된 주소도 만료 코드 정리·커밋을 한다 — DB 작업 차이로 응답 시간이 갈리지 않게."""
+    taken = _email(cleanup, "taken")
+    db_session.add(
+        models.User(id=f"user-{uuid4().hex[:12]}", email=taken, name="기존", hashed_password="")
+    )
+    stale = _email(cleanup, "stale")
+    now = clock.now()
+    db_session.add(
+        models.EmailVerificationCode(
+            id=f"evc-{uuid4().hex[:16]}",
+            email=stale,
+            purpose=signup_email_code.MEMBER_SIGNUP,
+            code_hash="x",
+            expires_at=now - timedelta(minutes=1),
+        )
+    )
+    db_session.commit()
+    assert _request_scheduled(db_session, taken, _Outbox(), []) is None
+    db_session.expire_all()
+    assert db_session.scalar(
+        select(models.EmailVerificationCode).where(
+            models.EmailVerificationCode.email == stale
+        )
+    ) is None
+
+
 def test_scheduled_mail_failure_is_only_logged(client, db_session, cleanup, caplog):
     box = _Outbox()
     box.fail = True
