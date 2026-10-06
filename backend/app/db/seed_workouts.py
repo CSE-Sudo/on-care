@@ -173,6 +173,40 @@ COMPLETION: dict[str, list[int]] = {
 }
 
 
+#: 처방과 다른 강도로 한 개인운동 — 회원 → (배정 순서, 수행 강도). (#3263)
+#:
+#: 그 개인운동을 한 **가장 최근 지난 날** 하루만 이 강도로 남긴다
+#: ([performed_off_day]). 트레이너 화면은 그날 줄에 처방 강도를 기준 자리에 두고
+#: `수행 높음` 을 덧붙인다(#3249) — 시드에 이런 날이 없으면 시연에서 그 태그를 보일
+#: 날이 없다. 오늘은 회원이 직접 체크하므로 들지 않는다. 데모 `seed_workouts.dart`
+#: 의 `_performedOff` 와 같다.
+PERFORMED_OFF: dict[str, tuple[int, str]] = {
+    # 이지수 — 스쿼트(처방 보통)를 세게 했다.
+    "user-jisu": (1, "high"),
+}
+
+
+def performed_off_day(member_id: str, done_by_day: dict[date, int]) -> date | None:
+    """[PERFORMED_OFF] 의 개인운동을 처방과 다르게 한 날 — 그 운동을 한 가장 최근 날.
+
+    [done_by_day] 는 지난 날마다 그날 완료한 개인운동 수다(오늘 제외).
+    """
+    off = PERFORMED_OFF.get(member_id)
+    if off is None:
+        return None
+    return max((d for d, done in done_by_day.items() if done > off[0]), default=None)
+
+
+def performed_intensity(
+    member_id: str, order: int, day: date, off_day: date | None, prescribed: str
+) -> str:
+    """그날 [order] 번째 개인운동을 회원이 한 강도 — 대개 처방 그대로다."""
+    off = PERFORMED_OFF.get(member_id)
+    if off is not None and day == off_day and order == off[0]:
+        return off[1]
+    return prescribed
+
+
 @dataclass(frozen=True)
 class SeedExercise:
     """회원이 직접 적은 운동·PT 수업 운동 한 줄."""

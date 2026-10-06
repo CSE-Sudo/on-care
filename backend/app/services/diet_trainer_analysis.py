@@ -37,8 +37,9 @@ PERIOD_ALL = "all"
 
 #: 오늘 칼로리를 "넘쳤다" 로 볼 배수 — 회원 앱 오늘 조언과 같다.
 CALORIE_OVER_RATIO = 1.1
-#: 오늘 단백질을 "모자라다" 로 말할 최소 부족분(g) — 회원 앱과 같다.
-PROTEIN_GAP_G = 10
+#: 오늘 단백질을 "모자라다" 로 말할 최소 부족분(g) — 회원 앱 오늘 조언과 같은 값을
+#: 한 곳(`diet_coach_inputs`)에서 읽는다(#3270).
+PROTEIN_GAP_G = inputs.COACH_PROTEIN_GAP_G
 #: 최근 4주 평균 단백질이 목표의 이 비율보다 낮으면 "꾸준히 부족" 이다.
 PROTEIN_CHRONIC_RATIO = 0.8
 #: 이 시각이 지났는데 그 끼니가 없으면 "기록이 아직 없다" 고 말한다(회원 앱과 같다).

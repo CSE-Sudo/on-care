@@ -162,8 +162,10 @@ class WeeklyReport implements ReportSheetWeek {
   final double? proteinTarget;
 
   /// 개인 목표가 없어도 채워지는 실효 단백질 목표(#2898) — 식단 분석과 같은
-  /// 규칙(개인 목표 → 체중 × 1.2g → 60g). 리포트 막대 분모다. 판정은 여전히
-  /// [proteinTarget] 만 본다 — 지어낸 기준으로 균형을 나무라지 않는다.
+  /// 규칙(개인 목표 → 체중 × 1.2g → 60g). 리포트 탄단지 막대와 결과지 단백질
+  /// 막대의 분모로만 쓴다. `부족`·`초과` 판정은 [proteinTarget] 이 있을 때만
+  /// 하고 이 값은 보지 않는다 — 서버 리포트 요약·결과지와 같은 규칙이다
+  /// (`ReportSheet.macros`, #3259). 지어낸 기준으로 균형을 나무라지 않는다.
   @override
   final double? effectiveProteinTarget;
   @override

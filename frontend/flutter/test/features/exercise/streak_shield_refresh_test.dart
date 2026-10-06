@@ -133,7 +133,7 @@ void main() {
   late _SavingRepository exercise;
   late FakeStreakShieldRepository shields;
 
-  Future<void> pump(WidgetTester tester, {ExerciseSession? session}) async {
+  Future<void> pump(WidgetTester tester) async {
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -161,8 +161,7 @@ void main() {
                 ref.watch(myStreakShieldsProvider);
                 return AppButton(
                   label: '열기',
-                  onPressed: () =>
-                      showExerciseAddSheet(context, session: session),
+                  onPressed: () => showExerciseAddSheet(context),
                 );
               },
             ),
@@ -193,29 +192,6 @@ void main() {
     await save(tester);
 
     expect(exercise.added, 1);
-    expect(shields.fetchCalls, 2);
-  });
-
-  testWidgets('운동 기록을 고쳐도 보호권을 다시 읽는다', (WidgetTester tester) async {
-    await pump(
-      tester,
-      session: ExerciseSession(
-        id: 'ex-1',
-        dayLabel: '월',
-        type: ExerciseType.cardio,
-        minutes: 30,
-        calories: 120,
-        name: '걷기',
-        date: DateTime(2026, 9, 14),
-      ),
-    );
-    expect(shields.fetchCalls, 1);
-
-    await tester.tap(find.text('열기'));
-    await tester.pumpAndSettle();
-    await save(tester);
-
-    expect(exercise.updated, 1);
     expect(shields.fetchCalls, 2);
   });
 }

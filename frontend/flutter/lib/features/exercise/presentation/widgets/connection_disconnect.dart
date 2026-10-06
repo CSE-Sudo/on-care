@@ -23,8 +23,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 해제가 됐는지 알 수 없었다(#2857). 서버가 '연결이 없다(404)' 고 답하면 이미
 /// 해제된 것이라 성공과 같이 다룬다.
 Future<bool> confirmDisconnect(
-  BuildContext context,
-  WidgetRef ref, {
+  BuildContext context, {
   required String message,
   required Future<void> Function(GymRepository repo) disconnect,
 }) async {

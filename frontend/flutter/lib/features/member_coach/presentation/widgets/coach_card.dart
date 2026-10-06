@@ -17,6 +17,7 @@ import 'package:oncare/features/member_coach/presentation/coach_routine_detail.d
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_rules/oncare_rules.dart' show josa;
 // 토스트는 아직 앱의 AppToastHost 를 쓴다 — 패키지 쪽 같은 이름은 가린다.
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -414,7 +415,10 @@ class _RecommendedExerciseRowState
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.coachCardRoutineCancelTitle,
-      message: l.coachRoutineCancelConfirm(routine.name),
+      message: l.coachRoutineCancelConfirm(
+        routine.name,
+        josa(routine.name, '을', '를'),
+      ),
       // 무엇을 지우는지는 제목과 본문이 이름까지 밝힌다 — 확정 버튼까지 긴
       // 문구를 넣으면 좁은 폰에서 잘린다(#2218). 다른 삭제 확인창과 같은 말이다.
       confirmLabel: l.actionDelete,

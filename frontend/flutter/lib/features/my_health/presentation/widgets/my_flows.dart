@@ -566,16 +566,30 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       if (!mounted || emailCode == null) return;
       // 저장 버튼의 진행 표시는 켜지 않는다 — 창이 떠 있는 동안 진행 중인 것은
       // 창 안의 확정 버튼이고, 창 뒤에서 도는 표시는 회원에게 보이지도 않는다.
+      Future<void>? request;
       final AccountReauthDialogOutcome outcome = await showAccountReauthDialog(
         context: context,
         message: l.reauthEmailMessage,
         confirmLabel: l.mySave,
         hasPassword: _base.hasPassword,
         onSubmit: (AccountReauth reauth) =>
-            send(reauth: reauth, emailCode: emailCode),
+            request = send(reauth: reauth, emailCode: emailCode),
       );
       if (!mounted) return;
-      switch (outcome.result) {
+      AccountReauthDialogResult result = outcome.result;
+      // 창이 요청 도중 다른 길로 닫혔다면 `취소` 로 온다. 서버에서는 이메일이
+      // 바뀌었을 수 있다 — 탈퇴 화면처럼 그 요청의 끝을 보고 판단한다(#3245).
+      final Future<void>? pending = request;
+      if (result == AccountReauthDialogResult.cancelled && pending != null) {
+        try {
+          await pending;
+          result = AccountReauthDialogResult.done;
+        } on Object {
+          // 거절·실패면 이메일은 그대로다 — 취소로 둔다.
+        }
+        if (!mounted) return;
+      }
+      switch (result) {
         case AccountReauthDialogResult.done:
           _onSaved(toast, l);
         case AccountReauthDialogResult.cancelled:

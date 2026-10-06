@@ -103,7 +103,6 @@ class _GymDetails extends ConsumerWidget {
     if (!context.mounted) return;
     final bool removed = await confirmDisconnect(
       context,
-      ref,
       // 담당 트레이너가 있으면 함께 사라진다는 것을 알린다.
       message: trainer == null
           ? l.myGymDisconnectConfirm(gym.name)

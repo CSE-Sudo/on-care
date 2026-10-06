@@ -86,3 +86,48 @@ def test_member_logs_and_pt_programs_match_the_demo():
                 rf"'name': '{e.name}',\s*'type': '{e.type}',\s*'minutes': {e.minutes},",
                 block,
             ), (member_id, e.name)
+
+
+def test_performed_off_matches_the_demo():
+    """처방과 다른 강도로 한 날(#3263)의 회원·운동·강도가 데모 `_performedOff` 와 같다."""
+    text = (_STORAGE / "seed_workouts.dart").read_text(encoding="utf-8")
+    block = text[text.index("const Map<int, (int, String)> _performedOff"):]
+    block = block[:block.index("\n};")]
+    demo = {
+        int(m.group(1)): (int(m.group(2)), m.group(3))
+        for m in re.finditer(r"^\s*(\d+): \((\d+), '(\w+)'\),", block, re.M)
+    }
+    server = {
+        seed_workouts.MEMBER_NO[member_id]: off
+        for member_id, off in seed_workouts.PERFORMED_OFF.items()
+    }
+    assert demo == server
+    assert server, "처방과 다르게 한 날이 하나도 없으면 `수행 …` 태그를 보일 날이 없다"
+    for member_id, (order, intensity) in seed_workouts.PERFORMED_OFF.items():
+        # 처방과 같은 강도면 태그가 서지 않는다.
+        assert seed_workouts.ROUTINES[member_id][order].intensity != intensity
+
+
+def test_performed_off_day_is_the_latest_day_with_that_routine():
+    from datetime import date
+
+    done = {
+        date(2026, 8, 18): 3,
+        date(2026, 8, 19): 3,
+        # 스쿼트(둘째)까지 못 한 날은 고르지 않는다.
+        date(2026, 8, 20): 1,
+    }
+    off_day = seed_workouts.performed_off_day("user-jisu", done)
+    assert off_day == date(2026, 8, 19)
+    assert seed_workouts.performed_intensity(
+        "user-jisu", 1, date(2026, 8, 19), off_day, "moderate"
+    ) == "high"
+    # 같은 날 다른 운동, 다른 날 같은 운동은 처방 그대로다.
+    assert seed_workouts.performed_intensity(
+        "user-jisu", 0, date(2026, 8, 19), off_day, "high"
+    ) == "high"
+    assert seed_workouts.performed_intensity(
+        "user-jisu", 1, date(2026, 8, 18), off_day, "moderate"
+    ) == "moderate"
+    # 표에 없는 회원은 늘 처방 그대로다.
+    assert seed_workouts.performed_off_day("user-sungho", done) is None

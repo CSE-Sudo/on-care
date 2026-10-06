@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,6 +47,9 @@ class _RecordingRepository implements TrainerReportRepository {
   _RecordingRepository({this.failWith});
 
   Object? failWith;
+
+  /// 있으면 신고가 이것이 끝날 때까지 기다린다 — 보내는 중인 시트를 본다.
+  Completer<void>? gate;
   final List<({String trainerId, TrainerReportReason reason, String memo})>
   sent = <({String trainerId, TrainerReportReason reason, String memo})>[];
 
@@ -54,6 +59,7 @@ class _RecordingRepository implements TrainerReportRepository {
     required TrainerReportReason reason,
     String memo = '',
   }) async {
+    await gate?.future;
     final Object? failure = failWith;
     if (failure != null) throw failure;
     sent.add((trainerId: trainerId, reason: reason, memo: memo));
@@ -225,6 +231,37 @@ void main() {
       expect(find.text(l.exTrainerReportSubmitted), findsOneWidget);
       // 신고해도 상세 화면은 그대로다.
       expect(find.byType(TrainerDetailPage), findsOneWidget);
+      await drainToast(tester);
+    });
+
+    // 닫히면 접수 결과·실패 안내를 보여 줄 자리가 사라진다(#3245).
+    testWidgets('보내는 중에는 바깥을 눌러도 시트가 닫히지 않는다', (
+      WidgetTester tester,
+    ) async {
+      final _RecordingRepository repository = _RecordingRepository()
+        ..gate = Completer<void>();
+      await pumpRoute(
+        tester,
+        location: AppRoutes.trainerDetailPath(_trainer.id),
+        repository: repository,
+      );
+      await openFromDetail(tester);
+      await tester.tap(
+        find.byKey(const Key('trainer-report-reason-impersonation')),
+      );
+      await tester.pump();
+      await tester.tap(submit());
+      await tester.pump();
+
+      await tester.tapAt(const Offset(180, 4));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const Key('trainer-report-sheet')), findsOneWidget);
+
+      repository.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(repository.sent, hasLength(1));
+      expect(find.byKey(const Key('trainer-report-sheet')), findsNothing);
       await drainToast(tester);
     });
 

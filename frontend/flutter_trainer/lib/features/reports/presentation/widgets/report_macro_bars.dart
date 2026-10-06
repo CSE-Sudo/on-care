@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_report/oncare_report.dart'
+    show ReportSheet, SheetBand, SheetDietItem, SheetMeasure;
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -31,35 +32,27 @@ class ReportMacroBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    // 값·목표·판정은 결과지와 같은 계산에서 온다(#3259) — 목표가 없으면
+    // 기본값으로 막대만 긋고, `부족` 은 회원이 적어 둔 목표가 있을 때만
+    // 짚는다. 단백질 막대는 식단 분석과 같은 실효 목표(개인 목표 → 체중 ×
+    // 1.2g → 60g, #2898)로 견준다.
+    final Map<SheetDietItem, SheetMeasure> macros = ReportSheet.macros(report);
     final List<_Macro> rows = <_Macro>[
       _Macro(
         label: l.metricCarbs,
-        value: recordedMean(report.carbsWeek),
-        // 회원이 하루 목표를 적어 두지 않았으면 기본값으로 견준다 — 회원 앱이
-        // 자기 화면에서 쓰는 것과 **같은** 기본값이라, 회원이 자기 폰에서
-        // 모자라다고 본 날이 트레이너 화면에서도 모자라다. 목표가 아예 없으면
-        // 막대가 `154g` 이라고만 말하는데, 그 수가 많은지 적은지는 그램 수를
-        // 외우고 있는 사람만 안다.
-        target: report.carbsTarget ?? carbsTargetG.toDouble(),
+        measure: macros[SheetDietItem.carbs]!,
         // 한 막대 안에서 셋을 가르는 것은 색의 **진하기**다. 서로 다른 색을
         // 쓰면 유산소·근력·스트레칭 같은 다른 뜻의 색과 헷갈린다.
         shade: 1,
       ),
       _Macro(
         label: l.metricProtein,
-        value: recordedMean(report.proteinWeek),
-        // 단백질은 식단 분석과 같은 실효 목표를 쓴다 — 개인 목표가 없으면 체중 ×
-        // 1.2g, 둘 다 없으면 60g(#2898). 옛 응답이면 공통 기본값이다.
-        target:
-            report.proteinTarget ??
-            report.effectiveProteinTarget ??
-            proteinTargetG.toDouble(),
+        measure: macros[SheetDietItem.protein]!,
         shade: 0.42,
       ),
       _Macro(
         label: l.metricFat,
-        value: recordedMean(report.fatWeek),
-        target: report.fatTarget ?? fatTargetG.toDouble(),
+        measure: macros[SheetDietItem.fat]!,
         shade: 0.22,
       ),
     ];
@@ -92,18 +85,16 @@ class ReportMacroBars extends StatelessWidget {
     );
   }
 
-  /// 목표의 80% 에 못 미치는 항목 중 가장 많이 모자란 것. 없으면 null.
+  /// 결과지가 `부족` 칸에 세우는 항목 중 가장 많이 모자란 것. 없으면 null.
   ///
-  /// 경계를 80% 로 둔 까닭: 하루 평균이 목표의 90% 인 주는 고칠 것이 아니라
-  /// 잘한 주다. 매주 무언가를 빨갛게 짚으면 그 색이 아무 뜻도 없어진다.
+  /// 경계는 결과지·서버 리포트 요약과 같다 — 개인 목표의 75% 미만(#3259).
+  /// 개인 목표가 없는 항목은 짚지 않는다: 지어낸 기준으로 `부족` 을 말하면
+  /// 결과지·요약 카드가 말하지 않은 문제를 이 화면만 말한다.
   static _Macro? _worstShortfall(List<_Macro> rows) {
     _Macro? worst;
-    double lowest = 0.8;
     for (final _Macro row in rows) {
-      final double? ratio = row.ratio;
-      if (ratio == null || ratio >= lowest) continue;
-      lowest = ratio;
-      worst = row;
+      if (row.measure.band != SheetBand.under) continue;
+      if (worst == null || row.ratio! < worst.ratio!) worst = row;
     }
     return worst;
   }
@@ -113,29 +104,26 @@ class ReportMacroBars extends StatelessWidget {
 class _Macro {
   const _Macro({
     required this.label,
-    required this.value,
-    required this.target,
+    required this.measure,
     required this.shade,
   });
 
   final String label;
 
-  /// 기록한 날의 하루 평균(g). 기록이 하나도 없으면 null.
-  final double? value;
-
-  /// 하루 목표(g). 회원이 적어 두지 않았으면 기본값이 들어온다.
-  final double? target;
+  /// 결과지와 같은 계산의 값·목표·판정.
+  final SheetMeasure measure;
 
   /// 바탕색의 진하기(0~1). 브랜드색에 이 값만큼 불투명도를 준다.
   final double shade;
 
-  /// 목표 대비 비율. 둘 중 하나라도 없으면 null.
-  double? get ratio {
-    final double? v = value;
-    final double? t = target;
-    if (v == null || t == null || t <= 0) return null;
-    return v / t;
-  }
+  /// 기록한 날의 하루 평균(g). 기록이 하나도 없으면 null.
+  double? get value => measure.value;
+
+  /// 하루 목표(g). 회원이 적어 두지 않았으면 기본값이 들어온다.
+  double get target => measure.target;
+
+  /// 목표 대비 비율. 값이 없으면 null.
+  double? get ratio => measure.ratio;
 }
 
 /// 세 칸이 이어 붙은 막대. 칸의 폭은 그램 수의 비율이다.
@@ -181,7 +169,7 @@ class _StackedBar extends StatelessWidget {
                           l.reportsMacroValueOfTarget(
                             row.label,
                             row.value!.round(),
-                            row.target!.round(),
+                            row.target.round(),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.clip,

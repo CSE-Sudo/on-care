@@ -147,6 +147,10 @@ class SessionController extends StateNotifier<SessionState>
     try {
       final profile = await _repo.fetchProfile(access);
       if (!mounted || _userActionStarted) return;
+      // 역할 확인을 통과한 앱만 옛 키를 지운다(#3260). 트레이너가 아니면 아래
+      // [_expire] 가 복사해 온 새 키만 버리고 옛 키를 남겨, 회원 앱이 가져가게 한다.
+      await _claimLegacyKeys(access);
+      if (!mounted || _userActionStarted) return;
       state = SessionState(
         status: SessionStatus.authenticated,
         profile: profile,
@@ -156,7 +160,9 @@ class SessionController extends StateNotifier<SessionState>
       await _expire();
     } on UnauthorizedError {
       if (_userActionStarted) return;
-      if (allowRefresh && refresh.isNotEmpty) {
+      if (allowRefresh &&
+          refresh.isNotEmpty &&
+          !await _isUnconfirmedLegacy(access)) {
         await _refreshAndResolve(refresh);
       } else {
         await _expire();
@@ -426,7 +432,7 @@ class SessionController extends StateNotifier<SessionState>
     // 지우기 **전에** 서버에 알린다 — 지운 뒤에는 폐기할 토큰이 없다.
     await _revokeSession();
     // 사용자가 직접 요청한 만료다 — 자기 자신의 가드에 막히면 안 된다.
-    await _expire(userInitiated: true);
+    await _expire(userInitiated: true, forgetLegacy: true);
     // 직접 로그아웃한 것이다 — 만료 안내가 남아 있었다면 거둔다.
     if (mounted) _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
   }
@@ -623,7 +629,7 @@ class SessionController extends StateNotifier<SessionState>
     _ref.read(signedOutByUserProvider.notifier).state = false;
     // 로그인한 뒤라 사용자 행동 가드는 이미 켜져 있다. 그 가드는 **복구**가 뒤늦게
     // 세션을 덮지 못하게 하는 것이고, 이 만료는 지금 세션에 대한 것이다.
-    await _expire(userInitiated: true);
+    await _expire(userInitiated: true, forgetLegacy: true);
     if (!mounted || state.status != SessionStatus.signedOut) return;
     _ref.read(sessionExpiredNoticeProvider.notifier).state = true;
   }
@@ -674,9 +680,32 @@ class SessionController extends StateNotifier<SessionState>
     }
   }
 
-  Future<void> _clearPersistedTokens() async {
+  /// [forgetLegacy] 는 [SecureTokenStore.clear] 와 같다 — 이 앱이 세션을 끝낼
+  /// 때(로그아웃·실행 중 만료)만 켠다(#3260).
+  Future<void> _clearPersistedTokens({bool forgetLegacy = false}) async {
     try {
-      await _serializeTokenStorage(_tokens.clear);
+      await _serializeTokenStorage(
+        () => _tokens.clear(forgetLegacy: forgetLegacy),
+      );
+    } catch (_) {}
+  }
+
+  /// [access] 가 역할 확인 전의 옛 키 토큰이면 회전하지 않는다(#3260) — 회원 앱의
+  /// 일회용 갱신 토큰일 수 있다. [_expire] 가 이 앱의 새 키만 비우고 옛 키는
+  /// 남긴다. 확인하지 못하면 회전하지 않는 쪽으로 둔다.
+  Future<bool> _isUnconfirmedLegacy(String access) async {
+    try {
+      return await _tokens.isUnconfirmedLegacy(access);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// 복원이 [access] 로 트레이너 역할을 확인했다 — 그 토큰이 옛 키에서 왔으면 옛
+  /// 키를 지운다(#3260). 실패해도 세션은 이어 간다 — 다음 복원이 다시 지운다.
+  Future<void> _claimLegacyKeys(String access) async {
+    try {
+      await _serializeTokenStorage(() => _tokens.claimLegacyKeys(access));
     } catch (_) {}
   }
 
@@ -703,10 +732,17 @@ class SessionController extends StateNotifier<SessionState>
   /// 느린 복구 중에 로그인이 끝났다면 저장소에는 방금 받은 토큰이 들어 있고, 저장소
   /// 작업은 큐로 직렬화되어 나중에 들어간 것이 뒤에 실행되므로, 뒤늦은 만료의 `clear`
   /// 는 그 저장을 **확실히** 덮어쓴다 — 화면은 로그인 상태인데 다음 실행에서 로그아웃된다.
-  Future<void> _expire({bool userInitiated = false}) async {
+  ///
+  /// [forgetLegacy] 는 이름공간 없던 옛 키도 지운다(#3260) — 로그아웃·실행 중
+  /// 만료처럼 이 앱이 세션을 끝낼 때만 켠다. 복원의 역할 확인에 걸린 경우는 끈
+  /// 채로 두어 옛 키를 원래 주인 앱(회원 앱)이 가져가게 한다.
+  Future<void> _expire({
+    bool userInitiated = false,
+    bool forgetLegacy = false,
+  }) async {
     if (!mounted) return;
     if (!userInitiated && _userActionStarted) return;
-    await _clearPersistedTokens();
+    await _clearPersistedTokens(forgetLegacy: forgetLegacy);
     // `_setAccessToken` reads a provider — guard it behind the mounted check
     // so it never runs against a disposed container during teardown.
     if (!mounted) return;

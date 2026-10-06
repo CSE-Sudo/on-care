@@ -9,6 +9,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/utils/korean_josa.dart' show josa;
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
@@ -401,7 +402,8 @@ class MockTrainerRoutineOptionsRepository
             ? 'Keeps the core exercises ($coreLabel) and adds '
                   "'${libraryExerciseName(extra.$1, en: true)}' to gradually "
                   'raise the workload.$suffix'
-            : "기존 핵심 운동($coreLabel)은 유지하고 '${extra.$1}'을(를) 더해 "
+            : '기존 핵심 운동($coreLabel)은 유지하고 '
+                  "'${extra.$1}'${josa(extra.$1, '을', '를')} 더해 "
                   '운동량을 점진적으로 늘림.$suffix',
       ),
       generatedBy: 'rule',

@@ -157,6 +157,17 @@ void main() {
       expect(await persisted(), isEmpty);
     });
 
+    test('mobile never treats a token as unconfirmed legacy', () async {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{
+        'access_token': 'old-a',
+        'refresh_token': 'old-r',
+      });
+      final SecureTokenStore store = SecureTokenStore(secure);
+
+      expect(await store.readAccessToken(), 'old-a');
+      expect(await store.isUnconfirmedLegacy('old-a'), isFalse);
+    });
+
     test('mobile keeps namespaced tokens over legacy ones', () async {
       FlutterSecureStorage.setMockInitialValues(<String, String>{
         access: 'new-a',
@@ -222,8 +233,150 @@ void main() {
       expect(await store.readAccessToken(), 'old-a');
       expect(await store.readRefreshToken(), 'old-r');
       expect(session.read(access), 'old-a');
-      expect(session.read('access_token'), isNull);
-      expect(session.read('refresh_token'), isNull);
+      // 역할 확인 전에는 옛 키를 남긴다 — 다른 앱 것일 수 있다(#3260).
+      expect(session.read('access_token'), 'old-a');
+      expect(session.read('refresh_token'), 'old-r');
+    });
+
+    group('legacy keys on the web (#3260)', () {
+      late InMemoryTokenSessionStorage session;
+      late SecureTokenStore store;
+
+      setUp(() {
+        session = InMemoryTokenSessionStorage()
+          ..write('access_token', 'old-a')
+          ..write('refresh_token', 'old-r');
+        store = SecureTokenStore(secure, sessionStorage: session);
+      });
+
+      test('a passed role check removes the copied legacy keys', () async {
+        final String? copied = await store.readAccessToken();
+
+        await store.claimLegacyKeys(copied!);
+
+        expect(session.read('access_token'), isNull);
+        expect(session.read('refresh_token'), isNull);
+        expect(session.read(access), 'old-a');
+        expect(session.read(refresh), 'old-r');
+      });
+
+      test('the claim also holds after a rotation', () async {
+        await store.readAccessToken();
+        await store.saveTokens(access: 'rotated-a', refresh: 'rotated-r');
+
+        await store.claimLegacyKeys('rotated-a');
+
+        expect(session.read('access_token'), isNull);
+        expect(session.read('refresh_token'), isNull);
+      });
+
+      test(
+        'a failed role check keeps the legacy keys for their owner',
+        () async {
+          await store.readAccessToken();
+
+          await store.clear();
+
+          expect(session.read(access), isNull);
+          expect(session.read(refresh), isNull);
+          expect(session.read('access_token'), 'old-a');
+          expect(session.read('refresh_token'), 'old-r');
+        },
+      );
+
+      test(
+        'legacy keys of the other app stay when this app is signed in',
+        () async {
+          session
+            ..write(access, 'mine-a')
+            ..write(refresh, 'mine-r');
+
+          expect(await store.readAccessToken(), 'mine-a');
+          await store.claimLegacyKeys('mine-a');
+
+          expect(session.read('access_token'), 'old-a');
+          expect(session.read('refresh_token'), 'old-r');
+        },
+      );
+
+      test(
+        'a legacy token equal to the verified one is claimed later',
+        () async {
+          // 앞 페이지가 복사만 하고 확인하지 못한 채 새로 고침된 탭이다.
+          session
+            ..write(access, 'old-a')
+            ..write(refresh, 'old-r');
+
+          expect(await store.readAccessToken(), 'old-a');
+          await store.claimLegacyKeys('old-a');
+
+          expect(session.read('access_token'), isNull);
+          expect(session.read('refresh_token'), isNull);
+        },
+      );
+
+      test('a copied legacy token is unconfirmed until claimed', () async {
+        final String? copied = await store.readAccessToken();
+
+        expect(await store.isUnconfirmedLegacy(copied!), isTrue);
+        await store.claimLegacyKeys(copied);
+        expect(await store.isUnconfirmedLegacy(copied), isFalse);
+      });
+
+      test('a copy left by an earlier page is still unconfirmed', () async {
+        session
+          ..write(access, 'old-a')
+          ..write(refresh, 'old-r');
+
+        expect(await store.isUnconfirmedLegacy('old-a'), isTrue);
+      });
+
+      test('this app own token is not an unconfirmed legacy one', () async {
+        session
+          ..write(access, 'mine-a')
+          ..write(refresh, 'mine-r');
+
+        expect(await store.readAccessToken(), 'mine-a');
+        expect(await store.isUnconfirmedLegacy('mine-a'), isFalse);
+      });
+
+      test('sign-out removes the legacy keys too', () async {
+        session
+          ..write(access, 'mine-a')
+          ..write(refresh, 'mine-r');
+        await store.readAccessToken();
+
+        await store.clear(forgetLegacy: true);
+
+        expect(session.read(access), isNull);
+        expect(session.read('access_token'), isNull);
+        expect(session.read('refresh_token'), isNull);
+      });
+
+      test('a reload after sign-out stays signed out', () async {
+        await store.readAccessToken();
+        await store.clear(forgetLegacy: true);
+
+        final SecureTokenStore reloaded = SecureTokenStore(
+          secure,
+          sessionStorage: session,
+        );
+
+        expect(await reloaded.readAccessToken(), isNull);
+        expect(await reloaded.readRefreshToken(), isNull);
+      });
+
+      test('sign-out leaves the member app keys alone', () async {
+        session
+          ..write(TokenKeyspace.member.accessKey, 'other-a')
+          ..write(TokenKeyspace.member.refreshKey, 'other-r');
+        await store.readAccessToken();
+
+        await store.clear(forgetLegacy: true);
+
+        expect(session.read(TokenKeyspace.member.accessKey), 'other-a');
+        expect(session.read(TokenKeyspace.member.refreshKey), 'other-r');
+      });
     });
 
     test('web never writes the other app keys', () async {

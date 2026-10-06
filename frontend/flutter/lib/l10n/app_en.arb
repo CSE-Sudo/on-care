@@ -597,7 +597,6 @@
   },
   "exCaloriesRoughEstimate": "A rough average for this exercise type",
   "exEnterDuration": "Please enter a duration",
-  "exCannotEdit": "This record can't be edited",
   "exUpdated": "Exercise record updated",
   "exLogged": "Exercise logged",
   "exQueueTitle": "To add {count}",
@@ -2817,8 +2816,12 @@
   "coachRoutineCancel": "Delete this personal exercise",
   "coachRoutineCancelConfirm": "Delete '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
+    "description": "Confirm deleting a recommended workout. {nameObj} is the Korean object particle for {name} ('을' or '를', from oncare_rules josa); English ignores it (#1177).",
     "placeholders": {
       "name": {
+        "type": "String"
+      },
+      "nameObj": {
         "type": "String"
       }
     }

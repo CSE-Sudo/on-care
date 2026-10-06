@@ -45,8 +45,9 @@ MEAL_DEADLINES = {
     catalog.SLOT_DINNER: time(21, 0),
 }
 
-#: 단백질이 이만큼 모자라면 말하고, 채울 메뉴를 고른다.
-PROTEIN_GAP_G = 10
+#: 단백질이 이만큼 모자라면 말하고, 채울 메뉴를 고른다. 실효 목표 기준이다 —
+#: 회원 코칭 문턱은 `diet_coach_inputs` 한 곳에 있다(#3270).
+PROTEIN_GAP_G = inputs.COACH_PROTEIN_GAP_G
 #: 칼로리가 목표의 이 배수를 넘으면 초과로 말한다.
 CALORIE_OVER_RATIO = 1.1
 #: 다음 식사를 고를 때 "이미 많다" 로 보는 선. 하루가 끝나기 전이라 한도보다 낮게 잡는다.

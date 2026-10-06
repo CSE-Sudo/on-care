@@ -378,7 +378,7 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
             ?.where((TrainerMemo memo) => _isFor(memo, widget.memoRef))
             .toList() ??
         const <TrainerMemo>[];
-    return AppDialog(
+    final Widget dialog = AppDialog(
       key: const ValueKey<String>('exercise-memo-dialog'),
       title: memos.isEmpty
           ? l.clientExerciseMemoAdd
@@ -472,6 +472,9 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
         ],
       ),
     );
+    // 저장 중에는 배경·뒤로 가기·닫기 X 로 닫히지 않는다(#3245) — 닫히면 저장
+    // 결과·오류를 보여 줄 자리가 사라진다. 기다리는 동안이 아니면 지금처럼 닫힌다.
+    return PopScope(canPop: !_busy, child: dialog);
   }
 }
 

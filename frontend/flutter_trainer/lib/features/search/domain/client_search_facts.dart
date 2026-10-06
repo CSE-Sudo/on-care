@@ -28,8 +28,10 @@ const int clientSearchUpcomingDays = 28;
 /// `clientId`가 없는 과거 예약은 이름이 유일할 때만 연결하여 동명이인의
 /// 기록이 잘못 노출되지 않도록 합니다.
 ///
-/// [now](KST 벽시계)를 주면 이미 시작한 `예정` 은 다음 예약이 아닙니다(#3249).
+/// [now](KST 벽시계)를 주면 이미 끝난 `예정` 은 다음 예약이 아닙니다(#3249).
 /// 완료·노쇼로 정리하지 않은 오늘 아침 수업이 저녁에도 "다음 예약" 으로 떴습니다.
+/// 기준은 [sessionHasEnded] 다 — 대시보드 배너(#2865)·스케줄 탭 회원 선택
+/// ([scheduleFocusSession])과 같아, 진행 중인 수업은 아직 다음 예약이다(#3261).
 Map<String, ScheduleSession> nextSessionsByClient(
   List<TrainerClient> clients,
   List<ScheduleSession> sessions, {
@@ -41,7 +43,7 @@ Map<String, ScheduleSession> nextSessionsByClient(
             (session) =>
                 !session.isGap &&
                 session.isUpcoming &&
-                (now == null || !sessionHasStarted(session, now)),
+                (now == null || !sessionHasEnded(session, now)),
           )
           .toList()
         ..sort((a, b) {
@@ -83,18 +85,24 @@ Map<String, ScheduleSession> nextSessionsByClient(
 /// 회원의 최신 프로그램을 바로 보려는 자리라서다. 날짜만 넘기던 때에는 그날의
 /// 첫 세션(다른 회원일 수 있다)이 열렸다. 앞으로의 취소 세션만 있으면 그중
 /// 가장 가까운 것을 연다. 공백 슬롯은 세지 않는다.
+///
+/// "다가오는" 은 끝나는 시각이 [now](KST 벽시계)보다 뒤라는 뜻이다(#3261).
+/// 검색 요약의 다음 예약([nextSessionsByClient])과 같은 [sessionHasEnded] 를
+/// 쓴다 — 날짜만 보던 때에는 완료 처리하지 않은 오늘 아침 수업이 저녁에도
+/// 열려, 같은 결과 행이 말하는 다음 예약과 다른 세션이 상세에 섰다.
 ScheduleSession? scheduleFocusSession(
   List<ScheduleSession> clientSessions,
-  String todayYmd,
+  DateTime now,
 ) {
   int byTime(ScheduleSession a, ScheduleSession b) {
     final byDate = a.date.compareTo(b.date);
     return byDate != 0 ? byDate : a.time.compareTo(b.time);
   }
 
+  final todayYmd = ymd(now);
   final booked = clientSessions.where((s) => !s.isGap).toList()..sort(byTime);
   for (final session in booked) {
-    if (session.isUpcoming && session.date.compareTo(todayYmd) >= 0) {
+    if (session.isUpcoming && !sessionHasEnded(session, now)) {
       return session;
     }
   }
@@ -108,9 +116,9 @@ ScheduleSession? scheduleFocusSession(
 String clientScheduleDestination(
   TrainerClient client,
   List<ScheduleSession> clientSessions,
-  String todayYmd,
+  DateTime now,
 ) {
-  final session = scheduleFocusSession(clientSessions, todayYmd);
+  final session = scheduleFocusSession(clientSessions, now);
   return session == null
       ? AppRoutes.clientDetail(client.id)
       : AppRoutes.scheduleAt(date: session.date, sessionId: session.id);

@@ -174,8 +174,7 @@ void main() {
                 return Column(
                   children: <Widget>[
                     TextButton(
-                      onPressed: () =>
-                          showExerciseAddSheet(context, session: session),
+                      onPressed: () => showExerciseAddSheet(context),
                       child: const Text('열기'),
                     ),
                     TextButton(
@@ -252,38 +251,6 @@ void main() {
 
     expect(find.text('운동이 기록됐어요'), findsOneWidget);
     expect(_badge, findsNothing);
-
-    await dismissToast(tester);
-  });
-
-  // 수정은 적립을 주지 않지만, 날짜를 옮기면 주간 챌린지의 운동한 날이 바뀐다 —
-  // 저장·삭제와 같은 갱신 함수로 MY 쪽을 다시 읽는다(#2634).
-  testWidgets('기록을 고치면 적립 표시는 없고 MY 는 다시 읽는다', (WidgetTester tester) async {
-    final ExerciseSession existing = ExerciseSession(
-      id: 'ex-1',
-      dayLabel: '월',
-      type: ExerciseType.cardio,
-      minutes: 30,
-      calories: 120,
-      name: '걷기',
-      date: DateTime(2026, 9, 14),
-    );
-    await pump(
-      tester,
-      _AwardingRepository(const PointsAward(awarded: 20, balance: 1260)),
-      session: existing,
-    );
-
-    await tester.tap(find.text('열기'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('exerciseSaveButton')));
-    await tester.pump();
-    await tester.pump(OnCareMotion.toastEnter);
-
-    expect(find.text('운동 기록이 수정됐어요'), findsOneWidget);
-    expect(_badge, findsNothing);
-    await tester.pumpAndSettle();
-    expect(health.calls, 2);
 
     await dismissToast(tester);
   });

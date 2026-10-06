@@ -342,3 +342,116 @@ def test_llm_saturation_falls_back_without_waiting(client, db_session, monkeypat
         assert elapsed < svc.LLM_TIMEOUT_SEC
     finally:
         _cleanup_member(db_session, user)
+
+
+# ──────────────────────────────── 단백질 부족 신호는 실효 목표로 본다(#3270) ──
+
+
+def _make_protein_member(
+    db_session, *, protein_per_meal: float, weight_kg=None, daily_protein_g=None
+):
+    """끼니마다 단백질이 [protein_per_meal]g 인 사흘 기록과 프로필을 가진 회원.
+
+    칼로리·나트륨·당류는 평범한 하루라 단백질 신호만 갈린다.
+    """
+    from app.core.security import hash_password
+    from app.models.models import DietEntry, HealthProfile, User
+
+    user = User(
+        id=f"user-{uuid.uuid4().hex[:12]}",
+        email=f"rec-protein-{uuid.uuid4().hex[:8]}@example.com",
+        name="단백질",
+        hashed_password=hash_password("test-pw-1234"),
+        role="member",
+    )
+    db_session.add(user)
+    db_session.commit()
+    if weight_kg is not None or daily_protein_g is not None:
+        db_session.add(
+            HealthProfile(
+                user_id=user.id, weight_kg=weight_kg, daily_protein_g=daily_protein_g
+            )
+        )
+    today = clock.today()
+    for offset in range(svc.LOOKBACK_DAYS):
+        day = (today - timedelta(days=offset)).isoformat()
+        # 하루 1,700kcal — 칼로리 과다(목표의 90%)·부족(60%) 사이다.
+        for meal, cal in (("breakfast", 500), ("lunch", 600), ("dinner", 600)):
+            db_session.add(
+                DietEntry(
+                    id=f"diet-{uuid.uuid4().hex[:12]}", user_id=user.id, date=day,
+                    meal_type=meal, foods_json="[]", total_calories=cal,
+                    sodium_mg=500, sugar_g=5.0, protein_g=protein_per_meal,
+                )
+            )
+    db_session.commit()
+    return user
+
+
+def _cleanup_protein_member(db_session, user) -> None:
+    from app.models.models import HealthProfile
+
+    db_session.execute(delete(HealthProfile).where(HealthProfile.user_id == user.id))
+    db_session.commit()
+    _cleanup_member(db_session, user)
+
+
+def test_protein_low_uses_weight_when_no_personal_goal(db_session):
+    """개인 목표 없이 체중만 있는 회원 — 체중 × 1.2g 의 60% 이하면 부족 신호다.
+
+    80kg → 실효 96g, 문턱 57.6g. 하루 45g(끼니 15g × 3)은 부족이다. 예전에는
+    개인 목표가 없으면 아예 보지 않아 이 회원에게 단백질 메뉴가 앞으로 오지 않았다.
+    """
+    user = _make_protein_member(db_session, protein_per_meal=15, weight_kg=80)
+    try:
+        ctx = svc.build_context(db_session, user.id)
+        assert "protein_low" in ctx.signals
+        ranked = [m.key for m in svc._rule_rank(ctx)]
+        assert set(ranked[:2]) == {"chicken_salad", "salmon"}
+    finally:
+        _cleanup_protein_member(db_session, user)
+
+
+def test_protein_low_uses_default_target_without_profile(db_session):
+    """프로필도 체중도 없으면 60g 의 60%(36g) 이하가 부족이다."""
+    low = _make_protein_member(db_session, protein_per_meal=10)  # 하루 30g
+    enough = _make_protein_member(db_session, protein_per_meal=15)  # 하루 45g
+    try:
+        assert "protein_low" in svc.build_context(db_session, low.id).signals
+        assert "protein_low" not in svc.build_context(db_session, enough.id).signals
+    finally:
+        _cleanup_protein_member(db_session, low)
+        _cleanup_protein_member(db_session, enough)
+
+
+def test_personal_protein_goal_still_comes_first(db_session):
+    """개인 목표가 있으면 그것이 기준이다 — 기존 동작 그대로.
+
+    하루 45g 은 체중(80kg → 96g)으로는 부족이지만, 개인 목표 50g 의 60%(30g)는 넘는다.
+    """
+    user = _make_protein_member(
+        db_session, protein_per_meal=15, weight_kg=80, daily_protein_g=50
+    )
+    try:
+        assert "protein_low" not in svc.build_context(db_session, user.id).signals
+    finally:
+        _cleanup_protein_member(db_session, user)
+
+
+def test_protein_low_ratio_is_the_shared_coaching_threshold():
+    """추천 식단의 단백질 문턱은 회원 코칭 문턱 한 곳(`diet_coach_inputs`)의 값이다."""
+    from app.services import diet_coach_inputs, diet_period_advice, diet_week_advice
+    from app.services import diet_all_advice, diet_trainer_analysis
+
+    assert svc._PROTEIN_LOW_RATIO == diet_coach_inputs.COACH_PROTEIN_LOW_RATIO == 0.6
+    assert diet_period_advice.PROTEIN_GAP_G == diet_coach_inputs.COACH_PROTEIN_GAP_G == 10
+    # 트레이너 식단 분석의 "오늘 단백질 부족" 도 회원 앱과 같은 값이다.
+    assert diet_trainer_analysis.PROTEIN_GAP_G == diet_coach_inputs.COACH_PROTEIN_GAP_G
+    assert (
+        diet_week_advice.PROTEIN_SHORT_RATIO
+        == diet_coach_inputs.COACH_PROTEIN_SHORT_RATIO
+        == 0.8
+    )
+    assert (
+        diet_all_advice.PROTEIN_MET_RATIO == diet_coach_inputs.COACH_PROTEIN_MET_RATIO == 0.9
+    )
