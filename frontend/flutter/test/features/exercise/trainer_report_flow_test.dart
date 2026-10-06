@@ -548,8 +548,8 @@ void main() {
       await pump(
         tester,
         repository: repository,
-        child: TrainerReportButton(
-          key: const Key('trainer-report'),
+        child: const TrainerReportButton(
+          key: Key('trainer-report'),
           trainer: _trainer,
         ),
       );
