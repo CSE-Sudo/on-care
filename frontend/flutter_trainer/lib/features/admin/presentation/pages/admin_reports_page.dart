@@ -547,6 +547,13 @@ mixin _AdminRunner<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   ) async {
     setState(() => busy = true);
     final AppLocalizations l = AppLocalizations.of(context);
+    // 목록 다시 읽기는 카드가 사라진 뒤에도 해야 한다 — 처리하는 사이 목록이 바뀌어
+    // 이 카드가 해제되면 `ref` 를 쓸 수 없다(StateError, #3248). 컨테이너는 앱과
+    // 수명이 같다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       final String success = await action(
         ref.read(adminTrainerRepositoryProvider),
@@ -561,7 +568,7 @@ mixin _AdminRunner<T extends ConsumerStatefulWidget> on ConsumerState<T> {
         type: AppToastType.error,
       );
     } finally {
-      ref
+      container
         ..invalidate(adminReportsProvider)
         ..invalidate(adminTrainersProvider);
       if (mounted) setState(() => busy = false);

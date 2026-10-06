@@ -105,7 +105,21 @@ class SessionController extends StateNotifier<SessionState>
   /// 그러지 않으면 그 복구가 조용히 무시된다(리뷰).
   bool _userActionStarted = false;
 
-  void _setToken(String? token) {
+  /// 같은 세션 안에서 회전([refreshAfterUnauthorized])·재발급
+  /// ([adoptReissuedTokens])으로 물러난 접근 토큰들. (#3231)
+  ///
+  /// 느린 요청 사이에 토큰이 회전돼도 같은 계정의 세션이다. 그 요청의 결과까지
+  /// "다른 세션의 뒤늦은 응답" 으로 버리면 동의 저장 같은 결과가 사라진다.
+  /// 로그인·로그아웃처럼 계정 경계를 넘는 전환에서는 비운다.
+  final Set<String> _rotatedTokens = <String>{};
+
+  void _setToken(String? token, {bool rotated = false}) {
+    final String? previous = _ref.read(authAccessTokenProvider);
+    if (!rotated) {
+      _rotatedTokens.clear();
+    } else if (previous != null) {
+      _rotatedTokens.add(previous);
+    }
     _ref.read(authAccessTokenProvider.notifier).state = token;
   }
 
@@ -430,7 +444,7 @@ class SessionController extends StateNotifier<SessionState>
       // 저장에 실패해도 이번 실행은 메모리 토큰으로 이어 간다.
     }
     if (!mounted || state.status != SessionStatus.authenticated) return;
-    _setToken(access);
+    _setToken(access, rotated: true);
   }
 
   /// Email/password login → POST /auth/login (OAuth2 form). Throws on failure.
@@ -510,7 +524,8 @@ class SessionController extends StateNotifier<SessionState>
   ///
   /// 성공하면 서버가 돌려준 `consent_required` 로 상태를 바꾼다 — 거짓이면
   /// 라우터 가드가 동의 화면을 풀어 준다. 실패는 그대로 던진다(화면이 알린다).
-  /// 그 사이 로그아웃·다른 계정 로그인이 있었다면 결과를 버린다.
+  /// 그 사이 로그아웃·다른 계정 로그인이 있었다면 결과를 버린다. 같은 세션의
+  /// 토큰 회전은 버리지 않는다(#3231).
   Future<void> submitConsents(List<String> consents) async {
     final String? token = _ref.read(authAccessTokenProvider);
     final res = await _ref
@@ -519,7 +534,7 @@ class SessionController extends StateNotifier<SessionState>
           '/users/me/consents',
           data: <String, Object?>{'consents': consents},
         );
-    if (!mounted || token == null || !_holdsToken(token)) return;
+    if (!mounted || token == null || !_holdsSessionOf(token)) return;
     state = SessionState(
       status: SessionStatus.authenticated,
       consentRequired: consentRequiredIn(res.data),
@@ -583,6 +598,14 @@ class SessionController extends StateNotifier<SessionState>
       mounted &&
       state.status == SessionStatus.authenticated &&
       _ref.read(authAccessTokenProvider) == token;
+
+  /// [token] 으로 시작한 세션이 아직 이어지는가 — 그 사이 같은 세션 안에서
+  /// 토큰이 회전됐어도 참이다(#3231). 로그아웃·다른 계정 로그인이면 거짓이다.
+  bool _holdsSessionOf(String token) =>
+      _holdsToken(token) ||
+      (mounted &&
+          state.status == SessionStatus.authenticated &&
+          _rotatedTokens.contains(token));
 
   /// 실행 중 401 을 받은 뒤 갱신 토큰으로 한 번 회전한다.
   ///
@@ -648,7 +671,7 @@ class SessionController extends StateNotifier<SessionState>
     if (!_holdsToken(staleToken)) {
       return const TokenRefreshResult.unavailable();
     }
-    _setToken(access);
+    _setToken(access, rotated: true);
     return TokenRefreshResult.refreshed(access);
   }
 

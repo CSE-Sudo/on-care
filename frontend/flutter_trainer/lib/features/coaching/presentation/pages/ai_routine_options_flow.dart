@@ -1857,8 +1857,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 child: RoutineCategoryChips(
                   keyPrefix: 'routine-category-$_activeKeyPrefix-$index',
                   value: exercise.type,
+                  // 근력으로 바꾸면 화면이 보여 주는 3세트·10회를 값으로도
+                  // 채운다(#3247) — 0 으로 두면 저장이 세트·횟수를 빼고 보낸다.
                   onChanged: (type) => setState(() {
-                    list[index] = _asTrainerEdit(exercise.copyWith(type: type));
+                    list[index] = _asTrainerEdit(
+                      _withStrengthDefaults(exercise.copyWith(type: type)),
+                    );
                   }),
                 ),
               ),
@@ -1905,11 +1909,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               // 바뀐다(#1969). 트레이너가 직접 고른 뒤에는 덮지 않는다 —
               // 그 선택은 `_measureChosen` 이 기억한다.
               list[index] = _asTrainerEdit(
-                list[index].copyWith(
-                  name: name,
-                  isHold: _activeMeasureChosen.contains(index)
-                      ? null
-                      : isIsometricExerciseName(name),
+                _withStrengthDefaults(
+                  list[index].copyWith(
+                    name: name,
+                    isHold: _activeMeasureChosen.contains(index)
+                        ? null
+                        : isIsometricExerciseName(name),
+                  ),
                 ),
               );
             },
@@ -1928,8 +1934,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 isHold: exercise.isHold,
                 onChanged: (bool hold) => setState(() {
                   _activeMeasureChosen.add(index);
+                  // 회↔초를 바꾸면 새 칸의 기본값(10회·60초)도 값으로 채운다
+                  // (#3247).
                   list[index] = _asTrainerEdit(
-                    list[index].copyWith(isHold: hold),
+                    _withStrengthDefaults(list[index].copyWith(isHold: hold)),
                   );
                 }),
               ),

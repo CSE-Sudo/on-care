@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -92,9 +94,14 @@ class _RecordingCodeRepository implements SignupEmailCodeRepository {
   /// 요청이 던질 실패.
   SignupEmailCodeError? error;
 
+  /// 있으면 끝날 때까지 응답을 잡아 둔다 — 요청 중 입력을 바꾸는 자리(#3248).
+  Completer<void>? gate;
+
   @override
   Future<SignupEmailCodeSent> request({required String email}) async {
     requests.add(email);
+    final Completer<void>? wait = gate;
+    if (wait != null) await wait.future;
     if (error != null) throw error!;
     return const SignupEmailCodeSent(
       expiresInMinutes: 10,
@@ -987,5 +994,40 @@ void main() {
     expect(find.text(_en.signUpCodeRemaining('10:00')), findsOneWidget);
     expect(find.text(_en.signUpCodeResendIn(60)), findsOneWidget);
     expect(_en.signUpCodeResendIn(60), 'Resend in 60s');
+  });
+
+  testWidgets('코드를 받는 사이 이메일을 고치면 옛 주소의 코드를 버린다 (#3248)', (
+    WidgetTester tester,
+  ) async {
+    await _pumpSignUp(tester);
+    _codes.gate = Completer<void>();
+    await _type(tester, _emailKey, 'new@oncare.com');
+    await _requestCode(tester);
+
+    // 응답이 오기 전에 주소를 고친다.
+    await _type(tester, _emailKey, 'other@oncare.com');
+    _codes.gate!.complete();
+    await settle(tester);
+
+    expect(_codes.requests, <String>['new@oncare.com']);
+    // 옛 주소의 코드 칸은 열리지 않는다 — 새 주소로 다시 받아야 한다.
+    expect(find.byKey(_codeKey), findsNothing);
+    expect(find.byKey(_codeSendKey), findsOneWidget);
+  });
+
+  testWidgets('계정을 만든 뒤 로그인이 실패하면 로그인 화면으로 보낸다 (#3248)', (
+    WidgetTester tester,
+  ) async {
+    final repo = await _pumpSignUp(
+      tester,
+      error: const AuthException(AuthFailure.signedUpSignInFailed),
+    );
+    await _fill(tester);
+
+    await _submit(tester);
+
+    expect(repo.registerCalls, 1);
+    expect(currentLocation(tester), AppRoutes.signIn);
+    expect(find.text(_ko.authErrSignedUpSignInFailed), findsOneWidget);
   });
 }

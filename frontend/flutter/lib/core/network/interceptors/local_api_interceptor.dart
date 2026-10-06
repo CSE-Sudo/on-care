@@ -234,6 +234,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'POST /users/me/consents': _usersMeConsents,
     'GET /users/me/profile': _usersMeProfile,
     'PUT /users/me': _usersMeUpdate,
+    // 이메일 변경 인증 코드 — 데모는 고정 코드만 받는다(#3230).
+    'POST /users/me/email/code': _usersMeEmailCode,
     'GET /users/me/deletion-preview': _usersMeDeletionPreview,
     'DELETE /users/me': _usersMeDelete,
     'POST /users/me/onboarding': _usersMeOnboarding,

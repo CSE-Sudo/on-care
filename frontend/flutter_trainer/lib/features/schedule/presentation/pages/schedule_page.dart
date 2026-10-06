@@ -212,9 +212,21 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 일정을 가운데 모달로 연다 — [existing] 이 없으면 `새 일정 추가`,
   /// 있으면 `일정 수정`이다.
   Future<void> _openScheduleDialog({ScheduleSession? existing}) {
-    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
-    if (existing == null && clients.isEmpty) return Future<void>.value();
     final AppLocalizations l = AppLocalizations.of(context);
+    final roster = ref.read(clientsProvider);
+    final clients = roster.valueOrNull ?? const [];
+    if (existing == null && clients.isEmpty) {
+      // 눌러도 아무 일이 없으면 고장으로 읽힌다(#3249) — 왜 못 여는지 말한다.
+      showAppToast(
+        context,
+        roster.isLoading && !roster.hasValue
+            ? l.schedClientsLoading
+            : roster.hasError && !roster.hasValue
+            ? l.clientsLoadFailed
+            : l.schedNewNeedsClient,
+      );
+      return Future<void>.value();
+    }
     return showAppDialog<void>(
       context: context,
       builder: (dialogContext) {

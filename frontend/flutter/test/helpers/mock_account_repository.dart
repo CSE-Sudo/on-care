@@ -7,6 +7,7 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
     show ReissuedTokens;
+import 'package:oncare/features/auth/domain/signup_email_code.dart';
 
 /// 테스트 전용 계정 저장소. 앱은 `DioAccountRepository`(데모에서는 drift 기반
 /// LocalApiInterceptor)를 쓰고, 테스트가 `accountRepositoryProvider` 를 이것으로
@@ -28,6 +29,33 @@ class MockAccountRepository implements AccountRepository {
 
   /// 이메일을 바꾼 저장이 넘긴 새 토큰 받을 자리(#3039).
   void Function(ReissuedTokens tokens)? lastTokensReissued;
+
+  /// 새 이메일 인증 코드를 요청한 주소들(#3230). 대역이 무엇을 받았는지 테스트가 본다.
+  final List<String> emailCodeRequests = <String>[];
+
+  /// 마지막 저장이 실은 새 이메일 인증 코드(#3230).
+  String? lastEmailCode;
+
+  /// 채워 두면 다음 코드 요청을 이 예외로 거절한다(한 번 쓰고 비운다).
+  SignupEmailCodeError? failNextEmailCode;
+
+  /// 실서버의 이메일 변경 코드 요청(`POST /users/me/email/code`)을 흉내 낸다.
+  /// 대역은 메일을 보내지 않고, 이메일 변경은 [SignupEmailCode.demoCode] 를 받는다.
+  @override
+  Future<SignupEmailCodeSent> requestEmailChangeCode({
+    required String email,
+  }) async {
+    emailCodeRequests.add(email);
+    final SignupEmailCodeError? failure = failNextEmailCode;
+    if (failure != null) {
+      failNextEmailCode = null;
+      throw failure;
+    }
+    return const SignupEmailCodeSent(
+      expiresInMinutes: 10,
+      resendAfterSeconds: 60,
+    );
+  }
 
   /// 실서버의 본인 확인 판정을 흉내 낸다(#3039).
   void _checkReauth(AccountReauth? reauth) {
@@ -163,6 +191,7 @@ class MockAccountRepository implements AccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
     AccountReauth? reauth,
+    String? emailCode,
     void Function(ReissuedTokens tokens)? onTokensReissued,
   }) async {
     // 실서버(`PUT /users/me`)와 같은 판정 — 자기 이메일 그대로면 통과한다.
@@ -174,6 +203,15 @@ class MockAccountRepository implements AccountRepository {
     if (emailChanged &&
         _takenEmails.any((String e) => e.trim().toLowerCase() == nextEmail)) {
       throw const ProfileUpdateRejected(ProfileUpdateRejection.emailTaken);
+    }
+    // 새 주소 인증 코드는 중복 확인 뒤다(#3230). 맞는 코드는 데모 코드 하나다.
+    if (emailChanged) {
+      lastEmailCode = emailCode;
+      if (emailCode != SignupEmailCode.demoCode) {
+        throw const ProfileUpdateRejected(
+          ProfileUpdateRejection.emailCodeInvalid,
+        );
+      }
     }
     if (phone != null && phone.trim().isEmpty && _profile.phone.isNotEmpty) {
       throw const ProfileUpdateRejected(ProfileUpdateRejection.phoneRequired);

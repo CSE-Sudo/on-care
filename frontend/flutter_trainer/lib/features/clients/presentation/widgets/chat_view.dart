@@ -284,9 +284,11 @@ class _ChatViewState extends ConsumerState<ChatView> {
           );
     } on ChatImageAlreadySent {
       // 응답을 잃은 전송이 다른 한마디로 이미 갔다. 대화를 다시 읽어 그 사진을
-      // 보여 주고, 입력란은 그대로 둔다(#3095).
-      ref.invalidate(chatThreadProvider(widget.clientId));
+      // 보여 주고, 입력란은 그대로 둔다(#3095). 떠난 뒤면 `ref` 를 쓸 수 없다 —
+      // 다시 들어올 때 대화를 새로 읽는다(#3249).
       if (!mounted) return;
+      ref.invalidate(chatThreadProvider(widget.clientId));
+      _refreshRosterAfterSend();
       showAppToast(context, l.chatImageAlreadySent, type: AppToastType.error);
       return;
     } on AppError catch (error) {
@@ -306,6 +308,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
     _input.clear();
     ref.invalidate(chatThreadProvider(widget.clientId));
     ref.invalidate(unreadCountsProvider);
+    // 글·이모티콘 전송과 같다 — 메시지 탭 최신순이 로스터를 보므로(#3249).
+    _refreshRosterAfterSend();
   }
 
   /// 스레드를 날짜 구분선과 함께 그린다.
@@ -396,6 +400,12 @@ class _ChatViewState extends ConsumerState<ChatView> {
       AppLocalizations.of(context),
       insight,
     );
+    // 저장하는 사이 대화를 떠나도 메모 목록은 다시 읽는다(#3249) — 해제된 화면의
+    // `ref` 는 StateError 를 내고 아래 catch 가 삼켰다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       await ref
           .read(trainerMemoRepositoryProvider)
@@ -406,7 +416,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
             insightId: insight.id,
             insightKind: insight.kind.name,
           );
-      ref.invalidate(trainerMemosProvider(widget.clientId));
+      container.invalidate(trainerMemosProvider(widget.clientId));
       if (!mounted) return;
       showAppToast(
         context,

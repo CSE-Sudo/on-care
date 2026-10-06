@@ -122,6 +122,7 @@ class ReportSheetWeekData implements ReportSheetWeek {
     this.carbsTarget,
     this.proteinTarget,
     this.fatTarget,
+    this.effectiveProteinTarget,
     this.days = const <ReportSheetDay>[],
     this.mealCounts = const <int>[],
     this.answers,
@@ -168,6 +169,8 @@ class ReportSheetWeekData implements ReportSheetWeek {
   @override
   final double? fatTarget;
   @override
+  final double? effectiveProteinTarget;
+  @override
   final List<ReportSheetDay> days;
   @override
   final List<int> mealCounts;
@@ -197,6 +200,7 @@ class ReportSheetWeekData implements ReportSheetWeek {
         carbsTarget: carbsTarget,
         proteinTarget: proteinTarget,
         fatTarget: fatTarget,
+        effectiveProteinTarget: effectiveProteinTarget,
         days: days,
         mealCounts: mealCounts,
         answers: value,

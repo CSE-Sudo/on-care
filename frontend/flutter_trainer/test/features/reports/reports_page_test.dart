@@ -976,6 +976,58 @@ void main() {
     );
   });
 
+  testWidgets('회원 피드백을 읽지 못한 리포트는 안내하고 보내지 않는다 (#3246)', (tester) async {
+    await openReports(
+      tester,
+      stage: 2,
+      extraOverrides: <Override>[
+        reportRepositoryProvider.overrideWithValue(_FeedbackFailsStore()),
+      ],
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('reports-send-feedback-failed-notice')),
+      findsOneWidget,
+    );
+    // 답한 회원에게 `아직 받지 못했어요` 결과지가 가지 않게 전송을 잠근다.
+    expect(sendEnabled(tester), isFalse);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is Tooltip && w.message == '회원 피드백을 불러오지 못했어요',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('업로드 중 다른 회원으로 옮기면 끝나도 그 화면을 건드리지 않는다 (#3246)', (tester) async {
+    final _SlowSendStore store = _SlowSendStore();
+    await openReports(
+      tester,
+      stage: 2,
+      extraOverrides: <Override>[
+        reportRepositoryProvider.overrideWithValue(store),
+      ],
+    );
+    await tapSend(tester);
+    expect(store.uploading, isNotNull);
+
+    // 업로드를 기다리는 사이 다른 회원의 리포트를 열어 ② 까지 간다.
+    await goTo(tester, AppRoutes.reportFor('seed-client-2'));
+    await tester.tap(find.byKey(const ValueKey<String>('report-step-next')));
+    await settle(tester);
+
+    store.uploading!.complete();
+    await settle(tester);
+
+    // 작업대로 끌려가지 않고, 보던 회원의 단계도 그대로다.
+    expect(currentLocation(tester), contains('seed-client-2'));
+    expect(
+      find.byKey(const ValueKey<String>('report-step-prev')),
+      findsOneWidget,
+    );
+    expect(store.sentMessages, hasLength(1));
+  });
+
   testWidgets('주를 가리키는 말은 이번 주·지난 주·선택 주 셋뿐이다', (tester) async {
     await openReports(tester, workbench: true);
 
@@ -2147,6 +2199,45 @@ class _StreamedReports extends _DraftStore {
   );
 
   Future<void> close() => _pushed.close();
+}
+
+/// 회원 피드백만 읽지 못한 리포트를 내는 저장소(#3246).
+class _FeedbackFailsStore extends _DraftStore {
+  @override
+  Stream<WeeklyReport> watch({
+    required TrainerClient client,
+    required DateTime weekStart,
+  }) => Stream<WeeklyReport>.value(
+    WeeklyReport(
+      client: client,
+      weekStart: weekStartOf(weekStart),
+      sessionsBooked: 0,
+      sessionsDone: 0,
+      completionAvg: null,
+      sodiumOverDays: null,
+      sodiumAvg: null,
+      isCurrentWeek: true,
+      memberFeedbackFailed: true,
+    ),
+  );
+}
+
+/// 업로드가 [uploading] 을 끝낼 때까지 걸리는 저장소(#3246).
+class _SlowSendStore extends _DraftStore {
+  Completer<void>? uploading;
+
+  @override
+  Future<void> sendPdf({
+    required String clientId,
+    required DateTime weekStart,
+    required Uint8List bytes,
+    required String fileName,
+    required String message,
+  }) async {
+    sentMessages.add(message);
+    final Completer<void> done = uploading = Completer<void>();
+    await done.future;
+  }
 }
 
 class _QueuedPdfGenerator extends ReportPdfGenerator {

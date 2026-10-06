@@ -18,6 +18,7 @@ import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dar
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds;
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// [date] 에 회원이 직접 적은 운동 기록을 한 화면에 연다. (#2507)
@@ -68,6 +69,9 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
   /// 운동 상자마다 하나. 수정 모드에서 저장할 값을 모은다.
   final Map<String, GlobalKey<_ExerciseCardState>> _cards =
       <String, GlobalKey<_ExerciseCardState>>{};
+
+  /// 마지막으로 그린 그날 기록. 자료를 다시 받는 동안 상자를 붙들어 둔다.
+  List<ExerciseSession> _shown = const <ExerciseSession>[];
 
   /// 목록과 **같은 주 자료**를 읽는다 — 이번 주면 이번 주, 아니면 그 주.
   AsyncValue<ExerciseWeek> _weekOf(DateTime date) {
@@ -138,6 +142,8 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
     final DateTime today = DateTime(now.year, now.month, now.day);
     final DateTime? picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       firstDate: DateTime(now.year - 2),
       // 앞으로 한 기록은 없다 — 아직 하지 않은 운동을 적을 자리가 아니다.
@@ -255,9 +261,17 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final AsyncValue<ExerciseWeek> async = _weekOf(_date);
     final ExerciseWeek? week = async.valueOrNull;
-    final List<ExerciseSession> sessions = week == null
+    List<ExerciseSession> sessions = week == null
         ? const <ExerciseSession>[]
         : ownExerciseSessionsOn(week, _date);
+    // 날짜를 옮긴 직후 새 자료를 받는 동안은 옛 자료에 새 날의 기록이 없다.
+    // 그 사이 상자를 빼면 상자가 들고 있던 수정값이 함께 사라진다 — 받을
+    // 때까지 직전 상자들을 그대로 둔다(#3234).
+    if (sessions.isEmpty && async.isLoading && _shown.isNotEmpty) {
+      sessions = _shown;
+    } else {
+      _shown = sessions;
+    }
     // 마지막 기록을 지웠다 — 볼 것이 없으니 목록으로 돌아간다. 날짜를 옮긴
     // 직후 새 자료를 받는 중에는 옛 자료에 그날 기록이 없을 뿐이라 기다린다.
     if (week != null && sessions.isEmpty && !async.isLoading && !_movingDate) {
@@ -588,11 +602,21 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
     _minutes.text = '${_savedSeconds % 3600 ~/ 60}';
     _seconds.text = '${_savedSeconds % 60}';
     _sets.text = '${_s.sets ?? setsFromStrengthMinutes(_s.minutes.toDouble())}';
-    _reps.text = '${_s.reps ?? 10}';
+    // 비어 있던 횟수·무게(맨몸 근력 등)는 비운 채 둔다 — 기본값으로 채우면
+    // 회원이 적은 적 없는 20kg·10회가 저장된다(#3234).
+    _reps.text = _s.reps == null ? '' : '${_s.reps}';
     _hold.text = '${_s.holdSeconds ?? 60}';
-    _weight.text = _weightText(_s.weight ?? 20);
+    _weight.text = _s.weight == null ? '' : _weightText(_s.weight!);
+    _baseline = draft(_s.date ?? nowKst());
     if (mounted) setState(() {});
   }
+
+  /// 칸을 저장된 값으로 채운 직후의 초안 — [changed] 가 이것과 비교한다.
+  ///
+  /// 저장된 값과 바로 비교하면 칸을 채우며 생긴 차이(없던 세트 수를 분에서
+  /// 어림한 값, 칩에 없는 요가를 스트레칭으로 고른 것)가 늘 "고침" 으로 읽혀,
+  /// 다른 상자만 고쳐 저장해도 이 상자까지 저장된다(#3234).
+  late ExerciseSessionDraft _baseline;
 
   static String _weightText(double kg) =>
       kg == kg.roundToDouble() ? '${kg.round()}' : '$kg';
@@ -609,13 +633,13 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
   int get _setCount => _int(_sets).clamp(0, kMaxExerciseSets);
 
   /// 저장·칼로리 계산이 쓰는 분 — 추가 시트와 같은 환산이다(근력은 세트에서,
-  /// 아니면 초에서. 서버 `_minutes_from_seconds` 와 같은 규칙).
+  /// 아니면 초에서). 초는 공용 규칙 [minutesFromSeconds] 로 환산한다 — 서버와
+  /// 같은 짝수 쪽 반올림이라 2분 30초는 미리보기도 저장도 2분이다(#3234).
   int get _effectiveMinutes {
     if (_isStrength) {
       return (_setCount * kStrengthMinutesPerSetWithRest).round();
     }
-    final int s = _durationSeconds;
-    return s <= 0 ? 0 : math.max(1, (s / 60).round());
+    return minutesFromSeconds(_durationSeconds);
   }
 
   /// 저장할 수 없는 까닭. 저장할 수 있으면 null.
@@ -650,14 +674,15 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
       intensity: _intensity,
       date: date,
       sets: _isStrength ? _setCount : null,
-      reps: _isStrength && !_isHold
+      // 빈 횟수·무게는 그대로 비워 보낸다(#3234).
+      reps: _isStrength && !_isHold && _reps.text.trim().isNotEmpty
           ? _int(_reps).clamp(1, kMaxExerciseReps)
           : null,
       holdSeconds: _isStrength && _isHold
           ? _int(_hold).clamp(1, kMaxExerciseHoldSeconds)
           : null,
       durationSeconds: _isStrength ? null : _durationSeconds,
-      weight: _isStrength
+      weight: _isStrength && _weight.text.trim().isNotEmpty
           ? snapExerciseWeight(
               (double.tryParse(_weight.text.trim()) ?? 0).clamp(
                 0,
@@ -676,18 +701,19 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
     return _caloriesFor(_effectiveMinutes);
   }
 
-  /// 저장된 값과 다른가 — 고치지 않은 상자는 저장하지 않는다.
+  /// 칸을 채운 뒤 고쳤는가 — 고치지 않은 상자는 저장하지 않는다.
   bool get changed {
     if (!widget.editing) return false;
-    final ExerciseSessionDraft d = draft(_s.date ?? nowKst());
-    return d.type != _s.type ||
-        d.name != _s.name ||
-        d.intensity != _s.intensity ||
-        d.sets != (_isStrength ? _s.sets : null) ||
-        d.reps != (_isStrength && !_isHold ? _s.reps : null) ||
-        d.holdSeconds != (_isStrength && _isHold ? _s.holdSeconds : null) ||
-        d.weight != (_isStrength ? _s.weight : null) ||
-        (!_isStrength && d.durationSeconds != _savedSeconds);
+    final ExerciseSessionDraft d = draft(_baseline.date);
+    final ExerciseSessionDraft b = _baseline;
+    return d.type != b.type ||
+        d.name != b.name ||
+        d.intensity != b.intensity ||
+        d.sets != b.sets ||
+        d.reps != b.reps ||
+        d.holdSeconds != b.holdSeconds ||
+        d.weight != b.weight ||
+        d.durationSeconds != b.durationSeconds;
   }
 
   @override
@@ -1028,9 +1054,15 @@ class _DetailRow extends StatelessWidget {
               keyboardType: TextInputType.numberWithOptions(decimal: decimal),
               // 숫자만 받는다 — 빈 칸은 0 으로 읽힌다.
               inputFormatters: <TextInputFormatter>[
-                if (decimal)
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
-                else
+                if (decimal) ...<TextInputFormatter>[
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  // 소수점은 하나만 — `1.2.3` 은 숫자로 읽히지 않아 0 으로
+                  // 저장됐다(#3244).
+                  TextInputFormatter.withFunction(
+                    (TextEditingValue previous, TextEditingValue next) =>
+                        '.'.allMatches(next.text).length > 1 ? previous : next,
+                  ),
+                ] else
                   FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(6),
               ],

@@ -234,7 +234,9 @@ void main() {
       // 단백질 기준선은 영양 카드·서버와 같은 공통 기본값이다(#2906).
       expect(sheet.diet[SheetDietItem.protein]!.target, proteinTargetG);
       expect(sheet.diet[SheetDietItem.protein]!.value, 30);
-      expect(sheet.diet[SheetDietItem.protein]!.band, SheetBand.under);
+      // 개인 목표가 없으면 막대만 긋고 칸은 고르지 않는다 — 서버 리포트 요약도
+      // 개인 목표가 있을 때만 탄단지 균형을 판정한다(#3246).
+      expect(sheet.diet[SheetDietItem.protein]!.band, isNull);
     });
 
     test('나트륨·당류는 상한만 본다', () {

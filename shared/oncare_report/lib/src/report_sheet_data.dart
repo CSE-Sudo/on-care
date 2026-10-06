@@ -22,6 +22,16 @@ enum ExerciseKind { cardio, strength, stretching }
 /// 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 백엔드와 같은 값이다.
 const double calorieTolerance = 0.15;
 
+/// 탄·단·지가 목표에서 이만큼 벗어나면 균형 이탈로 본다. 서버 리포트 요약의
+/// `MACRO_TOLERANCE` 와 같은 값이다(#3246) — 결과지만 ±20% 로 보면 요약 카드가
+/// 말하지 않은 `부족`·`초과` 가 결과지에만 찍힌다.
+const double macroTolerance = 0.25;
+
+/// 나트륨·당류를 이 날 수보다 많이 넘긴 주는 평균이 목표 안이어도 `초과` 다.
+/// 서버 리포트 요약의 `SODIUM_OVER_DAYS`·`SUGAR_OVER_DAYS` 와 같은 값이다(#3246).
+const int kReportSodiumOverDays = 2;
+const int kReportSugarOverDays = 2;
+
 // 회원 목표가 없을 때 쓰는 아래 기본값은 두 앱의 기준선과 같은 공용 정의
 // (`oncare_ui` 의 `kGoalDefault…`)를 읽는다(#2906). 결과지만 다른 숫자를 들면
 // 같은 회원의 같은 주가 홈 카드와 결과지에서 다른 목표선으로 그려진다.
@@ -172,6 +182,10 @@ abstract interface class ReportSheetWeek {
   double? get proteinTarget;
   double? get fatTarget;
 
+  /// 서버가 정한 실효 단백질 목표 — 개인 목표, 없으면 체중 × 1.2g, 둘 다 없으면
+  /// 공통 기본값(#2898). 이 칸이 없는 옛 응답·데모면 null 이다.
+  double? get effectiveProteinTarget;
+
   /// 요일별 상세(월→일).
   List<ReportSheetDay> get days;
 
@@ -204,6 +218,23 @@ extension ReportSheetWeekFigures on ReportSheetWeek {
 
   /// 기록된 날의 하루 평균 당류.
   double? get sugarMean => recordedMean(sugarWeek);
+
+  /// 나트륨 판정에 쓰는 하루 목표(mg).
+  int get sodiumGoal => sodiumTarget ?? kReportSodiumTargetMg;
+
+  /// 나트륨이 목표를 넘긴 날 수. 서버 `sodium_over_days` 와 같은 셈이다.
+  int get sodiumOverGoalDays =>
+      sodiumWeek.where((int mg) => mg > sodiumGoal).length;
+
+  /// 당류가 기준을 넘긴 날 수.
+  int get sugarOverLimitDays =>
+      sugarWeek.where((double g) => g > sugarLimit).length;
+
+  /// 단백질 막대를 견줄 하루 목표 — 트레이너 화면 탄단지 막대와 같은 규칙이다.
+  double get proteinGoal =>
+      proteinTarget ??
+      effectiveProteinTarget ??
+      kReportProteinTargetG.toDouble();
 
   /// 끼니를 하나라도 적은 날 수.
   int get mealLoggedDays => mealCounts.where((int n) => n > 0).length;

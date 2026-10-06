@@ -141,6 +141,12 @@ class ClientExerciseWeek {
                 ? (row['duration_seconds'] as num?)?.toInt()
                 : null,
             weight: single ? (row['weight'] as num?)?.toDouble() : null,
+            // 회원이 실제로 한 강도(#3249). 서버가 늘 함께 보내는데 읽지 않아,
+            // 처방과 다르게 해도 펼친 날의 `수행 …` 태그가 나오지 않았다.
+            intensity: switch (row['intensity']) {
+              final String value when single && value.isNotEmpty => value,
+              _ => null,
+            },
             // 이력이 있는 날에 직접 기록만 골라 붙이는 근거다(#2534). 필드가
             // 없던 응답은 서버 기본값과 같은 `member` 로 읽는다.
             source: (row['source'] as String?) ?? 'member',

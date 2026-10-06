@@ -659,11 +659,31 @@ class ConsultationInboxController
   /// 이어 받아 둔 과거 요청(오래된 쪽).
   List<ConsultationRequest> _older = const <ConsultationRequest>[];
 
+  /// 지난번 받은 첫 쪽. 새 요청이 들어와 첫 쪽 끝에서 밀려난 요청을 찾는다.
+  List<ConsultationRequest> _firstPage = const <ConsultationRequest>[];
+
   void _onFirstPage(List<ConsultationRequest> page) {
     if (!mounted) return;
+    final Set<String> ids = page.map((r) => r.id).toSet();
+    // `더 보기` 로 이어 받은 뒤 새 요청이 오면, 꽉 찬 첫 쪽의 마지막 요청이 밀려
+    // 나 첫 쪽에도 이어 받은 목록에도 없게 된다 — 한 건이 사라졌다(#3249). 이어
+    // 받은 목록 앞에 붙여 둔다. 첫 쪽의 마지막보다 **새** 요청이 빠졌다면 밀린 것이
+    // 아니라 처리돼 이 갈래를 떠난 것(수락·거절)이라 붙이지 않는다.
+    if (_older.isNotEmpty &&
+        page.isNotEmpty &&
+        page.length >= consultationPageSize) {
+      final ConsultationRequest edge = page.last;
+      final List<ConsultationRequest> pushedOut = <ConsultationRequest>[
+        for (final ConsultationRequest r in _firstPage)
+          if (!ids.contains(r.id) && _isOlderThan(r, edge)) r,
+      ];
+      if (pushedOut.isNotEmpty) {
+        _older = <ConsultationRequest>[...pushedOut, ..._older];
+      }
+    }
+    _firstPage = page;
     // 첫 쪽에 다시 나타난 요청은 이어 받아 둔 목록에서 뺀다 — 같은 요청이 두 줄로
     // 그려지면 트레이너는 요청이 두 건 온 것으로 읽는다.
-    final Set<String> ids = page.map((r) => r.id).toSet();
     _older = _older
         .where((ConsultationRequest r) => !ids.contains(r.id))
         .toList(growable: false);
@@ -674,6 +694,16 @@ class ConsultationInboxController
       // 이어 받은 쪽이 있으면 "더 있는가" 는 그 마지막 쪽이 이미 답했다.
       hasMore: _older.isEmpty ? page.length >= consultationPageSize : null,
     );
+  }
+
+  /// 서버 순서(`created_at`, `id` 내림차순)로 [r] 가 [edge] 보다 뒤(오래된 쪽)인가.
+  /// 시각을 모르면 밀린 것으로 본다 — 지우는 것보다 남기는 편이 덜 해롭다.
+  static bool _isOlderThan(ConsultationRequest r, ConsultationRequest edge) {
+    final DateTime? a = r.createdAt;
+    final DateTime? b = edge.createdAt;
+    if (a == null || b == null) return true;
+    final int byTime = a.compareTo(b);
+    return byTime != 0 ? byTime < 0 : r.id.compareTo(edge.id) < 0;
   }
 
   void _onError(Object error, StackTrace stack) {

@@ -54,6 +54,9 @@ MARKERS: dict[str, tuple[str, ...]] = {
         "demo-trainer-",
         # 공유 데모 픽스처(shared/demo_fixture)의 시드 사진.
         "diet-oatmeal-banana",
+        # 데모 트레이너 신원(shared/models/trainer_profile.dart). 사이드바·MY 의
+        # 자리 값은 kDemoCodeIncluded 로 감싸 운영 번들에서 빠진다(#3250).
+        "trainer@oncare.com",
     ),
 }
 
