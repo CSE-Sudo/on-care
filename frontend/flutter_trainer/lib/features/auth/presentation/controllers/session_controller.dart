@@ -199,6 +199,7 @@ class SessionController extends StateNotifier<SessionState>
     AuthFailure.emailCodeInvalid ||
     AuthFailure.emailCodeRequired ||
     AuthFailure.noSocialToken ||
+    AuthFailure.socialEmailInUse ||
     AuthFailure.tooManyAttempts ||
     AuthFailure.signedUpSignInFailed ||
     AuthFailure.emptyCredentials => false,
