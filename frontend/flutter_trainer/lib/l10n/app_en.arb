@@ -1516,7 +1516,7 @@
   "@myNotifLoadFailed": {
     "description": "Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled."
   },
-  "myNotifNewMessageHint": "Get an inbox alert when a member messages you",
+  "myNotifNewMessageHint": "Messages from members",
   "myLanguageApp": "Display language",
   "myLanguageHint": "Your choice is saved in this browser only. Other devices follow their own browser setting.",
   "myLanguageSystem": "Match browser",
@@ -1807,11 +1807,11 @@
   "myClientManagementNoteTitle": "Disconnecting keeps member records",
   "myClientManagementNote": "Their records stay in the member app. To coach them again, enter the connection code they give you under Connect member on the Members tab.",
   "myNotifConsultation": "Consultation requests",
-  "myNotifConsultationHint": "When a member requests a consultation or responds to your coaching request",
+  "myNotifConsultationHint": "Consultation requests and cancellations, replies to your coaching requests",
   "myNotifReservation": "Bookings",
-  "myNotifReservationHint": "When a member books or changes an appointment",
+  "myNotifReservationHint": "Bookings and cancellations",
   "myNotifMemberUpdates": "Member updates",
-  "myNotifMemberUpdatesHint": "When a member sends weekly feedback, changes goals or name, or disconnects",
+  "myNotifMemberUpdatesHint": "Weekly feedback, goal or name changes, disconnections",
   "routineTypeCardio": "Cardio",
   "routineTypeStrength": "Strength",
   "routineTypeStretching": "Stretching",
