@@ -1636,6 +1636,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         AppSectionHeader(title: l.aiCompareCandidates, icon: AppIcons.ai),
         const SizedBox(height: OnCareSpacing.s8),
         // 기록이 적은 회원에게도 그 사실을 말한다 — 데모·실서버 같다(#2674).
+        // 참고한 대화 링크도 이 배너 안에 둔다 — 무엇을 근거로 만들었는지가
+        // 한 상자에 모인다.
         _RecommendationStatusBanner(analysis: options.analysis),
         const SizedBox(height: OnCareSpacing.s8),
         Text(
@@ -1660,14 +1662,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               OnCareColors.textSecondary,
             ).copyWith(fontStyle: FontStyle.italic),
           ),
-        ],
-        // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
-        // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다.
-        // 예전에는 AI 생성일 때만 보여, 규칙형으로 도는 데모와 AI 가 실패한
-        // 주의 실서버에서는 무엇을 보고 동작을 뺐는지 알 수 없었다(#2674).
-        if (options.analysis.recentMessages.isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s4),
-          _ChatEvidence(lines: options.analysis.recentMessages),
         ],
         const SizedBox(height: OnCareSpacing.s12),
         // 세 안은 하나만 고르는 묶음이다 — 카드마다 선 라디오가 이 묶음을 본다.
@@ -2865,6 +2859,16 @@ class _RecommendationStatusBanner extends StatelessWidget {
         ),
       ),
     };
+    final bool hasChat = analysis.recentMessages.isNotEmpty;
+    final Widget? frequent = analysis.frequentExercises.isEmpty
+        ? null
+        : Text(
+            '${l.aiFrequentExercisesLabel}: '
+            '${analysis.frequentExercises.join(', ')}',
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.textPrimary),
+          );
     // AI 가 이번 후보를 무엇에 기대 만들었는지 알리는 안내다 — 회색 상자로
     // 두면 입력 칸처럼 읽혔다(#2468).
     return SizedBox(
@@ -2872,14 +2876,22 @@ class _RecommendationStatusBanner extends StatelessWidget {
       child: AppBanner(
         title: title,
         message: body,
-        child: analysis.frequentExercises.isEmpty
+        child: frequent == null && !hasChat
             ? null
-            : Text(
-                '${l.aiFrequentExercisesLabel}: '
-                '${analysis.frequentExercises.join(', ')}',
-                style: tokens
-                    .text(OnCareTypography.strong(OnCareTypography.caption))
-                    .copyWith(color: OnCareColors.textPrimary),
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  ?frequent,
+                  // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그
+                  // 부위에 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는
+                  // 것이 사실이다(#2674).
+                  if (hasChat) ...<Widget>[
+                    if (frequent != null)
+                      const SizedBox(height: OnCareSpacing.s4),
+                    _ChatEvidence(lines: analysis.recentMessages),
+                  ],
+                ],
               ),
       ),
     );
