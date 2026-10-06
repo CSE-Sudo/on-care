@@ -9,3 +9,11 @@
 /// 폴링 자체(`activePollingStream`)는 회원 앱과 함께 쓰는 `oncare_core` 에 있고,
 /// 주기는 각 앱이 이렇게 상수로 넘긴다(#2907).
 const Duration badgePollInterval = Duration(seconds: 20);
+
+/// 탭이 가려져 있을 때 안 읽은 알림 수를 다시 읽는 주기(#3285).
+///
+/// 배지 폴링([badgePollInterval])은 탭이 가려지면 멈춘다. 그러면 다른 탭을 보는
+/// 동안 새 알림을 알 길이 없어, 탭 제목 숫자·화면 구석 알림을 위해 가려진 동안만
+/// 느리게 다시 읽는다. 브라우저도 가려진 탭의 타이머를 1분 단위로 묶으므로 이보다
+/// 짧게 잡아도 더 자주 돌지 않는다. 탭이 다시 보이면 배지 폴링이 이어받는다.
+const Duration hiddenAlertPollInterval = Duration(seconds: 60);

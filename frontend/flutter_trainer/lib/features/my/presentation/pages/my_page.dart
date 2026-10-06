@@ -29,6 +29,8 @@ import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/auth/presentation/trainer_social_login.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
+import 'package:oncare_trainer/features/desktop_alerts/data/browser_alerts.dart';
+import 'package:oncare_trainer/features/desktop_alerts/data/desktop_alert_preference.dart';
 import 'package:oncare_trainer/features/my/data/app_version.dart';
 import 'package:oncare_trainer/features/my/data/build_info.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
@@ -829,7 +831,13 @@ class _MyPageState extends ConsumerState<MyPage> {
           _MySection.account => _accountCards(),
           _MySection.support => _supportCards(),
           _MySection.withdraw => _withdrawCards(),
-          _MySection.notifications => <Widget>[_notificationCard()],
+          // 계정 설정(받을 알림)을 먼저, 이 브라우저만의 설정(데스크톱 알림)을
+          // 그 아래에 둔다(#3285).
+          _MySection.notifications => <Widget>[
+            _notificationCard(),
+            const SizedBox(height: OnCareSpacing.cardGap),
+            _desktopAlertCard(),
+          ],
           _ => _profileCards(),
         },
       ],
@@ -1088,6 +1096,87 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 
+  /// 데스크톱 알림(#3285) — 이 브라우저에서 화면 구석 알림을 받을지.
+  ///
+  /// 계정 설정이 아니라 브라우저마다 따로다. 켤 때 브라우저가 권한을 묻고,
+  /// 허용해야 켜진다. 차단됐으면 사이트가 다시 물을 수 없어 푸는 곳을 안내한다.
+  /// 권한은 주소창에서 바뀔 수 있어 그릴 때마다 새로 읽는다.
+  ///
+  /// 허용됐는데도 알림이 안 보이는 가장 흔한 까닭은 운영체제 설정이라(Mac 의
+  /// 시스템 설정 › 알림) 켜 둔 동안 그 안내를 아래에 둔다. 시험 알림으로 바로
+  /// 확인할 수 있다 — 시험 알림은 이 탭을 보고 있어도 띄운다.
+  Widget _desktopAlertCard() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final BrowserAlerts alerts = ref.watch(browserAlertsProvider);
+    final bool wanted = ref.watch(desktopAlertPreferenceProvider);
+    final BrowserAlertPermission permission = alerts.permission;
+    final bool granted = permission == BrowserAlertPermission.granted;
+    final bool on = wanted && granted;
+    final bool canToggle =
+        granted || permission == BrowserAlertPermission.notAsked;
+    final String hint = switch (permission) {
+      BrowserAlertPermission.granted => l.myNotifDesktopGranted,
+      BrowserAlertPermission.notAsked => l.myNotifDesktopNotAsked,
+      BrowserAlertPermission.denied => l.myNotifDesktopDenied,
+      BrowserAlertPermission.unsupported => l.myNotifDesktopUnsupported,
+    };
+    return _SettingsCard(
+      title: l.myNotifDesktopTitle,
+      description: l.myNotifDesktopHint,
+      footer: on ? l.myNotifDesktopOsHint : null,
+      rows: <Widget>[
+        AppListRow(
+          title: l.myNotifDesktopSwitch,
+          subtitle: hint,
+          trailing: Semantics(
+            label: l.myNotifDesktopSwitch,
+            excludeSemantics: true,
+            child: Switch(
+              key: const ValueKey<String>('my-notif-desktop'),
+              value: on,
+              onChanged: canToggle ? _setDesktopAlerts : null,
+            ),
+          ),
+        ),
+        if (on)
+          AppListRow(
+            title: l.myNotifDesktopTest,
+            subtitle: l.myNotifDesktopTestBody,
+            trailing: AppButton(
+              key: const ValueKey<String>('my-notif-desktop-test'),
+              label: l.actionSend,
+              leadingIcon: AppIcons.send,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              onPressed: () => alerts.show((
+                title: l.myNotifDesktopTestTitle,
+                body: l.myNotifDesktopTestBody,
+                tag: 'oncare-test',
+              ), onClick: () {}),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 켤 때는 권한부터 묻는다 — 허용하지 않으면 끔으로 남는다.
+  Future<void> _setDesktopAlerts(bool enabled) async {
+    final DesktopAlertPreference preference = ref.read(
+      desktopAlertPreferenceProvider.notifier,
+    );
+    if (!enabled) {
+      await preference.set(enabled: false);
+      return;
+    }
+    final BrowserAlertPermission permission = await ref
+        .read(browserAlertsProvider)
+        .requestPermission();
+    if (!mounted) return;
+    await preference.set(enabled: permission == BrowserAlertPermission.granted);
+    // 권한은 provider 가 아니라 브라우저 값이라, 물은 뒤 다시 그린다.
+    if (mounted) setState(() {});
+  }
+
   /// 알림 — 종류마다 알림함에 넣을지 켜고 끈다(#2264). 휴가처럼 잠시 알림이
   /// 필요 없을 때도 여기서 끈다. 사이드바의 안 읽은 숫자는 알림과 별개라 계속
   /// 보인다.
@@ -1131,6 +1220,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
 
     return _SettingsCard(
+      title: l.myNotifKindsTitle,
       rows: <Widget>[
         if (load.hasError && settings == null)
           AppListRow(
