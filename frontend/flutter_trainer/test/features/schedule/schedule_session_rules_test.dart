@@ -90,6 +90,33 @@ void main() {
     });
   });
 
+  // 다가오는 세션의 기준 — 대시보드 배너(#2865)와 같은 끝나는 시각(#3261).
+  group('sessionHasEnded (#3261)', () {
+    // 길이는 [_json] 의 50분이다.
+    ScheduleSession at(String date, String time) =>
+        scheduleSessionFromJson(_json(date: date, time: time));
+
+    test('시작했어도 끝나는 시각 전이면 끝나지 않았다', () {
+      expect(sessionHasEnded(at(_today, '12:30'), _now), isFalse);
+      expect(sessionHasEnded(at(_today, '20:00'), _now), isFalse);
+    });
+
+    test('끝나는 시각 정각부터 끝난 것이다', () {
+      expect(sessionHasEnded(at(_today, '12:10'), _now), isTrue);
+      expect(sessionHasEnded(at(_today, '09:00'), _now), isTrue);
+    });
+
+    test('지난 날은 끝났고, 앞날은 끝나지 않았다', () {
+      expect(sessionHasEnded(at('2026-09-30', '23:30'), _now), isTrue);
+      expect(sessionHasEnded(at('2026-10-02', '00:00'), _now), isFalse);
+    });
+
+    test('시각 형식이 깨진 오늘 세션은 끝난 것으로 본다', () {
+      expect(sessionHasEnded(at(_today, '저녁'), _now), isTrue);
+      expect(sessionHasEnded(at('2026-10-02', ''), _now), isFalse);
+    });
+  });
+
   group('is_reservation 읽기 (#2756)', () {
     test('예약 일정 표시를 읽는다', () {
       expect(

@@ -235,7 +235,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
           .read(scheduleRepositoryProvider)
           .watchClientSessions((id: client.id, name: client.name))
           .first;
-      return clientScheduleDestination(client, sessions, ymd(nowKst()));
+      return clientScheduleDestination(client, sessions, nowKst());
     } catch (_) {
       return null;
     }
