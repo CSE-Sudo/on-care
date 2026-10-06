@@ -175,6 +175,25 @@ class MockTrainerRoutineOptionsRepository
     final bool escalate = needsProfessionalCheck(conditions, messages);
     final String safety = cautionSuffix(cautions, escalate, en: en);
     final List<String> frequent = member?.frequent ?? const <String>[];
+    // 판단 결과(#3280) — 서버 `build_findings` 처럼 규칙형과 같은 규칙으로 센다.
+    // 데모가 읽는 자료는 건강 주의사항과 최근 대화뿐이라 근거도 그 둘이다.
+    final List<RoutineFinding> findings = ruleFindings(
+      sources: <DemoFindingSource>[
+        (
+          '건강 프로필',
+          'Health profile',
+          conditions.isEmpty ? const <String>[] : <String>[conditions],
+        ),
+        ('최근 대화', 'Recent chat', messages.reversed.toList()),
+      ],
+      frequent: member != null ? frequent : const <String>[],
+      sessionCount: member?.sessionCount ?? 0,
+      periodDays: member == null ? 0 : _historyLookbackDays,
+      sodium: sodium,
+      sodiumOver: sodiumOver,
+      completion: completion,
+      en: en,
+    );
     if (member != null && frequent.isNotEmpty) {
       return _patternOptions(
         member,
@@ -185,6 +204,7 @@ class MockTrainerRoutineOptionsRepository
         escalate: escalate,
         note: note,
         suffix: noteSuffix + safety,
+        findings: findings,
         en: en,
       );
     }
@@ -286,6 +306,7 @@ class MockTrainerRoutineOptionsRepository
       ),
       // 지금 데모 화면 그대로 규칙형이다 — `규칙 기반 생성` 꼬리표가 남는다.
       generatedBy: 'rule',
+      findings: findings,
     );
   }
 
@@ -335,6 +356,7 @@ class MockTrainerRoutineOptionsRepository
     required bool escalate,
     required String note,
     required String suffix,
+    required List<RoutineFinding> findings,
     required bool en,
   }) {
     String t(String ko, String english) => en ? english : ko;
@@ -407,6 +429,7 @@ class MockTrainerRoutineOptionsRepository
                   '운동량을 점진적으로 늘림.$suffix',
       ),
       generatedBy: 'rule',
+      findings: findings,
     );
   }
 

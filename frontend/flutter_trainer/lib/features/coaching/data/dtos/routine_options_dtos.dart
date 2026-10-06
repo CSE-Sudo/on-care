@@ -8,6 +8,7 @@ RoutineOptions routineOptionsFromJson(Map<String, Object?> json) {
     planA: _plan(json['plan_a']),
     planB: _plan(json['plan_b']),
     generatedBy: _requiredString(json, 'generated_by'),
+    findings: _findings(json['findings']),
   );
   if (options.planA.key != 'A' || options.planB.key != 'B') {
     throw const FormatException('routine-options must contain A and B plans.');
@@ -29,6 +30,15 @@ Map<String, Object?> routineOptionsToJson(RoutineOptions options) =>
       'plan_a': _planToJson(options.planA),
       'plan_b': _planToJson(options.planB),
       'generated_by': options.generatedBy,
+      'findings': <Map<String, Object?>>[
+        for (final RoutineFinding f in options.findings)
+          <String, Object?>{
+            'kind': f.kind,
+            'finding': f.finding,
+            'source': f.source,
+            'action': f.action,
+          },
+      ],
     };
 
 Map<String, Object?> _analysisToJson(MemberAnalysis a) => <String, Object?>{
@@ -96,6 +106,27 @@ List<String> _stringList(Map<String, Object?> json, String field) {
   return <String>[
     for (final Object? item in value)
       if (item is String && item.trim().isNotEmpty) item,
+  ];
+}
+
+/// 판단 결과(#3280). 보조 근거라 없거나 모양이 틀린 줄은 건너뛴다 — #3280
+/// 이전 서버나 자동 보관(#2873)된 옛 후보도 그대로 열려야 한다.
+List<RoutineFinding> _findings(Object? value) {
+  if (value is! List) return const <RoutineFinding>[];
+  return <RoutineFinding>[
+    for (final Object? item in value)
+      if (item case {
+        'kind': final String kind,
+        'finding': final String finding,
+        'source': final String source,
+        'action': final String action,
+      })
+        RoutineFinding(
+          kind: kind,
+          finding: finding,
+          source: source,
+          action: action,
+        ),
   ];
 }
 
