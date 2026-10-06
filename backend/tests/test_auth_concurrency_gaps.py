@@ -22,7 +22,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.core import clock, rate_limit
@@ -511,13 +511,21 @@ def test_suspended_account_gets_no_social_tokens(client, db_session, monkeypatch
         _drop_user(db_session, user_id)
 
 
+@pytest.mark.parametrize(
+    ("verified", "status", "reason"),
+    [(True, 401, "reason=inactive"), (False, 409, "reason=email_in_use")],
+)
 def test_suspended_account_gets_no_link_from_a_first_social_login(
-    client, db_session, monkeypatch
+    client, db_session, monkeypatch, verified, status, reason
 ):
     """쉬는 계정의 이메일과 같은 소셜 신원이 처음 들어와도 연결 행을 남기지 않는다(#3252).
 
     예전에는 연결을 먼저 커밋하고 401 을 줬다 — 정지가 풀리면 주인이 연결한 적 없는
     소셜 계정으로 바로 로그인됐다.
+
+    검사 순서: provider 가 확인하지 않은 이메일이면 #1551 의 409 가 먼저다 — 그 주소의
+    주인인지 모르는 사람에게 계정이 쉬는지까지 알려 주지 않는다. 확인된 이메일이면
+    그 계정을 찾은 뒤 쉬는 계정이라 401 이다. 어느 쪽이든 연결 행은 없다.
     """
     email = f"suspended-social-{uuid4().hex[:8]}@oncare.com"
     user = models.User(
@@ -528,25 +536,28 @@ def test_suspended_account_gets_no_link_from_a_first_social_login(
     db_session.commit()
     identity = SocialIdentity(
         provider="kakao", provider_user_id=f"kakao-gap-{uuid4().hex[:8]}",
-        email=email, name="소셜",
+        email=email, name="소셜", email_verified=verified,
     )
-    # #1551(PR #3210) 뒤에는 provider 가 확인한 이메일만 기존 계정을 찾는다. 그 전에는
-    # 없는 칸이라 붙여도 아무 일이 없다.
-    identity.email_verified = True
     _fake_social(monkeypatch, identity)
+    before = db_session.scalar(select(func.max(models.AuditLog.id))) or 0
     try:
         res = client.post("/v1/auth/social/kakao", json={"token": "any"})
-        assert res.status_code == 401
+        assert res.status_code == status, res.text
         assert "access_token" not in res.json()
         db_session.expire_all()
         assert _social_user_id(db_session, identity) is None
-        audit = db_session.scalars(
-            select(models.AuditLog)
-            .where(models.AuditLog.event == "auth.social", models.AuditLog.user_id == user.id)
-            .order_by(models.AuditLog.id.desc())
-        ).first()
-        assert audit is not None and audit.success is False
-        assert "inactive" in (audit.detail or "")
+        # 대체 이메일로 따로 계정을 만들지도 않는다.
+        placeholder = f"kakao_{identity.provider_user_id}@social.oncare".lower()
+        assert db_session.scalar(
+            select(models.User.id).where(func.lower(models.User.email) == placeholder)
+        ) is None
+        audits = db_session.scalars(
+            select(models.AuditLog).where(
+                models.AuditLog.event == "auth.social", models.AuditLog.id > before
+            )
+        ).all()
+        assert [a.success for a in audits] == [False]
+        assert reason in (audits[0].detail or "")
     finally:
         _drop_user(db_session, user.id)
 
