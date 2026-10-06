@@ -110,6 +110,9 @@ void main() {
         anyOf(contains('https://fonts.gstatic.com'), contains('https:')),
       );
       expect(d['connect-src'], contains("'self'"));
+      // 사진 선택기가 줄인 사진을 blob: 주소에서 fetch 로 읽는다 — 빠지면
+      // 웹에서 사진을 고를 때마다 "사진을 불러오지 못했어요" 가 뜬다.
+      expect(d['connect-src'], contains('blob:'));
       // pdf.js·drift 워커는 같은 출처 파일이다.
       expect(d['worker-src'], contains("'self'"));
       // `printing` 의 웹 인쇄는 blob: iframe 을 쓴다.
