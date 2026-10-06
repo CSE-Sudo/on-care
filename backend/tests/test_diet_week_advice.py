@@ -292,6 +292,25 @@ def test_week_advice_falls_back_and_retries_after_an_hour(db_session, member, mo
     assert _states(db_session, member.id) == 1
 
 
+def test_week_advice_does_not_hold_the_connection_while_waiting_for_ai(
+    db_session, member, monkeypatch
+):
+    """AI 문장을 기다리는 동안 트랜잭션(연결)을 쥐지 않는다(#3242)."""
+    seen = []
+
+    def fake(system, user):
+        seen.append(db_session.in_transaction())
+        return '{"sentence": "짬뽕 국물은 반만 드세요."}'
+
+    monkeypatch.setattr(ai, "_call_llm", fake)
+    _salty_week(db_session, member.id)
+
+    advice = svc.week_advice(db_session, member.id, now=_thu())
+    assert advice.action_source == "llm"
+    assert seen == [False]
+    assert _states(db_session, member.id) == 1
+
+
 def test_empty_week_is_not_kept_and_praise_does_not_call_ai(db_session, member, monkeypatch):
     fake = _FakeAI()
     monkeypatch.setattr(ai, "_call_llm", fake)

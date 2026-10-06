@@ -378,6 +378,13 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.",
     ),
     (
+        nt.MEMBER_CONSULT_TRAINER_LEFT,
+        {"trainer_name": "박코치"},
+        "",
+        "상담 요청이 취소되었어요",
+        "박코치 트레이너가 서비스를 떠나 상담 요청이 취소되었어요. 다른 트레이너에게 요청해 보세요.",
+    ),
+    (
         nt.MEMBER_TRAINER_LEFT,
         {"trainer_name": "박코치"},
         "",
@@ -913,6 +920,15 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         (
             "Consultation request expired",
             "The trainer didn't respond in time. Try requesting a different time.",
+        ),
+    ),
+    (
+        nt.MEMBER_CONSULT_TRAINER_LEFT,
+        {"trainer_name": "Coach Park"},
+        (
+            "Consultation request cancelled",
+            "Coach Park left the service, so your consultation request was cancelled."
+            " Try requesting another trainer.",
         ),
     ),
     (

@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.clock import SEOUL
+from app.core.security import create_access_token
 from app.models.models import (
     Notification,
     TrainerReservation,
@@ -28,6 +29,8 @@ from app.services.trainer import schedule as trainer_schedule_service
 TRAINER_EMAIL = "trainer@oncare.com"
 MEMBER_EMAIL = "jisu@oncare.com"
 MEMBER_ID = "user-jisu"
+#: 같은 트레이너의 다른 담당 회원(시드).
+OTHER_MEMBER_ID = "user-hayun"
 CHANGED_TITLE = "일정이 변경됐어요"
 
 
@@ -539,7 +542,8 @@ def test_api_overlap_rejection_does_not_notify(client, db_session, created_slots
     first = _create_slot(client, trainer_token, created_slots)
     second = _create_slot(client, trainer_token, created_slots)
     booked = _book(client, member_token, first["id"], created_slots)
-    _book(client, member_token, second["id"], created_slots)
+    # 한 회원의 다가오는 예약은 하나라(#3240) 두 번째 자리는 다른 담당 회원이 잡는다.
+    _book(client, create_access_token(OTHER_MEMBER_ID), second["id"], created_slots)
     before = len(_changed_notices(db_session))
 
     response = _update(

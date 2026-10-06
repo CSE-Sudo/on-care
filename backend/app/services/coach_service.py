@@ -196,10 +196,11 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
         return CoachSuggestion(
             tag="exercise",
             title=localized("이번 주 운동을 시작해 보세요", "Start this week's workouts"),
+            # 앱이 재지 않는 지표(혈압·혈당)를 근거로 들지 않는다(#602, #3251).
             body=localized(
-                "가벼운 30분 걷기부터 시작하면 혈압·혈당 관리에 도움이 돼요.",
+                "가벼운 30분 걷기부터 시작하면 체력과 컨디션을 끌어올리는 데 도움이 돼요.",
                 "Start with a light 30-minute walk. "
-                "It helps with blood pressure and blood sugar.",
+                "It builds stamina and lifts your energy.",
             ),
         )
     if total_min < 150:

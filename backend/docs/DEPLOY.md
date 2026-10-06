@@ -234,12 +234,18 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
    - 다음 둘 중 하나로 승인한다.
      - **파일 주석**(권장): 마이그레이션 파일에 `# destructive-migration: <사유>` 를 한 줄 둔다. 사유는 비울
        수 없다(예: `# destructive-migration: 옛 칸을 읽지 않는 코드가 #1234 로 먼저 배포됨`). 사유가
-       마이그레이션과 함께 이력에 남는다.
+       마이그레이션과 함께 이력에 남는다. 진짜 주석만 본다 — docstring·문자열 안에 같은 문구가 있어도
+       승인이 아니다.
      - **PR 라벨** `destructive-migration`: 코드를 고치지 않고 PR 화면에서 승인할 때. PR 전체를 승인하므로
-       찾은 곳은 경고로 남는다. 라벨 사유는 PR Notes 에 적는다.
+       찾은 곳은 경고로 남는다. 라벨 사유는 PR Notes 에 적는다. 라벨은 **붙인 순간의 PR 내용만** 승인한다 —
+       그 뒤 커밋이 더해지거나 다른 라벨이 바뀌어 gate 가 다시 돌면 라벨이 남아 있어도 실패한다(#3236).
+       새 내용을 다시 검토했으면 라벨을 뗐다가 다시 붙인다. 커밋이 이어질 PR 이면 파일 주석이 편하다.
    - **PR Gate** 의 `Review destructive migrations` 단계(`tool/ci/check_destructive_migrations.py`)가 이 PR 이
      추가·변경한 `backend/migrations/versions/*.py` 에서 위 표의 연산·SQL 을 찾고, 주석도 라벨도 없으면
-     실패한다. 이미 main 에 있는 마이그레이션은 보지 않는다. 오탐이면 주석에 오탐 사유를 적어 통과시킨다.
+     실패한다. SQL 은 별칭 붙은 `UPDATE t AS s SET`, `COLUMN` 을 뺀 `ALTER TABLE t ALTER c …`, 기본값 없는
+     `ADD COLUMN … NOT NULL`, 이어 붙인 문자열까지 보고, SQLAlchemy core 의 `update()`·`delete()` 도
+     데이터 변경으로 본다. 이미 main 에 있는 마이그레이션은 보지 않는다. 오탐이면 주석에 오탐 사유를
+     적어 통과시킨다.
    - PR Gate 는 라벨을 붙이거나 뗄 때도 다시 돈다(`labeled`·`unlabeled`). 필수 검사라 라벨 이름으로 job 을
      건너뛸 수 없어(skipped 는 통과로 친다) 어떤 라벨이 바뀌어도 gate 전체가 다시 돈다.
 4. 리뷰어는 직전 이미지(지금 운영 이미지)가 새 스키마에서 도는지, 지우는 데이터를 백업 없이 잃어도 되는지를

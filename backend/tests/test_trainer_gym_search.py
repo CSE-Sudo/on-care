@@ -452,6 +452,47 @@ def test_name_search_with_coordinates_fills_registered_distance(client, trainer,
     assert row["distance_meters"] == 0
 
 
+def test_kakao_wait_does_not_hold_db_connection(
+    client, trainer, fake_kakao, created_places, monkeypatch
+):
+    """검색·소속 설정 모두 카카오를 기다리는 동안 트랜잭션(연결)을 쥐지 않는다(#3242)."""
+    from app.services import trainer_gym_search
+    from app.services.places import kakao
+
+    seen: dict = {"in_transaction": []}
+    real_release = trainer_gym_search.release_connection
+    inner_search = kakao.search_gyms
+
+    def spy_release(db):
+        seen["db"] = db
+        return real_release(db)
+
+    async def watched_search(*args, **kwargs):
+        seen["in_transaction"].append(seen["db"].in_transaction())
+        return await inner_search(*args, **kwargs)
+
+    monkeypatch.setattr(trainer_gym_search, "release_connection", spy_release)
+    monkeypatch.setattr(kakao, "search_gyms", watched_search)
+
+    token, _ = trainer
+    new_id = _new_kakao_id()
+    created_places.append(new_id)
+    fake_kakao["docs"] = [_kakao_doc(new_id, "새 헬스장")]
+
+    r = client.get(
+        "/v1/trainer/gyms/search", params={"query": "새 헬스장"}, headers=_auth(token)
+    )
+    assert r.status_code == 200, r.text
+    r = client.put(
+        "/v1/trainer/me/gym/kakao",
+        json={"kakao_place_id": new_id, "name": "새 헬스장"},
+        headers=_auth(token),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["gym"]["id"] == new_id
+    assert seen["in_transaction"] == [False, False]
+
+
 # ---- 카카오 결과로 소속 설정 ----
 
 def test_selecting_a_new_kakao_gym_registers_it_and_links_the_trainer(

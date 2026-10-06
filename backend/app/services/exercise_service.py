@@ -179,21 +179,23 @@ def isometric_default(db: Session, name: str) -> bool:
     return bool(row is not None and row.isometric)
 
 
-def _date_label_for_day(day_label: str) -> str:
-    today = clock.today()
-    today_idx = today.weekday()  # 0=월
-    if day_label not in WEEKDAY_LABELS:
-        return day_label
-    day_idx = WEEKDAY_LABELS.index(day_label)
-    delta = today_idx - day_idx
+def _date_label_for(day: date | None, day_label: str) -> str:
+    """기록 날짜의 짧은 라벨 — `오늘`·`어제`·`9월 28일`·`수요일`.
+
+    요일만 보지 않고 **실제 날짜**([session_date_of])로 정한다(#3251). 요일만 보면
+    지난주 수요일 기록도 오늘이 수요일이면 `오늘` 이 됐다. 아직 오지 않은 날은 요일
+    이름이고, 날짜를 알 수 없는 옛 행도 요일 이름으로 둔다.
+    """
+    if day is None:
+        return f"{day_label}요일" if day_label in WEEKDAY_LABELS else day_label
+    delta = (clock.today() - day).days
     if delta == 0:
         return "오늘"
     if delta == 1:
         return "어제"
-    if 1 < delta <= 6:
-        d = today - timedelta(days=delta)
-        return f"{d.month}월 {d.day}일"
-    return f"{day_label}요일"
+    if delta > 1:
+        return f"{day.month}월 {day.day}일"
+    return f"{day_label}요일" if day_label in WEEKDAY_LABELS else day_label
 
 
 #: PT 완료가 파생시킨 운동 기록 id 의 앞머리 — 뒤는 그 수업(`trainer_schedule`)
@@ -490,7 +492,7 @@ def build_current_week(
             "member_note": "",
             "trainer_feedback": "",
             "completed_at": getattr(r, "completed_at", None),
-            "date_label": _date_label_for_day(r.day_label),
+            "date_label": _date_label_for(session_date_of(r), r.day_label),
             "time_label": _time_label_of(r, pt_times),
             # 회원이 적은 이름이 있으면 그게 이 기록의 내용이다. 없을 때만
             # 유형별 기본 문구로 채운다 — 이름 칸이 생기기 전 기록들이다. (#1276)

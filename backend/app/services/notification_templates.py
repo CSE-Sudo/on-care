@@ -72,6 +72,8 @@ MEMBER_HEALTH_GOAL = "member_health_goal"
 MEMBER_CONSULT_APPROVED = "member_consult_approved"
 MEMBER_CONSULT_REJECTED = "member_consult_rejected"
 MEMBER_CONSULT_EXPIRED = "member_consult_expired"
+#: 상담 요청을 받은 트레이너가 확인하기 전에 탈퇴했다(#3241).
+MEMBER_CONSULT_TRAINER_LEFT = "member_consult_trainer_left"
 MEMBER_TRAINER_LEFT = "member_trainer_left"
 MEMBER_TRAINER_LEFT_BOOKING = "member_trainer_left_booking"
 MEMBER_TRAINER_DISCONNECTED = "member_trainer_disconnected"
@@ -601,6 +603,22 @@ def _member_consult_expired(args: Args, locale: Locale) -> Rendered:
     return (
         "Consultation request expired",
         "The trainer didn't respond in time. Try requesting a different time.",
+    )
+
+
+@_template(MEMBER_CONSULT_TRAINER_LEFT)
+def _member_consult_trainer_left(args: Args, locale: Locale) -> Rendered:
+    name = _text(args, "trainer_name")
+    if locale == "ko":
+        return (
+            "상담 요청이 취소되었어요",
+            f"{name or '트레이너'} 트레이너가 서비스를 떠나 상담 요청이 취소되었어요. "
+            "다른 트레이너에게 요청해 보세요.",
+        )
+    return (
+        "Consultation request cancelled",
+        f"{name or 'The trainer'} left the service, so your consultation request was "
+        "cancelled. Try requesting another trainer.",
     )
 
 

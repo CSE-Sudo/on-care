@@ -28,6 +28,7 @@ from app.schemas.exercise_api import (
     ExerciseSessionsCreate, ExerciseSessionsCreatedOut, ExerciseWeekResponse,
 )
 from app.schemas.points_api import PointsOut
+from app.schemas.record_dates import parse_ymd
 from app.services import (
     exercise_activity,
     exercise_records,
@@ -116,11 +117,12 @@ def current_week(
     if week_start is None:
         week_start = monday_of_this_week_str()
     else:
-        # strptime 으로 엄격하게 본다. date.fromisoformat 은 3.11 부터
-        # `20260810` 같은 기본 형식도 받아, 앱의 로컬 목업(엄격한 YYYY-MM-DD)과
-        # 받아들이는 값의 집합이 갈린다.
+        # 표기 하나(`YYYY-MM-DD`)만 받는다. date.fromisoformat 은 3.11 부터
+        # `20260810` 같은 기본 형식도 받고, strptime 은 `2026-1-5` 를 받는다 —
+        # 그 값은 주 계산(`monday_of_str`)에서 형식 오류로 떨어져 조용히 이번 주가
+        # 됐다(#3243). 식단·트레이너 날짜와 같은 검사를 쓴다.
         try:
-            datetime.strptime(week_start, "%Y-%m-%d")
+            parse_ymd(week_start)
         except ValueError:
             raise HTTPException(
                 status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 해요."

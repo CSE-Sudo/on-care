@@ -184,10 +184,13 @@ def collect_member_signals(db: Session, member_id: str) -> MemberSignals:
         # 건강 목표 칩 하나로 고르므로 읽지 않는다(#2358).
 
     # 가장 최근 상담 요청의 운동 목표 — 회원이 직접 고른 값이라 신뢰도가 높다.
+    # id 는 `consult-<uuid>` 라 순서가 없다 — 만든 시각으로 고른다(#3241).
     goal = db.scalar(
         select(ConsultationRequest.exercise_goal)
         .where(ConsultationRequest.member_id == member_id)
-        .order_by(ConsultationRequest.id.desc())
+        .order_by(
+            ConsultationRequest.created_at.desc(), ConsultationRequest.id.desc()
+        )
         .limit(1)
     )
     if goal is not None:
