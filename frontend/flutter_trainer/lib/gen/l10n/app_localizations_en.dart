@@ -3607,6 +3607,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrNotTrainer => 'Please sign in with a trainer account.';
 
   @override
+  String get authErrSocialEmailInUse =>
+      'An account already uses this email. Please sign in the way you first signed up.';
+
+  @override
   String get authErrTooManyAttempts =>
       'Too many attempts. Please try again in a moment.';
 

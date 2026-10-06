@@ -2959,6 +2959,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSocialSignInFailed => '소셜 로그인을 하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get authSocialEmailInUse =>
+      '이 이메일로 가입한 계정이 있어요. 처음 가입한 방법으로 로그인해 주세요.';
+
+  @override
   String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요';
 
   @override
