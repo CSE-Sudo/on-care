@@ -39,8 +39,9 @@ def test_reserve_flushes_schedule_before_reservation() -> None:
         role="member",
     )
     db = Mock(spec=Session)
-    # 슬롯, 담당 링크, 같은 자리 중복, 다가오는 예약 수(#3240) 순으로 읽는다.
-    db.scalar.side_effect = [slot, "trainer-client-id", None, 0]
+    # 슬롯, 담당 링크, 같은 자리 중복, 다가오는 예약 수(#3240), 트레이너의 예약
+    # 알림 수신 설정(#2420) 순으로 읽는다.
+    db.scalar.side_effect = [slot, "trainer-client-id", None, 0, True]
     # 겹침 검사(#2284)가 읽는 트레이너의 그날 일정 — 비어 있다.
     db.scalars.return_value.all.return_value = []
 
