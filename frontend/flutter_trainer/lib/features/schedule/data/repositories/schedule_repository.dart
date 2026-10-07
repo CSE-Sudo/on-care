@@ -1094,12 +1094,23 @@ class DriftScheduleRepository implements ScheduleRepository {
     if ((jsonDecode(session.programJson) as List<Object?>).isEmpty) {
       throw StateError('session has no program: $id');
     }
+    // 시드 개인운동을 단 PT 는 보내기 전에 그 목록을 기억에 남긴다(#2616) —
+    // 보낸 PT 에는 시드를 붙이지 않으므로, 남기지 않으면 함께 보낸 개인운동이
+    // 보내자마자 상세에서 사라진다.
+    SessionRoutineState? state = await _routineStore.readSession(id);
+    if (state?.items == null && !(state?.dismissed ?? false)) {
+      state = (state ?? const SessionRoutineState()).copyWith(
+        items: List<RoutineExercise>.unmodifiable(
+          await _seedSessionRoutines(session),
+        ),
+      );
+      await _routineStore.writeSession(id, state);
+    }
     await (_db.update(table)..where((t) => t.id.equals(id))).write(
       const TrainerScheduleEntriesCompanion(programSent: Value(true)),
     );
     // 개인운동은 PT 프로그램과 함께 나간다(#2224) — 전송 이력에도 `PT 와 함께`
     // 로 남는다(#2668). 보내지 않기로 정리한 것은 싣지 않는다.
-    final SessionRoutineState? state = await _routineStore.readSession(id);
     await _recordDelivery(
       session,
       DeliveryKinds.ptWithRoutine,
@@ -1636,8 +1647,7 @@ bool isDemoReservationScheduleId(String id) =>
 const String demoFinishedEditRejected =
     '완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있어요.';
 const String demoSentProgramEditRejected = '이미 보낸 프로그램은 수정할 수 없어요.';
-const String demoReservationEditRejected =
-    '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없어요.';
+const String demoReservationEditRejected = '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없어요.';
 const String demoReservationDeleteRejected =
     '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없어요.';
 const String demoReservationReopenRejected =
