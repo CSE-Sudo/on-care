@@ -1,4 +1,4 @@
-"""AI 루틴 C안 — 지난 PT 흐름상 **이번 차례** 프로그램(#3282).
+"""AI 루틴 연계안 — 지난 PT 흐름상 **이번 차례** 프로그램(#3282).
 
 A·B안이 회원 분석으로 새로 짜는 안이라면, C안은 트레이너가 지금까지 PT 에서
 돌려 온 프로그램 가운데 이번에 할 차례인 것을 골라 최근 상태에 맞게 고친 안이다.
@@ -74,7 +74,7 @@ class PtSession:
 
 @dataclass(frozen=True)
 class NextPt:
-    """이번 차례 판단 결과 — C안의 기준 프로그램과 근거."""
+    """이번 차례 판단 결과 — 연계안의 기준 프로그램과 근거."""
 
     #: `rotation`(기록에서 고름) · `continue`(한 가지만 반복) · `start`(기록 없음).
     kind: str
@@ -247,7 +247,7 @@ def rule_plan_c(
     escalate: bool,
     locale: Locale = "ko",
 ) -> dict:
-    """[next_pt] 의 기준 프로그램을 규칙만큼 고친 C안(AI 실패·데모용).
+    """[next_pt] 의 기준 프로그램을 규칙만큼 고친 연계안(AI 실패·데모용).
 
     * 주의 부위에 부담이 큰 운동은 저충격 대안으로 바꾼다(A·B 와 같은 표).
     * 완료율이 높으면 근력 세트를 한 칸 올리고, 낮으면 내린다. 판단이 어려운
@@ -370,8 +370,8 @@ def finding(next_pt: NextPt, locale: Locale = "ko") -> dict:
             "finding": localized("PT 기록 없음", "No PT records", locale),
             "source": localized("PT 기록", "PT records", locale),
             "action": localized(
-                "C안은 전신 기본 프로그램으로 시작",
-                "Plan C starts with a full-body basic program",
+                "연계안은 전신 기본 프로그램으로 시작",
+                "Follow-up plan starts with a full-body basic program",
                 locale,
             ),
         }
@@ -397,8 +397,8 @@ def finding(next_pt: NextPt, locale: Locale = "ko") -> dict:
         "finding": text[:120],
         "source": source,
         "action": localized(
-            "C안: 이번 차례 프로그램을 최근 상태에 맞게 조정",
-            "Plan C: adjusts this program to the latest condition",
+            "연계안: 이번 차례 프로그램을 최근 상태에 맞게 조정",
+            "Follow-up plan: adjusts this program to the latest condition",
             locale,
         ),
     }
