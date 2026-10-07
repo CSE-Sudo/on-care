@@ -48,95 +48,147 @@ class DashboardPage extends ConsumerWidget {
       title: l.dashTitle,
       subtitle: dateLabel(l, today),
       headerCenter: const ClientSearchBar(),
-      body: PageScrollResetListener(
-        child: summaryAsync.when(
-          loading: () => const AppLoading(),
-          error: (e, _) => AppErrorState(
-            key: const ValueKey<String>('dashboard-retry'),
-            title: l.dashLoadFailed,
-            retryLabel: l.actionRetry,
-            onRetry: summaryAsync.isLoading
-                ? null
-                : () => ref.invalidate(clientsProvider),
-          ),
-          data: (summary) => SingleChildScrollView(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final wide =
-                    constraints.maxWidth >= OnCareLayout.twoColumnBreakpoint;
-                // 왼쪽: 오늘의 일정 + (그 아래) 활동 피드백. 오른쪽: 오늘 할 일 +
-                // (그 아래) 할 일 진행률 — 활동 피드백이 그래프와 나란한 줄에
-                // 오도록 왼쪽 칸에 둔다.
-                final leftColumn = Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const TodayTimelineCard(),
-                    const SizedBox(height: OnCareSpacing.s16),
-                    AiSummaryCard(
-                      key: const ValueKey<String>(
-                        'dashboard-activity-feedback',
+      body: _ChurnRefreshOnArrival(
+        child: PageScrollResetListener(
+          child: summaryAsync.when(
+            loading: () => const AppLoading(),
+            error: (e, _) => AppErrorState(
+              key: const ValueKey<String>('dashboard-retry'),
+              title: l.dashLoadFailed,
+              retryLabel: l.actionRetry,
+              onRetry: summaryAsync.isLoading
+                  ? null
+                  : () => ref.invalidate(clientsProvider),
+            ),
+            data: (summary) => SingleChildScrollView(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide =
+                      constraints.maxWidth >= OnCareLayout.twoColumnBreakpoint;
+                  // 왼쪽: 오늘의 일정 + (그 아래) 활동 피드백. 오른쪽: 오늘 할 일 +
+                  // (그 아래) 할 일 진행률 — 활동 피드백이 그래프와 나란한 줄에
+                  // 오도록 왼쪽 칸에 둔다.
+                  final leftColumn = Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      const TodayTimelineCard(),
+                      const SizedBox(height: OnCareSpacing.s16),
+                      AiSummaryCard(
+                        key: const ValueKey<String>(
+                          'dashboard-activity-feedback',
+                        ),
+                        activityFeedback:
+                            activityFeedback.valueOrNull ??
+                            const <ActivityFeedbackItem>[],
+                        // 입력이 준비되지 않았으면 "담당 회원 없음" 대신 상태를
+                        // 말한다(#2891).
+                        statusMessage: activityFeedback.hasValue
+                            ? null
+                            : activityFeedback.hasError &&
+                                  !activityFeedback.isLoading
+                            ? l.dashActivityFeedbackUnavailable
+                            : l.dashActivityFeedbackLoading,
                       ),
-                      activityFeedback:
-                          activityFeedback.valueOrNull ??
-                          const <ActivityFeedbackItem>[],
-                      // 입력이 준비되지 않았으면 "담당 회원 없음" 대신 상태를
-                      // 말한다(#2891).
-                      statusMessage: activityFeedback.hasValue
-                          ? null
-                          : activityFeedback.hasError &&
-                                !activityFeedback.isLoading
-                          ? l.dashActivityFeedbackUnavailable
-                          : l.dashActivityFeedbackLoading,
-                    ),
-                  ],
-                );
-                final rightColumn = Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    TodayTasksCard(entries: summary.attention),
-                    const SizedBox(height: OnCareSpacing.s16),
-                    const _TaskProgressCard(),
-                  ],
-                );
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    _KpiRow(
-                      summary: summary,
-                      churnRisk: churnRisk,
-                      wide: wide,
-                      onRetryChurn: () => retryChurnInputs(ref.invalidate),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s16),
-                    if (wide)
-                      Row(
-                        key: const ValueKey<String>('dashboard-action-row'),
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          // 5:4 — 딱 반반은 아니다.
-                          Expanded(flex: 5, child: leftColumn),
-                          const SizedBox(width: OnCareSpacing.s16),
-                          Expanded(flex: 4, child: rightColumn),
-                        ],
-                      )
-                    else
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          leftColumn,
-                          const SizedBox(height: OnCareSpacing.s16),
-                          rightColumn,
-                        ],
+                    ],
+                  );
+                  final rightColumn = Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      TodayTasksCard(entries: summary.attention),
+                      const SizedBox(height: OnCareSpacing.s16),
+                      const _TaskProgressCard(),
+                    ],
+                  );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      _KpiRow(
+                        summary: summary,
+                        churnRisk: churnRisk,
+                        wide: wide,
+                        onRetryChurn: () => retryChurnInputs(ref.invalidate),
                       ),
-                  ],
-                );
-              },
+                      const SizedBox(height: OnCareSpacing.s16),
+                      if (wide)
+                        Row(
+                          key: const ValueKey<String>('dashboard-action-row'),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            // 5:4 — 딱 반반은 아니다.
+                            Expanded(flex: 5, child: leftColumn),
+                            const SizedBox(width: OnCareSpacing.s16),
+                            Expanded(flex: 4, child: rightColumn),
+                          ],
+                        )
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            leftColumn,
+                            const SizedBox(height: OnCareSpacing.s16),
+                            rightColumn,
+                          ],
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// 대시보드로 돌아올 때마다 이탈 위험·활동 피드백의 최근 일정을 다시 읽는다.
+/// (#3300)
+///
+/// 그 일정은 5초 폴링 타이머를 남기지 않으려고 **한 번만** 읽는다
+/// (`dashboard_controller.dart`). 탭은 `StatefulShellRoute.indexedStack` 이라
+/// 대시보드가 뒤에 살아 있어, 스케줄 탭에서 완료·노쇼·취소해도 두 카드가 첫
+/// 값을 계속 쥐고 있었다. 셸이 페이지 이동마다 보내는 신호
+/// ([PageScrollResetScope])를 받아, 이 탭이 앞에 왔을 때만 다시 읽는다 — 다른
+/// 탭으로 가는 신호에는 [TickerMode] 가 꺼져 있어 움직이지 않는다. 처음 읽는
+/// 중이면 건드리지 않는다.
+class _ChurnRefreshOnArrival extends ConsumerStatefulWidget {
+  const _ChurnRefreshOnArrival({required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<_ChurnRefreshOnArrival> createState() =>
+      _ChurnRefreshOnArrivalState();
+}
+
+class _ChurnRefreshOnArrivalState
+    extends ConsumerState<_ChurnRefreshOnArrival> {
+  ValueNotifier<int>? _arrivals;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final next = PageScrollResetScope.maybeOf(context);
+    if (identical(next, _arrivals)) return;
+    _arrivals?.removeListener(_refresh);
+    _arrivals = next;
+    _arrivals?.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    _arrivals?.removeListener(_refresh);
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (!mounted || !TickerMode.valuesOf(context).enabled) return;
+    if (ref.read(dashboardChurnRiskProvider).isLoading) return;
+    retryChurnInputs(ref.invalidate);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// 값을 아직 모르는 KPI 의 자리 표시 — 0 으로 읽히지 않게 숫자를 비운다.
