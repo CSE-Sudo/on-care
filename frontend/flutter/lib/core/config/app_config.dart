@@ -82,6 +82,16 @@ List<ReleaseProblem> apiBaseUrlProblems(String apiBaseUrl) {
   ];
 }
 
+/// [apiBaseUrl] 이 이 컴퓨터(루프백)의 백엔드인가 — 데모 Pages 의 `local` 빌드용.
+bool isLoopbackApiUrl(String apiBaseUrl) {
+  final String host = (Uri.tryParse(apiBaseUrl.trim())?.host ?? '')
+      .toLowerCase();
+  return host == 'localhost' ||
+      host == '127.0.0.1' ||
+      host == '::1' ||
+      host == '[::1]';
+}
+
 /// 기동 시 가드가 볼 문제 목록. 릴리스 모드가 아니면(`flutter run`·테스트) 늘
 /// 비어 있다 — 로컬 개발은 기본값 그대로 돈다(#3022).
 List<ReleaseProblem> releaseGuardProblems(
@@ -253,13 +263,17 @@ class AppConfig {
   ///   (#3147). 데모 Pages 는 `DEMO_BUILD=true` 를 넘기므로 지금처럼 뜬다.
   List<ReleaseProblem> releaseProblems() {
     final bool demoMock = mockApiRequested && demoBuild;
+    // 데모 Pages 를 내 컴퓨터 백엔드(localhost)에 붙인 빌드 — 배포 웹에서 회원·트레이너
+    // 연동을 로컬 서버로만 확인할 때 쓴다. 데모 빌드에서만 허용한다.
+    final bool demoLocal =
+        demoBuild && !mockApiRequested && isLoopbackApiUrl(apiBaseUrl);
     return <ReleaseProblem>[
-      if (isDev && !demoMock) ReleaseProblem.devEnvironment,
+      if (isDev && !demoMock && !demoLocal) ReleaseProblem.devEnvironment,
       if (mockApiRequested && !demoBuild) ReleaseProblem.mockWithoutDemoBuild,
       if (showDemoEntry && !demoBuild) ReleaseProblem.demoEntryWithoutDemoBuild,
       if (realApiFeatures.isNotEmpty && !demoBuild)
         ReleaseProblem.realApiWithoutDemoBuild,
-      if (usesNetwork) ...apiBaseUrlProblems(apiBaseUrl),
+      if (usesNetwork && !demoLocal) ...apiBaseUrlProblems(apiBaseUrl),
     ];
   }
 

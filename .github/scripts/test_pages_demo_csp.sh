@@ -120,6 +120,15 @@ printf '<html></html>\n' > "$work/none.html"
 expect "meta CSP 가 없으면 실패" fail bash "$script" check "$work/none.html"
 expect "http API 주소는 실패" fail bash "$script" narrow "$work/case.html" "http://api.oncare.test/v1"
 
+# local 빌드(PAGES_CSP_ALLOW_LOCAL=1) — 내 컴퓨터 백엔드 출처 하나만 더 받는다.
+cp "$root/frontend/flutter/web/index.html" "$work/local.html"
+expect "local 빌드 좁히기" pass env PAGES_CSP_ALLOW_LOCAL=1 bash "$script" narrow "$work/local.html" "http://localhost:8000/v1"
+expect "local 빌드 확인" pass env PAGES_CSP_ALLOW_LOCAL=1 bash "$script" check "$work/local.html" "http://localhost:8000/v1"
+contains "local 빌드에 localhost 출처" "$work/local.html" "http://localhost:8000"
+expect "local 표시 없이 localhost 주소는 실패" fail bash "$script" narrow "$work/case.html" "http://localhost:8000/v1"
+expect "local 이라도 다른 http 호스트는 실패" fail env PAGES_CSP_ALLOW_LOCAL=1 bash "$script" narrow "$work/case.html" "http://192.168.0.12:8000/v1"
+expect "local 이라도 API 출처가 아닌 localhost 는 실패" fail env PAGES_CSP_ALLOW_LOCAL=1 bash "$script" check "$work/local.html" "http://localhost:9000/v1"
+
 if [ "$failures" -ne 0 ]; then
   echo "$failures 건 실패"
   exit 1
