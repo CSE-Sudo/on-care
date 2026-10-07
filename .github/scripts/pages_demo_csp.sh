@@ -29,19 +29,34 @@ fail() {
   exit 1
 }
 
-# api_origin <API_BASE_URL>: https://host[:port] 만 남긴다.
+# PAGES_CSP_ALLOW_LOCAL=1 이면 데모 Pages 의 local 빌드다 — API 주소로
+# http://localhost[:포트]·http://127.0.0.1[:포트] 하나만 더 받는다(내 컴퓨터 백엔드).
+ALLOW_LOCAL=${PAGES_CSP_ALLOW_LOCAL:-0}
+
+# is_local_origin <origin>: 허용하는 로컬 백엔드 출처인가.
+is_local_origin() {
+  [ "$ALLOW_LOCAL" = "1" ] || return 1
+  printf '%s' "$1" | grep -Eq '^http://(localhost|127\.0\.0\.1)(:[0-9]{1,5})?$'
+}
+
+# api_origin <API_BASE_URL>: scheme://host[:port] 만 남긴다.
 api_origin() {
   local url=$1
+  local scheme
   case "$url" in
-    https://*) ;;
+    https://*) scheme=https ;;
+    http://*) scheme=http ;;
     *) fail "API_BASE_URL 은 https:// 로 시작해야 합니다: $url" ;;
   esac
-  local rest=${url#https://}
+  local rest=${url#"$scheme"://}
   local host=${rest%%/*}
   case "$host" in
     '' | *[!A-Za-z0-9.:-]*) fail "API_BASE_URL 의 호스트가 올바르지 않습니다: $url" ;;
   esac
-  printf 'https://%s' "$host"
+  if [ "$scheme" = "http" ] && ! is_local_origin "http://$host"; then
+    fail "API_BASE_URL 은 https:// 로 시작해야 합니다: $url"
+  fi
+  printf '%s://%s' "$scheme" "$host"
 }
 
 # meta_csp <file>: meta CSP 의 content 값을 한 줄로 낸다. 정확히 하나여야 한다.
@@ -101,6 +116,9 @@ case "$cmd" in
       fail "$file 의 meta CSP 에 connect-src 가 없습니다."
     fi
     for source in $connect; do
+      if [ -n "$origin" ] && [ "$source" = "$origin" ] && is_local_origin "$origin"; then
+        continue
+      fi
       case "$source" in
         https: | http: | wss: | ws: | '*' | *://\* | *://\*:* | *://\*/*)
           fail "$file: connect-src 가 좁혀지지 않았습니다('$source')." ;;
