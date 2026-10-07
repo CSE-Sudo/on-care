@@ -100,7 +100,29 @@ void main() {
       expect(noShowOf(roster, '강서연')?.count, 2);
     });
 
-    test('트레이너 사정 취소와 내일 일정은 세지 않는다', () async {
+    test('내일 PT 도 오늘 회원 사정으로 취소하면 바로 센다 (#3306)', () async {
+      final DateTime now = nowKst();
+      await db
+          .into(db.trainerScheduleEntries)
+          .insert(
+            TrainerScheduleEntriesCompanion.insert(
+              id: 'test-cancel-ahead',
+              date: ymd(DateTime(now.year, now.month, now.day + 3)),
+              time: '07:00',
+              clientId: const Value('seed-client-6'),
+              clientName: const Value('강서연'),
+              type: const Value(SessionType.personalTraining),
+              status: ScheduleStatus.cancelled,
+              cancelledAt: Value(now),
+              cancellationSource: const Value(CancellationSource.member),
+            ),
+          );
+
+      final List<TrainerClient> roster = await repo.watchClients().first;
+      expect(noShowOf(roster, '강서연')?.count, 2);
+    });
+
+    test('트레이너 사정 취소와 취소 시각 없는 앞으로의 일정은 세지 않는다', () async {
       final DateTime now = nowKst();
       await db.batch(
         (Batch b) => b.insertAll(

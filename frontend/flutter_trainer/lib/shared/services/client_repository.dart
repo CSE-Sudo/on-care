@@ -287,11 +287,13 @@ class DriftClientRepository implements ClientRepository {
   }
 
   /// 회원별 최근 [demoNoShowWindowDays]일(오늘 포함) 노쇼·회원 사정 취소 수.
-  /// (#3304)
+  /// (#3304, #3306)
   ///
-  /// 실서버 `client_signals.py` 와 같은 규칙이다 — 오늘 이후 일정은 세지
-  /// 않고, 트레이너 사정 취소는 회원의 미이행이 아니라 세지 않는다. 예전에는
-  /// 시드에 신호를 박아 두어, 스케줄에서 노쇼를 남겨도 이탈 위험이 그대로였다.
+  /// 실서버 `client_signals.py` 와 같은 규칙이다 — 노쇼는 PT 날짜로, 회원 사정
+  /// 취소는 **취소한 날**로 창에 넣는다. 그래서 앞으로 있을 PT 를 미리 취소해도
+  /// 바로 센다. 취소 시각이 없는 기록은 PT 날짜로 세고, 트레이너 사정 취소는
+  /// 회원의 미이행이 아니라 세지 않는다. 예전에는 시드에 신호를 박아 두어,
+  /// 스케줄에서 노쇼를 남겨도 이탈 위험이 그대로였다.
   Future<Map<String, int>> _recentNoShowCounts() async {
     final DateTime now = nowKst();
     final String to = ymd(now);
@@ -303,7 +305,6 @@ class DriftClientRepository implements ClientRepository {
         await (_db.select(t)..where(
               (r) =>
                   r.clientId.isNotNull() &
-                  r.date.isBetweenValues(from, to) &
                   (r.status.equals(ScheduleStatus.noShow) |
                       (r.status.equals(ScheduleStatus.cancelled) &
                           r.cancellationSource.equals(
@@ -313,6 +314,15 @@ class DriftClientRepository implements ClientRepository {
             .get();
     final Map<String, int> counts = <String, int>{};
     for (final TrainerScheduleRow row in rows) {
+      final DateTime? cancelledAt = row.status == ScheduleStatus.cancelled
+          ? row.cancelledAt
+          : null;
+      final String countedOn = cancelledAt != null
+          ? ymd(cancelledAt)
+          : row.date;
+      if (countedOn.compareTo(from) < 0 || countedOn.compareTo(to) > 0) {
+        continue;
+      }
       final String id = row.clientId!;
       counts[id] = (counts[id] ?? 0) + 1;
     }
