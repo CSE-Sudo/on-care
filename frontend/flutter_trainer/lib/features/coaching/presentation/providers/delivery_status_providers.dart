@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -28,12 +29,18 @@ final latestDeliveryProvider = FutureProvider.autoDispose
           .fetchLatestDelivery(clientId),
     );
 
-/// 회원에게 무엇이 나갔는지가 바뀐 뒤 코칭 탭의 두 읽기를 버린다.
+/// 회원에게 무엇이 나갔는지가 바뀐 뒤 다른 탭이 쥔 읽기를 버린다.
+///
+/// 코칭 탭의 전송 이력·미전송 안내뿐 아니라, 고객 관리 운동 탭의 배정 목록과
+/// 날짜별 이행 칸도 같은 전송으로 바뀐다(#3299). AI 개인운동 제안은 PT 에
+/// 붙일 때 닫히고 보낼 때는 그대로라 여기서 버리지 않는다.
 ///
 /// 어느 회원인지 모를 수 있는 자리(스케줄)에서도 부르도록 family 전체를
-/// 버린다 — 살아 있는 것은 지금 열린 회원 하나뿐이라 비용이 없다.
+/// 버린다 — 지켜보는 것만 곧바로 다시 읽고, 나머지는 다음에 읽을 때 새로 읽는다.
 void invalidateDeliveryStatus(WidgetRef ref) {
   ref
     ..invalidate(unsentRoutinesProvider)
-    ..invalidate(latestDeliveryProvider);
+    ..invalidate(latestDeliveryProvider)
+    ..invalidate(assignedRoutinesProvider)
+    ..invalidate(clientRoutineDaysProvider);
 }
