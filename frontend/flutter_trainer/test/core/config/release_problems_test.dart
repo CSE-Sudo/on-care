@@ -253,4 +253,39 @@ void main() {
   test('DEMO_BUILD 기본값은 꺼짐이다', () {
     expect(AppConfig.fromEnvironment().demoBuild, isFalse);
   });
+
+  group('데모 Pages local 빌드(localhost 백엔드)', () {
+    test('DEMO_BUILD + 실서버 + localhost 주소 + ENV=dev 는 통과한다', () {
+      final AppConfig config = _config(
+        environment: Environment.dev,
+        apiBaseUrl: 'http://localhost:8000/v1',
+        demoBuild: true,
+      );
+      expect(config.releaseProblems(), isEmpty);
+    });
+
+    test('DEMO_BUILD 없이 localhost 주소면 막는다', () {
+      final AppConfig config = _config(
+        environment: Environment.dev,
+        apiBaseUrl: 'http://localhost:8000/v1',
+      );
+      expect(
+        config.releaseProblems(),
+        containsAll(<ReleaseProblem>[
+          ReleaseProblem.devEnvironment,
+          ReleaseProblem.insecureApiUrl,
+          ReleaseProblem.placeholderApiUrl,
+        ]),
+      );
+    });
+
+    test('DEMO_BUILD 라도 localhost 가 아닌 http 주소는 막는다', () {
+      final AppConfig config = _config(
+        environment: Environment.dev,
+        apiBaseUrl: 'http://192.168.0.12:8000/v1',
+        demoBuild: true,
+      );
+      expect(config.releaseProblems(), contains(ReleaseProblem.insecureApiUrl));
+    });
+  });
 }

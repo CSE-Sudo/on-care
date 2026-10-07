@@ -393,7 +393,8 @@ RoutinePlan rulePlanC(
         );
   return RoutinePlan(
     key: 'C',
-    label: next.label.length > 50 ? next.label.substring(0, 50) : next.label,
+    // A·B안과 같은 결의 고정 이름 — 운동 이름을 이으면 제목이 넘친다. 서버와 같다.
+    label: t('지난 PT 연계형', 'Continue last PT'),
     totalMinutes: after,
     intensity: escalate
         ? '보통'
@@ -428,8 +429,8 @@ RoutineFinding nextPtFinding(DemoNextPt next, {required bool en}) {
       finding: t('PT 기록 없음', 'No PT records'),
       source: t('PT 기록', 'PT records'),
       action: t(
-        'C안은 전신 기본 프로그램으로 시작',
-        'Plan C starts with a full-body basic program',
+        '연계안은 전신 기본 프로그램으로 시작',
+        'Follow-up plan starts with a full-body basic program',
       ),
     );
   }
@@ -446,8 +447,8 @@ RoutineFinding nextPtFinding(DemoNextPt next, {required bool en}) {
       'PT records · last ${next.sessionCount} sessions',
     ),
     action: t(
-      'C안: 이번 차례 프로그램을 최근 상태에 맞게 조정',
-      'Plan C: adjusts this program to the latest condition',
+      '연계안: 이번 차례 프로그램을 최근 상태에 맞게 조정',
+      'Follow-up plan: adjusts this program to the latest condition',
     ),
   );
 }
