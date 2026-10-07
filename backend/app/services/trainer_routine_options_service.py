@@ -28,6 +28,7 @@ from app.core.week import monday_of
 from app.models.models import (
     ChatMessage,
     DietEntry,
+    ExerciseSession,
     HealthProfile,
     MemberWeeklyFeedback,
     RoutineHistory,
@@ -55,6 +56,7 @@ from app.schemas.trainer_api import (
     RoutineOptionsRequest,
 )
 from app.services import exercise_types, routine_ai, routine_next_pt
+from app.services.exercise_activity import activity_date_of
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.ai_log import log_ai_fallback
@@ -373,7 +375,8 @@ def _analyze_routine_history(
     검토 대기중이거나 반려된 후보의 시간·강도가 다음 생성의 기본값으로 새면
     안 된다.
     """
-    since = (today_date - timedelta(days=HISTORY_LOOKBACK_DAYS - 1)).isoformat()
+    since_date = today_date - timedelta(days=HISTORY_LOOKBACK_DAYS - 1)
+    since = since_date.isoformat()
     rows = db.execute(
         select(RoutineHistory.date, RoutineHistory.exercises_json).where(
             RoutineHistory.member_id == member_id,
@@ -385,13 +388,17 @@ def _analyze_routine_history(
         )
     ).all()
 
-    session_count = len(rows)
+    personal_days = _personal_exercise_days(db, member_id, since_date, today_date)
+
+    session_count = len(rows) + len(personal_days)
     distinct_weeks = {
         date.fromisoformat(history_date).isocalendar()[:2]
         for history_date, _exercises in rows
-    }
+    } | {day.isocalendar()[:2] for day in personal_days}
 
     name_counts: Counter[str] = Counter()
+    for names in personal_days.values():
+        name_counts.update(names)
     for _history_date, exercises_json in rows:
         try:
             items = json.loads(exercises_json or "[]")
@@ -434,6 +441,35 @@ def _analyze_routine_history(
         suggested_available_minutes=suggested_minutes,
         suggested_intensity=suggested_intensity,
     )
+
+
+def _personal_exercise_days(
+    db: Session, member_id: str, since: date, today_date: date
+) -> dict[date, set[str]]:
+    """기간 안 회원 개인운동을 날짜별 운동 이름으로 묶는다.
+
+    PT 만 세면 주 1회 PT 회원은 개인운동을 아무리 해도 패턴이 잡히지 않는다.
+    개인운동은 운동 하나가 한 행이라 같은 날의 행을 한 회로 묶고, 한 날 같은
+    운동을 여러 번 적어도 한 번으로 센다. PT 완료에서 파생된 행
+    (`source='trainer_pt'`)은 `RoutineHistory` 에 이미 있어 빼야 두 번 세지 않는다.
+    """
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == member_id,
+            ExerciseSession.week_start >= monday_of(since).isoformat(),
+            ExerciseSession.source != "trainer_pt",
+        )
+    ).all()
+    days: dict[date, set[str]] = {}
+    for row in rows:
+        day = activity_date_of(row)
+        if day is None or not since <= day <= today_date:
+            continue
+        names = days.setdefault(day, set())
+        name = (row.name or "").strip()
+        if name:
+            names.add(name)
+    return days
 
 
 def build_member_analysis(

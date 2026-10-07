@@ -24,6 +24,7 @@ from app.db.seed_trainer import TRAINER_ID
 from app.db.session import SessionLocal
 from app.models.models import (
     ChatMessage,
+    ExerciseSession,
     MemberWeeklyFeedback,
     RoutineHistory,
     TrainerClient,
@@ -169,6 +170,32 @@ def _seed_latest_assigned_routine(
         db.close()
 
 
+def _seed_personal_exercises(
+    member_id: str, days: list[tuple[int, list[str]]], *, source: str = "member"
+) -> None:
+    """회원 개인운동. `days` 는 (오늘부터 며칠 전, 그날 적은 운동 이름들)."""
+    db = SessionLocal()
+    try:
+        for days_ago, names in days:
+            day = clock.today() - timedelta(days=days_ago)
+            for index, name in enumerate(names):
+                db.add(
+                    ExerciseSession(
+                        id=f"ex-{member_id}-{source}-{days_ago}-{index}",
+                        user_id=member_id,
+                        week_start=(day - timedelta(days=day.weekday())).isoformat(),
+                        day_label="월화수목금토일"[day.weekday()],
+                        type="strength",
+                        name=name,
+                        minutes=10,
+                        source=source,
+                    )
+                )
+        db.commit()
+    finally:
+        db.close()
+
+
 def _six_sessions_of_squats_with_a_varying_extra() -> list[list[str]]:
     """스쿼트만 매번 반복하고 나머지 한 종목은 매번 바꾼다 — "스쿼트"만 반복
     이름으로 잡혀야 한다(#776 personalized 판정에 반복 운동 근거로 쓴다)."""
@@ -228,6 +255,9 @@ def _cleanup_member(member_id: str) -> None:
         ).delete()
         db.query(RoutineHistory).filter(
             RoutineHistory.member_id == member_id
+        ).delete()
+        db.query(ExerciseSession).filter(
+            ExerciseSession.user_id == member_id
         ).delete()
         db.query(TrainerRoutine).filter(
             TrainerRoutine.member_id == member_id
@@ -1563,5 +1593,38 @@ def test_trainer_memo_lines_carry_their_category(client):
             f"{today - timedelta(days=2):%m.%d} 분류 없는 메모",
             f"{today - timedelta(days=3):%m.%d} [운동] 걷기 꾸준함",
         ]
+    finally:
+        _cleanup_member(member_id)
+
+
+def test_personal_exercises_count_toward_the_pattern(client, monkeypatch):
+    """PT 가 주 1회뿐이어도 회원 개인운동이 쌓이면 패턴이 잡힌다. 같은 날 개인운동은
+    한 회로 묶고, PT 완료에서 파생된 개인운동 행은 PT 기록과 두 번 세지 않는다."""
+    _force_rule_fallback(monkeypatch)
+    token = _trainer_token(client)
+    member_id = _register_and_link_member(client)
+    _seed_routine_history(member_id, [["레그프레스 3세트"], ["벤치프레스 3세트"]])
+    _seed_personal_exercises(
+        member_id,
+        [
+            (1, ["스쿼트", "플랭크", "스쿼트"]),
+            (9, ["스쿼트"]),
+            (17, ["스쿼트", "런지"]),
+            (25, ["버피"]),
+        ],
+    )
+    # PT 완료 파생 행 — RoutineHistory 에 이미 있는 회차다.
+    _seed_personal_exercises(member_id, [(0, ["레그프레스"])], source="trainer_pt")
+    try:
+        response = client.post(
+            f"/v1/trainer/clients/{member_id}/routine-options",
+            headers=_headers(token),
+            json={},
+        )
+        assert response.status_code == 200, response.text
+        analysis = response.json()["analysis"]
+        assert analysis["history_session_count"] == 6
+        assert analysis["recommendation_status"] == "personalized"
+        assert analysis["frequent_exercises"][0] == "스쿼트"
     finally:
         _cleanup_member(member_id)
