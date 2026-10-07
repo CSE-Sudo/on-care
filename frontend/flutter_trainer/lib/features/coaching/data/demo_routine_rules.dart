@@ -387,8 +387,8 @@ List<String> frequentExercises(Iterable<List<Object?>> sessions) {
     }
     ranked[j + 1] = value;
   }
+  // 한 번만 한 운동도 넣는다 — 기록 한 회로도 분석한다(서버와 같다, #3293).
   return <String>[
-    for (final MapEntry<String, int> e in ranked)
-      if (e.value >= 2) e.key,
+    for (final MapEntry<String, int> e in ranked) e.key,
   ].take(3).toList();
 }

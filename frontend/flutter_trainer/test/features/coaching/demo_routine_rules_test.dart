@@ -70,7 +70,8 @@ void main() {
           <Object?>['걷기 ✓', '데드리프트 ✗'],
           <Object?>['스쿼트 ✓'],
         ]),
-        <String>['걷기'],
+        // 한 번만 한 운동도 들어간다 — 기록 한 회로도 분석한다(#3293).
+        <String>['걷기', '스쿼트'],
       );
     });
   });
@@ -92,15 +93,16 @@ void main() {
           trainerNote: '',
         );
 
-    // 이지수는 매주 같은 PT(데드리프트·런지·코어 서킷)를 받는다 — 실서버 시드
-    // (`seed_member_data._HISTORY`)와 같은 기록이다(#3003).
-    test('반복 운동이 있는 회원은 그 운동으로 짠다 (이지수 데드리프트)', () async {
+    // 이지수는 주 1회 PT(데드리프트·런지·코어 서킷)에 더해 거의 매일 개인운동
+    // (인터벌 러닝·스쿼트·플랭크)을 한다 — 개인운동도 세므로(#3293) 가장 자주 한
+    // 개인운동이 앞선다.
+    test('반복 운동이 있는 회원은 그 운동으로 짠다 (이지수 개인운동)', () async {
       final RoutineOptions o = await generate('seed-client-2');
 
       expect(o.planA.label, '기존 패턴 유지형');
       expect(o.planB.label, '점진적 강화형');
-      expect(o.planA.exercises.map((e) => e.name), contains('데드리프트'));
-      expect(o.planA.rationale, contains('반복 확인된 운동(데드리프트'));
+      expect(o.planA.exercises.map((e) => e.name), contains('스쿼트'));
+      expect(o.planA.rationale, contains('반복 확인된 운동(인터벌 러닝'));
       expect(o.generatedBy, 'rule');
       expect(
         o.planA.exercises.fold<int>(0, (int a, e) => a + e.minutes),

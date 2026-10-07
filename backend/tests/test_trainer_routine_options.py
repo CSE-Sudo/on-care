@@ -764,18 +764,15 @@ def test_recommendation_status_is_template_without_history(client, monkeypatch):
         _cleanup_member(member_id)
 
 
-def test_recommendation_status_is_learning_with_a_few_recent_sessions(
+def test_recommendation_status_is_personalized_from_a_single_session(
     client, monkeypatch,
 ):
-    """최근 운동은 있지만 반복 패턴이라 부르기엔 이른 고객은 학습 중으로 표시된다."""
+    """기간 안 기록이 한 번만 있어도 그 기록으로 분석한다(#3293) — 주 1회 PT
+    회원도 4주 창에서 분석 결과를 받는다."""
     _force_rule_fallback(monkeypatch)
     token = _trainer_token(client)
     member_id = _register_and_link_member(client)
-    # 서로 다른 운동 3회 — 세션은 있지만 반복은 없다.
-    _seed_routine_history(
-        member_id,
-        [["레그프레스 3세트"], ["플랭크 2세트"], ["실내 자전거 20분"]],
-    )
+    _seed_routine_history(member_id, [["레그프레스 3세트", "플랭크 2세트"]])
     try:
         response = client.post(
             f"/v1/trainer/clients/{member_id}/routine-options",
@@ -784,8 +781,9 @@ def test_recommendation_status_is_learning_with_a_few_recent_sessions(
         )
         assert response.status_code == 200, response.text
         analysis = response.json()["analysis"]
-        assert analysis["recommendation_status"] == "learning"
-        assert analysis["history_session_count"] == 3
+        assert analysis["recommendation_status"] == "personalized"
+        assert analysis["history_session_count"] == 1
+        assert analysis["frequent_exercises"] == ["레그프레스", "플랭크"]
     finally:
         _cleanup_member(member_id)
 

@@ -72,10 +72,12 @@ HISTORY_LOOKBACK_DAYS = 28
 
 #: 이 미만이면 판단할 개인 패턴이 없다 — 목표 기반 기본값을 쓴다.
 MIN_SESSIONS_FOR_LEARNING = 2
-#: 이 이상 + 서로 다른 주에 걸쳐 있고 + 반복된 운동이 있어야 "패턴이 있다"고 본다.
-MIN_SESSIONS_FOR_PERSONALIZED = 6
-MIN_DISTINCT_WEEKS_FOR_PERSONALIZED = 3
-MIN_REPEAT_FOR_PERSONALIZED = 3
+#: 기간 안 기록이 한 번이라도 있으면 그 기록으로 분석한다. 주 1회 PT 회원도
+#: 4주 창에서 분석 결과를 받아야 한다(#3293) — 예전 기준(6회·3주·반복 3번)은
+#: 주 1회 회원을 늘 목표 기반 기본안에 묶어 두었다.
+MIN_SESSIONS_FOR_PERSONALIZED = 1
+MIN_DISTINCT_WEEKS_FOR_PERSONALIZED = 1
+MIN_REPEAT_FOR_PERSONALIZED = 1
 
 #: 기록이 없을 때 쓰는 기본 조건. 회원 앱 최초 추천 문구와 맞춰 30분/보통으로 둔다.
 DEFAULT_AVAILABLE_MINUTES = 30
@@ -411,7 +413,8 @@ def _analyze_routine_history(
             if name:
                 name_counts[name] += 1
 
-    frequent = [name for name, count in name_counts.most_common() if count >= 2][:3]
+    # 많이 한 순서로 세 개. 한 번만 한 운동도 넣는다 — 기록 한 회로도 분석한다.
+    frequent = [name for name, _count in name_counts.most_common()][:3]
 
     if (
         session_count >= MIN_SESSIONS_FOR_PERSONALIZED

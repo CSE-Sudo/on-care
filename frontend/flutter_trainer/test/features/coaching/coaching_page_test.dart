@@ -2029,11 +2029,12 @@ void main() {
         // 추천 루틴을 편집기에 반영해야 기본 추천이 보인다. AI 흐름 자신의
         // 검토 목록에도 같은 이름이 뜰 수 있어 편집기 안으로 범위를 좁힌다.
         await _applyRecommendedRoutine(tester);
-        // 회복안은 그 회원의 반복 운동이다 — 이지수는 데드리프트부터다.
+        // 회복안은 그 회원의 반복 운동이다 — 이지수는 매일 하는 개인운동
+        // (인터벌 러닝)부터다(#3293).
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('데드리프트'),
+            matching: find.text('인터벌 러닝'),
           ),
           findsOneWidget,
         );

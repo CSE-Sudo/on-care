@@ -146,9 +146,7 @@ Future<void> _pumpFlow(
         theme: AppTheme.light(),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const AiRoutineOptionsFlow(
-          client: _client,
-        ),
+        home: const AiRoutineOptionsFlow(client: _client),
       ),
     ),
   );

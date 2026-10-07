@@ -526,10 +526,13 @@ void main() {
         ),
         isTrue,
       );
-      // 추천 상태는 시드 기록(이력 표)으로 센다(#2674). 하루치 `개인운동` 카드는
-      // 세지 않는다 — 서버도 그 카드를 개인운동 완료에서 만든다(#3003). 오세라는
-      // PT 이력이 없어 기본안이고, 매주 PT 이력이 쌓인 최우진은 맞춤이다.
-      expect(o.analysis.recommendationStatus, RecommendationStatus.template);
+      // 추천 상태는 시드 기록(이력 표)으로 센다(#2674). 하루치 `개인운동` 카드도
+      // 한 회로 센다(#3293) — 오세라는 PT 이력 없이 개인운동만 있어도 맞춤이고,
+      // 매주 PT 이력이 쌓인 최우진도 맞춤이다.
+      expect(
+        o.analysis.recommendationStatus,
+        RecommendationStatus.personalized,
+      );
 
       final RoutineOptions other = await generate('seed-client-5');
       expect(other.analysis.goal, isNot(o.analysis.goal));
@@ -540,12 +543,13 @@ void main() {
     });
 
     test('근거 문장은 서버 규칙형과 같다 — 고른 자료는 넣지 않고, 목표 이하면 꼬리표가 없다', () async {
+      // 기록이 없는 임도현 — 반복 운동이 없어 근거가 나트륨으로 시작한다.
       final RoutineOptions all = await generate(
-        'seed-client-9',
+        'seed-client-7',
         sources: RoutineContextSource.values.toSet(),
       );
       final RoutineOptions none = await generate(
-        'seed-client-9',
+        'seed-client-7',
         sources: const <RoutineContextSource>{},
       );
       expect(all.planA.rationale, none.planA.rationale);
@@ -553,7 +557,7 @@ void main() {
 
       final client = await (db.select(
         db.trainerClients,
-      )..where((t) => t.id.equals('seed-client-9'))).getSingle();
+      )..where((t) => t.id.equals('seed-client-7'))).getSingle();
       expect(
         all.planA.rationale,
         startsWith(

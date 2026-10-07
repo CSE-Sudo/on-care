@@ -140,13 +140,7 @@ void main() {
 
     final body = routineOnlyAssignToJson(
       const <RoutineExercise>[
-        RoutineExercise(
-          name: '스쿼트',
-          minutes: 0,
-          type: '근력',
-          sets: 3,
-          reps: 12,
-        ),
+        RoutineExercise(name: '스쿼트', minutes: 0, type: '근력', sets: 3, reps: 12),
         RoutineExercise(
           name: '플랭크',
           minutes: 0,

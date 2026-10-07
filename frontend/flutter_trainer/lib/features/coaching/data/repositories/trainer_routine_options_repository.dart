@@ -111,9 +111,10 @@ class MockTrainerRoutineOptionsRepository
 
   /// 추천 상태 문턱 — 서버 `MIN_SESSIONS_FOR_LEARNING` 등과 같다(#776).
   static const int _minSessionsLearning = 2;
-  static const int _minSessionsPersonalized = 6;
-  static const int _minWeeksPersonalized = 3;
-  static const int _minRepeatPersonalized = 3;
+  // 기록 한 회로도 분석한다 — 서버와 같다(#3293).
+  static const int _minSessionsPersonalized = 1;
+  static const int _minWeeksPersonalized = 1;
+  static const int _minRepeatPersonalized = 1;
 
   /// 강도 선호 → 표시 강도. 서버 `_B_LABEL` 과 같다.
   static const Map<String, String> _intensityLabels = <String, String>{

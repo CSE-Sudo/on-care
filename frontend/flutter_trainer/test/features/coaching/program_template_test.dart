@@ -112,9 +112,7 @@ void main() {
       await tester.pump();
       await tester.tap(generate);
       await tester.pumpAndSettle();
-      final existing = find.byKey(
-        const ValueKey<String>('routine-option-A'),
-      );
+      final existing = find.byKey(const ValueKey<String>('routine-option-A'));
       await tester.scrollUntilVisible(existing, 150, scrollable: scrollable);
       await tester.ensureVisible(existing);
       await tester.pump();
