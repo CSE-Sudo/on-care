@@ -265,16 +265,16 @@ List<RoutineFinding> ruleFindings({
           '$records · last $periodDays days, $sessionCount sessions',
         ),
         action: t(
-          'A안은 이 운동을 그대로 유지, B안은 하나를 더해 운동량 확대',
-          'Plan A keeps these; plan B adds one to raise the workload',
+          '회복안은 이 운동을 그대로 유지, 강화안은 하나를 더해 운동량 확대',
+          'Recovery plan keeps these; the Push plan adds one to raise the workload',
         ),
       ),
     );
     return out;
   }
   final String easeA = t(
-    'A안 부담을 낮추고 스트레칭 비중 확대',
-    'Plan A lowers the load and adds more stretching',
+    '회복안 부담을 낮추고 스트레칭 비중 확대',
+    'Recovery plan lowers the load and adds more stretching',
   );
   if (sodiumOver) {
     out.add(
@@ -298,12 +298,12 @@ List<RoutineFinding> ruleFindings({
           ? easeA
           : completion >= 60
           ? t(
-              '상향 여력이 있어 B안에서 운동량을 높임',
-              'Room to step up — plan B raises the workload',
+              '상향 여력이 있어 강화안에서 운동량을 높임',
+              'Room to step up — the Push plan raises the workload',
             )
           : t(
-              'B안은 운동량을 점진적으로 높임',
-              'Plan B raises the workload gradually',
+              '강화안은 운동량을 점진적으로 높임',
+              'Push plan raises the workload gradually',
             ),
     ),
   );
