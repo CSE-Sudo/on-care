@@ -370,9 +370,13 @@ class DriftScheduleRepository implements ScheduleRepository {
   /// 예전에는 모든 PT 가 같은 두 개(저강도 걷기·코어 스트레칭)였다. 회원마다
   /// 목록이 다르고, 같은 회원이라도 일정마다 시작 자리를 달리해 PT 마다 다른
   /// 조합이 붙는다. 자리는 일정 id 로 정해 다시 읽어도 같다.
+  ///
+  /// 이미 보낸 PT 에는 붙이지 않는다(#2616) — 실서버 시드는 아직 보내지 않은
+  /// PT 에만 개인운동을 깔아, 지난 PT 는 개인운동 없이 보낸 것으로 선다.
   Future<List<RoutineExercise>> _seedSessionRoutines(
     TrainerScheduleRow row,
   ) async {
+    if (row.programSent) return const <RoutineExercise>[];
     final String? clientId = row.clientId;
     if (clientId == null) return _demoPersonalRoutines;
     final pool =
@@ -1017,8 +1021,11 @@ class DriftScheduleRepository implements ScheduleRepository {
           ),
         );
         // 서버와 같은 규칙 — 다시 붙이면 개인운동도 **새것으로 갈린다**(#2224).
-        // 쌓아 두면 두 번 짠 트레이너가 두 배를 보내게 된다.
-        await _rememberPersonalRoutines(existing.id, personalRoutines);
+        // 쌓아 두면 두 번 짠 트레이너가 두 배를 보내게 된다. 개인운동 없이
+        // 다시 붙이면 붙어 있던 것은 그대로 둔다(#2280, #2616).
+        if (personalRoutines.isNotEmpty) {
+          await _rememberPersonalRoutines(existing.id, personalRoutines);
+        }
         return true;
       }
 

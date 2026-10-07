@@ -58,6 +58,10 @@ from app.services import (
     report_pdf_storage,
 )
 from app.services.coach import personal_ingest
+from app.services.trainer._common import (
+    DELIVERY_PT_WITH_ROUTINE,
+    ROUTINE_SCHEDULED,
+)
 from app.services.coach.rag import has_personal_doc
 
 logger = logging.getLogger(__name__)
@@ -706,7 +710,58 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
             program_json=json.dumps(program, ensure_ascii=False),
             sort_order=i,
         ))
+        if member_id and program and typ != "상담":
+            # 개인운동 줄이 일정 행을 가리킨다(FK) — 일정부터 넣는다.
+            db.flush()
+            _seed_session_routines(db, f"seed-schedule-{today}-{i}", member_id, today)
     _safe_commit(db)
+
+
+#: 한 PT 에 처음 붙어 있는 개인운동 수 — 트레이너 웹 데모(`_seedRoutinesPerSession`)와 같다.
+_SEED_ROUTINES_PER_SESSION = 2
+
+
+def _seed_session_routines(
+    db: Session, schedule_id: str, member_id: str, day: str
+) -> None:
+    """오늘 타임라인의 PT 에 개인운동을 붙여 둔다(#2616).
+
+    `개인운동은 PT 마다 최소 한 개`(#2223) 규칙대로 데모 첫 화면의 PT 도 개인
+    운동을 달고 선다. 트레이너 웹 데모(`_seedSessionRoutines`)와 같은 규칙이다 —
+    그 회원의 시드 개인운동에서 일정 id 로 시작 자리를 정해 두 개를 고른다.
+    프로그램 만들기로 붙인 것과 같이 아직 보내지 않은(`scheduled`) 줄이라 회원
+    에게는 그 PT 를 보낼 때 함께 간다.
+
+    행을 **처음 깔 때만** 붙인다. 이미 깔린 일정에 나중에 붙이면 트레이너가
+    `개인운동 없이 추가` 로 둔 PT 를 시드가 덮어쓴다.
+    """
+    pool = _routine_rows(member_id)
+    if not pool:
+        return
+    start = sum(ord(c) for c in schedule_id) % len(pool)
+    for n in range(min(_SEED_ROUTINES_PER_SESSION, len(pool))):
+        routine = pool[(start + n) % len(pool)]
+        db.add(models.TrainerRoutine(
+            id=f"seed-sched-routine-{schedule_id}-{n}",
+            trainer_id=TRAINER_ID,
+            member_id=member_id,
+            name=routine.name,
+            minutes=routine.minutes,
+            type=routine.type,
+            exercise_date=day,
+            intensity=routine.intensity,
+            sets=_strength_only(routine.type, routine.sets),
+            reps=_strength_only(routine.type, routine.reps),
+            hold_seconds=_strength_only(routine.type, routine.hold_seconds),
+            weight=_strength_only(routine.type, routine.weight),
+            reason=routine.reason,
+            effect=routine.effect,
+            source=routine.source,
+            status=ROUTINE_SCHEDULED,
+            schedule_id=schedule_id,
+            delivery_kind=DELIVERY_PT_WITH_ROUTINE,
+            sort_order=n,
+        ))
 
 
 #: 회원별 주간 PT 자리 — (요일 0=월, 시각, 길이 분). (#2452)
