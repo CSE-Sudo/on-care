@@ -47,7 +47,7 @@
 1. 랜딩 `index.html` 의 앱 바로가기를 검사합니다([아래 절](#랜딩-바로가기와-ogurlcanonical)).
 2. 회원 앱과 트레이너 웹의 Flutter 의존성을 설치합니다.
 3. 두 앱에 필요한 drift WASM 파일을 내려받습니다.
-4. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다. `real` 이면 **staging 백엔드**(`STAGING_API_BASE_URL` 저장소 변수)를 보며, 그 값을 먼저 검사합니다. 운영 주소(`API_BASE_URL`)와 같으면 멈춥니다(#3020).
+4. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다(`local` 은 [아래 절](#데모-웹을-내-컴퓨터-백엔드에-붙이기-local)). `real` 이면 **staging 백엔드**(`STAGING_API_BASE_URL` 저장소 변수)를 보며, 그 값을 먼저 검사합니다. 운영 주소(`API_BASE_URL`)와 같으면 멈춥니다(#3020).
 5. 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` base path로 빌드합니다.
 6. 루트 `index.html`, 공개 정책 페이지 `legal/*.html`, 두 앱의 빌드 결과를 `public/` 아래에 모으고, 랜딩의 og:url·canonical 을 `CNAME` 도메인으로 채웁니다.
 7. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
@@ -55,6 +55,23 @@
 9. 배포된 랜딩을 받아 앱 바로가기·canonical·같은 도메인의 `/frontend/`·`/trainer/`·`/legal/privacy.html` 응답을 확인합니다.
 
 두 앱 화면에 보이는 버전(`… · 버전 <이름>`)은 각 앱 `pubspec.yaml` 의 `version` 에서 옵니다. 워크플로는 버전을 주입하지 않으므로, 버전을 바꾸려면 `pubspec.yaml` 을 올리는 커밋을 main 에 넣습니다([mobile_release.md 1절](mobile_release.md#1-버전빌드-번호-규칙)). `version.txt` 는 배포한 커밋 SHA 로, 화면의 버전과 다릅니다.
+
+## 데모 웹을 내 컴퓨터 백엔드에 붙이기 (`local`)
+
+실서버 없이, 배포된 데모 웹(`/frontend/`·`/trainer/`)이 **내 컴퓨터의 백엔드**(`http://localhost:8000/v1`)를 보게 해 회원↔트레이너 연동을 확인하는 모드입니다.
+
+1. **배포**: GitHub Actions `Deploy GitHub Pages` → `Run workflow` → `backend` 에서 `local` 선택.
+2. **백엔드 CORS**: `backend/.env` 의 `CORS_ALLOW_ORIGINS` 에 데모 도메인을 넣고 백엔드를 다시 띄웁니다(`*` 이면 그대로 됩니다).
+   ```
+   CORS_ALLOW_ORIGINS=https://ewhasudo.zapto.org,http://localhost:3000
+   ```
+3. **실행**: [local_fullstack.md](local_fullstack.md) 대로 DB·백엔드를 켜고, **같은 컴퓨터의 Chrome(또는 Firefox)** 에서 회원 탭과 트레이너 탭을 엽니다. Chrome 이 "로컬 네트워크 접근" 권한을 물으면 허용합니다.
+
+알아 둘 점:
+
+- 백엔드를 켠 그 컴퓨터에서만 동작합니다. 다른 기기·방문자에게는 앱이 서버에 닿지 않습니다. Safari 는 https 페이지의 `http://localhost` 요청을 막습니다.
+- 데모 사이트 전체가 이 빌드로 바뀝니다. 확인이 끝나면 `mock` 으로 다시 배포합니다(`main` push 도 `mock` 으로 되돌립니다).
+- 앱의 릴리스 가드는 `DEMO_BUILD=true` 이고 API 주소가 localhost·127.0.0.1 일 때만 `http`·`ENV=dev` 를 허용합니다. CSP 는 `PAGES_CSP_ALLOW_LOCAL=1` 일 때만 그 출처 하나를 더 엽니다.
 
 ## 랜딩 바로가기와 og:url·canonical
 

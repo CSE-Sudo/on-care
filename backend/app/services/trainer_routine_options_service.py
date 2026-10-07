@@ -28,6 +28,7 @@ from app.core.week import monday_of
 from app.models.models import (
     ChatMessage,
     DietEntry,
+    ExerciseSession,
     HealthProfile,
     MemberWeeklyFeedback,
     RoutineHistory,
@@ -55,6 +56,7 @@ from app.schemas.trainer_api import (
     RoutineOptionsRequest,
 )
 from app.services import exercise_types, routine_ai, routine_next_pt
+from app.services.exercise_activity import activity_date_of
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.ai_log import log_ai_fallback
@@ -63,16 +65,19 @@ from app.services.coach.llm_base import is_truncated, output_cap
 logger = logging.getLogger(__name__)
 
 
-#: 개인화 분석에 쓰는 최근 기간(일) — 약 6주. 이보다 넓히면 오래된 루틴이
-#: 지금의 습관인 것처럼 잡히고, 좁히면 격주 세션 패턴을 놓친다(#776).
-HISTORY_LOOKBACK_DAYS = 42
+#: 개인화 분석에 쓰는 최근 기간(일) — 4주. 완료율(28일)과 맞춘다. 이보다 넓히면
+#: 오래된 루틴이 지금의 습관인 것처럼 잡히고, 좁히면 서로 다른 3주에 걸친 패턴을
+#: 볼 수 없다(#776).
+HISTORY_LOOKBACK_DAYS = 28
 
 #: 이 미만이면 판단할 개인 패턴이 없다 — 목표 기반 기본값을 쓴다.
 MIN_SESSIONS_FOR_LEARNING = 2
-#: 이 이상 + 서로 다른 주에 걸쳐 있고 + 반복된 운동이 있어야 "패턴이 있다"고 본다.
-MIN_SESSIONS_FOR_PERSONALIZED = 6
-MIN_DISTINCT_WEEKS_FOR_PERSONALIZED = 3
-MIN_REPEAT_FOR_PERSONALIZED = 3
+#: 기간 안 기록이 한 번이라도 있으면 그 기록으로 분석한다. 주 1회 PT 회원도
+#: 4주 창에서 분석 결과를 받아야 한다(#3293) — 예전 기준(6회·3주·반복 3번)은
+#: 주 1회 회원을 늘 목표 기반 기본안에 묶어 두었다.
+MIN_SESSIONS_FOR_PERSONALIZED = 1
+MIN_DISTINCT_WEEKS_FOR_PERSONALIZED = 1
+MIN_REPEAT_FOR_PERSONALIZED = 1
 
 #: 기록이 없을 때 쓰는 기본 조건. 회원 앱 최초 추천 문구와 맞춰 30분/보통으로 둔다.
 DEFAULT_AVAILABLE_MINUTES = 30
@@ -268,7 +273,7 @@ member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르�
   },
   "plan_c": {
     "key": "C",
-    "label": "기준 프로그램의 짧은 이름",
+    "label": "지난 PT 연계형",
     "total_minutes": 30,
     "intensity": "낮음|보통|높음",
     "exercises": [
@@ -372,7 +377,8 @@ def _analyze_routine_history(
     검토 대기중이거나 반려된 후보의 시간·강도가 다음 생성의 기본값으로 새면
     안 된다.
     """
-    since = (today_date - timedelta(days=HISTORY_LOOKBACK_DAYS - 1)).isoformat()
+    since_date = today_date - timedelta(days=HISTORY_LOOKBACK_DAYS - 1)
+    since = since_date.isoformat()
     rows = db.execute(
         select(RoutineHistory.date, RoutineHistory.exercises_json).where(
             RoutineHistory.member_id == member_id,
@@ -384,13 +390,17 @@ def _analyze_routine_history(
         )
     ).all()
 
-    session_count = len(rows)
+    personal_days = _personal_exercise_days(db, member_id, since_date, today_date)
+
+    session_count = len(rows) + len(personal_days)
     distinct_weeks = {
         date.fromisoformat(history_date).isocalendar()[:2]
         for history_date, _exercises in rows
-    }
+    } | {day.isocalendar()[:2] for day in personal_days}
 
     name_counts: Counter[str] = Counter()
+    for names in personal_days.values():
+        name_counts.update(names)
     for _history_date, exercises_json in rows:
         try:
             items = json.loads(exercises_json or "[]")
@@ -403,7 +413,8 @@ def _analyze_routine_history(
             if name:
                 name_counts[name] += 1
 
-    frequent = [name for name, count in name_counts.most_common() if count >= 2][:3]
+    # 많이 한 순서로 세 개. 한 번만 한 운동도 넣는다 — 기록 한 회로도 분석한다.
+    frequent = [name for name, _count in name_counts.most_common()][:3]
 
     if (
         session_count >= MIN_SESSIONS_FOR_PERSONALIZED
@@ -433,6 +444,35 @@ def _analyze_routine_history(
         suggested_available_minutes=suggested_minutes,
         suggested_intensity=suggested_intensity,
     )
+
+
+def _personal_exercise_days(
+    db: Session, member_id: str, since: date, today_date: date
+) -> dict[date, set[str]]:
+    """기간 안 회원 개인운동을 날짜별 운동 이름으로 묶는다.
+
+    PT 만 세면 주 1회 PT 회원은 개인운동을 아무리 해도 패턴이 잡히지 않는다.
+    개인운동은 운동 하나가 한 행이라 같은 날의 행을 한 회로 묶고, 한 날 같은
+    운동을 여러 번 적어도 한 번으로 센다. PT 완료에서 파생된 행
+    (`source='trainer_pt'`)은 `RoutineHistory` 에 이미 있어 빼야 두 번 세지 않는다.
+    """
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == member_id,
+            ExerciseSession.week_start >= monday_of(since).isoformat(),
+            ExerciseSession.source != "trainer_pt",
+        )
+    ).all()
+    days: dict[date, set[str]] = {}
+    for row in rows:
+        day = activity_date_of(row)
+        if day is None or not since <= day <= today_date:
+            continue
+        names = days.setdefault(day, set())
+        name = (row.name or "").strip()
+        if name:
+            names.add(name)
+    return days
 
 
 def build_member_analysis(
@@ -1179,6 +1219,7 @@ def _llm_plan_c(
     raw: object,
     request: RoutineOptionsRequest,
     next_pt: routine_next_pt.NextPt,
+    locale: Locale,
 ) -> RoutineOptionPlanOut | None:
     """AI 가 준 C안. 계약을 어기면 None — 호출부가 규칙형 C안으로 채운다.
 
@@ -1189,7 +1230,13 @@ def _llm_plan_c(
         return None
     try:
         plan = RoutineOptionPlanOut.model_validate(
-            {**raw, "key": "C", "basis": next_pt.basis}
+            # 제목은 모델이 아니라 서버가 정한 고정 이름을 쓴다.
+            {
+                **raw,
+                "key": "C",
+                "label": routine_next_pt.plan_c_label(locale),
+                "basis": next_pt.basis,
+            }
         )
     except ValidationError:
         return None
@@ -1235,7 +1282,7 @@ def _generate_with_llm(
     ):
         raise RoutineContractError("LLM 루틴 시간이 요청 가능한 시간을 초과했습니다.")
     if next_pt is not None:
-        plan_c = _llm_plan_c(raw_plan_c, request, next_pt)
+        plan_c = _llm_plan_c(raw_plan_c, request, next_pt, locale)
         if plan_c is None:
             metrics.incr("routine_options.plan_c_fallback")
             plan_c = _rule_plan_c(analysis, request, next_pt, locale)
