@@ -438,8 +438,7 @@ const Map<String, String> _seedEnglish = <String, String>{
       'Weekend make-up PT. Cover the lower-body work missed during the week.',
   '주말 상담. 헬스장 이용 시간대와 목표를 맞춰 본다.':
       'Weekend consultation. Match gym hours with their goals.',
-  '가벼운 마무리 PT. 다음 주 계획을 함께 정한다.':
-      'Light wrap-up PT. Plan next week together.',
+  '가벼운 마무리 PT. 다음 주 계획을 함께 정한다.': 'Light wrap-up PT. Plan next week together.',
   '오랜만의 PT. 가벼운 전신 운동으로 다시 리듬을 잡는다.':
       'First PT in a while. Light full-body work to get back into rhythm.',
   '무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.':
@@ -714,15 +713,13 @@ const Map<String, String> _seedEnglish = <String, String>{
   // 매주 PT 로 늘어난 김민수의 수업 메모·소감(#2694).
   '상체 근력 기초 확인. 벤치프레스 30kg 로 시작해 자세 우선.':
       'Checked baseline upper-body strength. Start bench press at 30kg, form first.',
-  '하체가 후들거렸지만 끝까지 했어요.':
-      'My legs were shaking, but I finished it.',
+  '하체가 후들거렸지만 끝까지 했어요.': 'My legs were shaking, but I finished it.',
   '하체 기본 패턴 확인. 레그프레스 60kg 부터 시작.':
       'Checked basic lower-body patterns. Start leg press at 60kg.',
   '데드리프트 자세가 아직 어려워요.': 'Deadlift form is still hard for me.',
   '힙힌지 패턴 연습 위주. 데드리프트 50kg 로 자세부터.':
       'Focused on the hip-hinge pattern. Deadlift at 50kg, form first.',
-  '벤치프레스 자세가 조금 익숙해졌어요.':
-      'Bench press form feels a bit more familiar.',
+  '벤치프레스 자세가 조금 익숙해졌어요.': 'Bench press form feels a bit more familiar.',
   '벤치프레스 35kg 4×10 안정. 다음 PT도 같은 무게로 반복.':
       'Bench press 35kg 4×10 is stable. Repeat the same weight at the next PT.',
   '레그프레스 무게를 올렸는데 버틸 만했어요.':
@@ -773,6 +770,8 @@ const Map<String, String> _seedEnglish = <String, String>{
       "I'd like to reset my knee rehab goals. I have my doctor's notes too.",
   '감기 기운이 있어 이번 PT는 쉬고 싶다고 연락함':
       'Messaged ahead: feeling a cold coming on, wants to skip this PT',
+  '야근 다음 날이라 아침 PT를 당일 취소함':
+      'Cancelled the morning PT the same day after working late',
   // 지난 PT 메모·지난 상담(#2667).
   '인터벌 6세트 완주. 마지막 두 세트에서 호흡이 빨리 올라와 휴식을 90초로 늘림.':
       'Finished 6 interval sets. Breathing spiked in the last two, so rest went up to 90 seconds.',

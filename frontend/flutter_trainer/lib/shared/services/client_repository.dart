@@ -37,8 +37,10 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_period.da
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/health_focus.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
@@ -259,6 +261,9 @@ class DriftClientRepository implements ClientRepository {
       readsFrom: <ResultSetImplementation<Object?, Object?>>{
         _db.trainerClients,
         _db.appKeyValues,
+        // 노쇼 신호는 일정 기록에서 센다(#3304) — 스케줄에서 노쇼·회원 사정
+        // 취소를 남기면 로스터도 다시 계산돼야 한다.
+        _db.trainerScheduleEntries,
       },
     );
     return trigger.watch().asyncMap((_) async {
@@ -268,10 +273,50 @@ class DriftClientRepository implements ClientRepository {
         ]);
       final rows = await query.get();
       final removed = await readDemoUnregisteredClientIds(_db);
+      final Map<String, int> noShows = await _recentNoShowCounts();
       return rows
-          .map((row) => _toEntity(row, registered: !removed.contains(row.id)))
+          .map(
+            (row) => _toEntity(
+              row,
+              registered: !removed.contains(row.id),
+              noShowCount: noShows[row.id] ?? 0,
+            ),
+          )
           .toList();
     });
+  }
+
+  /// 회원별 최근 [demoNoShowWindowDays]일(오늘 포함) 노쇼·회원 사정 취소 수.
+  /// (#3304)
+  ///
+  /// 실서버 `client_signals.py` 와 같은 규칙이다 — 오늘 이후 일정은 세지
+  /// 않고, 트레이너 사정 취소는 회원의 미이행이 아니라 세지 않는다. 예전에는
+  /// 시드에 신호를 박아 두어, 스케줄에서 노쇼를 남겨도 이탈 위험이 그대로였다.
+  Future<Map<String, int>> _recentNoShowCounts() async {
+    final DateTime now = nowKst();
+    final String to = ymd(now);
+    final String from = ymd(
+      DateTime(now.year, now.month, now.day - demoNoShowWindowDays),
+    );
+    final t = _db.trainerScheduleEntries;
+    final rows =
+        await (_db.select(t)..where(
+              (r) =>
+                  r.clientId.isNotNull() &
+                  r.date.isBetweenValues(from, to) &
+                  (r.status.equals(ScheduleStatus.noShow) |
+                      (r.status.equals(ScheduleStatus.cancelled) &
+                          r.cancellationSource.equals(
+                            CancellationSource.member,
+                          ))),
+            ))
+            .get();
+    final Map<String, int> counts = <String, int>{};
+    for (final TrainerScheduleRow row in rows) {
+      final String id = row.clientId!;
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    return counts;
   }
 
   /// Most recent message time per client.
@@ -1353,8 +1398,15 @@ class DriftClientRepository implements ClientRepository {
     );
   }
 
-  TrainerClient _toEntity(TrainerClientRow row, {bool registered = true}) =>
-      trainerClientFromRow(row, registered: registered);
+  TrainerClient _toEntity(
+    TrainerClientRow row, {
+    bool registered = true,
+    int? noShowCount,
+  }) => trainerClientFromRow(
+    row,
+    registered: registered,
+    noShowCount: noShowCount,
+  );
 }
 
 /// 데모 로스터 한 줄을 화면의 회원으로 옮긴다 — 리포트 저장소도 같은 변환을
@@ -1362,6 +1414,7 @@ class DriftClientRepository implements ClientRepository {
 TrainerClient trainerClientFromRow(
   TrainerClientRow row, {
   bool registered = true,
+  int? noShowCount,
 }) {
   // 걸린 것이 없던 날은 null 이다(#2513). 웹에서는 숫자가 double 로 읽힐 수 있어
   // num 으로 받는다.
@@ -1403,13 +1456,39 @@ TrainerClient trainerClientFromRow(
     caloriesWeek: caloriesWeek,
     sugarWeek: sugarWeek,
     // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
-    signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
+    // [noShowCount] 를 주면 노쇼 신호만 일정 기록으로 다시 정한다(#3304).
+    signals: withDemoNoShowSignal(
+      clientSignalsFromJson(jsonDecode(row.signalsJson)),
+      noShowCount,
+    ),
     // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
     // 성별·나이가 비어 있으면 화면은 그 값을 적지 않는다 — 지어내지
     // 않는다(#2744, #2814, #2870).
     gender: registered ? row.gender ?? '' : '',
     age: registered ? row.age : null,
   );
+}
+
+/// 노쇼를 반복으로 보는 창(일)과 최소 횟수 — 실서버 `client_signals.py` 의
+/// `NO_SHOW_WINDOW_DAYS`·`NO_SHOW_MIN_COUNT` 와 같다. (#3304)
+const int demoNoShowWindowDays = 30;
+const int demoNoShowMinCount = 2;
+
+/// [signals] 의 노쇼 신호를 [noShowCount] 로 다시 정한다. (#3304)
+///
+/// [noShowCount] 가 null 이면(일정을 읽지 않은 자리) 저장된 신호 그대로다.
+/// 신호는 선언 순서가 급한 순서라([ClientSignalKind]) 그 순서로 다시 놓는다.
+List<ClientSignal> withDemoNoShowSignal(
+  List<ClientSignal> signals,
+  int? noShowCount,
+) {
+  if (noShowCount == null) return signals;
+  return <ClientSignal>[
+    for (final ClientSignal s in signals)
+      if (s.kind != ClientSignalKind.noShow) s,
+    if (noShowCount >= demoNoShowMinCount)
+      ClientSignal(ClientSignalKind.noShow, count: noShowCount),
+  ]..sort((a, b) => a.kind.index.compareTo(b.kind.index));
 }
 
 /// Provides the [ClientRepository]: the real Dio-backed source against the

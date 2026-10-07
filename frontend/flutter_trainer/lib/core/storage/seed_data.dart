@@ -786,6 +786,45 @@ Future<void> seedIfEmpty(
       );
     }
 
+    // 2주 전 배준혁은 아침 PT 를 당일 취소하고 같은 날 제 시간에 보강했다
+    // (#3304) — 그 주 PT 메모(`당일 취소 후 보강 PT`)와 같은 이야기다. 데모의
+    // 노쇼 신호는 실서버처럼 일정 기록(최근 30일 노쇼·회원 사정 취소 2건
+    // 이상)에서 계산하므로, 3주 전 노쇼([_pastMiss]) 한 건만으로는 이탈 위험이
+    // 비어 버린다. 2주 전이라 요일과 상관없이 30일 창 안이다. 07:00 은 수업이
+    // 놓이지 않는 시각이라 그날 다른 수업과 겹치지 않는다.
+    final int sameDayCancelK = recurring.indexWhere(
+      (r) => r.slot.clientName == seedSameDayCancelClient,
+    );
+    final TrainerScheduleEntriesCompanion? sameDayCancel =
+        sameDayCancelK < 0 ||
+            seedSameDayCancelWeeksAgo >
+                (demoMemberJoinedWeeksAgo[seedClientIdByName[seedSameDayCancelClient]] ??
+                    demoReportHistoryWeeks)
+        ? null
+        : () {
+            final DateTime day = dayOfWeek(
+              recurring[sameDayCancelK].weekday,
+              weeksAgo: seedSameDayCancelWeeksAgo,
+            );
+            return TrainerScheduleEntriesCompanion.insert(
+              id: 'seed-schedule-x$seedSameDayCancelWeeksAgo-$sameDayCancelK',
+              date: ymd(day),
+              time: '07:00',
+              clientId: Value(seedClientIdByName[seedSameDayCancelClient]),
+              clientName: const Value(seedSameDayCancelClient),
+              type: const Value(SessionType.personalTraining),
+              durationMinutes: Value(
+                recurring[sameDayCancelK].slot.durationMinutes,
+              ),
+              status: ScheduleStatus.cancelled,
+              cancelledAt: Value(DateTime(day.year, day.month, day.day, 6)),
+              cancellationSource: const Value(CancellationSource.member),
+              cancellationReason: Value(t(_sameDayCancelReason)),
+              programJson: const Value('[]'),
+              sortOrder: Value(recurring[sameDayCancelK].order),
+            );
+          }();
+
     await db.batch((Batch b) {
       b.insertAll(db.trainerScheduleEntries, <TrainerScheduleEntriesCompanion>[
         for (var i = 0; i < _schedule.length; i++)
@@ -833,6 +872,7 @@ Future<void> seedIfEmpty(
                         .clientName]] ??
                     demoReportHistoryWeeks))
               pastSession(back, k),
+        ?sameDayCancel,
         // 김민수의 지난 PT — 공유 픽스처가 PT 날로 적은 날마다 오늘 수업과 같은
         // 시각·길이의 끝난 수업이다(#2694). 회원 앱은 그날을 `18:00 수업 완료`
         // 로 그리고, 실서버 시드도 같은 날에 같은 수업을 깐다. 메모는 픽스처가
@@ -2283,6 +2323,12 @@ _seedConsultRequests = <String, ({String goal, String message})>{
 /// [_pastMiss] 가 놓이는 주 — 몇 주 전인가. 테스트도 이 값으로 그 주를 찾는다.
 const int seedPastMissWeeksAgo = 3;
 
+/// 아침 PT 를 당일 취소하고 같은 날 보강한 회원과 그 주(#3304). 테스트도 이
+/// 값으로 그 행을 찾는다.
+const String seedSameDayCancelClient = '배준혁';
+const int seedSameDayCancelWeeksAgo = 2;
+const String _sameDayCancelReason = '야근 다음 날이라 아침 PT를 당일 취소함';
+
 /// [day] 의 [time](`HH:MM`) 벽시계 시각.
 DateTime _at(DateTime day, String time) {
   final List<String> hm = time.split(':');
@@ -3708,7 +3754,6 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
     ),
   ],
 };
-
 
 /// 픽스처 PT 날의 운동 → 수업 프로그램 — 서버 `_fixture_pt_program` 과 같다(#3282).
 ///
