@@ -63,9 +63,10 @@ from app.services.coach.llm_base import is_truncated, output_cap
 logger = logging.getLogger(__name__)
 
 
-#: 개인화 분석에 쓰는 최근 기간(일) — 약 6주. 이보다 넓히면 오래된 루틴이
-#: 지금의 습관인 것처럼 잡히고, 좁히면 격주 세션 패턴을 놓친다(#776).
-HISTORY_LOOKBACK_DAYS = 42
+#: 개인화 분석에 쓰는 최근 기간(일) — 4주. 완료율(28일)과 맞춘다. 이보다 넓히면
+#: 오래된 루틴이 지금의 습관인 것처럼 잡히고, 좁히면 서로 다른 3주에 걸친 패턴을
+#: 볼 수 없다(#776).
+HISTORY_LOOKBACK_DAYS = 28
 
 #: 이 미만이면 판단할 개인 패턴이 없다 — 목표 기반 기본값을 쓴다.
 MIN_SESSIONS_FOR_LEARNING = 2

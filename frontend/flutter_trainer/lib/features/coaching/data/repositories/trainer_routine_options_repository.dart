@@ -66,7 +66,7 @@ abstract interface class TrainerRoutineOptionsRepository {
 ///
 /// 서버 규칙형의 두 안전장치도 따른다(#2704, `demo_routine_rules.dart`).
 /// 건강 주의사항·최근 대화에 통증 부위가 보이면 그 부위에 부담이 큰 동작을
-/// 저충격 대안으로 바꾸고 근거 문장에 주의 문구를 붙인다. 최근 6주 기록에
+/// 저충격 대안으로 바꾸고 근거 문장에 주의 문구를 붙인다. 최근 4주 기록에
 /// 두 번 이상 반복된 운동이 있으면 그 운동으로 A/B 를 짠다(`기존 패턴 유지형`
 /// · `점진적 강화형`, #776).
 ///
@@ -108,7 +108,7 @@ class MockTrainerRoutineOptionsRepository
   static const int _chatMaxChars = 200;
 
   /// 반복 운동을 찾는 기간(일). 서버 `HISTORY_LOOKBACK_DAYS` 와 같다.
-  static const int _historyLookbackDays = 42;
+  static const int _historyLookbackDays = 28;
 
   /// 추천 상태 문턱 — 서버 `MIN_SESSIONS_FOR_LEARNING` 등과 같다(#776).
   static const int _minSessionsLearning = 2;
@@ -594,7 +594,7 @@ class MockTrainerRoutineOptionsRepository
         (profile is Map ? profile['conditions'] as String? : null) ??
         client.goal;
 
-    // 최근 6주 운동 기록에서 두 번 이상 반복된 운동(서버와 같은 기간·규칙).
+    // 최근 4주 운동 기록에서 두 번 이상 반복된 운동(서버와 같은 기간·규칙).
     final DateTime since = nowKst().subtract(
       const Duration(days: _historyLookbackDays - 1),
     );

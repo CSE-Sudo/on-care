@@ -116,11 +116,14 @@ def _register_and_link_member(client, *, goal: str = "체중 감량") -> str:
 
 
 def _seed_routine_history(member_id: str, sessions: list[list[str]]) -> None:
-    """`sessions[i]` 는 (오늘 - 7*i)일에 완료 처리된 운동 이름 목록."""
+    """`sessions[i]` 는 (오늘 - 4*i)일에 완료 처리된 운동 이름 목록.
+
+    분석 기간(4주) 안에 6회가 서로 다른 3주 이상에 걸치도록 4일 간격으로 둔다.
+    """
     db = SessionLocal()
     try:
         for index, exercises in enumerate(sessions):
-            day = clock.today() - timedelta(days=7 * index)
+            day = clock.today() - timedelta(days=4 * index)
             db.add(
                 RoutineHistory(
                     id=f"hist-{member_id}-{index}",
@@ -166,8 +169,8 @@ def _seed_latest_assigned_routine(
         db.close()
 
 
-def _six_weeks_of_squats_with_a_varying_extra() -> list[list[str]]:
-    """스쿼트만 매주 반복하고 나머지 한 종목은 매번 바꾼다 — "스쿼트"만 반복
+def _six_sessions_of_squats_with_a_varying_extra() -> list[list[str]]:
+    """스쿼트만 매번 반복하고 나머지 한 종목은 매번 바꾼다 — "스쿼트"만 반복
     이름으로 잡혀야 한다(#776 personalized 판정에 반복 운동 근거로 쓴다)."""
     fillers = ["플랭크", "런지", "버피", "힙쓰러스트", "마운틴클라이머", "사이드 플랭크"]
     return [["스쿼트 3세트", f"{name} 2세트"] for name in fillers]
@@ -766,8 +769,8 @@ def test_recommendation_status_is_personalized_with_repeated_weekly_pattern(
     token = _trainer_token(client)
     member_id = _register_and_link_member(client)
     _seed_latest_assigned_routine(member_id, minutes=45, type_="근력")
-    # 6주 연속, 매번 스쿼트를 반복하고 나머지 한 종목만 바꾼다.
-    _seed_routine_history(member_id, _six_weeks_of_squats_with_a_varying_extra())
+    # 4주 동안 6회, 매번 스쿼트를 반복하고 나머지 한 종목만 바꾼다.
+    _seed_routine_history(member_id, _six_sessions_of_squats_with_a_varying_extra())
     try:
         response = client.post(
             f"/v1/trainer/clients/{member_id}/routine-options",
@@ -813,7 +816,7 @@ def test_pending_or_dismissed_routines_do_not_leak_into_suggested_conditions(
         id_suffix="-pending",
         created_at=clock.now() + timedelta(minutes=1),
     )
-    _seed_routine_history(member_id, _six_weeks_of_squats_with_a_varying_extra())
+    _seed_routine_history(member_id, _six_sessions_of_squats_with_a_varying_extra())
     try:
         response = client.post(
             f"/v1/trainer/clients/{member_id}/routine-options",
@@ -835,7 +838,7 @@ def test_trainer_supplied_conditions_always_win_over_suggestions(client, monkeyp
     token = _trainer_token(client)
     member_id = _register_and_link_member(client)
     _seed_latest_assigned_routine(member_id, minutes=45, type_="근력")
-    _seed_routine_history(member_id, _six_weeks_of_squats_with_a_varying_extra())
+    _seed_routine_history(member_id, _six_sessions_of_squats_with_a_varying_extra())
     try:
         response = client.post(
             f"/v1/trainer/clients/{member_id}/routine-options",
