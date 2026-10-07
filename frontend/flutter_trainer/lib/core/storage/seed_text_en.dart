@@ -770,8 +770,8 @@ const Map<String, String> _seedEnglish = <String, String>{
       "I'd like to reset my knee rehab goals. I have my doctor's notes too.",
   '감기 기운이 있어 이번 PT는 쉬고 싶다고 연락함':
       'Messaged ahead: feeling a cold coming on, wants to skip this PT',
-  '야근 다음 날이라 아침 PT를 당일 취소함':
-      'Cancelled the morning PT the same day after working late',
+  '야근이 길어져 PT를 당일 취소함':
+      'Cancelled the PT the same day as work ran late',
   // 지난 PT 메모·지난 상담(#2667).
   '인터벌 6세트 완주. 마지막 두 세트에서 호흡이 빨리 올라와 휴식을 90초로 늘림.':
       'Finished 6 interval sets. Breathing spiked in the last two, so rest went up to 90 seconds.',

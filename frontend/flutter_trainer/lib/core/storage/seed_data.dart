@@ -786,12 +786,12 @@ Future<void> seedIfEmpty(
       );
     }
 
-    // 2주 전 배준혁은 아침 PT 를 당일 취소하고 같은 날 제 시간에 보강했다
+    // 2주 전 배준혁은 그날 앞선 PT 를 당일 취소하고 같은 날 제 시간에 보강했다
     // (#3304) — 그 주 PT 메모(`당일 취소 후 보강 PT`)와 같은 이야기다. 데모의
     // 노쇼 신호는 실서버처럼 일정 기록(최근 30일 노쇼·회원 사정 취소 2건
     // 이상)에서 계산하므로, 3주 전 노쇼([_pastMiss]) 한 건만으로는 이탈 위험이
-    // 비어 버린다. 2주 전이라 요일과 상관없이 30일 창 안이다. 07:00 은 수업이
-    // 놓이지 않는 시각이라 그날 다른 수업과 겹치지 않는다.
+    // 비어 버린다. 2주 전이라 요일과 상관없이 30일 창 안이다. 시각은 그 요일의
+    // 다른 수업과 겹치지 않는 PT 정시(짝수 시) 가운데 가장 이른 것이다.
     final int sameDayCancelK = recurring.indexWhere(
       (r) => r.slot.clientName == seedSameDayCancelClient,
     );
@@ -802,14 +802,38 @@ Future<void> seedIfEmpty(
                     demoReportHistoryWeeks)
         ? null
         : () {
+            final int weekday = recurring[sameDayCancelK].weekday;
+            final int minutes = recurring[sameDayCancelK].slot.durationMinutes;
             final DateTime day = dayOfWeek(
-              recurring[sameDayCancelK].weekday,
+              weekday,
               weeksAgo: seedSameDayCancelWeeksAgo,
             );
+            int toMinutes(String hhmm) {
+              final List<String> hm = hhmm.split(':');
+              return int.parse(hm[0]) * 60 + int.parse(hm[1]);
+            }
+
+            // 그 요일에 되풀이되는 수업(지난 주들은 이번 주 배치를 그대로 쓴다).
+            final List<(int, int)> taken = <(int, int)>[
+              for (final r in recurring)
+                if (r.weekday == weekday)
+                  (
+                    toMinutes(r.time),
+                    toMinutes(r.time) + r.slot.durationMinutes,
+                  ),
+            ];
+            int? start;
+            for (int hour = 10; hour <= 22 && start == null; hour += 2) {
+              final int from = hour * 60;
+              final int to = from + minutes;
+              if (taken.every((t) => to <= t.$1 || from >= t.$2)) start = from;
+            }
+            if (start == null) return null;
+            final String hh = (start ~/ 60).toString().padLeft(2, '0');
             return TrainerScheduleEntriesCompanion.insert(
-              id: 'seed-schedule-x$seedSameDayCancelWeeksAgo-$sameDayCancelK',
+              id: seedSameDayCancelId,
               date: ymd(day),
-              time: '07:00',
+              time: '$hh:00',
               clientId: Value(seedClientIdByName[seedSameDayCancelClient]),
               clientName: const Value(seedSameDayCancelClient),
               type: const Value(SessionType.personalTraining),
@@ -2323,11 +2347,15 @@ _seedConsultRequests = <String, ({String goal, String message})>{
 /// [_pastMiss] 가 놓이는 주 — 몇 주 전인가. 테스트도 이 값으로 그 주를 찾는다.
 const int seedPastMissWeeksAgo = 3;
 
-/// 아침 PT 를 당일 취소하고 같은 날 보강한 회원과 그 주(#3304). 테스트도 이
+/// 앞선 PT 를 당일 취소하고 같은 날 보강한 회원과 그 주(#3304). 테스트도 이
 /// 값으로 그 행을 찾는다.
 const String seedSameDayCancelClient = '배준혁';
 const int seedSameDayCancelWeeksAgo = 2;
-const String _sameDayCancelReason = '야근 다음 날이라 아침 PT를 당일 취소함';
+
+/// 그 행의 id. 지난 주 수업처럼 `seed-schedule-p` 로 시작해 다시 심을 때
+/// 함께 지워지고 새로 깔린다.
+const String seedSameDayCancelId = 'seed-schedule-p2-cancel';
+const String _sameDayCancelReason = '야근이 길어져 PT를 당일 취소함';
 
 /// [day] 의 [time](`HH:MM`) 벽시계 시각.
 DateTime _at(DateTime day, String time) {

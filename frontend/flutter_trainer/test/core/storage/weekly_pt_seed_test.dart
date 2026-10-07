@@ -211,10 +211,10 @@ void main() {
         )
         .toList();
     expect(past, isNotEmpty);
-    // 2주 전 배준혁의 아침 PT 당일 취소(#3304)는 되풀이한 수업이 아니다 —
+    // 2주 전 배준혁의 PT 당일 취소(#3304)는 되풀이한 수업이 아니다 —
     // 아래 따로 본다.
     final TrainerScheduleRow sameDayCancel = past.singleWhere(
-      (r) => r.id.startsWith('seed-schedule-x'),
+      (r) => r.id == seedSameDayCancelId,
     );
     expect(sameDayCancel.clientName, seedSameDayCancelClient);
     expect(sameDayCancel.status, ScheduleStatus.cancelled);
