@@ -134,9 +134,9 @@ void main() {
     });
 
     test('추천 상태·기록 횟수를 서버와 같은 규칙으로 센다 (#2674)', () async {
-      // 김민수는 6주에 걸친 기록 — 맞춤, 정하윤은 PT 이력 없이 개인운동만
-      // 받는다 — 하루치 개인운동 카드는 추천 근거가 아니라 템플릿(#3003),
-      // 임도현은 기록 없음 — 템플릿. 실서버 시드와 같은 판정이다.
+      // 김민수는 4주에 걸친 기록 — 맞춤, 정하윤은 PT 이력 없이 개인운동만
+      // 받는다 — 개인운동도 하루치 한 회로 세므로 템플릿이 아니다(#3293),
+      // 임도현은 기록 없음 — 템플릿. 실서버와 같은 판정이다.
       final RoutineOptions kim = await generate('seed-client-1');
       final RoutineOptions hayun = await generate('seed-client-4');
       final RoutineOptions dohyun = await generate('seed-client-7');
@@ -146,11 +146,12 @@ void main() {
         RecommendationStatus.personalized,
       );
       expect(kim.analysis.historySessionCount, greaterThanOrEqualTo(6));
-      expect(kim.analysis.analysisPeriodDays, 42);
+      expect(kim.analysis.analysisPeriodDays, 28);
       expect(
         hayun.analysis.recommendationStatus,
-        RecommendationStatus.template,
+        isNot(RecommendationStatus.template),
       );
+      expect(hayun.analysis.historySessionCount, greaterThan(0));
       expect(
         dohyun.analysis.recommendationStatus,
         RecommendationStatus.template,

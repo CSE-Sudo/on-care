@@ -10,7 +10,6 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart' show josa;
-import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_next_pt.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
@@ -154,9 +153,7 @@ class MockTrainerRoutineOptionsRepository
     final String goal = member?.goal ?? '혈압 관리 · 체중 감량';
     final bool sodiumOver = member?.sodiumOver ?? true;
     // 서버 규칙형과 같다 — 목표를 넘을 때만 꼬리표를 단다.
-    final String sodiumLabel = sodiumOver
-        ? t(' (목표 초과)', ' (over goal)')
-        : '';
+    final String sodiumLabel = sodiumOver ? t(' (목표 초과)', ' (over goal)') : '';
     final note = trainerNote.trim();
     final noteSuffix = note.isEmpty
         ? ''
@@ -595,6 +592,8 @@ class MockTrainerRoutineOptionsRepository
         client.goal;
 
     // 최근 4주 운동 기록에서 두 번 이상 반복된 운동(서버와 같은 기간·규칙).
+    // 하루치 `개인운동` 카드도 한 회로 센다 — 서버가 PT 기록에 회원 개인운동을
+    // 날짜별 한 회로 더해 보는 것과 같다(#3293).
     final DateTime since = nowKst().subtract(
       const Duration(days: _historyLookbackDays - 1),
     );
@@ -606,16 +605,7 @@ class MockTrainerRoutineOptionsRepository
                     DateTime(since.year, since.month, since.day),
                   ),
             ))
-            .get()
-            // 하루치 `개인운동` 카드는 빼고 센다 — 서버는 그 카드를 이력 표가
-            // 아니라 개인운동 완료에서 만들어, 추천 근거(`RoutineHistory`)에
-            // 들지 않는다(#3003).
-            .then(
-              (rows) => <ClientRoutineHistoryRow>[
-                for (final row in rows)
-                  if (routineKindCode(row.label) != 'personal_routine') row,
-              ],
-            );
+            .get();
     final List<List<Object?>> sessions = <List<Object?>>[
       for (final row in history)
         if (jsonDecode(row.exercisesJson) case final List<Object?> items) items,
