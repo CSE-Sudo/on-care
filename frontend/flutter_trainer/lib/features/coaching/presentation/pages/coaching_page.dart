@@ -37,6 +37,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/trainer_program
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
+import 'package:oncare_trainer/features/coaching/presentation/providers/delivery_status_providers.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/personal_routine_box.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_final_review_card.dart';
@@ -793,10 +794,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     ref.invalidate(assignedRoutinesProvider(sentFor));
     // 새 개인운동이 걸리면 날짜별 이행 칸도 바뀐다(#2508).
     ref.invalidate(clientRoutineDaysProvider);
-    // 전송 이력 카드는 직전 전송(`_latestDeliveryProvider`)을 따로 읽는다 —
+    // 전송 이력 카드는 직전 전송(`latestDeliveryProvider`)을 따로 읽는다 —
     // 다시 읽게 하지 않으면 탭을 옮겨 다녀와야 방금 보낸 것이 보인다(#2280,
     // #2750).
-    ref.invalidate(_latestDeliveryProvider(sentFor));
+    ref.invalidate(latestDeliveryProvider(sentFor));
     // 보낸 개인운동을 채운 AI 제안은 서버가 이 전송으로 닫았다(#2747) — 다시
     // 읽게 해야 새로 선 위저드가 보낸 제안을 다시 채우지 않는다.
     ref.invalidate(routineSuggestionsProvider(sentFor));
@@ -986,13 +987,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 새 개인운동이 걸리면 날짜별 이행 칸도 바뀐다(#2508).
     ref.invalidate(clientRoutineDaysProvider);
     // 3열 `전송 이력` 카드는 배정 목록이 아니라 직전 전송
-    // (`_latestDeliveryProvider`, #2225)을 따로 읽는다 — 카드가 전송 동안에도
+    // (`latestDeliveryProvider`, #2225)을 따로 읽는다 — 카드가 전송 동안에도
     // 떠 있어 autoDispose 로 버려지지 않으므로, 여기서 무효화하지 않으면
     // 화면을 떠났다 와야 갱신된다(#2750). 그 위 `아직 보내지 않은 개인운동`
     // 안내도 따로 읽는다 — 일정에 올린 PT 에 붙은 개인운동이 안내에 바로
     // 서야 한다(#2280).
-    ref.invalidate(_latestDeliveryProvider(sentFor));
-    ref.invalidate(_unsentRoutinesProvider(sentFor));
+    ref.invalidate(latestDeliveryProvider(sentFor));
+    ref.invalidate(unsentRoutinesProvider(sentFor));
     // 함께 붙인 개인운동을 채운 AI 제안도 이 등록으로 닫혔다(#2747).
     ref.invalidate(routineSuggestionsProvider(sentFor));
     final stillSelected = _isStillSelected(sentFor);
@@ -1610,7 +1611,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
     // 전송 이력 위 `아직 보내지 않은 개인운동` 안내가 방금 붙인 것을 바로
     // 보이게 한다.
-    ref.invalidate(_unsentRoutinesProvider(sentFor));
+    ref.invalidate(unsentRoutinesProvider(sentFor));
     // 붙인 개인운동을 채운 AI 제안은 이 요청으로 닫혔다(#2747) — 다시 읽어야
     // 다음 위저드가 그 제안을 다시 채우지 않는다.
     ref.invalidate(routineSuggestionsProvider(sentFor));
@@ -2596,7 +2597,7 @@ class _TemplateMenu extends StatelessWidget {
 ///
 /// Without it the workspace has no memory: the trainer can't tell
 /// whether they already sent today's routine, and repeats it. Sourced
-/// from [_latestDeliveryProvider] (직전 전송 한 묶음, #2225) — 전송 성공
+/// from [latestDeliveryProvider] (직전 전송 한 묶음, #2225) — 전송 성공
 /// 분기가 이 provider 를 무효화해야 카드가 곧바로 바뀐다(#2750).
 class _SendHistoryCard extends ConsumerWidget {
   const _SendHistoryCard({required this.client});
@@ -2606,7 +2607,7 @@ class _SendHistoryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final latest = ref.watch(_latestDeliveryProvider(client.id));
+    final latest = ref.watch(latestDeliveryProvider(client.id));
     return _SectionCard(
       title: l.coachSentHistory,
       icon: AppIcons.history,
@@ -2623,7 +2624,7 @@ class _SendHistoryCard extends ConsumerWidget {
             error: (_, _) => AppErrorState(
               title: l.coachHistoryFailed,
               retryLabel: l.actionRetry,
-              onRetry: () => ref.invalidate(_latestDeliveryProvider(client.id)),
+              onRetry: () => ref.invalidate(latestDeliveryProvider(client.id)),
               placement: AppStatePlacement.card,
             ),
             data: (delivery) => delivery == null
@@ -2639,26 +2640,6 @@ class _SendHistoryCard extends ConsumerWidget {
     );
   }
 }
-
-/// 끝난 PT 에 남아 있는 개인운동 — 보낼 수 있는데 아직 안 보낸 것. (#2225)
-///
-/// 위젯이 아니라 provider 가 들고 있다. 보낸 뒤 이 자리를 다시 읽어야 하는데,
-/// 위젯이 제 상태에 들고 있으면 그 사이 다시 그려져 상태가 버려질 때 읽기가
-/// 조용히 사라진다 — 보냈는데 알림이 그대로 남는다.
-final _unsentRoutinesProvider = FutureProvider.autoDispose
-    .family<List<UnsentRoutine>, String>(
-      (ref, clientId) => ref
-          .watch(scheduleRepositoryProvider)
-          .fetchUnsentRoutinesFor(clientId),
-    );
-
-/// 가장 최근에 보낸 것 한 묶음. (#2225)
-final _latestDeliveryProvider = FutureProvider.autoDispose
-    .family<SentDelivery?, String>(
-      (ref, clientId) => ref
-          .watch(trainerRoutineRepositoryProvider)
-          .fetchLatestDelivery(clientId),
-    );
 
 /// 아직 보내지 않은 개인운동이 있다고 알리고, 그 일정으로 데려다준다. (#2225)
 ///
@@ -2676,7 +2657,7 @@ class _UnsentRoutinesNotice extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unsent = ref.watch(_unsentRoutinesProvider(client.id));
+    final unsent = ref.watch(unsentRoutinesProvider(client.id));
     // 못 읽었으면 안내가 조용히 빠지지 않게 한 줄로 알린다(#2891) — 보낼
     // 개인운동이 남아 있는데 없다고 읽히면 회원에게 루틴이 가지 않는다.
     if (unsent.hasError) {
@@ -2688,7 +2669,7 @@ class _UnsentRoutinesNotice extends ConsumerWidget {
           showLabel: false,
           onRetry: unsent.isLoading
               ? null
-              : () => ref.invalidate(_unsentRoutinesProvider(client.id)),
+              : () => ref.invalidate(unsentRoutinesProvider(client.id)),
         ),
       );
     }

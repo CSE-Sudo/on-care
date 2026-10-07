@@ -9,6 +9,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/presentation/providers/delivery_status_providers.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -417,6 +418,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       return;
     }
     if (!mounted) return;
+    // 코칭 탭은 살아 있는 채로 예전 읽기를 쥐고 있다 — 버려야 돌아갔을 때
+    // `아직 안 보낸 개인운동` 과 전송 이력이 맞는다.
+    invalidateDeliveryStatus(ref);
     setState(() {
       _unsentRoutines[session.id] = const <RoutineExercise>[];
       _routinesRevision[session.id] = (_routinesRevision[session.id] ?? 0) + 1;
@@ -475,6 +479,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       return;
     }
     if (!mounted) return;
+    // 코칭 탭은 살아 있는 채로 예전 읽기를 쥐고 있다 — 버려야 돌아갔을 때
+    // `아직 안 보낸 개인운동` 과 전송 이력이 맞는다.
+    invalidateDeliveryStatus(ref);
     setState(() {
       _unsentRoutines[session.id] = const <RoutineExercise>[];
       _routinesRevision[session.id] = (_routinesRevision[session.id] ?? 0) + 1;
@@ -562,6 +569,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           );
       if (!mounted) return;
       _sendRequestIds.remove(s.id); // 다음 전송은 새 시도다.
+      invalidateDeliveryStatus(ref); // 코칭 탭의 전송 이력도 맞춘다.
       // 개인운동도 이 전송에 함께 실려 갔다(#2224). 갈래를 다시 읽지 않으면
       // 이미 보낸 것에 `아직 회원에게 가지 않았어요` 가 그대로 남는다.
       setState(() {
