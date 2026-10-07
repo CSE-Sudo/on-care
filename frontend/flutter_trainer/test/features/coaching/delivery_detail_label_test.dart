@@ -19,7 +19,12 @@ void main() {
   group('보낸 프로그램 한 줄', () {
     test('근력은 세트·횟수·중량까지 적는다', () {
       // `근력` 이 ProgramItem 의 기본 유형이다.
-      const item = ProgramItem(name: '레그프레스', sets: 4, reps: 10, weight: 70);
+      const item = ProgramItem(
+        name: '레그프레스',
+        sets: 4,
+        reps: 10,
+        weight: 70,
+      );
 
       expect(programItemAmount(l, item), '4세트 · 10회 · 70kg');
     });

@@ -162,7 +162,9 @@ void main() {
     );
   });
 
-  testWidgets('북마크는 저장 전 더하기, 성공 후 체크 —다시 눌러도 덮어쓰지 않고 새로 만든다', (tester) async {
+  testWidgets('북마크는 저장 전 더하기, 성공 후 체크 —다시 눌러도 덮어쓰지 않고 새로 만든다', (
+    tester,
+  ) async {
     final repository = _FakeTemplateRepository();
     await _openCoaching(tester, repository);
     await _addExercise(tester, '스쿼트 3세트');
