@@ -296,6 +296,26 @@ void main() {
       expect(churnCard(tester).toneColor, isNotNull);
     });
 
+    testWidgets('다른 탭에 갔다 돌아오면 최근 세션을 다시 읽는다 (#3300)', (tester) async {
+      await openDashboard(
+        tester,
+        recent: () =>
+            Stream<List<ScheduleSession>>.value(const <ScheduleSession>[]),
+      );
+      final int opened = repo.recentReads;
+      expect(opened, greaterThan(0));
+
+      // 스케줄 탭으로 가는 동안에는 뒤에 남은 대시보드가 다시 읽지 않는다.
+      await goTo(tester, AppRoutes.schedule);
+      expect(repo.recentReads, opened);
+
+      // 스케줄에서 완료·노쇼·취소한 것이 이탈 위험에 들어오도록, 돌아오면
+      // 다시 읽는다 — 탭이 살아 있어 첫 값을 계속 쥐고 있었다.
+      await goTo(tester, AppRoutes.dashboard);
+      expect(repo.recentReads, greaterThan(opened));
+      expect(int.tryParse(churnCard(tester).value), isNotNull);
+    });
+
     testWidgets('영어 화면은 영어 문구다', (tester) async {
       await openDashboard(
         tester,
