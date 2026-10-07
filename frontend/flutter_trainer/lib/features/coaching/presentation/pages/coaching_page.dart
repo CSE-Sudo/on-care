@@ -996,6 +996,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     ref.invalidate(unsentRoutinesProvider(sentFor));
     // 함께 붙인 개인운동을 채운 AI 제안도 이 등록으로 닫혔다(#2747).
     ref.invalidate(routineSuggestionsProvider(sentFor));
+    // 그 PT 에 붙어 있던 개인운동도 함께 나갔다(#2224) — 스케줄 탭은 떠 있는
+    // 채로 `아직 회원에게 가지 않았어요` 를 쥐고 있어, 다시 읽으라고 알린다
+    // (#3299). PT 에 개인운동만 붙일 때와 같다.
+    ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
     final stillSelected = _isStillSelected(sentFor);
     setState(() {
       _sendingClientIds.remove(sentFor);
