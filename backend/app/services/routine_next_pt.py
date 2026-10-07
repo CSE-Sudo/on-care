@@ -1,4 +1,4 @@
-"""AI 루틴 C안 — 지난 PT 흐름상 **이번 차례** 프로그램(#3282).
+"""AI 루틴 연계안 — 지난 PT 흐름상 **이번 차례** 프로그램(#3282).
 
 A·B안이 회원 분석으로 새로 짜는 안이라면, C안은 트레이너가 지금까지 PT 에서
 돌려 온 프로그램 가운데 이번에 할 차례인 것을 골라 최근 상태에 맞게 고친 안이다.
@@ -74,7 +74,7 @@ class PtSession:
 
 @dataclass(frozen=True)
 class NextPt:
-    """이번 차례 판단 결과 — C안의 기준 프로그램과 근거."""
+    """이번 차례 판단 결과 — 연계안의 기준 프로그램과 근거."""
 
     #: `rotation`(기록에서 고름) · `continue`(한 가지만 반복) · `start`(기록 없음).
     kind: str
@@ -101,6 +101,15 @@ def _signature(items: tuple[PtItem, ...]) -> frozenset[str]:
     """
     strength = frozenset(i.name for i in items if i.type == "근력")
     return strength or frozenset(i.name for i in items)
+
+
+def plan_c_label(locale: Locale = "ko") -> str:
+    """C안 제목. A·B안("기존 패턴 유지형"·"점진적 강화형")과 같은 결의 고정 이름이다.
+
+    운동 이름을 이어 붙이면 "데드리프트 · 루마니안 데드리프트" 처럼 길어져 카드
+    제목이 두 줄로 넘친다. 어떤 프로그램인지는 근거·운동 목록이 이미 보여 준다.
+    """
+    return localized("지난 PT 연계형", "Continue last PT", locale)
 
 
 def _label(items: tuple[PtItem, ...]) -> str:
@@ -247,7 +256,7 @@ def rule_plan_c(
     escalate: bool,
     locale: Locale = "ko",
 ) -> dict:
-    """[next_pt] 의 기준 프로그램을 규칙만큼 고친 C안(AI 실패·데모용).
+    """[next_pt] 의 기준 프로그램을 규칙만큼 고친 연계안(AI 실패·데모용).
 
     * 주의 부위에 부담이 큰 운동은 저충격 대안으로 바꾼다(A·B 와 같은 표).
     * 완료율이 높으면 근력 세트를 한 칸 올리고, 낮으면 내린다. 판단이 어려운
@@ -347,7 +356,7 @@ def rule_plan_c(
     )
     return {
         "key": "C",
-        "label": next_pt.label[:50],
+        "label": plan_c_label(locale),
         "total_minutes": after,
         "intensity": intensity,
         "exercises": rows,
@@ -370,8 +379,8 @@ def finding(next_pt: NextPt, locale: Locale = "ko") -> dict:
             "finding": localized("PT 기록 없음", "No PT records", locale),
             "source": localized("PT 기록", "PT records", locale),
             "action": localized(
-                "C안은 전신 기본 프로그램으로 시작",
-                "Plan C starts with a full-body basic program",
+                "연계안은 전신 기본 프로그램으로 시작",
+                "Follow-up plan starts with a full-body basic program",
                 locale,
             ),
         }
@@ -397,8 +406,8 @@ def finding(next_pt: NextPt, locale: Locale = "ko") -> dict:
         "finding": text[:120],
         "source": source,
         "action": localized(
-            "C안: 이번 차례 프로그램을 최근 상태에 맞게 조정",
-            "Plan C: adjusts this program to the latest condition",
+            "연계안: 이번 차례 프로그램을 최근 상태에 맞게 조정",
+            "Follow-up plan: adjusts this program to the latest condition",
             locale,
         ),
     }
