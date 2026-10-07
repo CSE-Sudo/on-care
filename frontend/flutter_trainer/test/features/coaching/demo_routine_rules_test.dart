@@ -70,7 +70,8 @@ void main() {
           <Object?>['걷기 ✓', '데드리프트 ✗'],
           <Object?>['스쿼트 ✓'],
         ]),
-        <String>['걷기'],
+        // 한 번만 한 운동도 들어간다 — 기록 한 회로도 분석한다(#3293).
+        <String>['걷기', '스쿼트'],
       );
     });
   });
@@ -92,15 +93,16 @@ void main() {
           trainerNote: '',
         );
 
-    // 이지수는 매주 같은 PT(데드리프트·런지·코어 서킷)를 받는다 — 실서버 시드
-    // (`seed_member_data._HISTORY`)와 같은 기록이다(#3003).
-    test('반복 운동이 있는 회원은 그 운동으로 짠다 (이지수 데드리프트)', () async {
+    // 이지수는 주 1회 PT(데드리프트·런지·코어 서킷)에 더해 거의 매일 개인운동
+    // (인터벌 러닝·스쿼트·플랭크)을 한다 — 개인운동도 세므로(#3293) 가장 자주 한
+    // 개인운동이 앞선다.
+    test('반복 운동이 있는 회원은 그 운동으로 짠다 (이지수 개인운동)', () async {
       final RoutineOptions o = await generate('seed-client-2');
 
       expect(o.planA.label, '기존 패턴 유지형');
       expect(o.planB.label, '점진적 강화형');
-      expect(o.planA.exercises.map((e) => e.name), contains('데드리프트'));
-      expect(o.planA.rationale, contains('반복 확인된 운동(데드리프트'));
+      expect(o.planA.exercises.map((e) => e.name), contains('스쿼트'));
+      expect(o.planA.rationale, contains('반복 확인된 운동(인터벌 러닝'));
       expect(o.generatedBy, 'rule');
       expect(
         o.planA.exercises.fold<int>(0, (int a, e) => a + e.minutes),
@@ -134,9 +136,9 @@ void main() {
     });
 
     test('추천 상태·기록 횟수를 서버와 같은 규칙으로 센다 (#2674)', () async {
-      // 김민수는 6주에 걸친 기록 — 맞춤, 정하윤은 PT 이력 없이 개인운동만
-      // 받는다 — 하루치 개인운동 카드는 추천 근거가 아니라 템플릿(#3003),
-      // 임도현은 기록 없음 — 템플릿. 실서버 시드와 같은 판정이다.
+      // 김민수는 4주에 걸친 기록 — 맞춤, 정하윤은 PT 이력 없이 개인운동만
+      // 받는다 — 개인운동도 하루치 한 회로 세므로 템플릿이 아니다(#3293),
+      // 임도현은 기록 없음 — 템플릿. 실서버와 같은 판정이다.
       final RoutineOptions kim = await generate('seed-client-1');
       final RoutineOptions hayun = await generate('seed-client-4');
       final RoutineOptions dohyun = await generate('seed-client-7');
@@ -146,11 +148,12 @@ void main() {
         RecommendationStatus.personalized,
       );
       expect(kim.analysis.historySessionCount, greaterThanOrEqualTo(6));
-      expect(kim.analysis.analysisPeriodDays, 42);
+      expect(kim.analysis.analysisPeriodDays, 28);
       expect(
         hayun.analysis.recommendationStatus,
-        RecommendationStatus.template,
+        isNot(RecommendationStatus.template),
       );
+      expect(hayun.analysis.historySessionCount, greaterThan(0));
       expect(
         dohyun.analysis.recommendationStatus,
         RecommendationStatus.template,
