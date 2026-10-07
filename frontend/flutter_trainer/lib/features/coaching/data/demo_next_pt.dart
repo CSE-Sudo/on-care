@@ -393,7 +393,8 @@ RoutinePlan rulePlanC(
         );
   return RoutinePlan(
     key: 'C',
-    label: next.label.length > 50 ? next.label.substring(0, 50) : next.label,
+    // A·B안과 같은 결의 고정 이름 — 운동 이름을 이으면 제목이 넘친다. 서버와 같다.
+    label: t('지난 PT 연계형', 'Continue last PT'),
     totalMinutes: after,
     intensity: escalate
         ? '보통'
