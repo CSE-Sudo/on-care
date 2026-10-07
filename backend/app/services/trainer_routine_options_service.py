@@ -268,7 +268,7 @@ member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르�
   },
   "plan_c": {
     "key": "C",
-    "label": "기준 프로그램의 짧은 이름",
+    "label": "지난 PT 연계형",
     "total_minutes": 30,
     "intensity": "낮음|보통|높음",
     "exercises": [
@@ -1179,6 +1179,7 @@ def _llm_plan_c(
     raw: object,
     request: RoutineOptionsRequest,
     next_pt: routine_next_pt.NextPt,
+    locale: Locale,
 ) -> RoutineOptionPlanOut | None:
     """AI 가 준 C안. 계약을 어기면 None — 호출부가 규칙형 C안으로 채운다.
 
@@ -1189,7 +1190,13 @@ def _llm_plan_c(
         return None
     try:
         plan = RoutineOptionPlanOut.model_validate(
-            {**raw, "key": "C", "basis": next_pt.basis}
+            # 제목은 모델이 아니라 서버가 정한 고정 이름을 쓴다.
+            {
+                **raw,
+                "key": "C",
+                "label": routine_next_pt.plan_c_label(locale),
+                "basis": next_pt.basis,
+            }
         )
     except ValidationError:
         return None
@@ -1235,7 +1242,7 @@ def _generate_with_llm(
     ):
         raise RoutineContractError("LLM 루틴 시간이 요청 가능한 시간을 초과했습니다.")
     if next_pt is not None:
-        plan_c = _llm_plan_c(raw_plan_c, request, next_pt)
+        plan_c = _llm_plan_c(raw_plan_c, request, next_pt, locale)
         if plan_c is None:
             metrics.incr("routine_options.plan_c_fallback")
             plan_c = _rule_plan_c(analysis, request, next_pt, locale)

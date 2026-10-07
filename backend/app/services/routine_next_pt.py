@@ -103,6 +103,15 @@ def _signature(items: tuple[PtItem, ...]) -> frozenset[str]:
     return strength or frozenset(i.name for i in items)
 
 
+def plan_c_label(locale: Locale = "ko") -> str:
+    """C안 제목. A·B안("기존 패턴 유지형"·"점진적 강화형")과 같은 결의 고정 이름이다.
+
+    운동 이름을 이어 붙이면 "데드리프트 · 루마니안 데드리프트" 처럼 길어져 카드
+    제목이 두 줄로 넘친다. 어떤 프로그램인지는 근거·운동 목록이 이미 보여 준다.
+    """
+    return localized("지난 PT 연계형", "Continue last PT", locale)
+
+
 def _label(items: tuple[PtItem, ...]) -> str:
     strength = [i.name for i in items if i.type == "근력"] or [i.name for i in items]
     return " · ".join(strength[:2])
@@ -347,7 +356,7 @@ def rule_plan_c(
     )
     return {
         "key": "C",
-        "label": next_pt.label[:50],
+        "label": plan_c_label(locale),
         "total_minutes": after,
         "intensity": intensity,
         "exercises": rows,
