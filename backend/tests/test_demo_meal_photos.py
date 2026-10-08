@@ -14,6 +14,7 @@ from app.db.seed_member_data import DEMO_PHOTO_DIR
 
 _MEMBER_ID = "user-7d4e9a2c5f18"
 _PASSWORD = "oncare123"
+_SEED_PREFIX = "seed-fix-diet-"
 
 #: 목업이 그리는 원본(회원 앱 번들). 백엔드는 같은 파일을 한 벌 더 갖고 있다.
 APP_PHOTO_DIR = (
@@ -54,7 +55,8 @@ def test_member_sees_the_demo_photos_of_today(client):
     headers = _login(client, "minsu@oncare.com")
     day = client.get("/v1/diet/days/today", headers=headers)
     assert day.status_code == 200, day.text
-    entries = day.json()["entries"]
+    # 다른 테스트가 같은 회원에게 사진 없는 끼니를 더할 수 있다 — 시드 끼니만 본다.
+    entries = [e for e in day.json()["entries"] if e["id"].startswith(_SEED_PREFIX)]
     assert entries, "오늘 시드 끼니가 없습니다."
     assert all(e["photo_url"] for e in entries), entries
 
@@ -68,8 +70,8 @@ def test_trainer_sees_the_same_demo_photos(client):
     headers = _login(client, "trainer@oncare.com")
     res = client.get(f"/v1/trainer/clients/{_MEMBER_ID}/diet", headers=headers)
     assert res.status_code == 200, res.text
-    entries = res.json()
-    assert entries, "트레이너가 보는 오늘 끼니가 없습니다."
+    entries = [e for e in res.json() if e["id"].startswith(_SEED_PREFIX)]
+    assert entries, "트레이너가 보는 오늘 시드 끼니가 없습니다."
     assert all(e["photo_url"] for e in entries), entries
 
     image = client.get(f"/v1{entries[0]['photo_url']}", headers=headers)
@@ -85,9 +87,15 @@ def test_reseeding_does_not_duplicate_photos(client, db_session):
 
     def count() -> int:
         return db_session.scalar(
-            select(func.count()).select_from(DietPhoto).where(DietPhoto.user_id == _MEMBER_ID)
+            select(func.count())
+            .select_from(DietPhoto)
+            .where(DietPhoto.user_id == _MEMBER_ID, DietPhoto.id.like("seedpic-%"))
         )
 
+    # 다른 테스트가 시드 행을 지웠을 수 있어 첫 재시드는 그것을 채운다. 그 뒤로는
+    # 다시 돌려도 사진이 늘지 않아야 한다.
+    seed_member_health_data()
+    db_session.expire_all()
     before = count()
     assert before > 0
     seed_member_health_data()
