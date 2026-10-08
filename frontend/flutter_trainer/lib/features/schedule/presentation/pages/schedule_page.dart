@@ -319,6 +319,19 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
               .text(OnCareTypography.caption)
               .copyWith(color: OnCareColors.textTertiary),
         ),
+        // 완료한 PT 를 지우면 회원 앱의 PT 기록·운동 기록도 함께 지워진다
+        // (서버 `delete_session`). 트레이너가 자기 화면만 정리하는 줄 알고
+        // 지우지 않게 미리 알린다(#3309).
+        if (s.isDone && !s.isConsultation) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s8),
+          Text(
+            l.schedDeleteDoneRemovesMemberRecord,
+            key: const Key('schedDeleteDoneRemovesMemberRecord'),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ],
       ],
     );
     if (!ok || !mounted) return;
