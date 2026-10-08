@@ -720,6 +720,11 @@ DELIVERY_PT_WITH_ROUTINE = "pt_with_routine"
 DELIVERY_ROUTINE_ONLY = "routine_only"
 
 
+#: 데모 시드 개인운동의 id 접두사(`seed_member_data._routine_rows`). 교체 때 함께
+#: 내린다(#3309).
+SEED_ROUTINE_ID_PREFIX = "seed-routine-"
+
+
 DELIVERY_CANCELLED_ROUTINE_ONLY = "cancelled_routine_only"
 
 
@@ -1607,13 +1612,20 @@ def _retire_personal_routines(
 
     **프로그램 세션 줄은 건드리지 않는다.** 개인운동만 `delivery_kind` 를 달고
     있어(#2223) 그 값으로 가른다 — PT 프로그램 배정은 비어 있다.
+
+    데모 시드 개인운동(`seed-routine-…`)은 이 칸이 생기기 전 모양이라 비어 있지만
+    개인운동이므로 함께 내린다(#3309). 빠지면 실서버 데모에서 새로 보낸 개인운동이
+    시드 목록에 **더해져** 보인다.
     """
     iso = today.isoformat()
     live = (
         TrainerRoutine.trainer_id == trainer_id,
         TrainerRoutine.member_id == member_id,
         TrainerRoutine.status == ROUTINE_APPROVED,
-        TrainerRoutine.delivery_kind.is_not(None),
+        or_(
+            TrainerRoutine.delivery_kind.is_not(None),
+            TrainerRoutine.id.like(f"{SEED_ROUTINE_ID_PREFIX}%"),
+        ),
         or_(
             TrainerRoutine.ended_on.is_(None),
             TrainerRoutine.ended_on > iso,

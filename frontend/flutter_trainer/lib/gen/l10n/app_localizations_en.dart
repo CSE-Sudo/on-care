@@ -82,6 +82,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Deleting erases the record. This appointment is already complete and can\'t be undone.';
 
   @override
+  String get schedDeleteDoneRemovesMemberRecord =>
+      'It also disappears from the member\'s PT log and exercise records in the member app. Personal exercises already sent stay as they are.';
+
+  @override
   String get scheduleStatusGap => 'Open';
 
   @override

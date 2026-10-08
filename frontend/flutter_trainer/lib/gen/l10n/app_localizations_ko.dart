@@ -79,6 +79,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '기록이 지워져요. 이미 완료한 일정이라 되돌릴 수 없어요.';
 
   @override
+  String get schedDeleteDoneRemovesMemberRecord =>
+      '회원 앱의 PT 기록과 운동 기록에서도 함께 사라져요. 이미 보낸 개인운동은 그대로 남아요.';
+
+  @override
   String get scheduleStatusGap => '공백';
 
   @override

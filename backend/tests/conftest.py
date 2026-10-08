@@ -274,6 +274,37 @@ def _pin_session_start_clock(monkeypatch):
     yield
 
 
+@pytest.fixture(autouse=True)
+def _restore_seed_personal_routines(request):
+    """테스트가 내린 시드 개인운동(`seed-routine-…`)을 다시 건다(#3309).
+
+    새 개인운동을 보내면 시드 개인운동도 오늘부로 내려간다. DB 는 세션 전체가
+    함께 쓰므로, 개인운동을 보낸 테스트 뒤에 시드 배정을 읽는 테스트가 빈 목록을
+    보게 된다. 시드 개인운동에는 원래 `ended_on` 이 없으므로 비워 되돌린다.
+    """
+    yield
+    if "client" not in request.fixturenames:
+        return
+    from sqlalchemy import update
+
+    from app.db.session import SessionLocal
+    from app.models.models import TrainerRoutine
+
+    db = SessionLocal()
+    try:
+        db.execute(
+            update(TrainerRoutine)
+            .where(
+                TrainerRoutine.id.like("seed-routine-%"),
+                TrainerRoutine.ended_on.is_not(None),
+            )
+            .values(ended_on=None)
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
 @pytest.fixture
 def db_session(client):
     """시드까지 끝난 DB 세션. client 픽스처가 먼저 init_db(시드)를 돌린다."""

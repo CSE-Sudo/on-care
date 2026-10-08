@@ -581,6 +581,79 @@ void main() {
     expect(find.text('실내 자전거 · 1시간 30분'), findsOneWidget);
   });
 
+  testWidgets('같은 날 완료한 PT 가 여러 건이면 모두 그린다 (#3309)', (
+    WidgetTester tester,
+  ) async {
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(
+        <CoachSession>[
+          CoachSession(
+            id: 'completed-pt-morning',
+            date: nowKst(),
+            time: '10:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            program: const <CoachProgramItem>[
+              CoachProgramItem(
+                name: '하체 스트레칭',
+                sets: 0,
+                reps: 0,
+                weight: 0,
+                duration: 10,
+              ),
+            ],
+          ),
+          CoachSession(
+            id: 'completed-pt-evening',
+            date: nowKst(),
+            time: '18:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            program: const <CoachProgramItem>[
+              CoachProgramItem(name: '숄더 프레스', sets: 4, reps: 12, weight: 10),
+            ],
+          ),
+        ],
+        coach: const MemberCoach(
+          trainerId: 'trainer-1',
+          name: '김트레이너',
+          specialty: '근력 운동',
+          career: '5년',
+          intro: '',
+          gymName: '온케어짐',
+          goal: '근력 향상',
+        ),
+      ),
+    );
+
+    // 늦은 시각이 맨 위(기존 키), 이른 시각 PT 도 가려지지 않고 아래에 선다.
+    final Finder latest = find.byKey(const Key('completedPtSessionCard'));
+    await tester.scrollUntilVisible(latest, 400);
+    expect(
+      find.descendant(
+        of: latest,
+        matching: find.text('숄더 프레스 · 4세트 · 12회 · 10kg'),
+      ),
+      findsOneWidget,
+    );
+    final Finder earlier = find.byKey(
+      const Key('completedPtSessionCard-completed-pt-morning'),
+    );
+    await tester.scrollUntilVisible(earlier, 400);
+    expect(
+      find.descendant(of: earlier, matching: find.text('하체 스트레칭 · 10분')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('완료한 PT 의 버티기 종목은 횟수 대신 버틴 초로 읽힌다 (#3138)', (
     WidgetTester tester,
   ) async {

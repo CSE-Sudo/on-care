@@ -224,6 +224,12 @@ abstract class AppLocalizations {
   /// **'Deleting erases the record. This appointment is already complete and can\'t be undone.'**
   String get schedDeleteMeansRemoveFinished;
 
+  /// No description provided for @schedDeleteDoneRemovesMemberRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'It also disappears from the member\'s PT log and exercise records in the member app. Personal exercises already sent stay as they are.'**
+  String get schedDeleteDoneRemovesMemberRecord;
+
   /// Display label for an empty slot in the trainer's day.
   ///
   /// In en, this message translates to:

@@ -60,6 +60,7 @@
   },
   "schedDeleteMeansRemove": "Deleting erases the record. Use cancel or no-show for a PT that didn't happen.",
   "schedDeleteMeansRemoveFinished": "Deleting erases the record. This appointment is already complete and can't be undone.",
+  "schedDeleteDoneRemovesMemberRecord": "It also disappears from the member's PT log and exercise records in the member app. Personal exercises already sent stay as they are.",
   "scheduleStatusGap": "Open",
   "@scheduleStatusGap": {
     "description": "Display label for an empty slot in the trainer's day."
