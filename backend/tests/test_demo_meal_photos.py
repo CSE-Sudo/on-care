@@ -51,13 +51,40 @@ def test_backend_copies_match_the_app_bundle():
         assert (DEMO_PHOTO_DIR / name).read_bytes() == (APP_PHOTO_DIR / name).read_bytes(), name
 
 
-def test_member_sees_the_demo_photos_of_today(client):
+def _seeded_day(db_session) -> str:
+    """시드 끼니가 남아 있는 날 하나(가장 최근).
+
+    다른 테스트가 같은 회원의 오늘 끼니를 지우거나 더한다 — 시드를 다시 깔고, DB 에
+    실제로 남은 시드 끼니의 날짜로 본다.
+    """
+    from sqlalchemy import select
+
+    from app.db.seed_member_data import seed_member_health_data
+    from app.models.models import DietEntry
+
+    seed_member_health_data()
+    db_session.expire_all()
+    day = db_session.scalar(
+        select(DietEntry.date)
+        .where(
+            DietEntry.user_id == _MEMBER_ID,
+            DietEntry.id.like(f"{_SEED_PREFIX}%"),
+        )
+        .order_by(DietEntry.date.desc())
+        .limit(1)
+    )
+    assert day, "시드 끼니가 없습니다."
+    return day
+
+
+def test_member_sees_the_demo_photos(client, db_session):
+    date = _seeded_day(db_session)
     headers = _login(client, "minsu@oncare.com")
-    day = client.get("/v1/diet/days/today", headers=headers)
+    day = client.get(f"/v1/diet/days/{date}", headers=headers)
     assert day.status_code == 200, day.text
     # 다른 테스트가 같은 회원에게 사진 없는 끼니를 더할 수 있다 — 시드 끼니만 본다.
     entries = [e for e in day.json()["entries"] if e["id"].startswith(_SEED_PREFIX)]
-    assert entries, "오늘 시드 끼니가 없습니다."
+    assert entries, f"{date} 시드 끼니가 없습니다."
     assert all(e["photo_url"] for e in entries), entries
 
     image = client.get(f"/v1{entries[0]['photo_url']}", headers=headers)
@@ -66,12 +93,17 @@ def test_member_sees_the_demo_photos_of_today(client):
     assert image.content[:2] == b"\xff\xd8"
 
 
-def test_trainer_sees_the_same_demo_photos(client):
+def test_trainer_sees_the_same_demo_photos(client, db_session):
+    date = _seeded_day(db_session)
     headers = _login(client, "trainer@oncare.com")
-    res = client.get(f"/v1/trainer/clients/{_MEMBER_ID}/diet", headers=headers)
+    res = client.get(
+        f"/v1/trainer/clients/{_MEMBER_ID}/diet",
+        params={"date": date},
+        headers=headers,
+    )
     assert res.status_code == 200, res.text
     entries = [e for e in res.json() if e["id"].startswith(_SEED_PREFIX)]
-    assert entries, "트레이너가 보는 오늘 시드 끼니가 없습니다."
+    assert entries, f"트레이너가 보는 {date} 시드 끼니가 없습니다."
     assert all(e["photo_url"] for e in entries), entries
 
     image = client.get(f"/v1{entries[0]['photo_url']}", headers=headers)
