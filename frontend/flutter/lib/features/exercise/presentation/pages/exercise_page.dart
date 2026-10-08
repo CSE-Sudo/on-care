@@ -796,7 +796,8 @@ class _DayRecordCard extends StatelessWidget {
   /// 이름과 운동량을 **필드에서** 붙인다. 예전에는 `items`(이름 문자열)를 그대로
   /// 썼는데, 그러려면 픽스처가 세트·중량을 이름에 적어 넣어야 했다(#1902).
   /// 이제 기록 한 행이 운동 하나이므로 그 행의 값이 곧 그 종목의 값이다.
-  static String _name(AppLocalizations l, ExerciseSession s) => s.name.isNotEmpty
+  static String _name(AppLocalizations l, ExerciseSession s) =>
+      s.name.isNotEmpty
       ? s.name
       : s.assignedRoutineName.isNotEmpty
       ? s.assignedRoutineName
@@ -826,7 +827,9 @@ class _DayRecordCard extends StatelessWidget {
             title: title,
             icon: icon,
             trailing: intensityInHeader && sessions.isNotEmpty
-                ? exerciseIntensityTag(exerciseIntensityLabel(l, sessions.first.intensity))
+                ? exerciseIntensityTag(
+                    exerciseIntensityLabel(l, sessions.first.intensity),
+                  )
                 : null,
           ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -942,7 +945,6 @@ class _PtLogCard extends ConsumerWidget {
     if (completedToday.isEmpty) return const SizedBox.shrink();
 
     final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
-    final CoachSession session = completedToday.first;
     // 강도는 PT 프로그램에 없다 — 수업을 마칠 때 서버가 남기는 그날의 PT 운동
     // 기록에 있다. 데모 카드처럼 종목 줄 끝에 적는다. 기록을 아직 못 읽었으면
     // 강도 없이 적는다 — 없는 값을 지어내지 않는다. (#2666)
@@ -956,24 +958,45 @@ class _PtLogCard extends ConsumerWidget {
       for (final ExerciseSession s in todayPt)
         if (s.name.isNotEmpty) s.name: s.type,
     };
-    final List<_LineData> lines = <_LineData>[
-      for (final CoachProgramItem item in session.program)
-        (
-          type: typeByName[item.name],
-          name: item.name,
-          amount: _ptProgramAmount(l, item),
-        ),
-    ];
-    return _PtSessionCard(
-      key: const Key('completedPtSessionCard'),
+
+    Widget card(CoachSession session, Key key) => _PtSessionCard(
+      key: key,
       time: session.time,
       sessionNumber: session.sessionNumber,
       minutes: session.durationMinutes,
       intensity: intensity,
-      lines: lines,
+      lines: <_LineData>[
+        for (final CoachProgramItem item in session.program)
+          (
+            type: typeByName[item.name],
+            name: item.name,
+            amount: _ptProgramAmount(l, item),
+          ),
+      ],
       emptyProgram: l.exCompletedPtNoProgram,
       coachName: coach?.name ?? l.exAssignedTrainer,
       feedback: session.note,
+    );
+
+    // 같은 날 완료한 PT 가 여러 건이면 **모두** 그린다(#3309) — 늦은 시각부터.
+    // 한 건만 그리던 동안에는 트레이너가 방금 완료·전송한 PT 가 같은 날 더 늦은
+    // 시각의 PT 에 가려 회원에게 보이지 않았다. 맨 위 카드의 키는 그대로 둔다.
+    if (completedToday.length == 1) {
+      return card(completedToday.first, const Key('completedPtSessionCard'));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        for (int i = 0; i < completedToday.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(height: OnCareSpacing.s12),
+          card(
+            completedToday[i],
+            i == 0
+                ? const Key('completedPtSessionCard')
+                : Key('completedPtSessionCard-${completedToday[i].id}'),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -1074,7 +1097,9 @@ class _PtSessionCard extends StatelessWidget {
           AppSectionHeader(
             title: l.exCompletedPtTitle,
             icon: AppIcons.exercise,
-            trailing: intensity == null ? null : exerciseIntensityTag(exerciseIntensityLabel(l, intensity!)),
+            trailing: intensity == null
+                ? null
+                : exerciseIntensityTag(exerciseIntensityLabel(l, intensity!)),
             titleBadge: number == null
                 ? null
                 : Flexible(
@@ -1250,10 +1275,9 @@ class _NextPtBadge extends ConsumerWidget {
       Localizations.localeOf(context).toString(),
     ).format(at);
     // 시각은 24시간제 — 같은 화면의 예약 목록·슬롯(`19:00–20:00`)과 같다(#3120).
-    final String time = MaterialLocalizations.of(context).formatTimeOfDay(
-      TimeOfDay.fromDateTime(at),
-      alwaysUse24HourFormat: true,
-    );
+    final String time = MaterialLocalizations.of(
+      context,
+    ).formatTimeOfDay(TimeOfDay.fromDateTime(at), alwaysUse24HourFormat: true);
     return '$date $time';
   }
 }
