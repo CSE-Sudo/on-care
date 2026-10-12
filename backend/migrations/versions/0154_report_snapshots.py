@@ -9,7 +9,7 @@
 전의 리포트는 소급해 채우지 않고, 읽는 쪽이 NULL 이면 지금처럼 다시 계산한다.
 
 Revision ID: 0154_report_snapshots
-Revises: 0152_coach_feedback_states
+Revises: 0153_ai_message_client_request
 Create Date: 2026-10-12
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0154_report_snapshots"
-down_revision: str | Sequence[str] | None = "0152_coach_feedback_states"
+down_revision: str | Sequence[str] | None = "0153_ai_message_client_request"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

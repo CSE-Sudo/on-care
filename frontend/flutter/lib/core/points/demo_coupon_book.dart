@@ -172,8 +172,7 @@ class DemoCouponBook implements DemoPersistable {
       final _DemoCoupon? existing = _coupons
           .where((_DemoCoupon c) => c.clientRequestId == clientRequestId)
           .firstOrNull;
-      if (existing != null)
-        return DemoCouponResult(201, _exchangeJson(existing));
+      if (existing != null) return DemoCouponResult(201, _exchangeJson(existing));
     }
     _expireStale();
     if (item.requiresTrainer && !_hasTrainer) {
@@ -507,10 +506,7 @@ class DemoCouponBook implements DemoPersistable {
     final bool usable = coupon.status == 'issued';
     final bool noExpiry = coupon.lastDay == _noExpiry;
     final int daysLeft = usable && !noExpiry
-        ? math.max(
-            (coupon.lastDay.difference(_today()).inHours / 24).round(),
-            0,
-          )
+        ? math.max((coupon.lastDay.difference(_today()).inHours / 24).round(), 0)
         : 0;
     return <String, Object?>{
       'id': coupon.id,
