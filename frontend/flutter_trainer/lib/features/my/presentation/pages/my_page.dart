@@ -125,6 +125,9 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 남은 폭은 모두 본문이 받는다.
   static const double _menuWidth = 260;
 
+  /// 소속 헬스장 카드의 버튼 둘을 머리줄에 두는 가장 좁은 카드 폭(글자 배율 1 기준).
+  static const double _gymActionsHeaderWidth = 460;
+
   _MySection get _section => _MySection.parse(widget.tab);
 
   bool _saving = false;
@@ -940,41 +943,61 @@ class _MyPageState extends ConsumerState<MyPage> {
         ),
       ),
       const SizedBox(height: OnCareSpacing.cardGap),
-      _SettingsCard(
-        title: l.myGym,
-        // 이 카드에서 할 수 있는 두 가지를 나란히 둔다 — 어느 헬스장 소속인지
-        // 바꾸기와, 그 헬스장의 영업시간·전화·태그 고치기다. 좁으면 줄을 바꾼다.
-        trailing: Wrap(
-          spacing: OnCareSpacing.s8,
-          runSpacing: OnCareSpacing.s8,
-          alignment: WrapAlignment.end,
-          children: <Widget>[
-            AppButton(
-              key: const ValueKey<String>('my-gym-change'),
-              label: _gym.id == null ? l.myGymHiddenAction : l.myGymChange,
-              leadingIcon: AppIcons.search,
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.small,
-              onPressed: () => _go(_MySection.gym),
-            ),
-            // 소속이 있어야 고칠 헬스장이 있다(#2700).
-            if (_gym.id != null)
+      LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // 이 카드에서 할 수 있는 두 가지를 나란히 둔다 — 어느 헬스장 소속인지
+          // 바꾸기와, 그 헬스장의 영업시간·전화·태그 고치기다.
+          final Widget actions = Wrap(
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[
               AppButton(
-                key: const ValueKey<String>('my-gym-info-edit'),
-                label: l.myGymInfoEdit,
-                leadingIcon: AppIcons.edit,
+                key: const ValueKey<String>('my-gym-change'),
+                label: _gym.id == null ? l.myGymHiddenAction : l.myGymChange,
+                leadingIcon: AppIcons.search,
                 variant: AppButtonVariant.secondary,
                 size: OnCareButtonSize.small,
-                onPressed: () => _go(_MySection.gymInfo),
+                onPressed: () => _go(_MySection.gym),
               ),
-          ],
-        ),
-        body: _gym.name.trim().isEmpty
-            ? AppEmptyState(
-                title: l.myGymEmpty,
-                placement: AppStatePlacement.inline,
-              )
-            : _gymInfoGrid(l),
+              // 소속이 있어야 고칠 헬스장이 있다(#2700).
+              if (_gym.id != null)
+                AppButton(
+                  key: const ValueKey<String>('my-gym-info-edit'),
+                  label: l.myGymInfoEdit,
+                  leadingIcon: AppIcons.edit,
+                  variant: AppButtonVariant.secondary,
+                  size: OnCareButtonSize.small,
+                  onPressed: () => _go(_MySection.gymInfo),
+                ),
+            ],
+          );
+          // 머리줄은 줄을 바꾸지 못한다 — 좁거나 글자가 크면(폭 1024·영어·배율
+          // 1.3) 버튼 둘이 제목 옆에 다 들어가지 않아, 본문 위로 내려 줄을 바꾼다.
+          final bool inHeader =
+              constraints.maxWidth /
+                  MediaQuery.textScalerOf(context).scale(1) >=
+              _gymActionsHeaderWidth;
+          final Widget info = _gym.name.trim().isEmpty
+              ? AppEmptyState(
+                  title: l.myGymEmpty,
+                  placement: AppStatePlacement.inline,
+                )
+              : _gymInfoGrid(l);
+          return _SettingsCard(
+            title: l.myGym,
+            trailing: inHeader ? actions : null,
+            body: inHeader
+                ? info
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      actions,
+                      const SizedBox(height: OnCareSpacing.s16),
+                      info,
+                    ],
+                  ),
+          );
+        },
       ),
       const SizedBox(height: OnCareSpacing.cardGap),
       _SettingsCard(
