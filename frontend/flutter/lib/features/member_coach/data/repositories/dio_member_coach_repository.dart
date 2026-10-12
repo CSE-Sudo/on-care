@@ -70,8 +70,12 @@ class DioMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) async {
@@ -83,11 +87,21 @@ class DioMemberCoachRepository implements MemberCoachRepository {
             ? null
             : <String, Object?>{'date': wireDate(day)},
         data: <String, Object?>{
-          'minutes': minutes,
+          // 분을 모르면 싣지 않는다 — 서버가 세트 수·초·배정 시간에서 채운다.
+          // 0 이하는 서버가 거절해(422) 그때도 뺀다(#3364).
+          if (minutes != null && minutes > 0) 'minutes': minutes,
           // 서버는 0 이하를 거절한다(422) — 초가 없거나 0 이면 키를 싣지 않고
           // 분만 보낸다(#2221).
           if (durationSeconds != null && durationSeconds > 0)
             'duration_seconds': durationSeconds,
+          // 근력 완료의 실제 값(#3364). 비운 값은 서버가 배정 값으로 남긴다.
+          // 한 세트는 회로든 초로든 한 번만 잰다 — 초가 있으면 횟수를 뺀다.
+          if (sets != null && sets > 0) 'sets': sets,
+          if (holdSeconds != null && holdSeconds > 0)
+            'hold_seconds': holdSeconds
+          else if (reps != null && reps > 0)
+            'reps': reps,
+          if (weight != null && weight >= 0) 'weight': weight,
           'intensity': intensity,
         },
       );

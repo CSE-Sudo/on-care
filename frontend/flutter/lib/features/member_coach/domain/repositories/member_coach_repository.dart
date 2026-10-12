@@ -55,11 +55,20 @@ abstract interface class MemberCoachRepository {
   ///
   /// [durationSeconds] 는 같은 시간을 초로 적은 값이다(#2221). 초로 배정된
   /// 운동(`45초`)을 [minutes] 로만 보내면 `1분` 기록이 된다. 근력처럼 초가 없는
-  /// 배정은 null 로 두고 [minutes] 만 보낸다.
+  /// 배정은 null 로 둔다.
+  ///
+  /// 근력 배정은 회원이 실제로 한 [sets]·[reps](버티는 운동이면 [holdSeconds])·
+  /// [weight] 를 싣는다(#3364) — 비운 값은 배정 값이 남는다. [minutes] 를 비우면
+  /// 근력은 세트 수에서, 나머지는 초·배정 시간에서 채워진다. 앱이 분을 지어내
+  /// 보내지 않는다.
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   });

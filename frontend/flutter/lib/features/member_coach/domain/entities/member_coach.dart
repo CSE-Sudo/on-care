@@ -71,6 +71,10 @@ class CoachRoutine {
     this.completedAt,
     this.completedMinutes,
     this.completedDurationSeconds,
+    this.completedSets,
+    this.completedReps,
+    this.completedHoldSeconds,
+    this.completedWeight,
     this.completedIntensity,
     this.programName = '',
     this.sessionName = '',
@@ -133,6 +137,16 @@ class CoachRoutine {
   /// 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 null 이다(#2221) —
   /// 그때는 [completedMinutes] 가 그 기록의 값이다.
   final int? completedDurationSeconds;
+
+  /// 회원이 완료하며 적은 세트·횟수·버틴 시간·중량 — 근력 완료에만 있다. (#3364)
+  ///
+  /// 배정 값([sets]·[reps]·[holdSeconds]·[weight])은 트레이너가 정한 것이고,
+  /// 이 값은 회원이 실제로 한 것이다. 완료한 줄은 이 값을 읽는다. 이 키를
+  /// 모르는 옛 응답과 근력이 아닌 완료는 null 이라 배정 값으로 떨어진다.
+  final int? completedSets;
+  final int? completedReps;
+  final int? completedHoldSeconds;
+  final double? completedWeight;
   final String? completedIntensity;
 
   /// 여러 세션으로 짜인 프로그램의 이름. 단일 루틴은 빈 문자열이다(#709).
@@ -176,6 +190,10 @@ class CoachRoutine {
     DateTime? completedAt,
     int? completedMinutes,
     int? completedDurationSeconds,
+    int? completedSets,
+    int? completedReps,
+    int? completedHoldSeconds,
+    double? completedWeight,
     String? completedIntensity,
     PointsAward? pointsAward,
   }) => CoachRoutine(
@@ -197,6 +215,10 @@ class CoachRoutine {
     completedMinutes: completedMinutes ?? this.completedMinutes,
     completedDurationSeconds:
         completedDurationSeconds ?? this.completedDurationSeconds,
+    completedSets: completedSets ?? this.completedSets,
+    completedReps: completedReps ?? this.completedReps,
+    completedHoldSeconds: completedHoldSeconds ?? this.completedHoldSeconds,
+    completedWeight: completedWeight ?? this.completedWeight,
     completedIntensity: completedIntensity ?? this.completedIntensity,
     // 완료만 표시해도 프로그램·세션·운동 구성은 그대로 남아야 한다 — 빠뜨리면
     // 완료를 누른 순간 화면에서 프로그램 제목과 운동이 사라진다(#709).

@@ -386,6 +386,10 @@ class _LazyRoutineSessionLog implements RoutineSessionLog {
     required String name,
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
   }) async {
     final RoutineSessionLog? log = _resolve();
     if (log == null) {
@@ -405,6 +409,10 @@ class _LazyRoutineSessionLog implements RoutineSessionLog {
       name: name,
       intensity: intensity,
       durationSeconds: durationSeconds,
+      sets: sets,
+      reps: reps,
+      holdSeconds: holdSeconds,
+      weight: weight,
     );
   }
 
