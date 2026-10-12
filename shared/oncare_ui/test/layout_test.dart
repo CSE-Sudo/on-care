@@ -289,6 +289,36 @@ void main() {
     expect(tester.getRect(find.byKey(const Key('center'))).right, 800 - 16);
   });
 
+  testWidgets('좁은 머리의 긴 부제는 잘리지 않고 두 줄로 선다 (#3316)', (tester) async {
+    tester.view.physicalSize = const Size(420, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const String subtitle = '전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 보여요';
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _theme(OnCareDensity.web),
+        home: const Scaffold(
+          body: AppWebPage(
+            title: '프로필 수정',
+            subtitle: subtitle,
+            body: ColoredBox(key: Key('body'), color: Colors.white),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(tester.widget<Text>(find.text(subtitle)).maxLines, 2);
+    // 머리 높이는 그대로다.
+    expect(
+      tester.getTopLeft(find.byKey(const Key('body'))).dy,
+      OnCareLayout.webHeaderHeight,
+    );
+    expect(
+      tester.getRect(find.text(subtitle)).bottom,
+      lessThanOrEqualTo(OnCareLayout.webHeaderHeight),
+    );
+  });
+
   group('웹 페이지 머리는 글자 배율이 커져도 넘치지 않는다 (#2431)', () {
     Future<void> pumpPage(
       WidgetTester tester, {

@@ -433,6 +433,23 @@ class AppWebPage extends StatelessWidget {
         : OnCareLayout.webHeaderHeight;
   }
 
+  /// 부제가 쓸 수 있는 줄 수 — 머리 높이 안에 두 줄이 들면 두 줄이다(#3316).
+  ///
+  /// 한 줄로 못 박았던 때에는 좁은 창에서 설명이 `…` 로 잘렸다. 기본 배율에서는
+  /// 제목 한 줄과 부제 두 줄이 88 안에 든다. 글자 배율이 커 두 줄이 들지 않으면
+  /// 예전처럼 한 줄이다 — 머리를 더 키우지 않는다.
+  int _subtitleMaxLines(BuildContext context) {
+    final TextScaler scaler = MediaQuery.textScalerOf(context);
+    final OnCareTokens tokens = context.oncare;
+    double line(TextStyle style) =>
+        scaler.scale(style.fontSize!) * (style.height ?? 1);
+    final double twoLines =
+        line(tokens.text(OnCareTypography.titleLarge)) +
+        line(tokens.text(OnCareTypography.bodySmall)) * 2 +
+        OnCareSpacing.s8 * 2;
+    return twoLines <= _headerHeight(context) ? 2 : 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -457,7 +474,7 @@ class AppWebPage extends StatelessWidget {
         if (subtitle != null)
           Text(
             subtitle!,
-            maxLines: 1,
+            maxLines: _subtitleMaxLines(context),
             overflow: TextOverflow.ellipsis,
             style: tokens
                 .text(OnCareTypography.bodySmall)
