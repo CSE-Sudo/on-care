@@ -228,6 +228,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'POST /auth/register': _authRegister,
     // 가입 이메일 인증 코드 — 데모는 고정 코드만 받는다(#3038).
     'POST /auth/register/email-code': _authRegisterEmailCode,
+    // 아이디(가입 이메일) 찾기 — 서버처럼 가려진 이메일만 준다(#3337).
+    'POST /auth/find-email': _authFindEmail,
     'POST /auth/logout': _authLogout,
     'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,

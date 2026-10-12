@@ -8046,11 +8046,65 @@ abstract class AppLocalizations {
   /// **'Find email'**
   String get findEmailAction;
 
-  /// Toast shown when the find-email button is pressed while the lookup is not available yet.
+  /// No description provided for @findEmailFoundSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Finding your email is coming soon.'**
-  String get findEmailComingSoon;
+  /// **'These accounts match the details you entered.'**
+  String get findEmailFoundSubtitle;
+
+  /// No description provided for @findEmailMaskedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Part of the email is hidden to protect your privacy.'**
+  String get findEmailMaskedNote;
+
+  /// Find-email result for an account that signs in through a social provider only. provider is findEmailProviderKakao / Google / Other.
+  ///
+  /// In en, this message translates to:
+  /// **'You signed up with {provider}'**
+  String findEmailSocialTitle(String provider);
+
+  /// No description provided for @findEmailSocialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'On the sign-in screen, sign in the same way you signed up.'**
+  String get findEmailSocialBody;
+
+  /// No description provided for @findEmailProviderKakao.
+  ///
+  /// In en, this message translates to:
+  /// **'Kakao'**
+  String get findEmailProviderKakao;
+
+  /// No description provided for @findEmailProviderGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get findEmailProviderGoogle;
+
+  /// No description provided for @findEmailProviderOther.
+  ///
+  /// In en, this message translates to:
+  /// **'a social account'**
+  String get findEmailProviderOther;
+
+  /// No description provided for @findEmailNotFoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find a matching account'**
+  String get findEmailNotFoundTitle;
+
+  /// No description provided for @findEmailNotFoundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your name and phone number again. If you didn\'t add a phone number when signing up, or changed it later, we can\'t find the account here.'**
+  String get findEmailNotFoundBody;
+
+  /// No description provided for @findEmailRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Search again'**
+  String get findEmailRetry;
 
   /// No description provided for @passwordChangeTitle.
   ///
