@@ -832,7 +832,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707). 규칙 기반 판정과 AI 에 싣는 주간 요약의 기준은 회원 목표다 — 나트륨 `daily_sodium_mg`, 운동은 이번 주 유산소 분 대 `weekly_cardio_minutes`. 없을 때만 기본값(2,000mg·150분)(#3350) |
+| GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707). 규칙 기반 판정과 AI 에 싣는 주간 요약의 기준은 회원 목표다 — 나트륨 `daily_sodium_mg`, 운동은 이번 주 유산소 분 대 `weekly_cardio_minutes`. 없을 때만 기본값(2,000mg·150분)(#3350). **회원 전용**(트레이너 계정 403, 토큰 없으면 401). 카드는 회원별로 잠깐 캐시한다(`COACH_FEEDBACK_CACHE_SECONDS`, 기본 1800초) — 같은 날(KST)·같은 언어로 다시 부르면 모델을 부르지 않고, 그 회원의 식단·운동 기록이나 판정 기준인 목표(`daily_sodium_mg`·`weekly_cardio_minutes`)가 바뀌면 캐시를 버린다. 인사말은 캐시하지 않는다. 하루에 카드를 새로 만드는 횟수는 회원별 `COACH_FEEDBACK_PER_DAY`(기본 20)까지이고, 넘으면 **오류가 아니라 200** 으로 규칙 기반 카드를 준다 — 응답 모양은 같다(#3351) |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
 | GET | `/ai-coach/messages` | `{ messages[] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |
