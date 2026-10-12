@@ -216,6 +216,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'GET /notifications': _notifications,
     'GET /notifications/unread-count': _notificationsUnreadCount,
     'POST /notifications/read-all': _notificationsReadAll,
+    // 대화 읽음 — 메시지·리포트 알림도 함께 읽음이 된다(#3343).
+    'POST /me/coach/chat/read': _coachChatRead,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
     'GET /ai-coach/insights': _aiCoachInsights,
