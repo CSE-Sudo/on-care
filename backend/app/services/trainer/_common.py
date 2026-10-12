@@ -750,6 +750,10 @@ def clear_sessions_on_withdrawal(db: Session, member_id: str) -> int:
     for s in rows:
         s.client_name = WITHDRAWN_CLIENT_NAME
         s.note = ""
+        # 상담 요청은 회원과 함께 CASCADE 로 사라진다. 연결을 여기서 먼저 끊는다 —
+        # 같은 트랜잭션에서 고친 행은 회원 삭제의 `SET NULL` 갱신 때 FK 를 다시
+        # 검사받는데, 그 시점에는 요청이 이미 지워져 있어 삭제가 통째로 실패한다.
+        s.consultation_id = None
     db.flush()
     return len(upcoming)
 

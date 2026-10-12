@@ -369,6 +369,31 @@ def test_clearing_erases_name_and_note_on_every_row(db_session, pair):
         assert row.note == ""
 
 
+def test_clearing_unlinks_the_consultation_request(db_session, pair):
+    """상담 요청과의 연결을 먼저 끊는다 — 남겨 두면 회원 삭제가 FK 에서 막힌다."""
+    consult = _accepted_consultation(db_session, pair, day=_day(2))
+
+    trainer_common_service.clear_sessions_on_withdrawal(db_session, pair.member_id)
+    db_session.commit()
+
+    assert _row(db_session, consult).consultation_id is None
+
+
+def test_withdrawal_succeeds_with_a_past_consultation_session(
+    client, db_session, pair
+):
+    """끝난 상담 일정만 있어도 탈퇴가 된다 — 이름·메모를 고친 행이 삭제를 막지 않는다."""
+    day = _day(-3)
+    consult = _accepted_consultation(db_session, pair, day=day)
+
+    _withdraw(client, pair)
+
+    row = _schedule(client, pair.other_headers, day)[consult]
+    assert row["status"] == "예정"
+    assert row["client_name"] == "탈퇴 회원"
+    assert row["consultation"] is None
+
+
 def test_clearing_keeps_how_past_sessions_ended(db_session, pair):
     """지난 수업의 결말은 그대로다 — 완료를 취소로 덮지 않는다."""
     done = _session(db_session, pair, day=_day(-5), status="완료")
