@@ -464,10 +464,11 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
               ],
-              // 아직 아무도 잡지 않은 자리만 지울 수 있다 — 수정 대신
-              // 삭제다(#1394).
+              // 아직 아무도 잡지 않은 자리만 닫을 수 있다(#1394). 닫은 자리는
+              // 지워지지 않고 `예약 닫힘` 으로 남는다 — 휴지통이 아니라 닫힌
+              // 일정 아이콘이다(#3329).
               AppIconButton(
-                icon: AppIcons.delete,
+                icon: AppIcons.eventBusy,
                 tooltip: l.slotCloseAction,
                 color: OnCareColors.textTertiary,
                 onPressed: _saving ? null : () => _close(slot),
