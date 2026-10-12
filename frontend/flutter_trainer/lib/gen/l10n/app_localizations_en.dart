@@ -3070,6 +3070,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplates => 'Program templates';
 
   @override
+  String get coachMemberRecords => 'Member records';
+
+  @override
   String get coachSentHistory => 'Sent history';
 
   @override

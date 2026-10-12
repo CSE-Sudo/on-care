@@ -1932,6 +1932,7 @@
   "coachGoToSchedule": "Go to schedule",
   "labelTomorrow": "Tomorrow",
   "coachTemplates": "Program templates",
+  "coachMemberRecords": "Member records",
   "coachSentHistory": "Sent history",
   "coachLastDelivery": "Last send",
   "coachDeliveryPtWithRoutine": "PT · personal",

@@ -1344,6 +1344,23 @@ void main() {
         greaterThan(tester.getTopRight(mainColumn).dx - 1),
       );
       expect(tester.getSize(mainColumn).width, greaterThanOrEqualTo(440));
+      // 세 열에서는 자리가 구분해 주므로 제목 줄을 두지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('coaching-member-records-header')),
+        findsNothing,
+      );
+      // 가장 좁은 식단·운동 열에서도 탄단지는 세 칸으로 나란하다.
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key('client-nutrition-macro-탄수화물')))
+            .dy,
+        closeTo(
+          tester
+              .getTopLeft(find.byKey(const Key('client-nutrition-macro-지방')))
+              .dy,
+          1,
+        ),
+      );
       expect(
         tester.getTopLeft(find.byType(AiRoutineOptionsFlow)).dy,
         closeTo(tester.getTopLeft(mainColumn).dy, 1),
@@ -1365,6 +1382,17 @@ void main() {
           .dy;
       expect(template, lessThan(editor));
       expect(editor, lessThan(data));
+      // 편집기 아래로 내려온 기록은 제목 줄로 가른다.
+      final double header = tester
+          .getTopLeft(
+            find.byKey(
+              const ValueKey<String>('coaching-member-records-header'),
+            ),
+          )
+          .dy;
+      expect(find.text('회원 기록'), findsOneWidget);
+      expect(editor, lessThan(header));
+      expect(header, lessThan(data));
       expect(tester.takeException(), isNull);
     });
 

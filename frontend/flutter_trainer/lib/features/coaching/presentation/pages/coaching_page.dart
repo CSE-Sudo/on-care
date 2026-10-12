@@ -1307,13 +1307,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                               ),
                               const SizedBox(height: OnCareSpacing.s16),
                               ..._editorChildren(selected),
-                              const SizedBox(height: OnCareSpacing.s16),
                               // 좁은 화면도 넓은 화면과 같은 것을 본다 — 오늘의
                               // 영양 카드 하나만 붙여 두면 이 폭에서는 운동
                               // 데이터를 볼 길이 아예 없었다.
-                              _ClientDataSwitcher(client: selected),
-                              const SizedBox(height: OnCareSpacing.s16),
-                              _SendHistoryCard(client: selected),
+                              ..._recordsSection(l, selected),
                             ],
                           ),
                         ),
@@ -1424,21 +1421,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                         // 창에서는 식단·운동과 전송 이력이
                                         // 편집기 **아래**로 온다 — 오른쪽 열을
                                         // 편집기 다음에 읽는 순서다(#3316).
-                                        if (!fullWidth) ...<Widget>[
-                                          const SizedBox(
-                                            height: OnCareSpacing.s16,
-                                          ),
-                                          _ClientDataSwitcher(
-                                            key: const ValueKey<String>(
+                                        if (!fullWidth)
+                                          ..._recordsSection(
+                                            l,
+                                            selected,
+                                            switcherKey: const ValueKey<String>(
                                               'coaching-wide-client-overview',
                                             ),
-                                            client: selected,
                                           ),
-                                          const SizedBox(
-                                            height: OnCareSpacing.s16,
-                                          ),
-                                          _SendHistoryCard(client: selected),
-                                        ],
                                       ],
                                     ),
                                   ),
@@ -1490,7 +1480,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   static const double _pickerMinWidth = 224;
 
   /// 세 열일 때 식단·운동 열이 줄어드는 가장 좁은 폭.
-  static const double _railMinWidth = 296;
+  ///
+  /// 오늘 식단 카드의 탄단지 세 칸이 줄로 바뀌지 않는 폭이다(카드 안쪽 280).
+  /// 이보다 좁혔던 때에는 창을 넓히는 동안 세 줄 ↔ 세 칸을 오갔다(#3316).
+  static const double _railMinWidth = 312;
 
   /// 세 열을 세우는 편집기 최소 폭 — `AI가 참고할 자료` 가 두 칸으로 서는 폭.
   static const double _editorMinWidth = 440;
@@ -1517,6 +1510,32 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
               child: nav,
             ),
     );
+  }
+
+  /// 식단·운동과 전송 이력을 편집기 **아래**에 둘 때의 구역 — 제목 줄로
+  /// 편집기와 가른다(#3316).
+  ///
+  /// 세 열에서는 오른쪽 열이라는 자리가 구분해 주지만, 아래로 내려오면 같은 흰
+  /// 카드가 이어져 어디까지가 프로그램을 짜는 칸인지 읽히지 않았다.
+  List<Widget> _recordsSection(
+    AppLocalizations l,
+    TrainerClient client, {
+    Key? switcherKey,
+  }) {
+    return <Widget>[
+      const SizedBox(height: OnCareSpacing.s24),
+      const AppDivider(),
+      const SizedBox(height: OnCareSpacing.s16),
+      AppSectionHeader(
+        key: const ValueKey<String>('coaching-member-records-header'),
+        title: l.coachMemberRecords,
+        icon: AppIcons.clients,
+      ),
+      const SizedBox(height: OnCareSpacing.s12),
+      _ClientDataSwitcher(key: switcherKey, client: client),
+      const SizedBox(height: OnCareSpacing.s16),
+      _SendHistoryCard(client: client),
+    ];
   }
 
   /// 좁은 한 열의 회원 고르기 줄 — 누구의 프로그램인가.
