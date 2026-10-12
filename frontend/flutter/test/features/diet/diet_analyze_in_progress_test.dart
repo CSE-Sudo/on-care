@@ -161,13 +161,15 @@ void main() {
   });
 
   test('다시 묻기 전에 정해진 시간만큼 쉰다', () async {
-    final List<DateTime> at = <DateTime>[];
+    // 벽시계가 아니라 경과 시간으로 잰다.
+    final Stopwatch watch = Stopwatch()..start();
+    final List<Duration> at = <Duration>[];
     final ({Dio dio, List<RequestOptions> sent}) d = _dio((
       RequestOptions o,
       RequestInterceptorHandler h,
       int attempt,
     ) {
-      at.add(DateTime.now());
+      at.add(watch.elapsed);
       if (attempt == 1) {
         _inProgress(o, h);
       } else {
@@ -183,7 +185,7 @@ void main() {
     ).analyze(photo: _photo, mealType: 'lunch', idempotencyKey: 'k');
 
     expect(at, hasLength(2));
-    expect(at[1].difference(at[0]), greaterThanOrEqualTo(interval));
+    expect(at[1] - at[0], greaterThanOrEqualTo(interval));
   });
 
   test('끝내 분석 중이면 정해진 횟수만 묻고 다시 시도할 수 있는 실패로 알린다', () async {
