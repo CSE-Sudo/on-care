@@ -110,6 +110,30 @@ void main() {
     expect(parse(0).sessionNumber, isNull);
   });
 
+  test('coachSessionFromJson reads trainer_name (#3347)', () {
+    CoachSession parse(Map<String, Object?> extra) =>
+        coachSessionFromJson(<String, Object?>{
+          'id': 'session-trainer',
+          'date': '2026-09-21',
+          'time': '18:00',
+          'type': '1:1 PT',
+          'duration_minutes': 50,
+          'status': '완료',
+          'note': '',
+          'program': const <Object?>[],
+          ...extra,
+        });
+
+    expect(parse(<String, Object?>{'trainer_name': '김코치'}).trainerName, '김코치');
+    expect(
+      parse(<String, Object?>{'trainer_name': '  김코치 '}).trainerName,
+      '김코치',
+    );
+    // 옛 서버는 싣지 않는다 — 화면이 지금 담당의 이름으로 읽는다.
+    expect(parse(const <String, Object?>{}).trainerName, isEmpty);
+    expect(parse(<String, Object?>{'trainer_name': null}).trainerName, isEmpty);
+  });
+
   group('duration_seconds (#2221)', () {
     test('coachSessionFromJson reads program seconds', () {
       final CoachSession session = coachSessionFromJson(<String, Object?>{
