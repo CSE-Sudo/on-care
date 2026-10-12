@@ -291,6 +291,7 @@ def send_message(
     attachment_file_id: str | None = None,
     attachment_file_size: int | None = None,
     report_week_start: str | None = None,
+    report_snapshot: str | None = None,
     emote_id: str | None = None,
     routine_delivery: dict[str, object] | None = None,
     commit: bool = True,
@@ -330,6 +331,8 @@ def send_message(
         # 리포트 전송 안내인가 — 호출자가 정한다. 첨부와 마찬가지로 본문만
         # 보고는 알 수 없고, 리포트는 PDF 없이도 나간다(#1600).
         report_week_start=report_week_start,
+        # 보낸 시점의 리포트 수치(#3349) — 회원이 나중에 열어도 이 값이다.
+        report_snapshot_json=report_snapshot,
         # 이모티콘 메시지(#2020). 본문은 이모티콘을 못 그리는 자리(알림·로스터의
         # 마지막 메시지)가 읽을 글이고, 그림은 이 id 가 고른다.
         emote_id=emote_id,

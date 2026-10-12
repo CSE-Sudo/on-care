@@ -2278,6 +2278,18 @@ class WeeklyReportOut(BaseModel):
     message: str                 # 회원에게 전송될 본문(미리보기와 동일)
 
 
+class MemberWeeklyReportOut(WeeklyReportOut):
+    """회원이 읽는 한 주 — `GET /me/coach/weekly-report`. (#3349)
+
+    필드는 [WeeklyReportOut] 그대로이고, 값이 어느 시점의 것인지만 더한다.
+    """
+    #: 이 값을 굳힌 시각. 트레이너가 보냈거나 회원이 포인트로 산 때다. null 이면
+    #: 스냅샷이 없어 **지금** 계산한 값이다(#3349 전의 리포트, 받은 적 없는 주).
+    #: 진행 중이던 주를 굳힌 리포트는 이 시각을 기준일로 읽어야 한다 — 그때 아직
+    #: 오지 않았던 요일을 "안 한 날" 로 세면 안 된다.
+    snapshot_at: _datetime | None = None
+
+
 #: 리포트 요약 headline 의 응답 상한(#3090). 회원 이름(최대 100자)이 들어간 규칙 기반
 #: 영어 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
 REPORT_HEADLINE_MAX = 400

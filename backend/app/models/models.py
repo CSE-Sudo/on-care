@@ -584,6 +584,9 @@ class WeeklyReportPurchase(Base):
     쌓은 식단·운동 기록과 감지 기록으로 앱이 그때그때 세운다(트레이너 리포트를
     회원 앱이 여는 방식과 같다). 여기에는 **어느 주를 샀는지**만 남는다.
 
+    #3349 부터는 산 시점의 수치와 감지 기록을 함께 남긴다 — 리포트를 세우는 것은
+    여전히 앱이지만, 재료는 살 때의 값으로 고정된다.
+
     같은 주는 한 번만 산다(`uq_weekly_report_purchase_week`).
     """
 
@@ -599,6 +602,17 @@ class WeeklyReportPurchase(Base):
     cost: Mapped[int] = mapped_column(Integer, default=0)
     #: 재시도가 두 번 사지 않게 하는 멱등키.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: 산 시점의 그 주 리포트(`WeeklyReportOut` JSON). (#3349)
+    #:
+    #: 열 때마다 다시 계산하면 산 뒤에 고친 기록·목표가 지난 리포트를 바꾼다.
+    #: NULL 은 이 컬럼이 생기기 전에 산 주로, 읽는 쪽이 다시 계산한다.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 산 시점의 그 주 감지 기록(`[{kind, body_part, created_at}]` JSON). (#3349)
+    #:
+    #: 감지 기록은 최근 30일 대화에서 매번 계산해, 한 달 뒤에는 살 때 적혀 있던
+    #: 감지가 사라졌다. 빈 목록은 "그 주에 감지가 없었다" 이고 NULL 은 "남겨 둔
+    #: 것이 없다" 다 — 둘을 섞으면 옛 리포트가 "감지 없음" 으로 읽힌다.
+    insights_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -2237,6 +2251,12 @@ class ChatMessage(Base):
     # 실어 보낸 값을 그대로 들고 있는다. 일반 대화는 NULL 이라 예전 행과 조회
     # 흐름은 그대로다.
     report_week_start: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 리포트를 보낸 시점의 그 주 수치·목표(`WeeklyReportOut` JSON). (#3349)
+    #
+    # 본문으로 보낸 리포트는 회원이 열 때마다 다시 계산해, 보낸 뒤 회원이 기록이나
+    # 목표를 고치면 같은 리포트가 다른 내용이 됐다. 보낼 때의 값을 남기고 회원
+    # 조회가 이것을 먼저 읽는다. 이 컬럼이 생기기 전의 전송과 일반 대화는 NULL 이다.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 이 메시지가 루틴 전송 안내라면 그 전송(종류·운동 이름)의 JSON. (#2672)
     #
     # 운동을 보내면 알림만 가고 채팅에는 남지 않아, 대화 속에서 "어제 보낸

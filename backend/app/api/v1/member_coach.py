@@ -26,12 +26,13 @@ from app.schemas.text_limits import TEXT_LONG_MAX
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
     MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
-    MemberWeeklyFeedbackSaveRequest, RoutineCompleteOut, RoutineOut,
-    ScheduleSessionOut, UpcomingRoutinesOut, WeeklyReportOut,
+    MemberWeeklyFeedbackSaveRequest, MemberWeeklyReportOut, RoutineCompleteOut,
+    RoutineOut, ScheduleSessionOut, UpcomingRoutinesOut,
 )
 from app.services import (
     emote_service,
     member_departure,
+    report_snapshot_service,
     trainer_client_invite_service,
 )
 from app.services.trainer import chat as trainer_chat_service
@@ -531,6 +532,8 @@ def save_my_weekly_feedback(
 # 초안(`message`)은 비워 보낸다 — 회원에게 가는 글은 트레이너가 보낸 것만이다.
 # 담당 트레이너가 없어도 읽을 수 있다(포인트로 교환한 리포트, #2022).
 #
+# 받았거나 산 주는 그때 굳힌 값을 준다(#3349, `report_snapshot_service`).
+#
 # PT 횟수·이행률·개인운동 수는 **회원 기준**으로 센다(#3347) — 지금의 담당으로
 # 거르면 트레이너를 바꾸거나 담당이 끊긴 뒤 지난 주가 전부 0 이 된다. 담당이 한
 # 명뿐이던 주는 그 트레이너가 보는 값과 같다.
@@ -559,15 +562,33 @@ def _my_report_week(week_start: str | None) -> date:
     return week
 
 
-@router.get("/me/coach/weekly-report", response_model=WeeklyReportOut)
+@router.get("/me/coach/weekly-report", response_model=MemberWeeklyReportOut)
 def my_weekly_report(
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
     week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
-) -> WeeklyReportOut:
-    """내 한 주 리포트 — 그 주에 나에게 걸려 있던 PT·개인운동 전부로 센다."""
+    message_id: str | None = Query(
+        None, max_length=64, description="열려는 리포트 전송 메시지 id"
+    ),
+) -> MemberWeeklyReportOut:
+    """내 한 주 리포트 — 그 주에 나에게 걸려 있던 PT·개인운동 전부로 센다.
+
+    받았거나 산 리포트는 **그때 굳힌 값**을 준다(#3349). 열 때마다 다시 계산하면
+    보낸 뒤 고친 기록·목표가 지난 리포트를 바꾼다. [message_id] 는 같은 주를 두 번
+    받았을 때 누른 전송을 고른다. 굳힌 값이 없는 주(옛 리포트)는 지금 계산한다.
+    """
+    week = _my_report_week(week_start)
+    snapshot = report_snapshot_service.member_snapshot(
+        db, user.id, week, message_id=message_id
+    )
+    if snapshot is not None:
+        return MemberWeeklyReportOut(
+            **snapshot.report.model_dump(exclude={"message"}),
+            message="",
+            snapshot_at=snapshot.taken_at,
+        )
     trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
     report = trainer_reports_service.build_weekly_report(
-        db, trainer_id, user.id, _my_report_week(week_start), member_scope=True
+        db, trainer_id, user.id, week, member_scope=True
     )
-    return report.model_copy(update={"message": ""})
+    return MemberWeeklyReportOut(**report.model_dump(exclude={"message"}), message="")
