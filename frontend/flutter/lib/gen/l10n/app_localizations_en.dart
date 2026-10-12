@@ -1815,6 +1815,44 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get challengeGoalSource =>
+      'The goal follows the weekly workout goal in your MY health goals';
+
+  @override
+  String get challengeHistoryAction => 'Past results';
+
+  @override
+  String get challengeHistoryTitle => 'Past challenge results';
+
+  @override
+  String get challengeHistoryEmpty => 'No challenges joined yet';
+
+  @override
+  String get challengeHistoryEmptyMessage =>
+      'Join the weekly workout challenge on a Monday or Tuesday and your results will show up here.';
+
+  @override
+  String get challengeHistoryLoadFailed =>
+      'Couldn\'t load your challenge results';
+
+  @override
+  String challengeHistoryResult(int goal, int progress) {
+    return 'Goal $goal · $progress workout days';
+  }
+
+  @override
+  String get challengeStatusSucceeded => 'Succeeded';
+
+  @override
+  String get challengeStatusFailed => 'Missed';
+
+  @override
+  String get challengeStatusActive => 'In progress';
+
+  @override
+  String get challengeStatusSettling => 'Tallying';
+
+  @override
   String get myCouponStatusUsable => 'Available';
 
   @override
@@ -3718,6 +3756,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGoalFlexibilityWeekly => 'Weekly stretching (min)';
+
+  @override
+  String get myGoalWorkoutsWeekly => 'Weekly workouts (days)';
+
+  @override
+  String myGoalWorkoutsWeeklyHint(int days) {
+    return 'This becomes your weekly workout challenge goal. Without one it is $days days, and a week you already joined keeps its goal.';
+  }
 
   @override
   String myGoalExerciseSuggestionNote(

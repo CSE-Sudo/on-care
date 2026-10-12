@@ -21,6 +21,9 @@ import 'package:oncare/features/auth/domain/repositories/password_repository.dar
     show ReissuedTokens;
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart'
+    show kDefaultWeeklyWorkoutDays;
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/presentation/controllers/location_consent_controller.dart';
@@ -913,11 +916,14 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   final TextEditingController _protein = TextEditingController();
   final TextEditingController _fat = TextEditingController();
   // 운동 목표는 운동 탭이 견주는 축과 같다 (#1139) — 소모는 하루, 유형별은
-  // 한 주다. 주간 운동 횟수·시간은 어느 화면도 쓰지 않아 뺐다.
+  // 한 주다. 주간 운동 시간·소모는 어느 화면도 쓰지 않아 뺐다.
   final TextEditingController _burn = TextEditingController();
   final TextEditingController _cardio = TextEditingController();
   final TextEditingController _strength = TextEditingController();
   final TextEditingController _flexibility = TextEditingController();
+  // 주간 운동 횟수는 주간 운동 챌린지의 목표다(#3361). 운동 탭의 네 축과 달리
+  // 운동한 날 수라, 같은 구역의 따로 선 카드에 둔다.
+  final TextEditingController _workouts = TextEditingController();
   bool _saving = false;
 
   /// 지금 고치는 중인가. 들어오면 보기 모드이고, 연필을 눌러야 칸이 열린다 —
@@ -945,6 +951,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   static const String _kCardio = 'cardio';
   static const String _kStrength = 'strength';
   static const String _kFlexibility = 'flexibility';
+  static const String _kWorkouts = 'workouts';
 
   /// 저장된 값이 없어 **권장값으로 채워 둔** 칸.
   ///
@@ -965,6 +972,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     if (_base.weeklyCardioMinutes == null) _kCardio,
     if (_base.weeklyStrengthSets == null) _kStrength,
     if (_base.weeklyFlexibilityMinutes == null) _kFlexibility,
+    if (_base.weeklyWorkoutGoal == null) _kWorkouts,
   };
 
   /// 칸마다 서버가 받는 범위(#1888). 서버 `health_goal_ranges` 와 같은 값을
@@ -981,6 +989,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kCardio: AppGoalRanges.weeklyCardioMinutes,
     _kStrength: AppGoalRanges.weeklyStrengthSets,
     _kFlexibility: AppGoalRanges.weeklyFlexibilityMinutes,
+    _kWorkouts: AppGoalRanges.weeklyWorkoutDays,
   };
 
   /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
@@ -1008,6 +1017,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kCardio => _cardio,
     _kStrength => _strength,
     _kFlexibility => _flexibility,
+    _kWorkouts => _workouts,
     _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
   };
 
@@ -1146,6 +1156,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kCardio => _base.weeklyCardioMinutes,
     _kStrength => _base.weeklyStrengthSets,
     _kFlexibility => _base.weeklyFlexibilityMinutes,
+    _kWorkouts => _base.weeklyWorkoutGoal,
     _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
   };
 
@@ -1166,6 +1177,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kCardio => kDefaultExerciseLoadGoals.weeklyCardioMinutes.round(),
     _kStrength => kDefaultExerciseLoadGoals.weeklyStrengthSets.round(),
     _kFlexibility => kDefaultExerciseLoadGoals.weeklyFlexibilityMinutes.round(),
+    // 목표가 없는 회원에게 챌린지가 거는 횟수다 — 서버 `DEFAULT_GOAL` 과 같다.
+    _kWorkouts => kDefaultWeeklyWorkoutDays,
     _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
   };
 
@@ -1338,6 +1351,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       _cardio,
       _strength,
       _flexibility,
+      _workouts,
       _notes,
     ]) {
       c.dispose();
@@ -1415,11 +1429,15 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
             weeklyCardioMinutes: goals[_kCardio],
             weeklyStrengthSets: goals[_kStrength],
             weeklyFlexibilityMinutes: goals[_kFlexibility],
+            weeklyWorkoutGoal: goals[_kWorkouts],
           );
       if (!mounted) return;
       _base = updatedProfile;
       ref.read(profileProvider.notifier).applyUpdatedProfile(updatedProfile);
       ref.invalidate(dashboardSummaryProvider);
+      // 주간 운동 횟수는 다음에 참가할 챌린지의 목표다(#3361) — 사용처 카드가
+      // 옛 횟수를 적지 않게 다시 읽는다. 이미 참가한 주는 서버가 그대로 둔다.
+      if (goals[_kWorkouts] != null) ref.invalidate(weeklyChallengeProvider);
       // 저장해도 화면을 닫지 않고 보기 모드로 돌아온다 — 내 프로필과 같다
       // (#2132). 방금 저장한 목표가 화면에 그대로 남아, 무엇이 저장됐는지
       // 돌아간 화면에서 다시 찾지 않아도 된다.
@@ -1674,6 +1692,33 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
             _kStrength,
             _kFlexibility,
           ]),
+        ]),
+        const SizedBox(height: OnCareSpacing.s12),
+        // 주간 운동 횟수(#3361) — 주간 운동 챌린지에 참가할 때 걸리는 목표다.
+        // 위 네 칸의 `권장값 채우기` 가 다루지 않는 값이라 카드를 따로 둔다.
+        _card(<Widget>[
+          _goalField(
+            _kWorkouts,
+            l.myGoalWorkoutsWeekly,
+            AppTextField(
+              key: const Key('goalWorkoutsField'),
+              label: l.myGoalWorkoutsWeekly,
+              controller: _workouts,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '$kDefaultWeeklyWorkoutDays',
+              errorText: _errors.of(_kWorkouts),
+              onChanged: (_) => _onGoalEdited(_kWorkouts),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          Text(
+            keepWords(l.myGoalWorkoutsWeeklyHint(kDefaultWeeklyWorkoutDays)),
+            key: const Key('goalWorkoutsHint'),
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
         ]),
         const SizedBox(height: OnCareSpacing.s20),
         AppSectionHeader(title: l.myGoalsDietSection),

@@ -1307,6 +1307,8 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
               state: state,
               busy: _joiningChallenge,
               onJoin: idle ? () => _joinChallenge(state) : null,
+              onViewHistory: () =>
+                  context.push<void>(AppRoutes.myChallengeHistory),
             ),
             const SizedBox(height: OnCareSpacing.cardGap),
           ],
