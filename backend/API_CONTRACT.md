@@ -173,6 +173,14 @@
 다시 첫 설정으로 보낸다(#2630). 건너뛴 회원은 MY `건강 목표` 화면의 안내 카드에서 첫
 설정을 다시 열 수 있다.
 
+다시 연 첫 설정은 빈 계정이 아닐 수 있다 — 그 사이 MY 에서 목표를 정했거나 담당
+트레이너가 목표와 주의사항을 넣어 줬을 수 있다. 그래서 앱은 회원의 지금 값으로 칸을
+채우고 **바꾼 칸만** 보낸다(#3339). 서버는 보내지 않은 칸을 그대로 두므로 손대지 않은
+목표는 남고, `conditions` 를 보내지 않은 저장은 건강 목표·주의사항 변경 알림을 만들지
+않는다. `conditions` 를 보낼 때는 바꾼 쪽(목표 칩 또는 주의사항)만 서버의 지금 값 위에
+얹은 문자열을 보낸다. 있던 목표를 비운 칸은 `PUT /users/me/health-goals` 의 `null` 로
+해제한다 — 이 문은 빈 값을 보내지 않는다.
+
 ### 채팅 이모티콘 (#2020, #2153)
 
 | Method | Path | 응답 핵심 필드 |
@@ -840,9 +848,9 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707). 규칙 기반 판정과 AI 에 싣는 주간 요약의 기준은 회원 목표다 — 나트륨 `daily_sodium_mg`, 운동은 이번 주 유산소 분 대 `weekly_cardio_minutes`. 없을 때만 기본값(2,000mg·150분)(#3350). **회원 전용**(트레이너 계정 403, 토큰 없으면 401). 카드는 회원별로 잠깐 캐시한다(`COACH_FEEDBACK_CACHE_SECONDS`, 기본 1800초) — 같은 날(KST)·같은 언어로 다시 부르면 모델을 부르지 않고, 그 회원의 식단·운동 기록이나 판정 기준인 목표(`daily_sodium_mg`·`weekly_cardio_minutes`)가 바뀌면 캐시를 버린다. 인사말은 캐시하지 않는다. 하루에 카드를 새로 만드는 횟수는 회원별 `COACH_FEEDBACK_PER_DAY`(기본 20)까지이고, 넘으면 **오류가 아니라 200** 으로 규칙 기반 카드를 준다 — 응답 모양은 같다(#3351) |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
-| GET | `/ai-coach/messages` | `{ messages[] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |
+| GET | `/ai-coach/messages` | `{ messages[{ id, role, content, sources, created_at, insight, points_spent, balance_after, client_request_id }] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |
 | GET | `/ai-coach/quota` | `{ free_limit, free_left, paid_limit, paid_left, cost, balance, next }` — 오늘 남은 대화(#2145) |
-| POST | `/ai-coach/chat` | 입력 `{ message, history?, pay_with_points?, client_request_id? }` → `{ reply, sources, user_insight, points_spent, balance_after, quota }` |
+| POST | `/ai-coach/chat` | 입력 `{ message, history?, pay_with_points?, client_request_id? }` → `{ reply, sources, user_insight, points_spent, balance_after, quota, user_message_id, user_created_at, reply_message_id, reply_created_at, client_request_id }` |
 
 tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
@@ -856,11 +864,18 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
   쓰지 않고 대화도 저장하지 않는다. 앱은 보낸 말을 거두고 입력칸에 되돌려 안내한다.
 - 한도와 잔액은 LLM 을 부르기 전에 잠금 아래에서 확인하고 그 대화의 몫(포인트면 차감까지)을 먼저 잡는다(#3240). 동시에 보낸 요청도
   한도·잔액을 넘지 못하고, 잔액이 모자라면 답하기 전에 409 `insufficient_points` 다. 같은 `client_request_id` 가 아직 답을 기다리는
-  중이면 409 `in_progress`(앱은 일반 오류로 다룬다).
+  중이면 409 `in_progress` 다 — 실패가 아니라 "아직 처리 중"이다. 앱은 보낸 말을 그대로 두고 잠시 뒤 `GET /ai-coach/messages` 를
+  다시 읽어 같은 `client_request_id` 의 답을 찾는다(#3352).
 - **AI 가 답했을 때만 센다.** 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다(잡아 둔 몫을 거둔다 — 원장에 사용·반환 줄이 남지 않는다). 포인트로 산 답은 원장에 `ai_chat` 사용 줄로 남고,
   `points_spent`·`balance_after` 가 답변 아래 차감 표시(`−50P · 남은 포인트`)를 채운다. `GET /ai-coach/messages` 의 코치 답변도 같은
   두 값을 싣는다.
-- 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려주고 다시 세지 않는다.
+- 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려주고 다시 세지 않는다. **대체 답으로 끝난 전송도 같다(#3352)** —
+  사용 기록은 남기지 않지만(무료 횟수·포인트 0) 저장한 질문·답 두 줄에 키를 남겨, 모델 장애 중 재시도해도 대화에 같은 질문이
+  한 번만 남는다.
+- **메시지 식별자(#3352).** 저장된 메시지는 줄마다 `id`·`created_at`·`client_request_id`(그 줄을 만든 전송의 키, 질문과 답이 같은
+  값. 키 없이 보냈거나 예전 줄은 null)를 싣는다. `POST /ai-coach/chat` 응답의 `user_message_id`·`user_created_at`·
+  `reply_message_id`·`reply_created_at`·`client_request_id` 는 방금 저장한(재생이면 그때 저장한) 두 줄의 같은 값이다. 앱은 방금 보낸
+  말과 저장된 대화를 본문·기기 시각이 아니라 이 값으로 맞춘다. 필드는 추가만 했다 — 옛 앱은 무시하고 지금처럼 동작한다.
 
 **요청 크기·빈도 한도(#1548, #1549).** 한도를 넘는 요청은 LLM 을 부르기 전에 거절하고, 대화 저장·하루 한도 차감도 하지 않는다.
 
