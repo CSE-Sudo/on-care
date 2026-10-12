@@ -24,6 +24,7 @@ from app.db.session import get_db
 from app.services import auth_tokens
 from app.services.audit import client_ip, record as audit
 from app.services.contact_format import normalize_email
+from app.services.placeholder_email import placeholder_email
 from app.models.models import SocialAccount, User
 from app.schemas.user import (
     KakaoCodeExchangeRequest,
@@ -58,8 +59,8 @@ class SocialEmailInUse(Exception):
 
 
 def _placeholder_email(identity: SocialIdentity) -> str:
-    """확인된 이메일이 없을 때 쓰는 대체 이메일. provider 신원마다 하나라 겹치지 않는다."""
-    return normalize_email(f"{identity.provider}_{identity.provider_user_id}@social.oncare")
+    """확인된 이메일이 없을 때 쓰는 대체 이메일. 규칙은 `services/placeholder_email.py`."""
+    return placeholder_email(identity.provider, identity.provider_user_id)
 
 
 def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:

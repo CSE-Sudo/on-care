@@ -30,7 +30,8 @@ String aiAdviceBody(AppLocalizations l, DashboardSummary summary) {
 /// 먼저 내려도 화면이 비지 않게.
 ///
 /// 운동 되먹임의 분 수는 요약이 이미 들고 있는 값을 쓴다(#1943) — 서버가 같은
-/// 응답에서 센 값이라, 문장과 카드가 서로 다른 숫자를 말할 일이 없다.
+/// 응답에서 센 값이라, 문장과 카드가 서로 다른 숫자를 말할 일이 없다. 서버가
+/// 목표와 견준 값인 이번 주 유산소 분이다(#3350).
 String? _localized(AppLocalizations l, DashboardSummary summary) =>
     switch (summary.aiAdviceKey) {
       kDailyCombinedAdviceKey => l.homeAiAdviceBody,
@@ -42,9 +43,12 @@ String? _localized(AppLocalizations l, DashboardSummary summary) =>
         null => null,
       },
       'exercise_on_track' => l.homeAdviceExerciseOnTrack(
-        summary.exerciseMinutes,
+        summary.exerciseCardioMinutes,
       ),
-      'exercise_more' => l.homeAdviceExerciseMore(summary.exerciseMinutes),
+      'exercise_more' => l.homeAdviceExerciseMore(
+        summary.exerciseCardioMinutes,
+      ),
+      'exercise_cardio_start' => l.homeAdviceExerciseCardioStart,
       'exercise_start' => l.homeAdviceExerciseStart,
       _ => null,
     };

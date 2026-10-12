@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -34,6 +35,9 @@ final List<ProviderOrFamily> kDietChangeRefreshTargets = <ProviderOrFamily>[
   // 연속 기록이 끊긴 것처럼 보였다.
   activityCalendarProvider,
   myStreakShieldsProvider,
+  // 홈 코칭 시트 — 기록한 뒤에도 "오늘 식단을 기록해 보세요" 카드가 남았다(#3351).
+  // 서버가 기록이 바뀐 회원의 카드만 새로 만들고, 하루 생성 횟수를 묶는다.
+  aiCoachStateProvider,
 ];
 
 /// 식단 기록이 바뀐 뒤(저장·수정·삭제·날짜 이동) 비워야 할 캐시를 한 번에
