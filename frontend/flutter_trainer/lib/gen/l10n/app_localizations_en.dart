@@ -131,6 +131,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionClose => 'Close';
 
   @override
+  String get actionDone => 'Done';
+
+  @override
+  String get actionMore => 'More';
+
+  @override
   String get actionRetry => 'Retry';
 
   @override
@@ -5168,10 +5174,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unitGram => 'g';
 
   @override
-  String get a11yRemoveExercise => 'Remove exercise';
+  String get a11yRemoveExercise => 'Delete exercise';
 
   @override
-  String get a11yRemoveCertification => 'Remove certification';
+  String get a11yRemoveCertification => 'Delete certification';
 
   @override
   String get a11yPrevWeek => 'Previous week';
@@ -5207,9 +5213,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String coachClientAge(int age) {
     return 'Age $age';
   }
-
-  @override
-  String get coachTemplateMenu => 'Template menu';
 
   @override
   String get routineFormDecrease => 'Decrease';
@@ -6414,7 +6417,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymInfoSaveFailed => 'Couldn\'t save the gym info.';
 
   @override
-  String get a11yRemoveGymTag => 'Remove tag';
+  String get a11yRemoveGymTag => 'Delete tag';
 
   @override
   String myGymTagsHint(int max, int length) {

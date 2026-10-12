@@ -4325,7 +4325,7 @@ abstract class AppLocalizations {
   /// Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665).
   ///
   /// In en, this message translates to:
-  /// **'Remove'**
+  /// **'Delete'**
   String get coachPhotoDiscard;
 
   /// No description provided for @coachPhotoPermissionDenied.
@@ -7012,7 +7012,7 @@ abstract class AppLocalizations {
   /// No description provided for @a11yRemoveFood.
   ///
   /// In en, this message translates to:
-  /// **'Remove food'**
+  /// **'Delete food'**
   String get a11yRemoveFood;
 
   /// No description provided for @a11yPrevWeek.

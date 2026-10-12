@@ -986,7 +986,7 @@ void main() {
       );
 
       // 태그 줄이 상단 바 아래로 밀려 있을 수 있어, 누르기 전에 화면으로 올린다.
-      final Finder remove = find.byTooltip('태그 지우기');
+      final Finder remove = find.byTooltip('태그 삭제');
       await tester.ensureVisible(remove);
       await tester.pumpAndSettle();
       await tester.tap(remove);

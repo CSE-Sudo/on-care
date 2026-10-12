@@ -320,6 +320,18 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get actionClose;
 
+  /// No description provided for @actionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get actionDone;
+
+  /// No description provided for @actionMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get actionMore;
+
   /// No description provided for @actionRetry.
   ///
   /// In en, this message translates to:
@@ -8724,13 +8736,13 @@ abstract class AppLocalizations {
   /// No description provided for @a11yRemoveExercise.
   ///
   /// In en, this message translates to:
-  /// **'Remove exercise'**
+  /// **'Delete exercise'**
   String get a11yRemoveExercise;
 
   /// No description provided for @a11yRemoveCertification.
   ///
   /// In en, this message translates to:
-  /// **'Remove certification'**
+  /// **'Delete certification'**
   String get a11yRemoveCertification;
 
   /// No description provided for @a11yPrevWeek.
@@ -8780,12 +8792,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Age {age}'**
   String coachClientAge(int age);
-
-  /// No description provided for @coachTemplateMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Template menu'**
-  String get coachTemplateMenu;
 
   /// No description provided for @routineFormDecrease.
   ///
@@ -10434,7 +10440,7 @@ abstract class AppLocalizations {
   /// No description provided for @a11yRemoveGymTag.
   ///
   /// In en, this message translates to:
-  /// **'Remove tag'**
+  /// **'Delete tag'**
   String get a11yRemoveGymTag;
 
   /// No description provided for @myGymTagsHint.

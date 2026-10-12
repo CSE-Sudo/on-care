@@ -1697,7 +1697,7 @@
   },
   "coachPhotoSendFailed": "Couldn't send the photo",
   "coachPhotoRetry": "Send again",
-  "coachPhotoDiscard": "Remove",
+  "coachPhotoDiscard": "Delete",
   "@coachPhotoDiscard": {
     "description": "Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665)."
   },
@@ -3116,7 +3116,7 @@
   "a11yOpenCoaching": "Open coaching advice",
   "a11ySendMessage": "Send message",
   "a11yClearSearch": "Clear search",
-  "a11yRemoveFood": "Remove food",
+  "a11yRemoveFood": "Delete food",
   "a11yPrevWeek": "Previous week",
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
