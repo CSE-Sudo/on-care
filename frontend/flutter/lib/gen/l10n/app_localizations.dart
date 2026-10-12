@@ -2276,6 +2276,12 @@ abstract class AppLocalizations {
   /// **'User'**
   String get myDefaultUserName;
 
+  /// Shown instead of the email when the account only has the internal placeholder address from a social sign-up.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider, select, kakao{Signed up with Kakao} google{Signed up with Google} other{Signed up with a social account}} · No email on file'**
+  String myEmailUnregistered(String provider);
+
   /// No description provided for @myProfileLoadFailed.
   ///
   /// In en, this message translates to:
@@ -3787,6 +3793,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That email is already in use'**
   String get myProfileEmailTaken;
+
+  /// No description provided for @myProfileEmailEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address to use'**
+  String get myProfileEmailEmptyHint;
 
   /// No description provided for @myProfilePhoneRequired.
   ///
@@ -8177,6 +8189,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter the code from the email and your new password.'**
   String get passwordResetConfirmSubtitle;
+
+  /// No description provided for @passwordResetSocialNote.
+  ///
+  /// In en, this message translates to:
+  /// **'If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.'**
+  String get passwordResetSocialNote;
 
   /// No description provided for @passwordResetCodeHint.
   ///

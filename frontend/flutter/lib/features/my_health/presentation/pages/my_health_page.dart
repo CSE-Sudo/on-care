@@ -370,7 +370,11 @@ class _ProfileHead extends ConsumerWidget {
     final ProfilePet? pet = ref.watch(profilePetProvider).valueOrNull;
     final AppLocalizations l = AppLocalizations.of(context);
     final String name = profile.name;
-    final String email = profile.email;
+    // 소셜 가입의 대체 이메일은 회원의 주소가 아니다 — 주소 대신 가입 수단과
+    // 미등록 안내를 보여 준다(#3338).
+    final String email = profile.emailIsPlaceholder
+        ? l.myEmailUnregistered(profile.emailPlaceholderProvider ?? '')
+        : profile.email;
     // 서버가 이름을 비워 보낸 경우에만 기본 이름이다 — 조회 실패·로딩이 아니다.
     final String displayName = name.isEmpty ? l.myDefaultUserName : name;
     return Row(
@@ -385,6 +389,7 @@ class _ProfileHead extends ConsumerWidget {
               if (email.isNotEmpty)
                 Text(
                   email,
+                  key: const Key('myProfileEmailLine'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: tokens

@@ -289,7 +289,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     text: _base.name,
   );
   late final TextEditingController _email = TextEditingController(
-    text: _base.email,
+    text: _base.visibleEmail,
   );
   late final TextEditingController _phone = TextEditingController(
     text: _base.phone,
@@ -342,7 +342,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _base = await _latest();
     if (!mounted) return;
     _name.text = _base.name;
-    _email.text = _base.email;
+    _email.text = _base.visibleEmail;
     _phone.text = _base.phone;
     _birth.text = _base.birthDate;
     _height.text = _base.heightCm?.toString() ?? '';
@@ -433,7 +433,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _ProfileField.weight => _measureError(AppGoalRanges.weightKg, _weight.text),
     _ => authInputErrorText(AppLocalizations.of(context), switch (field) {
       _ProfileField.name => AppInputRules.name(_name.text),
-      _ProfileField.email => AppInputRules.email(_email.text),
+      // 대체 이메일인 회원은 칸이 빈 채로 열린다(#3338). 비워 둔 채 이름만
+      // 고치는 저장을 막지 않는다 — 이메일을 넣었을 때만 형식을 본다.
+      _ProfileField.email =>
+        _email.text.trim().isEmpty && _base.emailIsPlaceholder
+            ? null
+            : AppInputRules.email(_email.text),
       _ProfileField.phone =>
         _phone.text.trim().isEmpty && _base.phone.trim().isEmpty
             ? null
@@ -491,7 +496,10 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     }
 
     final String? name = changed(_name.text.trim(), _base.name.trim());
-    final String? email = changed(_email.text.trim(), _base.email.trim());
+    final String? email = changed(
+      _email.text.trim(),
+      _base.visibleEmail.trim(),
+    );
     final String? phone = changed(_phone.text.trim(), _base.phone.trim());
     final String? birthDate = changed(
       _birth.text.trim(),
@@ -533,7 +541,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     // 주소다 — 서버도 그렇게 비교한다.
     final bool emailChanged =
         email != null &&
-        email.toLowerCase() != _base.email.trim().toLowerCase();
+        email.toLowerCase() != _base.visibleEmail.trim().toLowerCase();
     Future<void> send({AccountReauth? reauth, String? emailCode}) async {
       _base = await ref
           .read(accountRepositoryProvider)
@@ -718,10 +726,19 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: OnCareSpacing.s12),
               _profileField(
                 l.myFieldEmail,
-                _base.email,
+                // 소셜 가입의 대체 이메일은 보여 주지 않는다(#3338). 보기에서는
+                // 가입 수단과 미등록 안내를, 수정에서는 빈 칸을 둔다.
+                _base.emailIsPlaceholder
+                    ? l.myEmailUnregistered(
+                        _base.emailPlaceholderProvider ?? '',
+                      )
+                    : _base.email,
                 AppTextField(
                   key: const ValueKey<String>('my-profile-email'),
                   controller: _email,
+                  hint: _base.emailIsPlaceholder
+                      ? l.myProfileEmailEmptyHint
+                      : null,
                   keyboardType: TextInputType.emailAddress,
                   errorText: _errors.of(_ProfileField.email),
                   onChanged: _onEdited,
