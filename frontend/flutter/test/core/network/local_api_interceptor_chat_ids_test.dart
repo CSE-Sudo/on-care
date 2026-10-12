@@ -4,6 +4,8 @@
 /// 함께 싣는다. 데모도 같은 모양으로 답해야 화면이 같은 길로 두 쪽을 맞춘다.
 library;
 
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -113,6 +115,45 @@ void main() {
     expect(<Object?>{
       for (final Map<String, Object?> m in rows) m['id'],
     }, hasLength(rows.length));
+  });
+
+  test('예전 시드처럼 식별자가 겹치는 저장분은 줄 순서대로 다시 매겨 저장한다', () async {
+    // 이미 데모를 켜 본 기기 — 같은 날 주고받은 줄이 같은 식별자를 갖고 있다.
+    Map<String, Object?> row(String id, String role, String text) =>
+        <String, Object?>{
+          'id': id,
+          'role': role,
+          'text': text,
+          'sources': const <String>[],
+          'created_at': DateTime(2026, 10, 1, 9).toIso8601String(),
+        };
+    await db.putValue(
+      'ai_coach_user_messages_v3',
+      jsonEncode(<Map<String, Object?>>[
+        row('local-ai-seed-3-me', 'user', '첫 질문'),
+        row('local-ai-seed-3-coach', 'coach', '첫 답'),
+        row('local-ai-seed-3-me', 'user', '둘째 질문'),
+        row('local-ai-seed-3-coach', 'coach', '둘째 답'),
+      ]),
+    );
+
+    final List<Map<String, Object?>> rows = await stored();
+
+    expect(
+      <Object?>[for (final Map<String, Object?> m in rows) m['content']],
+      <Object?>['첫 질문', '첫 답', '둘째 질문', '둘째 답'],
+    );
+    expect(<Object?>{
+      for (final Map<String, Object?> m in rows) m['id'],
+    }, hasLength(4));
+    // 처음 나온 줄의 식별자는 그대로다.
+    expect(rows[0]['id'], 'local-ai-seed-3-me');
+    expect(rows[1]['id'], 'local-ai-seed-3-coach');
+    // 다시 매긴 값이 저장돼, 다음에 읽어도 같은 식별자다.
+    expect(
+      <Object?>[for (final Map<String, Object?> m in await stored()) m['id']],
+      <Object?>[for (final Map<String, Object?> m in rows) m['id']],
+    );
   });
 
   test('저장소가 데모 응답의 식별자를 그대로 읽는다', () async {

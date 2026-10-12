@@ -188,10 +188,42 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
       await _db.putValue(_aiCoachMessagesKey, jsonEncode(seeded));
       return seeded;
     }
-    return <Map<String, Object?>>[
+    final List<Map<String, Object?>> rows = <Map<String, Object?>>[
       for (final Object? row in jsonDecode(raw) as List<Object?>)
         if (row is Map) row.cast<String, Object?>(),
     ];
+    // 예전 시드는 같은 날 주고받은 줄에 같은 식별자를 줬다. 이미 데모를 켜 본
+    // 기기에는 그 줄이 남아 있어, 식별자로 짝짓는 화면이 서로 다른 줄을 같은
+    // 줄로 본다 — 겹치는 줄만 순서대로 다시 매겨 저장한다(#3352).
+    if (_dedupeAiCoachRowIds(rows)) {
+      await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+    }
+    return rows;
+  }
+
+  /// 식별자가 없거나 앞 줄과 겹치는 줄에 줄 순번을 붙인 새 식별자를 준다. 처음
+  /// 나온 줄의 식별자는 그대로 둔다. 하나라도 바꿨으면 true. (#3352)
+  static bool _dedupeAiCoachRowIds(List<Map<String, Object?>> rows) {
+    final Set<String> taken = <String>{
+      for (final Map<String, Object?> row in rows)
+        if (row['id'] case final String id) id,
+    };
+    final Set<String> seen = <String>{};
+    bool changed = false;
+    for (int i = 0; i < rows.length; i++) {
+      final Object? id = rows[i]['id'];
+      if (id is String && seen.add(id)) continue;
+      final String base = id is String ? id : 'local-ai';
+      String next = '$base-$i';
+      for (int n = 1; taken.contains(next); n++) {
+        next = '$base-$i-$n';
+      }
+      taken.add(next);
+      seen.add(next);
+      rows[i]['id'] = next;
+      changed = true;
+    }
+    return changed;
   }
 
   Future<void> _rememberAiCoachMessage(
