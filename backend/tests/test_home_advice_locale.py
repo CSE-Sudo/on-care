@@ -92,29 +92,39 @@ def test_sodium_warning_with_foods_gets_its_own_key_and_the_names():
 
 
 @pytest.mark.parametrize(
-    "key", ["sodium_over", "exercise_on_track", "exercise_more", "exercise_start"],
+    "key",
+    [
+        "sodium_over", "exercise_on_track", "exercise_more",
+        "exercise_cardio_start", "exercise_start",
+    ],
 )
 def test_other_advice_keys_carry_no_params(key):
     assert _advice_params(advice_key=key, sodium_source_names=["라면"]) == {}
 
 
+# 분 수는 이번 주 유산소 분, 기준은 회원의 주간 유산소 목표다(#3350). 여기서는
+# 목표가 없는 회원의 기본값(150분)으로 두 언어의 문장만 본다.
 @pytest.mark.parametrize(
-    ("minutes", "key", "ko", "en"),
+    ("minutes", "any_exercise", "key", "ko", "en"),
     [
-        (150, "exercise_on_track",
-         "이번 주 150분 운동했어요. 목표 달성 중이에요!",
-         "You worked out 150 minutes this week. You are on track!"),
-        (40, "exercise_more",
-         "이번 주 40분 운동했어요. 조금만 더 힘내요!",
-         "You worked out 40 minutes this week. A little more to go!"),
-        (0, "exercise_start",
+        (150, True, "exercise_on_track",
+         "이번 주 유산소 150분 운동했어요. 목표 달성 중이에요!",
+         "You did 150 minutes of cardio this week. You are on track!"),
+        (40, True, "exercise_more",
+         "이번 주 유산소 40분 운동했어요. 조금만 더 힘내요!",
+         "You did 40 minutes of cardio this week. A little more to go!"),
+        (0, False, "exercise_start",
          "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
          "Start moving this week — an easy walk is a good beginning."),
     ],
 )
-def test_exercise_feedback_in_both_languages(minutes, key, ko, en):
-    assert _exercise_feedback(minutes, "ko") == (ko, key)
-    assert _exercise_feedback(minutes, "en") == (en, key)
+def test_exercise_feedback_in_both_languages(minutes, any_exercise, key, ko, en):
+    assert _exercise_feedback(
+        minutes, 150, any_exercise=any_exercise, locale="ko"
+    ) == (ko, key)
+    assert _exercise_feedback(
+        minutes, 150, any_exercise=any_exercise, locale="en"
+    ) == (en, key)
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +277,9 @@ def test_home_summary_without_warning_has_empty_params(client, demo_meals):
     demo_meals.clear(today)
     body = client.get("/v1/dashboard/summary").json()
     assert body["sodium_warning"] is None
-    assert body["ai_advice_key"] in ("exercise_on_track", "exercise_more", "exercise_start")
+    assert body["ai_advice_key"] in (
+        "exercise_on_track", "exercise_more", "exercise_cardio_start", "exercise_start",
+    )
     assert body["ai_advice_params"] == {}
 
 

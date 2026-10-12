@@ -398,12 +398,23 @@ class DietPeriodStats:
         return self.days_logged == 0
 
 
-def period_stats(db: Session, user_id: str, start: str, end: str) -> DietPeriodStats:
+def period_stats(
+    db: Session,
+    user_id: str,
+    start: str,
+    end: str,
+    sodium_limit_mg: int | None = None,
+) -> DietPeriodStats:
     """[start, end](양끝 포함, `YYYY-MM-DD`) 구간의 일별 나트륨·당류·칼로리 평균.
 
     기록이 없는 날은 평균·초과일수 계산에서 빠진다 — 기록을 안 한 날까지 0으로
     넣으면 "며칠 기록했는지"와 "평균이 얼마인지"가 뒤섞여 실제보다 낮게 보인다.
+
+    초과일은 [sodium_limit_mg](회원 나트륨 목표)로 센다. 없으면 [SODIUM_LIMIT_MG]
+    다 — 식단 탭이 1,500mg 목표로 초과라 한 날을 여기서만 2,000mg 으로 세면 같은
+    날을 두고 화면마다 다른 말을 한다(#3350).
     """
+    limit = sodium_limit_mg or SODIUM_LIMIT_MG
     rows = db.scalars(
         select(DietEntry)
         .where(DietEntry.user_id == user_id)
@@ -422,9 +433,7 @@ def period_stats(db: Session, user_id: str, start: str, end: str) -> DietPeriodS
     if days_logged == 0:
         return DietPeriodStats(0, 0, 0, 0.0, 0)
 
-    days_over_sodium = sum(
-        1 for d in daily.values() if d["sodium"] > SODIUM_LIMIT_MG
-    )
+    days_over_sodium = sum(1 for d in daily.values() if d["sodium"] > limit)
     return DietPeriodStats(
         days_logged=days_logged,
         days_over_sodium=days_over_sodium,

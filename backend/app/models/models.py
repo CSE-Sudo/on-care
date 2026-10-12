@@ -2734,8 +2734,8 @@ class WeeklyChallenge(Base):
 
     - `goal` 은 참가할 때의 주간 운동 횟수 목표 사본이다. 참가 뒤 목표를 바꿔도
       그 주 챌린지는 참가할 때 목표로 판정한다.
-    - `status` 는 active(진행 중)|succeeded|failed. 스케줄러가 없어 **주가 끝난 뒤
-      읽는 쪽이 판정한다**(`weekly_challenge_service.settle_due`).
+    - `status` 는 active(진행 중)|succeeded|failed. 스케줄러가 없어 **주가 끝나고
+      하루의 유예가 지난 뒤 읽는 쪽이 판정한다**(`weekly_challenge_service.settle_due`).
     - `final_days` 는 판정 때 센 운동한 날 수다. 판정 뒤 지난 주 기록이 바뀌어도
       결과 화면이 판정과 어긋나지 않게 남긴다.
     - 포인트 움직임은 `points_ledger` 에 `source_type='weekly_challenge'` 로 남는다 —
@@ -2940,6 +2940,45 @@ class AiCallUsage(Base):
     )
     calls: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0", default=0
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CoachFeedbackState(Base):
+    """회원별 코칭 시트 피드백의 캐시와 하루 생성 횟수. (#3351)
+
+    회원 한 명에 한 행이다. `GET /ai-coach/feedback` 은 호출 한 번에 모델을 최대 두 번
+    부르므로, 만든 카드(`payload_json`)를 잠깐 들고 있다가 같은 날·같은 언어의 다음
+    요청에 그대로 돌려준다. 식단·운동 기록이 바뀌면 카드를 버리고 `revision` 을 올린다
+    — 그 사이에 만들던 응답이 옛 기록으로 캐시를 채우지 못하게 하는 표시다.
+
+    `generations` 는 `kst_date` 하루에 카드를 새로 만든 횟수다. 상한을 넘으면 모델을
+    부르지 않고 규칙 기반 카드로 답한다. 표에 두는 까닭은 태스크가 여럿이어도
+    (`infra/backend-service.yml`) 캐시와 상한이 하나여야 하기 때문이다.
+    """
+
+    __tablename__ = "coach_feedback_states"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    #: 횟수와 카드가 속한 KST 날짜 `YYYY-MM-DD`. 날이 바뀌면 둘 다 새로 시작한다.
+    kst_date: Mapped[str] = mapped_column(String(10))
+    generations: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    #: 기록이 바뀔 때마다 오른다. 카드를 저장할 때 만들기 시작한 값과 같아야 한다.
+    revision: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    #: 카드를 만든 요청 언어(`ko`·`en`). 다른 언어의 요청에는 쓰지 않는다.
+    locale: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    #: 식단·운동 카드 목록(JSON). 비어 있으면 버려진 상태다. 인사말은 담지 않는다.
+    payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    generated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

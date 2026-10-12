@@ -6,6 +6,7 @@
 오늘 식단·이번 주 식단 추이·이번 주 운동을 모아 한 번에 반환합니다.
 세 지표의 목표는 회원 건강 목표(health_profile)이고, 목표를 정하지 않은 회원은
 일일 권장 기준치(칼로리 2000kcal, 나트륨 2000mg, 당류 50g)를 기본값으로 씁니다.
+운동 조언도 회원의 주간 유산소 목표(없으면 150분)를 기준으로 합니다(#3350).
 """
 from __future__ import annotations
 
@@ -28,7 +29,7 @@ from app.schemas.dashboard_api import (
     DashboardSummary,
 )
 from app.schemas.diet_api import calculate_macros
-from app.services import goal_defaults
+from app.services import exercise_service, goal_defaults
 
 router = APIRouter(tags=["dashboard"])
 
@@ -110,38 +111,59 @@ def _build_sodium_warning(
 
 
 def _exercise_feedback(
-    exercise_minutes: int, locale: Locale | None = None
+    cardio_minutes: int,
+    goal_minutes: int,
+    *,
+    any_exercise: bool,
+    locale: Locale | None = None,
 ) -> tuple[str, str]:
     """이번 주 운동 되먹임 — (문장, 로케일 독립 키).
 
-    분 기준(주 150분)은 앱 데모(`local_api_interceptor.dart`)와 같다. 문장은
-    요청 언어를 따른다(#2299).
+    판정은 운동 탭과 같다(#3350) — 이번 주 유산소 분([cardio_minutes])을 회원의
+    주간 유산소 목표([goal_minutes])와 견준다. 앱 데모
+    (`local_api/dashboard.dart`)도 같은 기준이다. 문장은 요청 언어를 따른다(#2299).
+
+    [any_exercise] 는 이번 주에 유형을 가리지 않고 기록이 하나라도 있는지다 —
+    근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다. 그런 주(다른
+    운동은 했는데 유산소가 0분)는 "유산소 0분 운동했어요" 대신 유산소를 권하는
+    문장(`exercise_cardio_start`)을 쓴다.
     """
-    if exercise_minutes >= 150:
+    if not any_exercise:
         return (
             localized(
-                f"이번 주 {exercise_minutes}분 운동했어요. 목표 달성 중이에요!",
-                f"You worked out {exercise_minutes} minutes this week. You are on track!",
+                "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
+                "Start moving this week — an easy walk is a good beginning.",
+                locale,
+            ),
+            "exercise_start",
+        )
+    if cardio_minutes <= 0:
+        return (
+            localized(
+                "이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
+                "No cardio logged yet this week. How about starting with an easy walk?",
+                locale,
+            ),
+            "exercise_cardio_start",
+        )
+    if cardio_minutes >= goal_minutes:
+        return (
+            localized(
+                f"이번 주 유산소 {cardio_minutes}분 운동했어요. 목표 달성 중이에요!",
+                f"You did {cardio_minutes} minutes of cardio this week. "
+                "You are on track!",
                 locale,
             ),
             "exercise_on_track",
         )
-    if exercise_minutes > 0:
-        return (
-            localized(
-                f"이번 주 {exercise_minutes}분 운동했어요. 조금만 더 힘내요!",
-                f"You worked out {exercise_minutes} minutes this week. A little more to go!",
-                locale,
-            ),
-            "exercise_more",
-        )
     return (
         localized(
-            "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
-            "Start moving this week — an easy walk is a good beginning.",
+            f"이번 주 유산소 {cardio_minutes}분 운동했어요. 조금만 더 힘내요!",
+            f"You did {cardio_minutes} minutes of cardio this week. "
+            "A little more to go!",
             locale,
         ),
-        "exercise_start",
+        "exercise_more",
     )
 
 
@@ -280,7 +302,13 @@ def dashboard_summary(
         .where(ExerciseSession.week_start == week)
     ).all()
     exercise_minutes = sum(r.minutes for r in ex_rows)
-    exercise_feedback, exercise_advice_key = _exercise_feedback(exercise_minutes)
+    # 조언은 운동 탭처럼 유산소 분을 회원의 주간 유산소 목표와 견준다(#3350).
+    exercise_cardio_minutes = exercise_service.cardio_minutes(ex_rows)
+    exercise_feedback, exercise_advice_key = _exercise_feedback(
+        exercise_cardio_minutes,
+        exercise_service.weekly_cardio_goal(health_profile),
+        any_exercise=exercise_minutes > 0,
+    )
 
     advice_key = _advice_key(
         sodium_warning=sodium_warning,
@@ -292,6 +320,7 @@ def dashboard_summary(
         macros=macros,
         diet_entries=len(diet_rows),
         exercise_minutes=exercise_minutes,
+        exercise_cardio_minutes=exercise_cardio_minutes,
         nutrition_week=nutrition_week,
         sodium_warning=sodium_warning,
         exercise_feedback=exercise_feedback,
