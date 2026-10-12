@@ -49,6 +49,33 @@ void main() {
       expect(messages.length, 3);
     });
 
+    test('전체의 "○주 동안" 은 받은 주 수다 — 12 로 박혀 있지 않다 (#3365)', () {
+      final List<ExerciseDayTotals> days = <ExerciseDayTotals>[
+        _exercise('2026-03-04'),
+        _exercise('2026-06-10'),
+        _exercise('2026-09-17'),
+      ];
+
+      final ExerciseAdvice advice = exercisePeriodAdviceOf(
+        days,
+        kPeriodAll,
+        weeks: 29,
+      );
+
+      expect(advice.key, 'record_all_steady');
+      expect(advice.params['weeks'], 29);
+      expect(advice.message, contains('29주 동안'));
+    });
+
+    test('주 수를 주지 않으면 첫 기록 주부터 마지막 기록 주까지다 (#3365)', () {
+      final ExerciseAdvice advice = exercisePeriodAdviceOf(<ExerciseDayTotals>[
+        _exercise('2026-09-08'),
+        _exercise('2026-09-17'),
+      ], kPeriodAll);
+
+      expect(advice.params['weeks'], 2);
+    });
+
     test('오늘은 그날 한 운동과 소모 칼로리를 말한다', () {
       final String today = _message(<ExerciseDayTotals>[
         _exercise('2026-08-27', minutes: 45, calories: 400),
