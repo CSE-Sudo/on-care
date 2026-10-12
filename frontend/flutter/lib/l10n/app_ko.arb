@@ -2103,7 +2103,23 @@
   "findEmailTitle": "아이디 찾기",
   "findEmailSubtitle": "가입할 때 입력한 이름과 휴대폰 번호로 가입 이메일을 찾아요.",
   "findEmailAction": "아이디 찾기",
-  "findEmailComingSoon": "아이디 찾기는 준비 중이에요.",
+  "findEmailFoundSubtitle": "입력한 정보로 가입한 계정이에요.",
+  "findEmailMaskedNote": "개인정보 보호를 위해 이메일 일부를 가렸어요.",
+  "findEmailSocialTitle": "{provider} 계정으로 가입했어요",
+  "@findEmailSocialTitle": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "findEmailSocialBody": "로그인 화면에서 가입한 방법으로 로그인해 주세요.",
+  "findEmailProviderKakao": "카카오",
+  "findEmailProviderGoogle": "구글",
+  "findEmailProviderOther": "소셜",
+  "findEmailNotFoundTitle": "일치하는 계정을 찾지 못했어요",
+  "findEmailNotFoundBody": "이름과 휴대폰 번호를 다시 확인해 주세요. 가입할 때 번호를 넣지 않았거나 나중에 바꿨다면 찾을 수 없어요.",
+  "findEmailRetry": "다시 찾기",
   "passwordChangeTitle": "비밀번호 변경",
   "passwordChangeCurrentHint": "현재 비밀번호",
   "passwordChangeNewHint": "새 비밀번호 (영문·숫자 포함 8자 이상)",
