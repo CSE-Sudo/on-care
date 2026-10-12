@@ -889,8 +889,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   `/gyms/{gym_id}` 로 읽는다 — 회원 앱의 헬스장 상세·트레이너 상세·상담 신청이 목록에서 못
   찾으면 이 경로로 읽는다. `/me/gym` 은 목록을 거치지 않아 소속 헬스장이 반경 밖이어도 그대로 온다.
 - **데모 시드가 꺼진 서버는 가상 헬스장을 내지 않는다**(#3356). `/gyms` 목록에서 빠지고
-  `/gyms/{gym_id}`·`/gyms/{gym_id}/trainers`·`/me/gym` 은 404 다. 주변 검색(#2914)·트레이너
+  `/gyms/{gym_id}`·`/gyms/{gym_id}/trainers` 는 404 다. 주변 검색(#2914)·트레이너
   디렉터리(#2811)와 같은 목록(`app/db/demo_ids.py`)을 본다. 데모 서버의 응답은 그대로다.
+  **`/me/gym` 에는 걸지 않는다** — 찾기가 아니라 회원이 이미 연결한 링크라, 가상 헬스장과의
+  옛 링크가 남은 회원도 내 헬스장·쿠폰의 `has_gym`·`/me/coach` 의 `gym` 을 그대로 받는다.
 - **`is_partner` 는 표시 값이다.** `GymOut` 으로 내려가고 `partner_only=true` 로 목록을
   좁히는 기준이 된다(현재 두 앱은 이 값을 읽지 않는다). **접근 제어가 아니다** — 상담 대상 검증과
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을

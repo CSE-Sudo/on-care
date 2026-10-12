@@ -71,12 +71,16 @@ DEFAULT_GYM_LIMIT = 50
 MAX_GYM_LIMIT = 100
 
 
-def _gym_query():
+def _gym_query(*, include_demo: bool = False):
     """디렉터리에 노출할 헬스장 — `fitness` 장소와 (있으면) 프로필.
 
     데모 시드가 꺼진 서버(운영)에서는 가상 헬스장(`demo_ids`)을 뺀다(#3356). 주변
     검색(#2914)·트레이너 디렉터리(#2811)와 같은 규칙이다 — 예전 기본값으로 운영 DB
     에 심긴 행이 남아 있어도 실서비스 회원에게 존재하지 않는 헬스장이 보이지 않는다.
+
+    `include_demo=True` 는 **회원이 이미 연결한 헬스장을 그 회원이 읽을 때**만 쓴다
+    (`get_member_gym`). 그 자리는 찾기가 아니라 이미 맺어진 링크를 읽는 것이라, 옛
+    링크가 남은 회원의 내 헬스장·쿠폰·코치 카드가 갑자기 비지 않게 거르지 않는다.
     """
     from app.db import demo_ids
 
@@ -85,7 +89,7 @@ def _gym_query():
         .outerjoin(GymProfile, GymProfile.place_id == Place.id)
         .where(Place.category == "fitness")
     )
-    if not demo_ids.demo_data_enabled():
+    if not include_demo and not demo_ids.demo_data_enabled():
         query = query.where(Place.id.not_in(demo_ids.demo_place_ids()))
     return query
 
@@ -130,14 +134,22 @@ def list_gyms(
 
 
 def get_gym(
-    db: Session, gym_id: str, *, lat: float | None = None, lng: float | None = None
+    db: Session,
+    gym_id: str,
+    *,
+    lat: float | None = None,
+    lng: float | None = None,
+    include_demo: bool = False,
 ) -> GymOut | None:
     """헬스장 한 곳. 반경과 무관하다 — 목록에 없는 헬스장의 상세가 이것으로 열린다.
 
-    데모 시드가 꺼진 서버에서는 가상 헬스장을 없는 것으로 본다(`_gym_query`). 내
-    헬스장(`get_member_gym`)과 소속 트레이너 목록도 이 함수를 거쳐 같은 규칙을 따른다.
+    데모 시드가 꺼진 서버에서는 가상 헬스장을 없는 것으로 본다(`_gym_query`). 소속
+    트레이너 목록도 이 함수를 거쳐 같은 규칙을 따른다. 내 헬스장(`get_member_gym`)만
+    `include_demo=True` 로 거르지 않고 읽는다.
     """
-    row = db.execute(_gym_query().where(Place.id == gym_id)).first()
+    row = db.execute(
+        _gym_query(include_demo=include_demo).where(Place.id == gym_id)
+    ).first()
     if row is None:
         return None
     place, profile = row
@@ -159,9 +171,14 @@ def get_member_gym_id(db: Session, member_id: str) -> str | None:
 def get_member_gym(
     db: Session, member_id: str, *, lat: float | None = None, lng: float | None = None
 ) -> GymOut | None:
-    """회원의 '내 헬스장' 카드. 연결이 없거나 헬스장이 사라졌으면 None."""
+    """회원의 '내 헬스장' 카드. 연결이 없거나 헬스장이 사라졌으면 None.
+
+    데모 제외를 걸지 않는다(#3356) — 찾기 경로가 아니라 회원 자신의 링크다.
+    """
     gym_id = get_member_gym_id(db, member_id)
-    return None if gym_id is None else get_gym(db, gym_id, lat=lat, lng=lng)
+    if gym_id is None:
+        return None
+    return get_gym(db, gym_id, lat=lat, lng=lng, include_demo=True)
 
 
 def unlink_member_gym(db: Session, member_id: str) -> bool:

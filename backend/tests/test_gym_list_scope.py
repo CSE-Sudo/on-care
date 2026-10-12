@@ -1,7 +1,8 @@
 """헬스장 목록의 범위 제한·데모 제외·단건 조회. (#3356)
 
 `GET /gyms` 는 좌표가 있으면 기본 반경 안에서 가까운 순으로 상한까지만 준다. 데모
-시드가 꺼진 서버는 가상 헬스장을 목록·단건·내 헬스장 어디에도 내지 않는다.
+시드가 꺼진 서버는 가상 헬스장을 목록·단건·소속 트레이너 목록에 내지 않는다. 회원이
+이미 연결한 내 헬스장은 거르지 않는다.
 """
 from __future__ import annotations
 
@@ -237,18 +238,42 @@ def test_detail_is_404_for_a_demo_gym_when_demo_is_off(client, extra_gyms, demo_
     assert client.get(f"/v1/gyms/{NEAR_ID}").status_code == 200
 
 
-def test_my_gym_is_404_for_a_demo_gym_when_demo_is_off(client, db_session, monkeypatch):
-    """예전 시드로 가상 헬스장에 묶인 회원에게도 그 헬스장을 내지 않는다."""
+def test_my_gym_keeps_a_demo_gym_link_when_demo_is_off(client, db_session, monkeypatch):
+    """내 헬스장은 찾기가 아니라 회원 자신의 링크다 — 데모 제외를 걸지 않는다.
+
+    예전 시드로 가상 헬스장에 묶인 회원의 내 헬스장·쿠폰 `has_gym`·코치 카드가
+    데모를 끈 서버에서 갑자기 비면 안 된다. 같은 헬스장도 찾기 경로에서는 404 다.
+    """
     from app.models import models
+    from app.services import gym_service
     from tests.test_consultations import _auth, _register_member
 
     member_id, token = _register_member(client)
     db_session.add(models.MemberGym(member_id=member_id, gym_id="gym-oncare-sinchon"))
     db_session.commit()
     try:
-        assert client.get("/v1/me/gym", headers=_auth(token)).status_code == 200
+        before = client.get("/v1/me/gym", headers=_auth(token), params=SINCHON)
+        assert before.status_code == 200, before.text
         monkeypatch.setattr(get_settings(), "seed_demo_data", False)
-        assert client.get("/v1/me/gym", headers=_auth(token)).status_code == 404
+
+        after = client.get("/v1/me/gym", headers=_auth(token), params=SINCHON)
+        assert after.status_code == 200, after.text
+        assert after.json() == before.json()
+        # 쿠폰 `has_gym`·`/me/coach` 의 gym 이 읽는 서비스 함수도 그대로다.
+        mine = gym_service.get_member_gym(db_session, member_id)
+        assert mine is not None and mine.id == "gym-oncare-sinchon"
+
+        # 찾기 경로는 여전히 거른다.
+        assert gym_service.get_gym(db_session, "gym-oncare-sinchon") is None
+        assert client.get(
+            "/v1/gyms/gym-oncare-sinchon", headers=_auth(token)
+        ).status_code == 404
+        assert client.get(
+            "/v1/gyms/gym-oncare-sinchon/trainers", headers=_auth(token)
+        ).status_code == 404
+        assert "gym-oncare-sinchon" not in _ids(
+            client.get("/v1/gyms", headers=_auth(token), params=SINCHON)
+        )
     finally:
         db_session.query(models.MemberGym).filter_by(member_id=member_id).delete()
         db_session.commit()
