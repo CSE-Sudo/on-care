@@ -128,6 +128,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionClose => '닫기';
 
   @override
+  String get actionDone => '완료';
+
+  @override
+  String get actionMore => '더보기';
+
+  @override
   String get actionRetry => '다시 시도';
 
   @override
@@ -4927,10 +4933,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get unitGram => 'g';
 
   @override
-  String get a11yRemoveExercise => '운동 지우기';
+  String get a11yRemoveExercise => '운동 삭제';
 
   @override
-  String get a11yRemoveCertification => '자격증 지우기';
+  String get a11yRemoveCertification => '자격증 삭제';
 
   @override
   String get a11yPrevWeek => '지난주';
@@ -4966,9 +4972,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String coachClientAge(int age) {
     return '$age세';
   }
-
-  @override
-  String get coachTemplateMenu => '템플릿 메뉴';
 
   @override
   String get routineFormDecrease => '줄이기';
@@ -6138,7 +6141,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymInfoSaveFailed => '헬스장 정보를 저장하지 못했어요.';
 
   @override
-  String get a11yRemoveGymTag => '태그 지우기';
+  String get a11yRemoveGymTag => '태그 삭제';
 
   @override
   String myGymTagsHint(int max, int length) {

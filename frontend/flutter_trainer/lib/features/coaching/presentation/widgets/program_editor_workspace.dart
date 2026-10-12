@@ -1301,7 +1301,7 @@ class _SessionEditorState extends State<_SessionEditor> {
               Expanded(child: _buildSessionName()),
               if (_editingName)
                 AppIconButton(
-                  tooltip: l.actionClose,
+                  tooltip: l.actionDone,
                   onPressed: () => setState(() => _editingName = false),
                   icon: AppIcons.check,
                   color: context.oncare.brand.primary,
@@ -1357,7 +1357,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                     key: ValueKey<String>(
                       'session-actions-${widget.session.id}',
                     ),
-                    tooltip: l.actionEdit,
+                    tooltip: l.actionMore,
                     icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
@@ -1660,7 +1660,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
               if (_editing)
                 AppIconButton(
                   key: ValueKey<String>('exercise-edit-${exercise.id}'),
-                  tooltip: l.actionClose,
+                  tooltip: l.actionDone,
                   onPressed: () => setState(() => _editing = false),
                   icon: AppIcons.check,
                   color: context.oncare.brand.primary,
@@ -1702,7 +1702,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   ],
                   triggerBuilder: (context, toggle) => AppIconButton(
                     key: ValueKey<String>('exercise-edit-${exercise.id}'),
-                    tooltip: l.actionEdit,
+                    tooltip: l.actionMore,
                     icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
