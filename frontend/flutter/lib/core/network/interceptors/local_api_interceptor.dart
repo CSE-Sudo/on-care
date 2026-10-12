@@ -73,6 +73,7 @@ import 'package:oncare_ui/oncare_ui.dart'
         kGoalDefaultDailyCalories,
         kGoalDefaultDailySodiumMg,
         kGoalDefaultDailySugarG,
+        kGoalDefaultWeeklyCardioMinutes,
         mondayOf,
         parseWireDate,
         wireDate;

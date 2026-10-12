@@ -158,13 +158,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String homeAdviceExerciseOnTrack(int minutes) {
-    return 'You worked out $minutes minutes this week. You are on track!';
+    return 'You did $minutes minutes of cardio this week. You are on track!';
   }
 
   @override
   String homeAdviceExerciseMore(int minutes) {
-    return 'You worked out $minutes minutes this week. A little more to go!';
+    return 'You did $minutes minutes of cardio this week. A little more to go!';
   }
+
+  @override
+  String get homeAdviceExerciseCardioStart =>
+      'No cardio logged yet this week. How about starting with an easy walk?';
 
   @override
   String get homeAdviceExerciseStart =>

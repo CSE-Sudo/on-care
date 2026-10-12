@@ -148,13 +148,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String homeAdviceExerciseOnTrack(int minutes) {
-    return '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!';
+    return '이번 주 유산소 $minutes분 운동했어요. 목표 달성 중이에요!';
   }
 
   @override
   String homeAdviceExerciseMore(int minutes) {
-    return '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!';
+    return '이번 주 유산소 $minutes분 운동했어요. 조금만 더 힘내요!';
   }
+
+  @override
+  String get homeAdviceExerciseCardioStart =>
+      '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?';
 
   @override
   String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
