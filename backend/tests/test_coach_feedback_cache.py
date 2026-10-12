@@ -5,6 +5,8 @@
 
 * 같은 날·같은 언어로 다시 부르면 모델을 부르지 않는다. 인사말은 매번 새로 만든다.
 * 식단·운동 기록이 바뀌면 그 회원의 캐시만 버린다 — 다음 요청이 새 기록을 말한다.
+* 판정 기준인 회원 목표(나트륨·주간 유산소, #3350)가 바뀌어도 버린다. 포인트처럼
+  카드와 무관한 프로필 변경은 캐시를 건드리지 않는다.
 * 캐시 시간이 지나거나 날(KST)이 바뀌거나 언어가 다르면 새로 만든다.
 * 하루 상한을 넘으면 오류가 아니라 규칙 기반 카드다. 날이 바뀌면 다시 열린다.
 * 만드는 사이에 기록이 바뀌면 그 응답은 캐시에 남기지 않는다.
@@ -22,7 +24,15 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.security import create_access_token, hash_password
 from app.core.week import monday_of
-from app.models.models import CoachFeedbackState, DietEntry, ExerciseSession, User
+from sqlalchemy import select
+
+from app.models.models import (
+    CoachFeedbackState,
+    DietEntry,
+    ExerciseSession,
+    HealthProfile,
+    User,
+)
 from app.services import coach_feedback_service
 from app.services.coach import domain_coaches
 
@@ -350,6 +360,62 @@ def test_record_saved_while_generating_is_not_hidden_by_a_stale_cache(
     assert llm.calls == calls + 1
 
 
+def _profile(db_session, user_id: str) -> HealthProfile:
+    db_session.expire_all()
+    profile = db_session.scalar(
+        select(HealthProfile).where(HealthProfile.user_id == user_id)
+    )
+    if profile is None:
+        profile = HealthProfile(user_id=user_id)
+        db_session.add(profile)
+        db_session.commit()
+    return profile
+
+
+def test_changing_the_sodium_goal_drops_the_cache(client, db_session, llm, limits):
+    """목표를 낮추면 같은 기록이 초과가 된다 — 옛 기준의 카드를 남기지 않는다(#3350)."""
+    member_id, h = _member(client)
+    _profile(db_session, member_id)
+    _add_diet(db_session, member_id, sodium=1500)
+    assert _card(_get(client, h), "diet")["title"] == "오늘의 식단 코칭"
+
+    _profile(db_session, member_id).daily_sodium_mg = 1200
+    db_session.commit()
+
+    assert _state(db_session, member_id).payload_json is None
+    assert _card(_get(client, h), "diet")["title"] == "나트륨 섭취가 많아요"
+
+
+def test_changing_the_cardio_goal_drops_the_cache(client, db_session, llm, limits):
+    limits(per_day=1)
+    member_id, h = _member(client)
+    _profile(db_session, member_id)
+    _add_exercise(db_session, member_id, minutes=100)
+    _get(client, h)
+
+    _profile(db_session, member_id).weekly_cardio_minutes = 90
+    db_session.commit()
+    # 상한이 찼으니 규칙 카드다 — 새 목표로 판정한다.
+    over = _get(client, h)
+
+    assert llm.calls == 1
+    assert _card(over, "exercise")["title"] == "운동량이 충분해요"
+
+
+def test_unrelated_profile_change_keeps_the_cache(client, db_session, llm, limits):
+    member_id, h = _member(client)
+    _profile(db_session, member_id)
+    _get(client, h)
+    calls = llm.calls
+
+    _profile(db_session, member_id).activity_points = 500
+    db_session.commit()
+    _get(client, h)
+
+    assert _state(db_session, member_id).payload_json is not None
+    assert llm.calls == calls
+
+
 def test_invalidate_without_a_state_row_is_a_no_op(db_session):
     user_id = f"user-cache-{uuid4().hex[:8]}"
     db_session.add(
@@ -400,7 +466,7 @@ def test_rule_cards_over_the_limit_follow_new_records(client, db_session, llm, l
 
     assert llm.calls == 1
     assert _card(over, "exercise")["title"] == "조금만 더 움직여봐요"
-    assert "40분" in _card(over, "exercise")["body"]
+    assert "유산소 40분" in _card(over, "exercise")["body"]
 
 
 def test_rule_cards_over_the_limit_follow_the_request_language(client, llm, limits):

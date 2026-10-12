@@ -50,6 +50,7 @@ class Challenge {
     required this.stake,
     required this.reward,
     required this.status,
+    this.settling = false,
     this.rewarded = 0,
   });
 
@@ -67,6 +68,10 @@ class Challenge {
   final int stake;
   final int reward;
   final ChallengeStatus status;
+
+  /// 주는 끝났고 판정을 기다리는 중(유예)인가. 주가 끝난 다음 날 하루 동안 적은
+  /// 지난주 기록까지 세고 그 뒤에 판정한다(#3362). 이때 [status] 는 진행 중이다.
+  final bool settling;
 
   /// 받은 보상. 성공이 아니면 0.
   final int rewarded;
@@ -86,6 +91,7 @@ class Challenge {
     stake: _int(json['stake']),
     reward: _int(json['reward']),
     status: _statusFrom(json['status']),
+    settling: json['settling'] == true,
     rewarded: _int(json['rewarded']),
   );
 }
@@ -105,6 +111,7 @@ class WeeklyChallenge {
     this.blockReason,
     this.shortfall = 0,
     this.challenge,
+    this.settlingChallenge,
   });
 
   final DateTime weekStart;
@@ -130,8 +137,12 @@ class WeeklyChallenge {
   /// 이번 주 참가 기록. 참가하지 않았으면 null.
   final Challenge? challenge;
 
+  /// 지난주 참가 기록 — 결과를 집계 중(유예)일 때만 있다. 판정하면 null 이다(#3362).
+  final Challenge? settlingChallenge;
+
   factory WeeklyChallenge.fromJson(Map<String, Object?> json) {
     final Object? raw = json['challenge'];
+    final Object? settling = json['settling_challenge'];
     return WeeklyChallenge(
       weekStart: _dayFrom(json['week_start']),
       weekEnd: _dayFrom(json['week_end']),
@@ -146,6 +157,9 @@ class WeeklyChallenge {
       shortfall: _int(json['shortfall']),
       challenge: raw is Map
           ? Challenge.fromJson(raw.cast<String, Object?>())
+          : null,
+      settlingChallenge: settling is Map
+          ? Challenge.fromJson(settling.cast<String, Object?>())
           : null,
     );
   }

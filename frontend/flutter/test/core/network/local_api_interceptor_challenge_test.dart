@@ -3,6 +3,9 @@
 /// 참가는 월·화요일에만 한 주에 한 번, 100P 를 건다. 목표는 참가할 때의 주간 운동
 /// 횟수 목표(없으면 3, 7 초과는 7)로 고정한다. 진행은 운동 기록이 있는 날 수이고,
 /// 주가 끝난 뒤 읽을 때 한 번 판정해 채웠으면 200P 와 결과 알림을 준다.
+///
+/// 주가 끝난 다음 날(월요일)은 유예라 판정하지 않고 집계 중으로 답한다. 미읽음 수
+/// 조회도 판정을 돌려 결과 알림을 만든다. (#3362)
 library;
 
 import 'package:dio/dio.dart';
@@ -90,6 +93,12 @@ void main() {
           if ((asMap(row)['title']! as String).startsWith('주간 챌린지'))
             asMap(row),
       ];
+
+  Future<int> unread() async =>
+      asMap(
+            (await dio.get<Object?>('/notifications/unread-count')).data,
+          )['unread']!
+          as int;
 
   Future<void> setGoal(int? goal) => dio.put<Object?>(
     '/users/me/health-goals',
@@ -207,7 +216,12 @@ void main() {
     expect((await history()).first['status'], 'active');
     expect(await balance(), 900);
 
+    // 월요일 하루는 유예다 — 판정하지 않는다(#3362).
     now = _day(7, 0, 1);
+    expect((await history()).first['status'], 'active');
+    expect(await balance(), 900);
+
+    now = _day(8, 0, 1);
     final Map<String, Object?> last = (await history()).first;
     expect(last['status'], 'succeeded');
     expect(last['progress'], 3);
@@ -236,7 +250,7 @@ void main() {
     expect((await join()).statusCode, 201);
     recorded = <DateTime>{_day(0), _day(1)};
 
-    now = _day(7);
+    now = _day(8);
     final List<Map<String, Object?>> notices = await resultNotices();
     expect(notices, hasLength(1));
     expect(notices.single['title'], '주간 챌린지 목표를 채우지 못했어요');
@@ -253,6 +267,122 @@ void main() {
     last = (await history()).first;
     expect(last['status'], 'failed');
     expect(last['progress'], 2);
+    expect(await resultNotices(), hasLength(1));
+  });
+
+  test('주가 끝난 다음 날은 유예 — 판정하지 않고 집계 중으로 답한다', () async {
+    expect((await join()).statusCode, 201);
+    recorded = <DateTime>{_day(0), _day(2)};
+
+    // 주 안에서는 집계 중이 아니다.
+    now = _day(6, 23, 59);
+    Map<String, Object?> state = await weekly();
+    expect(asMap(state['challenge'])['settling'], isFalse);
+    expect(state['settling_challenge'], isNull);
+
+    for (final DateTime moment in <DateTime>[
+      _day(7, 0, 1),
+      _day(7, 12),
+      _day(7, 23, 59),
+    ]) {
+      now = moment;
+      // 판정을 부르던 읽기 경로를 모두 지나도 그대로다.
+      await dio.get<Object?>('/me/points/shop');
+      expect(await resultNotices(), isEmpty);
+      state = await weekly();
+      expect(state['week_start'], '2026-09-21');
+      expect(state['challenge'], isNull);
+      final Map<String, Object?> pending = asMap(state['settling_challenge']);
+      expect(pending['week_start'], '2026-09-14');
+      expect(pending['status'], 'active');
+      expect(pending['settling'], isTrue);
+      expect(pending['progress'], 2);
+      expect(pending['settled_at'], isNull);
+      expect((await history()).first['settling'], isTrue);
+      expect(await balance(), 900);
+    }
+
+    now = _day(8);
+    state = await weekly();
+    expect(state['settling_challenge'], isNull);
+    final Map<String, Object?> last = (await history()).first;
+    expect(last['status'], 'failed');
+    expect(last['settling'], isFalse);
+    expect(await resultNotices(), hasLength(1));
+  });
+
+  test('유예 중에 적은 지난주 기록은 판정에 반영된다', () async {
+    expect((await join()).statusCode, 201);
+    recorded = <DateTime>{_day(0), _day(2)};
+
+    // 월요일 아침에 먼저 열어도 실패로 굳지 않는다.
+    now = _day(7, 8);
+    final DioChallengeRepository repository = DioChallengeRepository(
+      strictDioOf(dio),
+    );
+    WeeklyChallenge state = await repository.fetchWeekly();
+    expect(state.challenge, isNull);
+    expect(state.settlingChallenge!.settling, isTrue);
+    expect(state.settlingChallenge!.status, ChallengeStatus.active);
+    expect(state.settlingChallenge!.progress, 2);
+    expect(await balance(), 900);
+
+    // 일요일 운동을 월요일 저녁에 적는다.
+    recorded = <DateTime>{...recorded, _day(6)};
+    now = _day(7, 21);
+    state = await repository.fetchWeekly();
+    expect(state.settlingChallenge!.progress, 3);
+    expect(state.settlingChallenge!.achieved, isTrue);
+
+    now = _day(8);
+    state = await repository.fetchWeekly();
+    expect(state.settlingChallenge, isNull);
+    final Map<String, Object?> last = (await history()).first;
+    expect(last['status'], 'succeeded');
+    expect(last['progress'], 3);
+    expect(await balance(), 1100);
+  });
+
+  test('유예 중에 이번 주에 참가해도 지난주는 집계 중으로 남는다', () async {
+    expect((await join()).statusCode, 201);
+    recorded = <DateTime>{_day(0), _day(1), _day(2)};
+
+    now = _day(7);
+    expect((await join()).statusCode, 201);
+    Map<String, Object?> state = await weekly();
+    expect(asMap(state['challenge'])['week_start'], '2026-09-21');
+    expect(asMap(state['challenge'])['settling'], isFalse);
+    expect(asMap(state['settling_challenge'])['week_start'], '2026-09-14');
+    expect(await balance(), 800);
+
+    now = _day(8);
+    state = await weekly();
+    expect(state['settling_challenge'], isNull);
+    expect(asMap(state['challenge'])['status'], 'active');
+    expect(
+      <Object?>[for (final Map<String, Object?> c in await history()) c['status']],
+      <String>['active', 'succeeded'],
+    );
+    expect(await balance(), 1000);
+  });
+
+  test('미읽음 수 조회도 끝난 주를 판정해 결과 알림을 만든다', () async {
+    expect((await join()).statusCode, 201);
+    recorded = <DateTime>{_day(0), _day(1), _day(2)};
+
+    // 유예 중에는 만들지 않는다.
+    now = _day(7, 23);
+    final int before = await unread();
+    expect((await history()).first['status'], 'active');
+
+    // 알림함을 열지 않고 배지만 읽는다.
+    now = _day(8, 0, 1);
+    expect(await unread(), before + 1);
+    expect((await history()).first['status'], 'succeeded');
+    expect(await balance(), 1100);
+
+    // 다시 읽어도, 알림함을 열어도 한 건이다.
+    expect(await unread(), before + 1);
     expect(await resultNotices(), hasLength(1));
   });
 

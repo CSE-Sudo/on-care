@@ -11,7 +11,9 @@
   버린다. 기록을 바꾸는 경로(회원 저장·수정·삭제, 트레이너의 PT 완료·루틴 완료 등)가
   많아 자리마다 부르지 않고, 세션이 그 행을 flush 할 때 같은 트랜잭션에서 버린다
   ([_drop_on_record_change]). 버릴 때 `revision` 을 올려, 그 사이에 만들던 응답이 옛
-  기록으로 캐시를 다시 채우지 못하게 한다([_store]).
+  기록으로 캐시를 다시 채우지 못하게 한다([_store]). 카드의 판정 기준인 회원 목표
+  (하루 나트륨·주간 유산소, #3350)가 바뀌어도 같은 자리에서 버린다 — 목표를 낮춘
+  회원에게 옛 기준의 "충분해요" 카드가 캐시 시간 내내 남지 않게.
 - **하루 상한** — 카드를 새로 만들 때마다 한 번 센다(`coach_feedback_per_day`, KST 하루).
   넘으면 오류가 아니라 규칙 기반 카드로 답한다. 모델을 부르기 **전에** 한 문장으로 잡아
   ([_reserve]) 동시에 온 요청이 상한을 넘지 못한다. 키가 없어 규칙 문구로 떨어진
@@ -28,14 +30,19 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import case, event, func, or_, update
+from sqlalchemy import case, event, func, inspect, or_, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import current_locale
-from app.models.models import CoachFeedbackState, DietEntry, ExerciseSession
+from app.models.models import (
+    CoachFeedbackState,
+    DietEntry,
+    ExerciseSession,
+    HealthProfile,
+)
 from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
 from app.services import coach_service
 
@@ -207,7 +214,8 @@ def _drop_statement(user_ids: list[str]) -> Any:
 
 @event.listens_for(Session, "after_flush")
 def _drop_on_record_change(session: Session, _flush_context: object) -> None:
-    """식단·운동 기록 행이 flush 되면 그 회원의 카드를 같은 트랜잭션에서 버린다.
+    """식단·운동 기록 행이나 코칭 기준 목표가 flush 되면 그 회원의 카드를 같은
+    트랜잭션에서 버린다.
 
     기록이 롤백되면 이 갱신도 함께 되돌아간다. 행이 없는 회원(시트를 연 적 없음)은
     버릴 카드가 없어 아무 일도 일어나지 않는다.
@@ -216,15 +224,36 @@ def _drop_on_record_change(session: Session, _flush_context: object) -> None:
         {
             owner
             for obj in (*session.new, *session.dirty, *session.deleted)
-            if isinstance(obj, (DietEntry, ExerciseSession))
-            and (owner := _owner(session, obj))
+            if _affects_cards(session, obj) and (owner := _owner(session, obj))
         }
     )
     if user_ids:
         session.connection().execute(_drop_statement(user_ids))
 
 
-def _owner(session: Session, obj: DietEntry | ExerciseSession) -> str | None:
+#: 카드의 판정 기준으로 쓰이는 프로필 칸(#3350) — `coach_service` 가 읽는 것만.
+_GOAL_FIELDS = ("daily_sodium_mg", "weekly_cardio_minutes")
+
+
+def _affects_cards(session: Session, obj: object) -> bool:
+    """이 행의 변경이 코칭 카드를 바꾸는가.
+
+    기록 행은 언제나 그렇다. 프로필은 포인트 적립처럼 카드와 무관한 일로도 자주
+    바뀌므로, 판정 기준인 목표 칸이 바뀐 때(새 프로필·삭제 포함)만 본다.
+    """
+    if isinstance(obj, (DietEntry, ExerciseSession)):
+        return True
+    if not isinstance(obj, HealthProfile):
+        return False
+    if obj in session.new or obj in session.deleted:
+        return True
+    attrs = inspect(obj).attrs
+    return any(attrs[name].history.has_changes() for name in _GOAL_FIELDS)
+
+
+def _owner(
+    session: Session, obj: DietEntry | ExerciseSession | HealthProfile
+) -> str | None:
     """기록 행의 주인. 지운 행은 다시 읽을 수 없어 이미 읽어 둔 값만 쓴다."""
     owner = obj.__dict__.get("user_id")
     if owner is None and obj not in session.deleted:
