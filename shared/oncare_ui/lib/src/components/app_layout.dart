@@ -618,7 +618,12 @@ class _WebHeaderLayoutDelegate extends MultiChildLayoutDelegate {
 }
 
 /// 분할 레이아웃 — 목록 380 + 간격 16 + 상세. 좁으면 목록·상세 중 하나만 보인다.
-class AppSplitView extends StatelessWidget {
+///
+/// 창 폭이 기준을 넘나들어도 목록·상세의 상태(스크롤, 고른 기간, 입력 중인 글)는
+/// 그대로다(#3316). 좁은 배치와 넓은 배치가 서로 다른 트리라, 자리만 옮겨 주지
+/// 않으면 경계를 지나는 순간 두 쪽 모두 새로 만들어졌다. 좁을 때 가려진 쪽도
+/// 살려 둔다 — 상세를 보고 돌아온 목록이 보던 자리에 있다.
+class AppSplitView extends StatefulWidget {
   const AppSplitView({
     super.key,
     required this.list,
@@ -633,11 +638,31 @@ class AppSplitView extends StatelessWidget {
   final bool showDetailWhenNarrow;
 
   @override
+  State<AppSplitView> createState() => _AppSplitViewState();
+}
+
+class _AppSplitViewState extends State<AppSplitView> {
+  final GlobalKey _listKey = GlobalKey(debugLabel: 'AppSplitView.list');
+  final GlobalKey _detailKey = GlobalKey(debugLabel: 'AppSplitView.detail');
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
+        final Widget list = KeyedSubtree(key: _listKey, child: widget.list);
+        final Widget detail = KeyedSubtree(
+          key: _detailKey,
+          child: widget.detail,
+        );
         if (constraints.maxWidth < OnCareLayout.splitBreakpoint) {
-          return showDetailWhenNarrow ? detail : list;
+          final bool showDetail = widget.showDetailWhenNarrow;
+          return Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              Offstage(offstage: showDetail, child: list),
+              Offstage(offstage: !showDetail, child: detail),
+            ],
+          );
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,

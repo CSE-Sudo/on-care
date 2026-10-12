@@ -140,6 +140,43 @@ void main() {
     );
   });
 
+  testWidgets('분할 레이아웃은 폭 경계를 넘어도 목록·상세 상태를 지킨다 (#3316)', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Future<void> pumpAt(double width) async {
+      tester.view.physicalSize = Size(width, 900);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: _theme(OnCareDensity.web),
+          home: const Scaffold(
+            body: AppSplitView(
+              showDetailWhenNarrow: true,
+              list: _TapCounter(label: 'list'),
+              detail: _TapCounter(label: 'detail'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    await pumpAt(1280);
+    await tester.tap(find.text('list 0'));
+    await tester.tap(find.text('detail 0'));
+    await tester.pump();
+    expect(find.text('list 1'), findsOneWidget);
+    expect(find.text('detail 1'), findsOneWidget);
+
+    // 좁아지면 상세만 보이지만, 가려진 목록도 값을 쥐고 있다.
+    await pumpAt(800);
+    expect(find.text('detail 1'), findsOneWidget);
+    expect(find.text('list 1'), findsNothing);
+    expect(find.text('list 1', skipOffstage: false), findsOneWidget);
+
+    await pumpAt(1280);
+    expect(find.text('list 1'), findsOneWidget);
+    expect(find.text('detail 1'), findsOneWidget);
+  });
+
   testWidgets('사이드바 항목 높이는 44 다', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -286,4 +323,26 @@ void main() {
       });
     }
   });
+}
+
+/// 누른 횟수를 제 상태로 쥐는 칸 — 다시 만들어지면 0 으로 돌아간다.
+class _TapCounter extends StatefulWidget {
+  const _TapCounter({required this.label});
+
+  final String label;
+
+  @override
+  State<_TapCounter> createState() => _TapCounterState();
+}
+
+class _TapCounterState extends State<_TapCounter> {
+  int _count = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => setState(() => _count++),
+      child: Center(child: Text('${widget.label} $_count')),
+    );
+  }
 }
