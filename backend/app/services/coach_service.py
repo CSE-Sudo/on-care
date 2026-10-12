@@ -224,36 +224,55 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
     )
 
 
-def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback:
+def build_greeting(user_name: str) -> str:
+    """시각(KST)에 맞는 인사말. 모델을 부르지 않는다."""
+    hour = clock.now().hour
+    if hour < 11:
+        return localized(
+            f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요.",
+            f"Good morning, {user_name}! Let's start the day healthy.",
+        )
+    if hour < 18:
+        return localized(
+            f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?",
+            f"Hi {user_name}, how's your day going?",
+        )
+    return localized(
+        f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요.",
+        f"How was your day, {user_name}? Let's wrap it up healthy.",
+    )
+
+
+def build_suggestions(
+    db: Session, user_id: str, *, use_model: bool = True
+) -> list[CoachSuggestion]:
     """
     도메인별 코치를 각각 호출해 합친다.
 
     식단·운동 코치는 RAG 기반(domain_coaches)으로 동작한다.
     RAG 가 불가(키 미설정/자료 없음/실패)하면 내부에서 규칙 기반으로 자동 폴백한다.
+
+    `use_model=False` 면 검색도 모델도 거치지 않고 규칙 기반 카드만 만든다 — 회원의
+    하루 상한을 넘겼을 때 쓴다(#3351).
     """
-    hour = clock.now().hour
-    if hour < 11:
-        greeting = localized(
-            f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요.",
-            f"Good morning, {user_name}! Let's start the day healthy.",
-        )
-    elif hour < 18:
-        greeting = localized(
-            f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?",
-            f"Hi {user_name}, how's your day going?",
-        )
-    else:
-        greeting = localized(
-            f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요.",
-            f"How was your day, {user_name}? Let's wrap it up healthy.",
-        )
+    # 카드는 데모와 같은 식단·운동 두 장이다(#2706) — 데모 화면이 기준이다.
+    if not use_model:
+        return [_diet_suggestion(db, user_id), _exercise_suggestion(db, user_id)]
 
     # 지연 import (순환 참조 방지: domain_coaches 가 coach_service 를 import)
     from app.services.coach.domain_coaches import diet_coach, exercise_coach
 
-    # 카드는 데모와 같은 식단·운동 두 장이다(#2706) — 데모 화면이 기준이다.
-    suggestions = [
+    return [
         diet_coach(db, user_id),       # 식단 RAG 코치 (실패 시 규칙 폴백)
         exercise_coach(db, user_id),   # 운동 RAG 코치 (실패 시 규칙 폴백)
     ]
-    return AiCoachFeedback(greeting=greeting, suggestions=suggestions)
+
+
+def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback:
+    """인사말과 카드를 캐시·상한 없이 바로 만든다.
+
+    회원 앱 경로는 `coach_feedback_service.feedback` 을 거친다(#3351).
+    """
+    return AiCoachFeedback(
+        greeting=build_greeting(user_name), suggestions=build_suggestions(db, user_id)
+    )
