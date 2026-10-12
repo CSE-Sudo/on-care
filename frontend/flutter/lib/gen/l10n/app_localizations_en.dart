@@ -4146,6 +4146,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'A cancelled request can\'t be restored.';
 
   @override
+  String get exConsultAcceptedCancelTitle =>
+      'Cancel this confirmed consultation?';
+
+  @override
+  String get exConsultAcceptedCancelBody =>
+      'We\'ll let the trainer know and free up the time. A cancelled consultation can\'t be restored.';
+
+  @override
+  String get exConsultAcceptedCancelAction => 'Cancel consultation';
+
+  @override
+  String get exConsultCancelStarted =>
+      'A consultation that has already started can\'t be cancelled.';
+
+  @override
   String pointsRewardBadge(int points) {
     return '+${points}P';
   }

@@ -1899,6 +1899,10 @@
   "exConsultCancelStale": "이미 처리된 요청이에요. 최신 상태로 바꿨어요.",
   "exConsultHistoryLoadError": "상담 요청을 불러오지 못했어요.",
   "exConsultHistoryCancelBody": "취소한 요청은 다시 되돌릴 수 없어요.",
+  "exConsultAcceptedCancelTitle": "확정된 상담을 취소할까요?",
+  "exConsultAcceptedCancelBody": "트레이너에게 취소를 알리고 잡아 둔 시간을 비워요. 취소한 상담은 다시 되돌릴 수 없어요.",
+  "exConsultAcceptedCancelAction": "상담 취소",
+  "exConsultCancelStarted": "시작 시각이 지난 상담은 취소할 수 없어요.",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "placeholders": {

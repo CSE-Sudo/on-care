@@ -111,6 +111,58 @@ void main() {
     );
   });
 
+  // 실서버처럼 수락된 상담도 시작 전이면 취소된다(#3359).
+  group('수락된 상담', () {
+    tearDown(() => debugNowKstOverride = null);
+
+    test('시작 전이면 취소되고 자리가 풀린다', () async {
+      final String id = await repository.create(_draft());
+      repository.acceptForTesting(id);
+      expect(
+        (await repository.fetchMine()).single.status,
+        ConsultationStatus.accepted,
+      );
+      expect((await _slot(gym, _slotId)).booked, isTrue);
+
+      await repository.cancel(id);
+
+      expect(
+        (await repository.fetchMine()).single.status,
+        ConsultationStatus.cancelled,
+      );
+      expect((await _slot(gym, _slotId)).booked, isFalse);
+    });
+
+    test('시작 시각이 지나면 취소할 수 없고 자리도 그대로다', () async {
+      final String id = await repository.create(_draft());
+      repository.acceptForTesting(id);
+      final DateTime startsAt = (await _slot(gym, _slotId)).startsAt;
+      debugNowKstOverride = () => startsAt;
+
+      await expectLater(
+        repository.cancel(id),
+        throwsA(isA<ConsultationAlreadyStarted>()),
+      );
+      expect(
+        (await repository.fetchMine()).single.status,
+        ConsultationStatus.accepted,
+      );
+      expect((await _slot(gym, _slotId)).booked, isTrue);
+    });
+
+    test('대기 중이 아닌 신청은 수락으로 바뀌지 않는다', () async {
+      final String id = await repository.create(_draft());
+      await repository.cancel(id);
+
+      repository.acceptForTesting(id);
+
+      expect(
+        (await repository.fetchMine()).single.status,
+        ConsultationStatus.cancelled,
+      );
+    });
+  });
+
   test('없는 신청을 취소하면 실서버의 404 와 같은 예외다 (#2858)', () async {
     await expectLater(
       repository.cancel('consult-unknown'),

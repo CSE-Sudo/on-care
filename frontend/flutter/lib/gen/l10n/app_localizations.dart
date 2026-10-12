@@ -7063,6 +7063,30 @@ abstract class AppLocalizations {
   /// **'A cancelled request can\'t be restored.'**
   String get exConsultHistoryCancelBody;
 
+  /// Title of the confirm dialog when a member cancels a consultation the trainer already accepted, before it starts (#3359).
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this confirmed consultation?'**
+  String get exConsultAcceptedCancelTitle;
+
+  /// No description provided for @exConsultAcceptedCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll let the trainer know and free up the time. A cancelled consultation can\'t be restored.'**
+  String get exConsultAcceptedCancelBody;
+
+  /// Confirm button of the cancel dialog for an accepted consultation. Sits next to Keep.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel consultation'**
+  String get exConsultAcceptedCancelAction;
+
+  /// No description provided for @exConsultCancelStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'A consultation that has already started can\'t be cancelled.'**
+  String get exConsultCancelStarted;
+
   /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
   ///
   /// In en, this message translates to:

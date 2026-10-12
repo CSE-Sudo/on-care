@@ -177,12 +177,13 @@ class ConsultationRequestController
     return null;
   }
 
-  /// 대기 중인 요청을 취소한다.
+  /// 대기 중인 요청, 또는 수락됐지만 아직 시작하지 않은 상담을 취소한다(#3359).
   ///
   /// 실패하면 예외를 그대로 올리고 목록은 바꾸지 않는다 — 화면이 안내를 띄운다
-  /// (#2858). 저장소는 이미 결정된 요청이면 [ConsultationNoLongerPending], 없는
-  /// 요청이면 [ConsultationNotFound] 를 던지고, 화면은 그때 [refresh] 로 실제
-  /// 상태를 받는다.
+  /// (#2858). 저장소는 이미 끝난 요청이면 [ConsultationNoLongerPending], 시작
+  /// 시각이 지난 상담이면 [ConsultationAlreadyStarted], 없는 요청이면
+  /// [ConsultationNotFound] 를 던지고, 화면은 그때 [refresh] 로 실제 상태를
+  /// 받는다.
   ///
   /// 임시 카드([_adoptServerPending])는 서버 목록에서 같은 트레이너의 실제 대기
   /// 요청을 찾아 그 id 로 취소한다. 없으면 [ConsultationNotFound] 다.
