@@ -1178,7 +1178,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/me/coach/routines/{routine_id}/complete` | `{ minutes?, duration_seconds?, sets?, reps?, weight?, hold_seconds?, intensity? }` → `RoutineCompleteOut`(루틴 + 남긴 운동 기록·포인트). 없는 루틴 404 |
 | DELETE | `/me/coach/routines/{routine_id}/complete` | `RoutineOut` — 완료 표시를 되돌리고 그 완료로 남은 운동 기록을 지운다(#1131) |
 | DELETE | `/me/coach/routines/{routine_id}` | 204 — 내 개인운동 취소. **담당 트레이너가 있으면 403**(취소는 트레이너의 일), 없는 루틴 404 (#1020) |
-| GET | `/me/coach/sessions` | `ScheduleSessionOut[]` — 담당 트레이너 일정 중 나와 매칭된 것, 최신순(완료 회차 `session_number`) |
+| GET | `/me/coach/sessions` | `ScheduleSessionOut[]` — 담당 트레이너 일정 중 나와 매칭된 것과 지난 담당과 완료한 PT, 최신순(완료 회차 `session_number`, 수업한 트레이너 `trainer_name`) |
 | GET | `/me/coach/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, `sender` 는 `me`\|`trainer`). 담당이 없으면 404 |
 | POST | `/me/coach/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지 400, 이모티콘 규칙은 위 "채팅 이모티콘" |
 | GET | `/me/coach/chat/unread` | `{ unread }` — 트레이너가 보낸 안 읽은 메시지 수 |
@@ -1339,10 +1339,17 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 줄은 `intensity` 가 곧 처방 강도이고 `prescribed_intensity` 는 비어 있다.
 
 **완료 PT 회차 (#2697)**: `GET /me/coach/sessions` 의 각 세션은 `session_number` 를 싣는다 —
-완료(`status="완료"`)한 PT 가 현재 담당 트레이너와의 몇 번째 수업인지(1부터). 날짜·시각 순으로
+완료(`status="완료"`)한 PT 가 **그 수업을 한 트레이너**와의 몇 번째 수업인지(1부터). 날짜·시각 순으로
 처음부터 세므로, 목록이 최근 100건으로 잘려도 번호는 맞다. 상담은 세지 않는다. 예정·취소·노쇼·
 상담 세션과 트레이너 응답(`/trainer/schedule`)은 `null` 이다. 회원 앱 운동 탭 `오늘 완료한 PT`
 카드의 `N회차` 칩이 이 값을 읽는다.
+
+**담당이 바뀌거나 끝난 뒤의 PT 이력 (#3347)**: `GET /me/coach/sessions` 는 지금 담당의 일정 전부에
+더해 **지난 담당과 완료한 PT** 를 싣는다(예정·취소·노쇼·상담은 싣지 않는다). 담당이 없는 회원도
+지난 수업을 받는다. 각 줄의 `trainer_name`(`string | null`)은 그 수업을 한 트레이너 이름이고,
+회차는 트레이너별로 따로 센다. 트레이너 응답(`/trainer/schedule`)의 `trainer_name` 은 `null` 이다.
+지난 날짜의 `GET /me/coach/routines?date=` 도 그날 걸려 있던 배정을 담당과 상관없이 돌려주고,
+지난 담당의 배정에 대한 완료 취소(`DELETE /me/coach/routines/{id}/complete`)는 404 가 아니다.
 
 **회원 주간 피드백 (#2232)**: 한 주가 끝난 뒤 회원이 남기는 세 문항이다. 수치만 보면 같은
 한 주가 `게으름` 으로도 `과부하·일정 문제` 로도 읽히는데 그 둘은 다음 주 처방이 정반대라,
@@ -1402,10 +1409,13 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 
 - `week_start` 기본값은 **이번 주**(트레이너 리포트와 같다). 주 중간 날짜는 그 주 월요일로
   접히고, 형식이 틀리거나 **아직 오지 않은 주는 422**.
-- 같은 회원·같은 주면 `message` 를 뺀 모든 필드가 트레이너 응답과 같다.
+- 담당이 한 명뿐이었던 회원은 같은 주에 `message` 를 뺀 모든 필드가 트레이너 응답과 같다.
+- `sessions_*` 와 이행률(`completion_avg`·`week_completion`)은 **회원 기준**이다(#3347) — 그 주의 수업·배정이면 지금
+  담당의 것이 아니어도 센다. 담당을 바꾸거나 해제해도 지난주 숫자가 달라지지 않는다. 트레이너
+  응답(`/trainer/clients/{id}/report`)은 전과 같이 자기 일정·배정만 센다.
 - **`message` 는 항상 빈 문자열**이다 — 트레이너가 손보고 보낼 자동 초안이라 회원에게 먼저
   닿으면 안 된다. 회원이 읽는 코칭 글은 트레이너가 채팅으로 보낸 것뿐이다.
-- 담당 트레이너가 없어도 200 이다(포인트로 교환한 리포트, #2022). 그때 `sessions_*` 는 0 이다.
+- 담당 트레이너가 없어도 200 이다(포인트로 교환한 리포트, #2022). 수업을 받은 적이 없으면 `sessions_*` 는 0 이다.
 
 **다음 주 목표 (#2232)**: 트레이너가 리포트 ② 에서 고른 목표다. 다음 주 리포트의
 `③ 지난 주 목표 달성` 이 그대로 회수한다 — 목표는 **다음 주에 확인될 때** 비로소 목표이고,
@@ -1605,8 +1615,9 @@ N명이면 첫 화면에서 요청이 2N개였다.
 - 동의 기능(#1022) 이전에 만들어져 **동의도 철회도 없는** 링크는 막지 않는다.
 - **이미 주고받은 기록은 지우지 않는다.** 철회 전에 보낸 채팅·리포트·일정·루틴은 그대로 남는다.
   철회는 **앞으로의 열람**만 막는다. 회원의 `/me/coach/chat`·`/me/coach/sessions`·`/me/coach/routines` 는
-  활성 담당 기준이라 해제한 동안은 트레이너와의 기록이 보이지 않고(채팅 404, 일정 빈 목록, 루틴은 AI
-  추천으로 바뀐다), 같은 트레이너와 다시 연결하면 다시 보인다(#2387).
+  활성 담당 기준이라 해제한 동안은 채팅이 404 이고 오늘 루틴은 AI 추천으로 바뀌며, 같은 트레이너와
+  다시 연결하면 다시 보인다(#2387). 다만 **완료한 PT 와 지난 날짜의 배정·주간 리포트 숫자**는 해제
+  뒤에도 회원에게 그대로 보인다(#3347).
 - 마이그레이션 `0097_data_consent_revocation` 은 이미 해제된 링크(`active = false`)의 동의를 비우고
   마이그레이션 시각을 철회 시각으로 적는다.
 - 담당이 끝나면 그 트레이너의 메시지로 만든 식단 AI 보관물을 내려놓는다(#2386) — 이번 주·전체
