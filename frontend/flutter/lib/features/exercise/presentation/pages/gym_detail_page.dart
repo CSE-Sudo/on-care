@@ -56,20 +56,31 @@ class GymDetailPage extends ConsumerWidget {
       AsyncData<Gym?>(:final value) when value?.id == gymId => value,
       _ => null,
     };
-    final Gym? gym = nearbyGym ?? myGym;
+    final bool listsLoading = nearbyAsync.isLoading || myGymAsync.isLoading;
+    // 목록은 서버가 반경·개수로 잘라 준다. 두 곳 어디에도 없을 때만 이 헬스장
+    // 하나를 따로 읽는다 — 담당 트레이너의 먼 소속 헬스장처럼 목록 밖에서
+    // 들어온 상세가 "찾을 수 없음"이 되지 않게(#3356).
+    final AsyncValue<Gym?> singleAsync =
+        nearbyGym == null && myGym == null && !listsLoading
+        ? ref.watch(gymProvider(gymId))
+        : const AsyncValue<Gym?>.data(null);
+    final Gym? gym = nearbyGym ?? myGym ?? singleAsync.valueOrNull;
     final Widget body;
     if (gym != null) {
       body = _GymDetails(gym: gym, isMyGym: myGym != null);
-    } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
+    } else if (listsLoading || singleAsync.isLoading) {
       body = const AppLoading();
-    } else if (nearbyAsync.hasError || myGymAsync.hasError) {
+    } else if (nearbyAsync.hasError ||
+        myGymAsync.hasError ||
+        singleAsync.hasError) {
       body = appErrorStateFor(
         context,
-        error: nearbyAsync.error ?? myGymAsync.error,
+        error: nearbyAsync.error ?? myGymAsync.error ?? singleAsync.error,
         title: l.exGymsLoadError,
         onRetry: () {
           ref.invalidate(gymFinderResultsProvider);
           ref.invalidate(myGymProvider);
+          ref.invalidate(gymProvider(gymId));
         },
       );
     } else {
