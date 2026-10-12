@@ -2201,6 +2201,9 @@ class _ClientDataSwitcher extends ConsumerStatefulWidget {
 }
 
 class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
+  /// 전환 토글과 기간 토글을 한 줄에 둘 수 있는 가장 좁은 폭.
+  static const double _twoRowToggleWidth = 360;
+
   _ClientDataView _view = _ClientDataView.diet;
 
   /// 프로그램 탭에서도 `오늘 / 이번 주 / 이번 달` 을 고를 수 있다(#914).
@@ -2216,47 +2219,62 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
         // 기간 토글은 전환 토글과 **한 줄**에 둔다(#943) — 카드 위에 줄을
         // 따로 두면 고객 데이터 열이 그만큼 길어져 당류 카드가 화면 밖으로
         // 밀린다.
-        Row(
-          children: <Widget>[
-            Expanded(
-              // 이식 전 식단·운동 스트립 모양(옅은 띠 + 흰 엄지)이다(#1024,
-              // #1777). 기간 토글은 기본 채움 알약 그대로 둔다.
-              child: AppSegmentedToggle<_ClientDataView>(
-                key: const ValueKey<String>('program-client-data-tabs'),
-                expand: true,
-                style: AppSegmentedToggleStyle.thumb,
-                selected: _view,
-                onChanged: (view) => setState(() => _view = view),
-                segments: <AppSegment<_ClientDataView>>[
-                  AppSegment<_ClientDataView>(
-                    value: _ClientDataView.diet,
-                    label: l.clientTabDiet,
-                    icon: AppIcons.diet,
-                  ),
-                  AppSegment<_ClientDataView>(
-                    value: _ClientDataView.workout,
-                    label: l.clientTabWorkout,
-                    icon: AppIcons.exercise,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s8),
+        //
+        // 다만 열이 [_twoRowToggleWidth] 보다 좁으면(세 열의 가장 좁은 폭) 두
+        // 줄로 나눈다 — 한 줄에 두면 기간 토글이 읽을 수 없게 줄어든다(#3316).
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // 이식 전 식단·운동 스트립 모양(옅은 띠 + 흰 엄지)이다(#1024,
+            // #1777). 기간 토글은 기본 채움 알약 그대로 둔다.
+            final Widget tabs = AppSegmentedToggle<_ClientDataView>(
+              key: const ValueKey<String>('program-client-data-tabs'),
+              expand: true,
+              style: AppSegmentedToggleStyle.thumb,
+              selected: _view,
+              onChanged: (view) => setState(() => _view = view),
+              segments: <AppSegment<_ClientDataView>>[
+                AppSegment<_ClientDataView>(
+                  value: _ClientDataView.diet,
+                  label: l.clientTabDiet,
+                  icon: AppIcons.diet,
+                ),
+                AppSegment<_ClientDataView>(
+                  value: _ClientDataView.workout,
+                  label: l.clientTabWorkout,
+                  icon: AppIcons.exercise,
+                ),
+              ],
+            );
             // 토글은 줄어들되 잘리지는 않는다 — FittedBox 가 세 칸을 다 보여
             // 준 채 통째로 작게 그린다.
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: AppSegmentedToggle<ClientPeriod>(
-                  key: const ValueKey<String>('client-period-toggle'),
-                  segments: clientPeriodSegments(AppLocalizations.of(context)),
-                  selected: _period,
-                  onChanged: (ClientPeriod p) => setState(() => _period = p),
-                ),
+            final Widget period = FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: AppSegmentedToggle<ClientPeriod>(
+                key: const ValueKey<String>('client-period-toggle'),
+                segments: clientPeriodSegments(AppLocalizations.of(context)),
+                selected: _period,
+                onChanged: (ClientPeriod p) => setState(() => _period = p),
               ),
-            ),
-          ],
+            );
+            if (constraints.maxWidth < _twoRowToggleWidth) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  tabs,
+                  const SizedBox(height: OnCareSpacing.s8),
+                  Align(alignment: Alignment.centerRight, child: period),
+                ],
+              );
+            }
+            return Row(
+              children: <Widget>[
+                Expanded(child: tabs),
+                const SizedBox(width: OnCareSpacing.s8),
+                Flexible(child: period),
+              ],
+            );
+          },
         ),
         const SizedBox(height: OnCareSpacing.s8),
         // 전환에 애니메이션을 두지 않는다(#1027).

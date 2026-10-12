@@ -783,7 +783,7 @@ class _BlockLines extends StatelessWidget {
   /// 이보다 좁은 칸에서는 줄마다 가장 중요한 값만 남긴다 — 종류 알약을 빼고
   /// 이름에 폭을 다 준다. 알약과 나눠 쓰면 1024 창에서 이름이 한 글자로
   /// 잘렸다(#3316).
-  static const double narrowWidth = 72;
+  static const double narrowWidth = 80;
 
   @override
   Widget build(BuildContext context) {
