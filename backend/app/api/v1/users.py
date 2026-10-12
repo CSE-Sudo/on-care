@@ -99,6 +99,7 @@ from app.services import (
     weekly_challenge_service,
 )
 from app.services.diet_coach_inputs import effective_protein_g
+from app.services.trainer import _common as trainer_common_service
 from app.services.contact_format import normalize_email
 from app.services.profile_format import name_from_email
 
@@ -557,7 +558,7 @@ def get_deletion_preview(
     user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> AccountDeletionPreview:
-    """탈퇴하면 사라지는 포인트·쿠폰과 취소되는 예약·상담 요청의 수(#3006).
+    """탈퇴하면 사라지는 포인트·쿠폰과 취소되는 예약·일정·상담 요청의 수(#3006).
 
     탈퇴 확인창이 연다. [delete_me] 가 실제로 지우는 범위를 숫자로 미리 보여 줄
     뿐이고, 아무것도 바꾸지 않는다. 트레이너 계정은 403 이다(회원 전용).
@@ -573,7 +574,8 @@ def delete_me(
     payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """회원 탈퇴. 예약 좌석을 복구한 뒤 프로필·식단·운동·일정·알림·
-    소셜계정·개인 코치문서를 함께 삭제한다. 대기 중 상담 요청은 요청을 받은
+    소셜계정·개인 코치문서를 함께 삭제한다. 트레이너가 잡은 일정은 시작 전이면
+    취소로 바꾸고, 남는 행에서는 회원 이름과 메모를 지운다(#3341). 대기 중 상담 요청은 요청을 받은
     트레이너에게 취소를 알린 뒤 함께 지운다(#1632).
 
     고른 사유가 있으면 **회원 행과 잇지 않고** 따로 남긴다(#2019). 회원은 이
@@ -601,6 +603,9 @@ def delete_me(
             )
         )
     reservation_service.cancel_member_reservations_for_account_deletion(db, user.id)
+    # 트레이너가 잡은 일정은 회원 행이 사라져도 이름·메모와 함께 남는다 — 시작 전
+    # 일정은 취소로 바꾸고, 남는 행에서는 회원 이름과 메모를 지운다(#3341).
+    trainer_common_service.clear_sessions_on_withdrawal(db, user.id)
     # 대기 중인 상담이 잡고 있던 자리도 풀어 준다 — 요청 행은 CASCADE 로 사라져도
     # 자리는 남아 잠긴 채가 된다(#1873).
     consultation_service.release_holds_for_account_deletion(db, user.id)

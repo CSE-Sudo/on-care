@@ -628,14 +628,28 @@ def sessions_cancelled_on_detach(
     시작 시각이 지난 `예정` 은 남긴다. 실제로 했을 수 있는 수업이라 취소로 덮으면
     지난 기록이 틀어진다 — 익명 기록으로 스케줄에 남는다.
     """
+    rows = _upcoming_not_started(
+        db,
+        TrainerSchedule.trainer_id == trainer_id,
+        TrainerSchedule.member_id == member_id,
+    )
+    # 회원이 직접 신청한 상담은 담당과 별개다(#2584) — 해제해도 거두지 않는다.
+    return [s for s in rows if not _is_consultation_booking(s)]
+
+
+def _upcoming_not_started(db: Session, *criteria: Any) -> list[TrainerSchedule]:
+    """[criteria] 에 맞는 `예정` 일정 중 아직 시작하지 않은 것(날짜→시간 순).
+
+    담당 해제(#2589)와 회원 탈퇴(#3341)가 "남은 일정" 을 같은 기준으로 고르게
+    한 곳에 둔다. 시각을 읽을 수 없는 오늘 일정은 시작한 것으로 본다.
+    """
     now = clock.now()
     today = now.date().isoformat()
     minute = now.hour * 60 + now.minute
     rows = db.scalars(
         select(TrainerSchedule)
         .where(
-            TrainerSchedule.trainer_id == trainer_id,
-            TrainerSchedule.member_id == member_id,
+            *criteria,
             TrainerSchedule.status == SCHEDULE_UPCOMING,
             TrainerSchedule.date >= today,
         )
@@ -650,8 +664,7 @@ def sessions_cancelled_on_detach(
         except ValueError:
             return False
 
-    # 회원이 직접 신청한 상담은 담당과 별개다(#2584) — 해제해도 거두지 않는다.
-    return [s for s in rows if not_started(s) and not _is_consultation_booking(s)]
+    return [s for s in rows if not_started(s)]
 
 
 def _cancel_sessions_on_detach(
@@ -677,6 +690,72 @@ def _cancel_sessions_on_detach(
     for s in rows:
         _release_cancelled_reservation(db, s, source=source)
     return len(rows)
+
+
+#: 회원 탈퇴로 거둔 일정에 남기는 취소 사유(#3341). 트레이너만 보는 기록이다.
+WITHDRAW_CANCEL_REASON = "회원 탈퇴"
+
+
+#: 탈퇴한 회원의 일정이 스케줄에 쓰는 이름(#3341). 행에 직접 적는다 — 회원 행이
+#: 사라지면 `member_id` 가 NULL 이 되어 응답을 만들 때는 누구였는지 알 수 없다.
+WITHDRAWN_CLIENT_NAME = "탈퇴 회원"
+
+
+def sessions_cancelled_on_withdrawal(
+    db: Session, member_id: str
+) -> list[TrainerSchedule]:
+    """회원이 탈퇴하면 취소할 일정 — 트레이너가 잡아 둔 `예정` 중 시작 전인 것. (#3341)
+
+    담당 해제([sessions_cancelled_on_detach])와 같은 기준이되 두 가지가 다르다.
+
+    - 트레이너를 가리지 않는다. 회원이 사라지므로 누구와 잡은 약속이든 열리지 않는다.
+    - 수락된 상담 일정도 거둔다. 해제는 담당만 끝나 상담이 남지만, 탈퇴는 상담할
+      사람이 없다.
+
+    회원 예약이 만든 일정은 뺀다 — 탈퇴는 예약을 먼저 정리하면서 그 일정을 함께
+    지우고(`reservation_service._release`), 미리보기는 그 수를 예약으로 따로 센다.
+    """
+    reserved = select(TrainerReservation.schedule_id).where(
+        TrainerReservation.member_id == member_id
+    )
+    return _upcoming_not_started(
+        db,
+        TrainerSchedule.member_id == member_id,
+        TrainerSchedule.id.not_in(reserved),
+    )
+
+
+def clear_sessions_on_withdrawal(db: Session, member_id: str) -> int:
+    """탈퇴하는 회원의 일정을 정리한다(커밋 없음). 취소한 수. (#3341)
+
+    회원 행을 지우면 일정의 `member_id` 는 NULL 이 될 뿐 행과 이름·메모는 남는다.
+    그대로 두면 트레이너 스케줄에 탈퇴한 회원의 실명이 예정 일정으로 계속 뜬다.
+    **회원을 지우기 전에**, 그리고 예약 정리 뒤에 부른다.
+
+    - 시작 전인 `예정` 은 `취소`(주체 member)로 바꾼다. 일정별 알림은 보내지
+      않는다 — 담당 트레이너는 탈퇴 알림 한 건을 받는다(`member_departure`).
+    - 지난 일정은 트레이너가 참여한 수업 기록이라 행을 남긴다. 다만 누구였는지와
+      그 수업에 적은 메모는 지운다 — 가리는 것이 아니라 행에서 없앤다.
+    """
+    upcoming = sessions_cancelled_on_withdrawal(db, member_id)
+    cancelled_at = datetime.now(timezone.utc)
+    for s in upcoming:
+        s.status = SCHEDULE_CANCELLED
+        s.cancelled_at = cancelled_at
+        s.cancellation_source = "member"
+        s.cancellation_reason = WITHDRAW_CANCEL_REASON
+    rows = db.scalars(
+        select(TrainerSchedule).where(TrainerSchedule.member_id == member_id)
+    ).all()
+    for s in rows:
+        s.client_name = WITHDRAWN_CLIENT_NAME
+        s.note = ""
+        # 상담 요청은 회원과 함께 CASCADE 로 사라진다. 연결을 여기서 먼저 끊는다 —
+        # 같은 트랜잭션에서 고친 행은 회원 삭제의 `SET NULL` 갱신 때 FK 를 다시
+        # 검사받는데, 그 시점에는 요청이 이미 지워져 있어 삭제가 통째로 실패한다.
+        s.consultation_id = None
+    db.flush()
+    return len(upcoming)
 
 
 #: 배정 행의 검토 상태. AI 후보는 pending 으로 들어와 트레이너 판단을 기다린다.

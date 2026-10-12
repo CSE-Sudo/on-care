@@ -679,6 +679,9 @@ class AccountDeletionPreview(BaseModel):
     active_coupons: int = Field(ge=0)
     #: 시작 전인 PT 예약 수. 탈퇴하면 취소되고 자리가 풀린다.
     upcoming_reservations: int = Field(ge=0)
+    #: 트레이너가 잡아 둔 시작 전 일정 수(회원 예약으로 생긴 것 제외). 탈퇴하면
+    #: 취소된다(#3341). 이 칸이 없던 서버 응답과 섞여도 읽히게 기본값을 둔다.
+    upcoming_sessions: int = Field(default=0, ge=0)
     #: 아직 답을 받지 않은 상담 요청 수. 탈퇴하면 취소되고 트레이너에게 알린다.
     pending_consultations: int = Field(ge=0)
 
