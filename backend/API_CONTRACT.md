@@ -965,10 +965,9 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/consultations/{consultation_id}` | 내가 보낸 대기 중 상담 요청 취소 |
 | GET | `/consultations/{id}` | 단건(남의 것·없는 것 404) |
 
-- **담당 트레이너가 있는 회원은 담당에게만** 상담을 낼 수 있습니다(#2611). 다른 트레이너에게
-  내면 **409** `detail = { code: "linked_to_other_trainer", message }` 입니다. 트레이너를 바꾸려면
-  `DELETE /me/coach/trainer` 로 담당 연결을 해제한 뒤 신청합니다. 이 판정은 대기 중복·한도보다
-  먼저 합니다.
+- 상담은 **담당 여부와 관계없이** 낼 수 있습니다(#3358). 담당 트레이너가 있는 회원도 다른
+  트레이너에게 신청할 수 있고, 신청·수락만으로는 담당이 바뀌지 않습니다 — 담당은 연결 요청
+  수락이나 연결 코드로만 바뀝니다. 아래의 대기 중복·신청 한도는 담당이 있어도 똑같이 적용합니다.
 - 같은 트레이너에게 **대기 중인 요청은 한 건**입니다(`uq_consultation_requests_pending_trainer`,
   중복은 409). 그래서 목록이 자라는 쪽은 처리된 지난 요청입니다 — 상태 필터가 없어
   그대로 함께 쌓이고, 그 때문에 상한이 필요합니다. (#980)
