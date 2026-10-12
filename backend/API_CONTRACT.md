@@ -978,9 +978,20 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/consultations` | 입력 `{ trainer_id, slot_id, exercise_goal, health_purpose_type, message? }` |
 | GET | `/consultations/slots?trainer_id=` | 상담 신청 폼이 고를 수 있는 그 트레이너의 빈 자리 |
 | GET | `/consultations/me` | 내가 보낸 요청 (최신순, 기본 50건·커서) |
-| DELETE | `/consultations/{consultation_id}` | 내가 보낸 대기 중 상담 요청 취소 |
+| DELETE | `/consultations/{consultation_id}` | 내가 보낸 상담 취소 — 대기 중인 요청, 또는 수락됐지만 아직 시작하지 않은 상담(#3359) |
 | GET | `/consultations/{id}` | 단건(남의 것·없는 것 404) |
 
+- **취소** (#3359) — 회원은 대기 중인 요청과, **수락된 뒤 시작 시각 전**인 상담을 취소할 수
+  있습니다. 수락된 상담을 취소하면 한 트랜잭션으로 ① 요청이 `cancelled` 가 되고(처리자는
+  비워 `cancelled_by_trainer` 는 `false`) ② 그 요청으로 생긴 `예정` 상담 일정이 `취소`(주체
+  `member`, 사유 `회원 상담 취소`)로 바뀌고 ③ 신청 때 잠근 자리가 다시 열리고 ④ 트레이너에게
+  알림이 갑니다 — 분류 `consultation`, 틀 `trainer_consult_booking_cancelled`, 인자
+  `member_name`·`starts_at`(KST), `subject_id` 는 그 회원, `target_date` 는 상담 날짜입니다.
+  대기 요청 취소의 틀(`trainer_consult_cancelled`)과 다릅니다. 시작 시각은 상담 일정의 시각이
+  기준입니다(트레이너가 옮겼으면 옮긴 시각). 응답은 취소된 `ConsultationOut` 입니다.
+  - 시작 시각이 지났거나 일정이 이미 완료·노쇼로 끝났으면 409
+    `{ "detail": { "code": "consultation_started", "message" } }` — 아무것도 바뀌지 않습니다.
+  - 거절·만료·취소로 이미 끝난 요청은 409(문자열 `detail`), 남의 것·없는 것은 404 입니다.
 - 상담은 **담당 여부와 관계없이** 낼 수 있습니다(#3358). 담당 트레이너가 있는 회원도 다른
   트레이너에게 신청할 수 있고, 신청·수락만으로는 담당이 바뀌지 않습니다 — 담당은 연결 요청
   수락이나 연결 코드로만 바뀝니다. 아래의 대기 중복·신청 한도는 담당이 있어도 똑같이 적용합니다.
