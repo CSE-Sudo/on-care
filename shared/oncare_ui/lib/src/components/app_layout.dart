@@ -605,6 +605,14 @@ class _WebHeaderLayoutDelegate extends MultiChildLayoutDelegate {
       }
     }
 
+    // 오른쪽에 아무것도 없으면(좁은 셸 — 알림 종이 상단바로 올라간 화면)
+    // 가운데 자리가 머리 오른쪽 끝까지 간다. 대칭으로 비우면 그 안에서 오른쪽에
+    // 붙는 검색 아이콘이 제목 폭만큼 안쪽에 떠 있었다(#3316).
+    if (endSize.width == 0) {
+      centerLeft = startSize.width + _gap;
+      centerWidth = (size.width - centerLeft).clamp(0.0, size.width);
+    }
+
     layoutChild(
       _WebHeaderSlot.center,
       BoxConstraints.tightFor(width: centerWidth, height: size.height),

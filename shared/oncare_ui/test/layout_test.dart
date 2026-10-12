@@ -268,6 +268,27 @@ void main() {
     expect(find.text('99+'), findsOneWidget);
   });
 
+  testWidgets('오른쪽이 빈 머리에서는 가운데 자리가 오른쪽 끝까지 간다 (#3316)', (tester) async {
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _theme(OnCareDensity.web),
+        home: const Scaffold(
+          body: AppWebPage(
+            title: '고객',
+            subtitle: '담당 회원',
+            headerCenter: SizedBox.expand(key: Key('center')),
+            body: ColoredBox(color: Colors.white),
+          ),
+        ),
+      ),
+    );
+    // 좌우 여백 16 을 뺀 머리의 오른쪽 끝이다.
+    expect(tester.getRect(find.byKey(const Key('center'))).right, 800 - 16);
+  });
+
   group('웹 페이지 머리는 글자 배율이 커져도 넘치지 않는다 (#2431)', () {
     Future<void> pumpPage(
       WidgetTester tester, {
