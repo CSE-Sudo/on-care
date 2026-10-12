@@ -159,7 +159,16 @@ Dependabot 이 매주 월요일 오전에 생태계별로 묶은 업데이트 PR
   묶음 PR 에 그 주 버전이 섞여 들어옵니다(예: analyzer 8 을 요구하는 `drift_dev` 가
   `flutter_riverpod` 3.x 를 끌고 옴). 이때는 PR 을 닫지 말고, 끌고 들어오는 패키지의 해당
   버전 범위를 `.github/dependabot.yml` 의 `ignore` 에 `versions` 로 더합니다. 어느 주 버전
-  이행이 끝나면 지울지 주석으로 남기고, 병합 뒤 PR 에 `@dependabot recreate` 를 답니다.
+  이행이 끝나면 지울지 주석으로 남깁니다. 설정이 `main` 에 들어가면 Dependabot 이 기존 묶음
+  PR 을 스스로 닫고 새 설정으로 다시 엽니다 — 닫힌 PR 에 `@dependabot recreate` 를 달 필요는
+  없습니다.
+- **pub 잠금 파일에 SDK 고정 패키지가 따라올 때**(#3319): Dependabot 은 저장소가 고정한
+  Flutter SDK 보다 새로운 SDK 로 의존성을 풉니다. 그래서 묶음 PR 의 `pubspec.lock` 에 올리려던
+  패키지 말고도 SDK 가 버전을 고정하는 패키지(`intl`·`matcher`·`meta`·`test_api`·`vector_math`
+  등)가 함께 올라옵니다. `ignore` 로는 막을 수 없습니다 — 업데이트 대상으로 고르는 것만 막기
+  때문입니다. pub 묶음 PR 은 병합 전에 CI 와 같은 Flutter 버전으로 두 앱에서 `flutter pub get`
+  을 돌려, 바뀐 `pubspec.lock` 을 그 PR 브랜치에 커밋합니다. 올리려던 패키지만 남으면 맞습니다.
+  Flutter SDK 고정 버전을 Dependabot 이 쓰는 버전 이상으로 올리면 이 차이는 사라집니다.
 - **백엔드 잠금 파일**: `requirements.txt`·`requirements-dev.txt` 는 손으로 고치지 않습니다.
   직접 의존을 바꿀 때는 `requirements.in`(·`requirements-dev.in`)을 고친 뒤 잠금 파일을
   다시 만듭니다(절차는 [backend/README.md](../backend/README.md) "의존성").
