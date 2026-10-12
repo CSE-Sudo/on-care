@@ -356,16 +356,16 @@ abstract class AppLocalizations {
   /// **'You went over your sodium goal today. Try keeping the rest of your meals light.'**
   String get homeAdviceSodiumOver;
 
-  /// Home AI advice when the weekly exercise goal is met (#1943).
+  /// Home AI advice when this week's cardio minutes meet the member's weekly cardio goal (#1943, #3350).
   ///
   /// In en, this message translates to:
-  /// **'You worked out {minutes} minutes this week. You are on track!'**
+  /// **'You did {minutes} minutes of cardio this week. You are on track!'**
   String homeAdviceExerciseOnTrack(int minutes);
 
-  /// Home AI advice when there is some exercise but not enough (#1943).
+  /// Home AI advice when there is exercise this week but cardio minutes are under the weekly cardio goal (#1943, #3350).
   ///
   /// In en, this message translates to:
-  /// **'You worked out {minutes} minutes this week. A little more to go!'**
+  /// **'You did {minutes} minutes of cardio this week. A little more to go!'**
   String homeAdviceExerciseMore(int minutes);
 
   /// Home AI advice when nothing was logged this week (#1943).

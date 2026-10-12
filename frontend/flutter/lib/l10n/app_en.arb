@@ -104,18 +104,18 @@
   "@homeAdviceSodiumOver": {
     "description": "Home AI advice when today's sodium is over the goal (#1943)."
   },
-  "homeAdviceExerciseOnTrack": "You worked out {minutes} minutes this week. You are on track!",
+  "homeAdviceExerciseOnTrack": "You did {minutes} minutes of cardio this week. You are on track!",
   "@homeAdviceExerciseOnTrack": {
-    "description": "Home AI advice when the weekly exercise goal is met (#1943).",
+    "description": "Home AI advice when this week's cardio minutes meet the member's weekly cardio goal (#1943, #3350).",
     "placeholders": {
       "minutes": {
         "type": "int"
       }
     }
   },
-  "homeAdviceExerciseMore": "You worked out {minutes} minutes this week. A little more to go!",
+  "homeAdviceExerciseMore": "You did {minutes} minutes of cardio this week. A little more to go!",
   "@homeAdviceExerciseMore": {
-    "description": "Home AI advice when there is some exercise but not enough (#1943).",
+    "description": "Home AI advice when there is exercise this week but cardio minutes are under the weekly cardio goal (#1943, #3350).",
     "placeholders": {
       "minutes": {
         "type": "int"
