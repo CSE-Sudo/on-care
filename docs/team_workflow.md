@@ -154,6 +154,12 @@ Dependabot 이 매주 월요일 오전에 생태계별로 묶은 업데이트 PR
 - **주 버전 변경**: Dependabot 이 열지 않습니다. 올려야 할 때는 패키지별로 이슈를 만들어
   마이그레이션 안내와 필요한 코드 수정 범위를 적고, 그 이슈의 PR 에서 버전과 코드를 함께
   올립니다. 취약점 때문에 열리는 보안 업데이트 PR 은 주 버전이어도 열리므로 우선 처리합니다.
+- **부 버전이 주 버전을 끌고 올 때**(#3319): 주 버전 제외는 업데이트 대상으로 고른 패키지에만
+  걸립니다. 부 버전 업데이트 하나가 의존성 해석 때문에 다른 패키지의 주 버전을 함께 올리면
+  묶음 PR 에 그 주 버전이 섞여 들어옵니다(예: analyzer 8 을 요구하는 `drift_dev` 가
+  `flutter_riverpod` 3.x 를 끌고 옴). 이때는 PR 을 닫지 말고, 끌고 들어오는 패키지의 해당
+  버전 범위를 `.github/dependabot.yml` 의 `ignore` 에 `versions` 로 더합니다. 어느 주 버전
+  이행이 끝나면 지울지 주석으로 남기고, 병합 뒤 PR 에 `@dependabot recreate` 를 답니다.
 - **백엔드 잠금 파일**: `requirements.txt`·`requirements-dev.txt` 는 손으로 고치지 않습니다.
   직접 의존을 바꿀 때는 `requirements.in`(·`requirements-dev.in`)을 고친 뒤 잠금 파일을
   다시 만듭니다(절차는 [backend/README.md](../backend/README.md) "의존성").
@@ -199,6 +205,38 @@ PR gate 는 PR 커밋만 보므로, 이미 이력에 들어간 값과 PR 을 거
   되돌리기는 이미지만 되돌리고 마이그레이션은 되돌리지 않습니다([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 2절).
 
 ---
+
+## 6.5 테스트 묶음 실행 (#3321)
+
+오래 걸리는 테스트는 CI 에서 여러 잡으로 나눠 동시에 돕니다. 테스트를 줄이거나 건너뛰는 것이
+아니라, 같은 테스트를 같은 설정으로 전부 돌리되 러너만 나눕니다.
+
+- **백엔드**: `Pytest (1/6)` … `Pytest (6/6)` 잡이 묶음 하나씩을 맡습니다. 묶음마다 자기
+  Postgres 를 띄우므로 각 잡은 "한 프로세스·한 DB" 로 돕니다. 어느 파일이 어느 묶음인지는
+  [`backend/tests/sharding.py`](../backend/tests/sharding.py) 가 테스트 수를 보고 정합니다
+  (모든 파일이 정확히 한 묶음). 마이그레이션 검사는 `Alembic migrations` 잡에서 한 번만 돕니다.
+- **결과 읽기**: `Alembic + Pytest (Postgres/pgvector)` 체크가 마이그레이션 검사와 모든 묶음의
+  결과를 모읍니다. 하나라도 실패·취소되면 이 체크가 실패합니다. 실패한 테스트는 해당 묶음 잡의
+  로그에 있습니다.
+- **묶음 하나를 로컬에서 재현**: `PYTEST_SHARD=3/6 pytest` 처럼 같은 값을 주면 CI 의 그 묶음과
+  같은 파일이 같은 순서로 돕니다. 값을 주지 않으면 지금까지처럼 전체가 돕니다.
+- **묶음 수 바꾸기**: `.github/workflows/backend-ci.yml` 의 `shard` 목록만 고칩니다. 분모는
+  목록 길이를 따라갑니다.
+- **다른 파일이 남긴 데이터에 기대는 테스트를 쓰지 않습니다.** 묶음이 바뀌면 앞서 돌던 파일이
+  같은 잡에 없을 수 있습니다. 필요한 계정·기록은 그 테스트(또는 그 파일의 픽스처)가 만듭니다.
+- **두 앱**: `Test (user app, 1/4)` … `Test (trainer web, 4/4)` 잡이 테스트 파일 묶음 하나씩을
+  맡습니다. `.github/scripts/flutter_test_shard.sh` 가 `test/` 아래 `*_test.dart` 를 이름순으로
+  번갈아 나누며, 파일은 통째로 한 묶음에 들어갑니다. 분석·린트·공용 패키지 검사는
+  `Analyze (…)` 잡에서 테스트와 동시에 돌고, `Analyze and test (user app)`·`Analyze and test`
+  체크가 분석과 모든 묶음의 결과를 모읍니다. 앱 폴더에서
+  `bash ../../.github/scripts/flutter_test_shard.sh 3 4` 를 돌리면 CI 의 셋째 묶음과 같은 파일이
+  돕니다(뒤에 붙인 인자는 `flutter test` 로 넘어갑니다). 묶음 수는 두 앱 워크플로의 `shard`
+  목록으로 바꿉니다.
+- **E2E**: `Find E2E suites` 잡이 `tool/run_*_e2e.sh` 를 찾고, `E2E suite (run_…_e2e.sh)` 잡이
+  스위트 하나씩을 자기 DB·백엔드에서 돌립니다. `Real-API E2E (member app + trainer web)` 체크가
+  전체 결과를 모으며, 스위트를 못 찾았거나 하나라도 통과하지 못하면 실패합니다. 스위트를
+  추가할 때는 `tool/run_<이름>_e2e.sh` 규약만 지키면 잡이 자동으로 생깁니다. 다른 스위트가
+  남긴 데이터에 기대는 스위트는 쓰지 않습니다 — 스위트끼리 DB 를 나눠 쓰지 않습니다.
 
 ## 7. 이슈 사용
 
