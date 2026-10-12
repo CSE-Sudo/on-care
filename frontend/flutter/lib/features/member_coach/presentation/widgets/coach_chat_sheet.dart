@@ -20,6 +20,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_photo_pi
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
+import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/clock.dart';
@@ -253,7 +254,22 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
       // 읽음 처리 실패는 이미 불러오는 대화 표시를 막지 않는다.
       return;
     }
-    if (mounted) ref.invalidate(coachUnreadProvider);
+    if (!mounted) return;
+    ref.invalidate(coachUnreadProvider);
+    // 대화를 읽으면 서버가 메시지·리포트 알림도 읽음으로 바꾼다(#3343). 종 표시가
+    // 다음 폴링을 기다리지 않고 바로 꺼지게 다시 센다.
+    ref.invalidate(notificationUnreadProvider);
+    // 알림함을 받아 둔 적이 있으면 목록도 다시 받는다 — 알림을 눌러 들어온
+    // 대화에서 돌아갔을 때 같은 대화의 다른 알림이 안 읽음으로 남지 않게 한다.
+    // 알림함이 서지 못한 채(만들다 실패) 남아 있으면 읽을 때 그 실패가 다시
+    // 던져진다 — 대화 읽음은 이미 끝났으니 알림 목록 사정으로 깨지지 않게 둔다.
+    if (ref.exists(notificationControllerProvider)) {
+      try {
+        unawaited(ref.read(notificationControllerProvider.notifier).refresh());
+      } catch (_) {
+        // 다시 받을 목록이 없다. 알림함을 열 때 화면이 스스로 다시 시도한다.
+      }
+    }
   }
 
   @override

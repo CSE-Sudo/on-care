@@ -216,6 +216,11 @@ Resources:
             Value: '0'
           - Name: TRAINER_AI_CALLS_PER_DAY
             Value: '200'
+          # 코칭 시트 피드백의 회원별 캐시(초)·하루 생성 상한(#3351).
+          - Name: COACH_FEEDBACK_CACHE_SECONDS
+            Value: '1800'
+          - Name: COACH_FEEDBACK_PER_DAY
+            Value: '20'
           - Name: LLM_MAX_OUTPUT_TOKENS
             Value: '4096'
           - Name: MIGRATE_LOCK_TIMEOUT

@@ -99,9 +99,14 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
 
     // 답은 요청 언어로 낸다 — 실서버가 `Accept-Language` 로 고르는 것과 같다(#2712).
     final Object? lang = options.headers['Accept-Language'];
+    // 답에 적는 목표는 회원의 것이다 — 실서버가 대화 문맥에 회원 목표를 싣는
+    // 것과 같다(#3350).
+    final Map<String, Object?> profile = await _mergedProfile();
     final (String reply, List<String> sources) = _mockCoachReply(
       message,
       english: lang is String && lang.toLowerCase().startsWith('en'),
+      sodiumGoalMg: _dailySodiumGoal(profile),
+      cardioGoalMinutes: _weeklyCardioGoal(profile),
     );
     final ({int spent, int? balance}) charge =
         replayed ?? _aiChatQuota.record(clientRequestId: requestId);
@@ -311,6 +316,8 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
   (String, List<String>) _mockCoachReply(
     String message, {
     bool english = false,
+    int sodiumGoalMg = kGoalDefaultDailySodiumMg,
+    int cardioGoalMinutes = kGoalDefaultWeeklyCardioMinutes,
   }) {
     // 영어 질문도 같은 갈래로 알아듣고, 답은 요청 언어로 낸다(#2712) — 실서버가
     // `Accept-Language` 로 답하는 언어를 고르는 것과 같다. 영어 키워드는 소문자다.
@@ -318,6 +325,8 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
     bool has(List<String> keys) =>
         keys.any((String k) => message.contains(k) || lower.contains(k));
     String say(String ko, String en) => english ? en : ko;
+    // 주 5회로 나눈 하루 몫 — 기본 목표 150분이면 30분이다.
+    final int cardioPerDay = (cardioGoalMinutes / 5).ceil();
 
     // 아픈 곳 이야기가 먼저다. 영양 갈래를 앞에 두면 "허리가 당겨요" 가 `당` 에
     // 걸려 디저트 이야기를 답한다 — 화면에는 `허리 통증 감지` 표시가 붙은 채로
@@ -338,9 +347,10 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
       return (
         say(
           '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
-              '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
+              '간을 해보세요. 하루 목표는 ${sodiumGoalMg}mg 이하예요. 🌿',
           'To cut sodium, leave the broth and eat the solids, and season with pepper, '
-              'garlic or lemon instead of salt. Aim for 2,000 mg or less a day. 🌿',
+              'garlic or lemon instead of salt. Aim for '
+              '${_thousands(sodiumGoalMg)} mg or less a day. 🌿',
         ),
         <String>[_srcSodium],
       );
@@ -381,10 +391,13 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
     ])) {
       return (
         say(
-          '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
+          '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 $cardioPerDay분씩 해보세요. '
+              '주간 목표 $cardioGoalMinutes분이 이렇게 '
               '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
-          'Try 30 minutes of moderate cardio such as brisk walking, five days a week. '
-              'That fills your 150-minute weekly goal. Add light strength training twice '
+          'Try $cardioPerDay minutes of moderate cardio such as brisk walking, '
+              'five days a week. '
+              'That fills your $cardioGoalMinutes-minute weekly goal. '
+              'Add light strength training twice '
               'a week for a good balance. 🚶',
         ),
         <String>[_srcPaAdult],

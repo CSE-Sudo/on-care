@@ -9,6 +9,7 @@ AI 코치 라우터 — 프론트 계약 정렬.
 
 피드백은 도메인(식단/운동)별 코치를 각각 생성해 합친 결과다. 각 코치는 RAG+LLM 으로
 만들고, 키·자료가 없거나 실패하면 규칙 기반으로 폴백한다 — 어느 쪽이든 응답 형식은 같다.
+만든 카드는 회원별로 잠깐 캐시하고 하루 생성 횟수를 묶는다(`coach_feedback_service`, #3351).
 """
 from __future__ import annotations
 
@@ -34,10 +35,9 @@ from app.schemas.misc_api import (
     ChatReply,
     ChatRequest,
 )
-from app.services import ai_chat_quota_service, points_service
+from app.services import ai_chat_quota_service, coach_feedback_service, points_service
 from app.services.coach import conversation, insights
 from app.services.coach.chat import answer
-from app.services.coach_service import build_feedback
 from app.services.trainer._common import get_member_trainer_id
 
 router = APIRouter(tags=["ai-coach"])
@@ -59,10 +59,17 @@ def _ensure_ai_chat_allowed(db: Session, user_id: str) -> None:
 
 @router.get("/ai-coach/feedback", response_model=AiCoachFeedback)
 def ai_coach_feedback(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> AiCoachFeedback:
-    return build_feedback(db, current_user.id, current_user.name)
+    """홈 코칭 시트의 인사말과 식단·운동 카드. 회원 전용이다(#3351).
+
+    카드는 회원별로 잠깐 캐시한다 — 같은 날·같은 언어로 다시 열면 모델을 부르지
+    않는다. 식단·운동 기록이 바뀌면 캐시를 버려 다음 요청이 새 기록으로 만든다.
+    하루에 새로 만드는 횟수가 상한을 넘으면 오류가 아니라 규칙 기반 카드로 답한다.
+    응답 모양은 어느 경우든 같다.
+    """
+    return coach_feedback_service.feedback(db, current_user.id, current_user.name)
 
 
 @router.get("/ai-coach/messages", response_model=ChatHistory)

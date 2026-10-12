@@ -1,36 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/auth/domain/find_email.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
+import 'package:oncare/features/auth/presentation/controllers/find_email_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 아이디 찾기 화면의 칸.
 enum FindEmailField { name, phone }
 
-/// 아이디(가입 이메일) 찾기 — 로그인 화면의 `아이디 찾기` 가 연다.
+/// 아이디(가입 이메일) 찾기(#3337) — 로그인 화면의 `아이디 찾기` 가 연다.
 ///
 /// 비밀번호 재설정(#2824)과 같은 틀이다. 가입할 때 받은 이름과 휴대폰 번호를
 /// 넣는다(트레이너 가입은 번호를 받지 않아 회원 앱에만 있다).
 ///
-/// **아직 찾기는 동작하지 않는다.** 서버에 찾는 경로가 없고, 번호의 주인을
-/// 확인할 수단(문자 인증)도 없다. 확인 없이 이메일을 알려 주면 남의 번호로 가입
-/// 여부와 이메일을 알아낼 수 있으므로, 어떻게 알려 줄지(가린 이메일·안내 메일 등)
-/// 정하기 전까지는 입력만 검사하고 요청을 보내지 않은 채 준비 중이라고 토스트로
-/// 알린다. 화면에는 준비 중 문구를 늘 띄워 두지 않는다.
-class FindEmailPage extends StatefulWidget {
+/// 번호의 주인을 확인할 수단(문자 인증)이 없어 서버는 **가려진 이메일**만 준다.
+/// 결과는 세 가지다.
+///
+/// - 찾음 — 가려진 이메일(`ab***@example.com`)을 보여 준다. 같은 이름·번호의
+///   계정이 여럿이면 모두 보여 준다.
+/// - 소셜 가입 — 이메일 대신 가입 수단(카카오·구글)을 알려 준다.
+/// - 없음 — 오류가 아니라 "찾지 못했어요" 안내다.
+///
+/// 결과에서 로그인·비밀번호 재설정으로 바로 넘어갈 수 있다.
+class FindEmailPage extends ConsumerStatefulWidget {
   const FindEmailPage({super.key});
 
   @override
-  State<FindEmailPage> createState() => _FindEmailPageState();
+  ConsumerState<FindEmailPage> createState() => _FindEmailPageState();
 }
 
-class _FindEmailPageState extends State<FindEmailPage> {
+class _FindEmailPageState extends ConsumerState<FindEmailPage> {
   final TextEditingController _name = TextEditingController();
   final TextEditingController _phone = TextEditingController();
+
+  bool _busy = false;
+
+  /// 찾은 결과. null 이면 아직 찾기 전(입력 단계)이고, 빈 목록이면 찾지 못했다.
+  List<FoundEmailAccount>? _found;
 
   late final AppFieldErrors<FindEmailField> _errors =
       AppFieldErrors<FindEmailField>(_check);
@@ -53,6 +65,7 @@ class _FindEmailPageState extends State<FindEmailPage> {
   void _onEdited(String _) => setState(() {});
 
   void _back() {
+    if (_busy) return;
     if (context.canPop()) {
       context.pop();
     } else {
@@ -60,78 +73,227 @@ class _FindEmailPageState extends State<FindEmailPage> {
     }
   }
 
-  /// 입력만 검사한다 — 찾는 경로가 생기기 전이라 요청은 보내지 않는다.
-  void _find() {
+  void _toPasswordReset() => context.pushReplacement(AppRoutes.passwordReset);
+
+  /// 결과를 지우고 입력 단계로 돌아간다. 넣었던 이름·번호는 그대로 둔다.
+  void _retry() => setState(() => _found = null);
+
+  void _showFailure(FindEmailFailure kind) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    showAppToast(context, switch (kind) {
+      FindEmailFailure.tooMany => l.passwordTooManyAttempts,
+      FindEmailFailure.invalidInput ||
+      FindEmailFailure.temporary => l.passwordTemporaryFailure,
+    }, type: AppToastType.error);
+  }
+
+  Future<void> _find() async {
+    if (_busy) return;
     if (!_errors.validate(FindEmailField.values)) {
       setState(() {});
       return;
     }
-    showAppToast(context, AppLocalizations.of(context).findEmailComingSoon);
+    setState(() => _busy = true);
+    try {
+      final List<FoundEmailAccount> found = await ref
+          .read(findEmailRepositoryProvider)
+          .find(name: _name.text.trim(), phone: _phone.text.trim());
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _found = found;
+      });
+    } on FindEmailError catch (e) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      _showFailure(e.kind);
+    } on Object {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      _showFailure(FindEmailFailure.temporary);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppAuthLayout(
-      key: const Key('findEmailPage'),
-      leading: AppBackButton(onPressed: _back),
-      title: l.findEmailTitle,
-      subtitle: l.findEmailSubtitle,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          AppTextField(
-            key: const ValueKey<String>('findEmail-name'),
-            controller: _name,
-            hint: l.signUpNameHint,
-            errorText: _errors.of(FindEmailField.name),
-            prefixIcon: AppIcons.person,
-            size: AppFieldSize.large,
-            textInputAction: TextInputAction.next,
-            autofillHints: const <String>[AutofillHints.name],
-            onChanged: _onEdited,
+    final List<FoundEmailAccount>? found = _found;
+    return PopScope(
+      canPop: !_busy,
+      child: AppAuthLayout(
+        key: const Key('findEmailPage'),
+        leading: AppBackButton(onPressed: _back),
+        title: l.findEmailTitle,
+        subtitle: found == null || found.isEmpty
+            ? l.findEmailSubtitle
+            : l.findEmailFoundSubtitle,
+        child: found == null ? _formBody(l) : _resultBody(l, found),
+      ),
+    );
+  }
+
+  Widget _formBody(AppLocalizations l) {
+    return Column(
+      key: const Key('findEmailFormStep'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        AppTextField(
+          key: const ValueKey<String>('findEmail-name'),
+          controller: _name,
+          hint: l.signUpNameHint,
+          errorText: _errors.of(FindEmailField.name),
+          prefixIcon: AppIcons.person,
+          size: AppFieldSize.large,
+          textInputAction: TextInputAction.next,
+          autofillHints: const <String>[AutofillHints.name],
+          onChanged: _onEdited,
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
+          key: const ValueKey<String>('findEmail-phone'),
+          controller: _phone,
+          hint: l.signUpPhoneHint,
+          errorText: _errors.of(FindEmailField.phone),
+          prefixIcon: AppIcons.phone,
+          size: AppFieldSize.large,
+          keyboardType: TextInputType.phone,
+          textInputAction: TextInputAction.done,
+          // 가입 화면과 같은 국내 번호 — 숫자만 쳐도 하이픈이 들어간다.
+          autofillHints: const <String>[AutofillHints.telephoneNumberNational],
+          inputFormatters: const <TextInputFormatter>[
+            AppPhoneNumberFormatter(),
+          ],
+          onChanged: _onEdited,
+          onSubmitted: (_) => _find(),
+        ),
+        const SizedBox(height: OnCareSpacing.s24),
+        AppButton(
+          key: const ValueKey<String>('findEmail-submit'),
+          label: l.findEmailAction,
+          onPressed: _find,
+          size: OnCareButtonSize.large,
+          fullWidth: true,
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Center(
+          child: AppButton(
+            key: const ValueKey<String>('findEmail-to-password-reset'),
+            label: l.authForgotPassword,
+            onPressed: () => context.pushReplacement(AppRoutes.passwordReset),
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
           ),
-          const SizedBox(height: OnCareSpacing.s12),
-          AppTextField(
-            key: const ValueKey<String>('findEmail-phone'),
-            controller: _phone,
-            hint: l.signUpPhoneHint,
-            errorText: _errors.of(FindEmailField.phone),
-            prefixIcon: AppIcons.phone,
-            size: AppFieldSize.large,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.done,
-            // 가입 화면과 같은 국내 번호 — 숫자만 쳐도 하이픈이 들어간다.
-            autofillHints: const <String>[
-              AutofillHints.telephoneNumberNational,
-            ],
-            inputFormatters: const <TextInputFormatter>[
-              AppPhoneNumberFormatter(),
-            ],
-            onChanged: _onEdited,
-            onSubmitted: (_) => _find(),
-          ),
-          const SizedBox(height: OnCareSpacing.s24),
+        ),
+      ],
+    );
+  }
+
+  /// 가입 수단 이름. 모르는 수단은 뭉뚱그려 말한다 — 서버가 새 수단을 먼저 내도
+  /// 화면이 원문 키(`naver`)를 그대로 그리지 않는다.
+  String _providerLabel(AppLocalizations l, String provider) =>
+      switch (provider) {
+        'kakao' => l.findEmailProviderKakao,
+        'google' => l.findEmailProviderGoogle,
+        _ => l.findEmailProviderOther,
+      };
+
+  Widget _accountBanner(AppLocalizations l, int index, FoundEmailAccount a) {
+    final String? masked = a.maskedEmail;
+    if (masked != null) {
+      return AppBanner(
+        key: ValueKey<String>('findEmail-account-$index'),
+        tone: AppBannerTone.success,
+        icon: AppIcons.mail,
+        title: masked,
+        message: l.findEmailMaskedNote,
+      );
+    }
+    final Set<String> labels = <String>{
+      for (final String p in a.providers) _providerLabel(l, p),
+    };
+    return AppBanner(
+      key: ValueKey<String>('findEmail-social-$index'),
+      icon: AppIcons.person,
+      title: l.findEmailSocialTitle(labels.join(' · ')),
+      message: l.findEmailSocialBody,
+    );
+  }
+
+  Widget _resultBody(AppLocalizations l, List<FoundEmailAccount> found) {
+    // 재설정할 비밀번호가 있는 계정(이메일 가입)이 있을 때만 재설정으로 보낸다.
+    final bool hasEmailAccount = found.any(
+      (FoundEmailAccount a) => !a.isSocialOnly,
+    );
+    return Column(
+      key: Key(found.isEmpty ? 'findEmailNotFoundStep' : 'findEmailFoundStep'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (found.isEmpty)
+          AppBanner(
+            key: const Key('findEmailNotFoundNotice'),
+            tone: AppBannerTone.caution,
+            title: l.findEmailNotFoundTitle,
+            message: l.findEmailNotFoundBody,
+          )
+        else
+          for (int i = 0; i < found.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(height: OnCareSpacing.s8),
+            _accountBanner(l, i, found[i]),
+          ],
+        const SizedBox(height: OnCareSpacing.s24),
+        if (found.isEmpty)
           AppButton(
-            key: const ValueKey<String>('findEmail-submit'),
-            label: l.findEmailAction,
-            onPressed: _find,
+            key: const ValueKey<String>('findEmail-retry'),
+            label: l.findEmailRetry,
+            onPressed: _retry,
+            size: OnCareButtonSize.large,
+            fullWidth: true,
+          )
+        else
+          AppButton(
+            key: const ValueKey<String>('findEmail-to-sign-in'),
+            label: l.passwordResetBackToSignIn,
+            onPressed: () => context.go(AppRoutes.signIn),
             size: OnCareButtonSize.large,
             fullWidth: true,
           ),
-          const SizedBox(height: OnCareSpacing.s8),
-          Center(
-            child: AppButton(
-              key: const ValueKey<String>('findEmail-to-password-reset'),
-              label: l.authForgotPassword,
-              onPressed: () => context.pushReplacement(AppRoutes.passwordReset),
-              variant: AppButtonVariant.text,
-              size: OnCareButtonSize.small,
-            ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Center(
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            children: <Widget>[
+              if (found.isEmpty)
+                AppButton(
+                  key: const ValueKey<String>('findEmail-to-sign-in'),
+                  label: l.passwordResetBackToSignIn,
+                  onPressed: () => context.go(AppRoutes.signIn),
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                )
+              else
+                AppButton(
+                  key: const ValueKey<String>('findEmail-retry'),
+                  label: l.findEmailRetry,
+                  onPressed: _retry,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+              if (hasEmailAccount)
+                AppButton(
+                  key: const ValueKey<String>(
+                    'findEmail-result-password-reset',
+                  ),
+                  label: l.authForgotPassword,
+                  onPressed: _toPasswordReset,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
