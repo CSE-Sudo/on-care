@@ -2611,16 +2611,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySecurity => '보안';
 
   @override
-  String get myDiscardTitle => '수정을 그만둘까요?';
+  String get myDiscardTitle => '변경사항을 저장할까요?';
 
   @override
-  String get myDiscardBody => '고친 내용은 저장되지 않아요.';
+  String get myDiscardBody => '저장하지 않고 나가면 고친 내용이 사라져요.';
 
   @override
   String get myKeepEditing => '계속 수정';
 
   @override
-  String get myDiscardAction => '나가기';
+  String get myDiscardAction => '저장 안 함';
+
+  @override
+  String get mySaveAndLeave => '저장하고 나가기';
 
   @override
   String get mySignOutConfirm => '이 브라우저에서 로그아웃할까요?';

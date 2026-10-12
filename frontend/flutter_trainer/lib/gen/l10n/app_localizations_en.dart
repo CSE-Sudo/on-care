@@ -2763,16 +2763,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySecurity => 'Security';
 
   @override
-  String get myDiscardTitle => 'Stop editing?';
+  String get myDiscardTitle => 'Save your changes?';
 
   @override
-  String get myDiscardBody => 'Your changes won\'t be saved.';
+  String get myDiscardBody =>
+      'If you leave without saving, your changes will be lost.';
 
   @override
   String get myKeepEditing => 'Keep editing';
 
   @override
-  String get myDiscardAction => 'Leave';
+  String get myDiscardAction => 'Don\'t save';
+
+  @override
+  String get mySaveAndLeave => 'Save and leave';
 
   @override
   String get mySignOutConfirm => 'Sign out of this browser?';
