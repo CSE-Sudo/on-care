@@ -95,7 +95,7 @@
 | GET, PUT, DELETE | `/users/me/consents/{kind}` | 선택 동의(`location`) 상태 조회·동의·철회 → `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. 회원 전용, 선택 항목 아닌 `kind` 는 422 (아래 "선택 동의 — 위치정보 이용" 참고, #3136) |
 | GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039) |
-| GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
+| GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, upcoming_sessions, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
 | GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
 | PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 이메일을 실제로 바꿀 때만 `current_password`(소셜 전용은 `social_provider`·`social_token`)와 새 주소로 받은 `email_code`(#3230)를 함께 보내고, 그때 응답에 새 `access_token`·`refresh_token` 이 실린다(#3039). 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
 | POST | `/users/me/email/code` | `{ email }` → **202** `{ expires_in_minutes, resend_after_seconds }` — 로그인 이메일을 바꾸기 전에 새 주소로 6자리 인증 코드를 보낸다(#3230). 가입 여부와 무관하게 같은 응답, 지금 이메일과 같으면 422 `email_unchanged`. 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) |
@@ -114,6 +114,11 @@
 `privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
 `other`. 계정과 그에 매인 기록은 예전처럼 그대로 지워진다.
 
+탈퇴하면 트레이너가 그 회원과 잡아 둔 일정도 정리한다(#3341). 시작 전인 `예정` 은 `취소`
+(`cancellation_source: member`, 사유 `회원 탈퇴`)가 되고, 지난 일정은 행을 남기되 `client_name` 은
+`탈퇴 회원`, `note` 는 빈 값이 된다 — 트레이너 스케줄 응답에 탈퇴한 회원의 실명과 메모가 실리지
+않는다. 일정별 알림은 없고 담당 트레이너는 탈퇴 알림(`member_left`) 한 건만 받는다.
+
 탈퇴하면 그 회원이 낀 채팅 스레드의 **첨부 파일(사진·리포트 PDF)도 저장소에서 지운다**(#2817).
 스레드 행이 CASCADE 로 사라지므로 남긴 파일은 열 수 없는 고아가 된다. 트레이너 탈퇴
 (`DELETE /trainer/me`)도 그 트레이너의 스레드 첨부를 같은 규칙으로 지운다. 파일 삭제는 커밋
@@ -128,6 +133,7 @@
 | `points` | 남은 포인트 | `GET /users/me/health` 의 `activity_points` 와 같은 값 |
 | `active_coupons` | 아직 쓸 수 있는 쿠폰 | `issued` 이고 `expires_at` 이 지나지 않은 것. 사용·취소·만료 제외, 종류 무관(식판 쿠폰 포함) |
 | `upcoming_reservations` | 취소되는 예정 PT 예약 | `booked` 이고 시작 전인 것. 트레이너가 일정을 취소한 예약 제외 — `GET /reservations/me` 의 예정 예약과 같다 |
+| `upcoming_sessions` | 취소되는 트레이너가 잡은 일정(#3341) | 회원이 붙은 `예정` 일정 중 시작 전인 것. 트레이너 무관, 수락된 상담 일정 포함. 회원 예약이 만든 일정은 `upcoming_reservations` 가 세므로 제외 |
 | `pending_consultations` | 취소되는 대기 상담 요청 | `pending` 이고 만료 시각(신청 24시간 뒤·자리 시작 2시간 전 중 이른 쪽)이 지나지 않은 것 |
 
 앱은 0 인 항목을 보여 주지 않는다. 읽기에 실패하면 숫자 없이 "남은 포인트와 쿠폰이 사라지고
