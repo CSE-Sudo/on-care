@@ -607,7 +607,7 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id, template, args }]` (배열, 최신순, 기본 50건) |
+| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id, template, args, report }]` (배열, 최신순, 기본 50건) |
 | GET | `/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/notifications/{id}/read` | 단건 읽음 → `{ id, read: true }` |
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
@@ -644,6 +644,13 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
   `member_schedule`(PT 일정 등록·변경·취소·인계, 담당 해제·트레이너 탈퇴로 취소된 일정)은 예전에 회원 앱에 일정 화면이
   없어(#1928) 액션이 없었습니다. 이제 운동 탭이 트레이너 일정과 회원 예약을 합친 다음 PT 배지와 헬스장 패널 예약을
   보여 줍니다. 이미 저장된 일정 알림도 응답 때 액션을 만들어 바로 버튼이 보입니다.
+- **리포트 알림이 가리키는 리포트(#3344)**: `coach_report` 알림은 `report: { week_start(YYYY-MM-DD, 월요일), message_id }` 를
+  함께 줍니다 — 어느 주의 리포트이고 어느 대화 메시지에 실려 왔는지입니다. 리포트를 보낼 때(`/report/send`·`/report/send-pdf`)
+  문장 틀 인자에 `week_start`·`message_id` 로 남겨, 칼럼을 더하지 않습니다. `action.target` 은 **`coach_chat` 그대로**입니다 —
+  목적지 값을 새로 만들면 이미 배포된 앱이 모르는 값이라 눌러도 아무 데도 가지 않습니다. 옛 앱은 `report` 를 읽지 않고
+  지금처럼 대화로 가고, 새 앱은 그 주 리포트를 바로 엽니다(첨부가 있으면 그 PDF, 없으면 결과지). 담당이 끊겼거나 그
+  메시지가 대화에 없으면 받은 리포트 화면으로 갑니다. 다른 갈래와, 이 칸이 생기기 전에 쌓인 리포트 알림·데모 시드 알림은
+  `report: null` 이고 대화로 갑니다(백필하지 않음). 목 모드는 데모 리포트 알림 한 건에 데모 대화의 리포트 안내를 싣습니다.
 - **PT 완료·피드백(#3027)**: 트레이너가 회원 PT 를 완료(`POST /trainer/schedule/{session_id}/complete`)하면
   `pt_done` 알림 한 건 — 틀 `member_pt_completed`(인자 `trainer_name`·`session_number`(회원 앱 PT 카드와 같은 회차,
   없으면 생략)·`has_note`·`date`), 본문은 트레이너 피드백이 있으면 그 글, 없으면 "운동 기록에 남겼어요". 완료 뒤 PT 메모가
@@ -730,7 +737,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 |---|---|---|
 | `reminder`·`health_check`·`achievement` | 기록·점검·성취 | `dashboard` |
 | `coach_chat` | 트레이너 메시지·피드백 | `coach_chat` |
-| `coach_report` | **트레이너가 등록한 주간 리포트**(#2085) | `coach_chat` |
+| `coach_report` | **트레이너가 등록한 주간 리포트**(#2085) | `coach_chat` — `report` 가 있으면 그 주 리포트를 바로 연다(#3344) |
 | `routine` | 루틴 배정 | `exercise` |
 | `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
 | `coach_invite` | 담당 요청 도착 — `invite_id`로 수락·거절 창 열기 | `exercise`(처리·취소 시 이동) |
@@ -745,7 +752,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 알림을 눌러도 운동 탭으로 가서, 사유를 보려면 내 상담 요청을 따로 찾아가야 했습니다. 이미 저장된
 옛 결과 알림은 `consultation_result` 그대로라 운동 탭으로 갑니다(백필하지 않음).
 
-`coach_report` 는 #2085 에서 `coach_chat` 에서 떼어 냈습니다. 목적지는 같은 코치 대화이고, 회원 앱 알림함이 갈래로 아이콘을 고르기 때문에(#2084) 리포트는 문서, 메시지는 말풍선으로 보이게 나눴습니다. 이미 `coach_chat` 으로 저장된 옛 리포트 알림은 그대로 둡니다(백필하지 않음).
+`coach_report` 는 #2085 에서 `coach_chat` 에서 떼어 냈습니다. 목적지 값은 같은 코치 대화이고(그 주 리포트를 바로 여는 값은 응답의 `report` 칸, #3344), 회원 앱 알림함이 갈래로 아이콘을 고르기 때문에(#2084) 리포트는 문서, 메시지는 말풍선으로 보이게 나눴습니다. 이미 `coach_chat` 으로 저장된 옛 리포트 알림은 그대로 둡니다(백필하지 않음).
 
 회원 앱은 갈래를 접지 않고 갈래마다 알림함 아이콘을 고릅니다(#2084). 보내는 곳이 없는 `health_check` 는 `reminder` 와 같게, 모르는 갈래는 `system` 과 같게 그립니다.
 
