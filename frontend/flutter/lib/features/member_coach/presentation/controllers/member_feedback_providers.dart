@@ -174,3 +174,35 @@ List<SentReportNotice> selectReportNotices(Iterable<CoachMessage> chat) {
         b.weekStart.compareTo(a.weekStart),
   );
 }
+
+/// 알림이 가리킨 리포트 안내를 대화에서 찾는다. 없으면 null. (#3344)
+///
+/// [messageId] 가 대화에 있으면 **그 메시지**다 — 같은 주 리포트를 다시 보냈어도
+/// 알림이 말한 그 한 건을 연다. 메시지를 못 찾으면(식별자가 없는 알림, 지워진
+/// 메시지) [weekStart] 주의 마지막 리포트를 연다 — 받은 리포트 목록이 그 주에
+/// 여는 것과 같은 문서다([selectReportNotices]).
+SentReportNotice? findReportNotice(
+  Iterable<CoachMessage> chat, {
+  required DateTime weekStart,
+  String? messageId,
+}) {
+  if (messageId != null) {
+    for (final CoachMessage message in chat) {
+      final DateTime? week = message.reportWeekStart;
+      if (message.id != messageId || week == null) continue;
+      return SentReportNotice(
+        message: message,
+        weekStart: DateTime(week.year, week.month, week.day),
+      );
+    }
+  }
+  final DateTime monday = DateTime(
+    weekStart.year,
+    weekStart.month,
+    weekStart.day,
+  );
+  for (final SentReportNotice notice in selectReportNotices(chat)) {
+    if (notice.weekStart == monday) return notice;
+  }
+  return null;
+}
