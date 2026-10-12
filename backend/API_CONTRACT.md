@@ -199,11 +199,13 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/dashboard/summary` | `{ indicators[], macros, diet_entries(int), exercise_minutes, nutrition_week[], sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable), ai_advice_params }` |
+| GET | `/dashboard/summary` | `{ indicators[], macros, diet_entries(int), exercise_minutes, exercise_cardio_minutes, nutrition_week[], sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable), ai_advice_params }` |
 
 `ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 값은 `sodium_over` · `sodium_over_sources` · `exercise_on_track` · `exercise_more` · `exercise_start` 중 하나다.
 
 `ai_advice_params` 는 그 문장에 끼울 값이다(#2644). 음식 이름이 들어간 나트륨 경고(`sodium_over_sources`)는 `{ "foods": ["라면", "김밥"] }` 처럼 나트륨 상위 급원 음식 이름(최대 두 개)을 싣고, 나머지 키는 빈 객체다. 음식 이름은 회원이 적은 데이터라 번역하지 않고 앱 ARB 의 문장 틀에 그대로 끼운다. `sodium_warning` · `exercise_feedback` 문장도 요청 `Accept-Language` 를 따른다.
+
+운동 되먹임(`exercise_*` 키와 `exercise_feedback`)의 판정은 운동 탭과 같다(#3350). 이번 주 **유산소 분**(`exercise_cardio_minutes`)을 회원의 주간 유산소 목표(`weekly_cardio_minutes`, 없으면 150분)와 견줘, 목표 이상이면 `exercise_on_track`, 못 미치면 `exercise_more` 다. 이번 주 기록이 유형과 무관하게 하나도 없을 때만 `exercise_start` 다. 문장에 적는 분 수도 `exercise_cardio_minutes` 이고, `exercise_minutes` 는 유형을 가리지 않은 합계다. 나트륨 경고의 기준도 회원의 `daily_sodium_mg`(없으면 2,000mg)이다.
 
 `nutrition_week[]`: `{ date, label, calories, sodium_mg, sugar_g }` — 이번 주 월~일 7일. 홈 식단 카드는 칼로리를 그린다.
 
@@ -789,7 +791,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707) |
+| GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707). 규칙 기반 판정과 AI 에 싣는 주간 요약의 기준은 회원 목표다 — 나트륨 `daily_sodium_mg`, 운동은 이번 주 유산소 분 대 `weekly_cardio_minutes`. 없을 때만 기본값(2,000mg·150분)(#3350) |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
 | GET | `/ai-coach/messages` | `{ messages[] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |

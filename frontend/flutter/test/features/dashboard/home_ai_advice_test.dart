@@ -199,6 +199,57 @@ void main() {
       expect(aiAdviceBody(en, summary), 'Sodium is high from 라면.');
     });
 
+    // 운동 되먹임에 적는 분 수는 서버가 목표와 견준 유산소 분이다(#3350).
+    test('운동 되먹임은 유산소 분을 적는다', () {
+      final DashboardSummary summary =
+          DashboardSummary.fromJson(<String, Object?>{
+            'indicators': <Object?>[],
+            'diet_entries': 0,
+            'exercise_minutes': 240,
+            'exercise_cardio_minutes': 40,
+            'sodium_warning': null,
+            'ai_advice_key': 'exercise_more',
+          });
+      final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+
+      expect(summary.exerciseMinutes, 240);
+      expect(summary.exerciseCardioMinutes, 40);
+      expect(aiAdviceBody(ko, summary), '이번 주 유산소 40분 운동했어요. 조금만 더 힘내요!');
+      expect(
+        aiAdviceBody(en, summary),
+        'You did 40 minutes of cardio this week. A little more to go!',
+      );
+    });
+
+    test('달성 문장도 유산소 분을 적는다', () {
+      final DashboardSummary summary =
+          DashboardSummary.fromJson(<String, Object?>{
+            'indicators': <Object?>[],
+            'diet_entries': 0,
+            'exercise_minutes': 130,
+            'exercise_cardio_minutes': 100,
+            'sodium_warning': null,
+            'ai_advice_key': 'exercise_on_track',
+          });
+      final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+
+      expect(aiAdviceBody(ko, summary), '이번 주 유산소 100분 운동했어요. 목표 달성 중이에요!');
+    });
+
+    test('유산소 분을 싣지 않는 옛 응답은 전체 운동 시간을 쓴다', () {
+      final DashboardSummary summary =
+          DashboardSummary.fromJson(<String, Object?>{
+            'indicators': <Object?>[],
+            'diet_entries': 0,
+            'exercise_minutes': 70,
+            'sodium_warning': null,
+            'ai_advice_key': 'exercise_more',
+          });
+
+      expect(summary.exerciseCardioMinutes, 70);
+    });
+
     test('ai_advice_params 가 없는 옛 응답은 빈 값이다', () {
       final DashboardSummary summary =
           DashboardSummary.fromJson(<String, Object?>{

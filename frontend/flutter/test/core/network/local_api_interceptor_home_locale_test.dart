@@ -80,14 +80,14 @@ void main() {
         ),
       );
 
-  Future<void> addExercise(int minutes) => db
+  Future<void> addExercise(int minutes, {String type = 'cardio'}) => db
       .into(db.exerciseSessions)
       .insert(
         ExerciseSessionsCompanion.insert(
-          id: 'ex-$minutes',
+          id: 'ex-$type-$minutes',
           weekStart: _currentMonday(),
           dayLabel: _weekdayLabels[nowKst().weekday - 1],
-          type: 'cardio',
+          type: type,
           minutes: minutes,
           calories: minutes * 5,
         ),
@@ -177,7 +177,7 @@ void main() {
   });
 
   group('홈 운동 되먹임', () {
-    test('나트륨 경고가 없으면 서버와 같은 150분 기준으로 키를 고른다', () async {
+    test('나트륨 경고가 없으면 서버와 같은 기본 목표(150분)로 키를 고른다', () async {
       expect((await summary('en'))['ai_advice_key'], 'exercise_start');
 
       await addExercise(40);
@@ -185,7 +185,7 @@ void main() {
       expect(en['ai_advice_key'], 'exercise_more');
       expect(
         en['exercise_feedback'],
-        'You worked out 40 minutes this week. A little more to go!',
+        'You did 40 minutes of cardio this week. A little more to go!',
       );
 
       await addExercise(120);
@@ -193,11 +193,60 @@ void main() {
       expect(en['ai_advice_key'], 'exercise_on_track');
       expect(
         en['exercise_feedback'],
-        'You worked out 160 minutes this week. You are on track!',
+        'You did 160 minutes of cardio this week. You are on track!',
       );
       expect(
         (await summary('ko'))['exercise_feedback'],
-        '이번 주 160분 운동했어요. 목표 달성 중이에요!',
+        '이번 주 유산소 160분 운동했어요. 목표 달성 중이에요!',
+      );
+    });
+
+    // 운동 탭과 같은 판정이다(#3350) — 유산소 분을 회원의 주간 유산소 목표와
+    // 견준다. 예전에는 유형을 가리지 않은 합계를 주 150분 고정과 견줬다.
+    test('회원의 주간 유산소 목표를 기준으로 판정한다', () async {
+      await addExercise(100);
+      expect((await summary('ko'))['ai_advice_key'], 'exercise_more');
+
+      await dio.put<Object?>(
+        '/users/me/health-goals',
+        data: <String, Object?>{'weekly_cardio_minutes': 90},
+      );
+      final Map<String, Object?> lowered = await summary('ko');
+      expect(lowered['ai_advice_key'], 'exercise_on_track');
+      expect(lowered['exercise_feedback'], '이번 주 유산소 100분 운동했어요. 목표 달성 중이에요!');
+    });
+
+    test('목표를 올린 회원은 150분을 넘겨도 아직 달성이 아니다', () async {
+      await addExercise(160);
+      expect((await summary('ko'))['ai_advice_key'], 'exercise_on_track');
+
+      await dio.put<Object?>(
+        '/users/me/health-goals',
+        data: <String, Object?>{'weekly_cardio_minutes': 200},
+      );
+      expect((await summary('ko'))['ai_advice_key'], 'exercise_more');
+    });
+
+    test('근력 시간은 유산소 목표에 넣지 않는다', () async {
+      await addExercise(40);
+      await addExercise(200, type: 'strength');
+
+      final Map<String, Object?> ko = await summary('ko');
+      expect(ko['exercise_minutes'], 240);
+      expect(ko['exercise_cardio_minutes'], 40);
+      expect(ko['ai_advice_key'], 'exercise_more');
+      expect(ko['exercise_feedback'], '이번 주 유산소 40분 운동했어요. 조금만 더 힘내요!');
+    });
+
+    test('근력만 한 주는 운동을 시작하라고 하지 않는다', () async {
+      await addExercise(60, type: 'strength');
+
+      final Map<String, Object?> en = await summary('en');
+      expect(en['exercise_cardio_minutes'], 0);
+      expect(en['ai_advice_key'], 'exercise_more');
+      expect(
+        en['exercise_feedback'],
+        'You did 0 minutes of cardio this week. A little more to go!',
       );
     });
 
@@ -209,6 +258,52 @@ void main() {
 
       expect(none['exercise_feedback'], '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.');
       expect(fr['exercise_feedback'], none['exercise_feedback']);
+    });
+  });
+
+  // 데모 AI 대화의 답에 적히는 목표도 회원의 것이다(#3350). 예전에는 나트륨
+  // 2,000mg·유산소 150분이 문장에 박혀 있었다.
+  group('AI 대화 답의 목표 숫자', () {
+    Future<String> ask(String message, String lang) async =>
+        (await dio.post<Map<String, Object?>>(
+              '/ai-coach/chat',
+              data: <String, Object?>{'message': message},
+              options: _lang(lang),
+            )).data!['reply']!
+            as String;
+
+    test('목표가 없으면 기본값을 적는다', () async {
+      expect(await ask('나트륨 줄이는 법 알려줘', 'ko'), contains('2000mg 이하'));
+      expect(
+        await ask('how do I cut sodium', 'en'),
+        contains('2,000 mg or less'),
+      );
+      final String cardio = await ask('유산소 얼마나 해야 해?', 'ko');
+      expect(cardio, contains('하루 30분씩'));
+      expect(cardio, contains('주간 목표 150분'));
+    });
+
+    test('회원이 바꾼 목표를 적는다', () async {
+      await dio.put<Object?>(
+        '/users/me/health-goals',
+        data: <String, Object?>{
+          'daily_sodium_mg': 1500,
+          'weekly_cardio_minutes': 90,
+        },
+      );
+
+      expect(await ask('나트륨 줄이는 법 알려줘', 'ko'), contains('1500mg 이하'));
+      expect(
+        await ask('how do I cut sodium', 'en'),
+        contains('1,500 mg or less'),
+      );
+      final String ko = await ask('유산소 얼마나 해야 해?', 'ko');
+      expect(ko, contains('하루 18분씩'));
+      expect(ko, contains('주간 목표 90분'));
+      expect(ko, isNot(contains('150')));
+      final String en = await ask('how much cardio should I do', 'en');
+      expect(en, contains('18 minutes'));
+      expect(en, contains('90-minute weekly goal'));
     });
   });
 
