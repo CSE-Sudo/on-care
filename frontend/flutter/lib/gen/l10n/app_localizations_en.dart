@@ -2523,7 +2523,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachPhotoRetry => 'Send again';
 
   @override
-  String get coachPhotoDiscard => 'Remove';
+  String get coachPhotoDiscard => 'Delete';
 
   @override
   String get coachPhotoPermissionDenied =>
@@ -4106,7 +4106,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get a11yClearSearch => 'Clear search';
 
   @override
-  String get a11yRemoveFood => 'Remove food';
+  String get a11yRemoveFood => 'Delete food';
 
   @override
   String get a11yPrevWeek => 'Previous week';

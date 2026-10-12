@@ -420,12 +420,12 @@ void main() {
     expect(toggle('지난 할 일'), findsNothing);
     for (final String title in <String>['운동', '식단', '프로그램', '리포트']) {
       expect(labelIn(title, '없음'), findsOneWidget, reason: title);
-      // 자리 잡기용으로 보이지 않게 깔린 "완료 >" 는 세지 않는다.
+      // 자리 잡기용으로 보이지 않게 깔린 "완료"와 펼침 화살표는 세지 않는다.
       expect(
         find
             .descendant(
               of: toggle(title),
-              matching: find.byIcon(AppIcons.chevronRight),
+              matching: find.byIcon(AppIcons.expandMore),
             )
             .hitTestable(),
         findsNothing,
@@ -439,8 +439,15 @@ void main() {
 
     // 상담 두 건을 모두 체크하면 그 칸은 "없음"이 아니라 "완료"다.
     expect(labelIn('상담', '+2'), findsOneWidget);
+    // #3317 — 제자리에서 펼쳐지는 칸이라 접힘은 아래, 펼침은 위 화살표다.
+    Finder iconIn(String title, IconData icon) =>
+        find.descendant(of: toggle(title), matching: find.byIcon(icon));
+    expect(iconIn('상담', AppIcons.expandMore), findsOneWidget);
+    expect(iconIn('상담', AppIcons.chevronRight), findsNothing);
     await tester.tap(toggle('상담'));
     await settle(tester);
+    expect(iconIn('상담', AppIcons.expandLess), findsOneWidget);
+    expect(iconIn('상담', AppIcons.expandMore), findsNothing);
     final Finder boxes = find.descendant(
       of: find.byType(TodayTasksCard),
       matching: find.byType(Checkbox),

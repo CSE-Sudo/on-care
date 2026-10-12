@@ -2396,7 +2396,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachPhotoRetry => '다시 보내기';
 
   @override
-  String get coachPhotoDiscard => '지우기';
+  String get coachPhotoDiscard => '삭제';
 
   @override
   String get coachPhotoPermissionDenied => '사진을 보내려면 카메라·사진 접근을 허용해 주세요';
@@ -3894,7 +3894,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get a11yClearSearch => '검색어 지우기';
 
   @override
-  String get a11yRemoveFood => '음식 지우기';
+  String get a11yRemoveFood => '음식 삭제';
 
   @override
   String get a11yPrevWeek => '지난주';
