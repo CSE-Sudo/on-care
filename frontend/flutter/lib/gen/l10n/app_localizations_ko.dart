@@ -660,7 +660,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietManualAddTitle => '식단 직접 추가';
 
   @override
-  String get dietManualAddHint => '음식 이름을 적으면 영양 정보를 찾아 채워요';
+  String get dietManualAddHint =>
+      '음식 이름을 적으면 영양 정보를 찾아 채워요. 포인트는 사진으로 기록한 끼니에만 쌓여요';
 
   @override
   String get dietManualAddEmpty => '음식을 하나 이상 적어 주세요';
@@ -1580,7 +1581,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsHistoryEmpty => '아직 포인트 내역이 없어요';
 
   @override
-  String get myPointsHistoryEmptyMessage => '식단·운동을 기록하면 포인트가 쌓여요.';
+  String get myPointsHistoryEmptyMessage => '사진으로 식단을 기록하거나 운동을 기록하면 포인트가 쌓여요.';
 
   @override
   String get myPointsHistoryLoadFailed => '포인트 내역을 불러오지 못했어요';
@@ -2156,7 +2157,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifWeeklyReportDesc => '담당 트레이너가 주간 리포트를 보내면 알려요';
 
   @override
-  String get myNotifAlwaysSent => 'PT 일정 등록·변경·취소와 담당 트레이너 연결·해제 알림은 항상 보내요';
+  String get myNotifAlwaysSent =>
+      'PT 일정 등록·변경·취소, 담당 트레이너 요청·연결·해제, 상담 요청 결과, 건강 목표 변경, 쿠폰 만료·취소, 주간 챌린지 결과 알림은 항상 보내요';
 
   @override
   String get mySupportFaq => '자주 묻는 질문';
@@ -2530,7 +2532,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicPaidInsufficient(String shortfall) {
-    return '포인트가 $shortfall 부족해요. 식단·운동을 기록하면 포인트가 쌓여요.';
+    return '포인트가 $shortfall 부족해요. 사진으로 식단을 기록하거나 운동을 기록하면 포인트가 쌓여요.';
   }
 
   @override
@@ -3254,7 +3256,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 직접 기록 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
+    return '기록하면 포인트가 쌓여요.\n사진으로 식단 기록 +${diet}P(직접 추가는 제외), 운동 직접 기록 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
   }
 
   @override
@@ -3606,7 +3608,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsGuideTitle => '포인트 적립 안내';
 
   @override
-  String get myPointsDietAdd => '식단 기록';
+  String get myPointsDietAdd => '사진으로 식단 기록';
 
   @override
   String get myPointsRoutineComplete => '개인운동 완료';

@@ -424,7 +424,7 @@
   "dietAddFood": "Add food",
   "dietManualAdd": "Add manually",
   "dietManualAddTitle": "Add meal manually",
-  "dietManualAddHint": "Type a food name and we'll fill in the nutrition",
+  "dietManualAddHint": "Type a food name and we'll fill in the nutrition. Points are only earned for meals logged by photo",
   "dietManualAddEmpty": "Add at least one food",
   "dietEditFoodHint": "Change the serving size and the nutrition follows",
   "dietTotalCalories": "Total calories",
@@ -1123,7 +1123,7 @@
   "myBenefitsTitle": "My benefits",
   "myPointsHistoryTitle": "Points history",
   "myPointsHistoryEmpty": "No points activity yet",
-  "myPointsHistoryEmptyMessage": "Log meals and workouts to earn points.",
+  "myPointsHistoryEmptyMessage": "Log meals by photo or log workouts to earn points.",
   "myPointsHistoryLoadFailed": "Couldn't load your points history",
   "myPointsHistoryMore": "Load more",
   "myPointsHistoryMoreFailed": "Couldn't load more. Please try again",
@@ -1548,7 +1548,7 @@
   "myNotifExerciseDesc": "When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback",
   "myNotifTrainerDesc": "When your trainer sends you a message",
   "myNotifWeeklyReportDesc": "When your trainer sends your weekly report",
-  "myNotifAlwaysSent": "PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent",
+  "myNotifAlwaysSent": "PT bookings, changes and cancellations, trainer requests, connect and disconnect notices, consultation request results, health goal changes, coupon expiry and cancellation, and weekly challenge results are always sent",
   "mySupportFaq": "FAQ",
   "mySupportInquiry": "1:1 inquiry",
   "myLegalTermsTitle": "Terms of Service",
@@ -1835,7 +1835,7 @@
     }
   },
   "aicPaidConfirmAction": "Send with points",
-  "aicPaidInsufficient": "You need {shortfall} more. Log meals and workouts to earn points.",
+  "aicPaidInsufficient": "You need {shortfall} more. Log meals by photo or log workouts to earn points.",
   "@aicPaidInsufficient": {
     "placeholders": {
       "shortfall": {
@@ -2340,7 +2340,7 @@
   "@guidePointsTitle": {
     "description": "Spotlight guide step: the MY tab points card (#1857)."
   },
-  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points",
+  "guidePointsBody": "Logging earns points.\nLog a meal by photo +{diet}P (not for meals added manually), log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points",
   "@guidePointsBody": {
     "description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).",
     "placeholders": {
@@ -2731,7 +2731,7 @@
   "@myPointsGuideTitle": {
     "description": "Title of the points guide dialog."
   },
-  "myPointsDietAdd": "Log a meal",
+  "myPointsDietAdd": "Log a meal by photo",
   "@myPointsDietAdd": {
     "description": "Point-earning action in the points guide."
   },
