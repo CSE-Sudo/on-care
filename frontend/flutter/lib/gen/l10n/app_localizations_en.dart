@@ -2786,13 +2786,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exConsultPendingCta => 'Consultation request pending';
 
   @override
-  String get exConsultLinkedToOtherTrainer =>
-      'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.';
-
-  @override
-  String get exConsultGoToMyTrainer => 'View my trainer';
-
-  @override
   String get exViewConsultationRequest => 'View consultation request';
 
   @override
