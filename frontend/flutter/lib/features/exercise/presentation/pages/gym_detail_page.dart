@@ -12,7 +12,6 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
-import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -132,7 +131,6 @@ class _GymDetails extends ConsumerWidget {
     final TextStyle bodyStyle = tokens
         .text(OnCareTypography.body)
         .copyWith(color: OnCareColors.textPrimary);
-    final String? myTrainerId = ref.watch(myTrainerProvider).valueOrNull?.id;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(
@@ -293,16 +291,12 @@ class _GymDetails extends ConsumerWidget {
                 key: const Key('gym-consult-start'),
                 label: l.exGymConsultRequest,
                 // 상담은 트레이너 한 사람에게만 간다 — 헬스장에서 시작해도 소속
-                // 트레이너 중 누구에게 보낼지 먼저 고른다. 담당이 있으면 다른
-                // 헬스장 트레이너에게는 낼 수 없다(#2611).
-                onPressed: myTrainerId == null
-                    ? () => _pickTrainerForConsultation(context, gym)
-                    : null,
+                // 트레이너 중 누구에게 보낼지 먼저 고른다. 담당이 있어도 낼 수
+                // 있다 — 상담은 담당을 바꾸지 않는다(#3358).
+                onPressed: () => _pickTrainerForConsultation(context, gym),
                 size: OnCareButtonSize.large,
                 fullWidth: true,
               ),
-              if (myTrainerId != null)
-                ConsultLinkedNotice(myTrainerId: myTrainerId),
             ],
           ],
         ),

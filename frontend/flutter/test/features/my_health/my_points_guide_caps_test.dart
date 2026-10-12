@@ -27,7 +27,9 @@ void main() {
       ProviderScope(
         // 사용처 목록은 가짜 저장소로 채운다 — 이 테스트는 안내창만 본다(#1787).
         overrides: <Override>[
-          benefitsRepositoryProvider.overrideWithValue(FakeBenefitsRepository()),
+          benefitsRepositoryProvider.overrideWithValue(
+            FakeBenefitsRepository(),
+          ),
           // 사용처 화면은 주간 챌린지도 읽는다(#1789).
           challengeRepositoryProvider.overrideWithValue(
             FakeChallengeRepository(),
@@ -60,7 +62,7 @@ void main() {
   testWidgets('한국어 안내창은 규칙마다 하루 한도를 적는다', (WidgetTester tester) async {
     await openGuide(tester, const Locale('ko'));
 
-    expect(inDialog('식단 기록 (하루 3회)'), findsOneWidget);
+    expect(inDialog('사진으로 식단 기록 (하루 3회)'), findsOneWidget);
     expect(inDialog('운동 직접 기록 (하루 3회)'), findsOneWidget);
     expect(inDialog('개인운동 완료 (하루 1회)'), findsOneWidget);
     // 포인트는 예전처럼 줄 오른쪽에 선다.
@@ -75,15 +77,15 @@ void main() {
   testWidgets('영어 안내창은 한 번이면 once a day 로 적는다', (WidgetTester tester) async {
     await openGuide(tester, const Locale('en'));
 
-    expect(inDialog('Log a meal (up to 3 times a day)'), findsOneWidget);
+    expect(
+      inDialog('Log a meal by photo (up to 3 times a day)'),
+      findsOneWidget,
+    );
     expect(
       inDialog('Log a workout yourself (up to 3 times a day)'),
       findsOneWidget,
     );
-    expect(
-      inDialog('Finish a personal exercise (once a day)'),
-      findsOneWidget,
-    );
+    expect(inDialog('Finish a personal exercise (once a day)'), findsOneWidget);
   });
 
   testWidgets('안내창의 숫자는 적립 규칙에서 읽는다', (WidgetTester tester) async {

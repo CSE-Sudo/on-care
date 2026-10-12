@@ -87,11 +87,34 @@ void main() {
       );
     });
 
-    test('담당이 끊기면 일정도 없다 — 실서버처럼', () async {
+    test('담당이 끊겨도 마친 PT 는 남고 예정은 없다 — 실서버처럼 (#3347)', () async {
+      final List<CoachSession> linked = await MockMemberCoachRepository()
+          .fetchSessions();
+      final List<CoachSession> detached = await MockMemberCoachRepository(
+        linked: () => false,
+      ).fetchSessions();
+
+      expect(detached, isNotEmpty);
+      expect(detached.every((CoachSession s) => s.isDone), isTrue);
       expect(
-        await MockMemberCoachRepository(linked: () => false).fetchSessions(),
-        isEmpty,
+        detached.map((CoachSession s) => s.id),
+        linked
+            .where((CoachSession s) => s.isDone)
+            .map((CoachSession s) => s.id),
       );
+    });
+
+    test('수업마다 그 수업의 트레이너 이름이 실린다 (#3347)', () async {
+      for (final bool linked in <bool>[true, false]) {
+        final List<CoachSession> sessions = await MockMemberCoachRepository(
+          linked: () => linked,
+        ).fetchSessions();
+        expect(
+          sessions.map((CoachSession s) => s.trainerName).toSet(),
+          <String>{kDemoTrainerName},
+          reason: 'linked=$linked',
+        );
+      }
     });
   });
 

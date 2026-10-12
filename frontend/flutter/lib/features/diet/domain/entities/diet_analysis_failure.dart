@@ -107,9 +107,17 @@ enum DietAnalysisFailure {
     'rate_limited' => DietAnalysisFailure.rateLimited,
     'analysis_unavailable' => DietAnalysisFailure.unavailable,
     'ai_capacity' => DietAnalysisFailure.aiCapacity,
+    // 같은 멱등키의 분석이 아직 끝나지 않았다(409, #3354). 저장소가 몇 번 다시
+    // 물어도 끝나지 않았을 때만 여기까지 온다. 서버는 이 전송을 세지 않았고,
+    // 조금 뒤 같은 사진으로 다시 하면 첫 요청이 저장한 결과를 받는다.
+    kDietAnalysisInProgressCode => DietAnalysisFailure.temporary,
     _ => null,
   };
 }
+
+/// 서버 `detail.code` — 같은 멱등키의 분석이 진행 중(409, #3354). AI 대화의
+/// `in_progress` 와 같은 값이다.
+const String kDietAnalysisInProgressCode = 'in_progress';
 
 /// `POST /diet/analyze` refused with a coded `detail` (`{code, message}`).
 ///

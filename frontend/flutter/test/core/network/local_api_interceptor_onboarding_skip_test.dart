@@ -80,4 +80,90 @@ void main() {
     expect(res.data!['birth_date'], before.data!['birth_date']);
     expect(res.data!['conditions'], before.data!['conditions']);
   });
+
+  // ---- 건너뛴 뒤 다시 연 첫 설정 (#3339) ----
+  //
+  // 앱은 바꾼 칸만 보낸다. 데모 경로도 실서버처럼 보내지 않은 칸을 그대로 둬야
+  // MY 에서 정한 목표와 적혀 있던 주의사항이 남는다.
+
+  /// 건너뛴 뒤 MY 에서 목표를 정한 데모 계정.
+  Future<void> skippedWithGoals() async {
+    await freshAccount();
+    await dio.post<Map<String, Object?>>('/users/me/onboarding/skip');
+    await dio.put<Map<String, Object?>>(
+      '/users/me/health-goals',
+      data: <String, Object?>{
+        'conditions': '재활, 왼쪽 무릎 수술 이력',
+        'daily_calories': 1800,
+        'daily_sodium_mg': 1900,
+        'weekly_cardio_minutes': 90,
+      },
+    );
+  }
+
+  test('다시 연 첫 설정은 보내지 않은 칸을 그대로 둔다', () async {
+    await skippedWithGoals();
+
+    final res = await dio.post<Map<String, Object?>>(
+      '/users/me/onboarding',
+      data: <String, Object?>{'daily_sodium_mg': 1500},
+    );
+
+    expect(res.data!['onboarded'], true);
+    expect(res.data!['daily_sodium_mg'], 1500);
+    expect(res.data!['daily_calories'], 1800);
+    expect(res.data!['weekly_cardio_minutes'], 90);
+    expect(res.data!['conditions'], '재활, 왼쪽 무릎 수술 이력');
+  });
+
+  test('바꾼 것 없이 끝내면 끝냈다는 표시만 남는다', () async {
+    await skippedWithGoals();
+    final before = await dio.get<Map<String, Object?>>('/users/me/profile');
+
+    final res = await dio.post<Map<String, Object?>>(
+      '/users/me/onboarding',
+      data: <String, Object?>{},
+    );
+
+    expect(res.data!['onboarded'], true);
+    for (final String key in <String>[
+      'conditions',
+      'daily_calories',
+      'daily_sodium_mg',
+      'weekly_cardio_minutes',
+      'focus_changed_at',
+      'notes_changed_at',
+    ]) {
+      expect(res.data![key], before.data![key], reason: key);
+    }
+  });
+
+  test('목표 칩만 바꾼 저장은 주의사항 기록을 다시 찍지 않는다', () async {
+    await skippedWithGoals();
+    final before = await dio.get<Map<String, Object?>>('/users/me/profile');
+
+    final res = await dio.post<Map<String, Object?>>(
+      '/users/me/onboarding',
+      data: <String, Object?>{'conditions': '근력 향상, 재활, 왼쪽 무릎 수술 이력'},
+    );
+
+    expect(res.data!['conditions'], '근력 향상, 재활, 왼쪽 무릎 수술 이력');
+    expect(res.data!['notes_changed_at'], before.data!['notes_changed_at']);
+  });
+
+  test('다시 연 첫 설정이 비운 목표는 건강 목표 저장의 null 로 해제된다', () async {
+    await skippedWithGoals();
+    await dio.post<Map<String, Object?>>(
+      '/users/me/onboarding',
+      data: <String, Object?>{},
+    );
+
+    final res = await dio.put<Map<String, Object?>>(
+      '/users/me/health-goals',
+      data: <String, Object?>{'daily_sodium_mg': null},
+    );
+
+    expect(res.data!['daily_sodium_mg'], isNull);
+    expect(res.data!['daily_calories'], 1800);
+  });
 }

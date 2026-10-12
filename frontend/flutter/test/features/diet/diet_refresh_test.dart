@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/advice/diet_advice.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
@@ -204,6 +205,14 @@ void main() {
     await container.read(dietByDateProvider(past).future);
 
     expect(repo.byDateCalls[past], before + 1);
+  });
+
+  test('홈 코칭 시트도 갱신 대상이다 — 기록한 뒤에 기록을 권하는 카드가 남지 않게(#3351)', () {
+    expect(kDietChangeRefreshTargets, contains(same(aiCoachStateProvider)));
+    expect(
+      kDietChangeRefreshTargets.toSet().length,
+      kDietChangeRefreshTargets.length,
+    );
   });
 
   // MY 기록 그래프는 "식단 또는 운동을 기록한 날" 을 칠한다. 운동만 비우고
