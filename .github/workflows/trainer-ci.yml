@@ -132,7 +132,7 @@ jobs:
   test:
     # 테스트를 묶음으로 나눠 잡마다 하나씩 돌린다(#3321). 한 러너에서 `flutter test` 한 번으로
     # 돌리면 15분이 걸렸다. 테스트도 설정도 그대로고, 파일을 나눠 동시에 돌 뿐이다 —
-    # `--total-shards`·`--shard-index` 는 테스트 파일을 빠짐·겹침 없이 묶음에 나눈다.
+    # `.github/scripts/flutter_test_shard.sh` 가 테스트 파일을 빠짐·겹침 없이 묶음에 나눈다.
     #
     # 묶음 수를 바꿀 때는 아래 `shard` 목록만 고친다(1 부터 빈 번호 없이). 전체 묶음 수는
     # 목록 길이를 따라간다.
@@ -168,8 +168,7 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
           TOTAL_SHARDS: ${{ strategy.job-total }}
-        # `--shard-index` 는 0 부터 센다.
-        run: flutter test --total-shards "$TOTAL_SHARDS" --shard-index "$((SHARD - 1))"
+        run: bash ../../.github/scripts/flutter_test_shard.sh "$SHARD" "$TOTAL_SHARDS"
 
   analyze-and-test:
     # 분석 잡과 모든 테스트 묶음이 성공해야만 성공한다(#3321). 묶음으로 나누기 전의 잡 이름을
