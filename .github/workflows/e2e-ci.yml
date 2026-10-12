@@ -39,12 +39,49 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  e2e:
-    name: Real-API E2E (member app + trainer web)
+  # 스위트는 서로의 데이터를 보지 않으므로 스위트마다 잡을 따로 띄워 동시에 돌린다(#3321).
+  # 잡마다 자기 DB·백엔드를 갖는다 — 한 백엔드를 나눠 쓰면 동시에 도는 스위트끼리 데모
+  # 계정의 일정·대화를 건드려 서로의 단언을 깬다.
+  suites:
+    name: Find E2E suites
     runs-on: ubuntu-latest
-    # 스위트마다 상한(E2E_SUITE_TIMEOUT)이 걸려 있으므로 잡 전체가 달아날 일은 없다.
-    # 3개 × 15분 + 준비 2분이 최악이고, 여기에 여유를 더해 잡는다.
-    timeout-minutes: 50
+    timeout-minutes: 5
+    outputs:
+      runners: ${{ steps.find.outputs.runners }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Find suite runners
+        id: find
+        run: |
+          set -euo pipefail
+          # 러너를 글롭으로 찾는다. 스위트가 늘어도(#640 의 상담처럼) 이 파일을 고칠
+          # 필요가 없다 — `tool/run_<이름>_e2e.sh` 규약만 지키면 자동으로 포함된다.
+          shopt -s nullglob
+          runners=(tool/run_*_e2e.sh)
+          if [ ${#runners[@]} -eq 0 ]; then
+            echo "::error::tool/run_*_e2e.sh 를 하나도 찾지 못했습니다."
+            exit 1
+          fi
+          echo "실행할 스위트: ${runners[*]}"
+          json=$(printf '%s\n' "${runners[@]##*/}" | jq -R . | jq -cs .)
+          echo "runners=$json" >> "$GITHUB_OUTPUT"
+
+  suite:
+    name: E2E suite (${{ matrix.runner }})
+    needs: suites
+    runs-on: ubuntu-latest
+    # 스위트 상한(E2E_SUITE_TIMEOUT) 15분 + 준비(백엔드 기동·Flutter 설치)에 여유를 더해 잡는다.
+    timeout-minutes: 30
+    strategy:
+      # 하나가 실패해도 나머지를 마저 돌린다. 첫 실패에서 멈추면 한 번의 CI 로
+      # 얻을 수 있는 정보가 스위트 하나로 줄어든다.
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(needs.suites.outputs.runners) }}
 
     services:
       db:
@@ -88,10 +125,13 @@ jobs:
       # 허용된다(운영은 끌 수 없다). 인증 흐름은 백엔드 테스트가 확인한다.
       SIGNUP_EMAIL_VERIFICATION: "false"
       API_BASE_URL: http://localhost:8000/v1
+      # 이 잡이 맡은 러너 파일명. 셸에 식을 직접 끼우지 않고 환경 변수로 넘긴다.
+      E2E_RUNNER: ${{ matrix.runner }}
       # 아직 통과하지 못하는 스위트. **돌리기는 하되** 실패해도 잡을 막지 않는다.
       # 건너뛰지 않는 이유는 두 가지다 — 상태가 계속 보이고, 고쳐져서 통과하기
       # 시작하면 바로 알 수 있다. 지금은 비어 있다(#837 이 #872 로 닫혔다).
-      # 격리할 때는 러너 파일명을 공백으로 구분해 적고, 풀 때는 이름만 지운다.
+      # 격리할 때는 러너 파일명을 공백으로 구분해 적고, 풀 때는 이름만 지운다. 격리한
+      # 스위트의 잡은 실패해도 초록으로 끝나고 경고만 남긴다.
       E2E_QUARANTINE: ""
       # 스위트 하나당 상한. 실패가 아니라 **매달림**을 끊는 장치다 — 격리한 스위트가
       # 27분을 붙잡고 있다가 잡 타임아웃에 걸리면, 격리해 둔 의미가 없어진다.
@@ -162,68 +202,38 @@ jobs:
           (cd frontend/flutter && flutter pub get)
           (cd frontend/flutter_trainer && flutter pub get)
 
-      - name: Run E2E suites
+      - name: Run E2E suite
         run: |
           set -euo pipefail
-          # 러너를 글롭으로 찾는다. 스위트가 늘어도(#640 의 상담처럼) 이 파일을 고칠
-          # 필요가 없다 — `tool/run_<이름>_e2e.sh` 규약만 지키면 자동으로 포함된다.
-          shopt -s nullglob
-          runners=(tool/run_*_e2e.sh)
-          if [ ${#runners[@]} -eq 0 ]; then
-            echo "::error::tool/run_*_e2e.sh 를 하나도 찾지 못했습니다."
+          r="tool/$E2E_RUNNER"
+          if [ ! -f "$r" ]; then
+            echo "::error::$r 를 찾지 못했습니다."
             exit 1
           fi
-          echo "실행할 스위트: ${runners[*]}"
-          failed=()
-          quarantined_failed=()
-          quarantined_passed=()
-          for r in "${runners[@]}"; do
-            name=$(basename "$r")
-            quarantined=false
-            # 라벨을 따로 둔다. `${quarantined:+...}` 는 값이 **비었는지**만 보므로
-            # 문자열 `false` 에도 확장돼, 격리하지 않은 스위트까지 (격리) 로 찍힌다.
-            label=""
-            case " $E2E_QUARANTINE " in
-              *" $name "*) quarantined=true; label=" (격리)" ;;
-            esac
+          quarantined=false
+          case " $E2E_QUARANTINE " in
+            *" $E2E_RUNNER "*) quarantined=true ;;
+          esac
 
-            echo "::group::$r$label"
-            # 하나가 실패해도 나머지를 마저 돌린다. 첫 실패에서 멈추면 한 번의 CI 로
-            # 얻을 수 있는 정보가 스위트 하나로 줄어든다.
-            #
-            # `timeout` 으로 감싸는 이유: 스위트가 매달리면 뒤의 스위트가 아예 돌지
-            # 못한다. 실제로 상담이 27분을 붙잡아 예약이 한 번도 실행되지 않았다.
-            if timeout --signal=TERM --kill-after=30s "$E2E_SUITE_TIMEOUT" bash "$r"; then
-              if [ "$quarantined" = true ]; then
-                quarantined_passed+=("$name")
-              else
-                echo "✅ $r"
-              fi
+          # `timeout` 으로 감싸는 이유: 스위트가 매달리면 잡 타임아웃까지 러너를 붙잡는다.
+          # 실제로 상담이 27분을 붙잡은 적이 있다.
+          if timeout --signal=TERM --kill-after=30s "$E2E_SUITE_TIMEOUT" bash "$r"; then
+            if [ "$quarantined" = true ]; then
+              # 격리한 스위트가 통과하기 시작하면 알려 준다. 그대로 두면 고쳐진 뒤에도
+              # 아무도 격리를 풀지 않는다.
+              echo "::warning::[격리] $E2E_RUNNER 이 통과했습니다. E2E_QUARANTINE 에서 빼 주세요."
             else
-              rc=$?
-              [ "$rc" -ge 124 ] && echo "::warning::$name 이 $E2E_SUITE_TIMEOUT 안에 끝나지 않아 중단했습니다."
-              if [ "$quarantined" = true ]; then
-                quarantined_failed+=("$name")
-              else
-                echo "::error::$r 실패 (exit $rc)"
-                failed+=("$r")
-              fi
+              echo "✅ $r"
             fi
-            echo "::endgroup::"
-          done
-
-          for n in "${quarantined_failed[@]}"; do
-            echo "::warning::[격리] $n 이 실패했습니다. 알려진 문제라 잡을 막지 않습니다."
-          done
-          # 격리한 스위트가 통과하기 시작하면 알려 준다. 그대로 두면 고쳐진 뒤에도
-          # 아무도 격리를 풀지 않는다.
-          for n in "${quarantined_passed[@]}"; do
-            echo "::warning::[격리] $n 이 통과했습니다. E2E_QUARANTINE 에서 빼 주세요."
-          done
-
-          if [ ${#failed[@]} -gt 0 ]; then
-            echo "::error::실패한 스위트: ${failed[*]}"
-            exit 1
+          else
+            rc=$?
+            [ "$rc" -ge 124 ] && echo "::warning::$E2E_RUNNER 이 $E2E_SUITE_TIMEOUT 안에 끝나지 않아 중단했습니다."
+            if [ "$quarantined" = true ]; then
+              echo "::warning::[격리] $E2E_RUNNER 이 실패했습니다. 알려진 문제라 잡을 막지 않습니다."
+            else
+              echo "::error::$r 실패 (exit $rc)"
+              exit 1
+            fi
           fi
 
       - name: Backend log (on failure)
@@ -235,4 +245,26 @@ jobs:
         run: |
           if [ -f "$RUNNER_TEMP/backend.pid" ]; then
             kill "$(cat "$RUNNER_TEMP/backend.pid")" 2>/dev/null || true
+          fi
+
+  # 예전 체크 이름을 그대로 가진 결과 잡. 스위트 잡은 스위트 수만큼 생기고 이름도 바뀌므로,
+  # 체크 하나로 전체 결과를 읽을 수 있게 모은다. 스위트를 못 찾았거나 하나라도
+  # 실패·취소·건너뜀이면 실패한다.
+  e2e:
+    name: Real-API E2E (member app + trainer web)
+    needs: [suites, suite]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every suite to pass
+        env:
+          SUITES_RESULT: ${{ needs.suites.result }}
+          SUITE_RESULT: ${{ needs.suite.result }}
+        run: |
+          set -euo pipefail
+          echo "suites=${SUITES_RESULT} suite=${SUITE_RESULT}"
+          if [ "${SUITES_RESULT}" != success ] || [ "${SUITE_RESULT}" != success ]; then
+            echo "::error::E2E 스위트를 찾지 못했거나 통과하지 못한 스위트가 있습니다. 위 잡의 로그를 확인하세요."
+            exit 1
           fi
