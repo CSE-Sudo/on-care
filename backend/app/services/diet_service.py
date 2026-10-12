@@ -12,7 +12,7 @@ import logging
 import math
 import uuid
 from dataclasses import dataclass
-from datetime import date as date_type, timedelta
+from datetime import date as date_type, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -398,12 +398,23 @@ class DietPeriodStats:
         return self.days_logged == 0
 
 
-def period_stats(db: Session, user_id: str, start: str, end: str) -> DietPeriodStats:
+def period_stats(
+    db: Session,
+    user_id: str,
+    start: str,
+    end: str,
+    sodium_limit_mg: int | None = None,
+) -> DietPeriodStats:
     """[start, end](양끝 포함, `YYYY-MM-DD`) 구간의 일별 나트륨·당류·칼로리 평균.
 
     기록이 없는 날은 평균·초과일수 계산에서 빠진다 — 기록을 안 한 날까지 0으로
     넣으면 "며칠 기록했는지"와 "평균이 얼마인지"가 뒤섞여 실제보다 낮게 보인다.
+
+    초과일은 [sodium_limit_mg](회원 나트륨 목표)로 센다. 없으면 [SODIUM_LIMIT_MG]
+    다 — 식단 탭이 1,500mg 목표로 초과라 한 날을 여기서만 2,000mg 으로 세면 같은
+    날을 두고 화면마다 다른 말을 한다(#3350).
     """
+    limit = sodium_limit_mg or SODIUM_LIMIT_MG
     rows = db.scalars(
         select(DietEntry)
         .where(DietEntry.user_id == user_id)
@@ -422,9 +433,7 @@ def period_stats(db: Session, user_id: str, start: str, end: str) -> DietPeriodS
     if days_logged == 0:
         return DietPeriodStats(0, 0, 0, 0.0, 0)
 
-    days_over_sodium = sum(
-        1 for d in daily.values() if d["sodium"] > SODIUM_LIMIT_MG
-    )
+    days_over_sodium = sum(1 for d in daily.values() if d["sodium"] > limit)
     return DietPeriodStats(
         days_logged=days_logged,
         days_over_sodium=days_over_sodium,
@@ -432,6 +441,34 @@ def period_stats(db: Session, user_id: str, start: str, end: str) -> DietPeriodS
         avg_sugar_g=round(sum(d["sugar"] for d in daily.values()) / days_logged, 1),
         avg_calories=round(sum(d["calories"] for d in daily.values()) / days_logged),
     )
+
+
+#: 지난 날짜에 적는 끼니의 기본 시각(#3354). 끼니 종류가 말하는 때의 가운데쯤이고,
+#: 하루 목록의 시각 정렬에서 아침 → 점심 → 간식 → 저녁 → 야식 순서가 된다.
+MEAL_DEFAULT_TIME_LABELS: dict[str, str] = {
+    "breakfast": "08:00",
+    "lunch": "12:00",
+    "snack": "15:00",
+    "dinner": "18:00",
+    "lateNight": "22:00",
+}
+
+
+def record_time_label(
+    entry_date: date_type, meal_type: str, recorded_at: datetime
+) -> str:
+    """새 끼니의 `time_label`. 오늘 기록은 적는 시각, 지난 날짜 기록은 끼니의 기본 시각. (#3354)
+
+    어제 아침을 오늘 밤 11시에 적으면 적는 시각(23:05)은 그 끼니와 무관하다 — 그대로
+    남기면 어제 목록에서 아침이 맨 뒤로 가고, 트레이너는 밤 11시에 먹은 아침을 본다.
+    지난 날짜는 먹은 시각을 알 수 없으므로 끼니 종류의 기본 시각을 넣는다. 다섯 값
+    밖의 끼니(검증을 거치지 않은 호출)는 시각 없음(빈 문자열)이다.
+
+    `recorded_at` 은 날짜를 뽑은 것과 같은 시계 스냅샷이어야 한다.
+    """
+    if entry_date >= recorded_at.date():
+        return recorded_at.strftime("%H:%M")
+    return MEAL_DEFAULT_TIME_LABELS.get(meal_type, "")
 
 
 def find_by_idempotency(db: Session, user_id: str, key: str) -> DietEntry | None:
@@ -465,7 +502,7 @@ def save_analyzed_entry(
         user_id=user_id,
         date=entry_date.isoformat(),
         meal_type=meal_type,
-        time_label=recorded_at.strftime("%H:%M"),
+        time_label=record_time_label(entry_date, meal_type, recorded_at),
         foods_json=json.dumps(foods_for_storage, ensure_ascii=False),
         total_calories=analysis.total_calories,
         carbs_g=analysis.total_carbs_g,
@@ -539,12 +576,16 @@ def save_manual_entry(
     totals = totals_from_foods(payload.foods)
     foods_for_storage = store_foods(payload.foods)
     recorded_at = clock.now()
+    # 검증(`DietEntryCreate`)을 지난 날짜라 그대로 읽힌다. 빠지면 저장하는 날이다.
+    entry_date = (
+        date_type.fromisoformat(payload.date) if payload.date else recorded_at.date()
+    )
     entry = DietEntry(
         id=f"diet-{uuid.uuid4().hex[:12]}",
         user_id=user_id,
-        date=payload.date or recorded_at.date().isoformat(),
+        date=entry_date.isoformat(),
         meal_type=payload.meal_type,
-        time_label=recorded_at.strftime("%H:%M"),
+        time_label=record_time_label(entry_date, payload.meal_type, recorded_at),
         foods_json=json.dumps(foods_for_storage, ensure_ascii=False),
         total_calories=totals.total_calories,
         carbs_g=totals.total_carbs_g,
@@ -558,7 +599,7 @@ def save_manual_entry(
     out_date = entry.date
     db.add(entry)
     # 기록이 놓이는 날이 보호한 날이면 보호권을 되돌린다(#1788).
-    streak_shield_service.refund_for_record(db, user_id, _parsed_date(entry.date))
+    streak_shield_service.refund_for_record(db, user_id, entry_date)
     try:
         db.commit()
     except IntegrityError:

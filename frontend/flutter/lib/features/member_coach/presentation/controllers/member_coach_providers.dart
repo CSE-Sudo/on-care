@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
@@ -66,6 +67,14 @@ final Provider<MemberCoachRepository> memberCoachRepositoryProvider =
           // 보내면 잠시 뒤 트레이너가 답한다 — 실서버에서는 트레이너가 실제로
           // 답한다(#2663).
           replyDelay: const Duration(seconds: 2),
+          // 대화를 읽으면 메시지·리포트 알림도 읽음이 된다(#3343). 알림은 로컬
+          // 목업 API 가 들고 있어 서버와 같은 경로로 알린다. 읽을 때 찾는다 —
+          // 테스트가 목업 API 없는 Dio 를 넣었으면 대화만 읽음이 된다.
+          onChatRead: () async {
+            final Dio dio = ref.read(dioProvider);
+            if (LocalApiInterceptor.of(dio) == null) return;
+            await dio.post<Object?>('/me/coach/chat/read');
+          },
         );
         ref.onDispose(mock.dispose);
         return mock;

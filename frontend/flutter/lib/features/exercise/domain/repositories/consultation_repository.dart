@@ -77,15 +77,6 @@ class TooManyPendingConsultations implements Exception {
   final int? limit;
 }
 
-/// 서버가 409 로 거절했는데 **담당 트레이너가 따로 있어서**인 경우. (#2611)
-///
-/// 담당이 있는 회원은 담당에게만 상담을 낸다 — 다른 트레이너에게는 담당 연결을
-/// 해제한 뒤 낸다. [DuplicatePendingConsultation] 과 같은 409 지만 이 트레이너에게
-/// 신청한 적이 없다 — 섞으면 "이미 대기 중" 으로 잘못 표시한다.
-class ConsultationLinkedToOtherTrainer implements Exception {
-  const ConsultationLinkedToOtherTrainer();
-}
-
 /// 취소하려던 신청이 이미 대기 중이 아니다 — 트레이너가 승인·거절했거나
 /// 만료됐다. 서버 409. (#2858)
 class ConsultationNoLongerPending implements Exception {
