@@ -1091,6 +1091,7 @@
   "myWithdrawLosePoints": "• 보유 포인트 {points}P가 사라져요",
   "myWithdrawLoseCoupons": "• 사용 전 쿠폰 {count}장이 사라져요",
   "myWithdrawCancelReservations": "• 예정된 PT 예약 {count}건이 취소돼요",
+  "myWithdrawCancelSessions": "• 트레이너가 잡은 PT 일정 {count}건이 취소돼요",
   "myWithdrawCancelConsultations": "• 대기 중인 상담 요청 {count}건이 취소돼요",
   "myWithdrawAction": "탈퇴",
   "myWithdrawFailed": "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.",

@@ -1441,6 +1441,15 @@
       }
     }
   },
+  "myWithdrawCancelSessions": "{count, plural, =1{• The PT session your trainer scheduled will be cancelled} other{• The {count} PT sessions your trainer scheduled will be cancelled}}",
+  "@myWithdrawCancelSessions": {
+    "description": "Withdrawal confirmation line, shown only when a trainer has scheduled upcoming sessions with the member (#3341).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "myWithdrawCancelConsultations": "{count, plural, =1{• Your pending consultation request will be cancelled} other{• Your {count} pending consultation requests will be cancelled}}",
   "@myWithdrawCancelConsultations": {
     "description": "Withdrawal confirmation line, shown only when the member has pending consultation requests (#3006).",
