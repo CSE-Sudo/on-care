@@ -94,6 +94,8 @@ extension _LocalApiNotifications on LocalApiInterceptor {
   Future<Response<Object?>> _notificationsUnreadCount(
     RequestOptions options,
   ) async {
+    // 알림함을 열지 않아도 결과 알림이 생겨 배지가 켜진다 — 서버와 같다(#3362).
+    await _settleChallenges();
     final unread = await (_db.select(
       _db.notificationItems,
     )..where((t) => t.read.equals(false))).get();

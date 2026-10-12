@@ -3098,6 +3098,12 @@ abstract class AppLocalizations {
   /// **'You can join again next Monday'**
   String get challengeJoinClosed;
 
+  /// No description provided for @challengeSettling.
+  ///
+  /// In en, this message translates to:
+  /// **'Tallying last week\'s result. Workouts you log for last week by today still count'**
+  String get challengeSettling;
+
   /// No description provided for @challengeThisWeek.
   ///
   /// In en, this message translates to:

@@ -1789,6 +1789,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get challengeJoinClosed => 'You can join again next Monday';
 
   @override
+  String get challengeSettling =>
+      'Tallying last week\'s result. Workouts you log for last week by today still count';
+
+  @override
   String get challengeThisWeek => 'This week';
 
   @override
