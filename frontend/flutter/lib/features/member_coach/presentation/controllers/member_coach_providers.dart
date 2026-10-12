@@ -57,6 +57,10 @@ final Provider<MemberCoachRepository> memberCoachRepositoryProvider =
           // 담당 트레이너 연결은 헬스장 저장소가 들고 있다 — 트레이너를 끊으면
           // 담당 코치도 없어야 헤더가 AI 챗봇 입구로 바뀐다(#1840, #1865).
           linked: gym is MockGymRepository ? () => gym.hasTrainer : null,
+          // 이용권은 이모티콘 원장이 들고 있다 — 끝난 이모티콘은 실서버처럼
+          // 전송에서 막힌다(#3346). 보낼 때 찾는다.
+          emoteUnlocked: (String emoteId) =>
+              ref.read(demoEmoteBookProvider).unlocked.containsKey(emoteId),
           // 끊긴 뒤 온 담당 요청을 수락하면 같은 곳에 다시 잇는다(#2659).
           relink: gym is MockGymRepository ? gym.linkTrainer : null,
           // 보내면 잠시 뒤 트레이너가 답한다 — 실서버에서는 트레이너가 실제로
