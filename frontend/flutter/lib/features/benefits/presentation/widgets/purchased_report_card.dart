@@ -23,11 +23,22 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 결과지**(트레이너 웹과 같은 한 장, #2652)를 같은 PDF 미리보기로 연다. 다른 점은
 /// 하나다 — 트레이너가 쓴 것이 아니라 트레이너 피드백 칸에 그 주의 감지 기록을
 /// 싣는다(`pointsReportFeedback`).
+///
+/// 내용은 살 때의 값이다(#3349). 수치는 서버가 굳힌 것을 리포트 조회가 주고,
+/// 감지 기록은 [insights] 로 받는다.
 class PurchasedReportCard extends ConsumerStatefulWidget {
-  const PurchasedReportCard({super.key, required this.weekStart});
+  const PurchasedReportCard({
+    super.key,
+    required this.weekStart,
+    this.insights,
+  });
 
   /// 리포트가 가리키는 주의 월요일.
   final DateTime weekStart;
+
+  /// 살 때 그 주에 있던 감지 기록. null 이면 남겨 둔 것이 없는 옛 리포트라
+  /// 지금의 감지 기록에서 읽는다([liveInsightLines]).
+  final List<ChatInsightRecord>? insights;
 
   @override
   ConsumerState<PurchasedReportCard> createState() =>
@@ -114,18 +125,53 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
     }
   }
 
-  /// 그 주의 감지 기록 줄. 읽지 못하면 null 이고 문서에서 구역을 뺀다 — 감지를
-  /// 못 읽었다고 "감지된 것이 없어요" 라고 적으면 사실이 아니다.
+  /// 그 주의 감지 기록 줄. 알 수 없으면 null 이고 문서에서 구역을 뺀다 — 감지를
+  /// 모르면서 "감지된 것이 없어요" 라고 적으면 사실이 아니다.
+  ///
+  /// 살 때 남긴 기록이 있으면 그것을 쓴다(#3349). 감지 기록은 최근 대화에서 매번
+  /// 계산하는 값이라, 지금 다시 읽으면 살 때 적혀 있던 감지가 사라진다.
   Future<List<String>?> _insightLines(AppLocalizations l) async {
+    final List<ChatInsightRecord>? kept = widget.insights;
+    if (kept != null) return weeklyInsightLines(l, kept, widget.weekStart);
     try {
       final ChatInsightHistory history = await ref
           .read(aiCoachRepositoryProvider)
           .fetchInsights();
-      return weeklyInsightLines(l, history.records, widget.weekStart);
+      return liveInsightLines(l, history, widget.weekStart, nowKst());
     } catch (_) {
       return null;
     }
   }
+}
+
+/// 남겨 둔 감지 기록이 없는 옛 리포트의 감지 줄 — 지금의 감지 기록에서 읽는다.
+/// (#3349)
+///
+/// 감지 기록은 최근 [ChatInsightHistory.windowDays] 일만 온다. [weekStart] 주가
+/// 그 창에 다 들지 않으면 null 이다(구역을 뺀다) — 창 밖의 날은 감지가 없었던
+/// 것이 아니라 **알 수 없는** 것이라, 빈 목록으로 읽으면 "감지된 것이 없어요"
+/// 라는 거짓이 적힌다. 창 안의 주는 [weeklyInsightLines] 와 같다.
+List<String>? liveInsightLines(
+  AppLocalizations l,
+  ChatInsightHistory history,
+  DateTime weekStart,
+  DateTime now,
+) {
+  final DateTime monday = DateTime(
+    weekStart.year,
+    weekStart.month,
+    weekStart.day,
+  );
+  final DateTime windowStart = DateTime(
+    now.year,
+    now.month,
+    now.day - history.windowDays,
+    now.hour,
+    now.minute,
+    now.second,
+  );
+  if (monday.isBefore(windowStart)) return null;
+  return weeklyInsightLines(l, history.records, weekStart);
 }
 
 /// 감지 기록 요약에 이름을 적는 종류 수. 나머지는 `외 N건` 으로 묶는다.

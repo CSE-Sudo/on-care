@@ -30,12 +30,15 @@ typedef ProviderRead = T Function<T>(ProviderListenable<T> provider);
 /// 문서는 트레이너 웹 결과지와 구성·수치가 달라, 같은 주를 두 앱이 다르게
 /// 말했다. 지금은 트레이너 웹과 같은 자료를 같은 규칙으로 읽는다.
 ///
-/// provider 로 캐시하지 않는다 — 누를 때마다 한 번 읽는 값이고, 캐시하면 오늘
-/// 더한 기록이 이번 주 리포트에 늦게 닿는다.
+/// provider 로 캐시하지 않는다 — 누를 때마다 한 번 읽는 값이다.
+///
+/// [messageId] 는 그 리포트를 실어 온 전송 메시지다(#3349). 서버가 보낼 때 굳힌
+/// 값을 그 메시지로 찾는다. 포인트로 받은 리포트는 주만으로 찾으니 비운다.
 Future<ReportSheetInputs> loadMemberReportSheet(
   ProviderRead read, {
   required DateTime weekStart,
   required String languageCode,
+  String? messageId,
 }) async {
   // 목표를 못 읽어도 결과지는 선다 — 트레이너 웹과 같은 기본값으로 견준다.
   final UserProfile? profile = await read(
@@ -45,6 +48,7 @@ Future<ReportSheetInputs> loadMemberReportSheet(
     weekStart: weekStart,
     languageCode: languageCode,
     goals: reportSheetGoalsOf(profile),
+    messageId: messageId,
   );
 }
 
