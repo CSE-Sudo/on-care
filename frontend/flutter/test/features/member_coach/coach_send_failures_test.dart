@@ -118,9 +118,9 @@ class _SendFailingRepository extends MockMemberCoachRepository {
 
 /// 실패한 사진 한 장을 들고 시작하는 전송 상태.
 class _SeededPhotoController extends CoachPhotoSendController {
-  _SeededPhotoController(this.failure);
+  _SeededPhotoController(this._failure);
 
-  final CoachSendFailure? failure;
+  final CoachSendFailure? _failure;
 
   @override
   List<PendingCoachPhoto> build() => <PendingCoachPhoto>[
@@ -128,7 +128,7 @@ class _SeededPhotoController extends CoachPhotoSendController {
       requestId: 'photo-1',
       photo: MealPhoto.fromBytes(_png)!,
       status: CoachPhotoSendStatus.failed,
-      failure: failure,
+      failure: _failure,
     ),
   ];
 }
