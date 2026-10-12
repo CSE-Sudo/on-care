@@ -167,6 +167,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get homeAdviceExerciseCardioStart =>
+      'No cardio logged yet this week. How about starting with an easy walk?';
+
+  @override
   String get homeAdviceExerciseStart =>
       'Start moving this week — an easy walk is a good beginning.';
 

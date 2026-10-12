@@ -157,6 +157,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get homeAdviceExerciseCardioStart =>
+      '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?';
+
+  @override
   String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
 
   @override

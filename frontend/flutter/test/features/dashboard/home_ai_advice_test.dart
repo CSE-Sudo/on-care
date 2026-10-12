@@ -237,6 +237,29 @@ void main() {
       expect(aiAdviceBody(ko, summary), '이번 주 유산소 100분 운동했어요. 목표 달성 중이에요!');
     });
 
+    test('근력만 한 주의 키는 유산소를 권하는 문장이다', () {
+      final DashboardSummary summary =
+          DashboardSummary.fromJson(<String, Object?>{
+            'indicators': <Object?>[],
+            'diet_entries': 0,
+            'exercise_minutes': 60,
+            'exercise_cardio_minutes': 0,
+            'sodium_warning': null,
+            'ai_advice_key': 'exercise_cardio_start',
+          });
+      final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+
+      expect(
+        aiAdviceBody(ko, summary),
+        '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?',
+      );
+      expect(
+        aiAdviceBody(en, summary),
+        'No cardio logged yet this week. How about starting with an easy walk?',
+      );
+    });
+
     test('유산소 분을 싣지 않는 옛 응답은 전체 운동 시간을 쓴다', () {
       final DashboardSummary summary =
           DashboardSummary.fromJson(<String, Object?>{

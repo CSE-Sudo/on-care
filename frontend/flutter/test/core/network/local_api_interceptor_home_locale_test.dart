@@ -238,15 +238,19 @@ void main() {
       expect(ko['exercise_feedback'], '이번 주 유산소 40분 운동했어요. 조금만 더 힘내요!');
     });
 
-    test('근력만 한 주는 운동을 시작하라고 하지 않는다', () async {
+    test('근력만 한 주는 유산소를 권한다 — 0분 운동했다고 적지 않는다', () async {
       await addExercise(60, type: 'strength');
 
       final Map<String, Object?> en = await summary('en');
       expect(en['exercise_cardio_minutes'], 0);
-      expect(en['ai_advice_key'], 'exercise_more');
+      expect(en['ai_advice_key'], 'exercise_cardio_start');
       expect(
         en['exercise_feedback'],
-        'You did 0 minutes of cardio this week. A little more to go!',
+        'No cardio logged yet this week. How about starting with an easy walk?',
+      );
+      expect(
+        (await summary('ko'))['exercise_feedback'],
+        '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?',
       );
     });
 

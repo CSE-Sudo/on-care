@@ -92,7 +92,11 @@ def test_sodium_warning_with_foods_gets_its_own_key_and_the_names():
 
 
 @pytest.mark.parametrize(
-    "key", ["sodium_over", "exercise_on_track", "exercise_more", "exercise_start"],
+    "key",
+    [
+        "sodium_over", "exercise_on_track", "exercise_more",
+        "exercise_cardio_start", "exercise_start",
+    ],
 )
 def test_other_advice_keys_carry_no_params(key):
     assert _advice_params(advice_key=key, sodium_source_names=["라면"]) == {}
@@ -273,7 +277,9 @@ def test_home_summary_without_warning_has_empty_params(client, demo_meals):
     demo_meals.clear(today)
     body = client.get("/v1/dashboard/summary").json()
     assert body["sodium_warning"] is None
-    assert body["ai_advice_key"] in ("exercise_on_track", "exercise_more", "exercise_start")
+    assert body["ai_advice_key"] in (
+        "exercise_on_track", "exercise_more", "exercise_cardio_start", "exercise_start",
+    )
     assert body["ai_advice_params"] == {}
 
 

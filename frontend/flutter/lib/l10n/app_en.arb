@@ -122,6 +122,10 @@
       }
     }
   },
+  "homeAdviceExerciseCardioStart": "No cardio logged yet this week. How about starting with an easy walk?",
+  "@homeAdviceExerciseCardioStart": {
+    "description": "Home AI advice when the member exercised this week but logged no cardio (#3350)."
+  },
   "homeAdviceExerciseStart": "Start moving this week — an easy walk is a good beginning.",
   "@homeAdviceExerciseStart": {
     "description": "Home AI advice when nothing was logged this week (#1943)."

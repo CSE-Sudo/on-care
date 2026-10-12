@@ -123,7 +123,9 @@ def _exercise_feedback(
     (`local_api/dashboard.dart`)도 같은 기준이다. 문장은 요청 언어를 따른다(#2299).
 
     [any_exercise] 는 이번 주에 유형을 가리지 않고 기록이 하나라도 있는지다 —
-    근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다.
+    근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다. 그런 주(다른
+    운동은 했는데 유산소가 0분)는 "유산소 0분 운동했어요" 대신 유산소를 권하는
+    문장(`exercise_cardio_start`)을 쓴다.
     """
     if not any_exercise:
         return (
@@ -133,6 +135,15 @@ def _exercise_feedback(
                 locale,
             ),
             "exercise_start",
+        )
+    if cardio_minutes <= 0:
+        return (
+            localized(
+                "이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
+                "No cardio logged yet this week. How about starting with an easy walk?",
+                locale,
+            ),
+            "exercise_cardio_start",
         )
     if cardio_minutes >= goal_minutes:
         return (

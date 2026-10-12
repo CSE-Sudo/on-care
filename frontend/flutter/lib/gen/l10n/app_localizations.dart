@@ -368,6 +368,12 @@ abstract class AppLocalizations {
   /// **'You did {minutes} minutes of cardio this week. A little more to go!'**
   String homeAdviceExerciseMore(int minutes);
 
+  /// Home AI advice when the member exercised this week but logged no cardio (#3350).
+  ///
+  /// In en, this message translates to:
+  /// **'No cardio logged yet this week. How about starting with an easy walk?'**
+  String get homeAdviceExerciseCardioStart;
+
   /// Home AI advice when nothing was logged this week (#1943).
   ///
   /// In en, this message translates to:

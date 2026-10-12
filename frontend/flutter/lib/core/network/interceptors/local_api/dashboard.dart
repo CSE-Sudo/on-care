@@ -241,7 +241,8 @@ int _dailySodiumGoal(Map<String, Object?> profile) {
 /// 운동 탭처럼 이번 주 유산소 분([cardioMinutes])을 회원의 주간 유산소 목표
 /// ([goalMinutes])와 견준다(#3350). 예전에는 유형을 가리지 않은 합계를 주 150분
 /// 고정과 견줬다. [anyExercise] 는 유형과 무관하게 이번 주 기록이 있는지다 —
-/// 근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다.
+/// 근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다. 그런 주(유산소
+/// 0분)는 유산소를 권하는 문장(`exercise_cardio_start`)이다.
 ({String key, String text}) _homeExerciseFeedback({
   required String lang,
   required int cardioMinutes,
@@ -255,6 +256,14 @@ int _dailySodiumGoal(Map<String, Object?> profile) {
       text: en
           ? 'Start moving this week — an easy walk is a good beginning.'
           : '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.',
+    );
+  }
+  if (cardioMinutes <= 0) {
+    return (
+      key: 'exercise_cardio_start',
+      text: en
+          ? 'No cardio logged yet this week. How about starting with an easy walk?'
+          : '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?',
     );
   }
   if (cardioMinutes >= goalMinutes) {

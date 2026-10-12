@@ -45,7 +45,7 @@ class DashboardSummary(BaseModel):
     #: 틀은 앱 ARB 가 원본이다.
     #:
     #: `sodium_over` · `sodium_over_sources` · `exercise_on_track` ·
-    #: `exercise_more` · `exercise_start` 중 하나다.
+    #: `exercise_more` · `exercise_cardio_start` · `exercise_start` 중 하나다.
     ai_advice_key: Optional[str] = None
     #: [ai_advice_key] 문장에 끼울 값. `sodium_over_sources` 면 `foods`(나트륨
     #: 상위 급원 음식 이름, 최대 두 개)가 실린다. 음식 이름은 회원이 적은

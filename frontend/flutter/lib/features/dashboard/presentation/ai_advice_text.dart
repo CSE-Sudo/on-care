@@ -48,6 +48,7 @@ String? _localized(AppLocalizations l, DashboardSummary summary) =>
       'exercise_more' => l.homeAdviceExerciseMore(
         summary.exerciseCardioMinutes,
       ),
+      'exercise_cardio_start' => l.homeAdviceExerciseCardioStart,
       'exercise_start' => l.homeAdviceExerciseStart,
       _ => null,
     };
