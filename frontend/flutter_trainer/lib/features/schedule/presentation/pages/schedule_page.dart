@@ -916,22 +916,29 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                           left: OnCareSpacing.s16,
                           bottom: OnCareSpacing.s8,
                         ),
-                        child: Row(
-                          key: const ValueKey<String>(
-                            'schedule-intake-actions',
-                          ),
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: <Widget>[
-                            for (
-                              int i = 0;
-                              i < intakeActions.length;
-                              i++
-                            ) ...<Widget>[
-                              if (i > 0)
-                                const SizedBox(width: OnCareSpacing.s8),
-                              intakeActions[i],
+                        // 패널이 줄어든 폭(304~)에서 영어·큰 글자면 두 버튼이
+                        // 칸보다 길다 — 넘치지 않게 그 안에서 통째로 줄인다
+                        // (#3316).
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Row(
+                            key: const ValueKey<String>(
+                              'schedule-intake-actions',
+                            ),
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              for (
+                                int i = 0;
+                                i < intakeActions.length;
+                                i++
+                              ) ...<Widget>[
+                                if (i > 0)
+                                  const SizedBox(width: OnCareSpacing.s8),
+                                intakeActions[i],
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
