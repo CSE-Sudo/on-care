@@ -152,6 +152,7 @@ void main() {
         DioExceptionType.connectionTimeout,
         DioExceptionType.sendTimeout,
         DioExceptionType.receiveTimeout,
+        DioExceptionType.transformTimeout,
       ]) {
         expect(
           appErrorCauseMessage(ko, dio(type)),
