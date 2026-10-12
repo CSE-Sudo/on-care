@@ -645,7 +645,7 @@ class _CategorySectionState extends State<_CategorySection> {
                   const Spacer(),
                   if (empty)
                     // 펼칠 수 없는 칸은 화살표 없이 "없음"만 두되, 다른 칸의
-                    // "완료 ∨" 가 차지하는 칸의 가운데에 선다 — 그 묶음을 보이지
+                    // "완료"와 펼침 화살표가 차지하는 칸의 가운데에 선다 — 그 묶음을 보이지
                     // 않게 깔아 자리(폭·줄 높이)만 잡고 위에 얹는다.
                     Stack(
                       alignment: Alignment.center,
