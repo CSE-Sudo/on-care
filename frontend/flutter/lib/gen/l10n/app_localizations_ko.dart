@@ -1964,6 +1964,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String myWithdrawCancelSessions(int count) {
+    return '• 트레이너가 잡은 PT 일정 $count건이 취소돼요';
+  }
+
+  @override
   String myWithdrawCancelConsultations(int count) {
     return '• 대기 중인 상담 요청 $count건이 취소돼요';
   }

@@ -2069,6 +2069,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String myWithdrawCancelSessions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '• The $count PT sessions your trainer scheduled will be cancelled',
+      one: '• The PT session your trainer scheduled will be cancelled',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String myWithdrawCancelConsultations(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

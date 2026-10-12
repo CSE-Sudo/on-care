@@ -3536,6 +3536,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{• Your upcoming PT booking will be cancelled} other{• Your {count} upcoming PT bookings will be cancelled}}'**
   String myWithdrawCancelReservations(int count);
 
+  /// Withdrawal confirmation line, shown only when a trainer has scheduled upcoming sessions with the member (#3341).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{• The PT session your trainer scheduled will be cancelled} other{• The {count} PT sessions your trainer scheduled will be cancelled}}'**
+  String myWithdrawCancelSessions(int count);
+
   /// Withdrawal confirmation line, shown only when the member has pending consultation requests (#3006).
   ///
   /// In en, this message translates to:
