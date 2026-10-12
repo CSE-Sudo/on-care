@@ -12,6 +12,8 @@ import os
 import pytest
 from sqlalchemy import create_engine, text
 
+from tests import sharding
+
 #: 테스트 전용 DB. 예전에는 기본값이 개발 DB 라, 한 번 돌릴 때마다 테스트가 만든
 #: 계정이 데모 DB 에 그대로 쌓였다(회원 수천 명·감사 로그 수만 행). 중단된 실행이
 #: 남긴 행 때문에 다음 실행이 중복 키로 깨지기도 했다.
@@ -66,6 +68,46 @@ os.environ.setdefault("TRAINER_AI_CALLS_PER_DAY", "0")
 #: 테스트는 개발 환경을 전제로 하므로 여기서 켠다. 기본값(꺼짐)의 동작은
 #: `test_prod_readiness` 가 설정을 직접 바꿔 확인한다.
 os.environ.setdefault("ALLOW_DEMO_FALLBACK", "true")
+
+
+#: 이번 실행이 맡은 묶음 — `(묶음 번호, 묶음 수, 맡은 테스트 수, 전체 테스트 수)`.
+_SHARD_REPORT: list[tuple[int, int, int, int]] = []
+
+
+def pytest_collection_modifyitems(config, items):
+    """`PYTEST_SHARD=2/6` 이면 이 실행이 맡은 묶음의 파일만 남긴다. (#3321)
+
+    CI 가 스위트를 여러 잡으로 나눠 돌리는 장치다. 값이 없으면(로컬·한 번에 돌리는
+    실행) 아무것도 하지 않는다. 규칙은 `tests/sharding.py` 에 있다.
+    """
+    try:
+        shard = sharding.parse_shard(os.environ.get(sharding.ENV_VAR))
+    except ValueError as exc:
+        raise pytest.UsageError(str(exc)) from exc
+    if shard is None:
+        return
+    index, total = shard
+    weights: dict[str, int] = {}
+    for item in items:
+        path = item.nodeid.split("::", 1)[0]
+        weights[path] = weights.get(path, 0) + 1
+    assignment = sharding.assign_shards(weights, total)
+    kept, dropped = [], []
+    for item in items:
+        mine = assignment[item.nodeid.split("::", 1)[0]] == index
+        (kept if mine else dropped).append(item)
+    _SHARD_REPORT.append((index, total, len(kept), len(items)))
+    if dropped:
+        config.hook.pytest_deselected(items=dropped)
+        items[:] = kept
+
+
+def pytest_terminal_summary(terminalreporter):
+    """묶음 실행이면 맡은 범위를 결과 끝에 남긴다 — 묶음의 합이 전체인지 로그로 맞춰 본다."""
+    for index, total, kept, collected in _SHARD_REPORT:
+        terminalreporter.write_line(
+            f"{sharding.ENV_VAR}={index}/{total}: 전체 {collected}건 중 {kept}건을 맡음"
+        )
 
 
 #: 이 DB 를 비워도 되는가.
