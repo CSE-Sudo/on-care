@@ -104,23 +104,27 @@
   "@homeAdviceSodiumOver": {
     "description": "Home AI advice when today's sodium is over the goal (#1943)."
   },
-  "homeAdviceExerciseOnTrack": "You worked out {minutes} minutes this week. You are on track!",
+  "homeAdviceExerciseOnTrack": "You did {minutes} minutes of cardio this week. You are on track!",
   "@homeAdviceExerciseOnTrack": {
-    "description": "Home AI advice when the weekly exercise goal is met (#1943).",
+    "description": "Home AI advice when this week's cardio minutes meet the member's weekly cardio goal (#1943, #3350).",
     "placeholders": {
       "minutes": {
         "type": "int"
       }
     }
   },
-  "homeAdviceExerciseMore": "You worked out {minutes} minutes this week. A little more to go!",
+  "homeAdviceExerciseMore": "You did {minutes} minutes of cardio this week. A little more to go!",
   "@homeAdviceExerciseMore": {
-    "description": "Home AI advice when there is some exercise but not enough (#1943).",
+    "description": "Home AI advice when there is exercise this week but cardio minutes are under the weekly cardio goal (#1943, #3350).",
     "placeholders": {
       "minutes": {
         "type": "int"
       }
     }
+  },
+  "homeAdviceExerciseCardioStart": "No cardio logged yet this week. How about starting with an easy walk?",
+  "@homeAdviceExerciseCardioStart": {
+    "description": "Home AI advice when the member exercised this week but logged no cardio (#3350)."
   },
   "homeAdviceExerciseStart": "Start moving this week — an easy walk is a good beginning.",
   "@homeAdviceExerciseStart": {
@@ -787,6 +791,15 @@
   "exSpecialty": "Specialties",
   "myTabTitle": "MY",
   "myDefaultUserName": "User",
+  "myEmailUnregistered": "{provider, select, kakao{Signed up with Kakao} google{Signed up with Google} other{Signed up with a social account}} · No email on file",
+  "@myEmailUnregistered": {
+    "description": "Shown instead of the email when the account only has the internal placeholder address from a social sign-up.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "myProfileLoadFailed": "Couldn't load your profile",
   "myPointsLoadFailed": "Couldn't load your points balance",
   "mySettingsTitle": "Settings",
@@ -1216,6 +1229,7 @@
   "challengeJoinDone": "You joined this week's challenge",
   "challengeJoinFailed": "Couldn't join. Please try again.",
   "challengeJoinClosed": "You can join again next Monday",
+  "challengeSettling": "Tallying last week's result. Workouts you log for last week by today still count",
   "challengeThisWeek": "This week",
   "challengeProgress": "{progress} / {goal} workouts",
   "@challengeProgress": {
@@ -1533,6 +1547,7 @@
   "myProfileSaved": "Profile saved",
   "mySaveFailed": "Couldn't save. Please try again in a moment",
   "myProfileEmailTaken": "That email is already in use",
+  "myProfileEmailEmptyHint": "Email address to use",
   "myProfilePhoneRequired": "Your phone number can't be left empty",
   "myProfileInvalid": "Please check what you entered",
   "myFieldName": "Name",
@@ -1966,8 +1981,6 @@
   "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a trainer consultation",
   "exConsultPendingCta": "Consultation request pending",
-  "exConsultLinkedToOtherTrainer": "You're connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.",
-  "exConsultGoToMyTrainer": "View my trainer",
   "exViewConsultationRequest": "View consultation request",
   "exConsultTarget": "Consultation target",
   "exTrainerConsultType": "Trainer consultation",
@@ -4112,10 +4125,24 @@
   "findEmailTitle": "Find your email",
   "findEmailSubtitle": "Enter the name and phone number you signed up with to find your email.",
   "findEmailAction": "Find email",
-  "findEmailComingSoon": "Finding your email is coming soon.",
-  "@findEmailComingSoon": {
-    "description": "Toast shown when the find-email button is pressed while the lookup is not available yet."
+  "findEmailFoundSubtitle": "These accounts match the details you entered.",
+  "findEmailMaskedNote": "Part of the email is hidden to protect your privacy.",
+  "findEmailSocialTitle": "You signed up with {provider}",
+  "@findEmailSocialTitle": {
+    "description": "Find-email result for an account that signs in through a social provider only. provider is findEmailProviderKakao / Google / Other.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
   },
+  "findEmailSocialBody": "On the sign-in screen, sign in the same way you signed up.",
+  "findEmailProviderKakao": "Kakao",
+  "findEmailProviderGoogle": "Google",
+  "findEmailProviderOther": "a social account",
+  "findEmailNotFoundTitle": "We couldn't find a matching account",
+  "findEmailNotFoundBody": "Check your name and phone number again. If you didn't add a phone number when signing up, or changed it later, we can't find the account here.",
+  "findEmailRetry": "Search again",
   "passwordChangeTitle": "Change password",
   "passwordChangeCurrentHint": "Current password",
   "passwordChangeNewHint": "New password (8+ characters, letters and numbers)",
@@ -4149,6 +4176,7 @@
     }
   },
   "passwordResetConfirmSubtitle": "Enter the code from the email and your new password.",
+  "passwordResetSocialNote": "If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.",
   "passwordResetCodeHint": "16-character reset code",
   "passwordResetCodeEmpty": "Enter the code",
   "passwordResetCodeMalformed": "Enter the 16-character code from the email",

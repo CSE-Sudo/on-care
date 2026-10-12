@@ -356,17 +356,23 @@ abstract class AppLocalizations {
   /// **'You went over your sodium goal today. Try keeping the rest of your meals light.'**
   String get homeAdviceSodiumOver;
 
-  /// Home AI advice when the weekly exercise goal is met (#1943).
+  /// Home AI advice when this week's cardio minutes meet the member's weekly cardio goal (#1943, #3350).
   ///
   /// In en, this message translates to:
-  /// **'You worked out {minutes} minutes this week. You are on track!'**
+  /// **'You did {minutes} minutes of cardio this week. You are on track!'**
   String homeAdviceExerciseOnTrack(int minutes);
 
-  /// Home AI advice when there is some exercise but not enough (#1943).
+  /// Home AI advice when there is exercise this week but cardio minutes are under the weekly cardio goal (#1943, #3350).
   ///
   /// In en, this message translates to:
-  /// **'You worked out {minutes} minutes this week. A little more to go!'**
+  /// **'You did {minutes} minutes of cardio this week. A little more to go!'**
   String homeAdviceExerciseMore(int minutes);
+
+  /// Home AI advice when the member exercised this week but logged no cardio (#3350).
+  ///
+  /// In en, this message translates to:
+  /// **'No cardio logged yet this week. How about starting with an easy walk?'**
+  String get homeAdviceExerciseCardioStart;
 
   /// Home AI advice when nothing was logged this week (#1943).
   ///
@@ -2276,6 +2282,12 @@ abstract class AppLocalizations {
   /// **'User'**
   String get myDefaultUserName;
 
+  /// Shown instead of the email when the account only has the internal placeholder address from a social sign-up.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider, select, kakao{Signed up with Kakao} google{Signed up with Google} other{Signed up with a social account}} · No email on file'**
+  String myEmailUnregistered(String provider);
+
   /// No description provided for @myProfileLoadFailed.
   ///
   /// In en, this message translates to:
@@ -3098,6 +3110,12 @@ abstract class AppLocalizations {
   /// **'You can join again next Monday'**
   String get challengeJoinClosed;
 
+  /// No description provided for @challengeSettling.
+  ///
+  /// In en, this message translates to:
+  /// **'Tallying last week\'s result. Workouts you log for last week by today still count'**
+  String get challengeSettling;
+
   /// No description provided for @challengeThisWeek.
   ///
   /// In en, this message translates to:
@@ -3793,6 +3811,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That email is already in use'**
   String get myProfileEmailTaken;
+
+  /// No description provided for @myProfileEmailEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address to use'**
+  String get myProfileEmailEmptyHint;
 
   /// No description provided for @myProfilePhoneRequired.
   ///
@@ -4747,18 +4771,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consultation request pending'**
   String get exConsultPendingCta;
-
-  /// No description provided for @exConsultLinkedToOtherTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.'**
-  String get exConsultLinkedToOtherTrainer;
-
-  /// No description provided for @exConsultGoToMyTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'View my trainer'**
-  String get exConsultGoToMyTrainer;
 
   /// No description provided for @exViewConsultationRequest.
   ///
@@ -8046,11 +8058,65 @@ abstract class AppLocalizations {
   /// **'Find email'**
   String get findEmailAction;
 
-  /// Toast shown when the find-email button is pressed while the lookup is not available yet.
+  /// No description provided for @findEmailFoundSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Finding your email is coming soon.'**
-  String get findEmailComingSoon;
+  /// **'These accounts match the details you entered.'**
+  String get findEmailFoundSubtitle;
+
+  /// No description provided for @findEmailMaskedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Part of the email is hidden to protect your privacy.'**
+  String get findEmailMaskedNote;
+
+  /// Find-email result for an account that signs in through a social provider only. provider is findEmailProviderKakao / Google / Other.
+  ///
+  /// In en, this message translates to:
+  /// **'You signed up with {provider}'**
+  String findEmailSocialTitle(String provider);
+
+  /// No description provided for @findEmailSocialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'On the sign-in screen, sign in the same way you signed up.'**
+  String get findEmailSocialBody;
+
+  /// No description provided for @findEmailProviderKakao.
+  ///
+  /// In en, this message translates to:
+  /// **'Kakao'**
+  String get findEmailProviderKakao;
+
+  /// No description provided for @findEmailProviderGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get findEmailProviderGoogle;
+
+  /// No description provided for @findEmailProviderOther.
+  ///
+  /// In en, this message translates to:
+  /// **'a social account'**
+  String get findEmailProviderOther;
+
+  /// No description provided for @findEmailNotFoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find a matching account'**
+  String get findEmailNotFoundTitle;
+
+  /// No description provided for @findEmailNotFoundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your name and phone number again. If you didn\'t add a phone number when signing up, or changed it later, we can\'t find the account here.'**
+  String get findEmailNotFoundBody;
+
+  /// No description provided for @findEmailRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Search again'**
+  String get findEmailRetry;
 
   /// No description provided for @passwordChangeTitle.
   ///
@@ -8183,6 +8249,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter the code from the email and your new password.'**
   String get passwordResetConfirmSubtitle;
+
+  /// No description provided for @passwordResetSocialNote.
+  ///
+  /// In en, this message translates to:
+  /// **'If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.'**
+  String get passwordResetSocialNote;
 
   /// No description provided for @passwordResetCodeHint.
   ///

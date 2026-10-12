@@ -148,13 +148,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String homeAdviceExerciseOnTrack(int minutes) {
-    return '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!';
+    return '이번 주 유산소 $minutes분 운동했어요. 목표 달성 중이에요!';
   }
 
   @override
   String homeAdviceExerciseMore(int minutes) {
-    return '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!';
+    return '이번 주 유산소 $minutes분 운동했어요. 조금만 더 힘내요!';
   }
+
+  @override
+  String get homeAdviceExerciseCardioStart =>
+      '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?';
 
   @override
   String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
@@ -1211,6 +1215,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myDefaultUserName => '사용자';
 
   @override
+  String myEmailUnregistered(String provider) {
+    String _temp0 = intl.Intl.selectLogic(provider, {
+      'kakao': '카카오로 가입',
+      'google': '구글로 가입',
+      'other': '소셜 로그인으로 가입',
+    });
+    return '$_temp0 · 이메일 미등록';
+  }
+
+  @override
   String get myProfileLoadFailed => '내 정보를 불러오지 못했어요';
 
   @override
@@ -1704,6 +1718,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get challengeJoinClosed => '다음 주 월요일에 다시 참가할 수 있어요';
 
   @override
+  String get challengeSettling => '지난주 결과 집계 중이에요. 오늘까지 적은 지난주 운동 기록이 반영돼요';
+
+  @override
   String get challengeThisWeek => '이번 주 진행';
 
   @override
@@ -2109,6 +2126,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myProfileEmailTaken => '이미 사용 중인 이메일이에요';
+
+  @override
+  String get myProfileEmailEmptyHint => '사용할 이메일 주소';
 
   @override
   String get myProfilePhoneRequired => '등록된 전화번호는 비울 수 없어요';
@@ -2649,13 +2669,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultPendingCta => '상담 요청 대기 중';
-
-  @override
-  String get exConsultLinkedToOtherTrainer =>
-      '담당 트레이너와 연결되어 있어요. 다른 트레이너에게 상담을 신청하려면 담당 연결을 먼저 해제해 주세요.';
-
-  @override
-  String get exConsultGoToMyTrainer => '담당 트레이너 보기';
 
   @override
   String get exViewConsultationRequest => '상담 요청 확인';
@@ -4783,7 +4796,37 @@ class AppLocalizationsKo extends AppLocalizations {
   String get findEmailAction => '아이디 찾기';
 
   @override
-  String get findEmailComingSoon => '아이디 찾기는 준비 중이에요.';
+  String get findEmailFoundSubtitle => '입력한 정보로 가입한 계정이에요.';
+
+  @override
+  String get findEmailMaskedNote => '개인정보 보호를 위해 이메일 일부를 가렸어요.';
+
+  @override
+  String findEmailSocialTitle(String provider) {
+    return '$provider 계정으로 가입했어요';
+  }
+
+  @override
+  String get findEmailSocialBody => '로그인 화면에서 가입한 방법으로 로그인해 주세요.';
+
+  @override
+  String get findEmailProviderKakao => '카카오';
+
+  @override
+  String get findEmailProviderGoogle => '구글';
+
+  @override
+  String get findEmailProviderOther => '소셜';
+
+  @override
+  String get findEmailNotFoundTitle => '일치하는 계정을 찾지 못했어요';
+
+  @override
+  String get findEmailNotFoundBody =>
+      '이름과 휴대폰 번호를 다시 확인해 주세요. 가입할 때 번호를 넣지 않았거나 나중에 바꿨다면 찾을 수 없어요.';
+
+  @override
+  String get findEmailRetry => '다시 찾기';
 
   @override
   String get passwordChangeTitle => '비밀번호 변경';
@@ -4853,6 +4896,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get passwordResetConfirmSubtitle => '메일로 받은 코드와 새 비밀번호를 입력해 주세요.';
+
+  @override
+  String get passwordResetSocialNote =>
+      '카카오·구글 같은 소셜 로그인으로 가입했다면 메일이 오지 않아요. 가입한 방법으로 로그인해 주세요.';
 
   @override
   String get passwordResetCodeHint => '재설정 코드 16자리';

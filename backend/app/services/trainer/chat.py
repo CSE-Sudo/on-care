@@ -430,6 +430,10 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
 
     reader='trainer' → 상대(member)가 보낸 미확인 메시지에 read_at 을 채운다.
     reader='member'  → 상대(trainer)가 보낸 미확인 메시지에 read_at 을 채운다.
+
+    대화를 읽으면 그 대화에서 온 알림도 함께 읽음이 된다 — 트레이너는 그 회원의
+    메시지 알림(#2291), 회원은 메시지·리포트 알림(#3343). 반환값은 메시지 건수만
+    센다.
     """
     other = "member" if reader == "trainer" else "trainer"
     result = db.execute(
@@ -453,6 +457,26 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
                 Notification.user_id == trainer_id,
                 Notification.category == notification_service.TRAINER_MESSAGE_KIND,
                 Notification.subject_id == member_id,
+                Notification.read.is_(False),
+            )
+            .values(read=True)
+        )
+    else:
+        # 회원도 같다(#3343). 트레이너가 메시지를 다섯 번 보내면 알림이 다섯 건
+        # 쌓이는데, 대화를 다 읽어 대화 배지가 꺼져도 종 표시는 그대로 남았다.
+        # 회원의 담당은 한 명이라 보낸 사람을 가리지 않고 갈래 전체를 읽는다 —
+        # 리포트도 대화 스레드로 도착하므로(#2085) 함께 본 것이다. 일정·쿠폰 같은
+        # 다른 갈래는 대화에서 확인한 것이 아니라 건드리지 않는다.
+        db.execute(
+            update(Notification)
+            .where(
+                Notification.user_id == member_id,
+                Notification.category.in_(
+                    (
+                        notification_service.MEMBER_COACH_CHAT,
+                        notification_service.MEMBER_COACH_REPORT,
+                    )
+                ),
                 Notification.read.is_(False),
             )
             .values(read=True)

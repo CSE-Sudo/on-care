@@ -158,13 +158,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String homeAdviceExerciseOnTrack(int minutes) {
-    return 'You worked out $minutes minutes this week. You are on track!';
+    return 'You did $minutes minutes of cardio this week. You are on track!';
   }
 
   @override
   String homeAdviceExerciseMore(int minutes) {
-    return 'You worked out $minutes minutes this week. A little more to go!';
+    return 'You did $minutes minutes of cardio this week. A little more to go!';
   }
+
+  @override
+  String get homeAdviceExerciseCardioStart =>
+      'No cardio logged yet this week. How about starting with an easy walk?';
 
   @override
   String get homeAdviceExerciseStart =>
@@ -1272,6 +1276,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDefaultUserName => 'User';
 
   @override
+  String myEmailUnregistered(String provider) {
+    String _temp0 = intl.Intl.selectLogic(provider, {
+      'kakao': 'Signed up with Kakao',
+      'google': 'Signed up with Google',
+      'other': 'Signed up with a social account',
+    });
+    return '$_temp0 · No email on file';
+  }
+
+  @override
   String get myProfileLoadFailed => 'Couldn\'t load your profile';
 
   @override
@@ -1789,6 +1803,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get challengeJoinClosed => 'You can join again next Monday';
 
   @override
+  String get challengeSettling =>
+      'Tallying last week\'s result. Workouts you log for last week by today still count';
+
+  @override
   String get challengeThisWeek => 'This week';
 
   @override
@@ -2230,6 +2248,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myProfileEmailTaken => 'That email is already in use';
+
+  @override
+  String get myProfileEmailEmptyHint => 'Email address to use';
 
   @override
   String get myProfilePhoneRequired => 'Your phone number can\'t be left empty';
@@ -2796,13 +2817,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultPendingCta => 'Consultation request pending';
-
-  @override
-  String get exConsultLinkedToOtherTrainer =>
-      'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.';
-
-  @override
-  String get exConsultGoToMyTrainer => 'View my trainer';
 
   @override
   String get exViewConsultationRequest => 'View consultation request';
@@ -5064,7 +5078,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findEmailAction => 'Find email';
 
   @override
-  String get findEmailComingSoon => 'Finding your email is coming soon.';
+  String get findEmailFoundSubtitle =>
+      'These accounts match the details you entered.';
+
+  @override
+  String get findEmailMaskedNote =>
+      'Part of the email is hidden to protect your privacy.';
+
+  @override
+  String findEmailSocialTitle(String provider) {
+    return 'You signed up with $provider';
+  }
+
+  @override
+  String get findEmailSocialBody =>
+      'On the sign-in screen, sign in the same way you signed up.';
+
+  @override
+  String get findEmailProviderKakao => 'Kakao';
+
+  @override
+  String get findEmailProviderGoogle => 'Google';
+
+  @override
+  String get findEmailProviderOther => 'a social account';
+
+  @override
+  String get findEmailNotFoundTitle => 'We couldn\'t find a matching account';
+
+  @override
+  String get findEmailNotFoundBody =>
+      'Check your name and phone number again. If you didn\'t add a phone number when signing up, or changed it later, we can\'t find the account here.';
+
+  @override
+  String get findEmailRetry => 'Search again';
 
   @override
   String get passwordChangeTitle => 'Change password';
@@ -5142,6 +5189,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passwordResetConfirmSubtitle =>
       'Enter the code from the email and your new password.';
+
+  @override
+  String get passwordResetSocialNote =>
+      'If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.';
 
   @override
   String get passwordResetCodeHint => '16-character reset code';
