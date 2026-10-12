@@ -149,6 +149,79 @@ class ProdBootSmokeTest(unittest.TestCase):
         self.assertIn("AUTO_CREATE_TABLES=false", lines)
 
 
+class TestShardTest(unittest.TestCase):
+    """테스트 묶음 배선(#3321). 묶음이 빠지거나 결과 잡이 실패를 놓치면 초록인데 안 돈 것이 된다."""
+
+    def setUp(self) -> None:
+        self.jobs = jobs()
+
+    def shards(self) -> list[int]:
+        found = re.search(r"(?m)^        shard: \[([0-9, ]+)\]$", self.jobs["test"])
+        self.assertIsNotNone(found, "test 잡에 shard 매트릭스가 없습니다")
+        return [int(n) for n in found.group(1).split(",")]
+
+    def test_shards_are_numbered_from_one_without_gaps(self) -> None:
+        shards = self.shards()
+        self.assertGreaterEqual(len(shards), 2)
+        self.assertEqual(shards, list(range(1, len(shards) + 1)))
+
+    def test_shard_total_follows_the_matrix(self) -> None:
+        # 분모를 숫자로 적어 두면 목록만 고친 PR 에서 일부 파일이 어느 묶음에도 들지 않는다.
+        self.assertIn(
+            "      PYTEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}\n", self.jobs["test"]
+        )
+
+    def test_one_failing_shard_does_not_cancel_the_rest(self) -> None:
+        self.assertIn("      fail-fast: false\n", self.jobs["test"])
+
+    def test_every_shard_runs_the_whole_selection_on_an_alembic_schema(self) -> None:
+        job = self.jobs["test"]
+        self.assertIn('      AUTO_CREATE_TABLES: "false"\n', job)
+        self.assertEqual(step_named(job, "Run migrations").strip().splitlines()[-1].strip(), "run: alembic upgrade head")
+        self.assertEqual(step_named(job, "Run tests").strip().splitlines()[-1].strip(), "run: pytest")
+
+    def test_shards_install_from_the_locked_file(self) -> None:
+        self.assertIn(
+            "pip install --require-hashes -r requirements-dev.txt",
+            step_named(self.jobs["test"], "Install dependencies"),
+        )
+
+    def test_migration_checks_run_once_in_their_own_job(self) -> None:
+        job = self.jobs["migrations"]
+        for name in (
+            "Python version matches the Dockerfile",
+            "Assert single Alembic head (no branched migrations)",
+            "Run migrations (validates baseline)",
+            "Models match migrations (alembic check)",
+        ):
+            with self.subTest(step=name):
+                step_named(job, name)
+        self.assertNotIn("matrix:", job)
+
+    def test_result_job_keeps_the_old_check_name(self) -> None:
+        self.assertIn("    name: Alembic + Pytest (Postgres/pgvector)\n", self.jobs["test-result"])
+
+    def test_result_job_always_runs_and_needs_both(self) -> None:
+        job = self.jobs["test-result"]
+        self.assertIn("    needs: [migrations, test]\n", job)
+        self.assertIn("    if: always()\n", job)
+
+    def test_result_job_fails_unless_both_succeeded(self) -> None:
+        body = step_named(self.jobs["test-result"], "Require every shard and the migration checks to pass")
+        self.assertIn("MIGRATIONS_RESULT: ${{ needs.migrations.result }}", body)
+        self.assertIn("TEST_RESULT: ${{ needs.test.result }}", body)
+        self.assertIn('[ "${MIGRATIONS_RESULT}" != success ] || [ "${TEST_RESULT}" != success ]', body)
+        self.assertIn("exit 1", body)
+        self.assertNotIn("|| true", body)
+
+    def test_shard_rule_lives_in_the_test_package(self) -> None:
+        rule = (REPO_ROOT / "backend" / "tests" / "sharding.py").read_text(encoding="utf-8")
+        self.assertIn('ENV_VAR = "PYTEST_SHARD"', rule)
+        conftest = (REPO_ROOT / "backend" / "tests" / "conftest.py").read_text(encoding="utf-8")
+        self.assertIn("def pytest_collection_modifyitems(config, items):", conftest)
+        self.assertIn("raise pytest.UsageError", conftest)
+
+
 class TriggerAndPinTest(unittest.TestCase):
     def test_paths_cover_the_new_scripts(self) -> None:
         text = workflow_text()

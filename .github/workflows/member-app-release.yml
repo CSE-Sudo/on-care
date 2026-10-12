@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # analyze-and-test·Mobile release config 와 같은 SDK(#659).
+  # analyze·Mobile release config 와 같은 SDK(#659).
   FLUTTER_VERSION: "3.44.9"
   BUNDLE_ID: com.csesudo.oncare
 
