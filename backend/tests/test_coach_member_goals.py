@@ -290,16 +290,23 @@ def test_exercise_suggestion_keeps_default_goal_without_one(db_session, frozen_t
     )
 
 
-def test_exercise_suggestion_strength_only_week_is_not_an_empty_week(
+def test_exercise_suggestion_strength_only_week_invites_cardio(
     db_session, frozen_thursday,
 ):
-    """근력만 한 주에 '운동을 시작해 보세요' 라고 하지 않는다."""
+    """근력만 한 주 — '운동을 시작해 보세요' 도 '유산소 0분 운동했어요' 도 아니다.
+
+    홈 조언의 `exercise_cardio_start` 와 같은 규칙·같은 문장이다.
+    """
     user_id = _make_user(db_session)
     _add_exercise(db_session, user_id, "strength", 60)
 
     suggestion = coach_service._exercise_suggestion(db_session, user_id)
 
-    assert suggestion.title == "조금만 더 움직여봐요"
+    assert suggestion.title == "유산소를 더해봐요"
+    assert suggestion.body == _exercise_feedback(
+        0, 150, any_exercise=True, locale="ko"
+    )[0]
+    assert "0분" not in suggestion.body
 
 
 # ---- 운동: 홈 조언 (순수) ----

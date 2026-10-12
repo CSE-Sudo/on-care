@@ -227,6 +227,17 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
     goal_min = weekly_cardio_goal(
         db.scalar(select(HealthProfile).where(HealthProfile.user_id == user_id))
     )
+    if cardio_min <= 0:
+        # 다른 운동은 했는데 유산소가 없는 주 — "유산소 0분 운동했어요" 대신 유산소를
+        # 권한다. 홈 조언의 `exercise_cardio_start` 와 같은 규칙·같은 뜻이다.
+        return CoachSuggestion(
+            tag="exercise",
+            title=localized("유산소를 더해봐요", "Add some cardio"),
+            body=localized(
+                "이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
+                "No cardio logged yet this week. How about starting with an easy walk?",
+            ),
+        )
     if cardio_min < goal_min:
         return CoachSuggestion(
             tag="exercise",
