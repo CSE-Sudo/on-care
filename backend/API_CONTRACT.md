@@ -426,7 +426,7 @@ expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_ex
   처음 처리한 요청에 감사 로그(`points.coupon_redeem`, user_id = 회원)를 남긴다. 회원 휴대폰에서 누른 사용이라
   알림은 만들지 않는다.
 - **만료** 포인트는 돌려주지 않는다(소멸). 남은 날이 3일 이하가 되면 쿠폰마다 한 번 알림을 만든다 — `GET /me/coupons`
-  나 `GET /notifications` 를 부를 때 생긴다.
+  나 `GET /notifications`, `GET /notifications/unread-count` 를 부를 때 생긴다.
 - **담당 해제** (`DELETE /me/coach`, `DELETE /me/coach/trainer`, `DELETE /trainer/clients/{member_id}`, 트레이너
   탈퇴) 사용 가능한 PT 재등록 쿠폰을 `cancelled` 로 바꾸고 같은 source 로 `refund`(양수)를 남겨 포인트를 돌려준다.
 - **헬스장 해제** (`DELETE /me/coach` — 헬스장과 담당을 함께 끊는다) 사용 가능한 락커 쿠폰도 같은 방식으로 취소하고
@@ -578,12 +578,14 @@ MY 탭 프로필 카드의 이름 옆에 강아지나 고양이 하나를 단다
 | GET | `/me/challenges` | 회원(데모 폴백) | `challenge[]` — 최근 주 먼저(최대 20) |
 
 `weekly_challenge`: `{ week_start, week_end, join_until, stake, reward, goal, progress, balance, joinable,
-blocked_reason, shortfall, challenge? }`. `goal` 은 참가했으면 고정된 목표, 아니면 지금 참가하면 걸릴 목표.
+blocked_reason, shortfall, challenge?, settling_challenge? }`. `goal` 은 참가했으면 고정된 목표, 아니면 지금 참가하면 걸릴 목표.
 `progress` 는 이번 주 오늘까지 운동 기록이 있는 날 수(참가 여부와 무관). `blocked_reason` 은 `already_joined` →
 `join_closed` → `insufficient_points` 순으로 하나만, 참가할 수 있으면 null. `challenge` 는 이번 주 참가 기록(없으면 null).
+`settling_challenge` 는 지난주 참가 기록이 유예 중(판정 전)일 때만 실리고, 판정하면 null 이다(#3362).
 
-`challenge`: `{ id, week_start, week_end, goal, progress, stake, reward, status, achieved, rewarded, joined_at,
-settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받은 보상(성공이 아니면 0).
+`challenge`: `{ id, week_start, week_end, goal, progress, stake, reward, status, settling, achieved, rewarded,
+joined_at, settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받은 보상(성공이 아니면 0).
+`settling` 은 주는 끝났지만 아직 판정 전(유예)이면 참 — 이때 `status` 는 `active` 이고 앱은 "결과 집계 중"을 적는다.
 
 - **한 주** KST 월요일~일요일. **참가**는 그 주 월·화요일에만, 한 주에 한 번. 그 밖의 날·두 번째 참가·잔액 부족은 409.
   같은 `client_request_id` 재전송은 새로 걸지 않고 처음 기록을 돌려준다.
@@ -591,14 +593,19 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 - **목표** 참가 시점의 `weekly_workout_goal` 을 고정한다. 없거나 1 미만이면 3, 7 초과는 7(한 주에 셀 수 있는 최대 날 수).
 - **진행** 그 주에 운동 기록이 있는 날 수. 같은 날 여러 번은 1회, 출처(직접 추가·PT·배정 루틴)는 가리지 않는다.
   날짜는 운동 화면과 같은 논리 운동일이고, 오늘 이후 날짜의 기록은 세지 않는다.
-- **판정** 주가 끝난 뒤 한 번. 일요일까지 목표를 채웠으면 200P 를 `earn`(`reason: challenge_reward`)으로 적립하고,
+- **판정** 주가 끝나고 유예가 지난 뒤 한 번. 일요일까지 목표를 채웠으면 200P 를 `earn`(`reason: challenge_reward`)으로 적립하고,
   못 채웠으면 건 포인트는 사라진다. 주 중간에 목표를 채워도 보상은 주가 끝나야 받는다(`achieved: true`,
   `status: active`). 판정 때 센 날 수를 남겨, 판정 뒤 지난 주 기록이 바뀌어도 결과는 그대로다.
   판정은 **미리 적은 기록**(기록 날짜가 저장된 날(`created_at` 의 KST 날짜)보다 뒤인 것)을 세지 않는다 — 운동 기록 API 가
   앞날을 받기 전에 저장된 기록으로 성공하지 못한다. 그날 적은 기록과 지난 날을 뒤늦게 적은 기록은 센다(#3042).
+- **유예와 기록 마감(#3362)** 주가 끝난 다음 날(월요일, KST) 하루는 판정하지 않는다. 그날까지 **저장된** 지난주 기록을
+  세고(일요일 운동을 월요일에 적어도 반영), 화요일 00:00 부터 판정한다. 유예 중에는 `status: active`, `settling: true` 이고
+  `progress` 는 판정이 셀 값이다. 기록 마감(월요일) 뒤에 저장된 지난주 기록은 판정이 늦게 돌아도 세지 않는다 — 같은 기록이면
+  판정 요청이 언제 닿든 결과가 같다. 한 번 끝난 판정은 다시 계산하지 않는다. 지난주 보상은 화요일부터 잔액에 들어오므로,
+  그 보상으로 이번 주에 참가하려면 화요일에 참가한다.
 - **늦은 판정** 스케줄러가 없어 `GET /me/challenges/weekly`, `GET /me/challenges`, `POST /me/challenges/weekly/join`,
-  `GET /me/points/shop`, `GET /users/me/health`, `GET /notifications` 를 부를 때 끝난 주의 진행 중 챌린지를 판정한다.
-  조건부 UPDATE 한 번이라 보상·결과 알림은 챌린지마다 한 번뿐이다.
+  `GET /me/points/shop`, `GET /users/me/health`, `GET /notifications`, `GET /notifications/unread-count` 를 부를 때
+  유예까지 끝난 주의 진행 중 챌린지를 판정한다. 조건부 UPDATE 한 번이라 보상·결과 알림은 챌린지마다 한 번뿐이다.
 - **알림** 판정마다 결과 알림 한 건. `category` 는 `points_shop`, `action` 은
   `{ label: "포인트 사용처 보기", target: "points_shop" }` — 결과를 읽고 할 일(다음 주 참가·돌려받은 포인트 확인)이 그
   화면에 있다. 내 혜택은 교환해 **가진 것**(쿠폰·보호권)만 두므로 챌린지를 싣지 않는다. 수신 설정 스위치는 없다.
@@ -608,12 +615,16 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id, template, args }]` (배열, 최신순, 기본 50건) |
-| GET | `/notifications/unread-count` | `{ unread(int) }` |
+| GET | `/notifications/unread-count` | `{ unread(int) }` — 세기 전에 때가 된 알림을 만든다(아래) |
 | POST | `/notifications/{id}/read` | 단건 읽음 → `{ id, read: true }` |
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
 category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|pt_done|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
+
+- **늦은 생성(#3362)**: 주기 작업이 없어 쿠폰 만료 임박 알림과 주간 챌린지 결과 알림은 읽는 쪽이 만듭니다. `GET /notifications`
+  는 부를 때마다, `GET /notifications/unread-count` 는 회원마다 5분에 한 번 확인합니다 — 배지는 자주 읽으므로 나머지
+  조회는 세기만 합니다. 알림함을 열지 않아도 배지 조회만으로 알림이 생기고, 쿠폰·챌린지마다 한 번뿐입니다.
 
 `action` 은 `{ label, target }` 또는 `null`(읽음 처리만 하는 알림)입니다. `label` 은 요청 언어(`Accept-Language`)이고
 `target` 은 회원 앱이 아는 목적지(`dashboard`|`coach_chat`|`exercise`|`diet`|`my_benefits`|`points_shop`|`health_goals`|
