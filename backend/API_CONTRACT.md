@@ -90,13 +90,13 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/users/me` | `{ id(str), name, email, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
+| GET | `/users/me` | `{ id(str), name, email, email_is_placeholder, email_placeholder_provider, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `email_is_placeholder`·`email_placeholder_provider` 는 아래 [소셜 가입 계정의 대체 이메일](#소셜-가입-계정의-대체-이메일-3338). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET, PUT, DELETE | `/users/me/consents/{kind}` | 선택 동의(`location`) 상태 조회·동의·철회 → `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. 회원 전용, 선택 항목 아닌 `kind` 는 422 (아래 "선택 동의 — 위치정보 이용" 참고, #3136) |
-| GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
+| GET | `/users/me/health` | `{ profile: { id, name, email, email_is_placeholder, email_placeholder_provider }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039) |
 | GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
-| GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
+| GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, email_is_placeholder, email_placeholder_provider, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
 | PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 이메일을 실제로 바꿀 때만 `current_password`(소셜 전용은 `social_provider`·`social_token`)와 새 주소로 받은 `email_code`(#3230)를 함께 보내고, 그때 응답에 새 `access_token`·`refresh_token` 이 실린다(#3039). 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
 | POST | `/users/me/email/code` | `{ email }` → **202** `{ expires_in_minutes, resend_after_seconds }` — 로그인 이메일을 바꾸기 전에 새 주소로 6자리 인증 코드를 보낸다(#3230). 가입 여부와 무관하게 같은 응답, 지금 이메일과 같으면 422 `email_unchanged`. 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) |
 | POST | `/users/me/onboarding` | 최초 온보딩 `{ name?, birth_date?, gender?, height_cm?, weight_kg?, conditions?, daily_*?, daily_burn_kcal?, weekly_cardio_minutes?, weekly_strength_sets?, weekly_flexibility_minutes? }` → `ProfileView`(`onboarded: true`). 보낸 필드만 반영한다 |
@@ -118,6 +118,26 @@
 스레드 행이 CASCADE 로 사라지므로 남긴 파일은 열 수 없는 고아가 된다. 트레이너 탈퇴
 (`DELETE /trainer/me`)도 그 트레이너의 스레드 첨부를 같은 규칙으로 지운다. 파일 삭제는 커밋
 뒤에 하고, 실패해도 응답은 `deleted` 다(서버 로그에 남겨 다시 지운다).
+
+#### 소셜 가입 계정의 대체 이메일 (#3338)
+
+이메일을 주지 않는(또는 확인하지 않은) 소셜 계정으로 가입하면 계정 이메일 자리에
+`{provider}_{provider_user_id}@social.oncare` 가 들어간다. 받는 사람이 없는 내부용 주소다.
+만드는 규칙과 알아보는 규칙은 `app/services/placeholder_email.py` 한 곳에 있다.
+
+| 필드 | 뜻 |
+|---|---|
+| `email_is_placeholder` | `email` 이 대체 이메일인가. `GET /users/me`·`GET /users/me/health` 의 `profile`·`ProfileView` 에 실린다 |
+| `email_placeholder_provider` | 대체 이메일을 만든 가입 수단(`kakao`·`google`). 대체 이메일이 아니면 null |
+
+- `email` 값은 그대로 싣는다(옛 버전 앱이 읽는 자리). 앱은 `email_is_placeholder` 가 참이면 주소를
+  보여 주지 않고 가입 수단과 "이메일 미등록" 으로 안내하며, 프로필 편집의 이메일 칸을 비운 채로 연다.
+- 실제 주소로 바꾸면(`PUT /users/me`) 두 값은 `false`·`null` 이 된다. 이때 **이메일 변경 안내 메일은
+  보내지 않는다** — 옛 주소가 내부용이라 알릴 곳이 없다. 실제 주소에서 실제 주소로 바꿀 때는 예전처럼
+  옛 주소로 보낸다(#3039).
+- 비밀번호가 없는 소셜 전용 계정의 비밀번호 재설정 요청은 계정 존재를 숨기려고 예전처럼 같은 202 를
+  주고 메일은 보내지 않는다. 앱이 코드 입력 화면에서 "소셜 로그인으로 가입했다면 메일이 오지 않는다" 고
+  안내한다.
 
 #### 탈퇴 미리보기 (#3006)
 
