@@ -1327,6 +1327,47 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    // 양옆 열을 252·380 으로 못 박았던 때에는 1280 창(콘텐츠 1016)에서 두 열로
+    // 바뀌어 식단·운동이 편집기 위에 얹혔다(#3316).
+    testWidgets('1280 창에서도 세 열이 서고 편집기가 맨 위에서 시작한다', (tester) async {
+      await openTab(tester, size: const Size(1280, 720));
+
+      final mainColumn = find.byKey(
+        const ValueKey<String>('coaching-wide-main-column'),
+      );
+      final rail = find.byKey(
+        const ValueKey<String>('coaching-client-rail-scroll'),
+      );
+      expect(rail, findsOneWidget);
+      expect(
+        tester.getTopLeft(rail).dx,
+        greaterThan(tester.getTopRight(mainColumn).dx - 1),
+      );
+      expect(tester.getSize(mainColumn).width, greaterThanOrEqualTo(440));
+      expect(
+        tester.getTopLeft(find.byType(AiRoutineOptionsFlow)).dy,
+        closeTo(tester.getTopLeft(mainColumn).dy, 1),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('한 열은 회원 → 템플릿 → 편집기 → 식단·운동 순서로 쌓는다 (#3316)', (tester) async {
+      await openTab(tester, size: const Size(800, 4000));
+
+      final double template = tester.getTopLeft(find.text('프로그램 템플릿')).dy;
+      final double editor = tester
+          .getTopLeft(find.byType(AiRoutineOptionsFlow))
+          .dy;
+      final double data = tester
+          .getTopLeft(
+            find.byKey(const ValueKey<String>('program-client-data-switcher')),
+          )
+          .dy;
+      expect(template, lessThan(editor));
+      expect(editor, lessThan(data));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('full workspace moves templates below the client list', (
       tester,
     ) async {
