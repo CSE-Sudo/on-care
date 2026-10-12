@@ -765,10 +765,12 @@ _aiCoachSeed =
 List<Map<String, Object?>> _seedAiCoachRows() {
   final DateTime now = nowKst();
   return <Map<String, Object?>>[
-    for (final turn in _aiCoachSeed)
+    for (final (int index, turn) in _aiCoachSeed.indexed)
       <String, Object?>{
+        // 같은 날 주고받은 줄이 여럿이라 날짜만으로는 겹친다 — 시드 순번을 붙여
+        // 줄마다 다른 식별자를 준다(#3352).
         'id':
-            'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
+            'local-ai-seed-${turn.daysAgo}-$index-${turn.fromMember ? 'me' : 'coach'}',
         'role': turn.fromMember ? 'user' : 'coach',
         'text': turn.text,
         // 영어 화면에서 보일 같은 대화(#2735). 저장은 한국어 그대로 둔다.
