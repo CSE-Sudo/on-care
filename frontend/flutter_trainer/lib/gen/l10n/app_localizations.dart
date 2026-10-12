@@ -4816,13 +4816,13 @@ abstract class AppLocalizations {
   /// No description provided for @myDiscardTitle.
   ///
   /// In en, this message translates to:
-  /// **'Stop editing?'**
+  /// **'Save your changes?'**
   String get myDiscardTitle;
 
   /// No description provided for @myDiscardBody.
   ///
   /// In en, this message translates to:
-  /// **'Your changes won\'t be saved.'**
+  /// **'If you leave without saving, your changes will be lost.'**
   String get myDiscardBody;
 
   /// No description provided for @myKeepEditing.
@@ -4834,8 +4834,14 @@ abstract class AppLocalizations {
   /// No description provided for @myDiscardAction.
   ///
   /// In en, this message translates to:
-  /// **'Leave'**
+  /// **'Don\'t save'**
   String get myDiscardAction;
+
+  /// No description provided for @mySaveAndLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and leave'**
+  String get mySaveAndLeave;
 
   /// No description provided for @mySignOutConfirm.
   ///

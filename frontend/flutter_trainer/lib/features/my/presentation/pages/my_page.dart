@@ -85,6 +85,9 @@ class MyPage extends ConsumerStatefulWidget {
   ConsumerState<MyPage> createState() => _MyPageState();
 }
 
+/// 저장하지 않은 수정을 두고 떠날 때의 선택.
+enum _LeaveChoice { save, discard, stay }
+
 /// 이 화면의 구획 — `t` 쿼리 값과 이름이 같다.
 ///
 /// `settings` 는 메뉴만 연 상태다(좁은 화면의 첫 화면). 프로필 수정은 프로필에서
@@ -211,11 +214,92 @@ class _MyPageState extends ConsumerState<MyPage> {
       this,
       want ? () => mounted && _editing && !_saving && _isDirty : null,
     );
+    leaveGuards.setConfirm(this, want ? _confirmLeavingTab : null);
   }
+
+  /// 사이드바로 다른 탭에 가기 전의 확인. (#3336)
+  ///
+  /// 이 화면이 앞에 있을 때만 묻는다 — 탭 상태가 유지되는 셸이라, 다른 탭에
+  /// 가 있는 동안에도 이 화면은 뒤에 살아 있다. `저장 안 함` 으로 떠나면 초안을
+  /// 저장된 값으로 되돌려, 뒤에 남은 화면이 다시 묻거나 새로 고침을 막지 않게
+  /// 한다.
+  Future<bool> _confirmLeavingTab() async {
+    if (!mounted || !TickerMode.valuesOf(context).enabled) return true;
+    if (_saving) return false;
+    if (!_editing || !_isDirty) return true;
+    final _LeaveChoice choice = await _askUnsaved();
+    if (!mounted) return false;
+    switch (choice) {
+      case _LeaveChoice.stay:
+        return false;
+      case _LeaveChoice.save:
+        return _saveCurrent();
+      case _LeaveChoice.discard:
+        setState(() {
+          switch (_section) {
+            case _MySection.gymInfo:
+              _loadGymInfo();
+            case _MySection.gym:
+              _loadGymDraft();
+            default:
+              _loadDrafts();
+          }
+        });
+        return true;
+    }
+  }
+
+  /// 저장하지 않은 수정을 어떻게 할지 묻는다 — 저장하고 나가기 · 저장 안 함 ·
+  /// 계속 수정. 창 밖을 눌러 닫으면 계속 수정이다.
+  Future<_LeaveChoice> _askUnsaved() async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final _LeaveChoice? choice = await showAppDialog<_LeaveChoice>(
+      context: context,
+      builder: (BuildContext dialogContext) => AppDialog(
+        key: const ValueKey<String>('my-unsaved-dialog'),
+        title: l.myDiscardTitle,
+        showClose: false,
+        footer: AppActionRow(
+          actions: <Widget>[
+            AppButton(
+              key: const ValueKey<String>('my-unsaved-stay'),
+              label: l.myKeepEditing,
+              variant: AppButtonVariant.text,
+              onPressed: () => Navigator.pop(dialogContext, _LeaveChoice.stay),
+            ),
+            AppButton(
+              key: const ValueKey<String>('my-unsaved-discard'),
+              label: l.myDiscardAction,
+              variant: AppButtonVariant.secondary,
+              onPressed: () =>
+                  Navigator.pop(dialogContext, _LeaveChoice.discard),
+            ),
+            AppButton(
+              key: const ValueKey<String>('my-unsaved-save'),
+              label: l.mySaveAndLeave,
+              onPressed: () => Navigator.pop(dialogContext, _LeaveChoice.save),
+            ),
+          ],
+        ),
+        child: Text(l.myDiscardBody),
+      ),
+    );
+    return choice ?? _LeaveChoice.stay;
+  }
+
+  /// 지금 수정 화면의 내용을 저장한다. 저장됐으면 참 — 떠나도 된다. 입력이
+  /// 틀렸거나 요청이 실패하면 거짓이고, 저장 버튼을 눌렀을 때와 같은 안내가
+  /// 뜬다.
+  Future<bool> _saveCurrent() => switch (_section) {
+    _MySection.gymInfo => _saveGymInfo(leaveAfter: false),
+    _MySection.gym => _saveGym(leaveAfter: false),
+    _ => _save(leaveAfter: false),
+  };
 
   @override
   void dispose() {
     if (_leaveGuarded) setLeaveGuard(this, null);
+    leaveGuards.setConfirm(this, null);
     for (final c in _fields.values) {
       c.dispose();
     }
@@ -320,11 +404,13 @@ class _MyPageState extends ConsumerState<MyPage> {
     return error == null;
   }
 
-  Future<void> _saveGymInfo() async {
-    if (_saving || _gymInfo == null) return;
+  /// [leaveAfter] 가 거짓이면 저장한 뒤 프로필로 가지 않는다 — 떠나려던 곳으로
+  /// 부른 쪽이 보낸다(#3336). 저장됐으면 참이다.
+  Future<bool> _saveGymInfo({bool leaveAfter = true}) async {
+    if (_saving || _gymInfo == null) return false;
     // 칸에 적어 두고 `추가` 를 누르지 않은 태그도 담는다 — 저장을 눌렀는데
     // 적어 둔 태그가 사라지면 저장이 안 된 줄 안다.
-    if (!_addTag()) return;
+    if (!_addTag()) return false;
     final AppLocalizations l = AppLocalizations.of(context);
     setState(() => _saving = true);
     final repository = ref.read(trainerProfileRepositoryProvider);
@@ -338,7 +424,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         ),
       );
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _saving = false);
       final String? detail = error is AppError ? error.message : null;
       // 실패하면 이 화면에 남는다 — 적은 값을 다시 적지 않아도 된다.
@@ -347,7 +433,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         serverDetailOr(l, detail, l.myGymInfoSaveFailed),
         type: AppToastType.error,
       );
-      return;
+      return false;
     }
     // 서버가 프로필의 영업시간·전화 복사본도 바꿨다 — 내 정보 카드가 새 값을
     // 보이게 다시 읽는다. 읽기만 실패하면 저장은 된 것이라 그대로 알린다.
@@ -357,7 +443,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     } catch (_) {
       refreshed = null;
     }
-    if (!mounted) return;
+    if (!mounted) return false;
     if (refreshed != null) {
       _applySavedProfile(refreshed);
     } else {
@@ -365,7 +451,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       setState(() => _saving = false);
     }
     showAppToast(context, l.mySaved, type: AppToastType.success);
-    context.go(AppRoutes.mySection(_MySection.profile.name));
+    if (leaveAfter) context.go(AppRoutes.mySection(_MySection.profile.name));
+    return true;
   }
 
   /// 헬스장을 고르지 않고 저장을 누르면 알린다 — 소속이 없으면 회원이
@@ -374,21 +461,21 @@ class _MyPageState extends ConsumerState<MyPage> {
       _draftGym == null ? l.myGymRequired : null;
 
   /// 헬스장 변경 저장 — 소속만 바꾼다. 헬스장 이름·주소는 서버가 소속에서
-  /// 채운다.
-  Future<void> _saveGym() async {
-    if (_saving) return;
+  /// 채운다. [leaveAfter] 와 돌려주는 값은 [_save] 와 같다(#3336).
+  Future<bool> _saveGym({bool leaveAfter = true}) async {
+    if (_saving) return false;
     final AppLocalizations l = AppLocalizations.of(context);
     final TrainerGymCandidate? picked = _draftGym;
     // 소속 헬스장은 필수다 — 소규모·개인 스튜디오라도 수업하는 곳이 있고,
     // 검색은 카카오에 있는 곳을 모두 찾는다(#2543).
     if (picked == null) {
       setState(() => _showGymError = true);
-      return;
+      return false;
     }
     // 지금 소속을 다시 골랐으면 바꿀 것이 없다.
     if (picked.id == _gym.id) {
-      context.go(AppRoutes.mySection(_MySection.profile.name));
-      return;
+      if (leaveAfter) context.go(AppRoutes.mySection(_MySection.profile.name));
+      return true;
     }
     setState(() => _saving = true);
     final TrainerProfile saved;
@@ -397,7 +484,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           .read(trainerProfileRepositoryProvider)
           .selectGym(picked);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _saving = false);
       final String? detail = error is AppError ? error.message : null;
       // 실패하면 이 화면에 남는다 — 고른 헬스장을 다시 찾지 않아도 된다.
@@ -406,16 +493,19 @@ class _MyPageState extends ConsumerState<MyPage> {
         serverDetailOr(l, detail, l.myGymChangeFailed),
         type: AppToastType.error,
       );
-      return;
+      return false;
     }
-    if (!mounted) return;
+    if (!mounted) return false;
     _applySavedProfile(saved);
     showAppToast(context, l.mySaved, type: AppToastType.success);
-    context.go(AppRoutes.mySection(_MySection.profile.name));
+    if (leaveAfter) context.go(AppRoutes.mySection(_MySection.profile.name));
+    return true;
   }
 
-  Future<void> _save() async {
-    if (_saving) return;
+  /// [leaveAfter] 가 거짓이면 저장한 뒤 프로필로 가지 않는다 — 떠나려던 곳으로
+  /// 부른 쪽이 보낸다(#3336). 저장됐으면 참이다.
+  Future<bool> _save({bool leaveAfter = true}) async {
+    if (_saving) return false;
     // 숫자만 읽는다. 전에는 한국어 '년' 접미사를 정규식에 박아 뒀는데, 영어
     // 로케일에서 "7 years" 를 입력하면 매칭에 실패했다. (#501)
     final careerMatch = RegExp(
@@ -425,13 +515,13 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (careerYears == null || careerYears < 0 || careerYears > 80) {
       final AppLocalizations l = AppLocalizations.of(context);
       showAppToast(context, l.myCareerInvalid);
-      return;
+      return false;
     }
     // 형식이 틀린 전화번호는 보내지 않고 칸 아래에 알린다(#1914). 서버도 같은
     // 기준으로 막지만, 거기서 걸리면 어느 칸이 문제인지 말해 줄 수 없다.
     if (_phoneError(AppLocalizations.of(context)) != null) {
       setState(() => _showPhoneError = true);
-      return;
+      return false;
     }
 
     setState(() => _saving = true);
@@ -446,7 +536,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           certifications: List<String>.of(_draftCerts),
         ),
       );
-      if (!mounted) return;
+      if (!mounted) return false;
       _applySavedProfile(saved);
     } catch (error) {
       TrainerProfile? restored;
@@ -455,7 +545,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       } catch (_) {
         restored = ref.read(sessionControllerProvider).profile;
       }
-      if (!mounted) return;
+      if (!mounted) return false;
       if (restored != null) _applyRestoredProfile(restored);
       setState(() => _saving = false);
       showAppToast(
@@ -469,7 +559,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       );
       // 실패도 내 정보로 돌아간다 — 화면에는 서버에 실제로 남은 값을 보인다.
       context.go(AppRoutes.mySection(_MySection.profile.name));
-      return;
+      return false;
     }
 
     // 저장 완료는 다른 저장(비밀번호·프로그램·리포트 피드백)과 같은 공용
@@ -479,7 +569,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       AppLocalizations.of(context).mySaved,
       type: AppToastType.success,
     );
-    context.go(AppRoutes.mySection(_MySection.profile.name));
+    if (leaveAfter) context.go(AppRoutes.mySection(_MySection.profile.name));
+    return true;
   }
 
   void _applySavedProfile(TrainerProfile saved) {
@@ -643,16 +734,11 @@ class _MyPageState extends ConsumerState<MyPage> {
   Future<void> _go(_MySection section) async {
     if (_saving) return;
     if (_editing && section != _section && _isDirty) {
-      final AppLocalizations l = AppLocalizations.of(context);
-      final bool leave = await showAppConfirmDialog(
-        context: context,
-        title: l.myDiscardTitle,
-        message: l.myDiscardBody,
-        cancelLabel: l.myKeepEditing,
-        confirmLabel: l.myDiscardAction,
-        destructive: true,
-      );
-      if (!leave || !mounted) return;
+      final _LeaveChoice choice = await _askUnsaved();
+      if (!mounted || choice == _LeaveChoice.stay) return;
+      // 저장하지 못했으면 가지 않는다 — 저장 버튼을 눌렀을 때와 같은 안내가 뜬다.
+      if (choice == _LeaveChoice.save && !await _saveCurrent()) return;
+      if (!mounted) return;
     }
     context.go(AppRoutes.mySection(section.name));
   }
