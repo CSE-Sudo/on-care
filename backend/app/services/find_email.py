@@ -24,15 +24,16 @@ from sqlalchemy.orm import Session
 
 from app.models.models import HealthProfile, SocialAccount, User
 
+# 대체 이메일 판정은 공용 규칙 한 곳을 쓴다(#3338). 사람이 받은 주소가 아니라 보여 줄
+# 것이 없다.
+from app.services.placeholder_email import (
+    is_placeholder_email as _is_placeholder_email,
+)
+
 #: 가린 자리에 쓰는 글자. 개수는 늘 같다 — 가린 길이로 주소 길이가 드러나지 않는다.
 MASK = "***"
 #: 로컬 부분에서 보여 주는 글자 수의 상한.
 VISIBLE_LOCAL = 2
-
-#: 확인된 이메일 없이 소셜로 가입한 계정의 대체 이메일 도메인
-#: (`api/v1/social.py` 의 `_placeholder_email`).
-_PLACEHOLDER_DOMAIN = "@social.oncare"
-
 
 @dataclass(frozen=True)
 class FoundAccount:
@@ -55,11 +56,6 @@ def mask_email(address: str) -> str:
         return MASK
     visible = min(VISIBLE_LOCAL, max(len(local) - 1, 0))
     return f"{local[:visible]}{MASK}@{domain}"
-
-
-def _is_placeholder_email(email: str) -> bool:
-    """소셜 가입 때 만든 대체 이메일인가. 사람이 받은 주소가 아니라 보여 줄 것이 없다."""
-    return email.lower().endswith(_PLACEHOLDER_DOMAIN)
 
 
 def find_accounts(db: Session, *, name: str, phone: str) -> list[FoundAccount]:

@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.core import clock
-from app.core.locale import Locale, localized
+from app.core.locale import Locale, current_locale, localized
 from app.db.session import get_db
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.dashboard_api import (
@@ -88,7 +88,8 @@ def _build_sodium_warning(
 
     언어는 [locale], 생략하면 지금 요청의 언어다(#2299). 키를 아는 앱은 이 문장
     대신 [_advice_key]·[_advice_params] 로 자기 문장을 그리고, 이 문장은 키를
-    모르는 옛 앱이 읽는다. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
+    모르는 옛 앱이 읽는다. 음식 이름은 회원이 적은 데이터라 번역하지 않는다 —
+    영어 화면에서 남은 표시 이름이 있으면 [_rank_sodium_sources] 가 그것을 넘긴다.
     """
     if total_sodium_mg <= sodium_goal_mg:
         return None
@@ -197,8 +198,20 @@ def _advice_params(
     return {}
 
 
-def _rank_sodium_sources(foods_json_values: Iterable[str]) -> list[str]:
+def _rank_sodium_sources(
+    foods_json_values: Iterable[str], locale: Locale | None = None
+) -> list[str]:
+    """오늘 먹은 음식을 나트륨이 많은 순으로 — 경고 문장이 앞의 몇 개를 짚는다.
+
+    영어 화면이면 음식에 남아 있는 영어 표시 이름(`display_name`, #2850)을 쓴다(#3354).
+    식단 탭이 같은 음식을 그 이름으로 보여 주는데 홈 경고만 한국어 이름을 넣으면
+    한 음식이 두 이름으로 보인다. 표시 이름이 없는 음식(한국어 화면에서 분석했거나
+    손으로 적은 기록)은 저장된 이름 그대로다. 합산은 언어와 무관하게 저장 이름으로
+    한다 — 같은 음식이 표시 이름 유무로 둘로 갈리지 않는다.
+    """
+    use_display_name = (locale or current_locale()) == "en"
     sodium_by_food_name: dict[str, int] = {}
+    display_name_by_food_name: dict[str, str] = {}
     for foods_json in foods_json_values:
         try:
             foods = json.loads(foods_json)
@@ -213,12 +226,19 @@ def _rank_sodium_sources(foods_json_values: Iterable[str]) -> list[str]:
                 sodium_by_food_name[name] = (
                     sodium_by_food_name.get(name, 0) + int(sodium)
                 )
+                display_name = food.get("display_name")
+                if (
+                    use_display_name
+                    and isinstance(display_name, str)
+                    and display_name.strip()
+                ):
+                    display_name_by_food_name.setdefault(name, display_name.strip())
 
     sodium_sources = sorted(
         sodium_by_food_name.items(),
         key=lambda item: (-item[1], item[0]),
     )
-    return [name for name, _ in sodium_sources]
+    return [display_name_by_food_name.get(name, name) for name, _ in sodium_sources]
 
 
 @router.get("/dashboard/summary", response_model=DashboardSummary)
