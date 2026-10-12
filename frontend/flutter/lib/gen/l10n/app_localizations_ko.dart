@@ -4787,7 +4787,37 @@ class AppLocalizationsKo extends AppLocalizations {
   String get findEmailAction => '아이디 찾기';
 
   @override
-  String get findEmailComingSoon => '아이디 찾기는 준비 중이에요.';
+  String get findEmailFoundSubtitle => '입력한 정보로 가입한 계정이에요.';
+
+  @override
+  String get findEmailMaskedNote => '개인정보 보호를 위해 이메일 일부를 가렸어요.';
+
+  @override
+  String findEmailSocialTitle(String provider) {
+    return '$provider 계정으로 가입했어요';
+  }
+
+  @override
+  String get findEmailSocialBody => '로그인 화면에서 가입한 방법으로 로그인해 주세요.';
+
+  @override
+  String get findEmailProviderKakao => '카카오';
+
+  @override
+  String get findEmailProviderGoogle => '구글';
+
+  @override
+  String get findEmailProviderOther => '소셜';
+
+  @override
+  String get findEmailNotFoundTitle => '일치하는 계정을 찾지 못했어요';
+
+  @override
+  String get findEmailNotFoundBody =>
+      '이름과 휴대폰 번호를 다시 확인해 주세요. 가입할 때 번호를 넣지 않았거나 나중에 바꿨다면 찾을 수 없어요.';
+
+  @override
+  String get findEmailRetry => '다시 찾기';
 
   @override
   String get passwordChangeTitle => '비밀번호 변경';

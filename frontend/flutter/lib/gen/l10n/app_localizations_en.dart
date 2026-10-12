@@ -5068,7 +5068,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findEmailAction => 'Find email';
 
   @override
-  String get findEmailComingSoon => 'Finding your email is coming soon.';
+  String get findEmailFoundSubtitle =>
+      'These accounts match the details you entered.';
+
+  @override
+  String get findEmailMaskedNote =>
+      'Part of the email is hidden to protect your privacy.';
+
+  @override
+  String findEmailSocialTitle(String provider) {
+    return 'You signed up with $provider';
+  }
+
+  @override
+  String get findEmailSocialBody =>
+      'On the sign-in screen, sign in the same way you signed up.';
+
+  @override
+  String get findEmailProviderKakao => 'Kakao';
+
+  @override
+  String get findEmailProviderGoogle => 'Google';
+
+  @override
+  String get findEmailProviderOther => 'a social account';
+
+  @override
+  String get findEmailNotFoundTitle => 'We couldn\'t find a matching account';
+
+  @override
+  String get findEmailNotFoundBody =>
+      'Check your name and phone number again. If you didn\'t add a phone number when signing up, or changed it later, we can\'t find the account here.';
+
+  @override
+  String get findEmailRetry => 'Search again';
 
   @override
   String get passwordChangeTitle => 'Change password';

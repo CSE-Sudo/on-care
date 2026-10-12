@@ -1198,7 +1198,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/me/coach/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, `sender` 는 `me`\|`trainer`). 담당이 없으면 404 |
 | POST | `/me/coach/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지 400, 이모티콘 규칙은 위 "채팅 이모티콘" |
 | GET | `/me/coach/chat/unread` | `{ unread }` — 트레이너가 보낸 안 읽은 메시지 수 |
-| POST | `/me/coach/chat/read` | `{ marked_read }` — 트레이너 메시지를 읽음 처리 |
+| POST | `/me/coach/chat/read` | `{ marked_read }` — 트레이너 메시지를 읽음 처리. 내 미읽음 메시지·리포트 알림(`coach_chat`·`coach_report`)도 함께 읽음이 된다. `marked_read` 는 메시지 수만 센다(#3343) |
 | GET | `/me/coach/invites` | `[{ id, trainer_id, trainer_name, gym_name, message, status, created_at }]` — 나에게 온 대기 중인 담당 요청 |
 | POST | `/me/coach/invites/{invite_id}/accept` | `{ data_sharing_consent: true }` → 같은 모양. 동의가 없으면 400, 없는 요청 404, 이미 결정했거나 다른 담당이 있으면 409. 담당 링크가 여기서 생긴다(#1022) |
 | POST | `/me/coach/invites/{invite_id}/reject` | 같은 모양. 없는 요청 404, 이미 결정한 요청 409 |
@@ -1652,6 +1652,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | POST | `/auth/social/kakao/code` | `{ code, redirect_uri }` → `{ access_token }` — 카카오 **웹** 로그인 창이 돌려준 인가 코드를 카카오 access_token 으로 교환(#330). 로그인은 하지 않는다 — 앱은 받은 값을 `/auth/social/kakao` 의 `token`(또는 본인 확인의 `social_token`)으로 쓴다. 아래 [소셜 로그인 실연동](#소셜-로그인-실연동-330) |
 | POST | `/auth/password-reset/request` | `{ email }` → **202** `{ status: "requested", expires_in_minutes }` — 계정 유무와 무관하게 같은 응답(#2824). 아래 [비밀번호 재설정](#비밀번호-재설정-2824) |
 | POST | `/auth/password-reset/confirm` | `{ token, new_password }` → `{ status: "reset" }`. 코드 없음·만료·사용됨은 400 `invalid_reset_token`(#2824) |
+| POST | `/auth/find-email` | `{ name, phone }` → `{ accounts: [{ masked_email, providers }] }`. 가려진 이메일만 주고, 찾지 못해도 200 에 빈 목록(#3337). 아래 [아이디(가입 이메일) 찾기](#아이디가입-이메일-찾기-3337) |
 
 인증 엔드포인트는 IP·엔드포인트당 분당 한도(`RATE_LIMIT_AUTH_PER_MINUTE`)를 받는다. 비밀번호·연락처·이름 규칙은
 아래 절들에 있다.
@@ -2377,6 +2378,48 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 재설정이 켜지지만, **운영(`ENV=prod`)에서 발송 수단이 없으면 재설정 요청은 503** 이고 기동 로그에
 오류가 남는다. `MAIL_PROVIDER=smtp` 인데 `SMTP_HOST`·`MAIL_FROM` 이 비면 설정 오류로 기동이 멈춘다.
 
+### 아이디(가입 이메일) 찾기 (#3337)
+
+로그아웃 상태에서 이름과 전화번호로 가입 이메일을 떠올리는 길. **회원 계정용**이다(트레이너 웹의
+아이디 찾기는 범위 밖). 인증 없이 부른다.
+
+`POST /auth/find-email`
+
+```json
+{ "name": "김민수", "phone": "010-1234-5678" }
+```
+
+→ **200**
+
+```json
+{
+  "accounts": [
+    { "masked_email": "mi***@oncare.com", "providers": [] },
+    { "masked_email": null, "providers": ["kakao"] }
+  ]
+}
+```
+
+- **전체 이메일은 어떤 경우에도 싣지 않는다.** 번호의 주인을 확인할 수단(문자 인증)이 없어, 주인이
+  떠올릴 만큼만 준다. 가리는 규칙: 로컬 부분의 앞 두 글자 + `***` + `@도메인`. 로컬 부분이 두 글자
+  이하면 덜 보여 준다(`ab@…` → `a***@…`, `a@…` → `***@…`) — 한 글자는 반드시 가린다. `***` 는 늘 세
+  글자라 주소 길이가 드러나지 않는다.
+- **찾지 못해도 200 에 `{"accounts": []}`** 다. 오류가 아니다.
+- 이름은 앞뒤 공백·대소문자를 보지 않고, 전화번호는 가입과 같은 정규화(`010-0000-0000`)를 거쳐
+  비교한다. 하이픈 없이 보내도 된다.
+- 전화번호에는 유일성 제약이 없다. 이름·번호가 같은 계정이 여럿이면 가입 순으로 모두 준다.
+- **소셜 로그인 전용 계정**(비밀번호 없음, 또는 대체 이메일 `…@social.oncare`)은 `masked_email` 이
+  `null` 이고 `providers` 로 가입 수단(`kakao`·`google`)만 알려 준다. 비밀번호로 가입한 뒤 소셜을
+  연결한 계정은 가려진 이메일과 `providers` 를 함께 준다.
+- 쉬는 계정과 트레이너 계정은 찾지 않는다.
+- 이름이 비었거나 전화번호가 비었거나 형식(`010` + 8자리)에 맞지 않으면 **422**. 빈 번호를 받지 않는
+  것은 번호 없이 가입한 계정이 이름만으로 걸리지 않게 하려는 것이다.
+- 시도 제한: IP 별 분당 한도(버킷 `auth-find-email`) + 전화번호 하나당
+  `FIND_EMAIL_PHONE_PER_WINDOW`회/`FIND_EMAIL_PHONE_WINDOW_MINUTES`분(기본 5회/15분). 번호 한도는
+  계정이 없는 번호도 똑같이 세므로 429 로 가입 여부가 드러나지 않는다. 넘으면 **429** + `Retry-After`.
+- 감사 로그 `auth.find_email` 에는 찾았는지(`success`)와 IP 만 남는다. 이름·번호·이메일은 적지 않는다.
+- 데모(앱 mock)는 데모 회원(김민수 · `010-1234-5678`)과 그 기기에서 가입한 계정을 같은 규칙으로 찾는다.
+
 접근 토큰 수명은 기본 **60분**(`ACCESS_TOKEN_EXPIRE_MINUTES`, #2913), refresh 는 30일이다. 두 앱은
 401 을 받으면 `POST /auth/refresh` 로 새 쌍을 받아 요청을 다시 보내므로 수명이 짧아도 화면은 끊기지
 않는다.
@@ -2397,6 +2440,7 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/login` | **이메일(대소문자 무시) 연속 실패** | `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `LOGIN_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 잠긴 동안에는 비밀번호를 확인하지 않는다. 성공하면 실패 기록을 지운다. 없는 이메일도 같이 센다 |
 | `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | IP + **트레이너 id** | 각각 분당 10, 트레이너 id 는 하루 `PAIRING_REDEEM_PER_DAY`(30) 도 함께. 두 엔드포인트가 한 버킷 |
 | `POST /auth/register/email-code` | IP + **이메일** + (이메일, 용도) | IP 는 분당 10. 같은 이메일은 `SIGNUP_EMAIL_CODE_WINDOW_MINUTES`(60분) 안에 `SIGNUP_EMAIL_CODE_PER_WINDOW`(5)번, 같은 (이메일, 용도)는 `SIGNUP_EMAIL_CODE_RESEND_SECONDS`(60초)에 한 번. 가입된 주소도 똑같이 센다(#3038) |
+| `POST /auth/find-email` | IP + **전화번호** | IP 는 분당 10. 같은 번호는 `FIND_EMAIL_PHONE_WINDOW_MINUTES`(15분) 안에 `FIND_EMAIL_PHONE_PER_WINDOW`(5)번까지 — 계정이 없는 번호도 센다(#3337) |
 | `POST /users/me/email/code` | IP + **회원 id** + **이메일** + (이메일, 용도) | 위 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230). 이메일 버킷은 가입 코드 요청과 함께 센다(#3230) |
 | `DELETE /users/me`·`DELETE /trainer/me`·이메일을 바꾸는 `PUT /users/me` | **사용자 id 연속 실패** | 본인 확인을 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 값을 아예 보내지 않은 400 은 세지 않는다(#3039) |
 | `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
