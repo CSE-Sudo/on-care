@@ -51,11 +51,16 @@ class _ShieldShopRepository extends FakeBenefitsRepository {
 
   int shopCalls = 0;
 
+  /// 채워 두면 사용처가 이 잔액을 돌려준다 — 서버가 처리한 교환이 다시 읽은
+  /// 목록에 아직 비치지 않아, 앱이 처리 여부를 알 수 없는 경우다.
+  int? reportedBalance;
+
   final Set<String?> _done = <String?>{};
 
   @override
   Future<PointsShop> fetchShop() async {
     shopCalls++;
+    final int balance = reportedBalance ?? this.balance;
     return PointsShop(
       balance: balance,
       hasTrainer: true,
@@ -161,17 +166,18 @@ void main() {
   Finder toast(String text) => find.text(text);
 
   group('보호권 교환', () {
-    testWidgets('응답을 잃은 뒤 다시 눌러도 같은 키로 나가 한 장만 생긴다', (tester) async {
+    testWidgets('응답을 잃고 처리 여부를 알 수 없으면 다시 눌러도 같은 키로 한 장만 생긴다', (tester) async {
       final _ShieldShopRepository repo = _ShieldShopRepository()
-        ..lostResponses = 1;
+        ..lostResponses = 1
+        // 다시 읽은 사용처에 교환이 아직 비치지 않는다.
+        ..reportedBalance = 1000;
       await pumpPage(tester, benefits: repo);
 
       await exchange(tester, 'streak_shield');
       expect(toast('교환하지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
-      // 실패 뒤에도 잔액은 서버 값이다 — 서버는 이미 300P 를 뺐다.
-      expect(find.text('보유 700P'), findsOneWidget);
       await drainToast(tester);
 
+      repo.reportedBalance = null;
       await exchange(tester, 'streak_shield');
       expect(toast('교환했어요'), findsOneWidget);
       await drainToast(tester);
@@ -182,6 +188,28 @@ void main() {
       expect(repo.bought, 1);
       expect(repo.balance, 700);
       expect(find.text('보유 700P'), findsOneWidget);
+    });
+
+    testWidgets('응답을 잃었어도 다시 읽은 잔액에 반영됐으면 완료로 알리고 키를 버린다', (tester) async {
+      final _ShieldShopRepository repo = _ShieldShopRepository()
+        ..lostResponses = 1;
+      await pumpPage(tester, benefits: repo);
+
+      await exchange(tester, 'streak_shield');
+      // 서버는 이미 300P 를 뺐다 — 다시 시도를 권하지 않는다.
+      expect(toast('교환했어요'), findsOneWidget);
+      expect(toast('교환하지 못했어요. 다시 시도해 주세요.'), findsNothing);
+      expect(find.text('보유 700P'), findsOneWidget);
+      expect(repo.bought, 1);
+      await drainToast(tester);
+
+      // 반영된 것을 본 뒤에 누르는 것은 새 구매다 — 옛 키의 재전송으로 삼키지 않는다.
+      await exchange(tester, 'streak_shield');
+      await drainToast(tester);
+
+      expect(repo.requestIds[1], isNot(repo.requestIds[0]));
+      expect(repo.bought, 2);
+      expect(find.text('보유 400P'), findsOneWidget);
     });
 
     testWidgets('성공한 뒤 다시 누르면 새 교환이라 새 키다', (tester) async {
@@ -328,9 +356,12 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('구매 응답을 잃은 뒤 다시 눌러도 한 장만 사서 그날에 쓴다', (tester) async {
+    testWidgets('구매 응답을 잃고 처리 여부를 알 수 없으면 다시 눌러도 한 장만 사서 그날에 쓴다', (
+      tester,
+    ) async {
       final _ShieldShopRepository repo = _ShieldShopRepository()
-        ..lostResponses = 1;
+        ..lostResponses = 1
+        ..reportedBalance = 1000;
       final FakeStreakShieldRepository shields = FakeStreakShieldRepository();
       await pumpPage(tester, benefits: repo, shields: shields);
 
@@ -349,9 +380,25 @@ void main() {
       expect(shields.used, <DateTime>[_yesterday]);
     });
 
-    testWidgets('사용처 카드에서 잃은 구매를 그래프에서 다시 눌러도 같은 키다', (tester) async {
+    testWidgets('구매 응답을 잃었어도 잔액에 반영됐으면 이어서 그날에 쓴다', (tester) async {
       final _ShieldShopRepository repo = _ShieldShopRepository()
         ..lostResponses = 1;
+      final FakeStreakShieldRepository shields = FakeStreakShieldRepository();
+      await pumpPage(tester, benefits: repo, shields: shields);
+
+      await buyOnYesterday(tester);
+
+      expect(toast('교환하지 못했어요. 다시 시도해 주세요.'), findsNothing);
+      expect(repo.requestIds, hasLength(1));
+      expect(repo.bought, 1);
+      expect(shields.used, <DateTime>[_yesterday]);
+      await drainToast(tester);
+    });
+
+    testWidgets('사용처 카드에서 잃은 구매를 그래프에서 다시 눌러도 같은 키다', (tester) async {
+      final _ShieldShopRepository repo = _ShieldShopRepository()
+        ..lostResponses = 1
+        ..reportedBalance = 1000;
       await pumpPage(tester, benefits: repo);
 
       await exchange(tester, 'streak_shield');

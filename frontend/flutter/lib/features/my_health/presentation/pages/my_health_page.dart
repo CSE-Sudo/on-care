@@ -743,9 +743,25 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 보호권은 여러 장 살 수 있어 한 장이 더 생기고 포인트가 한 번 더 빠졌다.
   /// 같은 항목(과 고른 갈래)의 시도는 성공하거나 서버가 거절할 때까지 같은 키로
   /// 나간다. 이 화면이 떠 있는 동안만 기억한다.
-  final RetryRequestKeys _exchangeKeys = RetryRequestKeys('exchange');
-  final RetryRequestKeys _trayKeys = RetryRequestKeys('diet-tray');
-  final RetryRequestKeys _challengeKeys = RetryRequestKeys('challenge');
+  ///
+  /// 남긴 키는 [_retryKeyTtl] 뒤에 버린다. 서버는 키를 기한 없이 기억하므로, 답을
+  /// 잃은 요청을 다시 누르지 않고 둔 채 한참 뒤에 한 장 더 사면 그 구매가 옛
+  /// 요청의 재전송으로 처리돼 사지 않고도 샀다고 알리게 된다.
+  final RetryRequestKeys _exchangeKeys = RetryRequestKeys(
+    'exchange',
+    ttl: _retryKeyTtl,
+  );
+  final RetryRequestKeys _trayKeys = RetryRequestKeys(
+    'diet-tray',
+    ttl: _retryKeyTtl,
+  );
+  final RetryRequestKeys _challengeKeys = RetryRequestKeys(
+    'challenge',
+    ttl: _retryKeyTtl,
+  );
+
+  /// 답을 받지 못한 요청을 "방금 그 요청" 으로 보는 시간.
+  static const Duration _retryKeyTtl = Duration(minutes: 5);
 
   /// 교환 요청의 지문 — 항목과 고른 갈래가 같으면 같은 시도다.
   static Map<String, Object?> _exchangeBody(String itemId, [String? option]) =>
@@ -767,6 +783,61 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       ..invalidate(activityCalendarProvider)
       ..invalidate(profilePetProvider)
       ..invalidate(myWeeklyReportsProvider);
+  }
+
+  /// 답을 받지 못한 교환이 서버에서 처리됐는지 본다(#3363). 실패 뒤 다시 읽은
+  /// 잔액이 요청 직전보다 꼭 [cost] 만큼 줄었으면 처리된 것이다. 사용처를 읽지
+  /// 못했거나 잔액이 그대로면 알 수 없다 — 거짓이고, 키를 남겨 둔다.
+  ///
+  /// [_refreshAfterExchangeFailure] 처럼 사용처를 비운 뒤에 부른다.
+  Future<bool> _exchangeLanded(
+    ProviderContainer container, {
+    required int? balanceBefore,
+    required int cost,
+  }) async {
+    if (balanceBefore == null) return false;
+    try {
+      final PointsShop shop = await container.read(pointsShopProvider.future);
+      return shop.balance == balanceBefore - cost;
+    } on Object {
+      return false;
+    }
+  }
+
+  /// 교환이 끝난 뒤의 안내 — 무엇을 받았는지에 따라 문구와 `보기` 가 다르다.
+  void _toastExchangeDone(
+    AppLocalizations l, {
+    required bool isReport,
+    required bool isPet,
+    required bool isColor,
+  }) {
+    if (isReport) {
+      showAppToast(
+        context,
+        l.myWeeklyReportDone,
+        type: AppToastType.success,
+        actionLabel: l.myBenefitsView,
+        onAction: () => context.push<void>(AppRoutes.myBenefits),
+      );
+      return;
+    }
+    if (isPet) {
+      // 내 혜택으로 보낼 것이 없다.
+      showAppToast(context, l.myProfilePetDone, type: AppToastType.success);
+      return;
+    }
+    if (isColor) {
+      // 쿠폰이 아니라 내 혜택으로 보낼 것이 없으므로 안내만 띄운다.
+      showAppToast(context, l.myGraphColorUnlocked, type: AppToastType.success);
+      return;
+    }
+    showAppToast(
+      context,
+      l.myPointsExchangeDone,
+      type: AppToastType.success,
+      actionLabel: l.myBenefitsView,
+      onAction: () => context.push<void>(AppRoutes.myBenefits),
+    );
   }
 
   /// 실패한 까닭에 맞는 안내(#3363). "이미 보유" 는 회원이 바란 상태가 이미 서
@@ -866,6 +937,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _exchanging != null) return;
     setState(() => _exchanging = item.id);
     final Map<String, Object?> body = _exchangeBody(item.id, option);
+    final int? balanceBefore = container
+        .read(pointsShopProvider)
+        .valueOrNull
+        ?.balance;
     try {
       await container
           .read(benefitsRepositoryProvider)
@@ -895,37 +970,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       // 연 색은 그 자리에서 그래프 색이 된다(#2076).
       if (isColor) container.invalidate(activityCalendarProvider);
       if (!mounted) return;
-      if (isReport) {
-        showAppToast(
-          context,
-          l.myWeeklyReportDone,
-          type: AppToastType.success,
-          actionLabel: l.myBenefitsView,
-          onAction: () => context.push<void>(AppRoutes.myBenefits),
-        );
-        return;
-      }
-      if (isPet) {
-        // 내 혜택으로 보낼 것이 없다.
-        showAppToast(context, l.myProfilePetDone, type: AppToastType.success);
-        return;
-      }
-      if (isColor) {
-        // 쿠폰이 아니라 내 혜택으로 보낼 것이 없으므로 안내만 띄운다.
-        showAppToast(
-          context,
-          l.myGraphColorUnlocked,
-          type: AppToastType.success,
-        );
-        return;
-      }
-      showAppToast(
-        context,
-        l.myPointsExchangeDone,
-        type: AppToastType.success,
-        actionLabel: l.myBenefitsView,
-        onAction: () => context.push<void>(AppRoutes.myBenefits),
-      );
+      _toastExchangeDone(l, isReport: isReport, isPet: isPet, isColor: isColor);
     } on Object catch (error) {
       final BenefitRejection rejection = BenefitRejection.of(error);
       // 서버가 거절했으면 그 키로 만들어진 것이 없다 — 다음은 새 시도다. 답을 받지
@@ -934,6 +979,24 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       // 그사이 조건이 바뀌었을 수 있다(다른 기기에서 교환 등) — 다시 읽어 막힌
       // 이유를 카드에 보여 주고, 잔액과 내 혜택을 서버 값에 맞춘다.
       _refreshAfterExchangeFailure(container);
+      if (rejection.retryable &&
+          await _exchangeLanded(
+            container,
+            balanceBefore: balanceBefore,
+            cost: item.cost,
+          )) {
+        // 답만 잃었고 교환은 됐다 — 끝난 시도이므로 키를 버리고 완료로 알린다.
+        // 다음에 누르는 것은 새 교환이다.
+        _exchangeKeys.forget(body);
+        if (!mounted) return;
+        _toastExchangeDone(
+          l,
+          isReport: isReport,
+          isPet: isPet,
+          isColor: isColor,
+        );
+        return;
+      }
       if (!mounted) return;
       _toastRejection(
         l,
@@ -949,10 +1012,6 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
 
   /// 보호권 사용 요청이 나가 있다(#1788). 교환·참가와 겹치지 않게 서로 막는다.
   bool _usingShield = false;
-
-  /// 보호권이 없어 사려던 요청의 답을 받지 못했다(#3363). 그 뒤 보유한 보호권이
-  /// 보이면 그 구매가 처리된 것이므로 남겨 둔 구매 키를 버린다([_useShield]).
-  bool _lostShieldBuy = false;
 
   /// 색 고르기 시트를 띄우고 고른 색을 돌려준다. 아무것도 고르지 않으면 `choice`
   /// 가 null 이다.
@@ -1047,12 +1106,6 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       await _buyAndUseShield(date);
       return;
     }
-    if (_lostShieldBuy) {
-      // 없던 보호권이 생겼다 — 답을 잃은 구매가 처리됐다. 키를 남겨 두면 다음
-      // 구매가 그 구매의 재전송으로 처리돼 사지 않고도 샀다고 알리게 된다.
-      _lostShieldBuy = false;
-      _exchangeKeys.forget(_exchangeBody(kStreakShieldItem));
-    }
     final ProviderContainer container = ProviderScope.containerOf(
       context,
       listen: false,
@@ -1133,46 +1186,61 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       listen: false,
     );
     setState(() => _usingShield = true);
-    bool bought = false;
     // 사용처 카드의 보호권 교환과 같은 지문이다 — 어느 쪽에서 다시 눌러도 같은 키다.
     final Map<String, Object?> body = _exchangeBody(kStreakShieldItem);
+    final int cost = item.cost;
+    final int? balanceBefore = container
+        .read(pointsShopProvider)
+        .valueOrNull
+        ?.balance;
     try {
-      await container
-          .read(benefitsRepositoryProvider)
-          .exchange(
-            kStreakShieldItem,
-            clientRequestId: _exchangeKeys.keyFor(body),
-          );
-      bought = true;
-      _lostShieldBuy = false;
-      _exchangeKeys.forget(body);
-      await container.read(streakShieldRepositoryProvider).use(date);
-      if (!mounted) return;
-      showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
-    } on Object catch (error) {
-      final BenefitRejection rejection = BenefitRejection.of(error);
-      if (!bought) {
-        // 거절이면 키를 버리고, 답을 받지 못했으면 남긴다(#3363).
+      try {
+        await container
+            .read(benefitsRepositoryProvider)
+            .exchange(
+              kStreakShieldItem,
+              clientRequestId: _exchangeKeys.keyFor(body),
+            );
+      } on Object catch (error) {
+        final BenefitRejection rejection = BenefitRejection.of(error);
+        bool landed = false;
         if (rejection.retryable) {
-          _lostShieldBuy = true;
+          // 답만 잃고 구매는 됐을 수 있다 — 잔액을 다시 읽어 본다(#3363).
+          container.invalidate(pointsShopProvider);
+          landed = await _exchangeLanded(
+            container,
+            balanceBefore: balanceBefore,
+            cost: cost,
+          );
         } else {
+          // 서버가 거절한 키로는 만들어진 것이 없다 — 다음은 새 시도다.
           _exchangeKeys.forget(body);
         }
+        if (!landed) {
+          // 처리됐는지 알 수 없으면 키를 남겨 같은 요청으로 다시 보내게 한다.
+          if (!mounted) return;
+          _toastRejection(
+            l,
+            rejection,
+            owned: l.myBenefitAlreadyReceived,
+            blocked: l.myPointsExchangeBlocked,
+            failed: l.myPointsExchangeFailed,
+          );
+          return;
+        }
       }
-      if (!mounted) return;
-      if (bought) {
+      // 구매는 끝났다 — 다음 구매는 새 시도다. 이어서 그날에 쓴다.
+      _exchangeKeys.forget(body);
+      try {
+        await container.read(streakShieldRepositoryProvider).use(date);
+        if (!mounted) return;
+        showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
+      } on Object {
+        if (!mounted) return;
         showAppToast(
           context,
           l.myGraphProtectBoughtNotUsed,
           type: AppToastType.error,
-        );
-      } else {
-        _toastRejection(
-          l,
-          rejection,
-          owned: l.myBenefitAlreadyReceived,
-          blocked: l.myPointsExchangeBlocked,
-          failed: l.myPointsExchangeFailed,
         );
       }
     } finally {
