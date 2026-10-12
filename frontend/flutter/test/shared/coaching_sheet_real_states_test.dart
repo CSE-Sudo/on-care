@@ -109,9 +109,7 @@ void _expectNoDemoCards() {
 
 void main() {
   group('실서버', () {
-    testWidgets('조언을 받지 못하면 데모 카드 대신 오류와 다시 시도를 보인다', (
-      tester,
-    ) async {
+    testWidgets('조언을 받지 못하면 데모 카드 대신 오류와 다시 시도를 보인다', (tester) async {
       await _open(
         tester,
         _container(_real, () => throw Exception('receive timeout')),
@@ -193,6 +191,31 @@ void main() {
       expect(_tiles, findsNWidgets(3));
       expect(find.text('하나'), findsOneWidget);
       _expectNoDemoCardsTextOnly();
+    });
+
+    testWidgets('열어 둔 채 다시 받으면 직전 카드를 두었다가 새 카드로 바꾼다 (#3351)', (tester) async {
+      final Completer<AiCoachState> second = Completer<AiCoachState>();
+      int calls = 0;
+      final ProviderContainer c = _container(_real, () {
+        calls++;
+        if (calls > 1) return second.future;
+        return _live(<String>['오늘 식단을 기록해 보세요']);
+      });
+      await _open(tester, c);
+      expect(find.text('오늘 식단을 기록해 보세요'), findsOneWidget);
+
+      // 식단을 기록해 갱신 목록이 조언을 비웠다.
+      c.invalidate(aiCoachStateProvider);
+      await tester.pump();
+
+      expect(find.byKey(const Key('coachingSheetLoading')), findsNothing);
+      expect(find.text('오늘 식단을 기록해 보세요'), findsOneWidget);
+
+      second.complete(_live(<String>['오늘의 식단 코칭']));
+      await tester.pumpAndSettle();
+
+      expect(find.text('오늘 식단을 기록해 보세요'), findsNothing);
+      expect(find.text('오늘의 식단 코칭'), findsOneWidget);
     });
 
     testWidgets('영어에서도 오류 안내가 번역되어 있다', (tester) async {

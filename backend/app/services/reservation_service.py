@@ -317,11 +317,17 @@ def overlapped_slot_ids(
 def list_member_slots(
     db: Session, trainer_id: str, *, now: datetime | None = None
 ) -> list[TrainerSlotOut]:
+    """회원에게 보이는 예약 가능 시간. 회원이 잡을 수 있는 종류의 자리만. (#3368)
+
+    종류를 거르지 않으면 [reserve] 가 받지 않는 `상담` 자리가 목록에 섞여, 눌러야만
+    안 되는 줄 아는 자리가 생긴다. 상담 신청 폼([consultation_slots])과 같은 기준이다.
+    """
     current = now or datetime.now(timezone.utc)
     rows = db.scalars(
         select(TrainerReservationSlot)
         .where(
             TrainerReservationSlot.trainer_id == trainer_id,
+            TrainerReservationSlot.session_type == CONSULTATION_SESSION_TYPE,
             TrainerReservationSlot.starts_at > current,
         )
         .order_by(TrainerReservationSlot.starts_at)
@@ -702,6 +708,11 @@ def reserve(
     if slot is None:
         raise SlotNotFound("예약 가능 시간을 찾을 수 없어요.")
     if slot.is_closed or slot.remaining <= 0 or _aware(slot.starts_at) <= current:
+        raise SlotUnavailable("예약할 수 없는 시간이에요.")
+    # 회원이 잡는 자리는 한 종류뿐이다(#1849). 목록이 걸러 주더라도 id 를 직접 보내면
+    # `상담` 자리가 PT 예약으로 잡혔다 — 일정은 30분짜리 상담으로 생기는데 회원 앱은
+    # PT 예약으로 보여 준다. (#3368)
+    if slot.session_type != CONSULTATION_SESSION_TYPE:
         raise SlotUnavailable("예약할 수 없는 시간이에요.")
     # 자리 행 잠금은 그 자리의 경합만 막는다. 겹치는 다른 자리의 예약이나 트레이너의
     # 일정 생성과 동시에 오면 둘 다 빈 시간으로 본다 — 확인부터 커밋까지 트레이너

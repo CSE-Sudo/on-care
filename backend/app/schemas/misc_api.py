@@ -148,10 +148,21 @@ class ChatReply(BaseModel):
     balance_after: int | None = None
     #: 보낸 뒤의 오늘 한도 — 입력칸 위 줄을 다시 읽지 않고 바꾼다.
     quota: AiChatQuotaOut | None = None
+    #: 저장된 두 줄의 식별자와 저장 시각(#3352) — 앱이 방금 보낸 말과 저장된 대화를
+    #: 본문·기기 시각으로 추측하지 않고 이 값으로 맞춘다. `GET /ai-coach/messages` 의
+    #: `id`·`created_at` 과 같은 값이다.
+    user_message_id: str | None = None
+    user_created_at: datetime | None = None
+    reply_message_id: str | None = None
+    reply_created_at: datetime | None = None
+    #: 이 대화를 만든 전송의 멱등키. 키 없이 보냈으면 null.
+    client_request_id: str | None = None
 
 
 class ChatMessageOut(BaseModel):
     """저장된 대화 한 줄. sources 는 그 답변의 근거 문서 제목."""
+    #: 메시지 식별자(#3352). 감지 기록의 `message_id` 와 같은 값이다.
+    id: str | None = None
     role: str                      # user | coach
     content: str
     sources: list[str] = []
@@ -161,6 +172,9 @@ class ChatMessageOut(BaseModel):
     #: 코치 답변에 쓴 포인트(#2145). 무료였으면 0 — 답변 아래 차감 표시가 읽는다.
     points_spent: int = 0
     balance_after: int | None = None
+    #: 이 줄을 만든 전송의 멱등키(#3352). 한 번의 전송이 남긴 질문과 답이 같은 값을
+    #: 갖는다. 키 없이 보냈거나 이 값을 남기기 전의 줄은 null.
+    client_request_id: str | None = None
 
 
 class ChatHistory(BaseModel):

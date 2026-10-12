@@ -131,7 +131,12 @@ void main() {
       expect(ko['sodium_warning'], isNull);
       expect(
         ko['ai_advice_key'],
-        isIn(<String>['exercise_start', 'exercise_more', 'exercise_on_track']),
+        isIn(<String>[
+          'exercise_start',
+          'exercise_cardio_start',
+          'exercise_more',
+          'exercise_on_track',
+        ]),
       );
       expect(en['ai_advice_key'], ko['ai_advice_key']);
       expect(en['exercise_feedback'], isNot(matches(RegExp('[가-힣]'))));

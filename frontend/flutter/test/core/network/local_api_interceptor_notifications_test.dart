@@ -382,4 +382,104 @@ void main() {
       });
     }
   });
+
+  // 대화를 읽으면 그 메시지·리포트 알림도 본 것이다 — 서버 `mark_thread_read` 의
+  // 회원 분기와 같다(#3343).
+  group('POST /me/coach/chat/read', () {
+    setUp(() async {
+      final now = nowKst();
+      await db.batch((b) {
+        b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
+          NotificationItemsCompanion.insert(
+            id: 'chat-1',
+            createdAt: now.subtract(const Duration(minutes: 3)),
+            title: '트레이너 피드백이 도착했어요',
+            body: '스트레칭을 꼭 해 주세요.',
+            category: 'coach_chat',
+          ),
+          NotificationItemsCompanion.insert(
+            id: 'chat-2',
+            createdAt: now.subtract(const Duration(minutes: 2)),
+            title: '트레이너 피드백이 도착했어요',
+            body: '물도 자주 드세요.',
+            category: 'coach_chat',
+          ),
+          NotificationItemsCompanion.insert(
+            id: 'report-1',
+            createdAt: now.subtract(const Duration(minutes: 1)),
+            title: '주간 리포트가 도착했어요',
+            body: '트레이너가 주간 리포트를 보냈어요.',
+            category: 'coach_report',
+          ),
+          NotificationItemsCompanion.insert(
+            id: 'schedule-1',
+            createdAt: now.subtract(const Duration(minutes: 4)),
+            title: 'PT 일정이 잡혔어요',
+            body: '내일 18:00',
+            category: 'member_schedule',
+          ),
+        ]);
+      });
+    });
+
+    Future<Map<String, bool>> reads() async => <String, bool>{
+      for (final r in await db.select(db.notificationItems).get()) r.id: r.read,
+    };
+
+    Future<int> unread() async =>
+        (await dio.get<Map<String, Object?>>(
+              '/notifications/unread-count',
+            )).data!['unread']!
+            as int;
+
+    test('메시지·리포트 알림을 읽음으로 바꾼다', () async {
+      final res = await dio.post<Map<String, Object?>>('/me/coach/chat/read');
+
+      expect(res.statusCode, 200);
+      // 데모의 대화 메시지는 목업 코치 저장소가 들고 있다 — 여기서 센 메시지는 없다.
+      expect(res.data, <String, Object?>{'marked_read': 0});
+      final r = await reads();
+      expect(r['chat-1'], isTrue);
+      expect(r['chat-2'], isTrue);
+      expect(r['report-1'], isTrue);
+    });
+
+    test('다른 갈래 알림은 그대로다', () async {
+      await dio.post<Object?>('/me/coach/chat/read');
+
+      final r = await reads();
+      expect(r['schedule-1'], isFalse);
+      expect(r['n-1'], isFalse);
+      expect(r['n-2'], isFalse);
+    });
+
+    test('종 표시 수가 메시지·리포트 알림만큼 줄어든다', () async {
+      expect(await unread(), 6);
+
+      await dio.post<Object?>('/me/coach/chat/read');
+
+      expect(await unread(), 3);
+    });
+
+    test('목록 응답에도 읽음으로 실린다', () async {
+      await dio.post<Object?>('/me/coach/chat/read');
+
+      final list = (await dio.get<List<Object?>>(
+        '/notifications',
+      )).data!.cast<Map<String, Object?>>();
+      final byId = <String, Object?>{
+        for (final e in list) e['id']! as String: e['read'],
+      };
+      expect(byId['chat-1'], isTrue);
+      expect(byId['report-1'], isTrue);
+      expect(byId['schedule-1'], isFalse);
+    });
+
+    test('다시 불러도 달라지지 않는다', () async {
+      await dio.post<Object?>('/me/coach/chat/read');
+      await dio.post<Object?>('/me/coach/chat/read');
+
+      expect(await unread(), 3);
+    });
+  });
 }

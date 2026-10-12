@@ -9,7 +9,7 @@
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -17,6 +17,7 @@ from sqlalchemy import select, tuple_, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
+from app.core import clock
 from app.core.locale import Locale, RequestLocale, localized
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
 from app.db.seed_notifications import (
@@ -168,6 +169,44 @@ def notification_out(row: Notification, locale: Locale) -> NotificationOut:
 _time_ago = notification_service.time_ago
 
 
+#: 미읽음 수 조회가 늦은 알림 생성을 다시 돌리기까지의 간격(#3362). 배지는 화면이 설
+#: 때마다·주기적으로 읽는다 — 그때마다 판정·만료 확인을 돌리지 않는다.
+_DUE_CHECK_INTERVAL = timedelta(minutes=5)
+
+#: 회원별로 미읽음 수 조회가 마지막으로 늦은 생성을 돌린 시각. 프로세스 안에서만
+#: 기억한다 — 워커마다 따로 세도 간격이 조금 촘촘해질 뿐 결과는 같다(생성은 멱등).
+_due_checked_at: dict[str, datetime] = {}
+
+#: 위 기억의 상한. 넘으면 비운다 — 다음 조회가 한 번 더 확인할 뿐이다.
+_DUE_CHECK_MEMORY = 10_000
+
+
+def create_due_notifications(db: Session, user_id: str) -> None:
+    """때가 된 알림을 만든다 — 쿠폰 만료 임박(#1787)과 주간 챌린지 결과(#1789).
+
+    주기 작업이 없어 읽는 쪽이 만든다. 쿠폰·챌린지마다 한 번뿐이고, 만들지 못해도
+    부른 조회는 그대로 답한다.
+    """
+    try:
+        if points_coupon_service.remind_expiring(db, user_id):
+            db.commit()
+    except Exception:  # noqa: BLE001 — 만료 알림 실패가 알림 조회를 막지 않는다
+        db.rollback()
+    weekly_challenge_service.settle_quietly(db, user_id)
+
+
+def _due_check_needed(user_id: str) -> bool:
+    """미읽음 수 조회가 이번에 늦은 생성을 돌릴 차례인가. 돌린다면 시각을 적는다."""
+    now = clock.now()
+    last = _due_checked_at.get(user_id)
+    if last is not None and timedelta(0) <= now - last < _DUE_CHECK_INTERVAL:
+        return False
+    if len(_due_checked_at) >= _DUE_CHECK_MEMORY:
+        _due_checked_at.clear()
+    _due_checked_at[user_id] = now
+    return True
+
+
 @router.get("/notifications", response_model=list[NotificationOut])
 def list_notifications(
     current_user: CurrentUser,
@@ -198,17 +237,12 @@ def list_notifications(
     제목·본문·액션 라벨은 요청 언어(`Accept-Language`)로 준다(#2302). 헤더가 없으면
     한국어 — 저장된 문장 그대로다.
 
-    읽기 전에 만료가 3일 이내로 다가온 쿠폰의 알림을 만든다(#1787). 주기 작업이
-    없어, 회원이 알림함을 여는 순간이 알림이 생기는 시점이다. 쿠폰마다 한 번뿐이고,
+    읽기 전에 만료가 3일 이내로 다가온 쿠폰의 알림(#1787)과 끝난 주의 챌린지 결과
+    알림(#1789)을 만든다. 주기 작업이 없어 읽는 쪽이 만든다 — 미읽음 수 조회도 같은
+    일을 해(#3362) 알림함을 열기 전에 배지가 켜진다. 쿠폰·챌린지마다 한 번뿐이고,
     만들지 못해도 알림 목록은 그대로 준다.
     """
-    try:
-        if points_coupon_service.remind_expiring(db, current_user.id):
-            db.commit()
-    except Exception:  # noqa: BLE001 — 만료 알림 실패가 알림함을 막지 않는다
-        db.rollback()
-    # 끝난 주의 챌린지 결과 알림도 같은 이유로 여기서 생긴다(#1789).
-    weekly_challenge_service.settle_quietly(db, current_user.id)
+    create_due_notifications(db, current_user.id)
     # 데모 계정 알림은 날이 바뀌면 오늘로 옮긴다 — 회원 앱 데모와 같다(#2691).
     try:
         slide_demo_notifications(db, current_user.id)
@@ -276,7 +310,15 @@ def unread_count(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
-    """미확인 알림 수(배지용)."""
+    """미확인 알림 수(배지용).
+
+    세기 전에 때가 된 알림(쿠폰 만료 임박·챌린지 결과)을 만든다(#3362). 알림 목록만
+    만들던 때에는 회원이 알림함을 열어야 알림이 생겨, 배지가 알려 주지 못했다. 배지는
+    자주 읽으므로 회원마다 [_DUE_CHECK_INTERVAL] 에 한 번만 확인한다 — 나머지 조회는
+    전처럼 세기만 한다.
+    """
+    if _due_check_needed(current_user.id):
+        create_due_notifications(db, current_user.id)
     return {"unread": notification_service.unread_count(db, current_user.id)}
 
 

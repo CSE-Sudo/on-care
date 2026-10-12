@@ -259,25 +259,27 @@ def _schedule_from_chat(
     except trainer_schedule_service.ScheduleOverlap:
         return
     member_name = db.scalar(select(User.name).where(User.id == member_id))
-    db.add(
-        TrainerSchedule(
-            id=f"sched-{uuid.uuid4().hex[:12]}",
-            trainer_id=trainer_id,
-            member_id=member_id,
-            date=parsed.date,
-            time=parsed.time,
-            client_name=member_name or "",
-            type=PT_SESSION_TYPE,
-            duration_minutes=_CHAT_SCHEDULE_MINUTES,
-            status="예정",
-            # 어디서 온 일정인지 남긴다 — 사람이 만든 일정과 섞이면, 잘못
-            # 읽은 약속을 나중에 가려낼 수 없다.
-            note=_CHAT_SCHEDULE_NOTE,
-            program_json="[]",
-            sort_order=0,
-        )
+    # 일정 화면이 일정을 만드는 그 함수로 만든다 — 회원에게 가는 일정 알림
+    # (`member_schedule`)이 같은 문구 틀(날짜·시각·종류)로 함께 얹힌다(#3345).
+    # 예전에는 일정만 만들어, 회원은 메시지 알림만 받고 일정이 생긴 줄 몰랐다 —
+    # 문장을 잘못 읽어 엉뚱한 시각에 잡혀도 운동 탭을 보기 전까지 알 수 없었다.
+    # 알림은 일정이 새로 만들어질 때만 간다: 재전송은 `send_message` 가 여기 오기
+    # 전에 돌려보내고, 같은 약속을 다시 말한 메시지는 위에서 걸러진다.
+    trainer_schedule_service._add_session(
+        db,
+        trainer_id,
+        date=parsed.date,
+        time=parsed.time,
+        client_name=member_name or "",
+        member_id=member_id,
+        type_=PT_SESSION_TYPE,
+        duration_minutes=_CHAT_SCHEDULE_MINUTES,
+        # 어디서 온 일정인지 남긴다 — 사람이 만든 일정과 섞이면, 잘못
+        # 읽은 약속을 나중에 가려낼 수 없다.
+        note=_CHAT_SCHEDULE_NOTE,
+        program_json="[]",
+        client_request_id=None,
     )
-    db.flush()
 
 
 def send_message(
@@ -436,6 +438,10 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
 
     reader='trainer' → 상대(member)가 보낸 미확인 메시지에 read_at 을 채운다.
     reader='member'  → 상대(trainer)가 보낸 미확인 메시지에 read_at 을 채운다.
+
+    대화를 읽으면 그 대화에서 온 알림도 함께 읽음이 된다 — 트레이너는 그 회원의
+    메시지 알림(#2291), 회원은 메시지·리포트 알림(#3343). 반환값은 메시지 건수만
+    센다.
     """
     other = "member" if reader == "trainer" else "trainer"
     result = db.execute(
@@ -459,6 +465,26 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
                 Notification.user_id == trainer_id,
                 Notification.category == notification_service.TRAINER_MESSAGE_KIND,
                 Notification.subject_id == member_id,
+                Notification.read.is_(False),
+            )
+            .values(read=True)
+        )
+    else:
+        # 회원도 같다(#3343). 트레이너가 메시지를 다섯 번 보내면 알림이 다섯 건
+        # 쌓이는데, 대화를 다 읽어 대화 배지가 꺼져도 종 표시는 그대로 남았다.
+        # 회원의 담당은 한 명이라 보낸 사람을 가리지 않고 갈래 전체를 읽는다 —
+        # 리포트도 대화 스레드로 도착하므로(#2085) 함께 본 것이다. 일정·쿠폰 같은
+        # 다른 갈래는 대화에서 확인한 것이 아니라 건드리지 않는다.
+        db.execute(
+            update(Notification)
+            .where(
+                Notification.user_id == member_id,
+                Notification.category.in_(
+                    (
+                        notification_service.MEMBER_COACH_CHAT,
+                        notification_service.MEMBER_COACH_REPORT,
+                    )
+                ),
                 Notification.read.is_(False),
             )
             .values(read=True)
