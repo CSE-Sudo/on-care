@@ -1406,8 +1406,6 @@
   "exGymTrainersLoadError": "소속 트레이너를 불러오지 못했어요.",
   "exTrainerConsultRequest": "트레이너 상담 신청",
   "exConsultPendingCta": "상담 요청 대기 중",
-  "exConsultLinkedToOtherTrainer": "담당 트레이너와 연결되어 있어요. 다른 트레이너에게 상담을 신청하려면 담당 연결을 먼저 해제해 주세요.",
-  "exConsultGoToMyTrainer": "담당 트레이너 보기",
   "exViewConsultationRequest": "상담 요청 확인",
   "exConsultTarget": "상담 대상",
   "exTrainerConsultType": "트레이너 상담",

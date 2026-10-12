@@ -1970,8 +1970,6 @@
   "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a trainer consultation",
   "exConsultPendingCta": "Consultation request pending",
-  "exConsultLinkedToOtherTrainer": "You're connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.",
-  "exConsultGoToMyTrainer": "View my trainer",
   "exViewConsultationRequest": "View consultation request",
   "exConsultTarget": "Consultation target",
   "exTrainerConsultType": "Trainer consultation",

@@ -4754,18 +4754,6 @@ abstract class AppLocalizations {
   /// **'Consultation request pending'**
   String get exConsultPendingCta;
 
-  /// No description provided for @exConsultLinkedToOtherTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.'**
-  String get exConsultLinkedToOtherTrainer;
-
-  /// No description provided for @exConsultGoToMyTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'View my trainer'**
-  String get exConsultGoToMyTrainer;
-
   /// No description provided for @exViewConsultationRequest.
   ///
   /// In en, this message translates to:
