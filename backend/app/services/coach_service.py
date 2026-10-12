@@ -22,10 +22,12 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.core.locale import localized
 from app.core.week import monday_of
-from app.models.models import DietEntry, ExerciseSession
+from app.models.models import DietEntry, ExerciseSession, HealthProfile
 from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
 from app.services import diet_service
-from app.services.exercise_service import monday_of_this_week_str
+from app.services.exercise_service import (
+    cardio_minutes, monday_of_this_week_str, weekly_cardio_goal,
+)
 
 #: 이번 주에 나트륨 초과일이 이만큼 쌓이면 "계속 높았다" 패턴으로 본다. 하루이틀은
 #: 우연일 수 있어 제외하고, 사흘부터는 오늘 하루가 괜찮아도 짚어줄 근거로 본다.
@@ -47,9 +49,14 @@ def _month_bounds() -> tuple[str, str]:
     return today.replace(day=1).isoformat(), today.isoformat()
 
 
-def _week_stats(db: Session, user_id: str) -> diet_service.DietPeriodStats:
+def _week_stats(
+    db: Session, user_id: str, sodium_limit_mg: int
+) -> diet_service.DietPeriodStats:
+    """이번 주 집계. 나트륨 초과일은 [sodium_limit_mg](회원 목표)로 센다(#3350)."""
     week_from, week_to = _week_bounds()
-    return diet_service.period_stats(db, user_id, week_from, week_to)
+    return diet_service.period_stats(
+        db, user_id, week_from, week_to, sodium_limit_mg
+    )
 
 
 def _month_stats(db: Session, user_id: str) -> diet_service.DietPeriodStats:
@@ -63,15 +70,19 @@ def diet_period_context(db: Session, user_id: str) -> str:
     회원 앱 식단 탭의 `오늘/이번 주/이번 달` 과 같은 기간 개념을 코칭 경로에도
     준다. 벡터 검색(`coach/rag.py`)은 의미상 가까운 개별 기록 몇 건만 뽑아오므로
     "이번 주 평균 나트륨" 같은 계산된 값은 만들지 못한다 — 그 값을 이 함수가 낸다.
+
+    나트륨 기준은 회원의 하루 목표다(#3350). AI 가 읽는 요약이 고정 권장량으로
+    적히면, 목표를 낮춘 회원에게 식단 탭과 다른 초과 일수를 말하게 된다.
     """
-    week = _week_stats(db, user_id)
+    sodium_limit = diet_service.member_sodium_limit(db, user_id)
+    week = _week_stats(db, user_id, sodium_limit)
     month = _month_stats(db, user_id)
 
     lines: list[str] = []
     if not week.empty:
         lines.append(
             f"- 이번 주 {week.days_logged}일 기록, "
-            f"나트륨 권장량({diet_service.SODIUM_LIMIT_MG}mg) 초과 {week.days_over_sodium}일, "
+            f"나트륨 목표({sodium_limit}mg) 초과 {week.days_over_sodium}일, "
             f"평균 나트륨 {week.avg_sodium_mg}mg"
         )
     if not month.empty:
@@ -118,7 +129,8 @@ def _diet_today_priority(db: Session, user_id: str) -> CoachSuggestion | None:
                 "Shall we start with your first meal?",
             ),
         )
-    if total_na > diet_service.SODIUM_LIMIT_MG:
+    # 기준은 회원의 하루 나트륨 목표다 — 식단 탭·홈 게이지와 같은 값(#3350).
+    if total_na > diet_service.member_sodium_limit(db, user_id):
         return CoachSuggestion(
             tag="diet",
             title=localized("나트륨 섭취가 많아요", "High sodium today"),
@@ -143,7 +155,10 @@ def _diet_weekly_or_default(db: Session, user_id: str) -> CoachSuggestion:
     # 오늘은 괜찮아도 이번 주 내내 나트륨이 높았다면 짚어준다(#933) — 하루만 보면
     # "오늘 안정적" 문구가 매번 반복되어, 거의 매일 초과하던 회원도 오늘 하루
     # 낮았다는 이유만으로 계속 잘하고 있다는 인상을 준다.
-    week = _week_stats(db, user_id)
+    # 초과일도 회원의 나트륨 목표로 센다(#3350).
+    week = _week_stats(
+        db, user_id, diet_service.member_sodium_limit(db, user_id)
+    )
     # days_over_sodium 은 days_logged 를 넘을 수 없으니 기록일수 조건은 따로 안
     # 둔다 — 초과일이 기준을 채우면 기록일수는 이미 그만큼 채워진 것이다.
     if week.days_over_sodium >= _SODIUM_PATTERN_MIN_DAYS:
@@ -183,7 +198,12 @@ def _diet_suggestion(db: Session, user_id: str) -> CoachSuggestion:
 
 
 def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
-    """운동 도메인 코치의 규칙 기반 폴백."""
+    """운동 도메인 코치의 규칙 기반 폴백.
+
+    판정은 운동 탭과 같다(#3350) — 이번 주 **유산소 분**을 회원의 주간 유산소
+    목표와 견준다. 예전에는 유형을 가리지 않은 합계를 주 150분 고정과 견줘,
+    목표가 90분인 회원이 100분을 채워도 "조금만 더" 라고 했다.
+    """
     week = monday_of_this_week_str()
     rows = db.scalars(
         select(ExerciseSession)
@@ -203,23 +223,28 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
                 "It builds stamina and lifts your energy.",
             ),
         )
-    if total_min < 150:
+    cardio_min = cardio_minutes(rows)
+    goal_min = weekly_cardio_goal(
+        db.scalar(select(HealthProfile).where(HealthProfile.user_id == user_id))
+    )
+    if cardio_min < goal_min:
         return CoachSuggestion(
             tag="exercise",
             title=localized("조금만 더 움직여봐요", "Let's move a little more"),
             body=localized(
-                f"이번 주 {total_min}분 운동했어요. 주 150분을 목표로 가볍게 더해봐요.",
-                f"You've exercised {total_min} minutes this week. "
-                "Aim for 150 minutes a week and add a little more.",
+                f"이번 주 유산소 {cardio_min}분 운동했어요. "
+                f"주 {goal_min}분을 목표로 가볍게 더해봐요.",
+                f"You've done {cardio_min} minutes of cardio this week. "
+                f"Aim for {goal_min} minutes a week and add a little more.",
             ),
         )
     return CoachSuggestion(
         tag="exercise",
         title=localized("운동량이 충분해요", "Great activity level"),
         body=localized(
-            f"이번 주 {total_min}분! 권장 운동량을 잘 채우고 있어요. 멋져요!",
-            f"{total_min} minutes this week! "
-            "You're meeting the recommended amount. Nice work!",
+            f"이번 주 유산소 {cardio_min}분! 목표 운동량을 잘 채우고 있어요. 멋져요!",
+            f"{cardio_min} minutes of cardio this week! "
+            "You're meeting your goal. Nice work!",
         ),
     )
 

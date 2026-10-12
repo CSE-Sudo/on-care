@@ -327,6 +327,28 @@ def weekly_goals(profile) -> tuple[int, int]:
     )
 
 
+def weekly_cardio_goal(profile) -> int:
+    """주간 유산소 분 목표. 프로필에 없으면 기본값. (#3350)
+
+    회원 앱 운동 탭이 유산소 달성률의 분모로 쓰는 값(`weekly_cardio_minutes`)이다.
+    홈 운동 조언·코칭 카드가 이 값으로 판정해야 같은 한 주를 두 화면이 다르게
+    말하지 않는다.
+    """
+    minutes = getattr(profile, "weekly_cardio_minutes", None)
+    return minutes if minutes and minutes > 0 else DEFAULT_WEEKLY_MINUTES_GOAL
+
+
+def cardio_minutes(rows) -> int:
+    """기록들의 유산소 분 합계 — [weekly_cardio_goal] 과 견주는 값. (#3350)
+
+    [build_current_week] 의 `cardio_minutes` 와 같은 칸([_bucket])만 센다. 근력은
+    세트로, 스트레칭은 따로 재므로 여기에 넣지 않는다.
+    """
+    return sum(
+        r.minutes for r in rows if _bucket(r.type) == exercise_types.CARDIO
+    )
+
+
 def _longest_streak(daily: list[int]) -> int:
     """'N일 연속' — 운동한 요일 중 가장 긴 연속 구간의 길이.
 

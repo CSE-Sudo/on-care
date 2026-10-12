@@ -31,6 +31,9 @@ class DashboardSummary(BaseModel):
     macros: Macros
     diet_entries: int
     exercise_minutes: int
+    #: 이번 주 **유산소** 분 — 운동 조언이 주간 유산소 목표와 견주는 값이고, 조언
+    #: 문장에 적히는 분 수다(#3350). `exercise_minutes` 는 유형을 가리지 않은 합계다.
+    exercise_cardio_minutes: int = 0
     # 식단 카드 주간 추이(이번 주 월~일 일별 영양). 홈 카드는 칼로리를 그린다.
     nutrition_week: list[DashboardNutritionDay] = []
     sodium_warning: Optional[str]
