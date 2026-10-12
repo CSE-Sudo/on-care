@@ -920,6 +920,7 @@
   "challengeJoinDone": "챌린지에 참가했어요",
   "challengeJoinFailed": "참가하지 못했어요. 다시 시도해 주세요.",
   "challengeJoinClosed": "다음 주 월요일에 다시 참가할 수 있어요",
+  "challengeSettling": "지난주 결과 집계 중이에요. 오늘까지 적은 지난주 운동 기록이 반영돼요",
   "challengeThisWeek": "이번 주 진행",
   "challengeProgress": "{progress} / {goal}회",
   "@challengeProgress": {

@@ -1220,6 +1220,7 @@
   "challengeJoinDone": "You joined this week's challenge",
   "challengeJoinFailed": "Couldn't join. Please try again.",
   "challengeJoinClosed": "You can join again next Monday",
+  "challengeSettling": "Tallying last week's result. Workouts you log for last week by today still count",
   "challengeThisWeek": "This week",
   "challengeProgress": "{progress} / {goal} workouts",
   "@challengeProgress": {

@@ -1708,6 +1708,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get challengeJoinClosed => '다음 주 월요일에 다시 참가할 수 있어요';
 
   @override
+  String get challengeSettling => '지난주 결과 집계 중이에요. 오늘까지 적은 지난주 운동 기록이 반영돼요';
+
+  @override
   String get challengeThisWeek => '이번 주 진행';
 
   @override
