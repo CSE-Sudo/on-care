@@ -10,7 +10,10 @@
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -44,23 +47,23 @@ class AppTestShardTest(unittest.TestCase):
             self.assertGreaterEqual(len(shards), 2)
             self.assertEqual(shards, list(range(1, len(shards) + 1)))
 
-    def test_total_follows_the_matrix_and_index_starts_at_zero(self) -> None:
+    def test_total_follows_the_matrix(self) -> None:
         for found, _, _ in self.each():
             job = found["test"]
             self.assertIn("          SHARD: ${{ matrix.shard }}\n", job)
             self.assertIn("          TOTAL_SHARDS: ${{ strategy.job-total }}\n", job)
-            self.assertIn(
-                '        run: flutter test --total-shards "$TOTAL_SHARDS" --shard-index "$((SHARD - 1))"\n',
-                job,
-            )
 
-    def test_shards_run_the_plain_test_command_once(self) -> None:
-        # 묶음 잡에 경로·이름 필터가 붙으면 그만큼의 테스트가 조용히 빠진다.
+    def test_shards_run_through_the_shard_script_once_without_filters(self) -> None:
+        # 묶음 잡에 경로·이름·태그 필터가 붙으면 그만큼의 테스트가 조용히 빠진다.
         for found, _, _ in self.each():
-            commands = re.findall(r"(?m)^        run: (flutter test.*)$", found["test"])
-            self.assertEqual(len(commands), 1)
-            for flag in ("--name", "--plain-name", "--tags", "--exclude-tags", " test/"):
-                self.assertNotIn(flag, commands[0])
+            job = found["test"]
+            commands = re.findall(r"(?m)^        run: (.*flutter.*test.*)$", job)
+            self.assertEqual(
+                commands,
+                ['bash ../../.github/scripts/flutter_test_shard.sh "$SHARD" "$TOTAL_SHARDS"'],
+            )
+            # 테스트 단위로 나누는 옵션은 쓰지 않는다 — 모든 묶음이 모든 파일을 컴파일한다.
+            self.assertNotIn("--total-shards", job)
 
     def test_one_failing_shard_does_not_cancel_the_rest(self) -> None:
         for found, _, _ in self.each():
@@ -102,6 +105,119 @@ class AppTestShardTest(unittest.TestCase):
 
     def test_trainer_web_build_still_waits_for_analysis(self) -> None:
         self.assertIn("    needs: analyze\n", jobs("trainer-ci.yml")["web-build"])
+
+
+SCRIPT = REPO_ROOT / ".github" / "scripts" / "flutter_test_shard.sh"
+
+#: `flutter` 자리에 세우는 대역. 받은 인자를 한 줄에 하나씩 파일에 적는다.
+FAKE_FLUTTER = """#!/usr/bin/env bash
+printf '%s\\n' "$@" > "$FAKE_FLUTTER_OUT"
+"""
+
+
+class FlutterTestShardScriptTest(unittest.TestCase):
+    """묶음 스크립트가 파일을 빠짐·겹침 없이 나누는지 실제로 돌려 본다."""
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.fake = self.tmp / "flutter"
+        self.fake.write_text(FAKE_FLUTTER, encoding="utf-8")
+        self.fake.chmod(0o755)
+        self.out = self.tmp / "args.txt"
+
+    def run_shard(self, app_dir: Path, *args: str) -> subprocess.CompletedProcess[str]:
+        if self.out.exists():
+            self.out.unlink()
+        env = {**os.environ, "FLUTTER": str(self.fake), "FAKE_FLUTTER_OUT": str(self.out)}
+        return subprocess.run(
+            ["bash", str(SCRIPT), *args], cwd=app_dir, env=env, capture_output=True, text=True
+        )
+
+    def passed_args(self) -> list[str]:
+        return self.out.read_text(encoding="utf-8").splitlines()
+
+    def make_app(self, names: list[str]) -> Path:
+        app = self.tmp / "app"
+        for name in names:
+            path = app / "test" / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("void main() {}\n", encoding="utf-8")
+        return app
+
+    def partition(self, app_dir: Path, total: int) -> list[list[str]]:
+        shards = []
+        for shard in range(1, total + 1):
+            result = self.run_shard(app_dir, str(shard), str(total))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            args = self.passed_args()
+            self.assertEqual(args[0], "test")
+            shards.append(args[1:])
+        return shards
+
+    def assert_exact_partition(self, app_dir: Path, total: int) -> None:
+        expected = sorted(
+            p.relative_to(app_dir).as_posix() for p in (app_dir / "test").rglob("*_test.dart")
+        )
+        shards = self.partition(app_dir, total)
+        merged = [f for shard in shards for f in shard]
+        self.assertEqual(len(merged), len(set(merged)), "두 묶음에 든 파일이 있습니다")
+        self.assertEqual(sorted(merged), expected, "어느 묶음에도 없는 파일이 있습니다")
+        sizes = [len(shard) for shard in shards]
+        self.assertLessEqual(max(sizes) - min(sizes), 1)
+
+    def test_every_file_lands_in_exactly_one_shard(self) -> None:
+        app = self.make_app(
+            [f"features/f{i % 5}/case_{i:02d}_test.dart" for i in range(23)] + ["widget_test.dart"]
+        )
+        for total in (1, 2, 4, 7):
+            with self.subTest(total=total):
+                self.assert_exact_partition(app, total)
+
+    def test_real_apps_are_fully_covered_by_the_workflow_shards(self) -> None:
+        for workflow, (app_dir, _) in APPS.items():
+            with self.subTest(workflow=workflow):
+                matrix = re.search(r"(?m)^        shard: \[([0-9, ]+)\]$", jobs(workflow)["test"])
+                self.assert_exact_partition(REPO_ROOT / app_dir, len(matrix.group(1).split(",")))
+
+    def test_helpers_and_non_test_files_are_left_to_flutter(self) -> None:
+        app = self.make_app(["a_test.dart", "helpers/pump.dart", "flutter_test_config.dart"])
+        self.assertEqual(self.partition(app, 1), [["test/a_test.dart"]])
+
+    def test_same_split_on_every_run(self) -> None:
+        app = self.make_app([f"t{i}_test.dart" for i in range(9)])
+        self.assertEqual(self.partition(app, 3), self.partition(app, 3))
+
+    def test_extra_arguments_reach_flutter_before_the_files(self) -> None:
+        app = self.make_app(["a_test.dart"])
+        result = self.run_shard(app, "1", "1", "--reporter", "expanded")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.passed_args(), ["test", "--reporter", "expanded", "test/a_test.dart"])
+
+    def test_reports_how_many_files_the_shard_took(self) -> None:
+        app = self.make_app([f"t{i}_test.dart" for i in range(5)])
+        result = self.run_shard(app, "2", "2")
+        self.assertIn("묶음 2/2: 테스트 파일 전체 5개 중 2개를 맡음", result.stdout)
+
+    def test_empty_shard_is_an_error_not_a_pass(self) -> None:
+        app = self.make_app(["a_test.dart"])
+        result = self.run_shard(app, "2", "2")
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(self.out.exists())
+
+    def test_bad_shard_numbers_are_rejected(self) -> None:
+        app = self.make_app(["a_test.dart"])
+        for args in (("0", "4"), ("5", "4"), ("x", "4"), ("1", ""), ("1",), ()):
+            with self.subTest(args=args):
+                result = self.run_shard(app, *args)
+                self.assertEqual(result.returncode, 2)
+                self.assertFalse(self.out.exists())
+
+    def test_missing_test_folder_is_rejected(self) -> None:
+        empty = self.tmp / "nowhere"
+        empty.mkdir()
+        self.assertEqual(self.run_shard(empty, "1", "1").returncode, 2)
 
 
 if __name__ == "__main__":
