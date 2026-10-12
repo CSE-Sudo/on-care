@@ -134,6 +134,35 @@ def test_pain_day_accepts_blank_and_a_date():
     assert pain_on(" 2026-02-18 ") == "2026-02-18"
 
 
+def test_pain_day_inside_the_week_passes():
+    """#3368: 그 주 월요일부터 일요일까지는 받는다 — 양 끝 포함."""
+    from app.services.trainer.weekly_feedback import _ensure_pain_day_in_week
+
+    monday = date(2026, 9, 14)
+    for offset in range(7):
+        _ensure_pain_day_in_week((monday + timedelta(days=offset)).isoformat(), monday)
+
+
+@pytest.mark.parametrize("offset", [-7, -1, 7, 8, 365])
+def test_pain_day_outside_the_week_is_refused(offset):
+    """#3368: 형식이 맞아도 다른 주의 날짜면 그 주 리포트에 적을 수 없다."""
+    from app.services.trainer.weekly_feedback import _ensure_pain_day_in_week
+
+    monday = date(2026, 9, 14)
+    with pytest.raises(HTTPException) as err:
+        _ensure_pain_day_in_week((monday + timedelta(days=offset)).isoformat(), monday)
+    assert err.value.status_code == 422
+
+
+def test_pain_day_that_is_not_a_date_is_422_even_past_the_schema():
+    """스키마를 거치지 않은 호출도 500 이 아니라 같은 422 로 끝난다."""
+    from app.services.trainer.weekly_feedback import _ensure_pain_day_in_week
+
+    with pytest.raises(HTTPException) as err:
+        _ensure_pain_day_in_week("어제", date(2026, 9, 14))
+    assert err.value.status_code == 422
+
+
 def test_empty_week_start_means_the_same_as_not_sending_one():
     """앱의 빈 입력칸이 오류가 되지는 않는다 — 값을 안 준 것과 같게 본다."""
     from app.api.v1.member_coach import _feedback_week
@@ -337,6 +366,181 @@ def test_pain_day_is_dropped_when_no_pain_area_was_given(client):
     assert r.status_code == 200, r.text
     assert r.json()["pain_area"] == ""
     assert r.json()["pain_on"] == ""
+
+
+@pytest.mark.parametrize("pain_on", ["2026-04-05", "2026-04-13", "2025-04-08"])
+def test_pain_day_outside_the_week_is_422_and_saves_nothing(client, pain_on):
+    """#3368: 그 주 밖의 통증 날짜는 받지 않는다. 반쯤 저장되지도 않는다."""
+    t = _member_tok(client)
+    week = "2026-04-06"
+    r = client.put(
+        "/v1/me/coach/weekly-feedback",
+        json={
+            "week_start": week,
+            "condition": "ok",
+            "intensity": "right",
+            "pain_area": "허리",
+            "pain_on": pain_on,
+        },
+        headers=_h(t),
+    )
+
+    assert r.status_code == 422, r.text
+    assert (
+        client.get(
+            "/v1/me/coach/weekly-feedback", params={"week_start": week}, headers=_h(t)
+        ).json()["submitted"]
+        is False
+    )
+
+
+@pytest.mark.parametrize("pain_on", ["2026-04-20", "2026-04-26"])
+def test_pain_day_on_either_edge_of_the_week_is_saved(client, pain_on):
+    """월요일과 일요일도 그 주다."""
+    t = _member_tok(client)
+    r = client.put(
+        "/v1/me/coach/weekly-feedback",
+        json={
+            "week_start": "2026-04-20",
+            "condition": "ok",
+            "intensity": "right",
+            "pain_area": "허리",
+            "pain_on": pain_on,
+        },
+        headers=_h(t),
+    )
+
+    assert r.status_code == 200, r.text
+    assert r.json()["pain_on"] == pain_on
+
+
+def test_pain_day_is_measured_against_the_normalized_week(client):
+    """주 중간 날짜를 `week_start` 로 보내도 범위는 그 주 월요일부터 잰다."""
+    t = _member_tok(client)
+    r = client.put(
+        "/v1/me/coach/weekly-feedback",
+        json={
+            "week_start": "2026-04-30",
+            "condition": "ok",
+            "intensity": "right",
+            "pain_area": "허리",
+            "pain_on": "2026-04-27",
+        },
+        headers=_h(t),
+    )
+
+    assert r.status_code == 200, r.text
+    assert r.json()["week_start"] == "2026-04-27"
+    assert r.json()["pain_on"] == "2026-04-27"
+
+
+def test_out_of_week_pain_day_without_an_area_is_dropped_not_refused(client):
+    """버려질 날짜는 재지 않는다 — 아픈 곳이 없으면 날짜도 없는 답이다."""
+    t = _member_tok(client)
+    r = client.put(
+        "/v1/me/coach/weekly-feedback",
+        json={
+            "week_start": "2026-05-04",
+            "condition": "good",
+            "intensity": "right",
+            "pain_area": "",
+            "pain_on": "2026-01-01",
+        },
+        headers=_h(t),
+    )
+
+    assert r.status_code == 200, r.text
+    assert r.json()["pain_on"] == ""
+
+
+def test_first_save_that_loses_the_race_overwrites_instead_of_500(
+    client, db_session, monkeypatch
+):
+    """#3368: 첫 저장 두 개가 겹치면 늦은 쪽은 먼저 들어간 행을 덮어쓴다.
+
+    두 요청이 모두 "아직 없다" 를 읽은 뒤 삽입하는 틈을 그대로 만든다 — 행은 이미
+    있는데 첫 조회만 없다고 답하게 한다. 예전에는 여기서 유니크 충돌이 500 이었다.
+    """
+    from app.models.models import MemberWeeklyFeedback
+    from app.services.trainer import weekly_feedback as service
+
+    week = date(2026, 5, 11)
+    t = _member_tok(client)
+    first = client.put(
+        "/v1/me/coach/weekly-feedback",
+        json={"week_start": week.isoformat(), "condition": "bad", "intensity": "hard"},
+        headers=_h(t),
+    )
+    assert first.status_code == 200, first.text
+
+    real_lookup = service._member_weekly_feedback_row
+    calls = {"n": 0}
+
+    def stale_then_real(db, member_id, wk):
+        calls["n"] += 1
+        return None if calls["n"] == 1 else real_lookup(db, member_id, wk)
+
+    monkeypatch.setattr(service, "_member_weekly_feedback_row", stale_then_real)
+
+    out = service.save_member_weekly_feedback(
+        db_session,
+        "user-jisu",
+        week,
+        condition="good",
+        intensity="right",
+        pain_area="왼쪽 어깨",
+        pain_on="2026-05-13",
+        note="다시 보냄",
+    )
+
+    assert out.submitted is True
+    assert out.condition == "good"
+    assert out.pain_on == "2026-05-13"
+    db_session.expire_all()
+    rows = (
+        db_session.query(MemberWeeklyFeedback)
+        .filter(
+            MemberWeeklyFeedback.user_id == "user-jisu",
+            MemberWeeklyFeedback.week_start == week.isoformat(),
+        )
+        .all()
+    )
+    assert len(rows) == 1
+    assert rows[0].condition == "good"
+    assert rows[0].note == "다시 보냄"
+
+
+def test_losing_the_race_keeps_the_session_usable(client, db_session, monkeypatch):
+    """충돌은 savepoint 만 되돌린다 — 같은 세션으로 이어서 읽고 쓸 수 있어야 한다."""
+    from app.services.trainer import weekly_feedback as service
+
+    week = date(2026, 5, 18)
+    t = _member_tok(client)
+    client.put(
+        "/v1/me/coach/weekly-feedback",
+        json={"week_start": week.isoformat(), "condition": "ok", "intensity": "right"},
+        headers=_h(t),
+    )
+    real_lookup = service._member_weekly_feedback_row
+    calls = {"n": 0}
+
+    def stale_then_real(db, member_id, wk):
+        calls["n"] += 1
+        return None if calls["n"] == 1 else real_lookup(db, member_id, wk)
+
+    monkeypatch.setattr(service, "_member_weekly_feedback_row", stale_then_real)
+    service.save_member_weekly_feedback(
+        db_session, "user-jisu", week, condition="tired", intensity="hard"
+    )
+
+    again = service.save_member_weekly_feedback(
+        db_session, "user-jisu", week, condition="great", intensity="too_easy"
+    )
+
+    assert again.condition == "great"
+    assert service.get_member_weekly_feedback(db_session, "user-jisu", week).condition == (
+        "great"
+    )
 
 
 def test_surrounding_spaces_do_not_become_part_of_the_answer(client):
