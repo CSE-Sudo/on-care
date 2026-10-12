@@ -1283,7 +1283,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietManualAddHint.
   ///
   /// In en, this message translates to:
-  /// **'Type a food name and we\'ll fill in the nutrition'**
+  /// **'Type a food name and we\'ll fill in the nutrition. Points are only earned for meals logged by photo'**
   String get dietManualAddHint;
 
   /// No description provided for @dietManualAddEmpty.
@@ -2879,7 +2879,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPointsHistoryEmptyMessage.
   ///
   /// In en, this message translates to:
-  /// **'Log meals and workouts to earn points.'**
+  /// **'Log meals by photo or log workouts to earn points.'**
   String get myPointsHistoryEmptyMessage;
 
   /// No description provided for @myPointsHistoryLoadFailed.
@@ -3536,6 +3536,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{• Your upcoming PT booking will be cancelled} other{• Your {count} upcoming PT bookings will be cancelled}}'**
   String myWithdrawCancelReservations(int count);
 
+  /// Withdrawal confirmation line, shown only when a trainer has scheduled upcoming sessions with the member (#3341).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{• The PT session your trainer scheduled will be cancelled} other{• The {count} PT sessions your trainer scheduled will be cancelled}}'**
+  String myWithdrawCancelSessions(int count);
+
   /// Withdrawal confirmation line, shown only when the member has pending consultation requests (#3006).
   ///
   /// In en, this message translates to:
@@ -3881,7 +3887,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifAlwaysSent.
   ///
   /// In en, this message translates to:
-  /// **'PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent'**
+  /// **'PT bookings, changes and cancellations, trainer requests, connect and disconnect notices, consultation request results, health goal changes, coupon expiry and cancellation, and weekly challenge results are always sent'**
   String get myNotifAlwaysSent;
 
   /// No description provided for @mySupportFaq.
@@ -4535,7 +4541,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicPaidInsufficient.
   ///
   /// In en, this message translates to:
-  /// **'You need {shortfall} more. Log meals and workouts to earn points.'**
+  /// **'You need {shortfall} more. Log meals by photo or log workouts to earn points.'**
   String aicPaidInsufficient(String shortfall);
 
   /// No description provided for @aicPointsSpent.
@@ -5873,7 +5879,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
+  /// **'Logging earns points.\nLog a meal by photo +{diet}P (not for meals added manually), log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// No description provided for @guideSampleFoodScrambledEggs.
@@ -6502,7 +6508,7 @@ abstract class AppLocalizations {
   /// Point-earning action in the points guide.
   ///
   /// In en, this message translates to:
-  /// **'Log a meal'**
+  /// **'Log a meal by photo'**
   String get myPointsDietAdd;
 
   /// Point-earning action in the points guide: finishing a personal exercise (sent by the trainer or recommended by AI).

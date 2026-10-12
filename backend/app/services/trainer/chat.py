@@ -259,25 +259,27 @@ def _schedule_from_chat(
     except trainer_schedule_service.ScheduleOverlap:
         return
     member_name = db.scalar(select(User.name).where(User.id == member_id))
-    db.add(
-        TrainerSchedule(
-            id=f"sched-{uuid.uuid4().hex[:12]}",
-            trainer_id=trainer_id,
-            member_id=member_id,
-            date=parsed.date,
-            time=parsed.time,
-            client_name=member_name or "",
-            type=PT_SESSION_TYPE,
-            duration_minutes=_CHAT_SCHEDULE_MINUTES,
-            status="예정",
-            # 어디서 온 일정인지 남긴다 — 사람이 만든 일정과 섞이면, 잘못
-            # 읽은 약속을 나중에 가려낼 수 없다.
-            note=_CHAT_SCHEDULE_NOTE,
-            program_json="[]",
-            sort_order=0,
-        )
+    # 일정 화면이 일정을 만드는 그 함수로 만든다 — 회원에게 가는 일정 알림
+    # (`member_schedule`)이 같은 문구 틀(날짜·시각·종류)로 함께 얹힌다(#3345).
+    # 예전에는 일정만 만들어, 회원은 메시지 알림만 받고 일정이 생긴 줄 몰랐다 —
+    # 문장을 잘못 읽어 엉뚱한 시각에 잡혀도 운동 탭을 보기 전까지 알 수 없었다.
+    # 알림은 일정이 새로 만들어질 때만 간다: 재전송은 `send_message` 가 여기 오기
+    # 전에 돌려보내고, 같은 약속을 다시 말한 메시지는 위에서 걸러진다.
+    trainer_schedule_service._add_session(
+        db,
+        trainer_id,
+        date=parsed.date,
+        time=parsed.time,
+        client_name=member_name or "",
+        member_id=member_id,
+        type_=PT_SESSION_TYPE,
+        duration_minutes=_CHAT_SCHEDULE_MINUTES,
+        # 어디서 온 일정인지 남긴다 — 사람이 만든 일정과 섞이면, 잘못
+        # 읽은 약속을 나중에 가려낼 수 없다.
+        note=_CHAT_SCHEDULE_NOTE,
+        program_json="[]",
+        client_request_id=None,
     )
-    db.flush()
 
 
 def send_message(
