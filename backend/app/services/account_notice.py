@@ -19,6 +19,7 @@ from app.services.mailer import (
     get_mailer,
     mask_email,
 )
+from app.services.placeholder_email import is_placeholder_email
 
 log = logging.getLogger(__name__)
 
@@ -75,7 +76,12 @@ def send_email_changed(
 
     서버에 발송 수단이 없으면(운영인데 SMTP 가 비었을 때) 보내지 않는다 — 변경 자체는
     막지 않는다. 실패는 로그로만 남긴다.
+
+    옛 주소가 소셜 가입의 대체 이메일이면 보내지 않는다(#3338) — 받는 사람이 없는
+    내부용 주소다. 처음으로 실제 주소를 넣는 저장이라 알릴 이전 주소가 없다.
     """
+    if is_placeholder_email(old_email):
+        return False
     settings = settings or get_settings()
     if not settings.mail_enabled:
         log.warning("메일 발송 수단이 없어 이메일 변경 안내를 보내지 않음: %s", mask_email(old_email))
