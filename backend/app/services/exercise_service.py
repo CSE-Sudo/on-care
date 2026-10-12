@@ -14,6 +14,7 @@
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -30,6 +31,8 @@ from app.services import (
 )
 from app.services.exercise_advice import Advice, advice
 from app.services.exercise_catalog import energy, resolver
+
+logger = logging.getLogger(__name__)
 
 #: 요일 라벨(월=0 … 일=6). 순서를 두 벌 두지 않으려고 논리 운동일 모듈의 정의를
 #: 그대로 쓴다 — 여기서 한 칸이라도 어긋나면 같은 기록이 화면과 AI 에서 다른
@@ -327,6 +330,28 @@ def weekly_goals(profile) -> tuple[int, int]:
     )
 
 
+def weekly_cardio_goal(profile) -> int:
+    """주간 유산소 분 목표. 프로필에 없으면 기본값. (#3350)
+
+    회원 앱 운동 탭이 유산소 달성률의 분모로 쓰는 값(`weekly_cardio_minutes`)이다.
+    홈 운동 조언·코칭 카드가 이 값으로 판정해야 같은 한 주를 두 화면이 다르게
+    말하지 않는다.
+    """
+    minutes = getattr(profile, "weekly_cardio_minutes", None)
+    return minutes if minutes and minutes > 0 else DEFAULT_WEEKLY_MINUTES_GOAL
+
+
+def cardio_minutes(rows) -> int:
+    """기록들의 유산소 분 합계 — [weekly_cardio_goal] 과 견주는 값. (#3350)
+
+    [build_current_week] 의 `cardio_minutes` 와 같은 칸([_bucket])만 센다. 근력은
+    세트로, 스트레칭은 따로 재므로 여기에 넣지 않는다.
+    """
+    return sum(
+        r.minutes for r in rows if _bucket(r.type) == exercise_types.CARDIO
+    )
+
+
 def _longest_streak(daily: list[int]) -> int:
     """'N일 연속' — 운동한 요일 중 가장 긴 연속 구간의 길이.
 
@@ -448,6 +473,11 @@ def build_current_week(
 
     [pt_times] 는 PT 기록 id → 수업 시각이다([pt_session_times]). 없으면 PT
     기록도 시각 없이 나간다 — 지어내지 않는다. (#2692)
+
+    요일 라벨이 월~일이 아닌 옛 행은 건너뛰고 로그만 남긴다(#3368). 칸에 제약이 없어
+    그런 행이 하나만 있어도 아래 요일 정렬이 터져 그 주 운동 탭이 통째로 500 이었다.
+    어느 요일인지 모르는 기록을 합계에만 넣으면 요일별 값과 합계가 어긋나므로
+    합계에서도 뺀다.
     """
     per_day = {l: 0 for l in WEEKDAY_LABELS}
     per_day_cal = {l: 0 for l in WEEKDAY_LABELS}
@@ -461,6 +491,12 @@ def build_current_week(
     sessions = []
 
     for r in rows:
+        if r.day_label not in per_day:
+            logger.warning(
+                "exercise session %s has a broken day_label %r — skipped",
+                getattr(r, "id", None), r.day_label,
+            )
+            continue
         total_minutes += r.minutes
         total_calories += r.calories
         per_day[r.day_label] = per_day.get(r.day_label, 0) + r.minutes
