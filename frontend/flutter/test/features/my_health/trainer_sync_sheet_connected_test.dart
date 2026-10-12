@@ -54,12 +54,16 @@ class _FakeTrainerSyncRepository implements TrainerSyncRepository {
   _FakeTrainerSyncRepository({this.expiresInSeconds = 300});
 
   final int expiresInSeconds;
+
+  /// 코드가 발급되는 순간 부른다 — 코드가 뜨자마자 입력하는 트레이너를 재현한다.
+  void Function()? onIssue;
   int issued = 0;
   int revoked = 0;
 
   @override
   Future<PairingCode> issue() async {
     issued += 1;
+    onIssue?.call();
     return PairingCode(code: '979030', expiresInSeconds: expiresInSeconds);
   }
 
@@ -220,6 +224,106 @@ void main() {
     // 코드와 남은 시간은 치운다 — 이미 쓰인 코드다.
     expect(find.byKey(const ValueKey<String>('sync-digit-0')), findsNothing);
     expect(find.textContaining('뒤에 만료돼요'), findsNothing);
+  });
+
+  testWidgets('코드가 뜨자마자 트레이너가 입력해도 연결 완료가 보인다', (tester) async {
+    // 기준은 발급 전에 잡는다. 코드가 뜬 뒤의 첫 확인을 기준으로 삼으면 이 연결이
+    // 기준에 섞여 끝내 보이지 않는다.
+    sync.onIssue = () => link.coach = _kim;
+    await pumpHost(tester);
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(_agreeKey));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(_connectedKey), findsOneWidget);
+    expect(find.text('김도윤 트레이너와 연결됐어요'), findsOneWidget);
+  });
+
+  testWidgets('화면이 이미 읽어 둔 담당이 있으면 기준을 따로 읽지 않는다', (tester) async {
+    final ProviderContainer container = await pumpHost(tester);
+    final ProviderSubscription<Object?> header = container.listen(
+      memberCoachProvider,
+      (_, _) {},
+    );
+    addTearDown(header.close);
+    await tester.pump();
+    expect(link.coachReads, 1);
+
+    sync.onIssue = () => link.coach = _kim;
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(_agreeKey));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+
+    // 발급 뒤의 첫 확인이 캐시의 `없음` 과 달라 연결이다. 그 뒤로는 첫 확인과,
+    // 연결되어 화면이 다시 읽은 한 번뿐이다 — 기준을 따로 읽었다면 하나 더 많다.
+    expect(link.coachReads, 3);
+    expect(find.byKey(_connectedKey), findsOneWidget);
+  });
+
+  testWidgets('기준을 읽지 못하면 담당 없이 연 것으로 보고, 코드는 그대로 발급한다', (tester) async {
+    link.failCoach = true;
+    await pumpHost(tester);
+    await openAndAgree(tester);
+    expect(sync.issued, 1);
+
+    link
+      ..failCoach = false
+      ..coach = _kim;
+    await tester.pump(trainerSyncPollInterval);
+    await tester.pump();
+
+    expect(find.byKey(_connectedKey), findsOneWidget);
+  });
+
+  testWidgets('코드가 만료되면 몇 번만 더 확인하고 멈추며, 새 코드를 받으면 다시 묻는다', (tester) async {
+    sync = _FakeTrainerSyncRepository(expiresInSeconds: 2);
+    await pumpHost(tester);
+    await openAndAgree(tester);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(find.text('코드가 만료됐어요.'), findsOneWidget);
+    final int atExpiry = link.coachReads;
+
+    await tester.pump(trainerSyncPollInterval * 10);
+    expect(link.coachReads, atExpiry + trainerSyncChecksAfterExpiry);
+
+    // 만료 직전에 입력된 연결은 여유 확인이 잡는다 — 그 뒤에는 묻지 않는다.
+    final int stopped = link.coachReads;
+    await tester.pump(trainerSyncPollInterval * 10);
+    expect(link.coachReads, stopped);
+
+    await tester.tap(find.text('새 코드 받기'));
+    await tester.pump();
+    await tester.pump();
+    expect(link.coachReads, stopped + 1);
+
+    link.coach = _kim;
+    await tester.pump(trainerSyncPollInterval);
+    await tester.pump();
+    expect(find.byKey(_connectedKey), findsOneWidget);
+  });
+
+  testWidgets('만료 뒤 여유 확인 안에 보인 연결은 연결 완료로 바뀐다', (tester) async {
+    sync = _FakeTrainerSyncRepository(expiresInSeconds: 2);
+    await pumpHost(tester);
+    await openAndAgree(tester);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(find.text('코드가 만료됐어요.'), findsOneWidget);
+
+    link.coach = _kim;
+    await tester.pump(trainerSyncPollInterval);
+    await tester.pump();
+
+    expect(find.byKey(_connectedKey), findsOneWidget);
   });
 
   testWidgets('연결 완료의 확인을 누르면 시트가 닫히고, 쓰인 코드는 버리지 않는다', (tester) async {

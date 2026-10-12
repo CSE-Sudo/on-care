@@ -19,6 +19,13 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 아직 없어(#474) 짧게 묻는다 — 시트가 떠 있는 몇 분 동안만 도는 요청이다.
 const Duration trainerSyncPollInterval = Duration(seconds: 3);
 
+/// 코드가 만료된 뒤 몇 번 더 확인하고 멈출지. (#3342)
+///
+/// 만료된 코드로는 더 연결될 수 없다. 다만 만료 직전에 입력된 연결은 그 뒤의
+/// 확인에서야 보이므로 곧바로 끊지 않고 이만큼 더 묻는다. 새 코드를 받으면 다시
+/// 묻기 시작한다.
+const int trainerSyncChecksAfterExpiry = 2;
+
 /// 한 번 확인한 연결 상태 — 담당 코치와, 수락을 기다리는 담당 요청.
 typedef _LinkSnapshot = ({MemberCoach? coach, List<CoachInvite> invites});
 
@@ -82,10 +89,15 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
   /// 확인되면 끊는다.
   StreamSubscription<_LinkSnapshot>? _watch;
 
-  /// 코드를 받을 때의 담당. 이 값과 달라져야 **이 시트에서** 연결된 것이다 —
+  /// 코드를 받기 **전**의 담당. 이 값과 달라져야 **이 시트에서** 연결된 것이다 —
   /// 이미 담당이 있는 회원이 시트를 열자마자 `연결됐어요` 를 보면 안 된다.
+  /// 발급 요청보다 먼저 잡아 둔다. 코드가 뜬 뒤의 첫 확인을 기준으로 삼으면,
+  /// 코드가 뜨자마자 트레이너가 입력한 연결이 기준에 섞여 끝내 보이지 않는다.
   String? _baselineTrainerId;
   bool _baselineKnown = false;
+
+  /// 코드가 만료된 뒤 확인한 횟수. [trainerSyncChecksAfterExpiry] 에 닿으면 멈춘다.
+  int _checksAfterExpiry = 0;
 
   /// 연결이 확인된 담당. 있으면 시트는 코드 대신 연결 완료를 보여 준다.
   MemberCoach? _connected;
@@ -102,9 +114,6 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
 
   void _agree() {
     setState(() => _agreed = true);
-    // 발급과 함께 묻기 시작한다 — 첫 답이 기준이 되므로, 트레이너가 코드를
-    // 받아 적기 전에 받아 둬야 한다.
-    _startWatching();
     _issue();
   }
 
@@ -129,7 +138,7 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
         ).listen(
           _onLink,
           // 한 번 못 읽은 것은 연결 실패가 아니다. 다음 주기에 다시 묻는다.
-          onError: (Object _) {},
+          onError: (Object _) => _stopIfExpiredLongEnough(),
         );
   }
 
@@ -155,17 +164,52 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
   void _onLink(_LinkSnapshot link) {
     if (!mounted || _connected != null) return;
     final MemberCoach? coach = link.coach;
-    if (!_baselineKnown) {
-      _baselineKnown = true;
-      _baselineTrainerId = coach?.trainerId;
-    } else if (coach != null && coach.trainerId != _baselineTrainerId) {
+    if (coach != null && coach.trainerId != _baselineTrainerId) {
       _onConnected(coach);
       return;
-    } else if (coach == null) {
+    }
+    if (coach == null) {
       // 있던 담당이 끊겼다. 같은 트레이너가 다시 이어도 새 연결이다.
       _baselineTrainerId = null;
     }
     _handOffInvites(link.invites);
+    _stopIfExpiredLongEnough();
+  }
+
+  /// 만료된 코드를 띄운 채로는 [trainerSyncChecksAfterExpiry] 번만 더 묻는다.
+  /// `새 코드 받기` 가 다시 시작한다([_issue]).
+  void _stopIfExpiredLongEnough() {
+    if (_code == null || _remaining > 0) return;
+    _checksAfterExpiry += 1;
+    if (_checksAfterExpiry >= trainerSyncChecksAfterExpiry) _stopWatching();
+  }
+
+  /// 코드를 받기 전의 담당을 기준으로 잡는다. 한 번만 한다 — 새 코드를 받을 때
+  /// 다시 잡으면 그 사이 생긴 연결이 기준이 된다.
+  ///
+  /// 화면들이 이미 읽어 둔 값이 있으면 그것을 쓴다. 없으면 한 번 읽는다. 읽지
+  /// 못하면 담당이 없는 것으로 본다 — 이 시트는 담당이 없는 회원이 연결하려고
+  /// 여는 자리다. 기준을 못 잡았다고 코드 발급을 막지 않는다.
+  Future<void> _resolveBaseline() async {
+    if (_baselineKnown) return;
+    _baselineKnown = true;
+    if (ref.exists(memberCoachProvider)) {
+      final AsyncValue<MemberCoach?> cached = ref.read(memberCoachProvider);
+      if (cached is AsyncData<MemberCoach?> && !cached.isLoading) {
+        _baselineTrainerId = cached.value?.trainerId;
+        return;
+      }
+    }
+    try {
+      _baselineTrainerId = (await _coachRepository.fetchCoach())?.trainerId;
+    } on Object {
+      _baselineTrainerId = null;
+    }
+  }
+
+  Future<PairingCode> _issueAfterBaseline() async {
+    await _resolveBaseline();
+    return _repository.issue();
   }
 
   void _onConnected(MemberCoach coach) {
@@ -215,7 +259,7 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
   Future<void> _issue() async {
     setState(() => _failed = false);
     try {
-      final issuing = _repository.issue();
+      final issuing = _issueAfterBaseline();
       _issuing = issuing;
       final issued = await issuing;
       if (!mounted) return;
@@ -224,6 +268,9 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
         _remaining = issued.expiresInSeconds;
       });
       _startTicker();
+      // 코드가 떴으니 묻기 시작한다. 만료로 멈췄다가 새 코드를 받았으면 다시 돈다.
+      _checksAfterExpiry = 0;
+      _startWatching();
     } catch (_) {
       if (!mounted) return;
       setState(() => _failed = true);
