@@ -278,6 +278,92 @@ void main() {
     });
   }
 
+  // 서버 컬럼은 옛 범위(0~21)를 받는다 — 1~7 밖의 값이 이미 저장된 회원이 있다.
+  for (final (int saved, String shown, Color color) in <(int, String, Color)>[
+    (10, '7', OnCareColors.textPrimary),
+    (21, '7', OnCareColors.textPrimary),
+    (0, '3', OnCareColors.textTertiary),
+  ]) {
+    testWidgets('저장된 $saved 은 챌린지가 읽는 $shown 로 적는다', (tester) async {
+      await _open(tester, weeklyWorkoutGoal: saved);
+
+      expect(_value(tester).data, shown);
+      expect(_value(tester).style!.color, color);
+    });
+
+    testWidgets('저장된 $saved 을 두고 다른 칸만 고쳐도 막히지 않고 이 칸은 보내지 않는다', (
+      tester,
+    ) async {
+      final (_RecordingAccountRepository repo, _) = await _open(
+        tester,
+        weeklyWorkoutGoal: saved,
+      );
+      await _beginEdit(tester);
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(HealthGoalsPage)),
+      );
+      // 칸에는 챌린지가 읽는 값이 차 있다.
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(
+                of: find.byKey(const Key('goalWorkoutsField')),
+                matching: find.byType(TextField),
+              ),
+            )
+            .controller!
+            .text,
+        shown,
+      );
+
+      await _enter(tester, 'goalCaloriesField', '2100');
+      await _save(tester);
+
+      expect(
+        find.text(
+          l.myGoalRange(
+            AppGoalRanges.weeklyWorkoutDays.min,
+            AppGoalRanges.weeklyWorkoutDays.max,
+          ),
+        ),
+        findsNothing,
+      );
+      expect(repo.saves, 1);
+      expect(repo.lastDailyCalories?.value, 2100);
+      expect(repo.lastWeeklyWorkoutGoal, isNull, reason: '손대지 않은 칸은 보내지 않는다');
+    });
+  }
+
+  testWidgets('범위 밖으로 저장돼 있던 칸도 직접 고치면 1~7 을 본다', (tester) async {
+    final (_RecordingAccountRepository repo, _) = await _open(
+      tester,
+      weeklyWorkoutGoal: 10,
+    );
+    await _beginEdit(tester);
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(HealthGoalsPage)),
+    );
+
+    await _enter(tester, 'goalWorkoutsField', '9');
+    await _save(tester);
+    expect(
+      find.text(
+        l.myGoalRange(
+          AppGoalRanges.weeklyWorkoutDays.min,
+          AppGoalRanges.weeklyWorkoutDays.max,
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(repo.saves, 0);
+
+    await _enter(tester, 'goalWorkoutsField', '6');
+    await _save(tester);
+    expect(repo.saves, 1);
+    expect(repo.lastWeeklyWorkoutGoal?.value, 6);
+    expect(_value(tester).data, '6');
+  });
+
   testWidgets('영어에서도 칸 이름과 안내가 번역된다', (tester) async {
     await _open(tester, locale: const Locale('en'));
 
