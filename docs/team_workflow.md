@@ -205,14 +205,16 @@ PR gate 는 PR 커밋만 보므로, 이미 이력에 들어간 값과 PR 을 거
 오래 걸리는 테스트는 CI 에서 여러 잡으로 나눠 동시에 돕니다. 테스트를 줄이거나 건너뛰는 것이
 아니라, 같은 테스트를 같은 설정으로 전부 돌리되 러너만 나눕니다.
 
-- **두 앱**: `Test (user app, 1/4)` … `Test (trainer web, 4/4)` 잡이 `flutter test` 의
-  `--total-shards`·`--shard-index` 로 묶음 하나씩을 맡습니다. 분석·린트·공용 패키지 검사는
+- **두 앱**: `Test (user app, 1/4)` … `Test (trainer web, 4/4)` 잡이 테스트 파일 묶음 하나씩을
+  맡습니다. `.github/scripts/flutter_test_shard.sh` 가 `test/` 아래 `*_test.dart` 를 이름순으로
+  번갈아 나누며, 파일은 통째로 한 묶음에 들어갑니다. 분석·린트·공용 패키지 검사는
   `Analyze (…)` 잡에서 테스트와 동시에 돕니다.
 - **결과 읽기**: `Analyze and test (user app)`·`Analyze and test` 체크가 분석과 모든 묶음의
   결과를 모읍니다. 하나라도 실패·취소되면 이 체크가 실패합니다. 실패한 테스트는 해당 묶음 잡의
   로그에 있습니다.
-- **묶음 하나를 로컬에서 재현**: `flutter test --total-shards 4 --shard-index 2` 처럼 같은 값을
-  주면 CI 의 셋째 묶음과 같은 파일이 돕니다(번호는 0 부터).
+- **묶음 하나를 로컬에서 재현**: 앱 폴더에서
+  `bash ../../.github/scripts/flutter_test_shard.sh 3 4` 를 돌리면 CI 의 셋째 묶음과 같은 파일이
+  돕니다. 뒤에 붙인 인자는 `flutter test` 로 넘어갑니다.
 - **묶음 수 바꾸기**: 워크플로의 `shard` 목록만 고칩니다. 전체 묶음 수는 목록 길이를 따라갑니다.
 
 ## 7. 이슈 사용
