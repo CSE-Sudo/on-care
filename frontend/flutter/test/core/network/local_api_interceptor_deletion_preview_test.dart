@@ -41,7 +41,7 @@ void main() {
     return res.data!;
   }
 
-  test('실서버와 같은 네 칸을 준다', () async {
+  test('실서버와 같은 칸을 준다', () async {
     final Map<String, Object?> body = await preview();
     expect(
       body.keys,
@@ -49,6 +49,7 @@ void main() {
         'points',
         'active_coupons',
         'upcoming_reservations',
+        'upcoming_sessions',
         'pending_consultations',
       ]),
     );
@@ -77,6 +78,8 @@ void main() {
 
   test('예약·상담 요청은 목 저장소 몫이라 0 이다', () async {
     final Map<String, Object?> body = await preview();
+    // 트레이너가 잡은 PT 일정은 데모 회원 앱에 들고 있는 곳이 없다(#3341).
+    expect(body['upcoming_sessions'], 0);
     expect(body['upcoming_reservations'], 0);
     expect(body['pending_consultations'], 0);
   });
