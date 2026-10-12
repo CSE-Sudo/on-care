@@ -224,6 +224,14 @@ PR gate 는 PR 커밋만 보므로, 이미 이력에 들어간 값과 PR 을 거
   목록 길이를 따라갑니다.
 - **다른 파일이 남긴 데이터에 기대는 테스트를 쓰지 않습니다.** 묶음이 바뀌면 앞서 돌던 파일이
   같은 잡에 없을 수 있습니다. 필요한 계정·기록은 그 테스트(또는 그 파일의 픽스처)가 만듭니다.
+- **두 앱**: `Test (user app, 1/4)` … `Test (trainer web, 4/4)` 잡이 테스트 파일 묶음 하나씩을
+  맡습니다. `.github/scripts/flutter_test_shard.sh` 가 `test/` 아래 `*_test.dart` 를 이름순으로
+  번갈아 나누며, 파일은 통째로 한 묶음에 들어갑니다. 분석·린트·공용 패키지 검사는
+  `Analyze (…)` 잡에서 테스트와 동시에 돌고, `Analyze and test (user app)`·`Analyze and test`
+  체크가 분석과 모든 묶음의 결과를 모읍니다. 앱 폴더에서
+  `bash ../../.github/scripts/flutter_test_shard.sh 3 4` 를 돌리면 CI 의 셋째 묶음과 같은 파일이
+  돕니다(뒤에 붙인 인자는 `flutter test` 로 넘어갑니다). 묶음 수는 두 앱 워크플로의 `shard`
+  목록으로 바꿉니다.
 
 ## 7. 이슈 사용
 
