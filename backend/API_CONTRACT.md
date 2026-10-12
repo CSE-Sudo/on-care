@@ -1196,7 +1196,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/me/coach/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, `sender` 는 `me`\|`trainer`). 담당이 없으면 404 |
 | POST | `/me/coach/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지 400, 이모티콘 규칙은 위 "채팅 이모티콘" |
 | GET | `/me/coach/chat/unread` | `{ unread }` — 트레이너가 보낸 안 읽은 메시지 수 |
-| POST | `/me/coach/chat/read` | `{ marked_read }` — 트레이너 메시지를 읽음 처리 |
+| POST | `/me/coach/chat/read` | `{ marked_read }` — 트레이너 메시지를 읽음 처리. 내 미읽음 메시지·리포트 알림(`coach_chat`·`coach_report`)도 함께 읽음이 된다. `marked_read` 는 메시지 수만 센다(#3343) |
 | GET | `/me/coach/invites` | `[{ id, trainer_id, trainer_name, gym_name, message, status, created_at }]` — 나에게 온 대기 중인 담당 요청 |
 | POST | `/me/coach/invites/{invite_id}/accept` | `{ data_sharing_consent: true }` → 같은 모양. 동의가 없으면 400, 없는 요청 404, 이미 결정했거나 다른 담당이 있으면 409. 담당 링크가 여기서 생긴다(#1022) |
 | POST | `/me/coach/invites/{invite_id}/reject` | 같은 모양. 없는 요청 404, 이미 결정한 요청 409 |

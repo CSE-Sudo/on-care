@@ -862,7 +862,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 | GET | `/me/coach/chat` | 채팅 스레드 |
 | GET | `/me/coach/chat/unread` | 미확인 수 |
 | POST | `/me/coach/chat` | 코치에게 메시지 전송 (`client_request_id?`) |
-| POST | `/me/coach/chat/read` | 읽음 처리 |
+| POST | `/me/coach/chat/read` | 읽음 처리 — 회원의 미읽음 메시지·리포트 알림(`coach_chat`·`coach_report`)도 함께 읽음. 다른 갈래 알림은 그대로(#3343) |
 | GET | `/me/coach/weekly-report?week_start=` | 내 주간 리포트 — 트레이너 리포트와 같은 값(`message` 는 빈 문자열, 담당 없어도 200, 미래 주는 422) (#2652) |
 | DELETE | `/me/coach` | **헬스장 + 담당 트레이너** 해제(멱등, 204) |
 | DELETE | `/me/coach/trainer` | **담당 트레이너만** 해제 — 헬스장은 유지(멱등, 204) |

@@ -122,6 +122,21 @@ extension _LocalApiNotifications on LocalApiInterceptor {
     return _ok(options, <String, Object?>{'marked_read': n});
   }
 
+  /// 담당 트레이너 대화를 읽음 처리한다(#3343).
+  ///
+  /// 서버 `mark_thread_read` 의 회원 분기와 같다 — 대화를 읽으면 안 읽은 메시지·
+  /// 리포트 알림도 함께 읽음이 되고, 다른 갈래는 그대로다. 데모의 대화는 목업 코치
+  /// 저장소가 들고 있어 메시지 읽음은 거기서 하고, 여기는 알림만 맡는다. 그래서
+  /// 읽은 메시지 수(`marked_read`)는 늘 0 이다.
+  Future<Response<Object?>> _coachChatRead(RequestOptions options) async {
+    await (_db.update(_db.notificationItems)..where(
+          (t) =>
+              t.category.isIn(_coachChatAlertCategories) & t.read.equals(false),
+        ))
+        .write(const NotificationItemsCompanion(read: Value(true)));
+    return _ok(options, <String, Object?>{'marked_read': 0});
+  }
+
   /// 시드 밖 알림의 상대 시각 — 서버 `notification_service.time_ago` 와 같다.
   /// 하루 지난 알림은 `1일 전` 이다(#3099).
   String _timeAgoKorean(Duration d) {
@@ -141,6 +156,13 @@ extension _LocalApiNotifications on LocalApiInterceptor {
     return '${d.inDays}일 전';
   }
 }
+
+/// 담당 트레이너 대화로 도착하는 알림 갈래 — 서버 `MEMBER_COACH_CHAT`·
+/// `MEMBER_COACH_REPORT`. 대화를 읽으면 함께 읽음이 된다(#3343).
+const List<String> _coachChatAlertCategories = <String>[
+  'coach_chat',
+  'coach_report',
+];
 
 Map<String, Object?>? _demoSeedAction(String id) {
   final ({String label, String target})? a = kDemoAlertActionBySeedId[id];
