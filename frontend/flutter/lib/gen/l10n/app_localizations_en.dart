@@ -1341,6 +1341,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsExchangeFailed => 'Couldn\'t redeem. Please try again.';
 
   @override
+  String get myPointsExchangeBlocked => 'You can\'t redeem this right now';
+
+  @override
+  String get myPointsInsufficient => 'Not enough points';
+
+  @override
+  String get myBenefitAlreadyReceived => 'You already have this';
+
+  @override
   String myPointsShortfall(String points) {
     return '$points short';
   }
@@ -1784,6 +1793,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get challengeJoinFailed => 'Couldn\'t join. Please try again.';
+
+  @override
+  String get challengeJoinAlready => 'You\'ve already joined';
+
+  @override
+  String get challengeJoinBlocked => 'You can\'t join right now';
 
   @override
   String get challengeJoinClosed => 'You can join again next Monday';
