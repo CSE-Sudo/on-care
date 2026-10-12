@@ -106,6 +106,27 @@ void main() {
       );
     });
 
+    test('담당 여부로 가르는 409 코드는 없다 (#3358)', () async {
+      // 서버가 담당 여부 거절을 없앴다. 예전 코드가 오더라도 따로 읽지 않고
+      // 나머지 409 와 같은 길로 간다.
+      final repository = _repo(
+        _StubAdapter(
+          status: 409,
+          body: <String, Object?>{
+            'detail': <String, Object?>{
+              'code': 'linked_to_other_trainer',
+              'message': '담당 트레이너 연결을 해제한 뒤 요청할 수 있어요.',
+            },
+          },
+        ),
+      );
+
+      expect(
+        () => repository.create(_draft),
+        throwsA(isA<DuplicatePendingConsultation>()),
+      );
+    });
+
     test('문자열 detail 409 는 예전처럼 이미 대기 중이다', () async {
       final repository = _repo(
         _StubAdapter(

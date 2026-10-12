@@ -158,13 +158,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String homeAdviceExerciseOnTrack(int minutes) {
-    return 'You worked out $minutes minutes this week. You are on track!';
+    return 'You did $minutes minutes of cardio this week. You are on track!';
   }
 
   @override
   String homeAdviceExerciseMore(int minutes) {
-    return 'You worked out $minutes minutes this week. A little more to go!';
+    return 'You did $minutes minutes of cardio this week. A little more to go!';
   }
+
+  @override
+  String get homeAdviceExerciseCardioStart =>
+      'No cardio logged yet this week. How about starting with an easy walk?';
 
   @override
   String get homeAdviceExerciseStart =>
@@ -687,7 +691,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietManualAddHint =>
-      'Type a food name and we\'ll fill in the nutrition';
+      'Type a food name and we\'ll fill in the nutrition. Points are only earned for meals logged by photo';
 
   @override
   String get dietManualAddEmpty => 'Add at least one food';
@@ -1659,7 +1663,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myPointsHistoryEmptyMessage =>
-      'Log meals and workouts to earn points.';
+      'Log meals by photo or log workouts to earn points.';
 
   @override
   String get myPointsHistoryLoadFailed => 'Couldn\'t load your points history';
@@ -2069,6 +2073,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String myWithdrawCancelSessions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '• The $count PT sessions your trainer scheduled will be cancelled',
+      one: '• The PT session your trainer scheduled will be cancelled',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String myWithdrawCancelConsultations(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2268,7 +2284,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifAlwaysSent =>
-      'PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent';
+      'PT bookings, changes and cancellations, trainer requests, connect and disconnect notices, consultation request results, health goal changes, coupon expiry and cancellation, and weekly challenge results are always sent';
 
   @override
   String get mySupportFaq => 'FAQ';
@@ -2666,7 +2682,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicPaidInsufficient(String shortfall) {
-    return 'You need $shortfall more. Log meals and workouts to earn points.';
+    return 'You need $shortfall more. Log meals by photo or log workouts to earn points.';
   }
 
   @override
@@ -2784,13 +2800,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultPendingCta => 'Consultation request pending';
-
-  @override
-  String get exConsultLinkedToOtherTrainer =>
-      'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.';
-
-  @override
-  String get exConsultGoToMyTrainer => 'View my trainer';
 
   @override
   String get exViewConsultationRequest => 'View consultation request';
@@ -3435,7 +3444,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout yourself +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
+    return 'Logging earns points.\nLog a meal by photo +${diet}P (not for meals added manually), log a workout yourself +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
   }
 
   @override
@@ -3796,7 +3805,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsGuideTitle => 'How to earn points';
 
   @override
-  String get myPointsDietAdd => 'Log a meal';
+  String get myPointsDietAdd => 'Log a meal by photo';
 
   @override
   String get myPointsRoutineComplete => 'Finish a personal exercise';
@@ -5052,7 +5061,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findEmailAction => 'Find email';
 
   @override
-  String get findEmailComingSoon => 'Finding your email is coming soon.';
+  String get findEmailFoundSubtitle =>
+      'These accounts match the details you entered.';
+
+  @override
+  String get findEmailMaskedNote =>
+      'Part of the email is hidden to protect your privacy.';
+
+  @override
+  String findEmailSocialTitle(String provider) {
+    return 'You signed up with $provider';
+  }
+
+  @override
+  String get findEmailSocialBody =>
+      'On the sign-in screen, sign in the same way you signed up.';
+
+  @override
+  String get findEmailProviderKakao => 'Kakao';
+
+  @override
+  String get findEmailProviderGoogle => 'Google';
+
+  @override
+  String get findEmailProviderOther => 'a social account';
+
+  @override
+  String get findEmailNotFoundTitle => 'We couldn\'t find a matching account';
+
+  @override
+  String get findEmailNotFoundBody =>
+      'Check your name and phone number again. If you didn\'t add a phone number when signing up, or changed it later, we can\'t find the account here.';
+
+  @override
+  String get findEmailRetry => 'Search again';
 
   @override
   String get passwordChangeTitle => 'Change password';

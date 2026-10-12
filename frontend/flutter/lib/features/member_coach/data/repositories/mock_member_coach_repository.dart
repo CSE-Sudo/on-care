@@ -30,6 +30,12 @@ typedef DemoCoachLinkCheck = bool Function();
 /// [DemoCoachLinkCheck] 와 같은 까닭으로 연결 상태는 헬스장 저장소에 둔다.
 typedef DemoCoachRelink = void Function(String trainerId);
 
+/// 데모에서 대화를 읽었을 때 알림함에 알린다. (#3343)
+///
+/// 실서버는 대화 읽음 한 번에 메시지·리포트 알림도 읽음으로 바꾼다. 데모의 알림은
+/// 로컬 목업 API(drift)가 들고 있어, 이 저장소는 읽었다고 알리기만 한다.
+typedef DemoCoachChatRead = Future<void> Function();
+
 /// In-memory demo coach for `USE_MOCK_API=true`. Mirrors the trainer app's
 /// seed identity ([kDemoTrainerName]) so the two demo apps tell one story. Chat is
 /// stateful for the session so a sent message appears in the thread.
@@ -49,11 +55,13 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     DemoCoachLinkCheck? linked,
     DemoCoachRelink? relink,
     Duration? replyDelay,
+    DemoCoachChatRead? onChatRead,
   }) : _exercise = exercise,
        _points = points,
        _linked = linked,
        _relink = relink,
-       _replyDelay = replyDelay;
+       _replyDelay = replyDelay,
+       _onChatRead = onChatRead;
 
   final RoutineSessionLog? _exercise;
   final DemoPointsLedger? _points;
@@ -67,6 +75,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   final DemoCoachRelink? _relink;
 
   final Duration? _replyDelay;
+
+  /// 대화를 읽었을 때 알림함에 알리는 곳. 주지 않으면 대화만 읽음이 된다
+  /// (테스트·단독 사용).
+  final DemoCoachChatRead? _onChatRead;
 
   /// 담당이 살아 있는가. 끊겼으면 코치도, 배정 운동도, 대화도 내 것이 아니다.
   bool _hasCoach() => _linked?.call() ?? true;
@@ -1002,6 +1014,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<void> markRead() async {
     _readUpTo = _chat.length;
     _changed();
+    // 대화를 읽으면 그 메시지·리포트 알림도 본 것이다 — 서버와 같다(#3343).
+    await _onChatRead?.call();
   }
 
   /// 마지막으로 내가 보낸 메시지 **뒤에** 온 트레이너 메시지만 미읽음이다.
