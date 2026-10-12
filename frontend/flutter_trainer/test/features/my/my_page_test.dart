@@ -281,10 +281,7 @@ void main() {
       await tester.tap(find.byTooltip('연결 해제').first);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(
-          of: find.byType(AppDialog),
-          matching: find.text('해제'),
-        ),
+        find.descendant(of: find.byType(AppDialog), matching: find.text('해제')),
       );
       await tester.pumpAndSettle();
 
@@ -515,10 +512,18 @@ void main() {
       }
     });
 
+    /// 소속 헬스장 카드의 `헬스장 변경`(소속이 없으면 `헬스장 설정`)을 누른다.
+    Future<void> tapGymChange(WidgetTester tester) async {
+      final Finder button = find.byKey(const ValueKey<String>('my-gym-change'));
+      await tester.ensureVisible(button);
+      await tester.pump();
+      await tester.tap(button);
+    }
+
     Future<void> openEdit(WidgetTester tester) async {
       await openTab(tester);
-      await tester.tap(find.text('프로필 수정'));
-      // 헬스장 목록은 수정 화면이 열려야 읽는다 — 목록이 올 때까지 기다린다.
+      await tapGymChange(tester);
+      // 헬스장 목록은 변경 화면이 열려야 읽는다 — 목록이 올 때까지 기다린다.
       await settle(tester);
     }
 
@@ -593,7 +598,7 @@ void main() {
         token: 'demo-trainer-token',
         at: AppRoutes.my,
       );
-      await tester.tap(find.text('프로필 수정'));
+      await tapGymChange(tester);
       await settle(tester);
 
       await searchGym(tester, '연희');
@@ -638,7 +643,7 @@ void main() {
           ),
         ],
       );
-      await tester.tap(find.text('프로필 수정'));
+      await tapGymChange(tester);
       await settle(tester);
       await searchGym(tester, '없는 스튜디오');
       expect(
@@ -685,7 +690,7 @@ void main() {
       );
     });
 
-    /// 위치 서비스를 [service] 로 바꿔 프로필 수정 화면을 연다.
+    /// 위치 서비스를 [service] 로 바꿔 헬스장 변경 화면을 연다.
     Future<void> openEditWithLocation(
       WidgetTester tester,
       TrainerLocationService service, {
@@ -701,7 +706,7 @@ void main() {
             trainerProfileRepositoryProvider.overrideWithValue(repository),
         ],
       );
-      await tester.tap(find.text('프로필 수정'));
+      await tapGymChange(tester);
       await settle(tester);
     }
 
@@ -842,7 +847,7 @@ void main() {
       );
     });
 
-    testWidgets('현재 위치 버튼은 검색 칸 바로 아래, 결과 목록 위에 있다', (tester) async {
+    testWidgets('현재 위치 버튼은 검색 칸 아래, 결과 목록 위에 있다', (tester) async {
       await openEditWithLocation(tester, _FakeLocationService.at(_sinchon));
       await tapLocate(tester);
       final double search = topOf(tester, 'gym-search');
@@ -881,9 +886,28 @@ void main() {
       );
       expect(find.text('회원에게 아직 보이지 않아요'), findsOneWidget);
 
-      await tester.tap(find.text('헬스장 설정'));
+      // 같은 이름의 버튼이 소속 헬스장 카드에도 있다 — 안내의 것을 누른다.
+      await tester.tap(find.text('헬스장 설정').first);
       await settle(tester);
-      expect(currentLocation(tester), AppRoutes.mySection('edit'));
+      expect(currentLocation(tester), AppRoutes.mySection('gym'));
+    });
+
+    testWidgets('소속 헬스장 카드에서 헬스장 변경과 정보 수정을 따로 연다', (tester) async {
+      await openTab(tester);
+      expect(find.text('헬스장 변경'), findsOneWidget);
+      expect(find.text('영업시간·연락처 수정'), findsOneWidget);
+
+      await tapGymChange(tester);
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('gym'));
+      expect(find.byKey(const ValueKey<String>('gym-search')), findsOneWidget);
+    });
+
+    testWidgets('프로필 수정에는 헬스장 찾기가 없다', (tester) async {
+      await openTab(tester);
+      await tester.tap(find.text('프로필 수정'));
+      await settle(tester);
+      expect(find.byKey(const ValueKey<String>('gym-search')), findsNothing);
     });
 
     testWidgets('소속이 있으면 안내하지 않는다', (tester) async {
@@ -891,7 +915,7 @@ void main() {
       expect(find.byKey(const ValueKey<String>('my-gym-hidden')), findsNothing);
     });
 
-    /// 소속 헬스장 카드의 `헬스장 정보 수정` 으로 들어가 값이 올 때까지 기다린다.
+    /// 소속 헬스장 카드의 `영업시간·연락처 수정` 으로 들어가 값이 올 때까지 기다린다.
     Future<void> openGymInfo(WidgetTester tester) async {
       await openTab(tester);
       final Finder button = find.byKey(
@@ -962,7 +986,7 @@ void main() {
       );
 
       // 태그 줄이 상단 바 아래로 밀려 있을 수 있어, 누르기 전에 화면으로 올린다.
-      final Finder remove = find.byTooltip('태그 지우기');
+      final Finder remove = find.byTooltip('태그 삭제');
       await tester.ensureVisible(remove);
       await tester.pumpAndSettle();
       await tester.tap(remove);
@@ -971,8 +995,12 @@ void main() {
       expect(find.text('아직 태그가 없어요.'), findsOneWidget);
     });
 
-    testWidgets('소속이 없으면 헬스장 정보 수정 버튼이 없다', (tester) async {
+    testWidgets('소속이 없으면 헬스장 정보 수정 버튼이 없고 헬스장 설정만 있다', (tester) async {
       await openWithoutGym(tester);
+      expect(
+        find.byKey(const ValueKey<String>('my-gym-change')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey<String>('my-gym-info-edit')),
         findsNothing,
@@ -981,12 +1009,12 @@ void main() {
 
     testWidgets('소속 헬스장은 필수다 — 고르지 않으면 저장하지 않고 칸 아래에 알린다', (tester) async {
       await openWithoutGym(tester);
-      await tester.tap(find.text('헬스장 설정'));
+      await tapGymChange(tester);
       await settle(tester);
 
       await tester.tap(find.text('저장'));
       await settle(tester);
-      expect(currentLocation(tester), AppRoutes.mySection('edit'));
+      expect(currentLocation(tester), AppRoutes.mySection('gym'));
       expect(find.text('검색 결과에서 소속 헬스장을 골라 주세요'), findsOneWidget);
 
       // 골라서 저장하면 안내가 사라진다.
@@ -998,9 +1026,7 @@ void main() {
       expect(find.byKey(const ValueKey<String>('my-gym-hidden')), findsNothing);
     });
 
-    testWidgets('gym-only failure reports that profile fields were saved', (
-      tester,
-    ) async {
+    testWidgets('헬스장 변경이 실패하면 알리고 고른 채로 그 화면에 남는다', (tester) async {
       final repository = _GymFailureRepository();
       final container = await pumpTrainerApp(
         tester,
@@ -1011,12 +1037,8 @@ void main() {
         ],
       );
 
-      await tester.tap(find.text('프로필 수정'));
+      await tapGymChange(tester);
       await settle(tester);
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('profile-phone')),
-        '010-9999-0000',
-      );
       // 다른 헬스장을 고른다 — 저장하면 소속 설정(selectGym)이 실패한다.
       await searchGym(tester, '강남');
       await tapResult(tester, 'gym-2');
@@ -1024,10 +1046,12 @@ void main() {
       await tester.tap(find.text('저장'));
       await settle(tester);
 
-      expect(find.textContaining('소속 헬스장을 바꾸지 못했어요'), findsOneWidget);
+      expect(find.textContaining('헬스장 연결 요청이 실패했습니다'), findsOneWidget);
+      expect(currentLocation(tester), AppRoutes.mySection('gym'));
+      expect(find.text('저장하면 이 헬스장으로 바뀌어요'), findsOneWidget);
       expect(
-        container.read(sessionControllerProvider).profile?.phone,
-        '010-9999-0000',
+        container.read(sessionControllerProvider).profile?.gym.id,
+        kDemoTrainerGymId,
       );
     });
 

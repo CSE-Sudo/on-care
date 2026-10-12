@@ -9,6 +9,7 @@ AI 코치 라우터 — 프론트 계약 정렬.
 
 피드백은 도메인(식단/운동)별 코치를 각각 생성해 합친 결과다. 각 코치는 RAG+LLM 으로
 만들고, 키·자료가 없거나 실패하면 규칙 기반으로 폴백한다 — 어느 쪽이든 응답 형식은 같다.
+만든 카드는 회원별로 잠깐 캐시하고 하루 생성 횟수를 묶는다(`coach_feedback_service`, #3351).
 """
 from __future__ import annotations
 
@@ -34,10 +35,9 @@ from app.schemas.misc_api import (
     ChatReply,
     ChatRequest,
 )
-from app.services import ai_chat_quota_service, points_service
+from app.services import ai_chat_quota_service, coach_feedback_service, points_service
 from app.services.coach import conversation, insights
 from app.services.coach.chat import answer
-from app.services.coach_service import build_feedback
 from app.services.trainer._common import get_member_trainer_id
 
 router = APIRouter(tags=["ai-coach"])
@@ -59,10 +59,17 @@ def _ensure_ai_chat_allowed(db: Session, user_id: str) -> None:
 
 @router.get("/ai-coach/feedback", response_model=AiCoachFeedback)
 def ai_coach_feedback(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> AiCoachFeedback:
-    return build_feedback(db, current_user.id, current_user.name)
+    """홈 코칭 시트의 인사말과 식단·운동 카드. 회원 전용이다(#3351).
+
+    카드는 회원별로 잠깐 캐시한다 — 같은 날·같은 언어로 다시 열면 모델을 부르지
+    않는다. 식단·운동 기록이 바뀌면 캐시를 버려 다음 요청이 새 기록으로 만든다.
+    하루에 새로 만드는 횟수가 상한을 넘으면 오류가 아니라 규칙 기반 카드로 답한다.
+    응답 모양은 어느 경우든 같다.
+    """
+    return coach_feedback_service.feedback(db, current_user.id, current_user.name)
 
 
 @router.get("/ai-coach/messages", response_model=ChatHistory)
@@ -89,6 +96,8 @@ def ai_coach_messages(
                 insight=_insight_out(m.content) if m.role == "user" else None,
                 points_spent=paid[m.id].cost if m.id in paid else 0,
                 balance_after=paid[m.id].balance_after if m.id in paid else None,
+                id=m.id,
+                client_request_id=m.client_request_id,
             )
             for m in rows
         ]
@@ -131,7 +140,8 @@ def ai_coach_chat(
     포인트로 보낸다. 동의가 없으면 402(`points_required`), 오늘 다 썼으면
     429(`daily_limit`), 잔액이 모자라면 409(`insufficient_points`)다. `detail` 은
     `{code, message}` 이고 모자라면 `shortfall` 도 싣는다. AI 가 답했을 때만 세고
-    차감한다. 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려준다.
+    차감한다. 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려준다 —
+    대체 답으로 끝난 전송도 같다(#3352). 대화에 같은 질문이 한 쌍 더 남지 않는다.
 
     몫은 LLM 을 부르기 전에 잠금 아래에서 잡고(#3240), AI 가 답하지 못하면 거둔다 —
     동시에 보낸 요청이 한도·잔액을 넘지 못한다. 같은 키가 아직 답을 기다리는 중이면
@@ -176,13 +186,29 @@ def ai_coach_chat(
             },
         ) from exc
 
+    if payload.client_request_id:
+        # 처음 볼 때와 몫을 잡는 사이에 같은 키의 전송이 끝났을 수 있다. 대체 답은
+        # 사용 기록을 남기지 않아 [reserve] 가 알아보지 못한다(#3352) — 잠금을 지난
+        # 지금 다시 보고, 저장돼 있으면 잡은 몫을 거두고 그 답을 재생한다.
+        done = conversation.exchange_by_request(
+            db, current_user.id, payload.client_request_id
+        )
+        if done is not None:
+            ai_chat_quota_service.release(db, current_user.id, usage_id)
+            return _replay_exchange(db, current_user.id, done, message)
+
     try:
         stored = conversation.load_messages(db, current_user.id)
         history = stored or payload.history
 
         reply, sources, generated = answer(db, current_user.id, message, history)
-        convo = conversation.append_exchange(
-            db, current_user.id, question=message, reply=reply, sources=sources
+        exchange = conversation.append_exchange(
+            db,
+            current_user.id,
+            question=message,
+            reply=reply,
+            sources=sources,
+            client_request_id=payload.client_request_id,
         )
     except Exception:
         # 서버 전체 AI 상한(503 `ai_capacity`)·저장 오류 — 회원이 답을 받지 못했다.
@@ -193,20 +219,22 @@ def ai_coach_chat(
     balance_after: int | None = None
     if generated:
         usage = ai_chat_quota_service.complete(
-            db, usage_id, message_id=conversation.last_reply_id(db, convo)
+            db, usage_id, message_id=exchange.reply.id
         )
         spent = usage.cost
         balance_after = usage.balance_after
     else:
-        # 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다.
+        # 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다. 사용 기록은 거두지만
+        # 저장한 두 줄에 멱등키가 남아 있어 같은 키의 재전송은 이 답을 재생한다(#3352).
         ai_chat_quota_service.release(db, current_user.id, usage_id)
-    return ChatReply(
-        reply=reply,
-        sources=sources,
-        user_insight=_insight_out(message),
+    return _reply_out(
+        db,
+        current_user.id,
+        question=exchange.question,
+        reply=exchange.reply,
+        message=message,
         points_spent=spent,
         balance_after=balance_after,
-        quota=ai_chat_quota_service.status(db, current_user.id),
     )
 
 
@@ -217,20 +245,77 @@ def _replay(
 
     응답을 못 받고 다시 보낸 메시지가 두 번 세지거나 두 번 차감되지 않는다.
     답변이 한 달이 지나 지워졌으면 다시 답한다(그때는 새로 센다).
+
+    AI 가 답한 전송은 사용 기록이 가리키는 답을, 대체 답으로 끝난 전송은 메시지에
+    남긴 키로 찾은 답을 돌려준다(#3352). 사용 기록이
+    아직 답에 이어지지 않았으면(답을 기다리는 중) 재생하지 않고 [reserve] 가 가른다.
     """
     usage = ai_chat_quota_service.by_request(db, user_id, client_request_id)
-    if usage is None or usage.message_id is None:
+    if usage is None:
+        exchange = conversation.exchange_by_request(db, user_id, client_request_id)
+        if exchange is None:
+            return None
+        return _replay_exchange(db, user_id, exchange, message)
+    if usage.message_id is None:
         return None
     row = db.get(AiMessage, usage.message_id)
     if row is None:
         return None
-    return ChatReply(
-        reply=row.content,
-        sources=conversation.parse_sources(row.sources_json),
-        user_insight=_insight_out(message),
+    return _reply_out(
+        db,
+        user_id,
+        question=conversation.question_of(db, row),
+        reply=row,
+        message=message,
         points_spent=usage.cost,
         balance_after=usage.balance_after,
+    )
+
+
+def _replay_exchange(
+    db: Session, user_id: str, exchange: conversation.Exchange, message: str
+) -> ChatReply:
+    """메시지에 남긴 멱등키로 찾은 전송을 재생한다. (#3352)
+
+    대체 답이면 쓴 것이 없다. 포인트로 산 답이면(사용 기록의 키가 풀린 뒤다) 그
+    차감을 그대로 싣는다 — 저장된 대화의 차감 표시와 같은 값이다.
+    """
+    paid = ai_chat_quota_service.spent_by_message(db, [exchange.reply.id])
+    usage = paid.get(exchange.reply.id)
+    return _reply_out(
+        db,
+        user_id,
+        question=exchange.question,
+        reply=exchange.reply,
+        message=message,
+        points_spent=usage.cost if usage is not None else 0,
+        balance_after=usage.balance_after if usage is not None else None,
+    )
+
+
+def _reply_out(
+    db: Session,
+    user_id: str,
+    *,
+    question: AiMessage | None,
+    reply: AiMessage,
+    message: str,
+    points_spent: int,
+    balance_after: int | None,
+) -> ChatReply:
+    """저장한 질문·답 두 줄을 응답 모양으로. 처음 답할 때와 재생이 함께 쓴다. (#3352)"""
+    return ChatReply(
+        reply=reply.content,
+        sources=conversation.parse_sources(reply.sources_json),
+        user_insight=_insight_out(message),
+        points_spent=points_spent,
+        balance_after=balance_after,
         quota=ai_chat_quota_service.status(db, user_id),
+        user_message_id=question.id if question is not None else None,
+        user_created_at=question.created_at if question is not None else None,
+        reply_message_id=reply.id,
+        reply_created_at=reply.created_at,
+        client_request_id=reply.client_request_id,
     )
 
 

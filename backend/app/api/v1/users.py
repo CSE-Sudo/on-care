@@ -51,6 +51,9 @@ from app.schemas.user import (
     ConsentStatus,
     ConsentSubmit,
     EmailChangeCodeRequest,
+    FindEmailRequest,
+    FindEmailResult,
+    FoundEmailAccount,
     MemberPasswordChange,
     OptionalConsentState,
     PasswordChanged,
@@ -81,6 +84,7 @@ from app.services import (
     auth_tokens,
     consultation_service,
     data_consent_service,
+    find_email,
     health_goal_change,
     member_departure,
     member_pairing_service,
@@ -95,7 +99,9 @@ from app.services import (
     weekly_challenge_service,
 )
 from app.services.diet_coach_inputs import effective_protein_g
+from app.services.trainer import _common as trainer_common_service
 from app.services.contact_format import normalize_email
+from app.services.placeholder_email import is_placeholder_email, placeholder_provider
 from app.services.profile_format import name_from_email
 
 router = APIRouter(tags=["users"])
@@ -113,6 +119,8 @@ def get_me(
         id=current_user.id,
         name=current_user.name,
         email=current_user.email,
+        email_is_placeholder=is_placeholder_email(current_user.email),
+        email_placeholder_provider=placeholder_provider(current_user.email),
         role=current_user.role,
         consent_required=bool(pending),
         consent_pending=pending,
@@ -232,7 +240,11 @@ def get_my_health(
 
     return UserHealth(
         profile=HealthProfileBrief(
-            id=current_user.id, name=current_user.name, email=current_user.email
+            id=current_user.id,
+            name=current_user.name,
+            email=current_user.email,
+            email_is_placeholder=is_placeholder_email(current_user.email),
+            email_placeholder_provider=placeholder_provider(current_user.email),
         ),
         activity_points=points,
     )
@@ -257,6 +269,8 @@ def _profile_view(user: User) -> ProfileView:
         id=user.id,
         name=user.name,
         email=user.email,
+        email_is_placeholder=is_placeholder_email(user.email),
+        email_placeholder_provider=placeholder_provider(user.email),
         phone=p.phone if p else "",
         birth_date=p.birth_date if p else "",
         gender=p.gender if p else "",
@@ -374,7 +388,8 @@ def update_me(
     로그인 이메일을 **실제로** 바꾸는 저장만 본인 확인을 거친다(#3039,
     `services/reauth.py`). 바꾸면 토큰 세대가 올라 다른 기기가 모두 로그아웃되고,
     응답의 새 토큰 한 쌍으로 이 기기가 이어 쓴다. 예전 주소로 변경 안내 메일이 간다
-    — 본인이 아니면 알아챌 수 있다. 이름·연락처만 고치는 저장은 예전과 같다.
+    — 본인이 아니면 알아챌 수 있다. 예전 주소가 소셜 가입의 대체 이메일이면 보내지
+    않는다(#3338). 이름·연락처만 고치는 저장은 예전과 같다.
 
     새 주소의 주인인지도 확인한다(#3230). 본인 확인만으로는 자기 계정의 이메일을
     **남의** 주소로 바꿀 수 있었다 — 그 주소로 가입하려는 주인은 409 를 받고, 그 주소의
@@ -553,7 +568,7 @@ def get_deletion_preview(
     user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> AccountDeletionPreview:
-    """탈퇴하면 사라지는 포인트·쿠폰과 취소되는 예약·상담 요청의 수(#3006).
+    """탈퇴하면 사라지는 포인트·쿠폰과 취소되는 예약·일정·상담 요청의 수(#3006).
 
     탈퇴 확인창이 연다. [delete_me] 가 실제로 지우는 범위를 숫자로 미리 보여 줄
     뿐이고, 아무것도 바꾸지 않는다. 트레이너 계정은 403 이다(회원 전용).
@@ -569,7 +584,8 @@ def delete_me(
     payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """회원 탈퇴. 예약 좌석을 복구한 뒤 프로필·식단·운동·일정·알림·
-    소셜계정·개인 코치문서를 함께 삭제한다. 대기 중 상담 요청은 요청을 받은
+    소셜계정·개인 코치문서를 함께 삭제한다. 트레이너가 잡은 일정은 시작 전이면
+    취소로 바꾸고, 남는 행에서는 회원 이름과 메모를 지운다(#3341). 대기 중 상담 요청은 요청을 받은
     트레이너에게 취소를 알린 뒤 함께 지운다(#1632).
 
     고른 사유가 있으면 **회원 행과 잇지 않고** 따로 남긴다(#2019). 회원은 이
@@ -597,6 +613,9 @@ def delete_me(
             )
         )
     reservation_service.cancel_member_reservations_for_account_deletion(db, user.id)
+    # 트레이너가 잡은 일정은 회원 행이 사라져도 이름·메모와 함께 남는다 — 시작 전
+    # 일정은 취소로 바꾸고, 남는 행에서는 회원 이름과 메모를 지운다(#3341).
+    trainer_common_service.clear_sessions_on_withdrawal(db, user.id)
     # 대기 중인 상담이 잡고 있던 자리도 풀어 준다 — 요청 행은 CASCADE 로 사라져도
     # 자리는 남아 잠긴 채가 된다(#1873).
     consultation_service.release_holds_for_account_deletion(db, user.id)
@@ -1331,3 +1350,52 @@ def confirm_password_reset(
         success=True,
     )
     return PasswordResetDone()
+
+
+# ---- 아이디(가입 이메일) 찾기 (#3337) ----
+
+
+@router.post(
+    "/auth/find-email",
+    response_model=FindEmailResult,
+    dependencies=[Depends(rate_limit("auth-find-email"))],
+)
+def find_signup_email(
+    payload: FindEmailRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> FindEmailResult:
+    """이름과 전화번호로 가입 계정을 찾아 **가려진 이메일**만 돌려준다. 회원 계정용.
+
+    **전체 이메일은 어떤 경우에도 싣지 않는다.** 번호의 주인을 확인할 수단이 없어,
+    주인이 떠올릴 만큼만(`ab***@example.com`) 보여 준다. 찾지 못해도 오류가 아니라
+    같은 200 에 빈 목록이다. 소셜 로그인 전용 계정은 이메일 없이 가입 수단만 준다.
+
+    시도 제한은 두 겹이다. IP 별 분당 한도(`auth-find-email`)와, 한 전화번호로 찾아볼
+    수 있는 횟수(`FIND_EMAIL_PHONE_PER_WINDOW`). 뒤의 것은 여러 IP 에서 한 번호에
+    이름을 바꿔 가며 대어 보는 것을 막는다 — 계정이 없는 번호도 똑같이 세므로 429 로
+    가입 여부가 드러나지 않는다.
+    """
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"find-email-phone:{payload.phone}",
+            settings.find_email_phone_per_window,
+            settings.find_email_phone_window_minutes * 60.0,
+        )
+    found = find_email.find_accounts(db, name=payload.name, phone=payload.phone)
+    audit(
+        db,
+        event="auth.find_email",
+        ip=client_ip(request),
+        # 감사 로그에는 찾았는지만 남긴다. 이름·번호·이메일은 적지 않는다.
+        success=bool(found),
+    )
+    return FindEmailResult(
+        accounts=[
+            FoundEmailAccount(
+                masked_email=account.masked_email, providers=list(account.providers)
+            )
+            for account in found
+        ]
+    )

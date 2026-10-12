@@ -32,6 +32,23 @@ void main() {
       expect(e, isA<NetworkError>());
     });
 
+    test('every transport timeout → NetworkError that keeps the cause', () {
+      // 응답 변환 시간 초과도 회원에게는 "연결을 확인하고 다시 시도" 다.
+      for (final DioExceptionType type in <DioExceptionType>[
+        DioExceptionType.connectionTimeout,
+        DioExceptionType.sendTimeout,
+        DioExceptionType.receiveTimeout,
+        DioExceptionType.transformTimeout,
+      ]) {
+        final e = AppError.fromDio(
+          DioException(requestOptions: opts(), type: type),
+        );
+        expect(e, isA<NetworkError>(), reason: '$type');
+        expect(e.cause, isA<DioException>(), reason: '$type');
+        expect(e.detail, isNull, reason: '$type');
+      }
+    });
+
     test('connection error → NetworkError', () {
       final e = AppError.fromDio(
         DioException(

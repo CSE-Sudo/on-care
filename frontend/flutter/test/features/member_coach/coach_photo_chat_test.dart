@@ -416,7 +416,7 @@ void main() {
 
       expect(find.text("Couldn't send the photo"), findsOneWidget);
       expect(find.text('Send again'), findsOneWidget);
-      expect(find.text('Remove'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
     });
   });
 

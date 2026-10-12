@@ -2659,7 +2659,7 @@ class _TemplateMenu extends StatelessWidget {
       triggerBuilder: (context, toggle) => AppIconButton(
         key: ValueKey<String>('template-menu-${template.id}'),
         icon: AppIcons.more,
-        tooltip: l.coachTemplateMenu,
+        tooltip: l.actionMore,
         color: OnCareColors.textTertiary,
         onPressed: toggle,
       ),

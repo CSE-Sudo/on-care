@@ -104,23 +104,27 @@
   "@homeAdviceSodiumOver": {
     "description": "Home AI advice when today's sodium is over the goal (#1943)."
   },
-  "homeAdviceExerciseOnTrack": "You worked out {minutes} minutes this week. You are on track!",
+  "homeAdviceExerciseOnTrack": "You did {minutes} minutes of cardio this week. You are on track!",
   "@homeAdviceExerciseOnTrack": {
-    "description": "Home AI advice when the weekly exercise goal is met (#1943).",
+    "description": "Home AI advice when this week's cardio minutes meet the member's weekly cardio goal (#1943, #3350).",
     "placeholders": {
       "minutes": {
         "type": "int"
       }
     }
   },
-  "homeAdviceExerciseMore": "You worked out {minutes} minutes this week. A little more to go!",
+  "homeAdviceExerciseMore": "You did {minutes} minutes of cardio this week. A little more to go!",
   "@homeAdviceExerciseMore": {
-    "description": "Home AI advice when there is some exercise but not enough (#1943).",
+    "description": "Home AI advice when there is exercise this week but cardio minutes are under the weekly cardio goal (#1943, #3350).",
     "placeholders": {
       "minutes": {
         "type": "int"
       }
     }
+  },
+  "homeAdviceExerciseCardioStart": "No cardio logged yet this week. How about starting with an easy walk?",
+  "@homeAdviceExerciseCardioStart": {
+    "description": "Home AI advice when the member exercised this week but logged no cardio (#3350)."
   },
   "homeAdviceExerciseStart": "Start moving this week — an easy walk is a good beginning.",
   "@homeAdviceExerciseStart": {
@@ -424,7 +428,7 @@
   "dietAddFood": "Add food",
   "dietManualAdd": "Add manually",
   "dietManualAddTitle": "Add meal manually",
-  "dietManualAddHint": "Type a food name and we'll fill in the nutrition",
+  "dietManualAddHint": "Type a food name and we'll fill in the nutrition. Points are only earned for meals logged by photo",
   "dietManualAddEmpty": "Add at least one food",
   "dietEditFoodHint": "Change the serving size and the nutrition follows",
   "dietTotalCalories": "Total calories",
@@ -787,6 +791,15 @@
   "exSpecialty": "Specialties",
   "myTabTitle": "MY",
   "myDefaultUserName": "User",
+  "myEmailUnregistered": "{provider, select, kakao{Signed up with Kakao} google{Signed up with Google} other{Signed up with a social account}} · No email on file",
+  "@myEmailUnregistered": {
+    "description": "Shown instead of the email when the account only has the internal placeholder address from a social sign-up.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "myProfileLoadFailed": "Couldn't load your profile",
   "myPointsLoadFailed": "Couldn't load your points balance",
   "mySettingsTitle": "Settings",
@@ -1123,7 +1136,7 @@
   "myBenefitsTitle": "My benefits",
   "myPointsHistoryTitle": "Points history",
   "myPointsHistoryEmpty": "No points activity yet",
-  "myPointsHistoryEmptyMessage": "Log meals and workouts to earn points.",
+  "myPointsHistoryEmptyMessage": "Log meals by photo or log workouts to earn points.",
   "myPointsHistoryLoadFailed": "Couldn't load your points history",
   "myPointsHistoryMore": "Load more",
   "myPointsHistoryMoreFailed": "Couldn't load more. Please try again",
@@ -1216,6 +1229,7 @@
   "challengeJoinDone": "You joined this week's challenge",
   "challengeJoinFailed": "Couldn't join. Please try again.",
   "challengeJoinClosed": "You can join again next Monday",
+  "challengeSettling": "Tallying last week's result. Workouts you log for last week by today still count",
   "challengeThisWeek": "This week",
   "challengeProgress": "{progress} / {goal} workouts",
   "@challengeProgress": {
@@ -1441,6 +1455,15 @@
       }
     }
   },
+  "myWithdrawCancelSessions": "{count, plural, =1{• The PT session your trainer scheduled will be cancelled} other{• The {count} PT sessions your trainer scheduled will be cancelled}}",
+  "@myWithdrawCancelSessions": {
+    "description": "Withdrawal confirmation line, shown only when a trainer has scheduled upcoming sessions with the member (#3341).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "myWithdrawCancelConsultations": "{count, plural, =1{• Your pending consultation request will be cancelled} other{• Your {count} pending consultation requests will be cancelled}}",
   "@myWithdrawCancelConsultations": {
     "description": "Withdrawal confirmation line, shown only when the member has pending consultation requests (#3006).",
@@ -1524,6 +1547,7 @@
   "myProfileSaved": "Profile saved",
   "mySaveFailed": "Couldn't save. Please try again in a moment",
   "myProfileEmailTaken": "That email is already in use",
+  "myProfileEmailEmptyHint": "Email address to use",
   "myProfilePhoneRequired": "Your phone number can't be left empty",
   "myProfileInvalid": "Please check what you entered",
   "myFieldName": "Name",
@@ -1539,7 +1563,7 @@
   "myNotifExerciseDesc": "When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback",
   "myNotifTrainerDesc": "When your trainer sends you a message",
   "myNotifWeeklyReportDesc": "When your trainer sends your weekly report",
-  "myNotifAlwaysSent": "PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent",
+  "myNotifAlwaysSent": "PT bookings, changes and cancellations, trainer requests, connect and disconnect notices, consultation request results, health goal changes, coupon expiry and cancellation, and weekly challenge results are always sent",
   "mySupportFaq": "FAQ",
   "mySupportInquiry": "1:1 inquiry",
   "myLegalTermsTitle": "Terms of Service",
@@ -1697,7 +1721,7 @@
   },
   "coachPhotoSendFailed": "Couldn't send the photo",
   "coachPhotoRetry": "Send again",
-  "coachPhotoDiscard": "Remove",
+  "coachPhotoDiscard": "Delete",
   "@coachPhotoDiscard": {
     "description": "Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665)."
   },
@@ -1826,7 +1850,7 @@
     }
   },
   "aicPaidConfirmAction": "Send with points",
-  "aicPaidInsufficient": "You need {shortfall} more. Log meals and workouts to earn points.",
+  "aicPaidInsufficient": "You need {shortfall} more. Log meals by photo or log workouts to earn points.",
   "@aicPaidInsufficient": {
     "placeholders": {
       "shortfall": {
@@ -1957,8 +1981,6 @@
   "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a trainer consultation",
   "exConsultPendingCta": "Consultation request pending",
-  "exConsultLinkedToOtherTrainer": "You're connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.",
-  "exConsultGoToMyTrainer": "View my trainer",
   "exViewConsultationRequest": "View consultation request",
   "exConsultTarget": "Consultation target",
   "exTrainerConsultType": "Trainer consultation",
@@ -2331,7 +2353,7 @@
   "@guidePointsTitle": {
     "description": "Spotlight guide step: the MY tab points card (#1857)."
   },
-  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points",
+  "guidePointsBody": "Logging earns points.\nLog a meal by photo +{diet}P (not for meals added manually), log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points",
   "@guidePointsBody": {
     "description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).",
     "placeholders": {
@@ -2722,7 +2744,7 @@
   "@myPointsGuideTitle": {
     "description": "Title of the points guide dialog."
   },
-  "myPointsDietAdd": "Log a meal",
+  "myPointsDietAdd": "Log a meal by photo",
   "@myPointsDietAdd": {
     "description": "Point-earning action in the points guide."
   },
@@ -3116,7 +3138,7 @@
   "a11yOpenCoaching": "Open coaching advice",
   "a11ySendMessage": "Send message",
   "a11yClearSearch": "Clear search",
-  "a11yRemoveFood": "Remove food",
+  "a11yRemoveFood": "Delete food",
   "a11yPrevWeek": "Previous week",
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
@@ -4103,10 +4125,24 @@
   "findEmailTitle": "Find your email",
   "findEmailSubtitle": "Enter the name and phone number you signed up with to find your email.",
   "findEmailAction": "Find email",
-  "findEmailComingSoon": "Finding your email is coming soon.",
-  "@findEmailComingSoon": {
-    "description": "Toast shown when the find-email button is pressed while the lookup is not available yet."
+  "findEmailFoundSubtitle": "These accounts match the details you entered.",
+  "findEmailMaskedNote": "Part of the email is hidden to protect your privacy.",
+  "findEmailSocialTitle": "You signed up with {provider}",
+  "@findEmailSocialTitle": {
+    "description": "Find-email result for an account that signs in through a social provider only. provider is findEmailProviderKakao / Google / Other.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
   },
+  "findEmailSocialBody": "On the sign-in screen, sign in the same way you signed up.",
+  "findEmailProviderKakao": "Kakao",
+  "findEmailProviderGoogle": "Google",
+  "findEmailProviderOther": "a social account",
+  "findEmailNotFoundTitle": "We couldn't find a matching account",
+  "findEmailNotFoundBody": "Check your name and phone number again. If you didn't add a phone number when signing up, or changed it later, we can't find the account here.",
+  "findEmailRetry": "Search again",
   "passwordChangeTitle": "Change password",
   "passwordChangeCurrentHint": "Current password",
   "passwordChangeNewHint": "New password (8+ characters, letters and numbers)",
@@ -4140,6 +4176,7 @@
     }
   },
   "passwordResetConfirmSubtitle": "Enter the code from the email and your new password.",
+  "passwordResetSocialNote": "If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.",
   "passwordResetCodeHint": "16-character reset code",
   "passwordResetCodeEmpty": "Enter the code",
   "passwordResetCodeMalformed": "Enter the 16-character code from the email",

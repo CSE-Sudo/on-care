@@ -64,7 +64,7 @@ for app in flutter flutter_trainer; do
   # 다른 지시어(img-src·media-src 의 https:)는 그대로다.
   contains "$app img-src 유지" "$work/$app-mock.html" "img-src 'self' data: blob: https:;"
   contains "$app script-src 유지" "$work/$app-mock.html" \
-    "script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net https://accounts.google.com/gsi/client;"
+    "script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net https://t1.kakaocdn.net https://accounts.google.com/gsi/client;"
   # meta 밖 본문은 바뀌지 않는다(바뀐 줄은 CSP 한 줄뿐).
   changed=$(diff "$src" "$work/$app-mock.html" | grep -c '^>' || true)
   if [ "$changed" = 1 ]; then

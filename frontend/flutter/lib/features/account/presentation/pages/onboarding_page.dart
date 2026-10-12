@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
+import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
@@ -28,6 +32,12 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 여기서 저장하는 목표 열 칸은 MY `건강 목표` 가 고치는 열과 **같은 열**이다
 /// — 온보딩에서 정한 값이 홈·식단·운동 탭의 목표선으로 그대로 이어진다.
 /// 전에는 온보딩이 나트륨 한 칸만 받아, 첫 화면들이 전부 앱 기본값을 견줬다.
+///
+/// 건너뛴 회원이 앱 안에서 **다시 연** 첫 설정([OnboardingPage.resumed])은 빈
+/// 계정이 아닐 수 있다(#3339) — 그 사이 MY 에서 목표를 정했거나 담당 트레이너가
+/// 목표와 주의사항을 넣어 줬을 수 있다. 그래서 그 경로는 회원의 지금 값으로
+/// 칸을 채우고 비어 있는 칸만 권장값으로 시작하며, 끝낼 때는 **바꾼 칸만**
+/// 보낸다.
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key, this.resumed = false});
 
@@ -104,13 +114,130 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// `권장값으로 되돌리기` 를 눌러야 비워진다.
   final Set<_GoalField> _edited = <_GoalField>{};
 
+  // ── 다시 연 첫 설정 (#3339) ──
+
+  /// 다시 연 첫 설정이 칸을 채운 회원의 프로필. 가입 직후 경로에서는 null 이다.
+  ///
+  /// 끝낼 때 이 값과 견줘 **바꾼 칸만** 보낸다 — MY `건강 목표` 저장과 같은
+  /// 방식이다. 손대지 않은 칸까지 보내면 MY 에서 정한 목표와 트레이너가 넣어 준
+  /// 값이 화면에 떠 있던 값으로 덮인다.
+  UserProfile? _base;
+
+  /// 프로필을 읽는 중인가. 들고 있는 프로필이 없을 때만 잠깐 켜진다.
+  bool _loadingBase = false;
+
+  /// 회원에게 **이미 있던** 목표 칸. 손댄 칸처럼 권장값이 덮어쓰지 않는다 —
+  /// `권장값으로 되돌리기` 를 눌러야 권장값이 된다.
+  final Set<_GoalField> _kept = <_GoalField>{};
+
   @override
   void initState() {
     super.initState();
+    if (widget.resumed) {
+      _startResumed();
+      return;
+    }
     // 3·4단계에 닿기 전에 이미 채워 둔다 — 뒤로 돌아왔을 때도 칸이 비어 있는
     // 순간이 없어야 한다.
     _fillRecommended();
   }
+
+  /// 다시 연 첫 설정을 회원의 지금 값으로 시작한다(#3339).
+  ///
+  /// MY 에서 넘어온 길이라 프로필은 대개 이미 들고 있다. 없을 때만 서버에서
+  /// 읽고, 그동안은 칸을 내밀지 않는다 — 권장값을 먼저 보여 줬다가 바꾸면
+  /// 회원이 그 사이 고친 칸과 섞인다.
+  void _startResumed() {
+    final UserProfile? held = ref.read(profileProvider).valueOrNull;
+    if (held != null) {
+      _applyBase(held);
+      return;
+    }
+    _loadingBase = true;
+    unawaited(_loadBase());
+  }
+
+  Future<void> _loadBase() async {
+    try {
+      final UserProfile fresh = await ref
+          .read(profileProvider.notifier)
+          .refreshFromServer();
+      if (!mounted) return;
+      setState(() {
+        _applyBase(fresh);
+        _loadingBase = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      // 지금 값을 모르는 채로 저장하면 있던 목표를 권장값으로 덮는다. 읽지
+      // 못했으면 열지 않고 연 자리로 돌아간다.
+      showAppToast(
+        context,
+        AppLocalizations.of(context).myProfileLoadFailed,
+        type: AppToastType.error,
+      );
+      _leaveResumed();
+    }
+  }
+
+  /// [base] 의 값으로 칸을 채운다. 값이 있는 칸은 그 값, 없는 칸은 권장값이다.
+  void _applyBase(UserProfile base) {
+    _base = base;
+    // 드롭다운이 들고 있는 날짜만 받는다 — 목록에 없는 값을 넣으면 화면이
+    // 그려지지 않는다.
+    final DateTime? birth = DateTime.tryParse(base.birthDate);
+    if (birth != null &&
+        !birth.isAfter(todayKst()) &&
+        _birthYearOptions.contains(birth.year)) {
+      _birthYear = birth.year;
+      _birthMonth = birth.month;
+      _birthDay = birth.day;
+    }
+    if (_kGenders.contains(base.gender)) _gender = base.gender;
+    _height.text = _measureText(base.heightCm);
+    _weight.text = _measureText(base.weightKg);
+    _restoreBaseConditions();
+    for (final _GoalField f in _GoalField.values) {
+      final int? saved = _baseGoal(base, f);
+      if (saved == null) continue;
+      _kept.add(f);
+      _ctl(f).text = '$saved';
+    }
+    _fillRecommended();
+  }
+
+  /// 2단계를 [_base] 의 값으로 되돌린다. 목표 칩과 건강상태·주의사항은
+  /// `conditions` 한 칸에서 갈라 읽는다 — 주의사항에는 트레이너가 적은 글도 있다.
+  void _restoreBaseConditions() {
+    final String saved = _base?.conditions ?? '';
+    _conditions
+      ..clear()
+      ..addAll(parseHealthFocus(saved));
+    _notes.text = healthFocusNotes(saved);
+  }
+
+  /// 키·체중을 칸에 적는 글자로. `170.0` 은 `170` 으로 보인다.
+  String _measureText(double? value) {
+    if (value == null) return '';
+    return value == value.roundToDouble() ? '${value.round()}' : '$value';
+  }
+
+  /// [base] 에 저장된 그 칸의 목표. 정한 적이 없으면 null.
+  int? _baseGoal(UserProfile base, _GoalField f) => switch (f) {
+    _GoalField.calories => base.dailyCalories,
+    _GoalField.sodium => base.dailySodiumMg,
+    _GoalField.sugar => base.dailySugarG,
+    _GoalField.carbs => base.dailyCarbsG,
+    _GoalField.protein => base.dailyProteinG,
+    _GoalField.fat => base.dailyFatG,
+    _GoalField.burn => base.dailyBurnKcal,
+    _GoalField.cardio => base.weeklyCardioMinutes,
+    _GoalField.strength => base.weeklyStrengthSets,
+    _GoalField.flexibility => base.weeklyFlexibilityMinutes,
+  };
+
+  /// 권장값이 덮어쓰면 안 되는 칸 — 회원이 고쳤거나 이미 값이 있던 칸이다.
+  bool _held(_GoalField f) => _edited.contains(f) || _kept.contains(f);
 
   @override
   void dispose() {
@@ -146,7 +273,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 지금 1단계 값으로 낸 권장 목표.
   ///
   /// 회원이 **칼로리 칸을 직접 고쳤으면** 그 값을 기준으로 다시 나눈다 —
-  /// 각주가 말하는 비율과 탄단지 칸의 숫자가 어긋나지 않아야 한다.
+  /// 각주가 말하는 비율과 탄단지 칸의 숫자가 어긋나지 않아야 한다. 이미 있던
+  /// 칼로리 목표도 같다(#3339).
   RecommendedGoals get _recommended {
     // 2단계에서 고른 건강 목표도 함께 반영한다(#1816).
     final RecommendedGoals base = recommendedGoalsFor(
@@ -156,7 +284,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       weightKg: _weightKg,
       focus: _conditions,
     );
-    if (!_edited.contains(_GoalField.calories)) return base;
+    if (!_held(_GoalField.calories)) return base;
     final int? kcal = _goalValue(_GoalField.calories);
     if (kcal == null || kcal <= 0) return base;
     return recommendedGoalsFromCalories(
@@ -189,22 +317,25 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final RecommendedGoals r = _recommended;
     for (final _GoalField f in _GoalField.values) {
       if (only != null && f.group != only) continue;
-      if (_edited.contains(f)) continue;
+      if (_held(f)) continue;
       _ctl(f).text = '${_recommendedValue(f, r)}';
     }
   }
 
-  /// 묶음 하나를 권장값으로 되돌린다 — 손댔다는 기억부터 지운다.
+  /// 묶음 하나를 권장값으로 되돌린다 — 손댔다는 기억부터 지운다. 이미 있던
+  /// 목표도 회원이 되돌리기를 골랐으니 권장값이 된다.
   void _resetGroup(_GoalGroup group) {
     setState(() {
       _edited.removeWhere((_GoalField f) => f.group == group);
+      _kept.removeWhere((_GoalField f) => f.group == group);
       _fillRecommended(only: group);
     });
   }
 
-  /// 그 묶음에 회원이 고친 칸이 있는가. `권장값으로 되돌리기` 를 띄우는 조건이다.
+  /// 그 묶음에 권장값이 아닌 칸이 있는가 — 회원이 고쳤거나 이미 값이 있던
+  /// 칸이다. `권장값으로 되돌리기` 를 띄우는 조건이다.
   bool _isEdited(_GoalGroup group) =>
-      _edited.any((_GoalField f) => f.group == group);
+      _GoalField.values.any((_GoalField f) => f.group == group && _held(f));
 
   /// 사람이 친 글자만 올라온다 — 프로그램이 컨트롤러에 써 넣은 값은
   /// `onChanged` 를 부르지 않으므로 되먹임이 생기지 않는다.
@@ -398,10 +529,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   ///
   /// 그냥 `다음` 을 누르는 것과 다르다: 골라 뒀다가 마음이 바뀌어 건너뛰었는데
   /// 고른 목표가 그대로 저장되면, 건너뛴 것이 건너뛴 것이 아니게 된다.
+  ///
+  /// 다시 연 첫 설정에서는 비우지 않고 **있던 값으로 되돌린다**(#3339) — 건너뛴
+  /// 단계는 손대지 않은 단계다. 비운 채 저장하면 이미 고른 목표와 트레이너가
+  /// 적은 주의사항이 지워진다.
   void _skipConditions() {
     setState(() {
-      _conditions.clear();
-      _notes.clear();
+      // 가입 직후 경로는 되돌릴 값이 없어 비워진다.
+      _restoreBaseConditions();
       // 목표를 비웠으니 그 목표로 조정한 권장값도 기준값으로 돌린다(#1816).
       _fillRecommended();
     });
@@ -422,25 +557,28 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
     setState(() => _saving = true);
     try {
-      await ref
-          .read(accountRepositoryProvider)
-          .submitOnboarding(
-            birthDate: _birthDateText,
-            gender: _gender,
-            heightCm: _num(_height),
-            weightKg: _num(_weight),
-            conditions: _conditionsToSave(),
-            dailyCalories: _goalValue(_GoalField.calories),
-            dailySodiumMg: _goalValue(_GoalField.sodium),
-            dailySugarG: _goalValue(_GoalField.sugar),
-            dailyCarbsG: _goalValue(_GoalField.carbs),
-            dailyProteinG: _goalValue(_GoalField.protein),
-            dailyFatG: _goalValue(_GoalField.fat),
-            dailyBurnKcal: _goalValue(_GoalField.burn),
-            weeklyCardioMinutes: _goalValue(_GoalField.cardio),
-            weeklyStrengthSets: _goalValue(_GoalField.strength),
-            weeklyFlexibilityMinutes: _goalValue(_GoalField.flexibility),
-          );
+      final AccountRepository repository = ref.read(accountRepositoryProvider);
+      if (_base case final UserProfile base) {
+        await _submitResumed(repository, base);
+      } else {
+        await repository.submitOnboarding(
+          birthDate: _birthDateText,
+          gender: _gender,
+          heightCm: _num(_height),
+          weightKg: _num(_weight),
+          conditions: _conditionsToSave(),
+          dailyCalories: _goalValue(_GoalField.calories),
+          dailySodiumMg: _goalValue(_GoalField.sodium),
+          dailySugarG: _goalValue(_GoalField.sugar),
+          dailyCarbsG: _goalValue(_GoalField.carbs),
+          dailyProteinG: _goalValue(_GoalField.protein),
+          dailyFatG: _goalValue(_GoalField.fat),
+          dailyBurnKcal: _goalValue(_GoalField.burn),
+          weeklyCardioMinutes: _goalValue(_GoalField.cardio),
+          weeklyStrengthSets: _goalValue(_GoalField.strength),
+          weeklyFlexibilityMinutes: _goalValue(_GoalField.flexibility),
+        );
+      }
       // 이 기기에도 남긴다 — 다음 로그인에서 프로필을 못 받아 왔을 때 이미
       // 끝낸 회원을 다시 폼에 세우지 않기 위해서다(#1927).
       await rememberFirstRunDone(container);
@@ -458,6 +596,87 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       setState(() => _saving = false);
       showAppToast(context, l.onboardSaveFailed, type: AppToastType.error);
     }
+  }
+
+  /// 다시 연 첫 설정을 저장한다 — [base] 에서 **바꾼 칸만** 보낸다(#3339).
+  ///
+  /// MY `건강 목표` 저장(#2655)과 같은 규칙이다. 목표는 담당 트레이너도 고치는
+  /// 값이라, 손대지 않은 칸까지 보내면 그 사이 바뀐 값이 화면을 연 때의 값으로
+  /// 되돌아간다. 값이 없던 칸은 권장값이 채워져 있어 바꾼 칸으로 나간다 —
+  /// 값이 하나도 없는 회원은 가입 직후 경로와 같은 것을 보낸다.
+  ///
+  /// 바꾼 것이 없어도 저장은 보낸다. 첫 설정을 끝냈다는 표시가 남아야 한다.
+  Future<void> _submitResumed(
+    AccountRepository repository,
+    UserProfile base,
+  ) async {
+    int? changedGoal(_GoalField f) {
+      final int? next = _goalValue(f);
+      return next == _baseGoal(base, f) ? null : next;
+    }
+
+    // 목표 칩과 건강상태·주의사항은 `conditions` 한 칸이다(#2619). 바꾼 쪽만
+    // 저장 직전의 서버 값 위에 얹는다 — 칩만 고쳤는데 트레이너가 적은 글이
+    // 지워지거나 옛 글로 덮이지 않게.
+    final ({bool focus, bool notes}) edits = conditionsEdits(
+      base: base.conditions,
+      focus: _conditions,
+      notes: _notes.text,
+    );
+    String? conditions;
+    if (edits.focus || edits.notes) {
+      UserProfile latest;
+      try {
+        latest = await repository.fetchProfile();
+      } on Object {
+        // 읽지 못하면 들고 있던 값이다.
+        latest = base;
+      }
+      conditions = rebaseConditions(
+        base: base.conditions,
+        latest: latest.conditions,
+        focus: _conditions,
+        notes: _notes.text,
+      );
+    }
+    final String? birthDate = _birthDateText;
+    await repository.submitOnboarding(
+      birthDate: birthDate == base.birthDate ? null : birthDate,
+      gender: _gender == base.gender ? null : _gender,
+      heightCm: _heightCm == base.heightCm ? null : _num(_height),
+      weightKg: _weightKg == base.weightKg ? null : _num(_weight),
+      conditions: conditions,
+      dailyCalories: changedGoal(_GoalField.calories),
+      dailySodiumMg: changedGoal(_GoalField.sodium),
+      dailySugarG: changedGoal(_GoalField.sugar),
+      dailyCarbsG: changedGoal(_GoalField.carbs),
+      dailyProteinG: changedGoal(_GoalField.protein),
+      dailyFatG: changedGoal(_GoalField.fat),
+      dailyBurnKcal: changedGoal(_GoalField.burn),
+      weeklyCardioMinutes: changedGoal(_GoalField.cardio),
+      weeklyStrengthSets: changedGoal(_GoalField.strength),
+      weeklyFlexibilityMinutes: changedGoal(_GoalField.flexibility),
+    );
+
+    // 있던 목표를 **비운** 칸은 목표 해제다. 첫 설정 저장은 빈 값을 '손대지
+    // 않음' 으로 읽으므로, 해제는 그것을 받는 건강 목표 저장으로 보낸다.
+    GoalUpdate? cleared(_GoalField f) =>
+        _goalValue(f) == null && _baseGoal(base, f) != null
+        ? const GoalUpdate.clear()
+        : null;
+    if (_GoalField.values.every((_GoalField f) => cleared(f) == null)) return;
+    await repository.updateHealthGoals(
+      dailyCalories: cleared(_GoalField.calories),
+      dailySodiumMg: cleared(_GoalField.sodium),
+      dailySugarG: cleared(_GoalField.sugar),
+      dailyCarbsG: cleared(_GoalField.carbs),
+      dailyProteinG: cleared(_GoalField.protein),
+      dailyFatG: cleared(_GoalField.fat),
+      dailyBurnKcal: cleared(_GoalField.burn),
+      weeklyCardioMinutes: cleared(_GoalField.cardio),
+      weeklyStrengthSets: cleared(_GoalField.strength),
+      weeklyFlexibilityMinutes: cleared(_GoalField.flexibility),
+    );
   }
 
   /// 서버가 받는 `YYYY-MM-DD`. **세 칸이 다 차야** 값이 된다.
@@ -538,20 +757,25 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 children: <Widget>[
                   _header(l),
                   _progress(),
-                  Expanded(
-                    child: PageView(
-                      controller: _pager,
-                      physics: const NeverScrollableScrollPhysics(),
-                      onPageChanged: (int i) => setState(() => _step = i),
-                      children: <Widget>[
-                        _stepBasic(l),
-                        _stepConditions(l),
-                        _stepDietGoals(l),
-                        _stepExerciseGoals(l),
-                      ],
+                  if (_loadingBase)
+                    // 다시 연 첫 설정이 지금 값을 읽는 동안(#3339).
+                    const Expanded(child: AppLoading())
+                  else ...<Widget>[
+                    Expanded(
+                      child: PageView(
+                        controller: _pager,
+                        physics: const NeverScrollableScrollPhysics(),
+                        onPageChanged: (int i) => setState(() => _step = i),
+                        children: <Widget>[
+                          _stepBasic(l),
+                          _stepConditions(l),
+                          _stepDietGoals(l),
+                          _stepExerciseGoals(l),
+                        ],
+                      ),
                     ),
-                  ),
-                  _footer(l, isLast: isLast),
+                    _footer(l, isLast: isLast),
+                  ],
                 ],
               ),
             ),
@@ -1005,6 +1229,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         onChanged: (_) => _onGoalEdited(field),
       );
 }
+
+/// 성별로 받는 값 — 서버 `gender` 검사와 같다.
+const Set<String> _kGenders = <String>{'male', 'female', 'other'};
 
 /// 카드 안 칸과 칸 사이. 네 단계가 같은 간격을 쓴다.
 const double _kFieldGap = OnCareSpacing.s12;
