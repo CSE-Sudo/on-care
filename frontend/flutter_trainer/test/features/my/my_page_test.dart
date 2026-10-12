@@ -281,10 +281,7 @@ void main() {
       await tester.tap(find.byTooltip('연결 해제').first);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(
-          of: find.byType(AppDialog),
-          matching: find.text('해제'),
-        ),
+        find.descendant(of: find.byType(AppDialog), matching: find.text('해제')),
       );
       await tester.pumpAndSettle();
 
@@ -962,7 +959,7 @@ void main() {
       );
 
       // 태그 줄이 상단 바 아래로 밀려 있을 수 있어, 누르기 전에 화면으로 올린다.
-      final Finder remove = find.byTooltip('태그 지우기');
+      final Finder remove = find.byTooltip('태그 삭제');
       await tester.ensureVisible(remove);
       await tester.pumpAndSettle();
       await tester.tap(remove);

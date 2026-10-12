@@ -349,7 +349,7 @@ void main() {
       // 스케줄 화면에도 삭제 아이콘이 있으므로 그 줄 안에서만 찾는다.
       final Finder deleteInRow = find.descendant(
         of: find.byKey(const ValueKey<String>('slot-row-slot-1')),
-        matching: find.byIcon(AppIcons.delete),
+        matching: find.byIcon(AppIcons.eventBusy),
       );
       expect(deleteInRow, findsOneWidget);
       expect(find.text('김하늘'), findsNothing);
@@ -410,7 +410,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byKey(const ValueKey<String>('slot-row-slot-1')),
-          matching: find.byIcon(AppIcons.delete),
+          matching: find.byIcon(AppIcons.eventBusy),
         ),
       );
       await settle(tester);
@@ -466,7 +466,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: row, matching: find.byIcon(AppIcons.delete)),
+        find.descendant(of: row, matching: find.byIcon(AppIcons.eventBusy)),
         findsOneWidget,
       );
     });
@@ -498,7 +498,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('slot-row-slot-1')),
-          matching: find.byIcon(AppIcons.delete),
+          matching: find.byIcon(AppIcons.eventBusy),
         ),
         findsOneWidget,
       );
