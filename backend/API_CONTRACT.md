@@ -873,8 +873,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/gyms?lat=&lng=&partner_only=` | `[GymOut]` — 좌표를 주면 거리순, 없으면 이름순 |
-| GET | `/gyms/{gym_id}` | 단건(없으면 404) |
+| GET | `/gyms?lat=&lng=&partner_only=&radius_m=&limit=` | `[GymOut]` — 좌표를 주면 반경 안에서 거리순, 없으면 이름순 |
+| GET | `/gyms/{gym_id}?lat=&lng=` | 단건(없으면 404). 목록의 반경·상한과 무관 |
 | GET | `/gyms/{gym_id}/trainers` | 그 헬스장 소속 트레이너 |
 | GET | `/me/gym?lat=&lng=` | 내 헬스장(`member_gyms`) — `GymOut`. 연결이 없으면 404 |
 
@@ -882,6 +882,15 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   `0` 이고 **뜻이 없는 값**이다 — 거리로 그리지 않는다. 회원 앱은 회원 위치를 얻었을 때만 `/me/gym` 에
   좌표를 싣는다. `/gyms` 는 검색 중심이 필요해 위치를 얻기 전에는 기본 검색 영역(신촌) 좌표를 보내고,
   그 거리는 화면에 그리지 않는다(#3044).
+- **좌표가 있는 `/gyms` 는 범위가 있다**(#3356). `radius_m`(100~20000, 기본 5000) 안의 헬스장만
+  가까운 순으로 `limit`(1~100, 기본 50)곳까지 준다. 범위를 벗어난 값은 422. 좌표를 모르는
+  헬스장은 반경 안인지 알 수 없어 이 목록에서 빠진다. **좌표가 없는 조회에는 두 값이 쓰이지
+  않는다** — 지금처럼 전부를 이름순으로 준다. 목록에 없는 헬스장(반경 밖, 상한 밖, 좌표 없음)은
+  `/gyms/{gym_id}` 로 읽는다 — 회원 앱의 헬스장 상세·트레이너 상세·상담 신청이 목록에서 못
+  찾으면 이 경로로 읽는다. `/me/gym` 은 목록을 거치지 않아 소속 헬스장이 반경 밖이어도 그대로 온다.
+- **데모 시드가 꺼진 서버는 가상 헬스장을 내지 않는다**(#3356). `/gyms` 목록에서 빠지고
+  `/gyms/{gym_id}`·`/gyms/{gym_id}/trainers`·`/me/gym` 은 404 다. 주변 검색(#2914)·트레이너
+  디렉터리(#2811)와 같은 목록(`app/db/demo_ids.py`)을 본다. 데모 서버의 응답은 그대로다.
 - **`is_partner` 는 표시 값이다.** `GymOut` 으로 내려가고 `partner_only=true` 로 목록을
   좁히는 기준이 된다(현재 두 앱은 이 값을 읽지 않는다). **접근 제어가 아니다** — 상담 대상 검증과
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을
