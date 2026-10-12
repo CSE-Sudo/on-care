@@ -71,3 +71,25 @@ updates:
       # flutter_localizations(SDK)가 intl 버전을 고정한다 — 앱에서 따로 올리면 의존성
       # 해석이 실패한다. Flutter SDK 를 올릴 때 함께 맞춘다.
       - dependency-name: intl
+      # 아래는 부 버전인데도 다른 패키지의 주 버전을 끌고 들어오는 업데이트다(#3319).
+      # 위의 주 버전 제외는 업데이트 대상으로 고른 패키지에만 걸리고, 그 패키지를 올리려고
+      # 함께 풀리는 패키지에는 걸리지 않는다. 그래서 끌고 들어오는 쪽을 막는다.
+      #
+      # analyzer 8 을 요구하는 버전 — riverpod_lint 2.x 가 analyzer 7 에 묶여 있어
+      # riverpod_lint·flutter_riverpod 3.x 가 함께 올라온다. riverpod 3 이행을 마치면 지운다.
+      - dependency-name: custom_lint
+        versions: [">=0.8.0"]
+      - dependency-name: build_runner
+        versions: [">=2.10.0"]
+      - dependency-name: drift_dev
+        versions: [">=2.30.0"]
+      # drift_dev 2.29 이하는 drift 2.30 미만만 받고, drift_flutter 0.2.8 은 drift 2.30
+      # 이상을 요구한다 — 둘 다 drift_dev 를 2.30 으로 밀어 올린다. 위 세 줄과 함께 지운다.
+      - dependency-name: drift
+        versions: [">=2.30.0"]
+      - dependency-name: drift_flutter
+        versions: [">=0.2.8"]
+      # geolocator_linux 가 package_info_plus 10 을 요구하는 버전 — win32 6 이 따라와
+      # flutter_secure_storage 11 까지 올라온다. 두 패키지의 주 버전 이행을 마치면 지운다.
+      - dependency-name: geolocator
+        versions: [">=14.0.3"]
