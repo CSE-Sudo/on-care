@@ -1279,6 +1279,10 @@
   "coachPhotoReadFailed": "사진을 읽지 못했어요. 다른 사진으로 다시 시도해 주세요",
   "a11yMyPhoto": "내가 보낸 사진",
   "coachChatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",
+  "coachReportNotReceived": "아직 받지 않은 리포트예요",
+  "@coachReportNotReceived": {
+    "description": "Toast when the server refuses a weekly report the member has neither received nor bought (403)."
+  },
   "coachChatReportRegistered": "주간 리포트를 받았어요",
   "coachChatReportWeek": "{sm}월 {sd}일 ~ {em}월 {ed}일",
   "@coachChatReportWeek": {
