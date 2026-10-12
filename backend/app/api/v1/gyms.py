@@ -36,10 +36,33 @@ def list_gyms(
     lat: float | None = Query(None, ge=-90, le=90, description="기준 위도(거리 계산용)"),
     lng: float | None = Query(None, ge=-180, le=180),
     partner_only: bool = Query(False, description="제휴 헬스장만"),
+    radius_m: int = Query(
+        gym_service.DEFAULT_GYM_RADIUS_M,
+        ge=100,
+        le=gym_service.MAX_GYM_RADIUS_M,
+        description="좌표가 있을 때의 반경(m)",
+    ),
+    limit: int = Query(
+        gym_service.DEFAULT_GYM_LIMIT,
+        ge=1,
+        le=gym_service.MAX_GYM_LIMIT,
+        description="좌표가 있을 때 가까운 순으로 내려 줄 최대 개수",
+    ),
 ) -> list[GymOut]:
-    """헬스장 목록. 좌표를 주면 거리순, 없으면 이름순."""
+    """헬스장 목록. 좌표를 주면 반경 안에서 거리순, 없으면 이름순.
+
+    `radius_m`·`limit` 은 좌표가 있을 때만 쓴다(#3356). 좌표가 없는 조회는 기준점이
+    없어 지금처럼 전부를 이름순으로 준다.
+    """
     _require_coordinate_pair(lat, lng)
-    return gym_service.list_gyms(db, lat=lat, lng=lng, partner_only=partner_only)
+    return gym_service.list_gyms(
+        db,
+        lat=lat,
+        lng=lng,
+        partner_only=partner_only,
+        radius_m=radius_m,
+        limit=limit,
+    )
 
 
 @router.get("/me/gym", response_model=GymOut)
@@ -70,6 +93,7 @@ def get_gym(
     lat: float | None = Query(None, ge=-90, le=90),
     lng: float | None = Query(None, ge=-180, le=180),
 ) -> GymOut:
+    """헬스장 한 곳. 목록의 반경·상한과 무관하게 읽힌다(#3356)."""
     _require_coordinate_pair(lat, lng)
     gym = gym_service.get_gym(db, gym_id, lat=lat, lng=lng)
     if gym is None:
