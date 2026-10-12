@@ -20,6 +20,7 @@ from sqlalchemy import select
 
 from app.api.v1.dashboard import _exercise_feedback
 from app.core import clock
+from app.core.week import monday_of
 from app.models.models import DietEntry, ExerciseSession, HealthProfile, User
 from app.services import coach_service, diet_service, exercise_service, goal_defaults
 
@@ -382,13 +383,39 @@ def test_dashboard_summary_reports_cardio_minutes(client, db_session):
 
 
 def test_dashboard_exercise_feedback_follows_the_cardio_goal(client, db_session):
-    """같은 기록이라도 목표를 1분으로 낮추면 달성, 아주 높이면 미달이다."""
-    low = _summary_with_profile(client, db_session, weekly_cardio_minutes=1)
-    high = _summary_with_profile(client, db_session, weekly_cardio_minutes=100000)
-    if low["exercise_minutes"] == 0:
-        pytest.skip("데모 회원의 이번 주 운동 기록이 없다 — 판정은 위 순수 테스트가 본다")
+    """같은 기록이라도 목표를 1분으로 낮추면 달성, 아주 높이면 미달이다.
 
-    if low["exercise_cardio_minutes"] >= 1:
-        assert "목표 달성 중" in low["exercise_feedback"]
-    assert "조금만 더" in high["exercise_feedback"]
-    assert f"유산소 {high['exercise_cardio_minutes']}분" in high["exercise_feedback"]
+    데모 회원의 이번 주 시드 기록에 기대지 않도록 유산소 기록을 직접 넣는다 — 요일에
+    따라 그 주에 유산소가 아직 없으면 조언이 `exercise_cardio_start` 로 갈린다.
+    """
+    from app.db.init_db import DEMO_USER_ID
+
+    today = clock.today()
+    session = ExerciseSession(
+        id=f"ex-{uuid.uuid4().hex[:12]}",
+        user_id=DEMO_USER_ID,
+        week_start=monday_of(today).isoformat(),
+        day_label=exercise_service.WEEKDAY_LABELS[today.weekday()],
+        type="cardio", minutes=30, calories=100, source="member",
+    )
+    db_session.add(session)
+    db_session.commit()
+    try:
+        low = _summary_with_profile(client, db_session, weekly_cardio_minutes=1)
+        high = _summary_with_profile(
+            client, db_session, weekly_cardio_minutes=100000
+        )
+    finally:
+        db_session.delete(session)
+        db_session.commit()
+
+    cardio = high["exercise_cardio_minutes"]
+    assert cardio >= 30
+    assert low["exercise_cardio_minutes"] == cardio
+    assert low["exercise_feedback"] == (
+        f"이번 주 유산소 {cardio}분 운동했어요. 목표 달성 중이에요!"
+    )
+    assert low["ai_advice_key"] in ("exercise_on_track", "sodium_over", "sodium_over_sources")
+    assert high["exercise_feedback"] == (
+        f"이번 주 유산소 {cardio}분 운동했어요. 조금만 더 힘내요!"
+    )
