@@ -3270,6 +3270,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainerSyncRetry => 'Get a new code';
 
   @override
+  String trainerSyncConnected(String name) {
+    return 'You\'re connected with $name';
+  }
+
+  @override
+  String get trainerSyncConnectedBody =>
+      'Your trainer can now see your records and coach you.';
+
+  @override
   String get signUpCreatedSignInNeeded =>
       'Your account was created. Please sign in.';
 

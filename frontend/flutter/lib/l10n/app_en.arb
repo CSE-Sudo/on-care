@@ -2214,6 +2214,15 @@
   "trainerSyncExpired": "This code has expired.",
   "trainerSyncFailed": "Couldn't get a code.",
   "trainerSyncRetry": "Get a new code",
+  "trainerSyncConnected": "You're connected with {name}",
+  "@trainerSyncConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trainerSyncConnectedBody": "Your trainer can now see your records and coach you.",
   "signUpCreatedSignInNeeded": "Your account was created. Please sign in.",
   "@signUpCreatedSignInNeeded": {
     "description": "Sign-up: the account was created but the follow-up sign-in failed (#1926)."

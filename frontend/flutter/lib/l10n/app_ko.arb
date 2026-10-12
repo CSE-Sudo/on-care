@@ -1595,6 +1595,15 @@
   "trainerSyncExpired": "코드가 만료됐어요.",
   "trainerSyncFailed": "코드를 받지 못했어요.",
   "trainerSyncRetry": "새 코드 받기",
+  "trainerSyncConnected": "{name} 트레이너와 연결됐어요",
+  "@trainerSyncConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trainerSyncConnectedBody": "이제 트레이너가 회원님의 기록을 보고 코칭할 수 있어요.",
   "signUpCreatedSignInNeeded": "계정이 만들어졌어요. 로그인해 주세요",
   "signUpEmailTaken": "이미 가입된 이메일이에요. 로그인해 주세요.",
   "signUpFailed": "회원가입을 하지 못했어요. 잠시 후 다시 시도해 주세요.",
