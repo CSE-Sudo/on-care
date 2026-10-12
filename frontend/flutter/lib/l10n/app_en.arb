@@ -4112,10 +4112,24 @@
   "findEmailTitle": "Find your email",
   "findEmailSubtitle": "Enter the name and phone number you signed up with to find your email.",
   "findEmailAction": "Find email",
-  "findEmailComingSoon": "Finding your email is coming soon.",
-  "@findEmailComingSoon": {
-    "description": "Toast shown when the find-email button is pressed while the lookup is not available yet."
+  "findEmailFoundSubtitle": "These accounts match the details you entered.",
+  "findEmailMaskedNote": "Part of the email is hidden to protect your privacy.",
+  "findEmailSocialTitle": "You signed up with {provider}",
+  "@findEmailSocialTitle": {
+    "description": "Find-email result for an account that signs in through a social provider only. provider is findEmailProviderKakao / Google / Other.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
   },
+  "findEmailSocialBody": "On the sign-in screen, sign in the same way you signed up.",
+  "findEmailProviderKakao": "Kakao",
+  "findEmailProviderGoogle": "Google",
+  "findEmailProviderOther": "a social account",
+  "findEmailNotFoundTitle": "We couldn't find a matching account",
+  "findEmailNotFoundBody": "Check your name and phone number again. If you didn't add a phone number when signing up, or changed it later, we can't find the account here.",
+  "findEmailRetry": "Search again",
   "passwordChangeTitle": "Change password",
   "passwordChangeCurrentHint": "Current password",
   "passwordChangeNewHint": "New password (8+ characters, letters and numbers)",
