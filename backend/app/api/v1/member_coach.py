@@ -182,6 +182,9 @@ def complete_my_routine(
             duration_seconds=payload.duration_seconds,
             sets=payload.sets,
             reps=payload.reps,
+            # 버틴 시간도 서비스까지 넘긴다 — 스키마만 받고 여기서 빠지면
+            # 회원이 적은 초가 버려지고 배정 값이 남는다. (#3364)
+            hold_seconds=payload.hold_seconds,
             weight=payload.weight,
             intensity=payload.intensity,
             day=day,
