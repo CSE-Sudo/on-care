@@ -2717,6 +2717,14 @@ class AiMessage(Base):
     insight_dismissed: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
+    #: 이 줄을 만든 전송의 멱등키. 한 번의 전송이 남긴 질문과 답이 같은 값을 갖는다. (#3352)
+    #:
+    #: 사용 기록(`ai_chat_usages`)은 AI 가 답했을 때만 남으므로, 대체 답으로 끝난
+    #: 전송은 재전송을 알아볼 근거가 여기뿐이다. 앱도 방금 보낸 말과 저장된 대화를
+    #: 이 값으로 맞춘다. 키 없이 보냈거나 이 칸이 생기기 전의 줄은 NULL 이다.
+    client_request_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
