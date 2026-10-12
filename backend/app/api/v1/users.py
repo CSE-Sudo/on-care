@@ -51,6 +51,9 @@ from app.schemas.user import (
     ConsentStatus,
     ConsentSubmit,
     EmailChangeCodeRequest,
+    FindEmailRequest,
+    FindEmailResult,
+    FoundEmailAccount,
     MemberPasswordChange,
     OptionalConsentState,
     PasswordChanged,
@@ -81,6 +84,7 @@ from app.services import (
     auth_tokens,
     consultation_service,
     data_consent_service,
+    find_email,
     health_goal_change,
     member_departure,
     member_pairing_service,
@@ -1331,3 +1335,52 @@ def confirm_password_reset(
         success=True,
     )
     return PasswordResetDone()
+
+
+# ---- 아이디(가입 이메일) 찾기 (#3337) ----
+
+
+@router.post(
+    "/auth/find-email",
+    response_model=FindEmailResult,
+    dependencies=[Depends(rate_limit("auth-find-email"))],
+)
+def find_signup_email(
+    payload: FindEmailRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> FindEmailResult:
+    """이름과 전화번호로 가입 계정을 찾아 **가려진 이메일**만 돌려준다. 회원 계정용.
+
+    **전체 이메일은 어떤 경우에도 싣지 않는다.** 번호의 주인을 확인할 수단이 없어,
+    주인이 떠올릴 만큼만(`ab***@example.com`) 보여 준다. 찾지 못해도 오류가 아니라
+    같은 200 에 빈 목록이다. 소셜 로그인 전용 계정은 이메일 없이 가입 수단만 준다.
+
+    시도 제한은 두 겹이다. IP 별 분당 한도(`auth-find-email`)와, 한 전화번호로 찾아볼
+    수 있는 횟수(`FIND_EMAIL_PHONE_PER_WINDOW`). 뒤의 것은 여러 IP 에서 한 번호에
+    이름을 바꿔 가며 대어 보는 것을 막는다 — 계정이 없는 번호도 똑같이 세므로 429 로
+    가입 여부가 드러나지 않는다.
+    """
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"find-email-phone:{payload.phone}",
+            settings.find_email_phone_per_window,
+            settings.find_email_phone_window_minutes * 60.0,
+        )
+    found = find_email.find_accounts(db, name=payload.name, phone=payload.phone)
+    audit(
+        db,
+        event="auth.find_email",
+        ip=client_ip(request),
+        # 감사 로그에는 찾았는지만 남긴다. 이름·번호·이메일은 적지 않는다.
+        success=bool(found),
+    )
+    return FindEmailResult(
+        accounts=[
+            FoundEmailAccount(
+                masked_email=account.masked_email, providers=list(account.providers)
+            )
+            for account in found
+        ]
+    )
