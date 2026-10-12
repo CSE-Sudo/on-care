@@ -737,8 +737,25 @@ class _MyPageState extends ConsumerState<MyPage> {
         final _MySection detail = section == _MySection.settings
             ? _MySection.notifications
             : section;
+        // 돌아갈 곳 — 한 단계 들어간 화면(프로필 수정 등)은 그 윗 화면으로,
+        // 좁은 화면의 구획은 메뉴로. 메뉴 자신과 넓은 화면의 첫 단계에는 없다.
+        final _MySection? back = !wide && section == _MySection.settings
+            ? null
+            : detail.parent ?? (wide ? null : _MySection.settings);
         return AppWebPage(
           title: _title(l, wide ? detail : section),
+          // 돌아가는 길은 제목 왼쪽에 둔다 — 알림함·회원 상세와 같은 자리다.
+          // 본문 맨 위의 글자 링크이던 때에는 스크롤하면 함께 사라졌고, 다른
+          // 화면과 모양이 달랐다(#3316).
+          leading: back == null
+              ? null
+              : Semantics(
+                  label: _title(l, back),
+                  child: AppBackButton(
+                    key: const ValueKey<String>('my-back'),
+                    onPressed: () => _go(back),
+                  ),
+                ),
           // 트레이너 이름 대신 이 탭이 무엇을 하는 곳인지 말한다 — 이름은
           // 사이드바 아래와 프로필에 이미 있다.
           subtitle: _subtitle(l, wide ? detail : section),
@@ -859,23 +876,9 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 지금 화면 이름은 바로 위 페이지 제목이 말한다 — 예전 경로 표시
   /// `‹ 프로필 › 프로필 수정` 의 뒷부분은 제목을 한 번 더 적은 것이라 뺐다(#2469).
   Widget _detail(_MySection section, {required bool wide}) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final _MySection? back =
-        section.parent ?? (wide ? null : _MySection.settings);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (back != null) ...<Widget>[
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: AppBackLink(
-              key: const ValueKey<String>('my-back'),
-              label: _title(l, back),
-              onPressed: () => _go(back),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-        ],
         ...switch (section) {
           _MySection.edit => _editCards(),
           _MySection.gym => _gymCards(),

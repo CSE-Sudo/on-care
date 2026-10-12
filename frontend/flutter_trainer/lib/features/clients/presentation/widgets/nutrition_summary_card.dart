@@ -92,6 +92,10 @@ const double _columnGapNarrow = OnCareSpacing.s24;
 /// 든다. 1280 화면(약 556)은 좁은 카드다.
 const double _wideCardWidth = 680;
 
+/// 카드가 이보다 좁으면 세 칸을 한 줄에 두지 않고 두 단으로 쌓는다 — 한 줄에
+/// 두면 글씨가 0.8배 아래로 줄어든다(#3316).
+const double _stackedCardWidth = 440;
+
 /// 한 지표의 표시값 한 벌.
 class _Item {
   const _Item({
@@ -200,91 +204,105 @@ class NutritionSummaryCard extends StatelessWidget {
               c.maxWidth,
               fixed + _macroColumnMaxWidth,
             );
-            final Widget row = Row(
+            // 1열 — 달성률 도넛.
+            final Widget donut = NutritionCalorieDonut(
+              ratio: calories.ratio,
+              color: calorieColor,
+              diameter: _donutDimension,
+              stroke: _donutStroke,
+            );
+            // 2열 — 칼로리.
+            final Widget info = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                // 1열 — 달성률 도넛.
-                NutritionCalorieDonut(
-                  ratio: calories.ratio,
-                  color: calorieColor,
-                  diameter: _donutDimension,
-                  stroke: _donutStroke,
+                Text(
+                  l.dietCalorieIntake,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.caption))
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
-                SizedBox(width: gap),
-                // 2열 — 칼로리.
-                SizedBox(
-                  width: infoWidth,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        l.dietCalorieIntake,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
-                            .copyWith(color: OnCareColors.textPrimary),
-                      ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text.rich(
-                          TextSpan(
-                            children: <InlineSpan>[
-                              TextSpan(
-                                text: calories.value,
-                                style: tokens
-                                    .text(
-                                      OnCareTypography.numeric(
-                                        OnCareTypography.display,
-                                      ),
-                                    )
-                                    .copyWith(color: calorieColor),
-                              ),
-                              TextSpan(
-                                // ko `/ 2,000kcal` · en `/ 2,000 kcal`(#3120).
-                                text:
-                                    ' / ${calories.goal}'
-                                    '${unitGap(Localizations.localeOf(context).toString())}'
-                                    '${calories.unit}',
-                                style: tokens
-                                    .text(OnCareTypography.label)
-                                    .copyWith(
-                                      color: OnCareColors.textSecondary,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          maxLines: 1,
+                const SizedBox(height: OnCareSpacing.s4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text.rich(
+                    TextSpan(
+                      children: <InlineSpan>[
+                        TextSpan(
+                          text: calories.value,
+                          style: tokens
+                              .text(
+                                OnCareTypography.numeric(
+                                  OnCareTypography.display,
+                                ),
+                              )
+                              .copyWith(color: calorieColor),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: gap),
-                // 3열 — 탄·단·지 진행 바를 위에서부터. 회원 앱 `오늘` 카드의
-                // 세 칸과 같은 것이다(#2156) — 글자만 적으면 목표에 얼마나
-                // 닿았는지를 트레이너가 숫자로 나눠 봐야 한다. 폭을 고정해 바
-                // 길이를 제한한다.
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      for (final _Item m in macros) ...<Widget>[
-                        _MacroProgressItem(item: m),
-                        if (m != macros.last)
-                          const SizedBox(height: OnCareSpacing.s16),
+                        TextSpan(
+                          // ko `/ 2,000kcal` · en `/ 2,000 kcal`(#3120).
+                          text:
+                              ' / ${calories.goal}'
+                              '${unitGap(Localizations.localeOf(context).toString())}'
+                              '${calories.unit}',
+                          style: tokens
+                              .text(OnCareTypography.label)
+                              .copyWith(color: OnCareColors.textSecondary),
+                        ),
                       ],
-                    ],
+                    ),
+                    maxLines: 1,
                   ),
                 ),
               ],
             );
-            // 탄단지 칸까지 최소 폭이 안 나오는 아주 좁은 카드는 전체를 비례
-            // 축소한다 — 넘치지 않게 하는 안전장치일 뿐 좁은 화면 설계는 아니다.
+            // 3열 — 탄·단·지 진행 바를 위에서부터. 회원 앱 `오늘` 카드의
+            // 세 칸과 같은 것이다(#2156) — 글자만 적으면 목표에 얼마나
+            // 닿았는지를 트레이너가 숫자로 나눠 봐야 한다. 폭을 고정해 바
+            // 길이를 제한한다.
+            final Widget macroColumn = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                for (final _Item m in macros) ...<Widget>[
+                  _MacroProgressItem(item: m),
+                  if (m != macros.last)
+                    const SizedBox(height: OnCareSpacing.s16),
+                ],
+              ],
+            );
+            // 탄단지 칸까지 최소 폭이 안 나오는 좁은 카드(휴대폰 폭)는 두 단으로
+            // 쌓는다 — 도넛·칼로리 아래에 탄단지다. 세 칸을 통째로 줄여 그리던
+            // 때에는 글씨를 읽을 수 없었다(#3316).
+            if (c.maxWidth < _stackedCardWidth) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      donut,
+                      SizedBox(width: gap),
+                      Expanded(child: info),
+                    ],
+                  ),
+                  const SizedBox(height: OnCareSpacing.s16),
+                  macroColumn,
+                ],
+              );
+            }
+            final Widget row = Row(
+              children: <Widget>[
+                donut,
+                SizedBox(width: gap),
+                SizedBox(width: infoWidth, child: info),
+                SizedBox(width: gap),
+                Expanded(child: macroColumn),
+              ],
+            );
+            // 그 사이 폭(분할 화면의 좁은 상세)은 세 칸을 살짝 줄여 한 줄에
+            // 둔다 — 넘치지 않게 하는 안전장치다.
             if (c.maxWidth < fixed + _macroColumnMinWidth) {
               return FittedBox(
                 fit: BoxFit.scaleDown,

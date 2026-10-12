@@ -1251,6 +1251,7 @@
   "coachGoToSchedule": "스케줄로 가기",
   "labelTomorrow": "내일",
   "coachTemplates": "프로그램 템플릿",
+  "coachMemberRecords": "회원 기록",
   "coachSentHistory": "전송 이력",
   "coachLastDelivery": "직전 전송",
   "coachDeliveryPtWithRoutine": "PT · 개인운동",

@@ -2910,6 +2910,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplates => '프로그램 템플릿';
 
   @override
+  String get coachMemberRecords => '회원 기록';
+
+  @override
   String get coachSentHistory => '전송 이력';
 
   @override

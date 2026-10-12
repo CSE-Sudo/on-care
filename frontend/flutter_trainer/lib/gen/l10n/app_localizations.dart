@@ -5353,6 +5353,12 @@ abstract class AppLocalizations {
   /// **'Program templates'**
   String get coachTemplates;
 
+  /// No description provided for @coachMemberRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Member records'**
+  String get coachMemberRecords;
+
   /// No description provided for @coachSentHistory.
   ///
   /// In en, this message translates to:
