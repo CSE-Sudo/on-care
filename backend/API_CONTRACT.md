@@ -599,6 +599,10 @@ joined_at, settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded
   같은 `client_request_id` 재전송은 새로 걸지 않고 처음 기록을 돌려준다.
 - **건 포인트** 참가할 때 100P 를 `spend`(`reason: challenge_stake`, `source_type: weekly_challenge`)로 뺀다.
 - **목표** 참가 시점의 `weekly_workout_goal` 을 고정한다. 없거나 1 미만이면 3, 7 초과는 7(한 주에 셀 수 있는 최대 날 수).
+  회원은 MY 건강 목표의 `주간 운동 횟수` 칸에서 이 값을 정한다(`PUT /users/me/health-goals`, 앱은 1~7 만 보낸다, #3361).
+  참가한 뒤에 값을 바꾸면 그 주는 그대로이고 다음 참가부터 걸린다.
+- **지난 결과** `GET /me/challenges` 가 참가한 주를 최근 주 먼저 준다(최대 20). 회원 앱의 `지난 챌린지 결과` 화면이
+  주·`goal`·`progress`·`status`·`rewarded` 를 그대로 적는다(#3361). 판정 전인 주(`active`)도 함께 온다.
 - **진행** 그 주에 운동 기록이 있는 날 수. 같은 날 여러 번은 1회, 출처(직접 추가·PT·배정 루틴)는 가리지 않는다.
   날짜는 운동 화면과 같은 논리 운동일이고, 오늘 이후 날짜의 기록은 세지 않는다.
 - **판정** 주가 끝나고 유예가 지난 뒤 한 번. 일요일까지 목표를 채웠으면 200P 를 `earn`(`reason: challenge_reward`)으로 적립하고,
