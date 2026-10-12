@@ -17,6 +17,7 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/focus_change_label.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
     show ReissuedTokens;
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
@@ -1420,6 +1421,9 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       _base = updatedProfile;
       ref.read(profileProvider.notifier).applyUpdatedProfile(updatedProfile);
       ref.invalidate(dashboardSummaryProvider);
+      // 홈 코칭 시트의 카드도 나트륨·유산소 목표로 판정한다(#3350) — 서버가 목표가
+      // 바뀐 회원의 카드를 새로 만든다(#3351).
+      ref.invalidate(aiCoachStateProvider);
       // 저장해도 화면을 닫지 않고 보기 모드로 돌아온다 — 내 프로필과 같다
       // (#2132). 방금 저장한 목표가 화면에 그대로 남아, 무엇이 저장됐는지
       // 돌아간 화면에서 다시 찾지 않아도 된다.
