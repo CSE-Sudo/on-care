@@ -261,8 +261,14 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     ref.invalidate(notificationUnreadProvider);
     // 알림함을 받아 둔 적이 있으면 목록도 다시 받는다 — 알림을 눌러 들어온
     // 대화에서 돌아갔을 때 같은 대화의 다른 알림이 안 읽음으로 남지 않게 한다.
+    // 알림함이 서지 못한 채(만들다 실패) 남아 있으면 읽을 때 그 실패가 다시
+    // 던져진다 — 대화 읽음은 이미 끝났으니 알림 목록 사정으로 깨지지 않게 둔다.
     if (ref.exists(notificationControllerProvider)) {
-      unawaited(ref.read(notificationControllerProvider.notifier).refresh());
+      try {
+        unawaited(ref.read(notificationControllerProvider.notifier).refresh());
+      } catch (_) {
+        // 다시 받을 목록이 없다. 알림함을 열 때 화면이 스스로 다시 시도한다.
+      }
     }
   }
 

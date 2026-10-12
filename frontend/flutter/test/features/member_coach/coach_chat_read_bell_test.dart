@@ -198,6 +198,56 @@ void main() {
     await _unmount(tester);
   });
 
+  // 알림 저장소를 세우지 못한 화면(대역을 넣지 않은 셸 테스트 등)에서는 알림함
+  // provider 가 실패한 채 남아 있다 — 그걸 읽다가 대화 읽음이 깨지면 안 된다.
+  testWidgets('알림함이 서지 못한 상태여도 대화 읽음은 깨지지 않는다', (WidgetTester tester) async {
+    final _ServerLikeNotifications notifications = _ServerLikeNotifications();
+    final _CoachRepository coach = _CoachRepository(notifications);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          memberCoachRepositoryProvider.overrideWithValue(coach),
+          notificationRepositoryProvider.overrideWith(
+            (ref) => throw StateError('알림 저장소 없음'),
+          ),
+          appConfigProvider.overrideWithValue(_demoConfig),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Consumer(
+            builder: (BuildContext context, WidgetRef ref, Widget? child) {
+              ref.listen<NotificationState>(
+                notificationControllerProvider,
+                (_, _) {},
+                onError: (_, _) {},
+              );
+              return Scaffold(
+                body: ElevatedButton(
+                  onPressed: () =>
+                      openTrainerChatPage(context, trainerName: '김트레이너'),
+                  child: const Text('채팅 열기'),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('채팅 열기'));
+    await tester.pumpAndSettle();
+
+    expect(coach.markReadCalls, 1);
+    expect(tester.takeException(), isNull);
+
+    await _unmount(tester);
+  });
+
   testWidgets('알림함을 연 적이 없으면 목록은 받지 않는다', (WidgetTester tester) async {
     final _ServerLikeNotifications notifications = _ServerLikeNotifications();
     final _CoachRepository coach = _CoachRepository(notifications);
