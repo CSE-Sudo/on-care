@@ -687,7 +687,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietManualAddHint =>
-      'Type a food name and we\'ll fill in the nutrition';
+      'Type a food name and we\'ll fill in the nutrition. Points are only earned for meals logged by photo';
 
   @override
   String get dietManualAddEmpty => 'Add at least one food';
@@ -1659,7 +1659,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myPointsHistoryEmptyMessage =>
-      'Log meals and workouts to earn points.';
+      'Log meals by photo or log workouts to earn points.';
 
   @override
   String get myPointsHistoryLoadFailed => 'Couldn\'t load your points history';
@@ -2268,7 +2268,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifAlwaysSent =>
-      'PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent';
+      'PT bookings, changes and cancellations, trainer requests, connect and disconnect notices, consultation request results, health goal changes, coupon expiry and cancellation, and weekly challenge results are always sent';
 
   @override
   String get mySupportFaq => 'FAQ';
@@ -2666,7 +2666,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicPaidInsufficient(String shortfall) {
-    return 'You need $shortfall more. Log meals and workouts to earn points.';
+    return 'You need $shortfall more. Log meals by photo or log workouts to earn points.';
   }
 
   @override
@@ -3435,7 +3435,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout yourself +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
+    return 'Logging earns points.\nLog a meal by photo +${diet}P (not for meals added manually), log a workout yourself +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
   }
 
   @override
@@ -3796,7 +3796,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsGuideTitle => 'How to earn points';
 
   @override
-  String get myPointsDietAdd => 'Log a meal';
+  String get myPointsDietAdd => 'Log a meal by photo';
 
   @override
   String get myPointsRoutineComplete => 'Finish a personal exercise';
