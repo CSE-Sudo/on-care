@@ -47,6 +47,12 @@ double snapExerciseWeight(double kg) =>
 /// 수를 넘는 요청을 422 로 거절한다.
 const int kMaxExerciseSessionsPerSave = 20;
 
+/// 한 번에 날짜를 옮길 수 있는 운동 기록 수. (#3365)
+///
+/// 상세 화면의 `날짜 변경` 이 그날 기록을 통째로 옮긴다. 서버
+/// (`MAX_EXERCISE_SESSIONS_PER_MOVE`)도 같은 수를 넘는 요청을 422 로 거절한다.
+const int kMaxExerciseSessionsPerMove = 100;
+
 /// `전체` 운동 그래프가 거슬러 올라가는 최대 주 수(약 3년). 서버 기간 집계의
 /// 상한(`exercise_service.MAX_PERIOD_WEEKS`, #2833)과 같다 — 날짜가 잘못 들어간
 /// 아주 오래된 기록 하나가 그래프를 수만 주로 늘리지 않게 한다. 데모 응답
