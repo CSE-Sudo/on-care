@@ -15,7 +15,9 @@ import pytest
 from sqlalchemy import select
 
 from app.core import clock
-from app.models.models import TrainerSchedule
+from app.core.security import create_access_token
+from app.models.models import Notification, TrainerSchedule
+from app.services import notification_service, notification_templates
 from app.services.schedule_parse import parse_schedule
 from tests.test_trainer_inactive_client_access import pair  # noqa: F401 — 픽스처
 
@@ -199,3 +201,145 @@ def test_a_cancelled_session_does_not_block_the_same_promise(
     _say(client, pair, day, "오후 8시")
     rows = _member_sessions(db_session, pair, day)
     assert sorted(row.status for row in rows) == ["예정", "취소"]
+
+
+# ---------------------------------------------------------------------------
+# 대화에서 잡힌 일정의 일정 알림 (#3345)
+# ---------------------------------------------------------------------------
+
+
+def _schedule_notices(db_session, p) -> list[Notification]:
+    db_session.expire_all()
+    return list(
+        db_session.scalars(
+            select(Notification).where(
+                Notification.user_id == p.member_id,
+                Notification.category == notification_service.MEMBER_SCHEDULE,
+            )
+        ).all()
+    )
+
+
+def test_chat_booking_sends_the_member_one_schedule_notice(
+    client, db_session, pair  # noqa: F811
+):
+    """대화에서 일정이 잡히면 일정 화면에서 만든 일정과 같은 알림이 한 건 간다."""
+    day = clock.today() + timedelta(days=32)
+    _say(client, pair, day, "오후 8시")
+
+    [notice] = _schedule_notices(db_session, pair)
+    assert notice.template == notification_templates.MEMBER_SCHEDULE_ADDED
+    # 날짜·시각이 문구 틀의 인자로 실린다 — 잘못 읽힌 약속을 회원이 알아본다.
+    assert notice.template_args == {
+        "date": day.isoformat(),
+        "time": "20:00",
+        "type": "1:1 PT",
+    }
+    assert notice.title == "새 일정이 등록됐어요"
+    assert notice.body == f"{day.month}월 {day.day}일 20:00 · 1:1 PT"
+
+
+def test_chat_schedule_notice_opens_the_exercise_tab_in_both_languages(
+    client, pair  # noqa: F811
+):
+    """알림함 응답 — 날짜·시각이 보이고 누르면 운동 탭 일정으로 간다."""
+    day = clock.today() + timedelta(days=33)
+    _say(client, pair, day, "오후 8시")
+    member = create_access_token(pair.member_id)
+
+    def _inbox(language: str) -> list[dict]:
+        r = client.get(
+            "/v1/notifications",
+            headers={**_h(member), "Accept-Language": language},
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        rows = body["items"] if isinstance(body, dict) else body
+        return [n for n in rows if n["category"] == "member_schedule"]
+
+    [ko] = _inbox("ko")
+    assert ko["title"] == "새 일정이 등록됐어요"
+    assert ko["body"] == f"{day.month}월 {day.day}일 20:00 · 1:1 PT"
+    assert ko["action"] == {"label": "일정 보기", "target": "exercise"}
+
+    [en] = _inbox("en")
+    assert en["title"] == "New appointment scheduled"
+    assert "20:00" in en["body"]
+    assert en["action"] == {"label": "View schedule", "target": "exercise"}
+
+
+def test_repeating_the_same_promise_does_not_notify_twice(
+    client, db_session, pair  # noqa: F811
+):
+    """같은 약속을 다시 말해도 일정도 알림도 늘지 않는다."""
+    day = clock.today() + timedelta(days=34)
+    _say(client, pair, day, "오후 8시")
+    _say(client, pair, day, "오후 8시")
+
+    assert len(_member_sessions(db_session, pair, day)) == 1
+    assert len(_schedule_notices(db_session, pair)) == 1
+
+
+def test_resending_the_same_message_does_not_notify_twice(
+    client, db_session, pair  # noqa: F811
+):
+    """같은 메시지의 재전송(같은 `client_request_id`)은 알림을 다시 만들지 않는다."""
+    day = clock.today() + timedelta(days=35)
+    payload = {
+        "text": f"다음 PT는 {day.month}월 {day.day}일 오후 8시로 할게요!",
+        "client_request_id": f"req-{uuid4().hex[:12]}",
+    }
+    for _ in range(2):
+        r = client.post(
+            f"/v1/trainer/clients/{pair.member_id}/chat",
+            json=payload,
+            headers=pair.headers,
+        )
+        assert r.status_code in (200, 201), r.text
+
+    assert len(_member_sessions(db_session, pair, day)) == 1
+    assert len(_schedule_notices(db_session, pair)) == 1
+
+
+def test_a_message_that_books_nothing_sends_no_schedule_notice(
+    client, db_session, pair  # noqa: F811
+):
+    """일정이 만들어지지 않는 메시지에는 일정 알림이 없다."""
+    # 약속으로 읽히지 않는 말.
+    r = client.post(
+        f"/v1/trainer/clients/{pair.member_id}/chat",
+        json={"text": "다음 PT 수요일 오후 8시 어때요?"},
+        headers=pair.headers,
+    )
+    assert r.status_code in (200, 201), r.text
+    assert _schedule_notices(db_session, pair) == []
+
+    # 읽히기는 했지만 다른 일정과 겹쳐 만들어지지 않은 약속.
+    day = clock.today() + timedelta(days=36)
+    blocked = client.post(
+        "/v1/trainer/schedule",
+        json={
+            "date": day.isoformat(),
+            "time": "19:30",
+            "client_name": "다른 회원",
+            "type": "1:1 PT",
+            "duration_minutes": 60,
+        },
+        headers=pair.headers,
+    )
+    assert blocked.status_code == 201, blocked.text
+    _say(client, pair, day, "오후 8시")
+    assert _schedule_notices(db_session, pair) == []
+
+
+def test_member_message_sends_no_schedule_notice(client, db_session, pair):  # noqa: F811
+    """회원이 적은 시간은 약속이 아니다 — 일정도 일정 알림도 없다."""
+    day = clock.today() + timedelta(days=37)
+    r = client.post(
+        "/v1/me/coach/chat",
+        json={"text": f"다음 PT는 {day.month}월 {day.day}일 오후 8시로 할게요"},
+        headers=_h(create_access_token(pair.member_id)),
+    )
+    assert r.status_code == 201, r.text
+    assert _member_sessions(db_session, pair, day) == []
+    assert _schedule_notices(db_session, pair) == []
