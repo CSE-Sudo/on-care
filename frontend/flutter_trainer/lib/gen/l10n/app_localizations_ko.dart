@@ -2079,7 +2079,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myProfileSaveFailed => '프로필을 저장하지 못했어요.';
 
   @override
-  String get myGymChangeFailed => '소속 헬스장을 바꾸지 못했어요. 나머지 프로필 정보는 저장됐어요.';
+  String get myGymChangeFailed => '소속 헬스장을 바꾸지 못했어요.';
 
   @override
   String get myTabProfile => '내 정보';
@@ -2635,11 +2635,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCertsEmpty => '등록한 자격증이 없어요';
 
   @override
-  String get myGymEmpty => '소속 헬스장이 아직 없어요. 프로필 수정에서 설정해 주세요.';
+  String get myGymEmpty => '소속 헬스장이 아직 없어요. 헬스장 설정에서 골라 주세요.';
 
   @override
-  String get myEditVisibleBody =>
-      '전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 그대로 나와요.';
+  String get myEditVisibleBody => '전문 분야·경력·소개·자격증은 회원 앱의 트레이너 소개에 그대로 나와요.';
 
   @override
   String get myClientManagementNoteTitle => '연결을 해제해도 회원 기록은 남아요';
@@ -6098,7 +6097,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorServerTemporary => '서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get myGymInfoEdit => '헬스장 정보 수정';
+  String get myGymChange => '헬스장 변경';
+
+  @override
+  String get myGymInfoEdit => '영업시간·연락처 수정';
 
   @override
   String get myGymInfoSubtitle =>

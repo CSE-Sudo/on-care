@@ -94,10 +94,10 @@ void main() {
       );
     });
 
-    test('a fresh sign-up lands on profile edit to pick a gym (#2543)', () {
+    test('a fresh sign-up lands on the gym picker (#2543)', () {
       expect(
         sessionRedirect(SessionStatus.authenticated, AppRoutes.signUp),
-        AppRoutes.mySection('edit'),
+        AppRoutes.mySection('gym'),
       );
     });
 

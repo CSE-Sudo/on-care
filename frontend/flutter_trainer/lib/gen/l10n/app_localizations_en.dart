@@ -2191,8 +2191,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myProfileSaveFailed => 'Couldn\'t save your profile.';
 
   @override
-  String get myGymChangeFailed =>
-      'Couldn\'t change your gym. The rest of your profile was saved.';
+  String get myGymChangeFailed => 'Couldn\'t change your gym.';
 
   @override
   String get myTabProfile => 'My profile';
@@ -2788,11 +2787,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCertsEmpty => 'No certifications yet';
 
   @override
-  String get myGymEmpty => 'No gym yet. Set yours in Edit profile.';
+  String get myGymEmpty => 'No gym yet. Pick yours in Set gym.';
 
   @override
   String get myEditVisibleBody =>
-      'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
+      'Your specialty, career, introduction and certifications appear on your trainer profile in the member app.';
 
   @override
   String get myClientManagementNoteTitle =>
@@ -6372,7 +6371,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The server is having a temporary problem. Please try again in a moment.';
 
   @override
-  String get myGymInfoEdit => 'Edit gym info';
+  String get myGymChange => 'Change gym';
+
+  @override
+  String get myGymInfoEdit => 'Edit hours & contact';
 
   @override
   String get myGymInfoSubtitle =>
