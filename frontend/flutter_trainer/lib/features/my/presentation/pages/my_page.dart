@@ -126,7 +126,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   static const double _menuWidth = 260;
 
   /// 소속 헬스장 카드의 버튼 둘을 머리줄에 두는 가장 좁은 카드 폭(글자 배율 1 기준).
-  static const double _gymActionsHeaderWidth = 460;
+  static const double _gymActionsHeaderWidth = 560;
 
   _MySection get _section => _MySection.parse(widget.tab);
 
