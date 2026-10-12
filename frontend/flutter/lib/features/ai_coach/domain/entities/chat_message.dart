@@ -35,6 +35,9 @@ class ChatMessage {
     this.failed = false,
     this.clientRequestId,
     this.paidAttempt = false,
+    this.id,
+    this.questionId,
+    this.questionAt,
   });
 
   final ChatRole role;
@@ -73,14 +76,47 @@ class ChatMessage {
   /// 다시 보낸다.
   final bool failed;
 
-  /// 이 회원 메시지를 보낼 때 쓴 멱등키(#2846). 다시 보낼 때 같은 키를 써야 서버가
+  /// 이 메시지를 만든 전송의 멱등키(#2846). 다시 보낼 때 같은 키를 써야 서버가
   /// 이미 처리한 질문을 다시 세거나 차감하지 않는다.
+  ///
+  /// 서버도 저장한 질문과 답에 같은 값을 남겨 돌려준다(#3352) — 방금 보낸 말과
+  /// 저장된 대화가 같은 전송인지는 본문이 아니라 이 값으로 가른다. 키 없이 보낸
+  /// 전송이나 예전에 저장된 줄은 null 이다.
   final String? clientRequestId;
 
   /// 포인트로 보내기로 동의하고 보낸 메시지인가(#2846). 다시 보낼 때도 같게 보낸다.
   final bool paidAttempt;
 
+  /// 서버가 준 메시지 식별자(#3352). 아직 서버에 저장되지 않았거나(보내는 중·
+  /// 보내지 못함) 앱이 스스로 띄운 말풍선이면 null 이다.
+  final String? id;
+
+  /// 코치 답변에 실려 온 **방금 보낸 회원 메시지**의 식별자와 저장 시각(#3352).
+  /// 컨트롤러가 그 회원 메시지로 옮겨 붙인다 — [replyToInsight] 처럼 방금 받은
+  /// 답에만 있고 저장된 대화에서는 늘 null 이다.
+  final String? questionId;
+  final DateTime? questionAt;
+
   bool get isUser => role == ChatRole.user;
+
+  /// 서버가 저장하며 준 식별자와 시각을 채운 사본(#3352). 주지 않은 값은 그대로 둔다.
+  ChatMessage asStored({String? id, DateTime? at}) => ChatMessage(
+    role: role,
+    content: content,
+    sources: sources,
+    pending: pending,
+    notice: notice,
+    insight: insight,
+    replyToInsight: replyToInsight,
+    at: at ?? this.at,
+    pointsSpent: pointsSpent,
+    balanceAfter: balanceAfter,
+    replyQuota: replyQuota,
+    failed: failed,
+    clientRequestId: clientRequestId,
+    paidAttempt: paidAttempt,
+    id: id ?? this.id,
+  );
 
   /// 보내지 못한 상태로 바꾼 사본. 키와 포인트 여부를 함께 남긴다. (#2846)
   ChatMessage asFailed({
@@ -113,6 +149,9 @@ class ChatMessage {
     failed: failed,
     clientRequestId: clientRequestId,
     paidAttempt: paidAttempt,
+    id: id,
+    questionId: questionId,
+    questionAt: questionAt,
   );
 
   /// 감지 결과만 바꾼 사본.
@@ -129,6 +168,7 @@ class ChatMessage {
     failed: failed,
     clientRequestId: clientRequestId,
     paidAttempt: paidAttempt,
+    id: id,
   );
 
   /// Request shape sent as chat history to the server (snake_case-safe).
@@ -148,12 +188,12 @@ class ChatMessage {
     ],
     insight: ChatInsight.fromJson(json['insight']),
     // 서버 시각은 KST 벽시계로 읽는다 — 기기 시간대에 매이지 않게(#2876).
-    at: switch (DateTime.tryParse((json['created_at'] as String?) ?? '')) {
-      final DateTime t => toKst(t),
-      null => null,
-    },
+    at: _kstOrNull(json['created_at']),
     pointsSpent: (json['points_spent'] as num?)?.toInt() ?? 0,
     balanceAfter: (json['balance_after'] as num?)?.toInt(),
+    // 식별자와 그 줄을 만든 전송의 키(#3352). 예전 서버는 주지 않는다.
+    id: json['id'] as String?,
+    clientRequestId: json['client_request_id'] as String?,
   );
 
   /// Parse a coach reply from `POST /ai-coach/chat` → `{ reply, sources }`.
@@ -173,5 +213,19 @@ class ChatMessage {
             (json['quota']! as Map<Object?, Object?>).cast<String, Object?>(),
           )
         : null,
+    // 저장된 두 줄의 식별자·시각·키(#3352). 예전 서버는 주지 않는다 — 그때는
+    // 컨트롤러가 받은 시각을 찍는다.
+    id: json['reply_message_id'] as String?,
+    at: _kstOrNull(json['reply_created_at']),
+    questionId: json['user_message_id'] as String?,
+    questionAt: _kstOrNull(json['user_created_at']),
+    clientRequestId: json['client_request_id'] as String?,
   );
+
+  /// 서버 시각 문자열을 KST 벽시계로. 없거나 읽지 못하면 null.
+  static DateTime? _kstOrNull(Object? raw) =>
+      switch (DateTime.tryParse(raw is String ? raw : '')) {
+        final DateTime t => toKst(t),
+        null => null,
+      };
 }

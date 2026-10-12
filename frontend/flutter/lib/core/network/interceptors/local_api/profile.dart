@@ -24,6 +24,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
     return <String, Object?>{
       ...profile,
       'effective_daily_protein_g': demoDietTargets(profile).proteinG,
+      ..._demoEmailPlaceholder,
       // 소셜로 든 데모 회원은 비밀번호 없는 계정처럼 보인다(#3039) — 본인 확인을
       // 소셜 재로그인으로 해 볼 수 있다.
       'has_password': await _hasDemoPassword(),
@@ -103,6 +104,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
       'id': p['id'],
       'name': p['name'],
       'email': p['email'],
+      ..._demoEmailPlaceholder,
       // 서버와 같은 모양(#3054). 데모 계정은 회원이다.
       'role': 'member',
       // 데모 회원은 동의를 마친 계정으로 둔다(#2819) — 데모 진입마다 동의
@@ -350,6 +352,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
   /// 포인트·쿠폰은 이 목업이 들고 있는 원장·쿠폰함에서 센다. 데모의 PT 예약과
   /// 상담 요청은 목 헬스장·상담 저장소가 들고 있어 여기서는 0 으로 두고, 앱의
   /// 탈퇴 화면이 그 저장소에서 센 값으로 덮는다(`withdrawPreviewLoaderProvider`).
+  /// 트레이너가 잡은 PT 일정(#3341)은 데모 회원 앱에 들고 있는 곳이 없어 0 이다.
   Future<Response<Object?>> _usersMeDeletionPreview(
     RequestOptions options,
   ) async {
@@ -361,6 +364,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
       'points': _points.balance,
       'active_coupons': activeCoupons,
       'upcoming_reservations': 0,
+      'upcoming_sessions': 0,
       'pending_consultations': 0,
     });
   }
@@ -462,12 +466,20 @@ extension _LocalApiProfile on LocalApiInterceptor {
         'id': me['id'],
         'name': me['name'],
         'email': me['email'],
+        ..._demoEmailPlaceholder,
       },
       // 원장의 잔액 — 적립·회수가 그대로 보인다(#1786).
       'activity_points': _points.balance,
     });
   }
 }
+
+/// 서버와 같은 모양(#3338). 데모 계정의 이메일은 늘 실제 꼴의 주소다 — 소셜로
+/// 든 데모 회원도 데모 프로필의 이메일을 쓰므로 대체 이메일이 생기지 않는다.
+const Map<String, Object?> _demoEmailPlaceholder = <String, Object?>{
+  'email_is_placeholder': false,
+  'email_placeholder_provider': null,
+};
 
 const Map<String, Object?> _defaultProfile = <String, Object?>{
   'id': 'user-7d4e9a2c5f18',

@@ -320,6 +320,18 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get actionClose;
 
+  /// No description provided for @actionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get actionDone;
+
+  /// No description provided for @actionMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get actionMore;
+
   /// No description provided for @actionRetry.
   ///
   /// In en, this message translates to:
@@ -3814,7 +3826,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGymChangeFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t change your gym. The rest of your profile was saved.'**
+  /// **'Couldn\'t change your gym.'**
   String get myGymChangeFailed;
 
   /// No description provided for @myTabProfile.
@@ -4852,13 +4864,13 @@ abstract class AppLocalizations {
   /// No description provided for @myGymEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No gym yet. Set yours in Edit profile.'**
+  /// **'No gym yet. Pick yours in Set gym.'**
   String get myGymEmpty;
 
   /// No description provided for @myEditVisibleBody.
   ///
   /// In en, this message translates to:
-  /// **'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.'**
+  /// **'Your specialty, career, introduction and certifications appear on your trainer profile in the member app.'**
   String get myEditVisibleBody;
 
   /// No description provided for @myClientManagementNoteTitle.
@@ -8730,13 +8742,13 @@ abstract class AppLocalizations {
   /// No description provided for @a11yRemoveExercise.
   ///
   /// In en, this message translates to:
-  /// **'Remove exercise'**
+  /// **'Delete exercise'**
   String get a11yRemoveExercise;
 
   /// No description provided for @a11yRemoveCertification.
   ///
   /// In en, this message translates to:
-  /// **'Remove certification'**
+  /// **'Delete certification'**
   String get a11yRemoveCertification;
 
   /// No description provided for @a11yPrevWeek.
@@ -8786,12 +8798,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Age {age}'**
   String coachClientAge(int age);
-
-  /// No description provided for @coachTemplateMenu.
-  ///
-  /// In en, this message translates to:
-  /// **'Template menu'**
-  String get coachTemplateMenu;
 
   /// No description provided for @routineFormDecrease.
   ///
@@ -10353,10 +10359,16 @@ abstract class AppLocalizations {
   /// **'The server is having a temporary problem. Please try again in a moment.'**
   String get errorServerTemporary;
 
+  /// Button on the gym card and title of the screen where a trainer picks a different gym to be affiliated with.
+  ///
+  /// In en, this message translates to:
+  /// **'Change gym'**
+  String get myGymChange;
+
   /// Button on the gym card and title of the screen where an affiliated trainer edits the gym hours, phone and tags (#2700).
   ///
   /// In en, this message translates to:
-  /// **'Edit gym info'**
+  /// **'Edit hours & contact'**
   String get myGymInfoEdit;
 
   /// No description provided for @myGymInfoSubtitle.
@@ -10434,7 +10446,7 @@ abstract class AppLocalizations {
   /// No description provided for @a11yRemoveGymTag.
   ///
   /// In en, this message translates to:
-  /// **'Remove tag'**
+  /// **'Delete tag'**
   String get a11yRemoveGymTag;
 
   /// No description provided for @myGymTagsHint.

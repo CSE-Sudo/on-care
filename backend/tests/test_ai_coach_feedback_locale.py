@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 
@@ -20,6 +21,20 @@ from app.services.coach import domain_coaches
 
 EN = {"Accept-Language": "en"}
 _HANGUL = re.compile("[가-힣]")
+
+
+@pytest.fixture
+def member(client) -> dict[str, str]:
+    """새 회원의 인증 헤더. 이 경로는 회원 전용이고(#3351) 카드를 회원별로 캐시하므로
+    테스트마다 새 회원을 쓴다."""
+    email = f"coach-locale-{uuid4().hex[:8]}@oncare.com"
+    client.post(
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
+    )
+    token = client.post(
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
+    ).json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _card(body: dict, tag: str) -> dict:
@@ -58,8 +73,8 @@ def recording_llm(monkeypatch) -> _RecordingLLM:
     return llm
 
 
-def test_english_request_gets_english_rule_texts(client, no_llm):
-    r = client.get("/v1/ai-coach/feedback", headers=EN)
+def test_english_request_gets_english_rule_texts(client, no_llm, member):
+    r = client.get("/v1/ai-coach/feedback", headers={**member, **EN})
     assert r.status_code == 200
     body = r.json()
     assert "님" not in body["greeting"]
@@ -69,8 +84,8 @@ def test_english_request_gets_english_rule_texts(client, no_llm):
         assert not _HANGUL.search(card["body"]), card
 
 
-def test_without_header_stays_korean(client, no_llm):
-    r = client.get("/v1/ai-coach/feedback")
+def test_without_header_stays_korean(client, no_llm, member):
+    r = client.get("/v1/ai-coach/feedback", headers=member)
     assert r.status_code == 200
     body = r.json()
     assert "님" in body["greeting"]
@@ -78,8 +93,8 @@ def test_without_header_stays_korean(client, no_llm):
         assert _HANGUL.search(card["title"]), card
 
 
-def test_english_request_asks_the_coach_for_english(client, recording_llm):
-    r = client.get("/v1/ai-coach/feedback", headers=EN)
+def test_english_request_asks_the_coach_for_english(client, recording_llm, member):
+    r = client.get("/v1/ai-coach/feedback", headers={**member, **EN})
     assert r.status_code == 200
     exercise = _card(r.json(), "exercise")
     assert exercise["title"] == "Today's workout coaching"
@@ -88,8 +103,8 @@ def test_english_request_asks_the_coach_for_english(client, recording_llm):
     assert all("Output language" in p for p in recording_llm.system_prompts)
 
 
-def test_korean_request_keeps_the_korean_prompt(client, recording_llm):
-    r = client.get("/v1/ai-coach/feedback")
+def test_korean_request_keeps_the_korean_prompt(client, recording_llm, member):
+    r = client.get("/v1/ai-coach/feedback", headers=member)
     assert r.status_code == 200
     assert _card(r.json(), "exercise")["title"] == "오늘의 운동 코칭"
     assert recording_llm.system_prompts
