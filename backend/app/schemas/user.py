@@ -51,6 +51,10 @@ class UserMe(BaseModel):
     consent_required: bool = False
     #: 아직 동의하지 않은 필수 항목(`terms`·`privacy`·`health`·`age14`).
     consent_pending: list[str] = Field(default_factory=list)
+    #: 확인할 비밀번호가 있는 계정인가(#3340). 프로필(`ProfileView`)의 같은 이름
+    #: 칸과 같은 값이다. 동의가 남은 회원은 프로필을 읽지 못하므로(403), 탈퇴
+    #: 확인창이 본인 확인을 비밀번호로 받을지 소셜 재로그인으로 받을지를 여기서 안다.
+    has_password: bool = True
 
 
 class ConsentSubmit(BaseModel):
