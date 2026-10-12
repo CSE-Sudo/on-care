@@ -12,11 +12,16 @@ from datetime import date, time, timedelta
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.core import clock
 from app.core.security import create_access_token
-from app.models.models import Notification, TrainerSchedule
+from app.models.models import (
+    ChatMessage,
+    CoachDocument,
+    Notification,
+    TrainerSchedule,
+)
 from app.services import notification_service, notification_templates
 from app.services.schedule_parse import parse_schedule
 from tests.test_trainer_inactive_client_access import pair  # noqa: F401 — 픽스처
@@ -25,8 +30,70 @@ from tests.test_trainer_inactive_client_access import pair  # noqa: F401 — 픽
 FRIDAY = date(2026, 8, 21)
 
 
+#: 시드의 담당 쌍 — 로그인으로 쓰는 `trainer@oncare.com` ↔ `jisu@oncare.com`.
+SEED_TRAINER_ID = "trainer-demo"
+SEED_MEMBER_ID = "user-jisu"
+
+
 def _h(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
+
+
+def _seed_thread_rows(db_session) -> dict[type, set]:
+    """시드 스레드에 지금 있는 일정·메시지·알림·개인 문서의 id."""
+    db_session.expire_all()
+    pair_ids = (SEED_TRAINER_ID, SEED_MEMBER_ID)
+    return {
+        TrainerSchedule: set(
+            db_session.scalars(
+                select(TrainerSchedule.id).where(
+                    TrainerSchedule.trainer_id == SEED_TRAINER_ID,
+                    TrainerSchedule.member_id == SEED_MEMBER_ID,
+                )
+            )
+        ),
+        ChatMessage: set(
+            db_session.scalars(
+                select(ChatMessage.id).where(
+                    ChatMessage.trainer_id == SEED_TRAINER_ID,
+                    ChatMessage.member_id == SEED_MEMBER_ID,
+                )
+            )
+        ),
+        Notification: set(
+            db_session.scalars(
+                select(Notification.id).where(Notification.user_id.in_(pair_ids))
+            )
+        ),
+        CoachDocument: set(
+            db_session.scalars(
+                select(CoachDocument.id).where(
+                    CoachDocument.user_id == SEED_MEMBER_ID,
+                    CoachDocument.source == "chat",
+                )
+            )
+        ),
+    }
+
+
+@pytest.fixture()
+def seed_thread_cleanup(db_session):
+    """시드 스레드에 테스트가 만든 행을 지운다. (#3396)
+
+    시드 계정으로 대화를 보내면 일정·일정 알림·메시지·메시지 알림·개인 문서가
+    시드 회원에게 남는다. 남은 일정은 같은 트레이너의 그 시간을 차지해, 뒤에 도는
+    일정 테스트를 `schedule_overlap` 으로 깨뜨린다. 테스트 전후의 id 를 견주어
+    그 사이에 생긴 행만 지운다 — 시드가 원래 갖고 있던 행은 건드리지 않는다.
+    """
+    before = _seed_thread_rows(db_session)
+    yield
+    db_session.rollback()
+    after = _seed_thread_rows(db_session)
+    for model, ids in after.items():
+        created = ids - before[model]
+        if created:
+            db_session.execute(delete(model).where(model.id.in_(created)))
+    db_session.commit()
 
 
 @pytest.mark.parametrize(
@@ -70,7 +137,9 @@ def test_says_nothing_when_it_is_not_sure(text):
     assert parse_schedule(text, sent_on=FRIDAY) is None
 
 
-def test_trainer_message_puts_the_next_pt_on_the_member_schedule(client):
+def test_trainer_message_puts_the_next_pt_on_the_member_schedule(
+    client, seed_thread_cleanup
+):
     """트레이너가 대화에서 잡은 약속이 회원의 세션 목록에 나타난다."""
     trainer = client.post(
         "/v1/auth/login",
@@ -104,7 +173,7 @@ def test_trainer_message_puts_the_next_pt_on_the_member_schedule(client):
     assert len([s for s in again if s["time"] == "20:00"]) == len(booked)
 
 
-def test_member_message_does_not_book_anything(client):
+def test_member_message_does_not_book_anything(client, seed_thread_cleanup):
     """회원이 제안한 시간은 아직 약속이 아니다."""
     member = client.post(
         "/v1/auth/login",
