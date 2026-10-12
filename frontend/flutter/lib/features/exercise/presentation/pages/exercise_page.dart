@@ -672,6 +672,24 @@ class _ExerciseDayDetail extends ConsumerWidget {
     );
     final bool hasRoutineBlock =
         dayRoutines.isNotEmpty || routineSessions.isNotEmpty;
+    // 그날 PT 를 함께한 트레이너(#3347). 운동 기록에는 이름이 없어 그날의 완료
+    // 일정에서 읽는다 — 담당이 바뀐 뒤에도 지난 수업은 그때의 트레이너 이름으로
+    // 남는다. 일정을 못 읽었거나 이름이 없는 옛 응답이면 적지 않는다.
+    final DateTime day = dateOnly(date);
+    final String ptCoachName = ptSessions.isEmpty
+        ? ''
+        : (ref.watch(coachSessionsProvider).valueOrNull ??
+                      const <CoachSession>[])
+                  .where(
+                    (CoachSession s) =>
+                        s.isDone &&
+                        s.trainerName.isNotEmpty &&
+                        s.date != null &&
+                        dateOnly(s.date!) == day,
+                  )
+                  .map((CoachSession s) => s.trainerName)
+                  .firstOrNull ??
+              '';
     // 유형별 값은 `운동 현황 > 오늘` 과 **같은 카드**로 그린다 — 유산소·스트레칭은
     // 분, 근력은 세트로. 같은 데이터를 두 가지 모양으로 그리지 않는다(#682).
     final ExerciseDayLoad load = ExerciseDayLoad.fromMinutes(
@@ -709,6 +727,7 @@ class _ExerciseDayDetail extends ConsumerWidget {
               icon: AppIcons.exercise,
               sessions: ptSessions,
               intensityInHeader: true,
+              coachName: ptCoachName,
             ),
           if (ptSessions.isNotEmpty && hasRoutineBlock)
             const SizedBox(height: OnCareSpacing.s12),
@@ -775,7 +794,12 @@ class _DayRecordCard extends StatelessWidget {
     required this.icon,
     required this.sessions,
     this.intensityInHeader = false,
+    this.coachName = '',
   });
+
+  /// 그날 PT 를 함께한 트레이너 이름 — 칩 한 칸으로 적는다(#3347). 개인운동
+  /// 묶음과 이름을 모르는 날은 비워 둔다.
+  final String coachName;
 
   /// 강도를 머리 오른쪽 한 번만 적는가 — PT 는 수업 하나에 강도가 하나라
   /// 종목마다 되풀이하지 않는다(오늘 PT 카드와 같다, #2507). 개인운동은 운동마다
@@ -859,6 +883,14 @@ class _DayRecordCard extends StatelessWidget {
                     tone: AppTagTone.brand,
                   ),
                 ),
+              if (coachName.isNotEmpty)
+                _fitTag(
+                  AppTag(
+                    key: const ValueKey<String>('exercise-pt-coach-name'),
+                    icon: AppIcons.person,
+                    label: coachName,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -893,19 +925,11 @@ class _PtLogCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 담당 트레이너가 없으면 PT 일지 자리 자체가 없다(#2014). 연결을 끊었는데
-    // 이 카드가 남으면, 트레이너가 있던 흔적만 화면에 서 있게 된다. 실서버는
-    // 담당이 없을 때 세션 목록이 비어 자연히 사라졌지만, 데모는 픽스처 세션을
-    // 그대로 읽어 연결과 무관하게 카드를 세웠다.
-    //
-    // **담당이 없다고 확인됐을 때만** 걷는다. 코치 조회가 아직 오는 중이거나
-    // 실패했을 때는 담당이 없는 것이 아니다 — 그때 숨기면 담당이 있는 회원의
-    // 오늘 PT 기록이 조회 한 번 실패로 사라지고, 불러오는 동안 칸이 비었다가
-    // 튀어나온다. 실서버에서는 세션 목록이 이미 담당 여부를 따른다.
-    final AsyncValue<MemberCoach?> linked = ref.watch(memberCoachProvider);
-    if (linked.hasValue && linked.value == null) {
-      return const SizedBox.shrink();
-    }
+    // 담당 트레이너가 없어도 오늘 마친 PT 는 남긴다(#3347). 받은 수업은 회원의
+    // 기록이라, 수업 뒤에 담당을 바꾸거나 연결을 끊었다고 그날의 일지가 사라지면
+    // 안 된다. 예전에는 담당이 없으면 카드를 걷었다(#2014) — 서버가 지금 담당의
+    // 일정만 주던 때의 규칙이다. 이제 서버는 지난 담당과 마친 PT 도 주고, 누구와의
+    // 수업이었는지를 행마다 싣는다([CoachSession.trainerName]).
     final AppLocalizations l = AppLocalizations.of(context);
     // 고르는 기준은 **출처**다. `근력이면 PT` 로 세면, 오늘 회원이 직접 적은
     // 근력 한 줄이 PT 일지 안으로 딸려 들어가 하지 않은 종목이 트레이너
@@ -974,7 +998,11 @@ class _PtLogCard extends ConsumerWidget {
           ),
       ],
       emptyProgram: l.exCompletedPtNoProgram,
-      coachName: coach?.name ?? l.exAssignedTrainer,
+      // 그 수업의 트레이너다 — 지금 담당이 아닐 수 있다(#3347). 이름을 싣지
+      // 않는 옛 응답만 지금 담당의 이름으로 읽는다.
+      coachName: session.trainerName.isNotEmpty
+          ? session.trainerName
+          : coach?.name ?? l.exAssignedTrainer,
       feedback: session.note,
     );
 
