@@ -1276,6 +1276,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDefaultUserName => 'User';
 
   @override
+  String myEmailUnregistered(String provider) {
+    String _temp0 = intl.Intl.selectLogic(provider, {
+      'kakao': 'Signed up with Kakao',
+      'google': 'Signed up with Google',
+      'other': 'Signed up with a social account',
+    });
+    return '$_temp0 · No email on file';
+  }
+
+  @override
   String get myProfileLoadFailed => 'Couldn\'t load your profile';
 
   @override
@@ -2238,6 +2248,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myProfileEmailTaken => 'That email is already in use';
+
+  @override
+  String get myProfileEmailEmptyHint => 'Email address to use';
 
   @override
   String get myProfilePhoneRequired => 'Your phone number can\'t be left empty';
@@ -5176,6 +5189,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passwordResetConfirmSubtitle =>
       'Enter the code from the email and your new password.';
+
+  @override
+  String get passwordResetSocialNote =>
+      'If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.';
 
   @override
   String get passwordResetCodeHint => '16-character reset code';

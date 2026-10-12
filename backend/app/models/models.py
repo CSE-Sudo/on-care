@@ -2737,6 +2737,14 @@ class AiMessage(Base):
     insight_dismissed: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
+    #: 이 줄을 만든 전송의 멱등키. 한 번의 전송이 남긴 질문과 답이 같은 값을 갖는다. (#3352)
+    #:
+    #: 사용 기록(`ai_chat_usages`)은 AI 가 답했을 때만 남으므로, 대체 답으로 끝난
+    #: 전송은 재전송을 알아볼 근거가 여기뿐이다. 앱도 방금 보낸 말과 저장된 대화를
+    #: 이 값으로 맞춘다. 키 없이 보냈거나 이 칸이 생기기 전의 줄은 NULL 이다.
+    client_request_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -2915,6 +2923,10 @@ class DietAnalysisUsage(Base):
     끼니를 지우고 다시 찍으면 끼니 수로는 하루 상한이 다시 열린다. 같은 멱등키의
     재전송은 모델을 부르지 않으므로 줄이 생기지 않는다. 모델 호출이 실패하면 그 줄을
     지운다 — 회원 탓이 아닌 실패로 하루 상한을 깎지 않는다.
+
+    멱등키와 함께 온 요청의 줄은 `id` 가 회원·키에서 정해진다(`dau-k-…`, #3354). 그
+    줄이 있으면 같은 키가 분석 중이거나 이미 끼니로 저장된 것이라, 진행 중에 겹친
+    재전송이 줄을 하나 더 만들지 못한다(`diet_analysis_quota_service.reserve`).
     """
 
     __tablename__ = "diet_analysis_usages"

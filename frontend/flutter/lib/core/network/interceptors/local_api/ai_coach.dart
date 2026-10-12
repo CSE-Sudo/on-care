@@ -113,15 +113,33 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
     // 주고받은 것을 그대로 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
     // 감지 기록 창과 다시 열었을 때의 대화가 모두 여기서 나온다(#1900).
     if (replayed == null) {
-      await _rememberAiCoachMessage(message, fromMember: true);
+      await _rememberAiCoachMessage(
+        message,
+        fromMember: true,
+        clientRequestId: requestId,
+      );
       await _rememberAiCoachMessage(
         reply,
         fromMember: false,
         sources: sources,
         pointsSpent: charge.spent,
         balanceAfter: charge.balance,
+        clientRequestId: requestId,
       );
     }
+    // 저장한 두 줄의 식별자·시각(#3352) — 재생이면 그때 남긴 줄이다. 실서버처럼
+    // 화면이 방금 보낸 말과 저장된 대화를 이 값으로 맞춘다.
+    final List<Map<String, Object?>> saved = await _aiCoachMessages();
+    final Map<String, Object?>? savedQuestion = _lastAiCoachRow(
+      saved,
+      fromMember: true,
+      clientRequestId: requestId,
+    );
+    final Map<String, Object?>? savedReply = _lastAiCoachRow(
+      saved,
+      fromMember: false,
+      clientRequestId: requestId,
+    );
     final ChatInsight? insight = detectChatInsight(message);
     return _ok(options, <String, Object?>{
       'reply': reply,
@@ -130,7 +148,29 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
       'points_spent': charge.spent,
       'balance_after': charge.balance,
       'quota': _aiChatQuota.statusJson(),
+      'user_message_id': savedQuestion?['id'],
+      'user_created_at': savedQuestion?['created_at'],
+      'reply_message_id': savedReply?['id'],
+      'reply_created_at': savedReply?['created_at'],
+      'client_request_id': requestId,
     });
+  }
+
+  /// 방금 저장한(키가 있으면 그 키의) 마지막 줄. 재생인데 그 줄이 보관 기간을
+  /// 지나 사라졌으면 null. (#3352)
+  static Map<String, Object?>? _lastAiCoachRow(
+    List<Map<String, Object?>> rows, {
+    required bool fromMember,
+    required String? clientRequestId,
+  }) {
+    for (final Map<String, Object?> row in rows.reversed) {
+      if (_isMemberRow(row) != fromMember) continue;
+      if (clientRequestId == null ||
+          row['client_request_id'] == clientRequestId) {
+        return row;
+      }
+    }
+    return null;
   }
 
   /// `GET /ai-coach/quota`(#2145).
@@ -148,10 +188,42 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
       await _db.putValue(_aiCoachMessagesKey, jsonEncode(seeded));
       return seeded;
     }
-    return <Map<String, Object?>>[
+    final List<Map<String, Object?>> rows = <Map<String, Object?>>[
       for (final Object? row in jsonDecode(raw) as List<Object?>)
         if (row is Map) row.cast<String, Object?>(),
     ];
+    // 예전 시드는 같은 날 주고받은 줄에 같은 식별자를 줬다. 이미 데모를 켜 본
+    // 기기에는 그 줄이 남아 있어, 식별자로 짝짓는 화면이 서로 다른 줄을 같은
+    // 줄로 본다 — 겹치는 줄만 순서대로 다시 매겨 저장한다(#3352).
+    if (_dedupeAiCoachRowIds(rows)) {
+      await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+    }
+    return rows;
+  }
+
+  /// 식별자가 없거나 앞 줄과 겹치는 줄에 줄 순번을 붙인 새 식별자를 준다. 처음
+  /// 나온 줄의 식별자는 그대로 둔다. 하나라도 바꿨으면 true. (#3352)
+  static bool _dedupeAiCoachRowIds(List<Map<String, Object?>> rows) {
+    final Set<String> taken = <String>{
+      for (final Map<String, Object?> row in rows)
+        if (row['id'] case final String id) id,
+    };
+    final Set<String> seen = <String>{};
+    bool changed = false;
+    for (int i = 0; i < rows.length; i++) {
+      final Object? id = rows[i]['id'];
+      if (id is String && seen.add(id)) continue;
+      final String base = id is String ? id : 'local-ai';
+      String next = '$base-$i';
+      for (int n = 1; taken.contains(next); n++) {
+        next = '$base-$i-$n';
+      }
+      taken.add(next);
+      seen.add(next);
+      rows[i]['id'] = next;
+      changed = true;
+    }
+    return changed;
   }
 
   Future<void> _rememberAiCoachMessage(
@@ -160,6 +232,7 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
     List<String> sources = const <String>[],
     int pointsSpent = 0,
     int? balanceAfter,
+    String? clientRequestId,
   }) async {
     final DateTime now = nowKst();
     final List<Map<String, Object?>> rows = <Map<String, Object?>>[
@@ -170,7 +243,9 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
         ))
           row,
       <String, Object?>{
-        'id': 'local-ai-${now.microsecondsSinceEpoch}',
+        // 질문과 답이 같은 순간에 저장돼도 식별자가 겹치지 않게 역할을 붙인다(#3352).
+        'id':
+            'local-ai-${now.microsecondsSinceEpoch}-${fromMember ? 'me' : 'coach'}',
         'role': fromMember ? 'user' : 'coach',
         'text': text,
         'sources': sources,
@@ -178,6 +253,8 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
         // 포인트로 산 답변(#2145) — 다시 열었을 때도 답변 아래에 차감을 적는다.
         if (pointsSpent > 0) 'points_spent': pointsSpent,
         'balance_after': ?balanceAfter,
+        // 이 줄을 만든 전송의 멱등키(#3352) — 질문과 답이 같은 값이다.
+        'client_request_id': ?clientRequestId,
       },
     ];
     await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
@@ -194,6 +271,9 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
       'messages': <Map<String, Object?>>[
         for (final Map<String, Object?> row in rows)
           <String, Object?>{
+            // 실서버와 같은 식별자·키(#3352). 시드 대화는 키가 없다.
+            'id': row['id'],
+            'client_request_id': row['client_request_id'],
             'role': _isMemberRow(row) ? 'user' : 'coach',
             'content': _rowText(row, english: english),
             'sources': row['sources'] ?? const <String>[],
@@ -723,10 +803,12 @@ _aiCoachSeed =
 List<Map<String, Object?>> _seedAiCoachRows() {
   final DateTime now = nowKst();
   return <Map<String, Object?>>[
-    for (final turn in _aiCoachSeed)
+    for (final (int index, turn) in _aiCoachSeed.indexed)
       <String, Object?>{
+        // 같은 날 주고받은 줄이 여럿이라 날짜만으로는 겹친다 — 시드 순번을 붙여
+        // 줄마다 다른 식별자를 준다(#3352).
         'id':
-            'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
+            'local-ai-seed-${turn.daysAgo}-$index-${turn.fromMember ? 'me' : 'coach'}',
         'role': turn.fromMember ? 'user' : 'coach',
         'text': turn.text,
         // 영어 화면에서 보일 같은 대화(#2735). 저장은 한국어 그대로 둔다.

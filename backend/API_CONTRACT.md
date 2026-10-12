@@ -90,13 +90,13 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/users/me` | `{ id(str), name, email, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
+| GET | `/users/me` | `{ id(str), name, email, email_is_placeholder, email_placeholder_provider, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `email_is_placeholder`·`email_placeholder_provider` 는 아래 [소셜 가입 계정의 대체 이메일](#소셜-가입-계정의-대체-이메일-3338). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET, PUT, DELETE | `/users/me/consents/{kind}` | 선택 동의(`location`) 상태 조회·동의·철회 → `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. 회원 전용, 선택 항목 아닌 `kind` 는 422 (아래 "선택 동의 — 위치정보 이용" 참고, #3136) |
-| GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
+| GET | `/users/me/health` | `{ profile: { id, name, email, email_is_placeholder, email_placeholder_provider }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039) |
 | GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, upcoming_sessions, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
-| GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
+| GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, email_is_placeholder, email_placeholder_provider, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
 | PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 이메일을 실제로 바꿀 때만 `current_password`(소셜 전용은 `social_provider`·`social_token`)와 새 주소로 받은 `email_code`(#3230)를 함께 보내고, 그때 응답에 새 `access_token`·`refresh_token` 이 실린다(#3039). 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
 | POST | `/users/me/email/code` | `{ email }` → **202** `{ expires_in_minutes, resend_after_seconds }` — 로그인 이메일을 바꾸기 전에 새 주소로 6자리 인증 코드를 보낸다(#3230). 가입 여부와 무관하게 같은 응답, 지금 이메일과 같으면 422 `email_unchanged`. 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) |
 | POST | `/users/me/onboarding` | 최초 온보딩 `{ name?, birth_date?, gender?, height_cm?, weight_kg?, conditions?, daily_*?, daily_burn_kcal?, weekly_cardio_minutes?, weekly_strength_sets?, weekly_flexibility_minutes? }` → `ProfileView`(`onboarded: true`). 보낸 필드만 반영한다 |
@@ -123,6 +123,26 @@
 스레드 행이 CASCADE 로 사라지므로 남긴 파일은 열 수 없는 고아가 된다. 트레이너 탈퇴
 (`DELETE /trainer/me`)도 그 트레이너의 스레드 첨부를 같은 규칙으로 지운다. 파일 삭제는 커밋
 뒤에 하고, 실패해도 응답은 `deleted` 다(서버 로그에 남겨 다시 지운다).
+
+#### 소셜 가입 계정의 대체 이메일 (#3338)
+
+이메일을 주지 않는(또는 확인하지 않은) 소셜 계정으로 가입하면 계정 이메일 자리에
+`{provider}_{provider_user_id}@social.oncare` 가 들어간다. 받는 사람이 없는 내부용 주소다.
+만드는 규칙과 알아보는 규칙은 `app/services/placeholder_email.py` 한 곳에 있다.
+
+| 필드 | 뜻 |
+|---|---|
+| `email_is_placeholder` | `email` 이 대체 이메일인가. `GET /users/me`·`GET /users/me/health` 의 `profile`·`ProfileView` 에 실린다 |
+| `email_placeholder_provider` | 대체 이메일을 만든 가입 수단(`kakao`·`google`). 대체 이메일이 아니면 null |
+
+- `email` 값은 그대로 싣는다(옛 버전 앱이 읽는 자리). 앱은 `email_is_placeholder` 가 참이면 주소를
+  보여 주지 않고 가입 수단과 "이메일 미등록" 으로 안내하며, 프로필 편집의 이메일 칸을 비운 채로 연다.
+- 실제 주소로 바꾸면(`PUT /users/me`) 두 값은 `false`·`null` 이 된다. 이때 **이메일 변경 안내 메일은
+  보내지 않는다** — 옛 주소가 내부용이라 알릴 곳이 없다. 실제 주소에서 실제 주소로 바꿀 때는 예전처럼
+  옛 주소로 보낸다(#3039).
+- 비밀번호가 없는 소셜 전용 계정의 비밀번호 재설정 요청은 계정 존재를 숨기려고 예전처럼 같은 202 를
+  주고 메일은 보내지 않는다. 앱이 코드 입력 화면에서 "소셜 로그인으로 가입했다면 메일이 오지 않는다" 고
+  안내한다.
 
 #### 탈퇴 미리보기 (#3006)
 
@@ -152,6 +172,14 @@
 화면으로 보내지 않는다. 둘 다 거짓이면(가입 직후 폼에서 앱을 닫은 회원) 다음 진입 때
 다시 첫 설정으로 보낸다(#2630). 건너뛴 회원은 MY `건강 목표` 화면의 안내 카드에서 첫
 설정을 다시 열 수 있다.
+
+다시 연 첫 설정은 빈 계정이 아닐 수 있다 — 그 사이 MY 에서 목표를 정했거나 담당
+트레이너가 목표와 주의사항을 넣어 줬을 수 있다. 그래서 앱은 회원의 지금 값으로 칸을
+채우고 **바꾼 칸만** 보낸다(#3339). 서버는 보내지 않은 칸을 그대로 두므로 손대지 않은
+목표는 남고, `conditions` 를 보내지 않은 저장은 건강 목표·주의사항 변경 알림을 만들지
+않는다. `conditions` 를 보낼 때는 바꾼 쪽(목표 칩 또는 주의사항)만 서버의 지금 값 위에
+얹은 문자열을 보낸다. 있던 목표를 비운 칸은 `PUT /users/me/health-goals` 의 `null` 로
+해제한다 — 이 문은 빈 값을 보내지 않는다.
 
 ### 채팅 이모티콘 (#2020, #2153)
 
@@ -209,7 +237,7 @@
 
 `ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 값은 `sodium_over` · `sodium_over_sources` · `exercise_on_track` · `exercise_more` · `exercise_cardio_start` · `exercise_start` 중 하나다.
 
-`ai_advice_params` 는 그 문장에 끼울 값이다(#2644). 음식 이름이 들어간 나트륨 경고(`sodium_over_sources`)는 `{ "foods": ["라면", "김밥"] }` 처럼 나트륨 상위 급원 음식 이름(최대 두 개)을 싣고, 나머지 키는 빈 객체다. 음식 이름은 회원이 적은 데이터라 번역하지 않고 앱 ARB 의 문장 틀에 그대로 끼운다. `sodium_warning` · `exercise_feedback` 문장도 요청 `Accept-Language` 를 따른다.
+`ai_advice_params` 는 그 문장에 끼울 값이다(#2644). 음식 이름이 들어간 나트륨 경고(`sodium_over_sources`)는 `{ "foods": ["라면", "김밥"] }` 처럼 나트륨 상위 급원 음식 이름(최대 두 개)을 싣고, 나머지 키는 빈 객체다. 음식 이름은 회원이 적은 데이터라 번역하지 않고 앱 ARB 의 문장 틀에 그대로 끼운다. 다만 요청 언어가 영어이고 그 음식에 영어 표시 이름(`foods[].display_name`, 영어 화면에서 사진 분석한 기록)이 남아 있으면 그 이름을 싣는다(#3354) — 식단 탭이 같은 음식을 보여 주는 이름과 같다. 표시 이름이 없는 음식은 저장된 이름 그대로다. `sodium_warning` · `exercise_feedback` 문장도 요청 `Accept-Language` 를 따른다.
 
 운동 되먹임(`exercise_*` 키와 `exercise_feedback`)의 판정은 운동 탭과 같다(#3350). 이번 주 **유산소 분**(`exercise_cardio_minutes`)을 회원의 주간 유산소 목표(`weekly_cardio_minutes`, 없으면 150분)와 견줘, 목표 이상이면 `exercise_on_track`, 못 미치면 `exercise_more` 다. 다른 운동은 했는데 유산소가 0분인 주는 `exercise_cardio_start`(유산소를 권하는 문장)다. 이번 주 기록이 유형과 무관하게 하나도 없을 때만 `exercise_start` 다. 문장에 적는 분 수도 `exercise_cardio_minutes` 이고, `exercise_minutes` 는 유형을 가리지 않은 합계다. 나트륨 경고의 기준도 회원의 `daily_sodium_mg`(없으면 2,000mg)이다.
 
@@ -230,11 +258,15 @@
 | GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236). 구간은 끝(`to`, 오늘 이후면 오늘)에서 거슬러 **최대 1100일**(`diet_service.MAX_PERIOD_DAYS`)이고, 더 이른 `from`·첫 기록일은 그 하한으로 잘린다 — 응답 `from_date` 가 실제 시작일이다 (#2833). `from > to` 면 `to` 하루다 |
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
-| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다. `meal_type` 이 다섯 값 밖이면 인식 전에 422(#2882) |
-| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422. 같은 `idempotency_key` 재전송은 처음 끼니를 돌려주고, 같은 키에 끼니·음식·(보냈다면)날짜가 다르면 409 이고 아무것도 바뀌지 않는다(#3095) |
-| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나. `meal_type` 은 다섯 값, `time_label` 은 `HH:MM` 또는 빈 문자열(그 밖은 422, #2882) |
+| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다. `meal_type` 이 다섯 값 밖이면 인식 전에 422(#2882). `time_label` 은 아래 "끼니 시각" 규칙으로 정한다(#3354) |
+| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날·작년 1월 1일 이전은 422(사진 분석과 같은 규칙, #3354). `time_label` 은 아래 "끼니 시각" 규칙으로 정한다. 당류 > 탄수화물인 음식이 있으면 422. 같은 `idempotency_key` 재전송은 처음 끼니를 돌려주고, 같은 키에 끼니·음식·(보냈다면)날짜가 다르면 409 이고 아무것도 바뀌지 않는다(#3095) |
+| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나. `meal_type` 은 다섯 값, `time_label` 은 `HH:MM` 또는 빈 문자열(그 밖은 422, #2882). `date` 는 앞날·작년 1월 1일 이전이면 422 이고 아무것도 바뀌지 않는다(#3354). 날짜만 옮겨도 `time_label` 은 그대로다 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
+
+**식단 기록 날짜 범위.** 사진 분석·직접 입력·수정의 `date` 는 같은 검사를 거친다(#3354) — `YYYY-MM-DD` 한 가지 표기, 오늘(KST)까지, **작년(KST) 1월 1일부터**. 앱의 날짜 고르기 범위와 같다. 벗어나면 422 이고 문구는 `date 는 오늘보다 뒤일 수 없어요.` / `date 는 작년 1월 1일보다 앞설 수 없어요.` 다.
+
+**끼니 시각(`time_label`).** 새 끼니의 시각은 서버가 정한다(#3354). 기록 날짜가 오늘(KST)이면 저장하는 시각(`HH:MM`)이고, **지난 날짜면 끼니 종류의 기본 시각**이다 — `breakfast` 08:00, `lunch` 12:00, `snack` 15:00, `dinner` 18:00, `lateNight` 22:00. 어제 아침을 밤에 적어도 그 끼니가 밤 시각으로 남지 않는다. 회원이 `PUT` 으로 보낸 `time_label` 은 그대로 저장한다.
 
 **`POST /diet/analyze` 사진 정리.** 받은 사진은 인식 전에 한 번 정리한다(#3041) — EXIF 회전을 픽셀에 적용하고, EXIF(촬영 위치·시각·기기)·XMP 등 메타데이터를 모두 버린 장변 1600px 이하 JPEG(품질 85, 앱 업로드 크기와 같음)이다. 외부 인식 모델(Gemini·LiteLLM 비전)은 **원본이 아니라 이 정리본만** 받고, 끼니 사진 저장(`photo_url`, 장변 1024px)도 같은 정리본에서 만든다. PNG·WebP 도 정리본은 JPEG 이다. 같은 멱등키 재전송은 정리·인식 없이 기존 결과를 준다.
 
@@ -243,10 +275,11 @@
 - `503 { code: "analysis_unavailable", message }` — 사진 인식을 쓸 수 없는 설정(운영에서 인식 키 없음). 고정 식단으로 저장하지 않는다(#2812). 운영은 키가 없으면 기동부터 거부하므로 정상 배포에서는 나오지 않는다.
 - `503 { code: "ai_capacity", message }` + `Retry-After` — 서버 전체의 오늘 AI 호출 상한 도달(위 "AI 하루 호출 상한", #3032). 모델을 부르지 않았고 회원 하루 분석 횟수도 돌려준다. 앱은 다시 시도 대신 직접 추가로 안내한다.
 - `422 { code: "no_food_detected", message }` — 사진에서 음식을 하나도 찾지 못했다. 0kcal 끼니를 저장하지 않고 포인트도 없으며, 멱등키도 쓰지 않아 같은 키로 다른 사진을 다시 보낼 수 있다(#2848).
+- `409 { code: "in_progress", message }` — 같은 `idempotency_key` 의 분석이 아직 끝나지 않았다(#3354, AI 대화의 `in_progress` 와 같은 모양). 앱이 답을 기다리다 같은 키로 다시 보냈는데 첫 요청이 아직 모델을 기다리는 경우다. 모델을 부르지 않고 하루 분석 횟수도 세지 않는다. 잠시 뒤 같은 키로 다시 보내면 첫 요청이 저장한 결과가 200 으로 온다. 분석하던 프로세스가 끝나 표시만 남은 키는 5분 뒤 다음 전송이 새로 분석한다. 키 없이 보낸 요청에는 나오지 않는다.
 - `415` — 바이트가 JPG·PNG·WebP 가 아니다. 요청의 `Content-Type` 과 무관하게 바이트 시그니처로 판정하며, 모델을 부르기 전에 거절한다(#2827).
 - `415` — 형식은 맞지만 픽셀을 읽을 수 없는 사진(매직 넘버만 맞춘 손상·위장 파일). 인식 모델을 부르기 전, 하루 분석 한도를 예약하기 전에 거절하므로 한도를 깎지 않는다(#3041).
 - `429 { code: "rate_limited", message }` — 한 회원의 분당 분석 한도(`DIET_ANALYZE_PER_MINUTE`, 기본 10) 초과. `Retry-After` 헤더가 붙는다. 회원 id 로 세므로 같은 Wi-Fi 의 다른 회원에게 번지지 않는다(#2827).
-- `429 { code: "daily_limit", message }` — 한 회원의 하루(KST) 분석 상한(`DIET_ANALYZE_PER_DAY`, 기본 20) 도달. KST 자정 뒤 다시 열린다. 모델을 부르기 직전에 세며, 같은 멱등키 재전송(모델 호출 없음)과 모델 호출 실패(502·501)는 세지 않는다. 음식을 못 찾은 사진(422)은 모델을 불렀으므로 센다(#2827).
+- `429 { code: "daily_limit", message }` — 한 회원의 하루(KST) 분석 상한(`DIET_ANALYZE_PER_DAY`, 기본 20) 도달. KST 자정 뒤 다시 열린다. 모델을 부르기 직전에 세며, 같은 멱등키 재전송(모델 호출 없음 — 저장된 결과를 받는 200 과 분석 중인 409 `in_progress` 모두)과 모델 호출 실패(502·501)는 세지 않는다. 음식을 못 찾은 사진(422)은 모델을 불렀으므로 센다(#2827).
 - `engine` 쿼리는 비교실험용이다. 운영에서는 관리자만 적용되고 회원이 붙이면 무시한다. 개발용 스텁(`engine: "stub"`) 결과는 끼니로는 남지만 포인트·분석용 식판 조건에 세지 않는다(#2812).
 
 `GET /diet/advice` 는 **규칙 한 줄 + 다음 할 일 한 문장**이다(#2251). 수치는 규칙이 계산하고, 두 문장을 합쳐 45자 안이다.
@@ -821,9 +854,9 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707). 규칙 기반 판정과 AI 에 싣는 주간 요약의 기준은 회원 목표다 — 나트륨 `daily_sodium_mg`, 운동은 이번 주 유산소 분 대 `weekly_cardio_minutes`. 없을 때만 기본값(2,000mg·150분)(#3350). **회원 전용**(트레이너 계정 403, 토큰 없으면 401). 카드는 회원별로 잠깐 캐시한다(`COACH_FEEDBACK_CACHE_SECONDS`, 기본 1800초) — 같은 날(KST)·같은 언어로 다시 부르면 모델을 부르지 않고, 그 회원의 식단·운동 기록이나 판정 기준인 목표(`daily_sodium_mg`·`weekly_cardio_minutes`)가 바뀌면 캐시를 버린다. 인사말은 캐시하지 않는다. 하루에 카드를 새로 만드는 횟수는 회원별 `COACH_FEEDBACK_PER_DAY`(기본 20)까지이고, 넘으면 **오류가 아니라 200** 으로 규칙 기반 카드를 준다 — 응답 모양은 같다(#3351) |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
-| GET | `/ai-coach/messages` | `{ messages[] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |
+| GET | `/ai-coach/messages` | `{ messages[{ id, role, content, sources, created_at, insight, points_spent, balance_after, client_request_id }] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |
 | GET | `/ai-coach/quota` | `{ free_limit, free_left, paid_limit, paid_left, cost, balance, next }` — 오늘 남은 대화(#2145) |
-| POST | `/ai-coach/chat` | 입력 `{ message, history?, pay_with_points?, client_request_id? }` → `{ reply, sources, user_insight, points_spent, balance_after, quota }` |
+| POST | `/ai-coach/chat` | 입력 `{ message, history?, pay_with_points?, client_request_id? }` → `{ reply, sources, user_insight, points_spent, balance_after, quota, user_message_id, user_created_at, reply_message_id, reply_created_at, client_request_id }` |
 
 tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
@@ -837,11 +870,18 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
   쓰지 않고 대화도 저장하지 않는다. 앱은 보낸 말을 거두고 입력칸에 되돌려 안내한다.
 - 한도와 잔액은 LLM 을 부르기 전에 잠금 아래에서 확인하고 그 대화의 몫(포인트면 차감까지)을 먼저 잡는다(#3240). 동시에 보낸 요청도
   한도·잔액을 넘지 못하고, 잔액이 모자라면 답하기 전에 409 `insufficient_points` 다. 같은 `client_request_id` 가 아직 답을 기다리는
-  중이면 409 `in_progress`(앱은 일반 오류로 다룬다).
+  중이면 409 `in_progress` 다 — 실패가 아니라 "아직 처리 중"이다. 앱은 보낸 말을 그대로 두고 잠시 뒤 `GET /ai-coach/messages` 를
+  다시 읽어 같은 `client_request_id` 의 답을 찾는다(#3352).
 - **AI 가 답했을 때만 센다.** 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다(잡아 둔 몫을 거둔다 — 원장에 사용·반환 줄이 남지 않는다). 포인트로 산 답은 원장에 `ai_chat` 사용 줄로 남고,
   `points_spent`·`balance_after` 가 답변 아래 차감 표시(`−50P · 남은 포인트`)를 채운다. `GET /ai-coach/messages` 의 코치 답변도 같은
   두 값을 싣는다.
-- 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려주고 다시 세지 않는다.
+- 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려주고 다시 세지 않는다. **대체 답으로 끝난 전송도 같다(#3352)** —
+  사용 기록은 남기지 않지만(무료 횟수·포인트 0) 저장한 질문·답 두 줄에 키를 남겨, 모델 장애 중 재시도해도 대화에 같은 질문이
+  한 번만 남는다.
+- **메시지 식별자(#3352).** 저장된 메시지는 줄마다 `id`·`created_at`·`client_request_id`(그 줄을 만든 전송의 키, 질문과 답이 같은
+  값. 키 없이 보냈거나 예전 줄은 null)를 싣는다. `POST /ai-coach/chat` 응답의 `user_message_id`·`user_created_at`·
+  `reply_message_id`·`reply_created_at`·`client_request_id` 는 방금 저장한(재생이면 그때 저장한) 두 줄의 같은 값이다. 앱은 방금 보낸
+  말과 저장된 대화를 본문·기기 시각이 아니라 이 값으로 맞춘다. 필드는 추가만 했다 — 옛 앱은 무시하고 지금처럼 동작한다.
 
 **요청 크기·빈도 한도(#1548, #1549).** 한도를 넘는 요청은 LLM 을 부르기 전에 거절하고, 대화 저장·하루 한도 차감도 하지 않는다.
 

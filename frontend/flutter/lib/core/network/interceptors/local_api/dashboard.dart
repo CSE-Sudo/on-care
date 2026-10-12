@@ -26,6 +26,10 @@ extension _LocalApiDashboard on LocalApiInterceptor {
     var totalProtein = 0.0;
     var totalFat = 0.0;
     final sodiumByFoodName = <String, int>{};
+    // 영어 화면이면 음식의 영어 표시 이름으로 짚는다(#3354) — 식단 탭이 같은
+    // 음식을 보여 주는 이름이다. 합산은 저장된 이름으로 한다(실서버와 같다).
+    final bool english = _prefersEnglish(options);
+    final displayNameByFoodName = <String, String>{};
     for (final r in dietRows) {
       totalCalories += r.totalCalories;
       totalSodium += r.sodiumMg;
@@ -45,6 +49,12 @@ extension _LocalApiDashboard on LocalApiInterceptor {
             (total) => total + sodium,
             ifAbsent: () => sodium,
           );
+          final Object? displayName = food['display_name'];
+          if (english &&
+              displayName is String &&
+              displayName.trim().isNotEmpty) {
+            displayNameByFoodName.putIfAbsent(name, displayName.trim);
+          }
         }
       }
     }
@@ -56,7 +66,7 @@ extension _LocalApiDashboard on LocalApiInterceptor {
     // 경고가 짚는 상위 급원 두 개. 서버(`dashboard._SODIUM_SOURCE_COUNT`)와 같다.
     final List<String> sodiumSourceNames = <String>[
       for (final MapEntry<String, int> source in sodiumSources.take(2))
-        source.key,
+        displayNameByFoodName[source.key] ?? source.key,
     ];
     final String lang = _requestLang(options);
 
