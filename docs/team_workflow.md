@@ -232,6 +232,11 @@ PR gate 는 PR 커밋만 보므로, 이미 이력에 들어간 값과 PR 을 거
   `bash ../../.github/scripts/flutter_test_shard.sh 3 4` 를 돌리면 CI 의 셋째 묶음과 같은 파일이
   돕니다(뒤에 붙인 인자는 `flutter test` 로 넘어갑니다). 묶음 수는 두 앱 워크플로의 `shard`
   목록으로 바꿉니다.
+- **E2E**: `Find E2E suites` 잡이 `tool/run_*_e2e.sh` 를 찾고, `E2E suite (run_…_e2e.sh)` 잡이
+  스위트 하나씩을 자기 DB·백엔드에서 돌립니다. `Real-API E2E (member app + trainer web)` 체크가
+  전체 결과를 모으며, 스위트를 못 찾았거나 하나라도 통과하지 못하면 실패합니다. 스위트를
+  추가할 때는 `tool/run_<이름>_e2e.sh` 규약만 지키면 잡이 자동으로 생깁니다. 다른 스위트가
+  남긴 데이터에 기대는 스위트는 쓰지 않습니다 — 스위트끼리 DB 를 나눠 쓰지 않습니다.
 
 ## 7. 이슈 사용
 
