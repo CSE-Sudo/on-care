@@ -12,7 +12,7 @@
 기존 행은 NULL 이라 이 마이그레이션만으로 바뀌는 동작은 없다.
 
 Revision ID: 0153_ai_message_client_request
-Revises: 0151_trainer_notify_kinds
+Revises: 0152_coach_feedback_states
 Create Date: 2026-10-12
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0153_ai_message_client_request"
-down_revision: str | Sequence[str] | None = "0151_trainer_notify_kinds"
+down_revision: str | Sequence[str] | None = "0152_coach_feedback_states"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
