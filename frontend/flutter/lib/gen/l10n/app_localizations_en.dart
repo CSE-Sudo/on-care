@@ -2025,6 +2025,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emoteSendFailed => 'Couldn\'t send the emote';
 
   @override
+  String get emoteSendLocked =>
+      'That emote has expired. Buy it again to send it';
+
+  @override
+  String get emoteSendRejected => 'That emote can\'t be sent';
+
+  @override
   String get a11yOpenEmotes => 'Emotes';
 
   @override
@@ -2475,6 +2482,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
+  String get coachImageRetry => 'Tap to load again';
+
+  @override
   String get coachChatSubtitle => 'Your trainer';
 
   @override
@@ -2501,6 +2511,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send your message. Please try again';
 
   @override
+  String get coachChatSendRejected =>
+      'That message can\'t be sent. Please check what you wrote';
+
+  @override
   String get coachPhotoAttach => 'Send a photo';
 
   @override
@@ -2518,6 +2532,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachPhotoSendFailed => 'Couldn\'t send the photo';
+
+  @override
+  String get coachPhotoSendRejected => 'That photo can\'t be sent';
 
   @override
   String get coachPhotoRetry => 'Send again';
@@ -4936,6 +4953,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get weeklyFeedbackSendFailed =>
       'Couldn\'t send your weekly feedback. Please try again';
+
+  @override
+  String get weeklyFeedbackSendUnassigned =>
+      'Your trainer is no longer assigned, so weekly feedback can\'t be sent';
+
+  @override
+  String get weeklyFeedbackSendRejected =>
+      'Weekly feedback can\'t be sent for this week';
 
   @override
   String get weeklyFeedbackAlreadySent =>

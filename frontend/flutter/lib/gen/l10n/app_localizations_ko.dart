@@ -1932,6 +1932,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteSendFailed => '이모티콘을 보내지 못했어요';
 
   @override
+  String get emoteSendLocked => '이용 기간이 끝난 이모티콘이에요. 다시 사면 보낼 수 있어요';
+
+  @override
+  String get emoteSendRejected => '보낼 수 없는 이모티콘이에요';
+
+  @override
   String get a11yOpenEmotes => '이모티콘';
 
   @override
@@ -2352,6 +2358,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachImageUnavailable => '사진을 불러오지 못했어요';
 
   @override
+  String get coachImageRetry => '눌러서 다시 불러오기';
+
+  @override
   String get coachChatSubtitle => '담당 트레이너';
 
   @override
@@ -2375,6 +2384,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatSendFailed => '메시지를 보내지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get coachChatSendRejected => '보낼 수 없는 메시지예요. 내용을 확인해 주세요';
+
+  @override
   String get coachPhotoAttach => '사진 보내기';
 
   @override
@@ -2391,6 +2403,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachPhotoSendFailed => '사진을 보내지 못했어요';
+
+  @override
+  String get coachPhotoSendRejected => '보낼 수 없는 사진이에요';
 
   @override
   String get coachPhotoRetry => '다시 보내기';
@@ -4666,6 +4681,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get weeklyFeedbackSendFailed => '주간 피드백을 보내지 못했어요. 다시 시도해 주세요';
+
+  @override
+  String get weeklyFeedbackSendUnassigned => '담당이 해제되어 주간 피드백을 보낼 수 없어요';
+
+  @override
+  String get weeklyFeedbackSendRejected => '이 주에는 주간 피드백을 보낼 수 없어요';
 
   @override
   String get weeklyFeedbackAlreadySent => '이미 보낸 주예요. 다시 보내면 마지막 답으로 바뀌어요.';

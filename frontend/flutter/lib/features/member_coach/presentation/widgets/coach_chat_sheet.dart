@@ -10,6 +10,7 @@ import 'package:oncare/features/member_coach/data/repositories/chat_pdf_reposito
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare/features/member_coach/presentation/coach_send_failure_labels.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/coach_photo_send_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
@@ -76,6 +77,10 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   }
 
   bool _sending = false;
+
+  /// 보내다가 담당 해제를 알았다(#3346). 대화를 다시 읽어 해제 안내가 뜨기
+  /// 전에도 입력을 닫아 둔다 — 다시 보내도 같은 답이다.
+  bool _released = false;
 
   /// OS 사진 선택기가 떠 있는 동안 다시 열지 않는다 — image_picker 는 겹친
   /// 요청을 `multiple_request` 로 거절한다.
@@ -277,9 +282,9 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
       await ref
           .read(memberCoachRepositoryProvider)
           .sendMessage('', emoteId: picked);
-    } catch (_) {
+    } on Object catch (error) {
       if (!mounted) return;
-      toast.show(l.emoteSendFailed, type: AppToastType.error);
+      _reportSendFailure(error, CoachSendKind.emote, toast, l);
       return;
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -315,9 +320,9 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     setState(() => _sending = true);
     try {
       await ref.read(memberCoachRepositoryProvider).sendMessage(text);
-    } catch (_) {
+    } on Object catch (error) {
       if (!mounted) return;
-      toast.show(l.coachChatSendFailed, type: AppToastType.error);
+      _reportSendFailure(error, CoachSendKind.message, toast, l);
       return;
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -327,6 +332,28 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     ref.invalidate(coachChatProvider);
   }
 
+  /// 전송 실패를 원인에 맞는 문구로 알리고, 원인이 바꾼 상태를 다시 읽는다.
+  /// (#3346)
+  ///
+  /// 담당이 해제됐으면 입력을 닫고 대화를 다시 읽는다 — 대화가 해제 신호를
+  /// 주면 안내가 뜨고 담당 코치도 다시 읽힌다. 이용권이 끝난 이모티콘이면
+  /// 이모티콘 상태를 버려, 창을 다시 열 때 잠긴 모습으로 읽는다.
+  void _reportSendFailure(
+    Object error,
+    CoachSendKind kind,
+    AppToastHost toast,
+    AppLocalizations l,
+  ) {
+    final CoachSendFailure? reason = CoachSendRejected.reasonOf(error);
+    toast.show(coachSendFailureText(l, kind, reason), type: AppToastType.error);
+    if (reason == CoachSendFailure.unassigned) {
+      setState(() => _released = true);
+      ref.invalidate(coachChatProvider);
+    } else if (reason == CoachSendFailure.emoteLocked) {
+      ref.invalidate(emoteStateProvider);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -334,7 +361,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final chat = ref.watch(coachChatProvider);
     // 서버가 대화를 404 로 답하면 담당이 해제된 것이다(#2843). 빈 대화로 그리지
     // 않고 안내를 띄우며 입력을 막는다.
-    final bool unassigned = chat.error is CoachUnassignedException;
+    final bool unassigned = _released || chat.error is CoachUnassignedException;
     // 폴링으로 새 리포트 안내가 오면 받은 리포트 목록도 다시 읽는다(#2643) —
     // 예전에는 앱을 다시 켜기 전까지 목록에 나타나지 않았다.
     ref.listen<AsyncValue<List<CoachMessage>>>(coachChatProvider, (
@@ -736,7 +763,8 @@ class _MessageRow extends ConsumerWidget {
 /// (#1665)
 ///
 /// 실패하면 그 자리에서 다시 보내거나 지운다. 다시 보내기는 같은 멱등키를 써서,
-/// 서버는 받았는데 응답만 끊긴 경우에도 사진이 두 장 쌓이지 않는다.
+/// 서버는 받았는데 응답만 끊긴 경우에도 사진이 두 장 쌓이지 않는다. 서버가
+/// 거절한 사진은 이유를 적고 다시 보내기를 두지 않는다(#3346).
 class _PendingPhotoRow extends ConsumerWidget {
   const _PendingPhotoRow({required this.photo, super.key});
 
@@ -775,14 +803,19 @@ class _PendingPhotoRow extends ConsumerWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: OnCareSpacing.s4,
               children: <Widget>[
-                Text(l.coachPhotoSendFailed, style: caption),
-                AppButton(
-                  key: const ValueKey<String>('coach-pending-photo-retry'),
-                  label: l.coachPhotoRetry,
-                  variant: AppButtonVariant.text,
-                  size: OnCareButtonSize.small,
-                  onPressed: () => controller.retry(photo.requestId),
+                Text(
+                  coachSendFailureText(l, CoachSendKind.photo, photo.failure),
+                  style: caption,
                 ),
+                // 서버가 거절한 사진은 다시 보내도 같다 — 지우기만 둔다(#3346).
+                if (photo.canRetry)
+                  AppButton(
+                    key: const ValueKey<String>('coach-pending-photo-retry'),
+                    label: l.coachPhotoRetry,
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    onPressed: () => controller.retry(photo.requestId),
+                  ),
                 AppButton(
                   key: const ValueKey<String>('coach-pending-photo-discard'),
                   label: l.coachPhotoDiscard,
