@@ -644,6 +644,10 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
   `member_schedule`(PT 일정 등록·변경·취소·인계, 담당 해제·트레이너 탈퇴로 취소된 일정)은 예전에 회원 앱에 일정 화면이
   없어(#1928) 액션이 없었습니다. 이제 운동 탭이 트레이너 일정과 회원 예약을 합친 다음 PT 배지와 헬스장 패널 예약을
   보여 줍니다. 이미 저장된 일정 알림도 응답 때 액션을 만들어 바로 버튼이 보입니다.
+  트레이너가 대화에 적은 약속에서 만들어진 PT 일정(`POST /trainer/clients/{id}/chat`, #1061)도 일정 화면에서 만든
+  일정과 같은 알림을 한 건 보냅니다(#3345) — 틀 `member_schedule_added`(인자 `date`·`time`·`type`), 본문
+  `10월 1일 20:00 · 1:1 PT` / `10/1 20:00 · 1:1 PT`. 같은 메시지의 재전송(`client_request_id`)이나 같은 약속을 다시
+  적은 메시지, 다른 일정과 겹쳐 일정이 만들어지지 않은 메시지에는 일정 알림이 없습니다.
 - **PT 완료·피드백(#3027)**: 트레이너가 회원 PT 를 완료(`POST /trainer/schedule/{session_id}/complete`)하면
   `pt_done` 알림 한 건 — 틀 `member_pt_completed`(인자 `trainer_name`·`session_number`(회원 앱 PT 카드와 같은 회차,
   없으면 생략)·`has_note`·`date`), 본문은 트레이너 피드백이 있으면 그 글, 없으면 "운동 기록에 남겼어요". 완료 뒤 PT 메모가
