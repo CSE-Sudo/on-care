@@ -251,6 +251,49 @@ class PasswordResetDone(BaseModel):
     status: str = "reset"
 
 
+class FindEmailRequest(BaseModel):
+    """아이디(가입 이메일) 찾기 요청(`POST /auth/find-email`, #3337).
+
+    전화번호는 가입과 같은 규칙으로 정규화한다(`normalize_phone`) — 저장된 값과
+    같은 표기여야 맞는다. 가입과 달리 **빈 번호는 받지 않는다**: 번호를 넣지 않은
+    계정이 이름만으로 걸린다.
+    """
+
+    name: str = Field(min_length=1, max_length=100)
+    phone: str = Field(min_length=1, max_length=40)
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, value: str) -> str:
+        name = value.strip()
+        if not name:
+            raise ValueError("이름을 입력해 주세요.")
+        return name
+
+    @field_validator("phone")
+    @classmethod
+    def _normalize_phone(cls, value: str) -> str:
+        phone = normalize_phone(value)
+        if not phone:
+            raise ValueError("전화번호를 010-0000-0000 형식으로 입력해 주세요.")
+        return phone
+
+
+class FoundEmailAccount(BaseModel):
+    """찾은 계정 하나. **전체 이메일은 싣지 않는다.**"""
+
+    #: 가려진 이메일(`ab***@example.com`). 소셜 로그인 전용 계정이면 `null`.
+    masked_email: Optional[str] = None
+    #: 연결된 소셜 가입 수단(`kakao`·`google`). 없으면 빈 목록.
+    providers: list[str] = Field(default_factory=list)
+
+
+class FindEmailResult(BaseModel):
+    """아이디 찾기 응답. 찾지 못해도 같은 200 에 빈 목록이다."""
+
+    accounts: list[FoundEmailAccount] = Field(default_factory=list)
+
+
 class SignupEmailCodeRequest(BaseModel):
     """가입 이메일 인증 코드 요청(`POST /auth/register/email-code`, #3038).
 
@@ -636,6 +679,9 @@ class AccountDeletionPreview(BaseModel):
     active_coupons: int = Field(ge=0)
     #: 시작 전인 PT 예약 수. 탈퇴하면 취소되고 자리가 풀린다.
     upcoming_reservations: int = Field(ge=0)
+    #: 트레이너가 잡아 둔 시작 전 일정 수(회원 예약으로 생긴 것 제외). 탈퇴하면
+    #: 취소된다(#3341). 이 칸이 없던 서버 응답과 섞여도 읽히게 기본값을 둔다.
+    upcoming_sessions: int = Field(default=0, ge=0)
     #: 아직 답을 받지 않은 상담 요청 수. 탈퇴하면 취소되고 트레이너에게 알린다.
     pending_consultations: int = Field(ge=0)
 
