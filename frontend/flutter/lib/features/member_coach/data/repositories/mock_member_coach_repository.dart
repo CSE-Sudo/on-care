@@ -747,10 +747,12 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 운동 탭 `오늘 완료한 PT` 카드가 두 모드에서 같은 경로로 `12회차` 를 그린다.
   /// 예정 수업은 회차가 없다. (#2694)
   ///
-  /// 담당이 끊겼으면 비어 있다. 실서버도 활성 담당의 일정만 준다.
+  /// 담당이 끊겨도 **마친 PT 는 남는다**(#3347) — 회원이 받은 수업은 회원의
+  /// 이력이다. 실서버도 지난 담당과 완료한 PT 를 계속 주고, 행마다 그 수업의
+  /// 트레이너 이름을 싣는다. 다음 예정은 담당이 있을 때만 있다 — 실서버는 해제할
+  /// 때 남은 예정을 취소한다.
   @override
   Future<List<CoachSession>> fetchSessions() async {
-    if (!_hasCoach()) return const <CoachSession>[];
     final DateTime today = todayKst();
     final List<FixtureDay> ptDays = <FixtureDay>[
       for (final FixtureDay day in _fixtureDays)
@@ -766,20 +768,23 @@ class MockMemberCoachRepository implements MemberCoachRepository {
           durationMinutes: _ptMinutes,
           status: '완료',
           sessionNumber: index + 1,
+          trainerName: _coach.name,
           note: day.trainerNote,
           program: <CoachProgramItem>[
             for (final FixtureExercise e in day.exercises)
               if (e.done) _programItem(e),
           ],
         ),
-      CoachSession(
-        id: 'seed-pt-next',
-        date: DateTime(today.year, today.month, today.day + 7),
-        time: _ptTime,
-        type: _ptType,
-        durationMinutes: _ptMinutes,
-        status: '예정',
-      ),
+      if (_hasCoach())
+        CoachSession(
+          id: 'seed-pt-next',
+          date: DateTime(today.year, today.month, today.day + 7),
+          time: _ptTime,
+          type: _ptType,
+          durationMinutes: _ptMinutes,
+          status: '예정',
+          trainerName: _coach.name,
+        ),
     ]);
   }
 
