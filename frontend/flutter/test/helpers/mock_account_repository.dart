@@ -275,6 +275,11 @@ class MockAccountRepository implements AccountRepository {
     onboardingSkipped: onboardingSkipped ?? _profile.onboardingSkipped,
     name: name ?? _profile.name,
     email: email ?? _profile.email,
+    // 대체 이메일 표시는 실제 주소를 넣기 전까지 남는다(#3338) — 서버와 같다.
+    emailIsPlaceholder: email == null && _profile.emailIsPlaceholder,
+    emailPlaceholderProvider: email == null
+        ? _profile.emailPlaceholderProvider
+        : null,
     phone: phone ?? _profile.phone,
     birthDate: birthDate ?? _profile.birthDate,
     gender: gender ?? _profile.gender,
