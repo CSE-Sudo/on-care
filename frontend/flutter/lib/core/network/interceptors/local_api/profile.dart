@@ -352,6 +352,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
   /// 포인트·쿠폰은 이 목업이 들고 있는 원장·쿠폰함에서 센다. 데모의 PT 예약과
   /// 상담 요청은 목 헬스장·상담 저장소가 들고 있어 여기서는 0 으로 두고, 앱의
   /// 탈퇴 화면이 그 저장소에서 센 값으로 덮는다(`withdrawPreviewLoaderProvider`).
+  /// 트레이너가 잡은 PT 일정(#3341)은 데모 회원 앱에 들고 있는 곳이 없어 0 이다.
   Future<Response<Object?>> _usersMeDeletionPreview(
     RequestOptions options,
   ) async {
@@ -363,6 +364,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
       'points': _points.balance,
       'active_coupons': activeCoupons,
       'upcoming_reservations': 0,
+      'upcoming_sessions': 0,
       'pending_consultations': 0,
     });
   }

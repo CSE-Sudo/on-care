@@ -2081,9 +2081,9 @@ class NotificationSettingsPage extends ConsumerWidget {
         ],
       ]),
       const SizedBox(height: OnCareSpacing.s12),
-      // 끌 수 없는 알림을 밝혀 둔다(#3024) — PT 일정과 담당 관계 알림은
-      // 서버가 스위치와 상관없이 보낸다. 스위치 목록만 보면 이것도 끌 수
-      // 있는 것처럼 읽힌다.
+      // 끌 수 없는 알림을 밝혀 둔다(#3024) — PT 일정과 담당 관계, 상담 요청
+      // 결과, 건강 목표 변경, 쿠폰·주간 챌린지 알림은 서버가 스위치와 상관없이
+      // 보낸다(#3367). 스위치 목록만 보면 이것도 끌 수 있는 것처럼 읽힌다.
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
         child: Text(

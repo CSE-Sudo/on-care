@@ -2734,8 +2734,8 @@ class WeeklyChallenge(Base):
 
     - `goal` 은 참가할 때의 주간 운동 횟수 목표 사본이다. 참가 뒤 목표를 바꿔도
       그 주 챌린지는 참가할 때 목표로 판정한다.
-    - `status` 는 active(진행 중)|succeeded|failed. 스케줄러가 없어 **주가 끝난 뒤
-      읽는 쪽이 판정한다**(`weekly_challenge_service.settle_due`).
+    - `status` 는 active(진행 중)|succeeded|failed. 스케줄러가 없어 **주가 끝나고
+      하루의 유예가 지난 뒤 읽는 쪽이 판정한다**(`weekly_challenge_service.settle_due`).
     - `final_days` 는 판정 때 센 운동한 날 수다. 판정 뒤 지난 주 기록이 바뀌어도
       결과 화면이 판정과 어긋나지 않게 남긴다.
     - 포인트 움직임은 `points_ledger` 에 `source_type='weekly_challenge'` 로 남는다 —

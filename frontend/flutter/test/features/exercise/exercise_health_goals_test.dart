@@ -768,12 +768,12 @@ void main() {
     expect(find.text('무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.'), findsOneWidget);
   });
 
-  testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (
+  testWidgets('담당 트레이너가 없어도 오늘 마친 PT 는 남는다 (#3347)', (
     WidgetTester tester,
   ) async {
-    // 연결을 끊었는데 이 칸이 남으면 트레이너가 있던 흔적만 화면에 서 있게
-    // 된다. 세션 기록은 그대로 두고 담당만 없앤 상태로 확인한다 — 데모는
-    // 픽스처 세션을 연결과 무관하게 읽어 카드를 세우고 있었다.
+    // 받은 수업은 회원의 기록이다. 수업 뒤에 연결을 끊었다고 그날의 일지가
+    // 사라지면 안 된다 — 예전에는 담당이 없으면 이 칸을 걷었다(#2014). 이름은
+    // 지금 담당이 아니라 그 수업의 트레이너다.
     await pumpExercise(
       tester,
       profile: const UserProfile(
@@ -789,12 +789,73 @@ void main() {
           type: '1:1 PT',
           durationMinutes: 50,
           status: '완료',
+          trainerName: '이전 코치',
         ),
       ]),
     );
 
-    expect(find.byKey(const Key('completedPtSessionCard')), findsNothing);
-    expect(find.text('18:00 완료'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+    expect(find.text('18:00 완료'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('completedPtSessionCard')),
+        matching: find.text('이전 코치'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('오늘 PT 카드의 이름은 지금 담당이 아니라 그 수업의 트레이너다 (#3347)', (
+    WidgetTester tester,
+  ) async {
+    // 오전에 한 트레이너와 수업하고 오후에 담당을 바꾼 날이다.
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(
+        <CoachSession>[
+          CoachSession(
+            id: 'completed-pt',
+            date: nowKst(),
+            time: '09:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            trainerName: '이전 코치',
+          ),
+        ],
+        coach: const MemberCoach(
+          trainerId: 'trainer-new',
+          name: '새 코치',
+          specialty: '',
+          career: '',
+          intro: '',
+          gymName: '',
+          goal: '',
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+    final Finder card = find.byKey(const Key('completedPtSessionCard'));
+    expect(
+      find.descendant(of: card, matching: find.text('이전 코치')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: card, matching: find.text('새 코치')),
+      findsNothing,
+    );
   });
 
   testWidgets('담당 조회가 실패해도 오늘 한 PT 기록은 사라지지 않는다 (#2014)', (

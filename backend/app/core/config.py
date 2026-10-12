@@ -316,6 +316,12 @@ class Settings(BaseSettings):
     password_reset_member_url: str = ""
     password_reset_trainer_url: str = ""
 
+    # --- 아이디(가입 이메일) 찾기(#3337) ---
+    # 같은 전화번호로 찾아볼 수 있는 횟수(아래 창 안에서). IP 버킷과 별개다 — 여러
+    # IP 에서 한 번호에 이름을 바꿔 가며 대어 보는 것을 막는다.
+    find_email_phone_per_window: int = 5
+    find_email_phone_window_minutes: int = 15
+
     # --- 기타 ---
     cors_allow_origins: str = DEFAULT_CORS_ALLOW_ORIGINS
     # 데모 시드(데모 계정·회원 기록·가상 트레이너·가상 헬스장). 기본은 끔이다(#2811) —
