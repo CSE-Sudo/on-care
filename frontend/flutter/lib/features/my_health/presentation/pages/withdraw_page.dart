@@ -107,17 +107,25 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
     // 비밀번호 칸을 보일지, 소셜 다시 로그인을 보일지. 프로필을 못 읽으면
     // 비밀번호 계정으로 본다 — 대부분이 그렇고, 소셜 전용 계정이면 서버가
     // `reauth_required` 로 알려 준다.
+    //
+    // 동의가 남은 계정은 프로필이 403 이라 늘 실패한다(#3340). 그대로 두면 소셜로
+    // 처음 들어온 계정 — 동의 화면에서 탈퇴하는 대표적인 경우 — 에 비밀번호 칸이
+    // 떠서 탈퇴를 끝낼 수 없다. 그때는 동의 없이도 열린 `GET /users/me` 로 읽는다.
+    final AccountRepository repository = ref.read(accountRepositoryProvider);
     bool hasPassword = true;
     try {
-      final UserProfile profile = await ref.read(profileProvider.future);
-      hasPassword = profile.hasPassword;
+      if (ref.read(sessionControllerProvider).consentRequired) {
+        hasPassword = await repository.fetchHasPassword();
+      } else {
+        final UserProfile profile = await ref.read(profileProvider.future);
+        hasPassword = profile.hasPassword;
+      }
     } on Object {
       // 위 주석 참고.
     }
     if (!mounted) return;
     // 탈퇴가 끝나면 이 화면이 이미 사라졌어도 기록을 지우고 로그아웃해야 한다 —
     // 쓸 것을 미리 붙들어 둔다(#3245).
-    final AccountRepository repository = ref.read(accountRepositoryProvider);
     final AppPrefs prefs = ref.read(appPrefsProvider);
     final SessionController session = ref.read(
       sessionControllerProvider.notifier,
@@ -353,7 +361,13 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
         label: l.myWithdrawStay,
         size: OnCareButtonSize.large,
         fullWidth: true,
-        onPressed: _busy ? null : () => context.pop(),
+        // 주소로 곧장 열렸으면(웹 새로고침) 돌아갈 화면이 없다 — MY 로 보낸다.
+        // 동의가 남은 계정은 가드가 거기서 동의 화면으로 옮긴다(#3340).
+        onPressed: _busy
+            ? null
+            : () => context.canPop()
+                  ? context.pop()
+                  : context.go(AppRoutes.myHealth),
       ),
       const SizedBox(height: OnCareSpacing.s8),
       // 위험 동작은 화면 안에서 빨간 글자 버튼으로 두고, 확정은 확인창의 빨간

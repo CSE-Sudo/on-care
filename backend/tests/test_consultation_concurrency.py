@@ -216,13 +216,15 @@ def _state(db_session, consultation_id: str, slot_id: str, user_ids: list[str]):
 # --- 수락이 먼저 잠근다 → 상대는 덮어쓰지 못한다 --------------------------------
 
 
-@pytest.mark.parametrize("kind", sorted(CONTENDERS))
+@pytest.mark.parametrize("kind", sorted(set(CONTENDERS) - {"cancel"}))
 def test_accept_holding_the_row_wins_and_the_contender_changes_nothing(
     client, db_session, monkeypatch, kind
 ):
-    """수락이 행을 잡은 사이 들어온 취소·거절·만료는 `accepted` 를 덮어쓰지 않는다.
+    """수락이 행을 잡은 사이 들어온 거절·만료는 `accepted` 를 덮어쓰지 않는다.
 
     진 쪽은 지금과 같은 409(만료는 0건)이고, 자리를 풀지 않고, 알림도 보내지 않는다.
+    회원 취소는 다르다 — 수락된 상담도 시작 전이면 취소할 수 있어(#3359) 아래
+    테스트가 따로 본다.
     """
     from app.db.session import SessionLocal
 
@@ -261,6 +263,55 @@ def test_accept_holding_the_row_wins_and_the_contender_changes_nothing(
     assert remaining == 0
     assert notification_templates.MEMBER_CONSULT_APPROVED in templates
     assert not set(templates) & set(LOSER_TEMPLATES)
+
+
+def test_cancel_arriving_during_accept_cancels_the_accepted_booking(
+    client, db_session, monkeypatch
+):
+    """수락이 행을 잡은 사이 들어온 회원 취소는 수락이 끝난 뒤 그 상담을 거둔다. (#3359)
+
+    대기 취소로는 지지만(조건부 전이 0행) 수락된 상담의 취소로 이어진다 — 수락이
+    만든 일정까지 `취소` 로 바꾸고 자리를 **한 번만** 돌려준다. 대기 요청 취소
+    알림이 아니라 확정 상담 취소 알림이 간다.
+    """
+    from app.db.session import SessionLocal
+
+    member_id, trainer_id, consultation_id, slot = _pending(
+        client, db_session, hours_ahead=5
+    )
+    contender = _Contender(_cancel(member_id, consultation_id))
+
+    real_overlap = trainer_schedule_service.ensure_no_overlap
+
+    def hooked_overlap(*args, **kwargs):
+        # 수락이 `FOR UPDATE` 로 행을 잡은 직후다.
+        contender.start()
+        _wait_for_lock_waiter()
+        return real_overlap(*args, **kwargs)
+
+    monkeypatch.setattr(trainer_schedule_service, "ensure_no_overlap", hooked_overlap)
+
+    with SessionLocal() as session:
+        consultation_service.accept(session, trainer_id, consultation_id)
+    contender.join()
+
+    assert contender.error is None, contender.error
+    status, remaining, schedules, templates = _state(
+        db_session, consultation_id, slot.id, [member_id, trainer_id]
+    )
+    assert status == "cancelled"
+    assert schedules == 1
+    assert (
+        db_session.query(TrainerSchedule.status)
+        .filter(TrainerSchedule.consultation_id == consultation_id)
+        .scalar()
+        == "취소"
+    )
+    # 해제 1회 — 정원 1인 자리가 다시 열린다.
+    assert remaining == 1
+    assert notification_templates.MEMBER_CONSULT_APPROVED in templates
+    assert notification_templates.TRAINER_CONSULT_BOOKING_CANCELLED in templates
+    assert notification_templates.TRAINER_CONSULT_CANCELLED not in templates
 
 
 # --- 상대가 먼저 바꾼다 → 수락이 409 --------------------------------------------

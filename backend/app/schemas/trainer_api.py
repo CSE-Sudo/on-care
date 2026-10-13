@@ -700,6 +700,12 @@ class RoutineOut(BaseModel):
     completed_minutes: int | None = None
     #: 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 비어 있다(#2221).
     completed_duration_seconds: int | None = None
+    #: 회원이 완료하며 적은 세트·횟수·버틴 시간·중량 — 근력 기록에만 있다.
+    #: 배정 값(`sets`·`reps`·`hold_seconds`·`weight`)과 다를 수 있다. (#3364)
+    completed_sets: int | None = None
+    completed_reps: int | None = None
+    completed_hold_seconds: int | None = None
+    completed_weight: float | None = None
     completed_intensity: str | None = None
     #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
     #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.

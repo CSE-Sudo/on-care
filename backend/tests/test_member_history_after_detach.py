@@ -28,6 +28,7 @@ from sqlalchemy import select, text
 from app.core import clock
 from app.core.security import create_access_token
 from app.models.models import (
+    ChatMessage,
     ExerciseSession,
     TrainerClient,
     TrainerRoutine,
@@ -384,6 +385,21 @@ def test_trainer_schedule_response_has_no_trainer_name(client, db_session, world
 # ─────────────────────────────── 주간 리포트 ────────────────────────────────
 
 
+def _sent_report(db_session, trainer_id: str, member_id: str, monday: date) -> None:
+    """트레이너가 그 주 리포트를 보냈다 — 회원은 받은 주만 연다(#3366)."""
+    db_session.add(
+        ChatMessage(
+            id=f"msg-{uuid4().hex[:12]}",
+            trainer_id=trainer_id,
+            member_id=member_id,
+            sender="trainer",
+            body="주간 리포트를 보냈어요.",
+            report_week_start=monday.isoformat(),
+        )
+    )
+    db_session.commit()
+
+
 def _my_report(client, member_id: str, monday: date = MONDAY) -> dict:
     res = client.get(
         "/v1/me/coach/weekly-report",
@@ -396,6 +412,7 @@ def _my_report(client, member_id: str, monday: date = MONDAY) -> dict:
 
 def test_member_week_counts_everything_hung_on_the_member(client, db_session, world):
     _week(db_session, world)
+    _sent_report(db_session, world.new_id, world.member_id, MONDAY)
 
     body = _my_report(client, world.member_id)
 
@@ -421,6 +438,8 @@ def test_member_week_is_the_same_before_and_after_changing_trainer(
         _done(db_session, routine, last_monday + timedelta(days=offset))
     _pt(db_session, solo.old_id, solo.member_id, last_monday + timedelta(days=1))
     _pt(db_session, solo.old_id, solo.member_id, last_monday + timedelta(days=4), "예정")
+    # 이전 담당이 보낸 리포트다 — 담당이 끊기거나 바뀐 뒤에도 열린다(#3366).
+    _sent_report(db_session, solo.old_id, solo.member_id, last_monday)
 
     before = _my_report(client, solo.member_id, last_monday)
     assert before["sessions_booked"] == 2
@@ -452,6 +471,7 @@ def test_member_week_matches_the_trainer_while_there_is_one_trainer(
     routine = _routine(db_session, solo.old_id, solo.member_id, "걷기", active_from=MONDAY)
     _done(db_session, routine, _d(0))
     _pt(db_session, solo.old_id, solo.member_id, _d(2))
+    _sent_report(db_session, solo.old_id, solo.member_id, MONDAY)
 
     mine = _my_report(client, solo.member_id)
     theirs = client.get(
