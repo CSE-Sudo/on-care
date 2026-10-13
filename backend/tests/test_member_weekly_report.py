@@ -165,6 +165,8 @@ def test_member_sees_the_same_numbers_as_the_trainer(client, received, weeks_bac
     a, b = mine.json(), theirs.json()
     a.pop("message")
     b.pop("message")
+    # 회원 응답에만 있는 칸 — 보낸 적 없는 주라 지금 값을 계산해 준 것이다(#3349).
+    assert a.pop("snapshot_at") is None
     assert a == b
 
 

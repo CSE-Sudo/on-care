@@ -1268,6 +1268,27 @@
       }
     }
   },
+  "challengeGoalSource": "The goal follows the weekly workout goal in your MY health goals",
+  "challengeHistoryAction": "Past results",
+  "challengeHistoryTitle": "Past challenge results",
+  "challengeHistoryEmpty": "No challenges joined yet",
+  "challengeHistoryEmptyMessage": "Join the weekly workout challenge on a Monday or Tuesday and your results will show up here.",
+  "challengeHistoryLoadFailed": "Couldn't load your challenge results",
+  "challengeHistoryResult": "Goal {goal} · {progress} workout days",
+  "@challengeHistoryResult": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeStatusSucceeded": "Succeeded",
+  "challengeStatusFailed": "Missed",
+  "challengeStatusActive": "In progress",
+  "challengeStatusSettling": "Tallying",
   "myCouponStatusUsable": "Available",
   "myCouponStatusUsed": "Used",
   "myCouponStatusExpired": "Expired",
@@ -2655,6 +2676,15 @@
   "myGoalCardioWeekly": "Weekly cardio (min)",
   "myGoalStrengthWeekly": "Weekly strength (sets)",
   "myGoalFlexibilityWeekly": "Weekly stretching (min)",
+  "myGoalWorkoutsWeekly": "Weekly workouts (days)",
+  "myGoalWorkoutsWeeklyHint": "This becomes your weekly workout challenge goal. Without one it is {days} days, and a week you already joined keeps its goal.",
+  "@myGoalWorkoutsWeeklyHint": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "myGoalExerciseSuggestionNote": "Suggested: {burn} kcal a day · {cardio} min cardio · {strength} sets · {flexibility} min stretching a week",
   "@myGoalExerciseSuggestionNote": {
     "description": "Explains the suggested exercise goals, adjusted for the picked health goals.",

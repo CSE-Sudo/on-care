@@ -1757,6 +1757,42 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get challengeGoalSource => '목표 횟수는 MY 건강 목표의 주간 운동 횟수를 따라요';
+
+  @override
+  String get challengeHistoryAction => '지난 결과';
+
+  @override
+  String get challengeHistoryTitle => '지난 챌린지 결과';
+
+  @override
+  String get challengeHistoryEmpty => '아직 참가한 챌린지가 없어요';
+
+  @override
+  String get challengeHistoryEmptyMessage =>
+      '월·화요일에 주간 운동 챌린지에 참가하면 결과가 여기에 쌓여요.';
+
+  @override
+  String get challengeHistoryLoadFailed => '챌린지 결과를 불러오지 못했어요';
+
+  @override
+  String challengeHistoryResult(int goal, int progress) {
+    return '목표 $goal회 · $progress회 운동';
+  }
+
+  @override
+  String get challengeStatusSucceeded => '성공';
+
+  @override
+  String get challengeStatusFailed => '실패';
+
+  @override
+  String get challengeStatusActive => '진행 중';
+
+  @override
+  String get challengeStatusSettling => '집계 중';
+
+  @override
   String get myCouponStatusUsable => '사용 가능';
 
   @override
@@ -3591,6 +3627,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myGoalFlexibilityWeekly => '주간 스트레칭 (분)';
+
+  @override
+  String get myGoalWorkoutsWeekly => '주간 운동 횟수 (일)';
+
+  @override
+  String myGoalWorkoutsWeeklyHint(int days) {
+    return '주간 운동 챌린지의 목표가 돼요. 정하지 않으면 $days일이고, 이미 참가한 주의 목표는 바뀌지 않아요.';
+  }
 
   @override
   String myGoalExerciseSuggestionNote(
