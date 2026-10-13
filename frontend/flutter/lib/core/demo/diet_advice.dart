@@ -720,7 +720,7 @@ Map<String, Object?> demoDietAdvice({
     action = d.action;
     source = action == null ? null : 'rules';
     if (d.slot != null) {
-      final List<DemoPlanMenu> plan = kDemoMenuPlan['ko']!;
+      const List<DemoPlanMenu> plan = kDemoMenuPlan;
       final DemoPlanMenu? menu = _pickMenu(
         plan.where((DemoPlanMenu m) => m.slot == d.slot).toList(),
         d.needs,

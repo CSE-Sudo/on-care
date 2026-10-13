@@ -243,7 +243,7 @@ void main() {
     test('김민수는 공유 리스트, 다른 회원은 회원마다 다른 리스트다', () {
       expect(
         names(demoMenuPlanFor('seed-client-1')),
-        names(kDemoMenuPlan['ko']!),
+        names(kDemoMenuPlan),
       );
       final Set<String> plans = <String>{
         for (var n = 2; n <= 15; n++)
@@ -254,7 +254,7 @@ void main() {
 
     test('칸의 끼니·추천 이유는 공유 리스트와 같다', () {
       final List<DemoPlanMenu> ko = demoMenuPlanFor('seed-client-4');
-      final List<DemoPlanMenu> base = kDemoMenuPlan['ko']!;
+      const List<DemoPlanMenu> base = kDemoMenuPlan;
       expect(ko, hasLength(base.length));
       for (var i = 0; i < base.length; i++) {
         expect(ko[i].slot, base[i].slot);
