@@ -104,6 +104,12 @@ class AppRoutes {
   /// MY → 비밀번호 변경(#2824)의 설정 구역 이름.
   static const String passwordSettingsSection = 'password';
 
+  /// 계정 탈퇴의 설정 구역 이름. MY 고객 지원과 동의 화면(#3340)이 연다.
+  static const String withdrawSettingsSection = 'withdraw';
+
+  /// 계정 탈퇴 화면. 동의가 남은 계정도 이 주소만은 열 수 있다(#3340).
+  static String get withdraw => mySettingsPath(withdrawSettingsSection);
+
   // First-run onboarding (shown right after sign-up)
   static const String onboarding = '/onboarding';
 

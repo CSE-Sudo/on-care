@@ -20,9 +20,29 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// `LocalApiInterceptor` (drift-backed). FastAPI takes over once
 /// `USE_MOCK_API=false`.
 class DioDietRepository implements DietRepository {
-  DioDietRepository(this._dio);
+  DioDietRepository(
+    this._dio, {
+    Duration inProgressPollInterval = defaultInProgressPollInterval,
+  }) : _inProgressPollInterval = inProgressPollInterval;
 
   final Dio _dio;
+
+  /// 분석 중이라는 답 뒤에 같은 키로 다시 묻기까지 쉬는 시간. 테스트가 줄인다.
+  final Duration _inProgressPollInterval;
+
+  /// 서버가 "같은 키를 아직 분석 중"(409 `in_progress`)이라고 답했을 때 다시
+  /// 묻는 간격과 횟수(#3354).
+  ///
+  /// 앱이 [analyzeTimeout] 에 끊고 다시 보냈는데 첫 요청이 아직 모델을 기다리는
+  /// 경우다. 서버는 두 번째를 새로 분석하지 않고(하루 횟수도 세지 않는다) 이
+  /// 답을 준다 — 첫 요청이 저장을 끝내면 같은 키로 그 결과가 온다. 인식 상한
+  /// (60초)은 이미 지난 뒤라 남은 것은 보강·저장뿐이므로 짧게 여러 번 묻는다.
+  @visibleForTesting
+  static const Duration defaultInProgressPollInterval = Duration(seconds: 5);
+
+  /// [defaultInProgressPollInterval] 간격으로 다시 묻는 최대 횟수.
+  @visibleForTesting
+  static const int inProgressPollLimit = 6;
 
   /// 사진 분석 응답 대기 시간. 전역 receiveTimeout(15초)으로는 모자란다(#2847).
   ///
@@ -118,22 +138,39 @@ class DioDietRepository implements DietRepository {
             extra: <String, Object?>{kMealPhotoBytesExtra: photo.bytes},
           ),
         );
-    try {
-      Response<Map<String, Object?>> res;
-      try {
-        res = await send();
-      } on DioException catch (e) {
-        // 응답을 기다리다 끊겼다고 실패로 단정하지 않는다(#2847). 서버는 앱이
-        // 끊은 뒤에도 끝까지 처리해 끼니를 저장했을 수 있다. 같은 멱등키로 한
-        // 번 더 보내면 서버는 저장분을 그대로 돌려준다(새로 저장·적립하지
-        // 않는다) — 저장돼 있으면 그대로 성공이다. 키가 없으면 다시 보내는
-        // 것이 중복 저장이라 하지 않는다.
-        if (e.type != DioExceptionType.receiveTimeout ||
-            idempotencyKey == null) {
+    Future<Response<Map<String, Object?>>> sendUntilSettled() async {
+      bool resentAfterTimeout = false;
+      int polls = 0;
+      while (true) {
+        try {
+          return await send();
+        } on DioException catch (e) {
+          // 키가 없으면 다시 보내는 것이 중복 저장이라 하지 않는다.
+          if (idempotencyKey == null) rethrow;
+          // 응답을 기다리다 끊겼다고 실패로 단정하지 않는다(#2847). 서버는
+          // 앱이 끊은 뒤에도 끝까지 처리해 끼니를 저장했을 수 있다. 같은
+          // 멱등키로 한 번 더 보내면 서버는 저장분을 그대로 돌려준다(새로
+          // 저장·적립하지 않는다) — 저장돼 있으면 그대로 성공이다.
+          if (e.type == DioExceptionType.receiveTimeout &&
+              !resentAfterTimeout) {
+            resentAfterTimeout = true;
+            continue;
+          }
+          // 첫 요청이 아직 분석 중이다(#3354). 서버는 이 전송을 세지도 새로
+          // 분석하지도 않았다 — 잠시 쉬고 같은 키로 다시 물으면 저장된
+          // 결과가 온다. 끝내 안 오면 이 거절을 그대로 올린다.
+          if (_isInProgress(e) && polls < inProgressPollLimit) {
+            polls += 1;
+            await Future<void>.delayed(_inProgressPollInterval);
+            continue;
+          }
           rethrow;
         }
-        res = await send();
       }
+    }
+
+    try {
+      final Response<Map<String, Object?>> res = await sendUntilSettled();
       return DietAnalysisResult.fromResponse(res.data!);
     } on DioException catch (e) {
       // The screen has to tell "this photo will never work" (415) apart from
@@ -146,6 +183,15 @@ class DioDietRepository implements DietRepository {
       if (rejected != null) throw rejected;
       throw AppError.fromDio(e);
     }
+  }
+
+  /// 409 `{detail: {code: "in_progress"}}` — 같은 멱등키의 분석이 진행 중이다.
+  static bool _isInProgress(DioException e) {
+    if (e.response?.statusCode != 409) return false;
+    final Object? data = e.response?.data;
+    if (data is! Map) return false;
+    final Object? detail = data['detail'];
+    return detail is Map && detail['code'] == kDietAnalysisInProgressCode;
   }
 
   @override

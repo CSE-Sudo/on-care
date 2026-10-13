@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart' show TimeOfDay;
+
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare_core/clock.dart';
 
@@ -102,6 +104,40 @@ class ConsultationRequest {
 
   /// 아직 답을 기다리는 중인가.
   bool get isPending => status == ConsultationStatus.pending;
+
+  /// 수락된 상담이 시작하는 시각(KST 벽시계).
+  ///
+  /// 서버가 준 확정 일시([slotStartsAt])가 약속이다. 그 값이 없는 옛 요청은 적어
+  /// 보낸 희망 날짜·시각으로 읽고, 시각을 모르면 그날이 끝날 때로 본다(#3359).
+  DateTime get startsAt {
+    final DateTime? slot = slotStartsAt;
+    if (slot != null) return slot;
+    final TimeOfDay? time = preferredTimeSlot.timeOfDay;
+    if (time == null) {
+      return DateTime(
+        preferredDate.year,
+        preferredDate.month,
+        preferredDate.day + 1,
+      );
+    }
+    return DateTime(
+      preferredDate.year,
+      preferredDate.month,
+      preferredDate.day,
+      time.hour,
+      time.minute,
+    );
+  }
+
+  /// 회원이 지금 취소할 수 있는가(#3359). 대기 중인 요청은 언제든, 수락된 상담은
+  /// 시작 시각 전까지다. [now] 는 KST 벽시계(`nowKst()`)다.
+  bool canCancelAt(DateTime now) => switch (status) {
+    ConsultationStatus.pending => true,
+    ConsultationStatus.accepted => startsAt.isAfter(now),
+    ConsultationStatus.rejected ||
+    ConsultationStatus.cancelled ||
+    ConsultationStatus.expired => false,
+  };
 }
 
 /// `GET /consultations/me` 응답 → 엔티티. (#327)

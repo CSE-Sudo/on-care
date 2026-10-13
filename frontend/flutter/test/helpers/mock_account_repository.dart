@@ -115,6 +115,18 @@ class MockAccountRepository implements AccountRepository {
   @override
   Future<UserProfile> fetchProfile() async => _profile;
 
+  /// `GET /users/me` 가 알려 줄 비밀번호 유무(#3340). 기본은 비밀번호 계정이다.
+  bool hasPassword = true;
+
+  /// [fetchHasPassword] 가 불린 횟수.
+  int hasPasswordReads = 0;
+
+  @override
+  Future<bool> fetchHasPassword() async {
+    hasPasswordReads++;
+    return hasPassword;
+  }
+
   /// 탈퇴 미리보기로 돌려줄 값(#3006). 기본은 잃는 것이 없는 계정이다.
   AccountDeletionPreview deletionPreview = const AccountDeletionPreview();
 
@@ -263,6 +275,11 @@ class MockAccountRepository implements AccountRepository {
     onboardingSkipped: onboardingSkipped ?? _profile.onboardingSkipped,
     name: name ?? _profile.name,
     email: email ?? _profile.email,
+    // 대체 이메일 표시는 실제 주소를 넣기 전까지 남는다(#3338) — 서버와 같다.
+    emailIsPlaceholder: email == null && _profile.emailIsPlaceholder,
+    emailPlaceholderProvider: email == null
+        ? _profile.emailPlaceholderProvider
+        : null,
     phone: phone ?? _profile.phone,
     birthDate: birthDate ?? _profile.birthDate,
     gender: gender ?? _profile.gender,

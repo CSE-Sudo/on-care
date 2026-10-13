@@ -1276,6 +1276,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDefaultUserName => 'User';
 
   @override
+  String myEmailUnregistered(String provider) {
+    String _temp0 = intl.Intl.selectLogic(provider, {
+      'kakao': 'Signed up with Kakao',
+      'google': 'Signed up with Google',
+      'other': 'Signed up with a social account',
+    });
+    return '$_temp0 · No email on file';
+  }
+
+  @override
   String get myProfileLoadFailed => 'Couldn\'t load your profile';
 
   @override
@@ -1343,6 +1353,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myPointsExchangeFailed => 'Couldn\'t redeem. Please try again.';
+
+  @override
+  String get myPointsExchangeBlocked => 'You can\'t redeem this right now';
+
+  @override
+  String get myPointsInsufficient => 'Not enough points';
+
+  @override
+  String get myBenefitAlreadyReceived => 'You already have this';
 
   @override
   String myPointsShortfall(String points) {
@@ -1790,6 +1809,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get challengeJoinFailed => 'Couldn\'t join. Please try again.';
 
   @override
+  String get challengeJoinAlready => 'You\'ve already joined';
+
+  @override
+  String get challengeJoinBlocked => 'You can\'t join right now';
+
+  @override
   String get challengeJoinClosed => 'You can join again next Monday';
 
   @override
@@ -2071,6 +2096,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emoteSendFailed => 'Couldn\'t send the emote';
 
   @override
+  String get emoteSendLocked =>
+      'That emote has expired. Buy it again to send it';
+
+  @override
+  String get emoteSendRejected => 'That emote can\'t be sent';
+
+  @override
   String get a11yOpenEmotes => 'Emotes';
 
   @override
@@ -2276,6 +2308,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myProfileEmailTaken => 'That email is already in use';
+
+  @override
+  String get myProfileEmailEmptyHint => 'Email address to use';
 
   @override
   String get myProfilePhoneRequired => 'Your phone number can\'t be left empty';
@@ -2533,6 +2568,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
+  String get coachImageRetry => 'Tap to load again';
+
+  @override
   String get coachChatSubtitle => 'Your trainer';
 
   @override
@@ -2559,6 +2597,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send your message. Please try again';
 
   @override
+  String get coachChatSendRejected =>
+      'That message can\'t be sent. Please check what you wrote';
+
+  @override
   String get coachPhotoAttach => 'Send a photo';
 
   @override
@@ -2576,6 +2618,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachPhotoSendFailed => 'Couldn\'t send the photo';
+
+  @override
+  String get coachPhotoSendRejected => 'That photo can\'t be sent';
 
   @override
   String get coachPhotoRetry => 'Send again';
@@ -3319,6 +3364,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => 'Get a new code';
+
+  @override
+  String trainerSyncConnected(String name) {
+    return 'You\'re connected with $name';
+  }
+
+  @override
+  String get trainerSyncConnectedBody =>
+      'Your trainer can now see your records and coach you.';
 
   @override
   String get signUpCreatedSignInNeeded =>
@@ -4196,6 +4250,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'A cancelled request can\'t be restored.';
 
   @override
+  String get exConsultAcceptedCancelTitle =>
+      'Cancel this confirmed consultation?';
+
+  @override
+  String get exConsultAcceptedCancelBody =>
+      'We\'ll let the trainer know and free up the time. A cancelled consultation can\'t be restored.';
+
+  @override
+  String get exConsultAcceptedCancelAction => 'Cancel consultation';
+
+  @override
+  String get exConsultCancelStarted =>
+      'A consultation that has already started can\'t be cancelled.';
+
+  @override
   String pointsRewardBadge(int points) {
     return '+${points}P';
   }
@@ -4997,6 +5066,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send your weekly feedback. Please try again';
 
   @override
+  String get weeklyFeedbackSendUnassigned =>
+      'Your trainer is no longer assigned, so weekly feedback can\'t be sent';
+
+  @override
+  String get weeklyFeedbackSendRejected =>
+      'Weekly feedback can\'t be sent for this week';
+
+  @override
   String get weeklyFeedbackAlreadySent =>
       'You already answered this week. Sending again replaces it.';
 
@@ -5222,6 +5299,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passwordResetConfirmSubtitle =>
       'Enter the code from the email and your new password.';
+
+  @override
+  String get passwordResetSocialNote =>
+      'If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.';
 
   @override
   String get passwordResetCodeHint => '16-character reset code';

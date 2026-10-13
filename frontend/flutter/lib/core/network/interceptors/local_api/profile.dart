@@ -24,6 +24,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
     return <String, Object?>{
       ...profile,
       'effective_daily_protein_g': demoDietTargets(profile).proteinG,
+      ..._demoEmailPlaceholder,
       // 소셜로 든 데모 회원은 비밀번호 없는 계정처럼 보인다(#3039) — 본인 확인을
       // 소셜 재로그인으로 해 볼 수 있다.
       'has_password': await _hasDemoPassword(),
@@ -103,12 +104,15 @@ extension _LocalApiProfile on LocalApiInterceptor {
       'id': p['id'],
       'name': p['name'],
       'email': p['email'],
+      ..._demoEmailPlaceholder,
       // 서버와 같은 모양(#3054). 데모 계정은 회원이다.
       'role': 'member',
       // 데모 회원은 동의를 마친 계정으로 둔다(#2819) — 데모 진입마다 동의
       // 화면이 끼면 시연 흐름이 끊긴다.
       'consent_required': false,
       'consent_pending': const <String>[],
+      // 서버와 같은 칸(#3340) — 프로필의 같은 이름 칸과 같은 값이다.
+      'has_password': await _hasDemoPassword(),
     });
   }
 
@@ -464,12 +468,20 @@ extension _LocalApiProfile on LocalApiInterceptor {
         'id': me['id'],
         'name': me['name'],
         'email': me['email'],
+        ..._demoEmailPlaceholder,
       },
       // 원장의 잔액 — 적립·회수가 그대로 보인다(#1786).
       'activity_points': _points.balance,
     });
   }
 }
+
+/// 서버와 같은 모양(#3338). 데모 계정의 이메일은 늘 실제 꼴의 주소다 — 소셜로
+/// 든 데모 회원도 데모 프로필의 이메일을 쓰므로 대체 이메일이 생기지 않는다.
+const Map<String, Object?> _demoEmailPlaceholder = <String, Object?>{
+  'email_is_placeholder': false,
+  'email_placeholder_provider': null,
+};
 
 const Map<String, Object?> _defaultProfile = <String, Object?>{
   'id': 'user-7d4e9a2c5f18',

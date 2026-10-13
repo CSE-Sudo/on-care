@@ -101,6 +101,7 @@ from app.services import (
 from app.services.diet_coach_inputs import effective_protein_g
 from app.services.trainer import _common as trainer_common_service
 from app.services.contact_format import normalize_email
+from app.services.placeholder_email import is_placeholder_email, placeholder_provider
 from app.services.profile_format import name_from_email
 
 router = APIRouter(tags=["users"])
@@ -118,9 +119,12 @@ def get_me(
         id=current_user.id,
         name=current_user.name,
         email=current_user.email,
+        email_is_placeholder=is_placeholder_email(current_user.email),
+        email_placeholder_provider=placeholder_provider(current_user.email),
         role=current_user.role,
         consent_required=bool(pending),
         consent_pending=pending,
+        has_password=bool(current_user.hashed_password),
     )
 
 
@@ -237,7 +241,11 @@ def get_my_health(
 
     return UserHealth(
         profile=HealthProfileBrief(
-            id=current_user.id, name=current_user.name, email=current_user.email
+            id=current_user.id,
+            name=current_user.name,
+            email=current_user.email,
+            email_is_placeholder=is_placeholder_email(current_user.email),
+            email_placeholder_provider=placeholder_provider(current_user.email),
         ),
         activity_points=points,
     )
@@ -262,6 +270,8 @@ def _profile_view(user: User) -> ProfileView:
         id=user.id,
         name=user.name,
         email=user.email,
+        email_is_placeholder=is_placeholder_email(user.email),
+        email_placeholder_provider=placeholder_provider(user.email),
         phone=p.phone if p else "",
         birth_date=p.birth_date if p else "",
         gender=p.gender if p else "",
@@ -379,7 +389,8 @@ def update_me(
     로그인 이메일을 **실제로** 바꾸는 저장만 본인 확인을 거친다(#3039,
     `services/reauth.py`). 바꾸면 토큰 세대가 올라 다른 기기가 모두 로그아웃되고,
     응답의 새 토큰 한 쌍으로 이 기기가 이어 쓴다. 예전 주소로 변경 안내 메일이 간다
-    — 본인이 아니면 알아챌 수 있다. 이름·연락처만 고치는 저장은 예전과 같다.
+    — 본인이 아니면 알아챌 수 있다. 예전 주소가 소셜 가입의 대체 이메일이면 보내지
+    않는다(#3338). 이름·연락처만 고치는 저장은 예전과 같다.
 
     새 주소의 주인인지도 확인한다(#3230). 본인 확인만으로는 자기 계정의 이메일을
     **남의** 주소로 바꿀 수 있었다 — 그 주소로 가입하려는 주인은 409 를 받고, 그 주소의

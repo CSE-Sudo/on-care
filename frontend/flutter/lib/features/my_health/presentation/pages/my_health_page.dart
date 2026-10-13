@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/network/retry_request_keys.dart';
 import 'package:oncare/core/points/points_rules.dart';
+import 'package:oncare/core/utils/server_message.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/benefits/domain/benefit_rejection.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/diet_tray.dart';
@@ -36,7 +39,6 @@ import 'package:oncare/features/my_health/presentation/widgets/trainer_sync_shee
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_error_state_for.dart';
-import 'package:oncare_core/request_id.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Stable identifiers for the settings rows, decoupled from their localized
@@ -370,7 +372,11 @@ class _ProfileHead extends ConsumerWidget {
     final ProfilePet? pet = ref.watch(profilePetProvider).valueOrNull;
     final AppLocalizations l = AppLocalizations.of(context);
     final String name = profile.name;
-    final String email = profile.email;
+    // 소셜 가입의 대체 이메일은 회원의 주소가 아니다 — 주소 대신 가입 수단과
+    // 미등록 안내를 보여 준다(#3338).
+    final String email = profile.emailIsPlaceholder
+        ? l.myEmailUnregistered(profile.emailPlaceholderProvider ?? '')
+        : profile.email;
     // 서버가 이름을 비워 보낸 경우에만 기본 이름이다 — 조회 실패·로딩이 아니다.
     final String displayName = name.isEmpty ? l.myDefaultUserName : name;
     return Row(
@@ -385,6 +391,7 @@ class _ProfileHead extends ConsumerWidget {
               if (email.isNotEmpty)
                 Text(
                   email,
+                  key: const Key('myProfileEmailLine'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: tokens
@@ -736,6 +743,137 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   // 떠난 뒤 갱신을 건너뛰면 MY 가 옛 값을 계속 보인다. 토스트·setState 만
   // `mounted` 로 거른다.
 
+  /// 교환·식판 받기·챌린지 참가의 요청 키(#3363). 누를 때마다 새 키를 만들면
+  /// 서버가 처리하고 응답만 잃은 요청을 회원이 다시 눌렀을 때 새 요청이 된다 —
+  /// 보호권은 여러 장 살 수 있어 한 장이 더 생기고 포인트가 한 번 더 빠졌다.
+  /// 같은 항목(과 고른 갈래)의 시도는 성공하거나 서버가 거절할 때까지 같은 키로
+  /// 나간다. 이 화면이 떠 있는 동안만 기억한다.
+  ///
+  /// 남긴 키는 [_retryKeyTtl] 뒤에 버린다. 서버는 키를 기한 없이 기억하므로, 답을
+  /// 잃은 요청을 다시 누르지 않고 둔 채 한참 뒤에 한 장 더 사면 그 구매가 옛
+  /// 요청의 재전송으로 처리돼 사지 않고도 샀다고 알리게 된다.
+  final RetryRequestKeys _exchangeKeys = RetryRequestKeys(
+    'exchange',
+    ttl: _retryKeyTtl,
+  );
+  final RetryRequestKeys _trayKeys = RetryRequestKeys(
+    'diet-tray',
+    ttl: _retryKeyTtl,
+  );
+  final RetryRequestKeys _challengeKeys = RetryRequestKeys(
+    'challenge',
+    ttl: _retryKeyTtl,
+  );
+
+  /// 답을 받지 못한 요청을 "방금 그 요청" 으로 보는 시간.
+  static const Duration _retryKeyTtl = Duration(minutes: 5);
+
+  /// 교환 요청의 지문 — 항목과 고른 갈래가 같으면 같은 시도다.
+  static Map<String, Object?> _exchangeBody(String itemId, [String? option]) =>
+      <String, Object?>{'item': itemId, 'option': option};
+
+  /// 식판은 1인 1회라 시도를 가를 것이 없다.
+  static const Map<String, Object?> _trayBody = <String, Object?>{};
+
+  /// 교환이 실패한 뒤(#3363) — 서버가 처리하고 응답만 잃었을 수도, 그사이 조건이
+  /// 바뀌었을 수도 있다. 잔액과 내 혜택(쿠폰·보호권·펫·리포트·그래프 색)을 서버
+  /// 값으로 다시 읽는다.
+  void _refreshAfterExchangeFailure(ProviderContainer container) {
+    container
+      ..invalidate(pointsShopProvider)
+      ..invalidate(myCouponsProvider)
+      ..invalidate(myHealthStateProvider)
+      ..invalidate(myStreakShieldsProvider)
+      ..invalidate(exerciseWeekProvider)
+      ..invalidate(activityCalendarProvider)
+      ..invalidate(profilePetProvider)
+      ..invalidate(myWeeklyReportsProvider);
+  }
+
+  /// 답을 받지 못한 교환이 서버에서 처리됐는지 본다(#3363). 실패 뒤 다시 읽은
+  /// 잔액이 요청 직전보다 꼭 [cost] 만큼 줄었으면 처리된 것이다. 사용처를 읽지
+  /// 못했거나 잔액이 그대로면 알 수 없다 — 거짓이고, 키를 남겨 둔다.
+  ///
+  /// [_refreshAfterExchangeFailure] 처럼 사용처를 비운 뒤에 부른다.
+  Future<bool> _exchangeLanded(
+    ProviderContainer container, {
+    required int? balanceBefore,
+    required int cost,
+  }) async {
+    if (balanceBefore == null) return false;
+    try {
+      final PointsShop shop = await container.read(pointsShopProvider.future);
+      return shop.balance == balanceBefore - cost;
+    } on Object {
+      return false;
+    }
+  }
+
+  /// 교환이 끝난 뒤의 안내 — 무엇을 받았는지에 따라 문구와 `보기` 가 다르다.
+  void _toastExchangeDone(
+    AppLocalizations l, {
+    required bool isReport,
+    required bool isPet,
+    required bool isColor,
+  }) {
+    if (isReport) {
+      showAppToast(
+        context,
+        l.myWeeklyReportDone,
+        type: AppToastType.success,
+        actionLabel: l.myBenefitsView,
+        onAction: () => context.push<void>(AppRoutes.myBenefits),
+      );
+      return;
+    }
+    if (isPet) {
+      // 내 혜택으로 보낼 것이 없다.
+      showAppToast(context, l.myProfilePetDone, type: AppToastType.success);
+      return;
+    }
+    if (isColor) {
+      // 쿠폰이 아니라 내 혜택으로 보낼 것이 없으므로 안내만 띄운다.
+      showAppToast(context, l.myGraphColorUnlocked, type: AppToastType.success);
+      return;
+    }
+    showAppToast(
+      context,
+      l.myPointsExchangeDone,
+      type: AppToastType.success,
+      actionLabel: l.myBenefitsView,
+      onAction: () => context.push<void>(AppRoutes.myBenefits),
+    );
+  }
+
+  /// 실패한 까닭에 맞는 안내(#3363). "이미 보유" 는 회원이 바란 상태가 이미 서
+  /// 있으므로 실패가 아니라 완료로 알린다([owned]). [blocked] 는 서버 사유를 쓸 수
+  /// 없을 때(영어 화면 등)의 문구, [failed] 는 답을 받지 못해 다시 시도를 권하는
+  /// 문구다.
+  void _toastRejection(
+    AppLocalizations l,
+    BenefitRejection rejection, {
+    required String owned,
+    required String blocked,
+    required String failed,
+  }) {
+    if (rejection.kind == BenefitRejectionKind.alreadyOwned) {
+      showAppToast(context, owned, type: AppToastType.success);
+      return;
+    }
+    final String message = switch (rejection.kind) {
+      BenefitRejectionKind.insufficientPoints =>
+        rejection.shortfall > 0
+            ? l.myPointsShortfall(l.myPointsCost(rejection.shortfall))
+            : l.myPointsInsufficient,
+      BenefitRejectionKind.shieldLimit => l.myPointsShieldLimit,
+      BenefitRejectionKind.monthlyLimit => l.myPointsMonthlyLimit,
+      BenefitRejectionKind.alreadyOwned || BenefitRejectionKind.blocked =>
+        serverDetailOr(l, rejection.detail, blocked),
+      BenefitRejectionKind.retryable => failed,
+    };
+    showAppToast(context, message, type: AppToastType.error);
+  }
+
   Future<void> _exchange(ShopItem item) async {
     if (item.id == kGraphColorItem) {
       // 색은 하나씩 연다(#2076) — 어느 색을 열지 먼저 고르고 나서 확인창이다.
@@ -803,14 +941,21 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     );
     if (!ok || !mounted || _exchanging != null) return;
     setState(() => _exchanging = item.id);
+    final Map<String, Object?> body = _exchangeBody(item.id, option);
+    final int? balanceBefore = container
+        .read(pointsShopProvider)
+        .valueOrNull
+        ?.balance;
     try {
       await container
           .read(benefitsRepositoryProvider)
           .exchange(
             item.id,
             option: option,
-            clientRequestId: newClientRequestId(),
+            clientRequestId: _exchangeKeys.keyFor(body),
           );
+      // 끝난 시도다 — 다음에 누르는 것은 새 교환이다.
+      _exchangeKeys.forget(body);
       // 잔액·교환 가능 여부·보유 쿠폰이 함께 바뀌었다. MY 잔액도 다시 읽는다.
       container
         ..invalidate(pointsShopProvider)
@@ -830,43 +975,41 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       // 연 색은 그 자리에서 그래프 색이 된다(#2076).
       if (isColor) container.invalidate(activityCalendarProvider);
       if (!mounted) return;
-      if (isReport) {
-        showAppToast(
-          context,
-          l.myWeeklyReportDone,
-          type: AppToastType.success,
-          actionLabel: l.myBenefitsView,
-          onAction: () => context.push<void>(AppRoutes.myBenefits),
+      _toastExchangeDone(l, isReport: isReport, isPet: isPet, isColor: isColor);
+    } on Object catch (error) {
+      final BenefitRejection rejection = BenefitRejection.of(error);
+      // 서버가 거절했으면 그 키로 만들어진 것이 없다 — 다음은 새 시도다. 답을 받지
+      // 못한 실패는 키를 남겨, 다시 눌러도 서버가 처음 결과를 돌려주게 한다(#3363).
+      if (!rejection.retryable) _exchangeKeys.forget(body);
+      // 그사이 조건이 바뀌었을 수 있다(다른 기기에서 교환 등) — 다시 읽어 막힌
+      // 이유를 카드에 보여 주고, 잔액과 내 혜택을 서버 값에 맞춘다.
+      _refreshAfterExchangeFailure(container);
+      if (rejection.retryable &&
+          await _exchangeLanded(
+            container,
+            balanceBefore: balanceBefore,
+            cost: item.cost,
+          )) {
+        // 답만 잃었고 교환은 됐다 — 끝난 시도이므로 키를 버리고 완료로 알린다.
+        // 다음에 누르는 것은 새 교환이다.
+        _exchangeKeys.forget(body);
+        if (!mounted) return;
+        _toastExchangeDone(
+          l,
+          isReport: isReport,
+          isPet: isPet,
+          isColor: isColor,
         );
         return;
       }
-      if (isPet) {
-        // 내 혜택으로 보낼 것이 없다.
-        showAppToast(context, l.myProfilePetDone, type: AppToastType.success);
-        return;
-      }
-      if (isColor) {
-        // 쿠폰이 아니라 내 혜택으로 보낼 것이 없으므로 안내만 띄운다.
-        showAppToast(
-          context,
-          l.myGraphColorUnlocked,
-          type: AppToastType.success,
-        );
-        return;
-      }
-      showAppToast(
-        context,
-        l.myPointsExchangeDone,
-        type: AppToastType.success,
-        actionLabel: l.myBenefitsView,
-        onAction: () => context.push<void>(AppRoutes.myBenefits),
-      );
-    } on Object {
-      // 그사이 조건이 바뀌었을 수 있다(다른 기기에서 교환 등) — 목록을 다시 읽어
-      // 막힌 이유를 카드에 보여 준다.
-      container.invalidate(pointsShopProvider);
       if (!mounted) return;
-      showAppToast(context, l.myPointsExchangeFailed, type: AppToastType.error);
+      _toastRejection(
+        l,
+        rejection,
+        owned: l.myBenefitAlreadyReceived,
+        blocked: l.myPointsExchangeBlocked,
+        failed: l.myPointsExchangeFailed,
+      );
     } finally {
       if (mounted) setState(() => _exchanging = null);
     }
@@ -1048,22 +1191,63 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       listen: false,
     );
     setState(() => _usingShield = true);
-    bool bought = false;
+    // 사용처 카드의 보호권 교환과 같은 지문이다 — 어느 쪽에서 다시 눌러도 같은 키다.
+    final Map<String, Object?> body = _exchangeBody(kStreakShieldItem);
+    final int cost = item.cost;
+    final int? balanceBefore = container
+        .read(pointsShopProvider)
+        .valueOrNull
+        ?.balance;
     try {
-      await container
-          .read(benefitsRepositoryProvider)
-          .exchange(kStreakShieldItem, clientRequestId: newClientRequestId());
-      bought = true;
-      await container.read(streakShieldRepositoryProvider).use(date);
-      if (!mounted) return;
-      showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
-    } on Object {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        bought ? l.myGraphProtectBoughtNotUsed : l.myPointsExchangeFailed,
-        type: AppToastType.error,
-      );
+      try {
+        await container
+            .read(benefitsRepositoryProvider)
+            .exchange(
+              kStreakShieldItem,
+              clientRequestId: _exchangeKeys.keyFor(body),
+            );
+      } on Object catch (error) {
+        final BenefitRejection rejection = BenefitRejection.of(error);
+        bool landed = false;
+        if (rejection.retryable) {
+          // 답만 잃고 구매는 됐을 수 있다 — 잔액을 다시 읽어 본다(#3363).
+          container.invalidate(pointsShopProvider);
+          landed = await _exchangeLanded(
+            container,
+            balanceBefore: balanceBefore,
+            cost: cost,
+          );
+        } else {
+          // 서버가 거절한 키로는 만들어진 것이 없다 — 다음은 새 시도다.
+          _exchangeKeys.forget(body);
+        }
+        if (!landed) {
+          // 처리됐는지 알 수 없으면 키를 남겨 같은 요청으로 다시 보내게 한다.
+          if (!mounted) return;
+          _toastRejection(
+            l,
+            rejection,
+            owned: l.myBenefitAlreadyReceived,
+            blocked: l.myPointsExchangeBlocked,
+            failed: l.myPointsExchangeFailed,
+          );
+          return;
+        }
+      }
+      // 구매는 끝났다 — 다음 구매는 새 시도다. 이어서 그날에 쓴다.
+      _exchangeKeys.forget(body);
+      try {
+        await container.read(streakShieldRepositoryProvider).use(date);
+        if (!mounted) return;
+        showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
+      } on Object {
+        if (!mounted) return;
+        showAppToast(
+          context,
+          l.myGraphProtectBoughtNotUsed,
+          type: AppToastType.error,
+        );
+      }
     } finally {
       // 잔액·보유 수·달력 칸·연속이 함께 바뀌었다(교환만 됐어도 잔액과 보유 수는
       // 바뀌었다). MY 잔액도 다시 읽는다. 화면을 떠났어도 비운다(#3096).
@@ -1100,7 +1284,8 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     try {
       await container
           .read(benefitsRepositoryProvider)
-          .claimDietTray(clientRequestId: newClientRequestId());
+          .claimDietTray(clientRequestId: _trayKeys.keyFor(_trayBody));
+      _trayKeys.clear();
       // 카드 상태와 내 혜택의 쿠폰이 함께 바뀌었다.
       container
         ..invalidate(dietTrayProvider)
@@ -1113,11 +1298,23 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         actionLabel: l.myBenefitsView,
         onAction: () => context.push<void>(AppRoutes.myBenefits),
       );
-    } on Object {
-      // 그사이 날이 넘어가 조건이 바뀌었거나 담당이 끊겼을 수 있다 — 다시 읽는다.
-      container.invalidate(dietTrayProvider);
+    } on Object catch (error) {
+      final BenefitRejection rejection = BenefitRejection.of(error);
+      // 거절이면 키를 버리고, 답을 받지 못했으면 남겨 같은 요청으로 다시 보낸다.
+      if (!rejection.retryable) _trayKeys.clear();
+      // 그사이 날이 넘어가 조건이 바뀌었거나 담당이 끊겼을 수 있고, 서버가 쿠폰을
+      // 만들고 응답만 잃었을 수도 있다 — 카드와 내 혜택의 쿠폰을 다시 읽는다.
+      container
+        ..invalidate(dietTrayProvider)
+        ..invalidate(myCouponsProvider);
       if (!mounted) return;
-      showAppToast(context, l.myDietTrayClaimFailed, type: AppToastType.error);
+      _toastRejection(
+        l,
+        rejection,
+        owned: l.myBenefitAlreadyReceived,
+        blocked: l.myDietTrayClaimFailed,
+        failed: l.myDietTrayClaimFailed,
+      );
     } finally {
       if (mounted) setState(() => _claimingTray = false);
     }
@@ -1146,10 +1343,15 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     );
     if (!ok || !mounted || _joiningChallenge || _exchanging != null) return;
     setState(() => _joiningChallenge = true);
+    // 참가는 주마다 한 번이다 — 같은 주의 시도는 같은 키로 나간다(#3363).
+    final Map<String, Object?> body = <String, Object?>{
+      'week': state.weekStart.toIso8601String(),
+    };
     try {
       await container
           .read(challengeRepositoryProvider)
-          .join(clientRequestId: newClientRequestId());
+          .join(clientRequestId: _challengeKeys.keyFor(body));
+      _challengeKeys.clear();
       // 참가 기록·잔액·교환 가능 여부가 함께 바뀌었다. MY 잔액도 다시 읽는다.
       container
         ..invalidate(weeklyChallengeProvider)
@@ -1163,11 +1365,24 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         actionLabel: l.myBenefitsView,
         onAction: () => context.push<void>(AppRoutes.myBenefits),
       );
-    } on Object {
-      // 그사이 요일이 넘어갔거나 잔액이 바뀌었을 수 있다 — 다시 읽어 이유를 보여 준다.
-      container.invalidate(weeklyChallengeProvider);
+    } on Object catch (error) {
+      final BenefitRejection rejection = BenefitRejection.of(error);
+      // 거절이면 키를 버리고, 답을 받지 못했으면 남겨 같은 요청으로 다시 보낸다.
+      if (!rejection.retryable) _challengeKeys.forget(body);
+      // 그사이 요일이 넘어갔거나 잔액이 바뀌었을 수 있고, 서버가 참가를 받고
+      // 응답만 잃었을 수도 있다 — 카드와 잔액을 다시 읽어 서버 값에 맞춘다.
+      container
+        ..invalidate(weeklyChallengeProvider)
+        ..invalidate(pointsShopProvider)
+        ..invalidate(myHealthStateProvider);
       if (!mounted) return;
-      showAppToast(context, l.challengeJoinFailed, type: AppToastType.error);
+      _toastRejection(
+        l,
+        rejection,
+        owned: l.challengeJoinAlready,
+        blocked: l.challengeJoinBlocked,
+        failed: l.challengeJoinFailed,
+      );
     } finally {
       if (mounted) setState(() => _joiningChallenge = false);
     }

@@ -58,7 +58,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// - authenticated but [consentRequired] → held on the consent screen
 ///   until the account agrees (#2819); the consent screen is off-limits
-///   otherwise.
+///   otherwise. The withdraw screen is the one other place such an account
+///   may open (#3340) — declining consent must not mean keeping the account.
 ///
 /// - [updateRequired] (#3045) → held on the update screen whatever the
 ///   session is; the update screen is off-limits otherwise.
@@ -95,7 +96,12 @@ String? sessionRedirect(
       location == AppRoutes.findEmail;
   // 동의가 남은 계정은 어느 주소로 가든 동의 화면에 붙든다(#2819). 데모에는
   // 계정이 없어 해당하지 않는다.
+  //
+  // 탈퇴 화면만은 열어 둔다(#3340). 동의하지 않기로 한 회원에게 로그아웃만 남으면
+  // 계정을 지울 길이 없다 — 서버는 동의 없이도 탈퇴를 받는다. 그 밖의 주소는
+  // 그대로 동의 화면이다.
   if (status == SessionStatus.authenticated && consentRequired) {
+    if (location == AppRoutes.withdraw) return null;
     return location == AppRoutes.consent ? null : AppRoutes.consent;
   }
   if (location == AppRoutes.consent) {
@@ -266,7 +272,7 @@ GoRouter buildAppRouter({
           'terms' => const LegalDocumentPage(document: 'terms'),
           'privacy' => const LegalDocumentPage(document: 'privacy'),
           'location' => const LegalDocumentPage(document: 'location'),
-          'withdraw' => const WithdrawPage(),
+          AppRoutes.withdrawSettingsSection => const WithdrawPage(),
           AppRoutes.passwordSettingsSection => const PasswordChangePage(),
           _ => const SupportPage(),
         },

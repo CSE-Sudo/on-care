@@ -24,7 +24,8 @@
     인라인 <script> 는 허용하지 않으므로(script-src 에 'unsafe-inline' 없음) 이 파일의
     스크립트는 모두 같은 출처 파일(js/·pdfjs/)로 둔다. 실제로 불러오는 출처만 연다:
     - script-src: 자기 출처, CanvasKit(www.gstatic.com), 카카오맵 SDK(dapi.kakao.com →
-      t1.daumcdn.net). 'wasm-unsafe-eval' 은 CanvasKit·drift(sqlite3.wasm) 컴파일용이다.
+      t1.kakaocdn.net, 예전 주소 t1.daumcdn.net — 카카오가 본체를 옮겼다).
+      'wasm-unsafe-eval' 은 CanvasKit·drift(sqlite3.wasm) 컴파일용이다.
     - style-src: Flutter 엔진이 실행 중 <style>·style 속성을 만들므로 'unsafe-inline'.
     - font-src·connect-src: 엔진의 대체 글꼴(fonts.gstatic.com)과 CanvasKit wasm 내려받기.
     - connect-src 의 https: 는 API 주소가 빌드마다 달라서다(로컬 개발은 localhost).
@@ -38,7 +39,7 @@
     헤더에서만 붙는다. GitHub Pages 데모는 응답 헤더를 바꿀 수 없어 이 meta 만 적용된다.
     지시어를 바꾸면 템플릿도 같이 바꾼다 — tool/ci/test_frontend_csp.py 가 둘을 비교한다.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' blob: https: http://localhost:* http://127.0.0.1:*; worker-src 'self' blob:; frame-src 'self' blob: https://accounts.google.com/gsi/; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net https://t1.kakaocdn.net https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' blob: https: http://localhost:* http://127.0.0.1:*; worker-src 'self' blob:; frame-src 'self' blob: https://accounts.google.com/gsi/; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- 라이트 전용이다(#1604). 브라우저가 다크 모드여도 첫 프레임 전 배경·스크롤바가

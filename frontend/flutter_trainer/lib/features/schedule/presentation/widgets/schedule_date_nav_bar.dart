@@ -46,6 +46,9 @@ class ScheduleDateNavBar extends StatelessWidget {
   /// 오른쪽 끝은 모든 탭이 알림 종 하나만 두는 자리라 이 줄로 내렸다(#2628).
   final List<Widget> actions;
 
+  /// `새 일정` 하나만 오른쪽에 설 때 한 줄에 담는 최소 폭.
+  static const double _singleActionMinWidth = 480;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -87,7 +90,14 @@ class ScheduleDateNavBar extends StatelessWidget {
       builder: (context, constraints) {
         // `새 일정` 을 한 줄에 함께 담는 최소 폭 — 태블릿 기준 폭 아래로는
         // 다음 줄로 내린다.
-        if (constraints.maxWidth < OnCareLayout.tabletBreakpoint) {
+        //
+        // 오른쪽에 `새 일정` 하나만 서면(분할 배치) 그보다 좁아도 한 줄이다 —
+        // 날짜 묶음이 그 안에서 줄어든다. 1024 창의 시간표 폭(약 590)에서 두
+        // 줄로 갈라져 패널 쪽 버튼과 높이가 어긋났다(#3316).
+        final double oneLineMinWidth = actions.isEmpty
+            ? _singleActionMinWidth
+            : OnCareLayout.tabletBreakpoint;
+        if (constraints.maxWidth < oneLineMinWidth) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,

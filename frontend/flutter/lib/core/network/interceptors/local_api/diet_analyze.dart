@@ -26,7 +26,10 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
     final DateTime now = nowKst();
     // 서버가 받아 준 날짜다(#2849). 앱이 보낸 날짜로 서버가 저장했으므로 같은
     // 날에 둔다 — 오늘로 두면 지난 날짜 화면에 끼니가 보이지 않는다.
-    final String day = date ?? _todayDateString();
+    final String day = date ?? wireDate(now);
+    // 시각도 서버가 정한 값을 쓴다(#3354). 지난 날짜의 끼니는 적은 시각이
+    // 아니라 끼니의 기본 시각이라, 제 시계로 다시 만들면 서버와 어긋난다.
+    final Object? serverTimeLabel = body['time_label'];
 
     // 서버가 준 id 를 그대로 쓴다 — 이어지는 수정·삭제가 같은 행을 가리킨다.
     // 같은 응답이 두 번 들어와도(재시도) 덮어쓰기라 중복 행이 생기지 않는다.
@@ -37,8 +40,9 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
             id: id,
             date: day,
             mealType: mealType,
-            timeLabel:
-                '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+            timeLabel: serverTimeLabel is String
+                ? serverTimeLabel
+                : _recordTimeLabel(day, mealType, now),
             foodsJson: jsonEncode(foods),
             totalCalories: (analysis['total_calories'] as num?)?.toInt() ?? 0,
             sodiumMg: Value(
@@ -204,16 +208,14 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
     // 지난 날짜 화면에서 연 추가는 그 날짜로 남긴다(#2849). 실서버와 같은
     // 규칙으로 걸러 낸다 — 데모에서만 통과하면 실연동에서 처음 실패한다.
     if (date != null) {
-      final String? error = _analyzeDateError(date);
+      final String? error = _entryDateError(date);
       if (error != null) return _unprocessable(options, error);
     }
-    final String day = date ?? _todayDateString();
-
     final now = nowKst();
+    final String day = date ?? wireDate(now);
     final id = 'diet-${now.microsecondsSinceEpoch}';
     // 행에 넣는 값과 응답에 싣는 값이 갈리지 않게 한 번만 만든다.
-    final String timeLabel =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final String timeLabel = _recordTimeLabel(day, mealType, now);
     await _db
         .into(_db.dietEntries)
         .insert(
@@ -369,19 +371,6 @@ const Map<String, String> _demoFoodDisplayNamesEn = <String, String>{
   '과일 토핑': 'Fruit topping',
   '그래놀라 토핑': 'Granola topping',
 };
-
-/// 사진 분석의 기록 날짜 검사(#2849). 실서버(`analyze_record_date`)와 같은
-/// 규칙이다 — 형식이 맞고, 오늘보다 뒤가 아니며, 작년 1월 1일보다 앞서지
-/// 않는다(앱의 날짜 고르기 범위와 같다).
-String? _analyzeDateError(String date) {
-  final String? error = _entryDateError(date);
-  if (error != null) return error;
-  final DateTime parsed = DateTime.parse(date);
-  if (parsed.isBefore(DateTime(nowKst().year - 1))) {
-    return 'date 는 작년 1월 1일보다 앞설 수 없어요.';
-  }
-  return null;
-}
 
 /// 데모 영양표 한 줄 — **1인분 기준**이다. (#1896)
 class _DemoFood {

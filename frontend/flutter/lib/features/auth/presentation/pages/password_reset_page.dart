@@ -358,6 +358,17 @@ class _PasswordResetPageState extends ConsumerState<PasswordResetPage> {
             ],
             const SizedBox(height: OnCareSpacing.s16),
           ],
+          // 소셜 전용 계정에는 서버가 메일을 보내지 않는다. 계정이 있는지를
+          // 숨기려고 응답은 같으므로, 오지 않는 코드를 기다리지 않게 여기서
+          // 알린다(#3338).
+          Text(
+            l.passwordResetSocialNote,
+            key: const Key('passwordResetSocialNote'),
+            style: context.oncare
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
             key: const ValueKey<String>('passwordReset-code'),
             controller: _code,

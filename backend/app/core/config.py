@@ -385,6 +385,16 @@ class Settings(BaseSettings):
     # 0 이면 그 한도를 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
     diet_analyze_per_minute: int = 10
     diet_analyze_per_day: int = 20
+    # 코칭 시트 피드백(`GET /ai-coach/feedback`)의 캐시와 회원별 하루 상한(#3351).
+    # 호출 한 번에 모델을 최대 두 번(식단·운동) 부르는데, 앱은 기록이 바뀔 때마다 다시
+    # 받는다. 만든 카드를 `coach_feedback_cache_seconds` 동안 회원별로 들고 있고, 식단·
+    # 운동 기록이 바뀌거나 날(KST)이 바뀌면 버린다. 하루에 새로 만드는 횟수는
+    # `coach_feedback_per_day` 까지다 — 넘으면 오류가 아니라 규칙 기반 카드로 답한다.
+    # 둘 다 DB(`coach_feedback_states`)에 두어 재기동·워커 수·인스턴스 수와 상관없이
+    # 같다. 캐시 0 이면 매번 새로 만들고, 상한 0 이면 상한을 끈다.
+    # RATE_LIMIT_ENABLED=false 면 상한만 끈다(캐시는 그대로).
+    coach_feedback_cache_seconds: int = 1800
+    coach_feedback_per_day: int = 20
     # 서버 전체·트레이너 계정의 하루 AI 호출 상한(#3032). 위 값들은 **한 회원**을
     # 묶을 뿐이라, 가입자가 늘면 그 합만큼 비용이 열린다. 두 값 모두 DB
     # (`ai_call_usages`)에서 KST 날짜로 세므로 재기동·워커 수·인스턴스 수와 상관없이
