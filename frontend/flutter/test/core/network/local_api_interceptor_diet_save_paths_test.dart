@@ -5,7 +5,7 @@
 ///
 /// - 직접 입력·수정의 날짜도 사진 분석처럼 작년 1월 1일보다 앞설 수 없다.
 /// - 지난 날짜에 적는 끼니의 시각은 적는 시각이 아니라 끼니 종류의 기본 시각이다.
-/// - 홈 나트륨 경고는 영어 화면에서 음식의 영어 표시 이름을 쓴다.
+/// - 홈 나트륨 경고는 음식을 저장된 이름으로 짚는다.
 library;
 
 import 'dart:typed_data';
@@ -173,29 +173,13 @@ void main() {
       <String, Object?>{'name': '김밥', 'calories': 420, 'sodium_mg': 900},
     ];
 
-    Future<Map<String, Object?>> summary(String lang) async =>
-        (await dio.get<Map<String, Object?>>(
-          '/dashboard/summary',
-          options: Options(headers: <String, Object?>{'Accept-Language': lang}),
-        )).data!;
+    Future<Map<String, Object?>> summary() async =>
+        (await dio.get<Map<String, Object?>>('/dashboard/summary')).data!;
 
-    test('영어 화면이면 영어 표시 이름을, 없는 음식은 저장된 이름을 싣는다', () async {
+    test('표시 이름이 있어도 저장된 이름으로 짚는다', () async {
       expect((await create(foods: salty)).statusCode, 201);
 
-      final Map<String, Object?> body = await summary('en');
-
-      expect(body['ai_advice_key'], 'sodium_over_sources');
-      expect(body['ai_advice_params'], <String, Object?>{
-        'foods': <String>['Ramyeon', '김밥'],
-      });
-      expect(body['sodium_warning'], contains('Ramyeon'));
-      expect(body['sodium_warning'], isNot(contains('라면')));
-    });
-
-    test('한국어 화면은 저장된 이름 그대로다', () async {
-      expect((await create(foods: salty)).statusCode, 201);
-
-      final Map<String, Object?> body = await summary('ko');
+      final Map<String, Object?> body = await summary();
 
       expect(body['ai_advice_params'], <String, Object?>{
         'foods': <String>['라면', '김밥'],

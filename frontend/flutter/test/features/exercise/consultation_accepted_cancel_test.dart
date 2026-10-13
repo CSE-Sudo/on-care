@@ -87,11 +87,7 @@ class _ScriptedRepository implements ConsultationRepository {
       const <TrainerSlot>[];
 }
 
-Future<void> _pumpHistory(
-  WidgetTester tester,
-  _ScriptedRepository repo, {
-  Locale locale = const Locale('ko'),
-}) async {
+Future<void> _pumpHistory(WidgetTester tester, _ScriptedRepository repo) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -103,7 +99,7 @@ Future<void> _pumpHistory(
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const ConsultationHistoryPage(),
@@ -245,18 +241,6 @@ void main() {
         tester.widget<AppButton>(_dialogButton('유지')).variant,
         AppButtonVariant.secondary,
       );
-    });
-
-    testWidgets('영어 화면도 같은 확인 창을 영어로 그린다', (WidgetTester tester) async {
-      final _ScriptedRepository repo = _ScriptedRepository()
-        ..mine = <ConsultationRequest>[_request()];
-      await _pumpHistory(tester, repo, locale: const Locale('en'));
-
-      await tester.tap(find.byKey(_cancelKey));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Cancel this confirmed consultation?'), findsOneWidget);
-      expect(_dialogButton('Cancel consultation'), findsOneWidget);
     });
 
     testWidgets('유지를 누르면 서버로 나가지 않고 수락 상태 그대로다', (WidgetTester tester) async {

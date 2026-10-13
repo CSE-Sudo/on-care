@@ -18,7 +18,6 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
@@ -38,9 +37,7 @@ class _ChangingRepository extends DriftClientRepository {
   @override
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) async {
+    ClientPeriod period) async {
     adviceCalls.add('$clientId/${period.name}');
     final Completer<void>? wait = hold;
     if (wait != null) await wait.future;
@@ -49,17 +46,9 @@ class _ChangingRepository extends DriftClientRepository {
 
   @override
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  }) async {
+    String clientId) async {
     recommendationCalls++;
     return ClientDietRecommendations(basisDays: recommendationCalls);
-  }
-}
-
-class _FixedPlatformLocales extends PlatformLocalesNotifier {
-  _FixedPlatformLocales() {
-    state = const <Locale>[Locale('ko')];
   }
 }
 
@@ -73,7 +62,6 @@ Future<WidgetRef> _pumpWatcher(
     ProviderScope(
       overrides: <Override>[
         clientRepositoryProvider.overrideWithValue(repo),
-        platformLocalesProvider.overrideWith((ref) => _FixedPlatformLocales()),
       ],
       child: Directionality(
         textDirection: TextDirection.ltr,

@@ -158,7 +158,6 @@ void main() {
     test('회원 본인 리포트 엔드포인트에서 그 주 월요일로 읽는다', () async {
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: DateTime(2026, 9, 17),
-        languageCode: 'ko',
       );
 
       expect(
@@ -172,7 +171,6 @@ void main() {
     test('트레이너 리포트와 같은 필드를 그대로 싣는다', () async {
       final ReportSheetWeek week = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).week;
 
       expect(week.sessionsBooked, 2);
@@ -189,24 +187,19 @@ void main() {
     test('지나는 중인 주는 이번 주로 읽는다', () async {
       final ReportSheetWeek week = (await repository(
         now: DateTime(2026, 9, 16, 9),
-      ).fetch(weekStart: _monday, languageCode: 'ko')).week;
+      ).fetch(weekStart: _monday)).week;
       expect(week.isCurrentWeek, isTrue);
     });
 
     test('지금 계산한 값이면 굳힌 시각이 없다', () async {
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.asOf, isNull);
     });
 
     test('전송 메시지 id 는 그 주에만 싣고 직전 주에는 싣지 않는다 (#3349)', () async {
-      await repository().fetch(
-        weekStart: _monday,
-        languageCode: 'ko',
-        messageId: 'chat-abc',
-      );
+      await repository().fetch(weekStart: _monday, messageId: 'chat-abc');
 
       final Map<String, Object?> asked = <String, Object?>{
         for (final RequestOptions o in server.requests)
@@ -231,7 +224,7 @@ void main() {
     });
 
     test('메시지 id 가 없으면 질의에 싣지 않는다', () async {
-      await repository().fetch(weekStart: _monday, languageCode: 'ko');
+      await repository().fetch(weekStart: _monday);
       expect(
         server.requests.any(
           (RequestOptions o) => o.queryParameters.containsKey('message_id'),
@@ -250,7 +243,6 @@ void main() {
 
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.asOf, DateTime(2026, 9, 16, 12));
     });
@@ -267,7 +259,6 @@ void main() {
 
       final ReportSheetWeek week = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).week;
       expect(week.isCurrentWeek, isTrue);
     });
@@ -281,7 +272,7 @@ void main() {
 
       final ReportSheetInputs inputs = await repository(
         now: DateTime(2026, 9, 16, 9),
-      ).fetch(weekStart: _monday, languageCode: 'ko');
+      ).fetch(weekStart: _monday);
       expect(inputs.week.isCurrentWeek, isFalse);
     });
 
@@ -294,7 +285,6 @@ void main() {
 
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.asOf, isNull);
       expect(inputs.week.isCurrentWeek, isFalse);
@@ -303,7 +293,7 @@ void main() {
     test('그 주를 못 읽으면 던진다 — 빈 결과지를 그리지 않는다', () async {
       server.routes['/me/coach/weekly-report'] = (_) => 500;
       await expectLater(
-        repository().fetch(weekStart: _monday, languageCode: 'ko'),
+        repository().fetch(weekStart: _monday),
         throwsA(isA<AppError>()),
       );
     });
@@ -318,7 +308,7 @@ void main() {
         ),
       ).thenThrow(StateError('offline'));
       await expectLater(
-        repository().fetch(weekStart: _monday, languageCode: 'ko'),
+        repository().fetch(weekStart: _monday),
         throwsA(isA<AppError>()),
       );
     });
@@ -328,7 +318,6 @@ void main() {
     test('낸 답은 결과지 ② 칸에 실린다', () async {
       final ReportSheetAnswers? answers = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).week.answers;
 
       expect(answers, isNotNull);
@@ -347,7 +336,6 @@ void main() {
           _feedback(submitted: false);
       final ReportSheetWeek week = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).week;
       expect(week.answers, isNull);
     });
@@ -356,7 +344,6 @@ void main() {
       server.routes['/me/coach/weekly-feedback'] = (_) => 404;
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.week.answers, isNull);
       expect(inputs.week.memberName, '김민수');
@@ -366,7 +353,6 @@ void main() {
       server.routes['/me/coach/weekly-feedback'] = (_) => 500;
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.week.answers, isNull);
     });
@@ -376,7 +362,6 @@ void main() {
     test('4주 평균 대비에 쓸 직전 넉 주를 최근 주부터 읽는다', () async {
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(
         server.weeksAsked('/me/coach/weekly-report'),
@@ -406,7 +391,6 @@ void main() {
       };
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.history, hasLength(3));
       expect(
@@ -425,7 +409,7 @@ void main() {
     ];
 
     test('여는 주는 비교 표시 없이 묻는다', () async {
-      await repository().fetch(weekStart: _monday, languageCode: 'ko');
+      await repository().fetch(weekStart: _monday);
 
       expect(compareForAsked('2026-09-14'), <String?>[null]);
       final RequestOptions asked = server.requests.firstWhere(
@@ -437,7 +421,7 @@ void main() {
     });
 
     test('직전 넉 주는 여는 주를 compare_for 로 함께 보낸다', () async {
-      await repository().fetch(weekStart: _monday, languageCode: 'ko');
+      await repository().fetch(weekStart: _monday);
 
       for (final String week in <String>[
         '2026-09-07',
@@ -450,10 +434,7 @@ void main() {
     });
 
     test('주 중간 날짜로 열어도 compare_for 는 그 주 월요일이다', () async {
-      await repository().fetch(
-        weekStart: DateTime(2026, 9, 18),
-        languageCode: 'ko',
-      );
+      await repository().fetch(weekStart: DateTime(2026, 9, 18));
 
       expect(compareForAsked('2026-09-07'), <String?>['2026-09-14']);
     });
@@ -462,7 +443,7 @@ void main() {
       server.routes['/me/coach/weekly-report'] = (_) => 403;
 
       await expectLater(
-        repository().fetch(weekStart: _monday, languageCode: 'ko'),
+        repository().fetch(weekStart: _monday),
         throwsA(isA<ForbiddenError>()),
       );
     });
@@ -475,7 +456,6 @@ void main() {
 
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
 
       expect(inputs.week.weekStart, _monday);
@@ -516,7 +496,6 @@ void main() {
 
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
 
       expect(inputs.history, hasLength(kReportSheetHistoryWeeks));
@@ -544,7 +523,7 @@ void main() {
           );
 
       await expectLater(
-        repository.fetch(weekStart: _monday, languageCode: 'ko'),
+        repository.fetch(weekStart: _monday),
         throwsA(isA<ForbiddenError>()),
       );
     });
@@ -559,7 +538,6 @@ void main() {
 
       final ReportSheetInputs inputs = await repository.fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
 
       expect(inputs.week.weekStart, _monday);
@@ -578,10 +556,7 @@ void main() {
             },
           );
 
-      await repository.fetch(
-        weekStart: DateTime(2026, 9, 17),
-        languageCode: 'ko',
-      );
+      await repository.fetch(weekStart: DateTime(2026, 9, 17));
 
       // 직전 주는 비교용이라 따로 판정하지 않는다 — 여는 주 한 번뿐이다.
       expect(asked, <DateTime>[_monday]);
@@ -591,7 +566,7 @@ void main() {
       final ReportSheetInputs inputs = await DemoMemberReportSheetRepository(
         fixture: fixture,
         now: () => _later,
-      ).fetch(weekStart: _monday, languageCode: 'ko');
+      ).fetch(weekStart: _monday);
 
       expect(inputs.week.weekStart, _monday);
     });
@@ -599,7 +574,7 @@ void main() {
 
   group('실서버 — 여덟 주 운동 추이', () {
     test('기간 조회 한 번으로 여덟 주를 읽는다', () async {
-      await repository().fetch(weekStart: _monday, languageCode: 'ko');
+      await repository().fetch(weekStart: _monday);
       verify(
         () => exercise.fetchPeriod(
           from: DateTime(2026, 7, 27),
@@ -609,9 +584,7 @@ void main() {
     });
 
     test('지나는 중인 주는 오늘까지만 묻는다', () async {
-      await repository(
-        now: DateTime(2026, 9, 16, 9),
-      ).fetch(weekStart: _monday, languageCode: 'ko');
+      await repository(now: DateTime(2026, 9, 16, 9)).fetch(weekStart: _monday);
       verify(
         () => exercise.fetchPeriod(
           from: DateTime(2026, 7, 27),
@@ -640,7 +613,6 @@ void main() {
       );
       final ReportSheetTrend trend = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).trend!;
 
       expect(trend.weeks, hasLength(kReportSheetTrendWeeks));
@@ -654,7 +626,6 @@ void main() {
     test('회원이 정한 목표로 견준다', () async {
       final ReportSheetTrend trend = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
         goals: const ReportSheetGoals(
           weeklyCardioMinutes: 200,
           weeklyStrengthSets: 12,
@@ -675,7 +646,6 @@ void main() {
       ).thenThrow(StateError('offline'));
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.trend, isNull);
       expect(inputs.week.memberName, '김민수');
@@ -737,7 +707,7 @@ void main() {
       final ReportSheetInputs mine = await DemoMemberReportSheetRepository(
         fixture: fixture,
         now: () => now,
-      ).fetch(weekStart: DateTime(2026, 9, 10), languageCode: 'ko');
+      ).fetch(weekStart: DateTime(2026, 9, 10));
       final ReportSheetInputs trainer = demoReportSheetInputs(
         fixture: fixture,
         weekStart: lastMonday,
@@ -763,30 +733,12 @@ void main() {
             now: () => now,
           ).fetch(
             weekStart: lastMonday,
-            languageCode: 'ko',
             goals: const ReportSheetGoals(weeklyCardioMinutes: 999),
           );
       expect(
         mine.trend!.goalOf(ExerciseKind.cardio),
         kDemoReportGoals.weeklyCardioMinutes,
       );
-    });
-
-    test('영어 화면이면 회원 답도 영어다', () async {
-      final ReportSheetInputs ko = await DemoMemberReportSheetRepository(
-        fixture: fixture,
-        now: () => now,
-      ).fetch(weekStart: lastMonday, languageCode: 'ko');
-      final ReportSheetInputs en = await DemoMemberReportSheetRepository(
-        fixture: fixture,
-        now: () => now,
-      ).fetch(weekStart: lastMonday, languageCode: 'en');
-      final ReportSheetAnswers? koAnswers = ko.week.answers;
-      final ReportSheetAnswers? enAnswers = en.week.answers;
-      expect(koAnswers?.conditionWire, enAnswers?.conditionWire);
-      if (koAnswers != null && koAnswers.note.isNotEmpty) {
-        expect(enAnswers!.note, isNot(koAnswers.note));
-      }
     });
   });
 }

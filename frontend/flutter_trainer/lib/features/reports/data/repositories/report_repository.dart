@@ -6,15 +6,11 @@ import 'package:drift/drift.dart';
 import 'package:flutter/widgets.dart' show Locale, immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_core/clock.dart';
-import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
-import 'package:oncare_trainer/core/storage/seed_data.dart'
-    show seedLanguageKey;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
@@ -80,9 +76,7 @@ abstract interface class ReportRepository {
   /// 리포트 본문과 **따로** 가져온다. 실서버는 생성에 몇 초가 걸리는데 한
   /// 응답에 묶으면 고객을 고를 때마다 화면 전체가 그만큼 멈춘다(#755).
   ///
-  /// [l] 은 요약 문장의 언어다. 데모는 이 언어로 규칙 기반 요약을 조립하고,
-  /// 실서버에는 같은 언어를 `Accept-Language` 로 요청한다(#2298) — 캐시 열쇠
-  /// ([ReportSummaryKey])가 가리키는 언어와 받아 온 문장의 언어가 늘 같다.
+  /// 데모는 [l] 의 문구로 규칙 기반 요약을 조립한다.
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
@@ -490,7 +484,7 @@ class LocalReportRepository implements ReportRepository {
   ///
   /// 실서버처럼 줄마다 **보낸 본문의 첫 줄과 PDF 표시**를 싣는다(#2669). 데모
   /// 기록은 본문을 저장하지 않으므로 그 주 수치로 만든 초안([reportMessage])을
-  /// 시드 언어로 채운다 — 수치와 따로 노는 고정 문장을 두지 않는다는 #2423 의
+  /// 채운다 — 수치와 따로 노는 고정 문장을 두지 않는다는 #2423 의
   /// 규칙 그대로다. 공유 메뉴의 기본 전송이 PDF 라서(#1378) 데모의 보낸
   /// 리포트는 모두 PDF 로 나간 것으로 둔다 — 실행 중 기록도 `sendPdf` 가
   /// 남긴 것뿐이다.
@@ -537,9 +531,7 @@ class LocalReportRepository implements ReportRepository {
     final TrainerClient? client = row == null
         ? null
         : trainerClientFromRow(row);
-    final AppLocalizations l = lookupAppLocalizations(
-      Locale(await _db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name),
-    );
+    final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
     return <MemberReportHistoryItem>[
       for (final MemberReportHistoryItem item in items)
         MemberReportHistoryItem(
@@ -773,15 +765,6 @@ class DioReportRepository implements ReportRepository {
       final res = await _dio.get<Map<String, dynamic>>(
         '/trainer/clients/${Uri.encodeComponent(client.id)}/report/summary',
         queryParameters: <String, String>{'week_start': ymd(weekStart)},
-        // 화면 언어를 전역 인터셉터에 맡기지 않고 [l] 로 직접 고른다(#2298).
-        // 요약은 언어별로 캐시되므로, 요청 도중 언어를 바꿔도 이 응답은
-        // 요청한 언어의 칸에만 들어가야 한다. 인터셉터는 이미 있는 헤더를
-        // 덮지 않는다.
-        options: Options(
-          headers: <String, String>{
-            AcceptLanguageInterceptor.headerName: summaryLanguageTag(l),
-          },
-        ),
       );
       final json = res.data;
       if (json == null) throw const ServerError();
@@ -1381,27 +1364,17 @@ final reportFeedbackDraftProvider = FutureProvider.autoDispose
           .feedbackDraft(client: key.client, weekStart: key.weekStart);
     });
 
-/// 요약을 요청할 언어 태그 — [l] 의 주 언어(`ko`·`en`). 서버는 주 언어만 본다.
-String summaryLanguageTag(AppLocalizations l) =>
-    AcceptLanguageInterceptor.headerValue(
-      Locale(l.localeName.split('_').first),
-    );
-
 /// 한 주의 리포트 요약. 리포트 본문과 따로 부른다(#755).
 ///
 /// `autoDispose` 다 — 고객·주를 옮겨 다니는 화면이라 남겨 두면 본 적 있는 모든
 /// 주의 요약이 메모리에 쌓인다. 다시 생성하려면 이 provider 를 무효화한다.
 final reportSummaryProvider = FutureProvider.autoDispose
-    .family<ReportSummary, ReportSummaryKey>((ref, key) {
+    .family<ReportSummary, ReportKey>((ref, key) {
       return ref
           .watch(reportRepositoryProvider)
           .summary(
-            client: key.report.client,
-            weekStart: key.report.weekStart,
-            l: lookupAppLocalizations(key.locale),
+            client: key.client,
+            weekStart: key.weekStart,
+            l: lookupAppLocalizations(const Locale('ko')),
           );
     });
-
-/// 요약을 찾는 열쇠 — 어느 주인지와 **어느 언어로** 조립할지. 언어를 바꾸면
-/// 다른 요약이다(#2232).
-typedef ReportSummaryKey = ({ReportKey report, Locale locale});

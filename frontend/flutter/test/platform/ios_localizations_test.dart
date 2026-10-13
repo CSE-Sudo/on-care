@@ -3,12 +3,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
-/// iOS 번들이 앱과 같은 언어(ko·en)를 선언하고, 권한 안내 문구가 두 언어로
+/// iOS 번들이 앱과 같은 언어(ko)를 선언하고, 권한 안내 문구가 한국어로
 /// 있는지(#3048).
 ///
 /// 선언이 없으면 한국어 기기에서도 시스템 창(권한 버튼·사진 선택기)이 영어로
-/// 뜨고, 권한 설명은 기기 언어와 상관없이 한 언어로만 뜬다. 권한을 새로 더하고
-/// 번역을 빠뜨리면 여기서 실패한다.
+/// 뜬다. 권한을 새로 더하고 문구를 빠뜨리면 여기서 실패한다.
 void main() {
   const String runner = 'ios/Runner';
   final String plist = File('$runner/Info.plist').readAsStringSync();
@@ -75,48 +74,36 @@ void main() {
     );
   });
 
-  for (final String language in <String>['ko', 'en']) {
-    group('$language.lproj/InfoPlist.strings', () {
-      final String path = '$runner/$language.lproj/InfoPlist.strings';
+  group('ko.lproj/InfoPlist.strings', () {
+    const String path = '$runner/ko.lproj/InfoPlist.strings';
 
-      test('모든 권한 키가 빈 값 없이 있다', () {
-        final Map<String, String> values = readStrings(path);
-        for (final String key in usageKeysInPlist()) {
-          expect(values[key], isNotNull, reason: '$key 번역이 없다');
-          expect(values[key]!.trim(), isNotEmpty, reason: '$key 가 비었다');
-        }
-      });
+    test('모든 권한 키가 빈 값 없이 한글로 있다', () {
+      final RegExp hangul = RegExp(r'[가-힣]');
+      final Map<String, String> values = readStrings(path);
+      for (final String key in usageKeysInPlist()) {
+        expect(values[key], isNotNull, reason: '$key 문구가 없다');
+        expect(values[key], matches(hangul), reason: key);
+      }
     });
-  }
 
-  test('한국어 문구는 한글, 영어 문구는 한글 없이 적는다', () {
-    final RegExp hangul = RegExp(r'[가-힣]');
-    final Map<String, String> ko = readStrings(
-      '$runner/ko.lproj/InfoPlist.strings',
-    );
-    final Map<String, String> en = readStrings(
-      '$runner/en.lproj/InfoPlist.strings',
-    );
-    for (final String key in usageKeysInPlist()) {
-      expect(ko[key], matches(hangul), reason: 'ko $key');
-      expect(en[key], isNot(matches(hangul)), reason: 'en $key');
-    }
+    test('Info.plist 의 문구와 같다', () {
+      final Map<String, String> ko = readStrings(path);
+      for (final String key in usageKeysInPlist()) {
+        final RegExpMatch? m = RegExp(
+          '<key>$key</key>\\s*<string>([^<]*)</string>',
+        ).firstMatch(plist);
+        expect(m?.group(1), ko[key], reason: key);
+      }
+    });
   });
 
-  test('Info.plist 폴백 문구는 개발 언어(en)와 같다', () {
-    final Map<String, String> en = readStrings(
-      '$runner/en.lproj/InfoPlist.strings',
-    );
-    for (final String key in usageKeysInPlist()) {
-      final RegExpMatch? m = RegExp(
-        '<key>$key</key>\\s*<string>([^<]*)</string>',
-      ).firstMatch(plist);
-      expect(m?.group(1), en[key], reason: key);
-    }
+  test('영어 리소스가 남아 있지 않다', () {
+    expect(Directory('$runner/en.lproj').existsSync(), isFalse);
+    expect(pbxproj, isNot(contains('en.lproj')));
   });
 
   group('project.pbxproj', () {
-    test('knownRegions 에 ko·en 이 있고 개발 언어는 en', () {
+    test('knownRegions 는 ko·Base 이고 개발 언어는 ko', () {
       final RegExpMatch? m = RegExp(
         r'knownRegions = \((.*?)\);',
         dotAll: true,
@@ -128,20 +115,15 @@ void main() {
           .map((String r) => r.trim())
           .where((String r) => r.isNotEmpty)
           .toSet();
-      expect(regions, containsAll(<String>['ko', 'en', 'Base']));
-      expect(pbxproj, contains('developmentRegion = en;'));
+      expect(regions, <String>{'ko', 'Base'});
+      expect(pbxproj, contains('developmentRegion = ko;'));
     });
 
-    test('InfoPlist.strings 가 언어별 그룹으로 Runner 리소스에 들어간다', () {
+    test('InfoPlist.strings 가 Runner 리소스에 들어간다', () {
       expect(
         pbxproj,
         contains('path = ko.lproj/InfoPlist.strings;'),
         reason: 'ko 파일 참조',
-      );
-      expect(
-        pbxproj,
-        contains('path = en.lproj/InfoPlist.strings;'),
-        reason: 'en 파일 참조',
       );
       expect(
         RegExp(

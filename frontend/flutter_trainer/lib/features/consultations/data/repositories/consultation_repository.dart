@@ -11,7 +11,6 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/poll_intervals.dart';
@@ -106,20 +105,16 @@ class ConsultationAcceptResult {
 /// 오류로 멈췄다. [db] 가 없으면(단위 테스트) 메모리에만 둔다.
 class DemoConsultationRepository implements ConsultationRepository {
   /// Creates the demo source.
-  ///
-  /// [language] 는 회원이 남긴 신청 메시지의 데모 언어다(#2304). 이름은 어느
-  /// 언어에서든 그대로다.
   DemoConsultationRepository({
     List<ConsultationRequest>? requests,
     this.scheduleRepository,
     this.db,
-    DemoLanguage language = DemoLanguage.ko,
-  }) : _requests = requests ?? _seedRequests(language);
+  }) : _requests = requests ?? _seedRequests();
 
   /// 시드 요청 — 회원이 트레이너가 연 **상담 자리**([demoReservationSlots])를
   /// 골라 신청한 모양이다(#1873). 예전에는 자리 목록에 없는 시각(내일 19:00
   /// 등)을 골라, 예약 슬롯 창과 상담함이 서로 다른 달력을 말했다(#2669).
-  static List<ConsultationRequest> _seedRequests(DemoLanguage language) {
+  static List<ConsultationRequest> _seedRequests() {
     final DateTime now = nowKst();
     final Map<String, ReservationSlot> slots = <String, ReservationSlot>{
       for (final ReservationSlot slot in demoReservationSlots(now: now))
@@ -144,10 +139,7 @@ class DemoConsultationRepository implements ConsultationRepository {
         slotStartsAt: evening.startsAt,
         slotDurationMinutes: evening.durationMinutes,
         status: 'pending',
-        message: language.isEnglish
-            ? "I'd like my first consultation at a time that works "
-                  'after work.'
-            : '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
+        message: '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
         // 받은 시각 — 인박스가 최신순으로 서고 `더 보기` 커서가 된다.
         createdAt: now.subtract(const Duration(hours: 3)),
       ),
@@ -164,10 +156,7 @@ class DemoConsultationRepository implements ConsultationRepository {
         slotStartsAt: morning.startsAt,
         slotDurationMinutes: morning.durationMinutes,
         status: 'pending',
-        message: language.isEnglish
-            ? 'It would be great if you could help with my blood '
-                  'pressure too.'
-            : '혈압 관리도 같이 봐주시면 좋겠어요.',
+        message: '혈압 관리도 같이 봐주시면 좋겠어요.',
         createdAt: now.subtract(const Duration(days: 1, hours: 2)),
       ),
     ];
@@ -586,7 +575,6 @@ final consultationRepositoryProvider = Provider<ConsultationRepository>((ref) {
     return DemoConsultationRepository(
       scheduleRepository: () => ref.read(scheduleRepositoryProvider),
       db: ref.watch(appDatabaseProvider),
-      language: ref.watch(demoLanguageProvider),
     );
   }
   return DioConsultationRepository(ref.watch(dioProvider));

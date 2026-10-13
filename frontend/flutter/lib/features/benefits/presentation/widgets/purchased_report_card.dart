@@ -103,7 +103,6 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
       final ReportSheetInputs inputs = await loadMemberReportSheet(
         ref.read,
         weekStart: widget.weekStart,
-        languageCode: l.localeName,
       );
       final List<String>? insights = await _insightLines(l);
       final Uint8List bytes = await ref

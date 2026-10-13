@@ -36,7 +36,6 @@ void main() {
 
   setUpAll(() async {
     await initializeDateFormatting('ko');
-    await initializeDateFormatting('en');
   });
 
   group('알림', () {
@@ -134,7 +133,6 @@ void main() {
 
     test('마지막 변경일은 브라우저 시간대가 아니라 KST 날짜로 보인다', () {
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
       // UTC 9월 16일 15:30 = KST 9월 17일 00:30. 미국 서부 브라우저라면
       // `toLocal()` 이 9월 16일 아침으로 읽었다.
       final MemberHealthProfile lateNight =
@@ -147,10 +145,6 @@ void main() {
       expect(
         focusLastChangedLabel(ko, lateNight, locale: 'ko'),
         '마지막 변경: 회원 · 9월 17일',
-      );
-      expect(
-        focusLastChangedLabel(en, lateNight, locale: 'en'),
-        'Last changed by Member · Sep 17',
       );
 
       // KST 오전 8시 59분(UTC 전날 23:59)도 KST 날짜다.
@@ -169,7 +163,6 @@ void main() {
 
     test('누가 언제 바꿨는지 한 줄로 말하고, 바꾼 적이 없으면 그리지 않는다', () {
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
       final MemberHealthProfile byMember = MemberHealthProfile(
         memberId: 'user-jisu',
         memberName: '지수',
@@ -180,10 +173,6 @@ void main() {
       expect(
         focusLastChangedLabel(ko, byMember, locale: 'ko'),
         '마지막 변경: 회원 · 9월 16일',
-      );
-      expect(
-        focusLastChangedLabel(en, byMember, locale: 'en'),
-        'Last changed by Member · Sep 16',
       );
       expect(
         focusLastChangedLabel(

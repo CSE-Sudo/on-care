@@ -11,11 +11,9 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
-import 'package:oncare_trainer/features/coaching/data/demo_routine_suggestions.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
@@ -27,8 +25,6 @@ import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.d
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
-
-final RegExp _hangul = RegExp(r'[가-힣]');
 
 void main() {
   late AppDatabase db;
@@ -254,8 +250,9 @@ void main() {
       await DriftScheduleRepository(db).dismissScheduledRoutines(pt.id);
       await DemoRoutineStore(db).assigned('seed-client-2');
 
-      // 언어가 바뀌면 같은 날이라도 다시 심는다.
-      await seedIfEmpty(db, language: DemoLanguage.en);
+      // 날짜가 바뀌면 다시 심는다.
+      await db.putValue('trainer_seeded_v57', '2020-01-01');
+      await seedIfEmpty(db);
 
       expect(await DemoRoutineStore(db).readAssigned('seed-client-2'), isNull);
       expect(await DemoRoutineStore(db).readSession(pt.id), isNull);
@@ -470,29 +467,6 @@ void main() {
         ).pending('seed-client-3')).map((s) => s.id),
         isNot(contains(sent.id)),
       );
-    });
-
-    test('영어판은 id·시간·유형·세트·근거가 같고 이름·사유만 영어다', () {
-      expect(
-        demoMemberSuggestionsEn.keys,
-        orderedEquals(demoMemberSuggestionsKo.keys),
-      );
-      for (final String member in demoMemberSuggestionsKo.keys) {
-        final List<RoutineSuggestion> ko = demoMemberSuggestionsKo[member]!;
-        final List<RoutineSuggestion> en = demoMemberSuggestionsEn[member]!;
-        expect(en, hasLength(ko.length), reason: member);
-        for (var i = 0; i < ko.length; i++) {
-          expect(en[i].id, ko[i].id);
-          expect(en[i].minutes, ko[i].minutes);
-          expect(en[i].type, ko[i].type);
-          expect(en[i].sets, ko[i].sets);
-          expect(en[i].reps, ko[i].reps);
-          expect(en[i].weight, ko[i].weight);
-          expect(en[i].evidence, ko[i].evidence);
-          expect(en[i].name, isNot(contains(_hangul)));
-          expect(en[i].reason, isNot(contains(_hangul)));
-        }
-      }
     });
   });
 

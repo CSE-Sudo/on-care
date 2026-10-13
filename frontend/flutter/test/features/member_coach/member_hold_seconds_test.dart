@@ -22,7 +22,6 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dar
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
 final AppLocalizations _ko = lookupAppLocalizations(const Locale('ko'));
-final AppLocalizations _en = lookupAppLocalizations(const Locale('en'));
 
 /// 서버 `RoutineOut` 모양 — 버티는 근력 개인운동 하나.
 Map<String, Object?> _holdRoutineJson({Object? holdSeconds = 60}) =>
@@ -185,10 +184,6 @@ void main() {
         strengthAmountParts(_ko, sets: 3, holdSeconds: 60).join(' · '),
         '3세트 · 60초',
       );
-      expect(
-        strengthAmountParts(_en, sets: 3, holdSeconds: 60).join(' · '),
-        '${_en.exSetsCount(3)} · 60 sec',
-      );
     });
 
     test('횟수만 있으면 지금처럼 횟수다', () {
@@ -210,17 +205,6 @@ void main() {
         strengthAmountParts(_ko, sets: 3, holdSeconds: 0, weight: 0),
         <String>['3세트'],
       );
-    });
-
-    test('영어 줄에는 한글이 남지 않는다', () {
-      final String label = strengthAmountParts(
-        _en,
-        sets: 3,
-        holdSeconds: 60,
-        weight: 5,
-      ).join(' · ');
-      expect(RegExp(r'[가-힣]').hasMatch(label), isFalse);
-      expect(label, contains(_en.exHoldSecondsCount(60)));
     });
 
     test('배정 근력 루틴의 양(exerciseAmountLabelOf)', () {
@@ -294,15 +278,6 @@ void main() {
       expect(find.text('근력 · 3세트 · 60초'), findsOneWidget);
       // 예전에는 세트만 남았다.
       expect(find.text('근력 · 3세트'), findsNothing);
-    });
-
-    testWidgets('영어 화면은 `60 sec` 로 읽힌다', (WidgetTester tester) async {
-      await _pump(tester, <CoachRoutine>[
-        coachRoutineFromJson(_holdRoutineJson()),
-      ], locale: const Locale('en'));
-
-      expect(find.textContaining('60 sec'), findsOneWidget);
-      expect(find.textContaining('60초'), findsNothing);
     });
 
     testWidgets('운동 하나짜리 세션은 그 운동의 초를 오른쪽 양으로 올린다', (

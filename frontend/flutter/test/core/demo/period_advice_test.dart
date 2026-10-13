@@ -148,7 +148,6 @@ void main() {
             )
             as Map<String, dynamic>;
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
     List<RoutineAdviceDay> routineDays(List<dynamic> raw) => <RoutineAdviceDay>[
       for (final dynamic day in raw)
@@ -204,9 +203,7 @@ void main() {
       });
     }
 
-    // 모든 키 × 대표 값 — 한국어 ARB 가 서버 문장과 글자까지 같은지, 영어 ARB 가
-    // 빠짐없이 영어로 그리는지.
-    final RegExp hangul = RegExp('[가-힣]');
+    // 모든 키 × 대표 값 — ARB 가 서버 문장과 글자까지 같은지.
     for (final dynamic raw in shared['renderings'] as List<dynamic>) {
       final Map<String, dynamic> r = raw as Map<String, dynamic>;
       final ExerciseAdvice advice = ExerciseAdvice(
@@ -216,28 +213,20 @@ void main() {
       );
       test('번역 — ${r['key']} ${r['params']}', () {
         expect(exerciseAdviceText(ko, advice), r['message']);
-        final String english = exerciseAdviceText(en, advice);
-        expect(english, isNotEmpty);
-        // 값으로 들어간 운동 이름을 빼면 영어 문장에 한글이 없어야 한다.
-        String rest = english;
-        for (final Object value in advice.params.values) {
-          if (value is String) rest = rest.replaceAll(value, '');
-        }
-        expect(rest.contains(hangul), isFalse, reason: english);
       });
     }
 
-    test('모르는 키·맞지 않는 값이면 받은 한국어 문장을 쓴다', () {
+    test('모르는 키·맞지 않는 값이면 받은 문장을 쓴다', () {
       expect(
         exerciseAdviceText(
-          en,
+          ko,
           const ExerciseAdvice(message: '서버 문장', key: 'future_key'),
         ),
         '서버 문장',
       );
       expect(
         exerciseAdviceText(
-          en,
+          ko,
           const ExerciseAdvice(
             message: '서버 문장',
             key: 'routine_today_next',
@@ -247,7 +236,7 @@ void main() {
         '서버 문장',
       );
       expect(
-        exerciseAdviceText(en, const ExerciseAdvice(message: '키 없는 문장')),
+        exerciseAdviceText(ko, const ExerciseAdvice(message: '키 없는 문장')),
         '키 없는 문장',
       );
     });

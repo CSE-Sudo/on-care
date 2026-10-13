@@ -10,7 +10,6 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/data/dtos/trainer_me_dto.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 
@@ -360,11 +359,8 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
 /// 읽는다(#2669) — 예전에는 메모리뿐이라 새로고침하면 시드 프로필로 돌아갔다.
 /// 없으면(단위 테스트) 메모리에만 둔다.
 class MockTrainerProfileRepository implements TrainerProfileRepository {
-  /// [language] 데모의 프로필로 시작한다 (#2304).
-  MockTrainerProfileRepository({this.language = DemoLanguage.ko, this.db})
-    : _profile = seedTrainerProfileFor(language);
-
-  final DemoLanguage language;
+  /// 데모 프로필로 시작한다.
+  MockTrainerProfileRepository({this.db}) : _profile = seedTrainerProfile;
 
   /// 고친 값을 적어 두는 데모 저장소.
   final AppDatabase? db;
@@ -450,30 +446,26 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
   List<TrainerGymCandidate> get _gyms => <TrainerGymCandidate>[
     TrainerGymCandidate(
       id: kDemoTrainerGymId,
-      name: seedTrainerProfileFor(language).gym.name,
-      address: seedTrainerProfileFor(language).gym.address,
+      name: seedTrainerProfile.gym.name,
+      address: seedTrainerProfile.gym.address,
       registered: true,
       lat: kDemoTrainerGymLat,
       lng: kDemoTrainerGymLng,
       phone: '02-1234-5678',
     ),
-    TrainerGymCandidate(
+    const TrainerGymCandidate(
       id: 'gym-2',
-      name: language.isEnglish ? 'OnCare Gym Gangnam' : '온케어짐 강남점',
-      address: language.isEnglish
-          ? '396 Gangnam-daero, Gangnam-gu, Seoul'
-          : '서울 강남구 강남대로 396',
+      name: '온케어짐 강남점',
+      address: '서울 강남구 강남대로 396',
       registered: true,
       lat: 37.4979,
       lng: 127.0276,
       phone: '02-9876-5432',
     ),
-    TrainerGymCandidate(
+    const TrainerGymCandidate(
       id: 'gym-demo-yeonhui',
-      name: language.isEnglish ? 'OnCare Yeonhui Studio' : '온케어 연희 스튜디오',
-      address: language.isEnglish
-          ? '25 Yeonhui-ro, Seodaemun-gu, Seoul'
-          : '서울 서대문구 연희로 25',
+      name: '온케어 연희 스튜디오',
+      address: '서울 서대문구 연희로 25',
       registered: false,
       lat: 37.5665,
       lng: 126.9300,
@@ -685,10 +677,7 @@ final trainerProfileRepositoryProvider = Provider<TrainerProfileRepository>((
   ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
-    return MockTrainerProfileRepository(
-      language: ref.watch(demoLanguageProvider),
-      db: ref.watch(appDatabaseProvider),
-    );
+    return MockTrainerProfileRepository(db: ref.watch(appDatabaseProvider));
   }
   return DioTrainerProfileRepository(ref.watch(dioProvider));
 }, name: 'trainerProfileRepository');

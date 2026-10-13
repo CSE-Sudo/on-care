@@ -1654,7 +1654,7 @@ class _PersonalTodayCard extends ConsumerWidget {
                         // 한 운동은 회원이 고른 강도, 아직은 처방 강도다.
                         intensity: row?.intensity ?? routine.intensity,
                         planned: done ? routine.intensity : null,
-                        effect: _effectOf(l, routine),
+                        effect: _effectOf(routine),
                         mark: done ? _LineMark.done : _LineMark.pending,
                         // 안 한 운동은 유형·시간·강도로 어림한 예상값을 옅게 —
                         // 프로그램 화면이 보낼 때 보여 준 값과 같은 식이다.
@@ -1698,9 +1698,9 @@ class _PersonalTodayCard extends ConsumerWidget {
   )?.calories;
 
   /// 이름 뒤 옅은 한 줄 — 효과가 있으면 효과, 없을 때만 옛 사유(#2951).
-  static String? _effectOf(AppLocalizations l, AssignedRoutine routine) {
+  static String? _effectOf(AssignedRoutine routine) {
     if (routine.effect.isNotEmpty) {
-      return routineEffectText(routine.effect, languageCode: l.localeName);
+      return routine.effect;
     }
     if (routine.reason.isNotEmpty) return routine.reason;
     return null;

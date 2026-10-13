@@ -164,8 +164,7 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
         toast.show(l.myWithdrawFailed, type: AppToastType.error);
         return;
     }
-    // 계정이 사라졌으니 계정에 매인 기기 기록도 남기지 않는다. 언어 설정은
-    // 기기의 것이라 그대로 둔다.
+    // 계정이 사라졌으니 계정에 매인 기기 기록도 남기지 않는다.
     try {
       await prefs.clearAccountScoped();
     } on Object {

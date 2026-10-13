@@ -20,7 +20,6 @@ import 'package:oncare_trainer/core/config/app_config.dart'
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/release/build_info.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
@@ -44,7 +43,6 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -65,11 +63,11 @@ import 'package:url_launcher/url_launcher.dart';
 ///    소속인지는 `헬스장 변경`(`t=gym`)에서 바꾼다 — 둘 다 소속 헬스장 카드에서
 ///    들어간다.
 ///  * **설정** — 한 장짜리 목록이다. 알림·계정·고객 지원은 하위 화면으로
-///    열고(`t=notifications|account|support`), 화면 언어만 줄 안에서 고른다.
+///    연다(`t=notifications|account|support`).
 ///    알림 수신 설정은 `GET/PUT /v1/trainer/me/settings`(#379), 비밀번호
 ///    변경은 `POST /v1/trainer/me/password` 로 서버에 저장된다. 비밀번호
 ///    변경만 **데모에서 비활성**이고(바꿀 계정이 없다) 그 사유를 함께 보여
-///    준다. 화면 언어는 이 브라우저에만 저장된다(#2296).
+///    준다.
 ///
 /// The Figma mock's "역할 전환" section is intentionally omitted — the
 /// trainer and member apps use fully separate accounts (CLAUDE.local.md).
@@ -107,7 +105,6 @@ enum _MySection {
   /// 카드에서 들어가 프로필로 돌아간다.
   gymInfo(parent: profile),
   notifications,
-  language,
   account,
   support,
   withdraw(parent: support);
@@ -183,7 +180,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     _profile =
         session.profile ??
         (kDemoCodeIncluded
-            ? seedTrainerProfileFor(ref.read(demoLanguageProvider))
+            ? seedTrainerProfile
             : _blankProfile);
     _gym = _profile.gym;
     _certs = List<String>.of(_profile.certifications);
@@ -430,7 +427,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       // 실패하면 이 화면에 남는다 — 적은 값을 다시 적지 않아도 된다.
       showAppToast(
         context,
-        serverDetailOr(l, detail, l.myGymInfoSaveFailed),
+        serverDetailOr(detail, l.myGymInfoSaveFailed),
         type: AppToastType.error,
       );
       return false;
@@ -490,7 +487,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       // 실패하면 이 화면에 남는다 — 고른 헬스장을 다시 찾지 않아도 된다.
       showAppToast(
         context,
-        serverDetailOr(l, detail, l.myGymChangeFailed),
+        serverDetailOr(detail, l.myGymChangeFailed),
         type: AppToastType.error,
       );
       return false;
@@ -782,7 +779,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     _MySection.gym => _gym.id == null ? l.myGymHiddenAction : l.myGymChange,
     _MySection.gymInfo => l.myGymInfoEdit,
     _MySection.notifications => l.myNotifications,
-    _MySection.language => l.myLanguageApp,
     _MySection.account => l.myAccount,
     _MySection.support => l.mySupportTitle,
     _MySection.withdraw => l.myDeleteAccount,
@@ -801,7 +797,6 @@ class _MyPageState extends ConsumerState<MyPage> {
         // 누가 보는 값이고 누가 고칠 수 있는지 먼저 알린다(#2700).
         _MySection.gymInfo => l.myGymInfoSubtitle,
         _MySection.notifications => l.myNotificationsHint,
-        _MySection.language => l.myLanguageSubtitle,
         _MySection.account => l.myAccountSubtitle,
         _MySection.support => l.mySupportSubtitle,
         _MySection.withdraw => l.myWithdrawSubtitle,
@@ -905,7 +900,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   }
 
   /// 왼쪽 메뉴 — 앱 사이드바와 같은 항목·묶음 제목이다. 내 정보(프로필·회원
-  /// 관리)와 설정(알림·화면 언어·계정·고객 지원)을 한 목록에 둔다. 예전에는
+  /// 관리)와 설정(알림·계정·고객 지원)을 한 목록에 둔다. 예전에는
   /// 둘이 토글로 갈려 있어, 설정을 보다 프로필을 보려면 화면을 바꿔야 했다.
   /// 로그아웃은 맨 아래다(#2227).
   Widget _menu({required _MySection? selected}) {
@@ -933,7 +928,6 @@ class _MyPageState extends ConsumerState<MyPage> {
           item(_MySection.clients, AppIcons.clients),
           AppOverline(l.myTabSettings),
           item(_MySection.notifications, AppIcons.notifications),
-          item(_MySection.language, AppIcons.language),
           item(_MySection.account, AppIcons.lock),
           // 약관·개인정보와 탈퇴는 고객 지원 안에 있다(#2227). 회원 앱과 같은
           // 자리다 — 매일 쓰는 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지
@@ -970,7 +964,6 @@ class _MyPageState extends ConsumerState<MyPage> {
           _MySection.gym => _gymCards(),
           _MySection.gymInfo => _gymInfoCards(),
           _MySection.clients => <Widget>[_buildClientManagement()],
-          _MySection.language => <Widget>[_languageCard(wide: wide)],
           _MySection.account => _accountCards(),
           _MySection.support => _supportCards(),
           _MySection.withdraw => _withdrawCards(),
@@ -1458,37 +1451,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     );
   }
 
-  /// 화면 언어(#2296) — 세 가지 중 하나를 고르는 목록. 고른 줄에 체크를
-  /// 단다. 좁은 화면에서는 고르면 메뉴로 돌아간다 — 하나만 고르는 칸이라 더
-  /// 할 일이 없다.
-  Widget _languageCard({required bool wide}) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final TrainerLanguage current = TrainerLanguage.fromLocale(
-      ref.watch(trainerLocaleProvider),
-    );
-    return _SettingsCard(
-      footer: l.myLanguageHint,
-      rows: <Widget>[
-        for (final TrainerLanguage language in TrainerLanguage.values)
-          AppListRow(
-            key: ValueKey<String>('my-language-${language.name}'),
-            title: _languageLabel(l, language),
-            trailing: language == current
-                ? AppIcon(
-                    AppIcons.check,
-                    size: OnCareSize.iconMedium,
-                    color: context.oncare.brand.primary,
-                  )
-                : null,
-            onTap: () {
-              ref.read(trainerLocaleProvider.notifier).setLanguage(language);
-              if (!wide) _go(_MySection.settings);
-            },
-          ),
-      ],
-    );
-  }
-
   /// 계정 — 로그인 계정과 보안(비밀번호)을 카드 둘로 나눈다. 이름·이메일은
   /// 계정 소관이라 여기서도, 프로필 수정에서도 바꾸지 않고 문의 창구를 알린다.
   List<Widget> _accountCards() {
@@ -1757,13 +1719,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 }
-
-String _languageLabel(AppLocalizations l, TrainerLanguage language) =>
-    switch (language) {
-      TrainerLanguage.system => l.myLanguageSystem,
-      TrainerLanguage.korean => l.myLanguageKorean,
-      TrainerLanguage.english => l.myLanguageEnglish,
-    };
 
 /// 트레이너 탈퇴 사유. 회원 앱 `WithdrawReason` 과 같은 자리지만, 트레이너가
 /// 떠나는 이유에 맞춘 항목이다. 고른 사유는 탈퇴 요청과 함께 서버에 남는다.
@@ -3522,8 +3477,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       // The server's own wording (현재 비밀번호가 일치하지 않습니다 …) is
       // more useful than anything generic we could substitute, and it is
       // always about the current password — that is the only value it
-      // verifies. 다만 그 문장은 한국어뿐이라 영어 화면에서는 기본 문구로
-      // 물러난다. (#501)
+      // verifies. (#501)
       if (mounted) {
         final AppLocalizations l = AppLocalizations.of(context);
         _fail(

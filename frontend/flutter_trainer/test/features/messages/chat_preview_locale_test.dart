@@ -13,7 +13,7 @@ import '../../helpers/pump_app.dart';
 /// 데모 명부에서 아직 연결되지 않은 회원 — 연결 직후 대화가 없는 행이다.
 const String _connectedMemberId = 'user-8f2a41c9d6e3';
 
-/// 목록 미리보기가 한국어 문구를 저장하지 않고, 화면이 로케일로 그리는지
+/// 목록 미리보기가 문구를 저장하지 않고, 화면이 ARB 문구로 그리는지
 /// 본다 (#2303). 저장소 층은 코드·빈 값을, 화면 층은 그 문구를 확인한다.
 void main() {
   group('저장소는 문구 대신 코드를 적는다', () {
@@ -115,96 +115,83 @@ void main() {
     });
   });
 
-  group('메시지 목록은 로케일 문구로 그린다', () {
-    for (final (Locale locale, String emote, String justNow, String empty)
-        in <(Locale, String, String, String)>[
-          (const Locale('ko'), '이모티콘을 보냈어요', '방금', '아직 대화가 없어요'),
-          (const Locale('en'), 'Sent an emote', 'Just now', 'No messages yet'),
-        ]) {
-      testWidgets('${locale.languageCode}: 이모티콘·방금·대화 없음', (tester) async {
-        await withWideSurface(tester, size: const Size(1440, 2600), () async {
-          final container = await pumpTrainerApp(
-            tester,
-            token: 'demo-trainer-token-existing',
-            locale: locale,
-          );
-          // 데모 프로바이더의 저장소는 잠시 뒤 회원 답장을 붙여(#2790) 미리보기를
-          // 바꾼다. 여기서 보는 것은 이모티콘 미리보기라 답하지 않는 저장소로 보낸다.
-          await DriftChatRepository(
-            container.read(appDatabaseProvider),
-          ).sendTrainerMessage(
-            clientId: 'seed-client-2',
-            text: '',
-            emoteId: 'dog_love',
-          );
-          await DemoClientInviteRepository(
-            container.read(appDatabaseProvider),
-          ).invite(_connectedMemberId);
-          await goTo(tester, AppRoutes.messages);
+  group('메시지 목록은 화면 문구로 그린다', () {
+    testWidgets('이모티콘·방금·대화 없음', (tester) async {
+      await withWideSurface(tester, size: const Size(1440, 2600), () async {
+        final container = await pumpTrainerApp(
+          tester,
+          token: 'demo-trainer-token-existing',
+        );
+        // 데모 프로바이더의 저장소는 잠시 뒤 회원 답장을 붙여(#2790) 미리보기를
+        // 바꾼다. 여기서 보는 것은 이모티콘 미리보기라 답하지 않는 저장소로 보낸다.
+        await DriftChatRepository(
+          container.read(appDatabaseProvider),
+        ).sendTrainerMessage(
+          clientId: 'seed-client-2',
+          text: '',
+          emoteId: 'dog_love',
+        );
+        await DemoClientInviteRepository(
+          container.read(appDatabaseProvider),
+        ).invite(_connectedMemberId);
+        await goTo(tester, AppRoutes.messages);
 
-          final Finder emoteTile = find.byKey(
-            const ValueKey<String>('messages-conversation-seed-client-2'),
-          );
-          expect(emoteTile, findsOneWidget);
-          expect(
-            find.descendant(of: emoteTile, matching: find.text(emote)),
-            findsOneWidget,
-          );
-          expect(
-            find.descendant(of: emoteTile, matching: find.text(justNow)),
-            findsOneWidget,
-          );
+        final Finder emoteTile = find.byKey(
+          const ValueKey<String>('messages-conversation-seed-client-2'),
+        );
+        expect(emoteTile, findsOneWidget);
+        expect(
+          find.descendant(of: emoteTile, matching: find.text('이모티콘을 보냈어요')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: emoteTile, matching: find.text('방금')),
+          findsOneWidget,
+        );
 
-          final AppDatabase db = container.read(appDatabaseProvider);
-          final TrainerClientRow added =
-              await tester.runAsync(
-                    () =>
-                        (db.select(db.trainerClients)
-                              ..where((t) => t.id.equals(_connectedMemberId)))
-                            .getSingle(),
-                  )
-                  as TrainerClientRow;
-          final Finder emptyPreview = find.byKey(
-            ValueKey<String>('messages-preview-${added.id}'),
-          );
-          await tester.scrollUntilVisible(
-            emptyPreview,
-            200,
-            scrollable: find.byType(Scrollable).first,
-          );
-          expect(
-            find.descendant(
-              of: emptyPreview,
-              matching: find.text(empty),
-              matchRoot: true,
-            ),
-            findsOneWidget,
-          );
+        final AppDatabase db = container.read(appDatabaseProvider);
+        final TrainerClientRow added =
+            await tester.runAsync(
+                  () =>
+                      (db.select(db.trainerClients)
+                            ..where((t) => t.id.equals(_connectedMemberId)))
+                          .getSingle(),
+                )
+                as TrainerClientRow;
+        final Finder emptyPreview = find.byKey(
+          ValueKey<String>('messages-preview-${added.id}'),
+        );
+        await tester.scrollUntilVisible(
+          emptyPreview,
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(
+          find.descendant(
+            of: emptyPreview,
+            matching: find.text('아직 대화가 없어요'),
+            matchRoot: true,
+          ),
+          findsOneWidget,
+        );
 
-          // 코드가 화면에 그대로 새지 않는다.
-          expect(find.textContaining('@emote'), findsNothing);
-          expect(find.textContaining('@just_now'), findsNothing);
-        });
+        // 코드가 화면에 그대로 새지 않는다.
+        expect(find.textContaining('@emote'), findsNothing);
+        expect(find.textContaining('@just_now'), findsNothing);
       });
-    }
+    });
   });
 
-  group('채팅 감지 배너의 부위 이름도 로케일을 따른다', () {
-    for (final (Locale locale, String title) in <(Locale, String)>[
-      (const Locale('ko'), '무릎 불편 표현 감지'),
-      (const Locale('en'), 'Knee discomfort detected'),
-    ]) {
-      testWidgets(locale.languageCode, (tester) async {
-        await withWideSurface(tester, () async {
-          await pumpTrainerApp(
-            tester,
-            token: 'demo-trainer-token-existing',
-            locale: locale,
-          );
-          await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
-          expect(find.text(title), findsOneWidget);
-        });
+  group('채팅 감지 배너', () {
+    testWidgets('부위 이름을 화면 문구로 그린다', (tester) async {
+      await withWideSurface(tester, () async {
+        await pumpTrainerApp(
+          tester,
+          token: 'demo-trainer-token-existing',
+        );
+        await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
+        expect(find.text('무릎 불편 표현 감지'), findsOneWidget);
       });
-    }
+    });
   });
 }

@@ -82,7 +82,6 @@ Future<CoachReportPdf> loadCoachReportPdf(
   final ReportSheetInputs inputs = await loadMemberReportSheet(
     read,
     weekStart: weekStart,
-    languageCode: l.localeName,
     // 보낼 때 굳힌 값을 연다 — 보낸 뒤 고친 기록·목표가 이 리포트를 바꾸지
     // 않는다(#3349).
     messageId: message.id,

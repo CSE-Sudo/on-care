@@ -125,16 +125,6 @@ void main() {
       expect(find.text('김태오'), findsNWidgets(2));
       expect(find.text('트레이너 상담'), findsNothing);
     });
-
-    testWidgets('영어 화면은 영어 대체 문구를 적는다', (WidgetTester tester) async {
-      await _pump(
-        tester,
-        _card(consultationFromJson(_row())),
-        locale: const Locale('en'),
-      );
-
-      expect(find.text('Trainer unavailable'), findsOneWidget);
-    });
   });
 
   group('ConsultationCompletePage', () {

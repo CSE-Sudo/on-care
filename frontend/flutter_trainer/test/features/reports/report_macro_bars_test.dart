@@ -62,7 +62,6 @@ WeeklyReport _report({
 Future<void> _pump(
   WidgetTester tester, {
   WeeklyReport? report,
-  String locale = 'ko',
   Size size = const Size(700, 600),
 }) async {
   tester.view.devicePixelRatio = 1.0;
@@ -72,7 +71,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light(),
-      locale: Locale(locale),
+      locale: const Locale('ko'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -332,57 +331,6 @@ void main() {
     expect(sheet.diet[SheetDietItem.protein]!.band, SheetBand.normal);
     expect(find.textContaining('탄수화물이 목표보다 많이 부족해요'), findsOneWidget);
     expect(find.textContaining('단백질이'), findsNothing);
-  });
-
-  testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    expect(find.text('Carbs 247 / 250 g'), findsOneWidget);
-    expect(find.text('Protein 119 / 120 g'), findsOneWidget);
-    expect(find.text('Fat 59 / 60 g'), findsOneWidget);
-  });
-
-  testWidgets('영어에서 짚는 글월도 번역되어 있다', (tester) async {
-    await _pump(
-      tester,
-      locale: 'en',
-      report: _report(proteinWeek: const <double>[36, 36, 36, 36, 36, 36, 36]),
-    );
-
-    expect(
-      find.textContaining(
-        'Protein is well under goal — worth raising in your feedback',
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('영어 빈 카드도 번역되어 있다', (tester) async {
-    await _pump(
-      tester,
-      locale: 'en',
-      report: _report(
-        carbsWeek: const <double>[],
-        proteinWeek: const <double>[],
-        fatWeek: const <double>[],
-      ),
-    );
-
-    expect(
-      find.text("No meals logged yet, so macros can't be shown"),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    for (final Element e in find.byType(Text).evaluate()) {
-      final Text text = e.widget as Text;
-      final String data = text.data ?? text.textSpan?.toPlainText() ?? '';
-      expect(hangul.hasMatch(data), isFalse, reason: '번역되지 않은 글: $data');
-    }
   });
 
   testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {

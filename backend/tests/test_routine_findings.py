@@ -74,13 +74,11 @@ def test_template_member_reports_sodium_and_adherence():
     assert _kinds(findings) == ["sodium", "adherence"]
 
 
-def test_findings_follow_locale():
-    findings = build_findings(
-        _analysis(recent_messages=["회원: 무릎이 아파요"]), locale="en"
-    )
+def test_findings_are_korean():
+    findings = build_findings(_analysis(recent_messages=["회원: 무릎이 아파요"]))
     caution = next(f for f in findings if f.kind == "caution")
-    assert caution.finding == "Mentions knee discomfort"
-    assert caution.source == "Recent chat"
+    assert "무릎" in caution.finding
+    assert caution.source == "최근 대화"
 
 
 def test_rule_options_carry_findings():

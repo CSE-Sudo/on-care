@@ -147,7 +147,7 @@ class SessionController extends StateNotifier<SessionState>
   ///
   /// 다음에 이 기기로 들어오는 사람이 같은 계정이라는 보장이 없다. 첫 설정 기록만
   /// 지우면 앞 계정이 끝낸 홈 가이드 기록이 남아, 다른 계정으로 로그인한 새
-  /// 회원이 첫 사용 안내를 한 번도 보지 못한다. 언어와 설치 표식은 기기의 것이라
+  /// 회원이 첫 사용 안내를 한 번도 보지 못한다. 설치 표식은 기기의 것이라
   /// 남는다([AppPrefs.clearAccountScoped]).
   Future<void> _forgetAccountRecords() async {
     try {

@@ -385,26 +385,6 @@ void main() {
     );
   });
 
-  testWidgets('영어 화면에서는 영어 문구다', (tester) async {
-    await _pump(tester, locale: const Locale('en'));
-
-    expect(find.text('Send code'), findsOneWidget);
-
-    await _type(tester, 'member-signup-email', 'new@oncare.com');
-    await tapSignupCodeSend(tester);
-
-    expect(find.text('Verification code'), findsOneWidget);
-    expect(find.text('Resend in 60s'), findsOneWidget);
-    expect(
-      find.text('6-digit code from the email · expires in 10:00'),
-      findsOneWidget,
-    );
-    expect(
-      find.text("Demo mode doesn't send email. Enter 000000 as the code."),
-      findsOneWidget,
-    );
-  });
-
   testWidgets('한국어 화면 문구', (tester) async {
     await _pump(tester);
 

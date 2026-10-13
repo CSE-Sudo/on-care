@@ -95,10 +95,10 @@ class DioDietRepository implements DietRepository {
   }
 
   @override
-  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) async {
+  Future<DietAdvice> fetchAdvice(String period) async {
     final res = await _dio.get<Map<String, Object?>>(
       '/diet/advice',
-      queryParameters: <String, Object?>{'period': period, 'lang': lang},
+      queryParameters: <String, Object?>{'period': period},
       options: Options(receiveTimeout: adviceTimeout),
     );
     return DietAdvice.fromJson(res.data ?? const <String, Object?>{});

@@ -15,7 +15,6 @@ import '../../helpers/fixed_clock.dart';
 
 /// 한국어 문구 — 지표 요약의 단위는 ARB 가 정한다 (#2304).
 final AppLocalizations _ko = lookupAppLocalizations(const Locale('ko'));
-final AppLocalizations _en = lookupAppLocalizations(const Locale('en'));
 
 void main() {
   const duplicateSuggestions = <AiRoutineItem>[
@@ -752,8 +751,8 @@ void main() {
       expect(metrics, contains('60kg'));
     });
 
-    // 예전에는 `korean ?` 분기로 두 언어를 코드에 박아 두었다 (#2304).
-    test('한국어 — 세트·횟수·분 단위가 ARB 문구다', () {
+    // 예전에는 단위 문구를 코드에 박아 두었다 (#2304).
+    test('세트·횟수·분 단위가 ARB 문구다', () {
       expect(
         programExerciseMetrics(
           _ko,
@@ -762,31 +761,6 @@ void main() {
         <String>['1세트', '12회'],
       );
       expect(programExerciseMetrics(_ko, nonStrength), <String>['20분']);
-    });
-
-    test('영어 — 단수·복수를 가려 한글이 남지 않는다', () {
-      expect(
-        programExerciseMetrics(
-          _en,
-          nonStrength.copyWith(type: '근력', sets: 1, reps: 1, weight: 22.5),
-        ),
-        <String>['1 set', '1 rep', '22.5kg'],
-      );
-      expect(
-        programExerciseMetrics(
-          _en,
-          nonStrength.copyWith(type: '근력', sets: 4, reps: 12, weight: 60),
-        ),
-        <String>['4 sets', '12 reps', '60kg'],
-      );
-      expect(programExerciseMetrics(_en, nonStrength), <String>['20 min']);
-      for (final type in <String>['스트레칭', '기타']) {
-        expect(
-          programExerciseMetrics(_en, nonStrength.copyWith(type: type)),
-          <String>['20 min'],
-          reason: type,
-        );
-      }
     });
 
     // 분 한 칸이던 동안에는 45초를 적을 수 없었고 1시간 반은 `90분` 이었다
@@ -805,16 +779,15 @@ void main() {
       );
       expect(
         programExerciseMetrics(
-          _en,
+          _ko,
           nonStrength.copyWith(durationSeconds: 5415),
         ),
-        <String>['1 hr 30 min 15 sec'],
+        <String>['1시간 30분 15초'],
       );
     });
 
-    test('횟수가 0이면 횟수 칸을 빼는 것은 두 언어가 같다', () {
+    test('횟수가 0이면 횟수 칸을 뺀다', () {
       final draft = nonStrength.copyWith(type: '근력', sets: 3, reps: 0);
-      expect(programExerciseMetrics(_en, draft), <String>['3 sets', '20kg']);
       expect(programExerciseMetrics(_ko, draft), <String>['3세트', '20kg']);
     });
   });

@@ -223,16 +223,6 @@ void main() {
       expect(find.byKey(_consult), findsNothing);
     });
 
-    testWidgets('영어에서도 안내와 전화 문의가 선다', (WidgetTester tester) async {
-      await pumpDetail(tester, _gym, locale: const Locale('en'));
-      final AppLocalizations l = l10n(tester);
-
-      await scrollTo(tester, find.byKey(_call));
-      expect(find.text(l.exGymNoTrainersCallHint), findsOneWidget);
-      expect(find.text(l.exGymCallInquiry), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
     testWidgets('좁은 화면·큰 글자에서도 안내가 넘치지 않는다', (WidgetTester tester) async {
       await pumpDetail(
         tester,

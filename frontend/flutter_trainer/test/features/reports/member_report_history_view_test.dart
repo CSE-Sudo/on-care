@@ -7,7 +7,6 @@
 ///    서지 않는다.
 ///  * 불러오는 중·빈 이력·실패(다시 시도)를 따로 보인다.
 ///  * `더 보기` 로 다음 쪽을 붙이고, 실패하면 읽은 줄은 남긴 채 알린다.
-///  * 영어로 바꾸면 한국어가 남지 않는다.
 library;
 
 import 'dart:async';
@@ -90,7 +89,6 @@ void main() {
   Future<void> pump(
     WidgetTester tester,
     _FakeRepository repo, {
-    Locale locale = const Locale('ko'),
     bool settle = true,
   }) async {
     backs = 0;
@@ -105,7 +103,7 @@ void main() {
         overrides: [reportRepositoryProvider.overrideWithValue(repo)],
         child: MaterialApp(
           theme: AppTheme.light(),
-          locale: locale,
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
@@ -393,56 +391,4 @@ void main() {
     expect(find.byKey(const ValueKey('reports-history-more')), findsOneWidget);
   });
 
-  testWidgets('영어로 바꾸면 한국어가 남지 않는다', (tester) async {
-    final TrainerClient english = makeClient(name: 'Minsu');
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          reportRepositoryProvider.overrideWithValue(
-            _FakeRepository({
-              null: MemberReportHistoryPage(
-                items: <MemberReportHistoryItem>[
-                  _item(
-                    _lastWeek,
-                    preview: 'Great week.',
-                    sendCount: 2,
-                    hasPdf: true,
-                    read: false,
-                  ),
-                ],
-                nextBefore: _lastWeek,
-              ),
-            }),
-          ),
-        ],
-        child: MaterialApp(
-          theme: AppTheme.light(),
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: MemberReportHistoryView(
-              client: english,
-              onBack: () {},
-              onView: (_) {},
-              onOpenThisWeek: () {},
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text("Minsu's past reports"), findsOneWidget);
-    final RegExp hangul = RegExp('[가-힣]');
-    for (final Text text in tester.widgetList<Text>(find.byType(Text))) {
-      expect(hangul.hasMatch(text.data ?? ''), isFalse, reason: text.data);
-    }
-    for (final RichText text in tester.widgetList<RichText>(
-      find.byType(RichText),
-    )) {
-      final String plain = text.text.toPlainText();
-      expect(hangul.hasMatch(plain), isFalse, reason: plain);
-    }
-  });
 }

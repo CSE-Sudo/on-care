@@ -410,47 +410,35 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return null;
   }
 
-  /// 시드에 문장이 없는 날짜(또는 영어 화면)용 — 그날의 수치를 보고 만든 문구.
+  /// 시드에 문장이 없는 날짜용 — 그날의 수치를 보고 만든 문구.
   ///
   /// 실 서버 `diet_service.coach_message` 와 **같은 문장**이다. [isPast] 면
   /// 그날을 되짚는다 — 지난 날짜를 보면서 "오늘 … 저녁은" 을 읽지 않게(#2644).
   /// 나트륨 기준은 [sodiumLimit](회원 목표), 없으면 2,000mg 이다.
   @visibleForTesting
   static String derivedDietDayMessage({
-    required String lang,
     required int totalSodium,
     required bool empty,
     bool isPast = false,
     int? sodiumLimit,
   }) {
-    final bool en = lang == 'en';
     final int limit = sodiumLimit ?? _kDefaultSodiumLimitMg;
     if (isPast) {
       if (totalSodium > limit) {
-        return en
-            ? 'Sodium ran high that day. Go easy on soups and sauces the next day to balance it out.'
-            : '그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.';
+        return '그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.';
       }
       if (empty) {
-        return en ? 'No meals were logged that day.' : '이날은 식단 기록이 없어요.';
+        return '이날은 식단 기록이 없어요.';
       }
-      return en
-          ? 'A well-balanced day with sodium within your target.'
-          : '나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.';
+      return '나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.';
     }
     if (totalSodium > limit) {
-      return en
-          ? 'You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!'
-          : '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
+      return '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
     }
     if (empty) {
-      return en
-          ? 'No meals logged today yet. Want to log your first meal?'
-          : '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
+      return '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
     }
-    return en
-        ? 'A well-balanced day. Keep it up tomorrow!'
-        : '균형 잡힌 하루였어요. 내일도 이대로 가요!';
+    return '균형 잡힌 하루였어요. 내일도 이대로 가요!';
   }
 
   /// 배정 루틴을 수행한 기록 — 서버 `complete_assigned_routine` 의 대역이다.

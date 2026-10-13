@@ -364,17 +364,6 @@ void main() {
     expect(_value(tester).data, '6');
   });
 
-  testWidgets('영어에서도 칸 이름과 안내가 번역된다', (tester) async {
-    await _open(tester, locale: const Locale('en'));
-
-    expect(find.text('Weekly workouts (days)'), findsOneWidget);
-    expect(find.byKey(const Key('goalWorkoutsHint')), findsOneWidget);
-    expect(
-      find.textContaining(keepWords('weekly workout challenge goal')),
-      findsOneWidget,
-    );
-  });
-
   test('범위는 챌린지가 세는 한 주의 날 수다', () {
     expect(AppGoalRanges.weeklyWorkoutDays.min, 1);
     expect(AppGoalRanges.weeklyWorkoutDays.max, 7);

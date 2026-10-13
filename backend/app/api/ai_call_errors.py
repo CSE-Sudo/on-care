@@ -15,32 +15,23 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from app.core.locale import Locale, get_request_locale, localized
 from app.services.ai_call_quota import AiCapacityReached, TrainerAiDailyLimitReached
 
 AI_CAPACITY_CODE = "ai_capacity"
 DAILY_LIMIT_CODE = "daily_limit"
 
 
-def capacity_detail(locale: Locale | None = None) -> dict[str, str]:
+def capacity_detail() -> dict[str, str]:
     return {
         "code": AI_CAPACITY_CODE,
-        "message": localized(
-            "지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 이용해 주세요.",
-            "AI features are taking a break due to high demand. Please try again tomorrow.",
-            locale,
-        ),
+        "message": "지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 이용해 주세요.",
     }
 
 
-def trainer_daily_limit_detail(locale: Locale | None = None) -> dict[str, str]:
+def trainer_daily_limit_detail() -> dict[str, str]:
     return {
         "code": DAILY_LIMIT_CODE,
-        "message": localized(
-            "오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요.",
-            "You've used today's AI limit. Please try again tomorrow.",
-            locale,
-        ),
+        "message": "오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요.",
     }
 
 
@@ -62,7 +53,7 @@ def install(app: FastAPI) -> None:
     async def _trainer_daily_limit(request: Request, exc: TrainerAiDailyLimitReached):
         return JSONResponse(
             status_code=429,
-            content={"detail": trainer_daily_limit_detail(get_request_locale(request))},
+            content={"detail": trainer_daily_limit_detail()},
             headers=_retry_after(exc.retry_after_seconds),
         )
 
@@ -70,6 +61,6 @@ def install(app: FastAPI) -> None:
     async def _ai_capacity(request: Request, exc: AiCapacityReached):
         return JSONResponse(
             status_code=503,
-            content={"detail": capacity_detail(get_request_locale(request))},
+            content={"detail": capacity_detail()},
             headers=_retry_after(exc.retry_after_seconds),
         )

@@ -221,7 +221,6 @@ void main() {
     Future<void> openDashboard(
       WidgetTester tester, {
       required Stream<List<ScheduleSession>> Function() recent,
-      Locale locale = const Locale('ko'),
     }) async {
       tester.view.devicePixelRatio = 1.0;
       tester.view.physicalSize = const Size(1600, 1200);
@@ -231,7 +230,6 @@ void main() {
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.dashboard,
-        locale: locale,
         extraOverrides: <Override>[
           scheduleRepositoryProvider.overrideWith((ref) {
             repo = _ScriptedRecentRepository(ref.watch(appDatabaseProvider))
@@ -314,16 +312,6 @@ void main() {
       await goTo(tester, AppRoutes.dashboard);
       expect(repo.recentReads, greaterThan(opened));
       expect(int.tryParse(churnCard(tester).value), isNotNull);
-    });
-
-    testWidgets('영어 화면은 영어 문구다', (tester) async {
-      await openDashboard(
-        tester,
-        locale: const Locale('en'),
-        recent: () => Stream<List<ScheduleSession>>.error(const NetworkError()),
-      );
-
-      expect(churnCard(tester).caption, 'Unavailable · Tap to retry');
     });
 
     testWidgets('정상 조회면 지금처럼 숫자를 그린다', (tester) async {

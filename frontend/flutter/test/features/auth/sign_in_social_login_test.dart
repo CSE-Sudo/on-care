@@ -275,39 +275,6 @@ void main() {
     );
   });
 
-  testWidgets('영어 실 인증 설정에서도 안내가 영어로 뜬다', (WidgetTester tester) async {
-    FlutterSecureStorage.setMockInitialValues(<String, String>{});
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: <Override>[
-          appConfigProvider.overrideWithValue(
-            const AppConfig(
-              environment: Environment.dev,
-              apiBaseUrl: 'https://dev.api.test',
-              useMockApi: false,
-            ),
-          ),
-          accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
-        ],
-        child: MaterialApp(
-          theme: AppTheme.light(),
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const SignInPage(),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(
-      find.text(
-        'Social sign-in is coming soon. Please sign in with your email',
-      ),
-      findsOneWidget,
-    );
-  });
-
   for (final (String name, AppConfig config) in <(String, AppConfig)>[
     (
       'USE_MOCK_API=false',

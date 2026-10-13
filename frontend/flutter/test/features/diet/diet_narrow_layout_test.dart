@@ -7,10 +7,7 @@
 /// 높이를 넉넉히 두는 이유는 `ListView` 가 보이는 자식만 만들기 때문이다 — 짧은
 /// 화면에서는 아래쪽 카드가 아예 그려지지 않아 검증 대상이 사라진다.
 ///
-/// **로케일도 축이다(#743).** 영어는 라벨이 훨씬 길다(`This month` vs `이번 달`,
-/// `Mon` vs `월`). 한국어로만 검증하던 동안 날짜 스트립이 영어 배율 1.0 에서도
-/// 넘치고 있었고, 이 파일이 그것을 잡지 못했다. 8개 조합(2 로케일 × 4 배율)을
-/// 모두 돌린다.
+/// 글자 배율 네 단계를 모두 돌린다(#743).
 library;
 
 import 'package:flutter/material.dart';
@@ -27,7 +24,7 @@ import '../../helpers/mock_account_repository.dart';
 
 void main() {
   group('식단 탭 좁은 화면 레이아웃 (#739, #743)', () {
-    for (final String locale in <String>['ko', 'en']) {
+    for (final String locale in <String>['ko']) {
       for (final double scale in <double>[1.0, 1.3, 1.6, 2.0]) {
         testWidgets('$locale · 폭 320 · 글자 배율 $scale 에서 넘치지 않는다', (
           WidgetTester tester,

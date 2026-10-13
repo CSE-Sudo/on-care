@@ -37,18 +37,11 @@
     sent = false;
   }
 
-  var korean = (navigator.language || "ko").toLowerCase().indexOf("ko") === 0;
   var status = document.getElementById("kakao-login-status");
   if (status) {
-    if (sent) {
-      status.textContent = korean
-        ? "로그인을 마쳤어요. 이 창을 닫고 앱으로 돌아가 주세요."
-        : "Signed in. Close this window and return to the app.";
-    } else {
-      status.textContent = korean
-        ? "이 브라우저에서는 로그인을 마칠 수 없어요. 앱에서 다시 시도해 주세요."
-        : "Sign-in can't finish in this browser. Please try again in the app.";
-    }
+    status.textContent = sent
+      ? "로그인을 마쳤어요. 이 창을 닫고 앱으로 돌아가 주세요."
+      : "이 브라우저에서는 로그인을 마칠 수 없어요. 앱에서 다시 시도해 주세요.";
   }
   window.close();
 })();

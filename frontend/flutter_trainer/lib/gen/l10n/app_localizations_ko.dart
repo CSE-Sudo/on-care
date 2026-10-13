@@ -1003,15 +1003,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatSendFailed => '메시지를 보내지 못했어요. 다시 시도해 주세요';
 
   @override
-  String get chatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
-
-  @override
-  String get chatReportRegistered => '주간 리포트를 보냈어요';
-
-  @override
-  String get chatReportOpenInReports => '리포트 탭으로 가기';
-
-  @override
   String get chatLoadFailed => '대화를 불러오지 못했어요';
 
   @override
@@ -1019,6 +1010,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatLoadOlderFailed => '이전 메시지를 불러오지 못했어요 · 다시 시도';
+
+  @override
+  String get chatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
+
+  @override
+  String get chatReportRegistered => '주간 리포트를 보냈어요';
+
+  @override
+  String get chatReportOpenInReports => '리포트 탭으로 가기';
 
   @override
   String get chatRoutineDelivered => '운동을 보냈어요';
@@ -1284,11 +1284,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String dateDaysAgo(int count) {
     return '$count일 전';
-  }
-
-  @override
-  String dateWeeksAgo(int count) {
-    return '$count주 전';
   }
 
   @override
@@ -1998,13 +1993,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String progHoldValue(int seconds) {
-    return '$seconds초';
+  String progRepsValue(int reps) {
+    return '$reps회';
   }
 
   @override
-  String progRepsValue(int reps) {
-    return '$reps회';
+  String progHoldValue(int seconds) {
+    return '$seconds초';
   }
 
   @override
@@ -2125,21 +2120,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myNotifNewMessageHint => '회원이 보낸 메시지';
-
-  @override
-  String get myLanguageApp => '화면 언어';
-
-  @override
-  String get myLanguageHint => '고른 언어는 이 브라우저에만 저장돼요. 다른 기기에서는 그 브라우저 설정을 따라요.';
-
-  @override
-  String get myLanguageSystem => '브라우저 설정 따르기';
-
-  @override
-  String get myLanguageKorean => '한국어';
-
-  @override
-  String get myLanguageEnglish => 'English';
 
   @override
   String get myAccount => '계정';
@@ -2581,9 +2561,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myClientsSubtitle => '담당 회원 연결을 정리해요';
 
   @override
-  String get myLanguageSubtitle => '콘솔을 볼 언어를 골라요';
-
-  @override
   String get myAccountSubtitle => '로그인 계정과 비밀번호를 관리해요';
 
   @override
@@ -2992,9 +2969,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiKeepOneExercise => '운동을 하나 이상 남겨 주세요';
-
-  @override
-  String get aiCustomRoutineName => 'AI 맞춤 추천안';
 
   @override
   String get aiAnalysing => 'AI가 분석 중…';

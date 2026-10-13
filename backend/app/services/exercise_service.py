@@ -23,7 +23,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import Locale
 from app.core.week import monday_of
 from app.models.models import ExerciseSession, TrainerSchedule
 from app.services import (
@@ -685,8 +684,8 @@ def period_advice(
     (`routine_advice`, #2162) — 회원이 먼저 묻는 것은 "추천 중 뭘 먼저 할까" 다.
     추천이 없는 회원은 아래의 직접 기록 기준 조언을 그대로 듣는다.
 
-    조언은 문장 키와 값으로 돌려준다(#2210) — 앱이 자기 언어로 그리고, 한국어
-    문장은 [Advice.text] 다.
+    조언은 문장 키와 값으로 돌려준다(#2210) — 앱이 키로 직접 그릴 수 있고,
+    서버가 만든 문장은 [Advice.text] 다.
 
     **한 문장 반을 넘기지 않는다.** 카드가 회원 앱·트레이너웹 양쪽에서 좁은 폭에
     들어가고, 길어질수록 정작 숫자가 묻힌다 — 짚어 주는 수치 하나와 다음 행동
@@ -758,15 +757,11 @@ def period_coach_message(
     days: list[ExerciseDayTotals],
     period: str,
     routine_days: Sequence[routine_advice.RoutineDayLike] = (),
-    locale: Locale | None = None,
     *,
     weeks: int | None = None,
 ) -> str:
-    """[period_advice] 의 문장 — 키를 모르는 옛 앱과 트레이너웹이 읽는다.
-
-    언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어). (#2299)
-    """
-    return period_advice(days, period, routine_days, weeks=weeks).text_for(locale)
+    """[period_advice] 의 문장 — 키를 모르는 옛 앱과 트레이너웹이 읽는다."""
+    return period_advice(days, period, routine_days, weeks=weeks).text
 
 
 def period_days(

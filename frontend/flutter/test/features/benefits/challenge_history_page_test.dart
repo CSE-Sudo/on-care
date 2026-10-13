@@ -183,30 +183,6 @@ void main() {
       findsOneWidget,
     );
   });
-
-  testWidgets('영어에서도 상태와 결과 줄이 번역된다', (tester) async {
-    await pumpHistory(
-      tester,
-      FakeChallengeRepository(
-        history: <Challenge>[
-          challengeOf(
-            id: 'won',
-            progress: 3,
-            status: ChallengeStatus.succeeded,
-            weekStart: DateTime(2026, 9, 7),
-          ),
-        ],
-      ),
-      locale: const Locale('en'),
-    );
-
-    expect(find.text('Past challenge results'), findsOneWidget);
-    expect(tagOf(tester, 'won'), 'Succeeded');
-    expect(
-      textOf(tester, 'challenge-result-days-won'),
-      'Goal 3 · 3 workout days',
-    );
-  });
 }
 
 /// 그 주(월요일 [year]-[month]-[day])의 기간 표기 — 화면이 쓰는 공용 표기 그대로다.

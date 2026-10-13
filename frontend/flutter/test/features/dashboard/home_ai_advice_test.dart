@@ -17,14 +17,11 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 import '../../helpers/fake_dashboard_repository.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/mock_account_repository.dart';
-
-final RegExp _hangul = RegExp('[가-힣]');
 
 /// 조언 필드만 다르게 둔 최소 요약.
 DashboardSummary _summary({
@@ -43,9 +40,8 @@ DashboardSummary _summary({
 
 /// 홈 '오늘의 AI 통합 조언'은 예전에 데모 소스가 둘(목 요약, 시드 KV)이라 한쪽만
 /// 고치면 조용히 갈라졌다. 지금 데모 홈은 시드 KV 를 읽는 로컬 인터셉터 하나다
-/// (#2645). 게다가 예전에는 양쪽이 한국어 **문장**을 실어
-/// 보내, 홈이 그 값을 ARB 보다 우선하는 바람에 영어 로케일에서도 한국어가
-/// 나왔다(#435). 이제 둘 다 키만 싣고 문장은 ARB 가 갖는다.
+/// (#2645). 게다가 예전에는 양쪽이 **문장**을 실어 보내, 홈이 그 값을 ARB 보다
+/// 우선했다(#435). 이제 둘 다 키만 싣고 문장은 ARB 가 갖는다.
 void main() {
   test('테스트 대역 요약도 문구가 아니라 키를 싣는다', () async {
     final DashboardSummary summary = await FakeDashboardRepository(
@@ -53,7 +49,7 @@ void main() {
     ).fetchSummary();
 
     expect(summary.aiAdviceKey, kDailyCombinedAdviceKey);
-    // 표시 문자열을 실으면 로케일과 무관하게 그 값이 이긴다.
+    // 표시 문자열을 실으면 ARB 문장 대신 그 값이 이긴다.
     expect(summary.sodiumWarning, isNull);
     expect(summary.exerciseFeedback, isNull);
   });
@@ -68,17 +64,14 @@ void main() {
   });
 
   group('aiAdviceBody', () {
-    test('키가 있으면 로케일에 맞는 ARB 문장으로 푼다', () {
+    test('키가 있으면 ARB 문장으로 푼다', () {
       final DashboardSummary summary = _summary(
         adviceKey: kDailyCombinedAdviceKey,
       );
 
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
       expect(aiAdviceBody(ko, summary), ko.homeAiAdviceBody);
-      expect(aiAdviceBody(en, summary), en.homeAiAdviceBody);
-      expect(aiAdviceBody(en, summary), isNot(matches(_hangul)));
     });
 
     test('키가 없으면 서버 문장을 그대로 쓴다', () {
@@ -91,13 +84,11 @@ void main() {
       expect(aiAdviceBody(ko, summary), summary.sodiumWarning);
     });
 
-    // 음식 이름이 든 나트륨 경고(#2644). 예전에는 키 없이 한국어 문장만 와서
-    // 영어 화면이 그 문장을 그대로 그렸다.
+    // 음식 이름이 든 나트륨 경고(#2644). 키와 음식 이름 인자로 문장을 만든다.
     group('sodium_over_sources', () {
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
-      test('두 음식을 언어에 맞게 이어 문장 틀에 끼운다', () {
+      test('두 음식을 이어 문장 틀에 끼운다', () {
         final DashboardSummary summary = _summary(
           adviceKey: 'sodium_over_sources',
           adviceParams: const <String, Object>{
@@ -107,7 +98,6 @@ void main() {
         );
 
         expect(aiAdviceBody(ko, summary), '라면·김밥 섭취로 나트륨이 높아요.');
-        expect(aiAdviceBody(en, summary), 'Sodium is high from 라면 and 김밥.');
       });
 
       test('음식이 하나면 잇지 않는다', () {
@@ -119,24 +109,6 @@ void main() {
         );
 
         expect(aiAdviceBody(ko, summary), 'Ramen 섭취로 나트륨이 높아요.');
-        expect(aiAdviceBody(en, summary), 'Sodium is high from Ramen.');
-      });
-
-      test('영어 문장에서 음식 이름을 빼면 한글이 없다', () {
-        final DashboardSummary summary = _summary(
-          adviceKey: 'sodium_over_sources',
-          adviceParams: const <String, Object>{
-            'foods': <String>['김치찌개', '배추김치'],
-          },
-          sodiumWarning: '김치찌개·배추김치 섭취로 나트륨이 높아요.',
-        );
-
-        final String body = aiAdviceBody(en, summary);
-        expect(
-          body.replaceAll('김치찌개', '').replaceAll('배추김치', ''),
-          isNot(matches(_hangul)),
-        );
-        expect(body, isNot(summary.sodiumWarning));
       });
 
       test('세 개 이상 와도 앞의 두 개만 쓴다', () {
@@ -147,7 +119,7 @@ void main() {
           },
         );
 
-        expect(aiAdviceBody(en, summary), 'Sodium is high from A and B.');
+        expect(aiAdviceBody(ko, summary), 'A·B 섭취로 나트륨이 높아요.');
       });
 
       test('이름이 빈 문자열뿐이면 받은 문장으로 넘긴다', () {
@@ -156,24 +128,24 @@ void main() {
           adviceParams: const <String, Object>{
             'foods': <String>['  ', ''],
           },
-          sodiumWarning: 'Sodium is high from your meals.',
+          sodiumWarning: '식사로 나트륨이 높아요.',
         );
 
-        expect(aiAdviceBody(en, summary), summary.sodiumWarning);
+        expect(aiAdviceBody(ko, summary), summary.sodiumWarning);
       });
 
       test('인자가 없거나 모양이 틀리면 받은 문장, 그것도 없으면 ARB 기본값', () {
         final DashboardSummary missing = _summary(
           adviceKey: 'sodium_over_sources',
-          sodiumWarning: 'Sodium is high from 라면.',
+          sodiumWarning: '라면 섭취로 나트륨이 높아요.',
         );
         final DashboardSummary wrongShape = _summary(
           adviceKey: 'sodium_over_sources',
           adviceParams: const <String, Object>{'foods': '라면'},
         );
 
-        expect(aiAdviceBody(en, missing), missing.sodiumWarning);
-        expect(aiAdviceBody(en, wrongShape), en.homeAiAdviceNoRecord);
+        expect(aiAdviceBody(ko, missing), missing.sodiumWarning);
+        expect(aiAdviceBody(ko, wrongShape), ko.homeAiAdviceNoRecord);
       });
     });
 
@@ -195,8 +167,6 @@ void main() {
       expect(summary.aiAdviceParams, <String, Object>{
         'foods': <Object?>['라면'],
       });
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-      expect(aiAdviceBody(en, summary), 'Sodium is high from 라면.');
     });
 
     // 운동 되먹임에 적는 분 수는 서버가 목표와 견준 유산소 분이다(#3350).
@@ -211,15 +181,10 @@ void main() {
             'ai_advice_key': 'exercise_more',
           });
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
       expect(summary.exerciseMinutes, 240);
       expect(summary.exerciseCardioMinutes, 40);
       expect(aiAdviceBody(ko, summary), '이번 주 유산소 40분 운동했어요. 조금만 더 힘내요!');
-      expect(
-        aiAdviceBody(en, summary),
-        'You did 40 minutes of cardio this week. A little more to go!',
-      );
     });
 
     test('달성 문장도 유산소 분을 적는다', () {
@@ -248,15 +213,10 @@ void main() {
             'ai_advice_key': 'exercise_cardio_start',
           });
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
       expect(
         aiAdviceBody(ko, summary),
         '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?',
-      );
-      expect(
-        aiAdviceBody(en, summary),
-        'No cardio logged yet this week. How about starting with an easy walk?',
       );
     });
 
@@ -301,44 +261,26 @@ void main() {
       final DashboardSummary summary = _summary();
 
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
       expect(aiAdviceBody(ko, summary), ko.homeAiAdviceNoRecord);
       expect(aiAdviceBody(ko, summary), isNot(ko.homeAiAdviceBody));
-      expect(aiAdviceBody(en, summary), en.homeAiAdviceNoRecord);
-      expect(aiAdviceBody(en, summary), isNot(matches(_hangul)));
     });
 
     test('기록 안내 문구는 특정 음식·일정을 단정하지 않는다', () {
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
       for (final String word in <String>['짬뽕', '나트륨', 'PT']) {
         expect(ko.homeAiAdviceNoRecord, isNot(contains(word)), reason: word);
       }
       expect(ko.homeAiAdviceNoRecord, contains('기록'));
-      expect(en.homeAiAdviceNoRecord.toLowerCase(), contains('log'));
     });
   });
 
   // 위 검사들은 조각을 본다. 실제로 홈 카드에 올라오는지는 앱을 데모로 띄워
   // 확인한다 — 저장소 분기가 또 바뀌면 화면에는 다른 값이 나올 수 있다.
   group('데모 홈 화면', () {
-    /// [width] 기본값(390)은 폰 폭이다. **영어만 넓게 돌린다** — 위젯 테스트의
-    /// 기본 폰트는 모든 글자를 `fontSize` 크기의 정사각형으로 그려서 라틴
-    /// 문자의 폭이 실제의 약 2배로 잡힌다(측정: `Exercise`@12px 가 96px,
-    /// 실제 폰트는 ~48px. 한글은 전각이라 오차가 거의 없다).
-    ///
-    /// 그래서 영어를 폰 폭에 두면 하단 내비 라벨이 실제 기기에서는 접히지 않을
-    /// 자리에서 접혀 오버플로 예외가 난다. 여기서 볼 것은 조언 문구가 로케일을
-    /// 따르는지이지 레이아웃이 아니므로, 그 아티팩트를 피해 넓은 폭으로 돌린다.
-    /// 레이아웃 자체는 `dashboard_content_state_test` 가 따로 본다.
-    Future<void> pumpDemoHome(
-      WidgetTester tester,
-      Locale locale, {
-      double width = 390,
-    }) async {
-      await tester.binding.setSurfaceSize(Size(width, 1400));
+    Future<void> pumpDemoHome(WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 1400));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       const AppConfig config = AppConfig(
@@ -374,7 +316,6 @@ void main() {
             ),
             // dashboardRepositoryProvider 는 일부러 덮지 않는다 — 데모 홈이
             // 실제로 타는 경로(Dio → 로컬 인터셉터)가 이 테스트의 핵심이다.
-            localeProvider.overrideWith((ref) => locale),
           ],
           child: const OncareApp(),
         ),
@@ -388,36 +329,12 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('한국어 로케일은 한국어 조언을 렌더한다', (WidgetTester tester) async {
-      await pumpDemoHome(tester, const Locale('ko'));
+    testWidgets('데모 홈은 큐레이션 조언을 렌더한다', (WidgetTester tester) async {
+      await pumpDemoHome(tester);
 
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
       expect(find.text(ko.homeAiAdviceTitle), findsOneWidget);
       expect(find.text(keepWords(ko.homeAiAdviceBody)), findsOneWidget);
-    });
-
-    testWidgets('영어 로케일 조언 본문에 한글이 없다 (#435)', (WidgetTester tester) async {
-      await pumpDemoHome(tester, const Locale('en'), width: 800);
-
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-      expect(find.text(en.homeAiAdviceTitle), findsOneWidget);
-      expect(find.text(keepWords(en.homeAiAdviceBody)), findsOneWidget);
-
-      // 제목 아래 본문이 한국어로 새지 않는지 — 카드 전체를 훑는다.
-      final Finder card = find.ancestor(
-        of: find.text(en.homeAiAdviceTitle),
-        matching: find.byType(Column),
-      );
-      final Iterable<Text> texts = tester.widgetList<Text>(
-        find.descendant(of: card.first, matching: find.byType(Text)),
-      );
-      for (final Text t in texts) {
-        expect(
-          t.data ?? '',
-          isNot(matches(_hangul)),
-          reason: '영어 로케일 조언 카드에 한글이 남아 있다: ${t.data}',
-        );
-      }
     });
   });
 }

@@ -379,29 +379,6 @@ void main() {
       expect(find.text('주간 피드백을 보내지 못했어요. 다시 시도해 주세요'), findsNothing);
     });
 
-    testWidgets('영어에서도 읽기 실패 문구가 번역되어 있다', (tester) async {
-      await _pumpPage(
-        tester,
-        _container(_ReportsFailRepository()),
-        locale: 'en',
-      );
-
-      expect(find.text("Couldn't load your reports"), findsOneWidget);
-    });
-
-    testWidgets('영어에서 피드백 읽기 실패 문구가 번역되어 있다', (tester) async {
-      await _pumpPage(
-        tester,
-        _container(_FeedbackFailsRepository()),
-        locale: 'en',
-      );
-
-      expect(
-        find.text("Couldn't load the weekly feedback you sent"),
-        findsOneWidget,
-      );
-    });
-
     testWidgets('다시 시도하면 목록을 다시 읽는다', (tester) async {
       final _FlakyReportsRepository repository = _FlakyReportsRepository(
         chat: <CoachMessage>[reportNotice(_week1, id: 'r1')],

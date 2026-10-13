@@ -68,28 +68,17 @@ void main() {
 
   group('화면 문구', () {
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
-    test('로스터 목표를 로케일 문구로 옮기고 모르는 글은 그대로 둔다', () {
+    test('로스터 목표를 화면 문구로 옮기고 모르는 글은 그대로 둔다', () {
       expect(healthFocusGoalLabel(ko, '체중 감량 · 혈압 관리'), '체중 감량 · 혈압 관리');
-      expect(
-        healthFocusGoalLabel(en, '체중 감량 · 혈압 관리'),
-        'Weight loss · Blood pressure care',
-      );
-      expect(healthFocusGoalLabel(en, '마라톤 완주 준비'), '마라톤 완주 준비');
-      expect(healthFocusGoalLabel(en, ''), '');
+      expect(healthFocusGoalLabel(ko, '마라톤 완주 준비'), '마라톤 완주 준비');
+      expect(healthFocusGoalLabel(ko, ''), '');
     });
 
-    test('모든 목표에 영어 문구가 있고 한글이 없다', () {
+    test('모든 목표의 문구는 계약값과 같다', () {
       for (final String option in kHealthFocusOptions) {
         expect(healthFocusLabel(ko, option), option);
-        expect(
-          healthFocusLabel(en, option),
-          isNot(matches(RegExp('[가-힣]'))),
-          reason: option,
-        );
       }
-      expect(en.memberHealthFocus, isNot(matches(RegExp('[가-힣]'))));
     });
   });
 

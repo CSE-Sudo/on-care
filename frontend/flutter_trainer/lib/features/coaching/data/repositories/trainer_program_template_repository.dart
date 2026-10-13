@@ -9,13 +9,11 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// 트레이너가 반복해 쓰는 운동 블록. (#920)
 ///
 /// 예전에는 앱 소스의 `const` 목록 셋이었다. 트레이너마다 다른 것이 템플릿의
-/// 존재 이유인데 모두가 같은 셋을 봤고, 한국어로 고정된 내용이 영어 화면에도
-/// 그대로 남았다.
+/// 존재 이유인데 모두가 같은 셋을 봤다.
 ///
 /// 저장한 템플릿이 하나도 없으면 서버가 **시작 구성**(`starter:` id)을 준다 —
 /// 빈 화면으로 시작하면 이 기능이 무엇인지 알 수 없다. 시작 구성은 고치거나
@@ -65,20 +63,11 @@ abstract interface class TrainerProgramTemplateRepository {
 /// 것과 시작 구성을 늘 함께 준다.
 class MockTrainerProgramTemplateRepository
     implements TrainerProgramTemplateRepository {
-  /// [languageCode] 는 목록을 읽는 순간의 화면 언어다. 시작 구성은 저장된 값이
-  /// 아니라 읽을 때 만드는 값이라 실서버처럼 그 언어로 준다(#2301). 트레이너가
-  /// 저장한 것은 옮기지 않는다. 생략하면 한국어다.
-  MockTrainerProgramTemplateRepository({
-    String Function()? languageCode,
-    this.db,
-  }) : _languageCode = languageCode ?? _korean;
-
-  final String Function() _languageCode;
+  /// Creates the demo repository.
+  MockTrainerProgramTemplateRepository({this.db});
 
   /// 저장한 템플릿을 적어 두는 데모 저장소.
   final AppDatabase? db;
-
-  static String _korean() => 'ko';
 
   final List<ProgramTemplate> _saved = <ProgramTemplate>[];
   int _nextId = 0;
@@ -164,49 +153,6 @@ class MockTrainerProgramTemplateRepository
     ),
   ];
 
-  /// [starters] 의 영어판 — 서버 `_STARTERS_EN` 과 같은 셋이다(#2301). id·시간·
-  /// 유형은 같고 이름·대상만 다르다.
-  static const List<ProgramTemplate> startersEn = <ProgramTemplate>[
-    ProgramTemplate(
-      id: 'starter:0',
-      name: 'Blood pressure basics',
-      goal: 'Blood pressure care · Beginner',
-      exercises: <TemplateExercise>[
-        TemplateExercise(name: 'Warm-up stretch', minutes: 10, type: '스트레칭'),
-        TemplateExercise(name: 'Low-intensity walk', minutes: 20, type: '유산소'),
-        TemplateExercise(
-          name: 'Breathing & relaxation',
-          minutes: 10,
-          type: '스트레칭',
-        ),
-      ],
-    ),
-    ProgramTemplate(
-      id: 'starter:1',
-      name: 'Weight-loss circuit',
-      goal: 'Weight loss · Intermediate',
-      exercises: <TemplateExercise>[
-        TemplateExercise(name: 'Interval cardio', minutes: 20, type: '유산소'),
-        TemplateExercise(name: 'Full-body circuit', minutes: 20, type: '근력'),
-        TemplateExercise(name: 'Cool-down stretch', minutes: 10, type: '스트레칭'),
-      ],
-    ),
-    ProgramTemplate(
-      id: 'starter:2',
-      name: 'Lower-body strength A',
-      goal: 'Strength building · Intermediate',
-      exercises: <TemplateExercise>[
-        TemplateExercise(name: 'Leg press', minutes: 15, type: '근력'),
-        TemplateExercise(name: 'Romanian deadlift', minutes: 15, type: '근력'),
-        TemplateExercise(name: 'Calf raise', minutes: 10, type: '근력'),
-      ],
-    ),
-  ];
-
-  /// 이 언어의 시작 구성. 영어가 아니면 한국어다.
-  static List<ProgramTemplate> startersFor(String languageCode) =>
-      languageCode == 'en' ? startersEn : starters;
-
   @override
   bool get supportsEditing => true;
 
@@ -217,7 +163,7 @@ class MockTrainerProgramTemplateRepository
     await _restore();
     return <ProgramTemplate>[
       ..._saved.reversed,
-      ...startersFor(_languageCode()),
+      ...starters,
     ];
   }
 
@@ -381,8 +327,6 @@ final trainerProgramTemplateRepositoryProvider =
       ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       if (ref.watch(appConfigProvider).useMockApi) {
         return MockTrainerProgramTemplateRepository(
-          languageCode: () =>
-              ref.read(trainerResolvedLocaleProvider).languageCode,
           db: ref.watch(appDatabaseProvider),
         );
       }

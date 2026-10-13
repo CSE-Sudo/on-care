@@ -8,14 +8,13 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 
 /// 추천 운동 줄의 단위가 로케일을 따라가는지. (#1933)
 ///
-/// 예전에는 엔티티가 `'$sets세트'` 처럼 한글을 직접 이어 붙여, 영어 화면에서도
-/// `Squat · 4세트 × 12 · 휴식 60초` 가 나왔다.
+/// 예전에는 엔티티가 `'$sets세트'` 처럼 단위를 직접 이어 붙였다. 지금은 ARB
+/// 문구로 만든다.
 ///
 /// 값은 수로 든다(#1904). 서버(`ProgramDraftExercise`)가 `_loose_int` 로 이미
 /// 숫자만 남겨 내려보내므로, 화면이 문자열을 다시 되짚을 일이 없다.
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   const CoachRoutineExercise strength = CoachRoutineExercise(
     name: '레그프레스',
@@ -25,7 +24,7 @@ void main() {
     rest: 90,
   );
 
-  test('한국어는 단위를 붙여 읽힌다', () {
+  test('단위를 붙여 읽힌다', () {
     // 구분자는 앱의 나머지 표기와 같은 ` · ` 다 — 세트·횟수 사이만 `×` 를 쓰면
     // 같은 값이 화면마다 다른 모양이 된다(#1904).
     expect(
@@ -34,25 +33,13 @@ void main() {
     );
   });
 
-  test('영어 줄에는 한글이 남지 않는다', () {
-    final String label = coachRoutineExerciseLabel(en, strength);
-    expect(label, contains('4 sets'));
-    expect(label, contains('12 reps'));
-    expect(label, contains('Rest 90s'));
-    expect(
-      RegExp(r'[가-힣]').hasMatch(label.replaceFirst(strength.name, '')),
-      isFalse,
-    );
-  });
-
-  test('분 단위도 로케일을 따른다', () {
+  test('분 단위도 붙여 읽힌다', () {
     const CoachRoutineExercise cardio = CoachRoutineExercise(
       name: '트레드밀',
       duration: 20,
     );
-    expect(coachRoutineExerciseLabel(ko, cardio), '트레드밀 · 20분');
     // 회원이 직접 적은 기록과 같은 표기(`exerciseDurationLabel`)다(#2221).
-    expect(coachRoutineExerciseLabel(en, cardio), '트레드밀 · 20min');
+    expect(coachRoutineExerciseLabel(ko, cardio), '트레드밀 · 20분');
   });
 
   test('초가 있으면 초로 읽는다 — 45초가 1분이 되지 않는다 (#2221)', () {
@@ -105,7 +92,7 @@ void main() {
 
   test('값이 하나도 없으면 이름만 남는다', () {
     expect(
-      coachRoutineExerciseLabel(en, const CoachRoutineExercise(name: '플랭크')),
+      coachRoutineExerciseLabel(ko, const CoachRoutineExercise(name: '플랭크')),
       '플랭크',
     );
   });

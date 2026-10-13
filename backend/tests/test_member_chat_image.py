@@ -717,7 +717,7 @@ def test_a_photo_only_message_still_says_something_in_the_notification(
     assert row.template_args == {"member_name": "민지", "photo_only": True}
 
 
-def test_the_trainer_inbox_speaks_english_for_a_photo_only_message(
+def test_the_trainer_inbox_is_korean_for_a_photo_only_message_whatever_the_header(
     client, db_session
 ):
     member_id, member_token = _member(client, name="Alex")
@@ -730,8 +730,8 @@ def test_the_trainer_inbox_speaks_english_for_a_photo_only_message(
 
     assert inbox.status_code == 200, inbox.text
     [row] = [n for n in inbox.json() if n["subject_id"] == member_id]
-    assert row["title"] == "Message from Alex"
-    assert row["body"] == "Sent a photo"
+    assert row["title"] == "Alex 회원의 메시지"
+    assert row["body"] == "사진을 보냈어요"
     assert row["args"] == {"member_name": "Alex", "photo_only": True}
 
 
@@ -801,7 +801,7 @@ def test_the_roster_preview_says_photo_for_a_photo_only_message(
 
     assert _roster_row(client, trainer_token, member_id)["last_message"] == "사진"
     assert (
-        _roster_row(client, trainer_token, member_id, EN)["last_message"] == "Photo"
+        _roster_row(client, trainer_token, member_id, EN)["last_message"] == "사진"
     )
 
 
@@ -820,29 +820,16 @@ def test_the_roster_preview_keeps_the_text_sent_with_a_photo(client, db_session)
 # ---- 알림 문장 ----
 
 
-@pytest.mark.parametrize(
-    ("locale", "expected"),
-    [
-        ("ko", ("민지 회원의 메시지", "사진을 보냈어요")),
-        ("en", ("Message from Alex", "Sent a photo")),
-    ],
-)
-def test_the_template_fills_the_body_of_a_photo_only_message(locale, expected):
-    name = "민지" if locale == "ko" else "Alex"
-    assert (
-        nt.render(
-            nt.TRAINER_MEMBER_MESSAGE,
-            {"member_name": name, "photo_only": True},
-            locale,
-        )
-        == expected
-    )
+def test_the_template_fills_the_body_of_a_photo_only_message():
+    assert nt.render(
+        nt.TRAINER_MEMBER_MESSAGE, {"member_name": "민지", "photo_only": True}
+    ) == ("민지 회원의 메시지", "사진을 보냈어요")
 
 
 def test_the_template_leaves_a_text_message_body_alone():
-    assert nt.render(
-        nt.TRAINER_MEMBER_MESSAGE, {"member_name": "Alex"}, "en"
-    ) == ("Message from Alex", None)
+    assert nt.render(nt.TRAINER_MEMBER_MESSAGE, {"member_name": "Alex"}) == (
+        "Alex 회원의 메시지", None,
+    )
     assert nt.columns(
         nt.TRAINER_MEMBER_MESSAGE,
         {"member_name": "민지", "photo_only": True},

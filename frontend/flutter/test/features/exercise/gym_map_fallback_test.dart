@@ -24,7 +24,6 @@ import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/domain/repositories/place_repository.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -143,15 +142,6 @@ void main() {
               (w.key! as ValueKey<String>).value.startsWith('gym-card-'),
         ),
         findsWidgets,
-      );
-    });
-
-    testWidgets('영어로도 안내가 보인다', (WidgetTester tester) async {
-      await _pump(tester, demo: false, locale: const Locale('en'));
-
-      expect(
-        find.text(AppLocalizationsEn().exGymMapUnavailable),
-        findsOneWidget,
       );
     });
 

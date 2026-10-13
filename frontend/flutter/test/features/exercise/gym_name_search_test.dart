@@ -297,18 +297,6 @@ void main() {
       expect(find.text('주변 헬스장'), findsNothing);
       expect(find.text('2개 결과'), findsOneWidget);
     });
-
-    testWidgets('영문에서도 머리줄이 검색 결과로 바뀐다', (WidgetTester tester) async {
-      final _SearchRepository repo = _SearchRepository()
-        ..results['busan'] = const <Gym>[_farGym];
-      await _pumpFinder(tester, repo, locale: const Locale('en'));
-      expect(find.text('Nearby gyms'), findsOneWidget);
-
-      await _search(tester, 'busan');
-
-      expect(find.text('Search results'), findsOneWidget);
-      expect(find.text('Nearby gyms'), findsNothing);
-    });
   });
 
   group('검색 중', () {

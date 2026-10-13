@@ -10,9 +10,6 @@ AI 코치 서비스.
 
 키·자료가 없거나 LLM 호출이 실패하면, 이 모듈의 규칙 기반 코치가 회원의 실제
 식단·운동 기록을 읽어 제안을 만든다(폴백). 두 경로의 응답 형식은 같다.
-
-인사말과 규칙 문구는 요청 언어(`Accept-Language`, #2297)로 만든다(#2707). 헤더가
-없으면 지금까지처럼 한국어다.
 """
 from __future__ import annotations
 
@@ -20,7 +17,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import localized
 from app.core.week import monday_of
 from app.models.models import DietEntry, ExerciseSession, HealthProfile
 from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
@@ -122,23 +118,17 @@ def _diet_today_priority(db: Session, user_id: str) -> CoachSuggestion | None:
     if not rows:
         return CoachSuggestion(
             tag="diet",
-            title=localized("오늘 식단을 기록해 보세요", "Log today's meals"),
-            body=localized(
-                "사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
-                "One photo is all it takes to analyze calories and sodium. "
-                "Shall we start with your first meal?",
-            ),
+            title="오늘 식단을 기록해 보세요",
+            body="사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
         )
     # 기준은 회원의 하루 나트륨 목표다 — 식단 탭·홈 게이지와 같은 값(#3350).
     if total_na > diet_service.member_sodium_limit(db, user_id):
         return CoachSuggestion(
             tag="diet",
-            title=localized("나트륨 섭취가 많아요", "High sodium today"),
-            body=localized(
+            title="나트륨 섭취가 많아요",
+            body=(
                 f"오늘 나트륨이 약 {total_na:,}mg으로 목표를 넘었어요. "
-                "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
-                f"Today's sodium is about {total_na:,} mg, over the goal. "
-                "At dinner, leave the broth and add more vegetables to balance it out.",
+                "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요."
             ),
         )
     return None
@@ -164,22 +154,16 @@ def _diet_weekly_or_default(db: Session, user_id: str) -> CoachSuggestion:
     if week.days_over_sodium >= _SODIUM_PATTERN_MIN_DAYS:
         return CoachSuggestion(
             tag="diet",
-            title=localized("이번 주 나트륨이 계속 높았어요", "Sodium ran high this week"),
-            body=localized(
+            title="이번 주 나트륨이 계속 높았어요",
+            body=(
                 f"이번 주 기록한 {week.days_logged}일 중 {week.days_over_sodium}일 "
-                "나트륨이 목표를 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요.",
-                f"Sodium went over the goal on {week.days_over_sodium} "
-                f"of the {week.days_logged} days you logged this week. "
-                "Try to have more low-sodium days like today.",
+                "나트륨이 목표를 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요."
             ),
         )
     return CoachSuggestion(
         tag="diet",
-        title=localized("식단 균형이 좋아요", "Nicely balanced meals"),
-        body=localized(
-            "오늘 나트륨 섭취가 안정적이에요. 이대로 꾸준히 유지해봐요!",
-            "Your sodium intake is steady today. Keep it up!",
-        ),
+        title="식단 균형이 좋아요",
+        body="오늘 나트륨 섭취가 안정적이에요. 이대로 꾸준히 유지해봐요!",
     )
 
 
@@ -215,13 +199,9 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
     if total_min == 0:
         return CoachSuggestion(
             tag="exercise",
-            title=localized("이번 주 운동을 시작해 보세요", "Start this week's workouts"),
+            title="이번 주 운동을 시작해 보세요",
             # 앱이 재지 않는 지표(혈압·혈당)를 근거로 들지 않는다(#602, #3251).
-            body=localized(
-                "가벼운 30분 걷기부터 시작하면 체력과 컨디션을 끌어올리는 데 도움이 돼요.",
-                "Start with a light 30-minute walk. "
-                "It builds stamina and lifts your energy.",
-            ),
+            body="가벼운 30분 걷기부터 시작하면 체력과 컨디션을 끌어올리는 데 도움이 돼요.",
         )
     cardio_min = cardio_minutes(rows)
     goal_min = weekly_cardio_goal(
@@ -232,31 +212,22 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
         # 권한다. 홈 조언의 `exercise_cardio_start` 와 같은 규칙·같은 뜻이다.
         return CoachSuggestion(
             tag="exercise",
-            title=localized("유산소를 더해봐요", "Add some cardio"),
-            body=localized(
-                "이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
-                "No cardio logged yet this week. How about starting with an easy walk?",
-            ),
+            title="유산소를 더해봐요",
+            body="이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
         )
     if cardio_min < goal_min:
         return CoachSuggestion(
             tag="exercise",
-            title=localized("조금만 더 움직여봐요", "Let's move a little more"),
-            body=localized(
+            title="조금만 더 움직여봐요",
+            body=(
                 f"이번 주 유산소 {cardio_min}분 운동했어요. "
-                f"주 {goal_min}분을 목표로 가볍게 더해봐요.",
-                f"You've done {cardio_min} minutes of cardio this week. "
-                f"Aim for {goal_min} minutes a week and add a little more.",
+                f"주 {goal_min}분을 목표로 가볍게 더해봐요."
             ),
         )
     return CoachSuggestion(
         tag="exercise",
-        title=localized("운동량이 충분해요", "Great activity level"),
-        body=localized(
-            f"이번 주 유산소 {cardio_min}분! 목표 운동량을 잘 채우고 있어요. 멋져요!",
-            f"{cardio_min} minutes of cardio this week! "
-            "You're meeting your goal. Nice work!",
-        ),
+        title="운동량이 충분해요",
+        body=f"이번 주 유산소 {cardio_min}분! 목표 운동량을 잘 채우고 있어요. 멋져요!",
     )
 
 
@@ -264,19 +235,10 @@ def build_greeting(user_name: str) -> str:
     """시각(KST)에 맞는 인사말. 모델을 부르지 않는다."""
     hour = clock.now().hour
     if hour < 11:
-        return localized(
-            f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요.",
-            f"Good morning, {user_name}! Let's start the day healthy.",
-        )
+        return f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요."
     if hour < 18:
-        return localized(
-            f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?",
-            f"Hi {user_name}, how's your day going?",
-        )
-    return localized(
-        f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요.",
-        f"How was your day, {user_name}? Let's wrap it up healthy.",
-    )
+        return f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?"
+    return f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요."
 
 
 def build_suggestions(

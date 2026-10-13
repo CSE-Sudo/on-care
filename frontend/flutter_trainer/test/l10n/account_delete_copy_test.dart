@@ -12,9 +12,8 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
-  test('한국어 문구가 지워지는 것과 끝나는 것을 모두 말한다', () {
+  test('문구가 지워지는 것과 끝나는 것을 모두 말한다', () {
     for (final String part in <String>[
       '프로필',
       '회원과의 대화',
@@ -31,34 +30,12 @@ void main() {
     }
   });
 
-  test('영문 문구도 같은 항목을 말한다', () {
-    for (final String part in <String>[
-      'profile',
-      'messages with members',
-      'PT programs and personal exercises you sent',
-      'booking times',
-      'member links',
-      'upcoming bookings',
-      'notified',
-      'PT renewal coupons',
-      'points are returned',
-      "can't be undone",
-    ]) {
-      expect(en.myDeleteBody, contains(part), reason: part);
-    }
-  });
-
-  test('약관 조 수가 한국어·영문본에서 같다', () {
+  test('약관은 열세 조다', () {
     final int koArticles = RegExp(
       r'^제\d+조 ',
       multiLine: true,
     ).allMatches(ko.myLegalTermsBody).length;
-    final int enArticles = RegExp(
-      r'^\d+\. ',
-      multiLine: true,
-    ).allMatches(en.myLegalTermsBody).length;
     expect(koArticles, 13);
-    expect(enArticles, koArticles);
   });
 
   test('약관에 쿠폰 사용 처리·이용 제한·분쟁 해결 조항이 있다', () {

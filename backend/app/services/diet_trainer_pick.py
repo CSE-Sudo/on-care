@@ -9,10 +9,6 @@
     먼저다. 급한 태그가 없으면 채울 점이 없다고 보고 후보를 주지 않는다.
   * 트레이너가 확정한 메뉴는 회원당 한 건이다. 회원이 그 메뉴를 기록하면 즉시 해소돼
     홈에서 내려간다. 트레이너가 다시 고르거나 담당이 끝나도 내려간다.
-
-리스트는 회원 언어로 만들어져 있다. 트레이너 조회가 자기 언어로 `get_plan` 을 부르면
-언어가 바뀌었다며 회원 리스트를 새로 만들어 버리므로, 저장된 리스트의 언어를 그대로
-쓴다(리스트가 아예 없을 때만 요청 언어로 한 번 만든다).
 """
 from __future__ import annotations
 
@@ -61,13 +57,8 @@ def _slot_rank(slot: str) -> int:
     return catalog.SLOTS.index(slot) if slot in catalog.SLOTS else len(catalog.SLOTS)
 
 
-def _plan(db: Session, member_id: str, *, lang: str) -> diet_menu_plan.MenuPlan:
-    row = diet_menu_plan._latest(db, member_id)
-    return diet_menu_plan.get_plan(db, member_id, lang=row.lang if row else lang)
-
-
 def candidates(
-    db: Session, member_id: str, *, lang: str = "ko", exclude: set[str] = frozenset()
+    db: Session, member_id: str, *, exclude: set[str] = frozenset()
 ) -> Candidates:
     """급한 태그를 채우는 메뉴부터. 급한 태그가 없으면 빈 목록이다."""
     today = clock.today()
@@ -78,7 +69,7 @@ def candidates(
     if not needs:
         return Candidates(needs=[], basis_days=recent.days_logged, items=[])
 
-    plan = _plan(db, member_id, lang=lang)
+    plan = diet_menu_plan.get_plan(db, member_id)
     menus = [
         m for m in plan.items if diet_menu_plan.norm_name(m.name) not in exclude
     ]
@@ -148,7 +139,6 @@ def confirm(
     *,
     name: str,
     slot: str,
-    lang: str = "ko",
 ) -> DietTrainerPick:
     """후보 하나를 확정한다. 지금 리스트에 없는 메뉴는 받지 않는다.
 
@@ -157,7 +147,7 @@ def confirm(
     기록을 읽은 AI 가 맡고, 트레이너는 권할지만 정한다. 리스트 밖 이름을 받으면 이유
     태그·영양 추정도 없는 메뉴가 회원 홈에 뜬다.
     """
-    plan = _plan(db, member_id, lang=lang)
+    plan = diet_menu_plan.get_plan(db, member_id)
     wanted = diet_menu_plan.norm_name(name)
     menu = next(
         (m for m in plan.items

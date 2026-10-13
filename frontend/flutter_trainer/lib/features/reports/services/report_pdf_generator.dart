@@ -20,7 +20,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 /// 값에 단위를 붙이는 arb 패턴. `l.reportsPdfValueMg` 처럼 tear-off 로 넘긴다 —
-/// `1890mg` 와 `2 days` 처럼 단위가 붙는 자리와 띄어쓰기가 언어마다 다르다.
+/// 단위가 붙는 자리와 띄어쓰기는 ARB 가 정한다.
 typedef _Unit = String Function(String value);
 
 /// 문서에 쓰는 서체. 앱이 번들에 담고 있는 것을 **명시해서** 쓴다. (#1621)
@@ -42,8 +42,7 @@ const String _kFont = 'Pretendard';
 /// 한 쪽에서 멈추고 말줄임으로 끝난다. 회원에게 아무것도 못 보내는 것보다
 /// 그래프 없는 리포트가 낫다.
 ///
-/// 문구는 전부 [AppLocalizations] 에서 온다. 이 PDF 는 회원이 실제로 받아 보는
-/// 산출물이라, 화면은 영어인데 문서만 한국어로 나가면 안 된다(#964).
+/// 문구는 전부 [AppLocalizations] 에서 온다(#964).
 class ReportPdfGenerator {
   /// Creates the generator.
   ///
@@ -212,7 +211,7 @@ class ReportPdfGenerator {
   ) => UncontrolledProviderScope(
     container: scope,
     child: reportSheetFrame(
-      locale: Locale(l.localeName),
+      locale: const Locale('ko'),
       delegates: AppLocalizations.localizationsDelegates,
       sheet: sheet,
     ),
@@ -465,10 +464,10 @@ class ReportPdfGenerator {
   static _PdfBlock _bullet(AppLocalizations l, String label, String value) =>
       _PdfBlock.body(l.reportsPdfBullet(label, value));
 
-  /// 문서에 남는 날짜는 두 로케일 모두 `YYYY-MM-DD` 다. 화면의 `8월 5일` 과
+  /// 문서에 남는 날짜는 `YYYY-MM-DD` 다. 화면의 `8월 5일` 과
   /// 달리 PDF 는 회원이 저장해 두고 나중에 다시 여는 파일이라 연도가 필요하고,
   /// `08/05` 처럼 월·일 순서를 두고 헷갈릴 여지가 없어야 한다. 자리(구분자·
-  /// 앞뒤 문구)는 `reportsPdfPeriod` 가 로케일별로 정한다.
+  /// 앞뒤 문구)는 `reportsPdfPeriod` 가 정한다.
   static String _date(DateTime value) => ymd(value);
 
   static String _value(AppLocalizations l, num? value, _Unit unit) =>

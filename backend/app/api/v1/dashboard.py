@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.core import clock
-from app.core.locale import Locale, current_locale, localized
 from app.db.session import get_db
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.dashboard_api import (
@@ -82,32 +81,23 @@ def _build_sodium_warning(
     total_sodium_mg: int,
     source_names: list[str],
     sodium_goal_mg: int = _MAX_SODIUM_MG,
-    locale: Locale | None = None,
 ) -> str | None:
     """오늘 나트륨 경고 문장. 목표 안이면 None.
 
-    언어는 [locale], 생략하면 지금 요청의 언어다(#2299). 키를 아는 앱은 이 문장
-    대신 [_advice_key]·[_advice_params] 로 자기 문장을 그리고, 이 문장은 키를
-    모르는 옛 앱이 읽는다. 음식 이름은 회원이 적은 데이터라 번역하지 않는다 —
-    영어 화면에서 남은 표시 이름이 있으면 [_rank_sodium_sources] 가 그것을 넘긴다.
+    키를 아는 앱은 이 문장 대신 [_advice_key]·[_advice_params] 로 자기 문장을
+    그리고, 이 문장은 키를 모르는 옛 앱이 읽는다. 음식 이름은 회원이 적은
+    그대로다.
     """
     if total_sodium_mg <= sodium_goal_mg:
         return None
     if not source_names:
-        return localized(
+        return (
             f"오늘 나트륨이 {total_sodium_mg:,}mg으로 "
-            f"목표({sodium_goal_mg:,}mg)를 넘었어요.",
-            f"Sodium is at {total_sodium_mg:,} mg today, "
-            f"over your goal ({sodium_goal_mg:,} mg).",
-            locale,
+            f"목표({sodium_goal_mg:,}mg)를 넘었어요."
         )
 
     top = source_names[:_SODIUM_SOURCE_COUNT]
-    return localized(
-        f"{'·'.join(top)} 섭취로 나트륨이 높아요.",
-        f"Sodium is high from {' and '.join(top)}.",
-        locale,
-    )
+    return f"{'·'.join(top)} 섭취로 나트륨이 높아요."
 
 
 def _exercise_feedback(
@@ -115,13 +105,12 @@ def _exercise_feedback(
     goal_minutes: int,
     *,
     any_exercise: bool,
-    locale: Locale | None = None,
 ) -> tuple[str, str]:
-    """이번 주 운동 되먹임 — (문장, 로케일 독립 키).
+    """이번 주 운동 되먹임 — (문장, 문장 키).
 
     판정은 운동 탭과 같다(#3350) — 이번 주 유산소 분([cardio_minutes])을 회원의
     주간 유산소 목표([goal_minutes])와 견준다. 앱 데모
-    (`local_api/dashboard.dart`)도 같은 기준이다. 문장은 요청 언어를 따른다(#2299).
+    (`local_api/dashboard.dart`)도 같은 기준이다.
 
     [any_exercise] 는 이번 주에 유형을 가리지 않고 기록이 하나라도 있는지다 —
     근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다. 그런 주(다른
@@ -130,39 +119,21 @@ def _exercise_feedback(
     """
     if not any_exercise:
         return (
-            localized(
-                "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
-                "Start moving this week — an easy walk is a good beginning.",
-                locale,
-            ),
+            "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
             "exercise_start",
         )
     if cardio_minutes <= 0:
         return (
-            localized(
-                "이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
-                "No cardio logged yet this week. How about starting with an easy walk?",
-                locale,
-            ),
+            "이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
             "exercise_cardio_start",
         )
     if cardio_minutes >= goal_minutes:
         return (
-            localized(
-                f"이번 주 유산소 {cardio_minutes}분 운동했어요. 목표 달성 중이에요!",
-                f"You did {cardio_minutes} minutes of cardio this week. "
-                "You are on track!",
-                locale,
-            ),
+            f"이번 주 유산소 {cardio_minutes}분 운동했어요. 목표 달성 중이에요!",
             "exercise_on_track",
         )
     return (
-        localized(
-            f"이번 주 유산소 {cardio_minutes}분 운동했어요. 조금만 더 힘내요!",
-            f"You did {cardio_minutes} minutes of cardio this week. "
-            "A little more to go!",
-            locale,
-        ),
+        f"이번 주 유산소 {cardio_minutes}분 운동했어요. 조금만 더 힘내요!",
         "exercise_more",
     )
 
@@ -173,16 +144,14 @@ def _advice_key(
     sodium_source_names: list[str],
     exercise_advice_key: str,
 ) -> str:
-    """홈 조언으로 고른 문장의 로케일 독립 식별자. (#1943)
+    """홈 조언으로 고른 문장의 식별자. (#1943)
 
     앱이 고르는 순서와 **같은 순서**로 고른다(`ai_advice_text.dart`) — 나트륨
     경고가 있으면 그것이고, 없으면 운동 되먹임이다. 순서가 갈리면 키가 가리키는
     문장과 화면이 어긋난다.
 
-    음식 이름이 든 나트륨 경고도 키를 준다(`sodium_over_sources`). 예전에는 그
-    이름이 번역 대상이 아니라며 키를 비우고 한국어 문장을 통째로 보냈는데, 그러면
-    영어 화면이 한국어 문장을 그렸다. 이름은 [_advice_params] 의 인자로 따로
-    싣고, 문장 틀은 앱 ARB 가 언어별로 갖는다.
+    음식 이름이 든 나트륨 경고도 키를 준다(`sodium_over_sources`). 이름은
+    [_advice_params] 의 인자로 따로 싣고, 문장 틀은 앱 ARB 가 갖는다.
     """
     if sodium_warning is not None:
         return "sodium_over_sources" if sodium_source_names else "sodium_over"
@@ -198,20 +167,13 @@ def _advice_params(
     return {}
 
 
-def _rank_sodium_sources(
-    foods_json_values: Iterable[str], locale: Locale | None = None
-) -> list[str]:
+def _rank_sodium_sources(foods_json_values: Iterable[str]) -> list[str]:
     """오늘 먹은 음식을 나트륨이 많은 순으로 — 경고 문장이 앞의 몇 개를 짚는다.
 
-    영어 화면이면 음식에 남아 있는 영어 표시 이름(`display_name`, #2850)을 쓴다(#3354).
-    식단 탭이 같은 음식을 그 이름으로 보여 주는데 홈 경고만 한국어 이름을 넣으면
-    한 음식이 두 이름으로 보인다. 표시 이름이 없는 음식(한국어 화면에서 분석했거나
-    손으로 적은 기록)은 저장된 이름 그대로다. 합산은 언어와 무관하게 저장 이름으로
-    한다 — 같은 음식이 표시 이름 유무로 둘로 갈리지 않는다.
+    이름은 저장된 이름(`name`)이다. 예전 분석이 남긴 표시 이름(`display_name`,
+    #2850)은 여기서 쓰지 않는다.
     """
-    use_display_name = (locale or current_locale()) == "en"
     sodium_by_food_name: dict[str, int] = {}
-    display_name_by_food_name: dict[str, str] = {}
     for foods_json in foods_json_values:
         try:
             foods = json.loads(foods_json)
@@ -226,19 +188,12 @@ def _rank_sodium_sources(
                 sodium_by_food_name[name] = (
                     sodium_by_food_name.get(name, 0) + int(sodium)
                 )
-                display_name = food.get("display_name")
-                if (
-                    use_display_name
-                    and isinstance(display_name, str)
-                    and display_name.strip()
-                ):
-                    display_name_by_food_name.setdefault(name, display_name.strip())
 
     sodium_sources = sorted(
         sodium_by_food_name.items(),
         key=lambda item: (-item[1], item[0]),
     )
-    return [display_name_by_food_name.get(name, name) for name, _ in sodium_sources]
+    return [name for name, _ in sodium_sources]
 
 
 @router.get("/dashboard/summary", response_model=DashboardSummary)

@@ -533,7 +533,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     ];
   }
 
-  /// 남은 초 → `9:05`. 숫자뿐이라 두 로케일이 같은 모양을 쓴다.
+  /// 남은 초 → `9:05`. 숫자뿐이다.
   static String _clock(int seconds) {
     final int m = seconds ~/ 60;
     final int s = seconds % 60;

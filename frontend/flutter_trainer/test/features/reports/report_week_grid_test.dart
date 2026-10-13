@@ -62,7 +62,6 @@ Future<void> _pump(
   WidgetTester tester, {
   WeeklyReport? report,
   double? baseline,
-  String locale = 'ko',
   Size size = const Size(900, 600),
 }) async {
   tester.view.devicePixelRatio = 1.0;
@@ -72,7 +71,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light(),
-      locale: Locale(locale),
+      locale: const Locale('ko'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -298,27 +297,6 @@ void main() {
     expect(find.text('–'), findsNWidgets(8));
   });
 
-  testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    expect(find.text('PT'), findsOneWidget);
-    expect(find.text('Personal exercises'), findsOneWidget);
-    expect(find.text('Meal logs'), findsOneWidget);
-    expect(find.text('Calories eaten'), findsOneWidget);
-    expect(find.text('Mon'), findsOneWidget);
-  });
-
-  testWidgets('영어 격자에 한글이 남아 있지 않다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    for (final Element e in find.byType(Text).evaluate()) {
-      final String? data = (e.widget as Text).data;
-      if (data == null) continue;
-      expect(hangul.hasMatch(data), isFalse, reason: '번역되지 않은 글: $data');
-    }
-  });
-
   testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {
     await _pump(tester, size: const Size(420, 600));
 
@@ -419,23 +397,6 @@ void main() {
       );
 
       expect(find.textContaining('이번 주 평균'), findsNothing);
-    });
-
-    testWidgets('영어에서도 두 수가 다 번역되어 있다', (tester) async {
-      await _pump(
-        tester,
-        report: _report(
-          caloriesWeek: const <int>[2200, 2200, 2200, 0, 0, 0, 0],
-        ),
-        baseline: 2000,
-        locale: 'en',
-      );
-
-      expect(find.textContaining('This week 2,200 kcal/day'), findsOneWidget);
-      expect(
-        find.textContaining('Past 4 weeks 2,000 kcal/day'),
-        findsOneWidget,
-      );
     });
   });
 }

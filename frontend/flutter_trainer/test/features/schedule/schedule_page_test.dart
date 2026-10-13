@@ -243,8 +243,7 @@ void main() {
       expect(logged.exercisesJson, contains('벤치프레스'));
       expect(logged.sortOrder, lessThan(0)); // sorts before seed rows
 
-      // 운동은 한국어 문장이 아니라 값으로 남는다 — 영어 화면이 단위를
-      // 스스로 붙인다(#2300).
+      // 운동은 문장이 아니라 값으로 남는다 — 단위는 화면이 붙인다(#2300).
       final List<Object?> items =
           jsonDecode(logged.exercisesJson) as List<Object?>;
       expect(items, isNotEmpty);
