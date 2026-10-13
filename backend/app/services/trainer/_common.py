@@ -8,7 +8,7 @@ import json
 import re
 import uuid
 from collections import defaultdict
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
@@ -342,7 +342,12 @@ def _daily_week(
 
 
 def week_completion_by_member(
-    db: Session, trainer_id: str, member_ids: Sequence[str], monday: date
+    db: Session,
+    trainer_id: str,
+    member_ids: Sequence[str],
+    monday: date,
+    *,
+    member_scope: bool = False,
 ) -> dict[str, list[int | None]]:
     """그 주(월→일) 회원별 요일 이행률(0..100). (#2513)
 
@@ -362,16 +367,23 @@ def week_completion_by_member(
 
     아무것도 걸리지 않은 날과 아직 오지 않은 날은 null 이다. 0 은 "걸렸는데
     하나도 안 했다" 라는 다른 뜻이다. 쿼리는 회원 수와 무관하게 셋이다.
+
+    [member_scope] 는 회원 본인이 자기 주를 읽는 자리다(#3347). 켜면
+    [trainer_id] 를 쓰지 않고 그 주에 그 회원에게 걸려 있던 것 전부로 센다 —
+    담당이 바뀌거나 끊겨도 지난 주의 값이 그대로다. 개인운동이 걸려 있던 날은
+    [member_routine_ends] 로 가른다(쿼리가 하나 는다). 트레이너 화면은 켜지
+    않는다 — 자기 담당 기간의 것만 본다.
     """
     out: dict[str, list[int | None]] = {m: [None] * 7 for m in member_ids}
     end = min(monday + timedelta(days=6), clock.today())
     if not member_ids or end < monday:
         return out
     monday_iso, end_iso = monday.isoformat(), end.isoformat()
+    owner = () if member_scope else (TrainerRoutine.trainer_id == trainer_id,)
     rows = db.scalars(
         select(TrainerRoutine)
         .where(
-            TrainerRoutine.trainer_id == trainer_id,
+            *owner,
             TrainerRoutine.member_id.in_(member_ids),
             TrainerRoutine.status == ROUTINE_APPROVED,
             TrainerRoutine.active_from <= end_iso,
@@ -396,10 +408,12 @@ def week_completion_by_member(
             day = exercise_activity.activity_date_of(session)
             if day is not None and monday <= day <= end:
                 done[(session.assigned_routine_id, day)] = session
+    ends = member_routine_ends(db, rows) if member_scope else None
     pt: dict[tuple[str, str], list[int]] = {}
+    pt_owner = () if member_scope else (TrainerSchedule.trainer_id == trainer_id,)
     for session in db.scalars(
         select(TrainerSchedule).where(
-            TrainerSchedule.trainer_id == trainer_id,
+            *pt_owner,
             TrainerSchedule.member_id.in_(member_ids),
             TrainerSchedule.date >= monday_iso,
             TrainerSchedule.date <= end_iso,
@@ -419,7 +433,7 @@ def week_completion_by_member(
                 break
             items = _routine_items_on(
                 rows_by_member.get(member_id, []), done, day,
-                keep_done_on_end_day=True,
+                keep_done_on_end_day=True, ends=ends,
             )
             booked, pt_done = pt.get((member_id, day.isoformat()), (0, 0))
             total = len(items) + booked
@@ -516,18 +530,27 @@ def _assigned_week(
 
 
 def _assigned_week_counts(
-    db: Session, trainer_id: str, member_id: str, monday: date
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    monday: date,
+    *,
+    member_scope: bool = False,
 ) -> tuple[list[int | None], list[int | None]]:
     """[_assigned_week] 와 그날 완료한 수(#3115). 둘 다 같은 날에만 값이 있다.
 
     리포트의 `개인운동 N개 중 M개` 는 분모가 그날 걸려 있던 개인운동인데, 분자를
     그날의 운동 기록 전부로 세면 직접 기록·PT 기록까지 들어가 실제보다 많아진다.
     분자도 같은 목록의 완료로 센다.
+
+    [member_scope] 를 켜면 회원 기준이다(#3347) — 누가 보냈든 그날 그 회원에게
+    걸려 있던 것을 센다([member_routine_days]).
     """
     assigned: list[int | None] = [None] * 7
     done: list[int | None] = [None] * 7
     for day in member_routine_days(
-        db, member_id, monday, monday + timedelta(days=6), trainer_id=trainer_id
+        db, member_id, monday, monday + timedelta(days=6),
+        trainer_id=trainer_id, member_scope=member_scope,
     ):
         offset = (day.date - monday).days
         if 0 <= offset < 7 and day.routines:
@@ -628,14 +651,28 @@ def sessions_cancelled_on_detach(
     시작 시각이 지난 `예정` 은 남긴다. 실제로 했을 수 있는 수업이라 취소로 덮으면
     지난 기록이 틀어진다 — 익명 기록으로 스케줄에 남는다.
     """
+    rows = _upcoming_not_started(
+        db,
+        TrainerSchedule.trainer_id == trainer_id,
+        TrainerSchedule.member_id == member_id,
+    )
+    # 회원이 직접 신청한 상담은 담당과 별개다(#2584) — 해제해도 거두지 않는다.
+    return [s for s in rows if not _is_consultation_booking(s)]
+
+
+def _upcoming_not_started(db: Session, *criteria: Any) -> list[TrainerSchedule]:
+    """[criteria] 에 맞는 `예정` 일정 중 아직 시작하지 않은 것(날짜→시간 순).
+
+    담당 해제(#2589)와 회원 탈퇴(#3341)가 "남은 일정" 을 같은 기준으로 고르게
+    한 곳에 둔다. 시각을 읽을 수 없는 오늘 일정은 시작한 것으로 본다.
+    """
     now = clock.now()
     today = now.date().isoformat()
     minute = now.hour * 60 + now.minute
     rows = db.scalars(
         select(TrainerSchedule)
         .where(
-            TrainerSchedule.trainer_id == trainer_id,
-            TrainerSchedule.member_id == member_id,
+            *criteria,
             TrainerSchedule.status == SCHEDULE_UPCOMING,
             TrainerSchedule.date >= today,
         )
@@ -650,8 +687,7 @@ def sessions_cancelled_on_detach(
         except ValueError:
             return False
 
-    # 회원이 직접 신청한 상담은 담당과 별개다(#2584) — 해제해도 거두지 않는다.
-    return [s for s in rows if not_started(s) and not _is_consultation_booking(s)]
+    return [s for s in rows if not_started(s)]
 
 
 def _cancel_sessions_on_detach(
@@ -677,6 +713,72 @@ def _cancel_sessions_on_detach(
     for s in rows:
         _release_cancelled_reservation(db, s, source=source)
     return len(rows)
+
+
+#: 회원 탈퇴로 거둔 일정에 남기는 취소 사유(#3341). 트레이너만 보는 기록이다.
+WITHDRAW_CANCEL_REASON = "회원 탈퇴"
+
+
+#: 탈퇴한 회원의 일정이 스케줄에 쓰는 이름(#3341). 행에 직접 적는다 — 회원 행이
+#: 사라지면 `member_id` 가 NULL 이 되어 응답을 만들 때는 누구였는지 알 수 없다.
+WITHDRAWN_CLIENT_NAME = "탈퇴 회원"
+
+
+def sessions_cancelled_on_withdrawal(
+    db: Session, member_id: str
+) -> list[TrainerSchedule]:
+    """회원이 탈퇴하면 취소할 일정 — 트레이너가 잡아 둔 `예정` 중 시작 전인 것. (#3341)
+
+    담당 해제([sessions_cancelled_on_detach])와 같은 기준이되 두 가지가 다르다.
+
+    - 트레이너를 가리지 않는다. 회원이 사라지므로 누구와 잡은 약속이든 열리지 않는다.
+    - 수락된 상담 일정도 거둔다. 해제는 담당만 끝나 상담이 남지만, 탈퇴는 상담할
+      사람이 없다.
+
+    회원 예약이 만든 일정은 뺀다 — 탈퇴는 예약을 먼저 정리하면서 그 일정을 함께
+    지우고(`reservation_service._release`), 미리보기는 그 수를 예약으로 따로 센다.
+    """
+    reserved = select(TrainerReservation.schedule_id).where(
+        TrainerReservation.member_id == member_id
+    )
+    return _upcoming_not_started(
+        db,
+        TrainerSchedule.member_id == member_id,
+        TrainerSchedule.id.not_in(reserved),
+    )
+
+
+def clear_sessions_on_withdrawal(db: Session, member_id: str) -> int:
+    """탈퇴하는 회원의 일정을 정리한다(커밋 없음). 취소한 수. (#3341)
+
+    회원 행을 지우면 일정의 `member_id` 는 NULL 이 될 뿐 행과 이름·메모는 남는다.
+    그대로 두면 트레이너 스케줄에 탈퇴한 회원의 실명이 예정 일정으로 계속 뜬다.
+    **회원을 지우기 전에**, 그리고 예약 정리 뒤에 부른다.
+
+    - 시작 전인 `예정` 은 `취소`(주체 member)로 바꾼다. 일정별 알림은 보내지
+      않는다 — 담당 트레이너는 탈퇴 알림 한 건을 받는다(`member_departure`).
+    - 지난 일정은 트레이너가 참여한 수업 기록이라 행을 남긴다. 다만 누구였는지와
+      그 수업에 적은 메모는 지운다 — 가리는 것이 아니라 행에서 없앤다.
+    """
+    upcoming = sessions_cancelled_on_withdrawal(db, member_id)
+    cancelled_at = datetime.now(timezone.utc)
+    for s in upcoming:
+        s.status = SCHEDULE_CANCELLED
+        s.cancelled_at = cancelled_at
+        s.cancellation_source = "member"
+        s.cancellation_reason = WITHDRAW_CANCEL_REASON
+    rows = db.scalars(
+        select(TrainerSchedule).where(TrainerSchedule.member_id == member_id)
+    ).all()
+    for s in rows:
+        s.client_name = WITHDRAWN_CLIENT_NAME
+        s.note = ""
+        # 상담 요청은 회원과 함께 CASCADE 로 사라진다. 연결을 여기서 먼저 끊는다 —
+        # 같은 트랜잭션에서 고친 행은 회원 삭제의 `SET NULL` 갱신 때 FK 를 다시
+        # 검사받는데, 그 시점에는 요청이 이미 지워져 있어 삭제가 통째로 실패한다.
+        s.consultation_id = None
+    db.flush()
+    return len(upcoming)
 
 
 #: 배정 행의 검토 상태. AI 후보는 pending 으로 들어와 트레이너 판단을 기다린다.
@@ -1752,6 +1854,7 @@ def member_routine_days(
     *,
     trainer_id: str | None = None,
     keep_done_on_end_day: bool = False,
+    member_scope: bool = False,
 ) -> list[RoutineDay]:
     """[start]~[end](양끝 포함)의 날마다 걸려 있던 추천 개인운동과 그날 완료. (#2161)
 
@@ -1775,17 +1878,26 @@ def member_routine_days(
     그 전에 옛 것을 체크했다면 그 완료는 그날의 이행이다 — 빼면 한 일이 사라지고,
     분모에서만 빼면 완료가 분모보다 많아진다. 하지 않은 옛 것은 그날 칸에 두지
     않는다(회원 화면에도 없던 것이다).
+
+    [member_scope] 를 켜면 보낸 사람을 가리지 않는다(#3347) — 지난 담당이 보낸
+    것도 AI 추천도 그날 걸려 있었으면 그날 칸에 든다. 회원 본인의 주간 리포트가
+    쓴다. [trainer_id] 는 쓰지 않는다. 지난 담당의 배정이 언제까지 걸려 있었는지는
+    [member_routine_ends] 가 정한다.
     """
     end = min(end, clock.today())
     if end < start:
         return []
-    if trainer_id is None:
-        trainer_id = get_member_trainer_id(db, member_id)
+    if member_scope:
+        owner: tuple = ()
+    else:
+        if trainer_id is None:
+            trainer_id = get_member_trainer_id(db, member_id)
+        owner = (TrainerRoutine.trainer_id == trainer_id,)
     start_iso, end_iso = start.isoformat(), end.isoformat()
     rows = db.scalars(
         select(TrainerRoutine)
         .where(
-            TrainerRoutine.trainer_id == trainer_id,
+            *owner,
             TrainerRoutine.member_id == member_id,
             TrainerRoutine.status == ROUTINE_APPROVED,
             # 기간과 겹치는 배정만 — 기간 안 어느 날이든 걸려 있었던 것.
@@ -1815,6 +1927,7 @@ def member_routine_days(
             if day is not None and start <= day <= end:
                 done[(session.assigned_routine_id, day)] = session
 
+    ends = member_routine_ends(db, rows) if member_scope else None
     days: list[RoutineDay] = []
     day = start
     while day <= end:
@@ -1822,7 +1935,8 @@ def member_routine_days(
             RoutineDay(
                 date=day,
                 routines=_routine_items_on(
-                    rows, done, day, keep_done_on_end_day=keep_done_on_end_day
+                    rows, done, day,
+                    keep_done_on_end_day=keep_done_on_end_day, ends=ends,
                 ),
             )
         )
@@ -1836,11 +1950,15 @@ def _routine_items_on(
     day: date,
     *,
     keep_done_on_end_day: bool,
+    ends: Mapping[str, str | None] | None = None,
 ) -> list[RoutineDayItem]:
     """[day] 에 걸려 있던 배정과 그날 완료 — [member_routine_days] 의 하루치.
 
     로스터 이행률(#2513)이 여러 회원을 한 번에 읽고 같은 규칙으로 세려고 따로
     둔다. [rows] 는 배정 순서로 정렬돼 있어야 한다.
+
+    [ends] 는 회원 기준으로 셀 때 배정마다 실제로 내려간 날이다
+    ([member_routine_ends], #3347). 주지 않으면 행의 `ended_on` 이다.
     """
     iso = day.isoformat()
     items: list[RoutineDayItem] = []
@@ -1848,11 +1966,12 @@ def _routine_items_on(
         completion = done.get((row.id, day))
         if row.active_from > iso:
             continue
-        if row.ended_on is not None and row.ended_on <= iso:
+        ended_on = ends.get(row.id, row.ended_on) if ends is not None else row.ended_on
+        if ended_on is not None and ended_on <= iso:
             # 내려간 날에 이미 한 것만 그날 칸에 남는다([member_routine_days]).
             if not (
                 keep_done_on_end_day
-                and row.ended_on == iso
+                and ended_on == iso
                 and completion is not None
             ):
                 continue
@@ -1880,6 +1999,54 @@ def _routine_items_on(
     return items
 
 
+def member_routine_ends(
+    db: Session, rows: Sequence[TrainerRoutine]
+) -> dict[str, str | None]:
+    """회원 기준으로 볼 때 배정마다 회원 목록에서 **실제로 내려간 날**. (#3347)
+
+    담당이 끊겨도 그 트레이너가 보낸 배정의 `ended_on` 은 찍히지 않는다 — 다시
+    연결하면 이어 가려는 것이다. 그래서 보낸 사람을 가리지 않고 읽으면 지난
+    담당의 배정이 끊긴 뒤의 날에도 "걸렸는데 안 한 운동" 으로 남는다. 담당이
+    끝난 날을 그 배정이 내려간 날로 본다.
+
+    - 지금 담당의 배정과 AI 추천(`trainer_id` 없음)은 행의 `ended_on` 그대로다.
+    - 끊긴 담당의 배정은 `ended_on` 과 담당이 끝난 날 중 이른 쪽이다. 담당이 끝난
+      날은 해제 때 찍히는 동의 철회 시각(`data_consent_revoked_at`, #1631)의 KST
+      날짜다 — 링크에 해제 시각이 따로 없다.
+    - 끝난 날을 알 수 없으면(철회 시각이 없는 옛 링크·링크 행이 없는 트레이너)
+      `ended_on` 이 찍힌 것만 그대로 두고, 찍히지 않은 것은 하루도 걸리지 않은
+      것으로 본다(`ended_on == active_from`, #2656 과 같은 표기). 언제까지였는지
+      모르는 배정을 끝없이 걸어 두면 회원의 이행률만 깎인다.
+
+    쿼리는 하나다. 여러 회원의 행을 함께 넘겨도 된다.
+    """
+    pairs = {(r.member_id, r.trainer_id) for r in rows if r.trainer_id is not None}
+    if not pairs:
+        return {r.id: r.ended_on for r in rows}
+    links = db.scalars(
+        select(TrainerClient).where(
+            TrainerClient.member_id.in_({m for m, _ in pairs}),
+            TrainerClient.trainer_id.in_({t for _, t in pairs}),
+        )
+    ).all()
+    by_pair = {(link.member_id, link.trainer_id): link for link in links}
+    ends: dict[str, str | None] = {}
+    for row in rows:
+        link = by_pair.get((row.member_id, row.trainer_id))
+        if row.trainer_id is None or (link is not None and link.active):
+            ends[row.id] = row.ended_on
+            continue
+        revoked = link.data_consent_revoked_at if link is not None else None
+        if revoked is None:
+            ends[row.id] = row.ended_on or row.active_from
+            continue
+        detached = _local_date_iso(revoked)
+        ended = min(row.ended_on, detached) if row.ended_on else detached
+        # 걸리기도 전에 담당이 끝난 배정은 하루도 걸리지 않았다.
+        ends[row.id] = max(ended, row.active_from)
+    return ends
+
+
 def routine_sent_on(row: TrainerRoutine) -> date:
     """배정을 **보낸 날**(KST). (#2656)
 
@@ -1897,19 +2064,26 @@ class RoutineDayInFuture(Exception):
     """아직 오지 않은 날의 개인운동 목록을 물었다. (#2161)"""
 
 
-def _done_pt_numbers(db: Session, member_id: str, trainer_id: str) -> dict[str, int]:
+def _done_pt_numbers(
+    db: Session, member_id: str, trainer_id: str | None
+) -> dict[str, int]:
     """이 회원이 이 트레이너와 마친 PT 의 회차 — 세션 id → 1부터의 순번. (#2697)
 
     회원 일정 응답(`member_mirror`)과 PT 완료 알림(`schedule`, #3027)이 같은 번호를 쓴다.
 
+    [trainer_id] 가 None 이면 회원이 거쳐 온 트레이너 전부를 읽되 회차는
+    **트레이너마다 따로** 센다(#3347) — 회원의 PT 이력이 지난 담당과의 수업도
+    그 담당과의 몇 번째였는지로 적는다.
+
     목록은 최근 100건만 내리지만 회차는 처음부터 센다. 상담은 수업이 아니라 세지
     않는다. 같은 날·같은 시각이면 id 로 순서를 고정해 응답마다 번호가 바뀌지 않게 한다.
     """
-    ids = db.scalars(
-        select(TrainerSchedule.id)
+    owner = () if trainer_id is None else (TrainerSchedule.trainer_id == trainer_id,)
+    rows = db.execute(
+        select(TrainerSchedule.id, TrainerSchedule.trainer_id)
         .where(
             TrainerSchedule.member_id == member_id,
-            TrainerSchedule.trainer_id == trainer_id,
+            *owner,
             TrainerSchedule.status == SCHEDULE_DONE,
             TrainerSchedule.type != "상담",
         )
@@ -1919,4 +2093,9 @@ def _done_pt_numbers(db: Session, member_id: str, trainer_id: str) -> dict[str, 
             TrainerSchedule.id.asc(),
         )
     ).all()
-    return {sid: i for i, sid in enumerate(ids, start=1)}
+    counts: dict[str, int] = defaultdict(int)
+    numbers: dict[str, int] = {}
+    for sid, owner_id in rows:
+        counts[owner_id] += 1
+        numbers[sid] = counts[owner_id]
+    return numbers

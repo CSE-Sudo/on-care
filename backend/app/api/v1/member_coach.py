@@ -188,6 +188,8 @@ def complete_my_routine(
             weight=payload.weight,
             intensity=payload.intensity,
             day=day,
+            # 지난 날짜는 그날 걸려 있던 지난 담당의 배정도 된다(#3347).
+            any_owner=True,
         )
     except trainer_common_service.RoutineDayInFuture as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -215,11 +217,15 @@ def uncomplete_my_routine(
     체크를 잘못 눌렀을 때 되돌릴 방법이 없으면, 하지 않은 운동이 주간 시간·
     칼로리에 그대로 남는다. 배정 자체는 지우지 않는다 — 지우는 것은 `수행`이지
     `할 일`이 아니다.
+
+    지난 담당이 보낸 배정의 완료도 되돌릴 수 있다(#3347) — 소유는 지금의 담당이
+    아니라 회원으로 본다. 그 기록은 운동 기록 수정·삭제로는 지울 수 없어
+    (`_reject_if_derived`) 여기가 유일한 길이다.
     """
     trainer_id = trainer_common_service.get_member_trainer_id(db, member.id)
     try:
         return trainer_routines_service.uncomplete_assigned_routine(
-            db, trainer_id, member.id, routine_id, day=day
+            db, trainer_id, member.id, routine_id, day=day, any_owner=True
         )
     except trainer_common_service.RoutineDayInFuture as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -526,8 +532,11 @@ def save_my_weekly_feedback(
 # 트레이너 웹 결과지와 **같은 계산**으로 회원 앱이 자기 주를 그리게 한다. 트레이너
 # 화면이 쓰는 `build_weekly_report` 를 그대로 부르되, 트레이너가 손보기 전의 자동
 # 초안(`message`)은 비워 보낸다 — 회원에게 가는 글은 트레이너가 보낸 것만이다.
-# 담당 트레이너가 없어도 읽을 수 있다(포인트로 교환한 리포트, #2022). 그때는 잡힌
-# PT 가 없으므로 수업 칸이 0 이다.
+# 담당 트레이너가 없어도 읽을 수 있다(포인트로 교환한 리포트, #2022).
+#
+# PT 횟수·이행률·개인운동 수는 **회원 기준**으로 센다(#3347) — 지금의 담당으로
+# 거르면 트레이너를 바꾸거나 담당이 끊긴 뒤 지난 주가 전부 0 이 된다. 담당이 한
+# 명뿐이던 주는 그 트레이너가 보는 값과 같다.
 
 
 def _my_report_week(week_start: str | None) -> date:
@@ -559,9 +568,9 @@ def my_weekly_report(
     db: Annotated[Session, Depends(get_db)],
     week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
 ) -> WeeklyReportOut:
-    """내 한 주 리포트 — 트레이너 웹이 나를 두고 보는 것과 같은 값."""
+    """내 한 주 리포트 — 그 주에 나에게 걸려 있던 PT·개인운동 전부로 센다."""
     trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
     report = trainer_reports_service.build_weekly_report(
-        db, trainer_id, user.id, _my_report_week(week_start)
+        db, trainer_id, user.id, _my_report_week(week_start), member_scope=True
     )
     return report.model_copy(update={"message": ""})

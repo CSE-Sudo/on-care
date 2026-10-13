@@ -18,6 +18,9 @@ class _NoRows:
     def scalars(self, _query):
         return SimpleNamespace(all=lambda: [])
 
+    def scalar(self, _query):
+        return None
+
 
 @pytest.mark.parametrize("lang", ["ko", "en"])
 def test_empty_week_fallback_does_not_cite_untracked_metrics(lang):

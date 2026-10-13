@@ -846,7 +846,46 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               color: OnCareColors.textSecondary,
               onPressed: _startEditing,
             ),
+      // 창이 낮으면 본문이 스크롤된다 — 버튼을 본문 끝에 두면 값을 고친 뒤
+      // 내려가야 저장이 보였다. 창 바닥에 고정한다(#3316).
+      footer: _footer(context),
       child: _body(context),
+    );
+  }
+
+  /// 보기 상태에는 버튼이 없다 — 저장이 끝난 직후에만 완료 표시가 남는다.
+  /// 편집 중에는 `취소`·`저장` 이다(#2596).
+  Widget? _footer(BuildContext context) {
+    if (!_editing && !_saved) return null;
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    return AppActionRow(
+      actions: <Widget>[
+        // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이 결과인지
+        // 읽히지 않아 완료 전용 문구를 쓴다.
+        if (_saved)
+          Text(
+            l.actionSaved,
+            key: const ValueKey<String>('client-profile-saved'),
+            // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.label))
+                .copyWith(color: OnCareColors.success),
+          ),
+        if (_editing) ...<Widget>[
+          AppButton(
+            key: const ValueKey<String>('client-profile-cancel'),
+            onPressed: _saving ? null : _cancelEditing,
+            variant: AppButtonVariant.secondary,
+            label: l.actionCancel,
+          ),
+          AppButton(
+            key: const ValueKey<String>('client-profile-save'),
+            onPressed: _saving || !_profileLoaded ? null : _save,
+            label: _saving ? l.memberHealthSaving : l.actionSave,
+          ),
+        ],
+      ],
     );
   }
 
@@ -1152,39 +1191,6 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                 children: tabBody,
               ),
             ),
-            // 보기 상태에는 버튼이 없다 — 저장이 끝난 직후에만 완료 표시가
-            // 남는다. 편집 중에는 `취소`·`저장` 이다(#2596).
-            if (_editing || _saved) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s16),
-              AppActionRow(
-                actions: <Widget>[
-                  // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이
-                  // 결과인지 읽히지 않아 완료 전용 문구를 쓴다.
-                  if (_saved)
-                    Text(
-                      l.actionSaved,
-                      key: const ValueKey<String>('client-profile-saved'),
-                      // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
-                      style: tokens
-                          .text(OnCareTypography.strong(OnCareTypography.label))
-                          .copyWith(color: OnCareColors.success),
-                    ),
-                  if (_editing) ...<Widget>[
-                    AppButton(
-                      key: const ValueKey<String>('client-profile-cancel'),
-                      onPressed: _saving ? null : _cancelEditing,
-                      variant: AppButtonVariant.secondary,
-                      label: l.actionCancel,
-                    ),
-                    AppButton(
-                      key: const ValueKey<String>('client-profile-save'),
-                      onPressed: _saving || !_profileLoaded ? null : _save,
-                      label: _saving ? l.memberHealthSaving : l.actionSave,
-                    ),
-                  ],
-                ],
-              ),
-            ],
           ],
         );
       },

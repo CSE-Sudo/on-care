@@ -17,6 +17,10 @@ class FakeChallengeRepository implements ChallengeRepository {
   /// 참가를 서버 오류(409)로 실패시킨다.
   bool failJoin = false;
 
+  /// 참가 요청의 `client_request_id` 와, 앞에서부터 꺼내 던질 오류(#3363).
+  final List<String?> joinRequestIds = <String?>[];
+  final List<Object> joinErrors = <Object>[];
+
   int weeklyCalls = 0;
 
   @override
@@ -28,6 +32,8 @@ class FakeChallengeRepository implements ChallengeRepository {
   @override
   Future<ChallengeJoin> join({String? clientRequestId}) async {
     joins++;
+    joinRequestIds.add(clientRequestId);
+    if (joinErrors.isNotEmpty) throw joinErrors.removeAt(0);
     if (failJoin) throw const ServerError(statusCode: 409);
     final Challenge joined = challengeOf(
       id: 'chl-new-$joins',
@@ -57,6 +63,7 @@ WeeklyChallenge weeklyWith({
   ChallengeBlockReason? blockReason,
   int shortfall = 0,
   Challenge? challenge,
+  Challenge? settlingChallenge,
 }) => WeeklyChallenge(
   weekStart: DateTime(2026, 9, 14),
   weekEnd: DateTime(2026, 9, 20),
@@ -70,6 +77,7 @@ WeeklyChallenge weeklyWith({
   blockReason: blockReason,
   shortfall: shortfall,
   challenge: challenge,
+  settlingChallenge: settlingChallenge,
 );
 
 Challenge challengeOf({

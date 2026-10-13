@@ -1701,6 +1701,10 @@ class ScheduleSessionOut(BaseModel):
     #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
     #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
     session_number: int | None = None
+    #: 이 수업의 트레이너 이름(#3347). 회원 응답에만 싣는다 — 회원의 PT 이력에는
+    #: 지난 담당과 마친 수업도 함께 있어, 누구와의 수업이었는지를 적는다. 트레이너
+    #: 응답은 null 이다(자기 일정이다).
+    trainer_name: str | None = None
 
 
 class DeliveryOut(BaseModel):

@@ -156,6 +156,127 @@ void main() {
     });
   });
 
+  group('식별자·키로 합치기 (#3352)', () {
+    const ChatMessage storedQuestion = ChatMessage(
+      role: ChatRole.user,
+      content: '네',
+      id: 'q1',
+      clientRequestId: 'k1',
+    );
+    const ChatMessage storedAnswer = ChatMessage(
+      role: ChatRole.coach,
+      content: '좋아요',
+      id: 'a1',
+      clientRequestId: 'k1',
+    );
+    const ChatMessage failure = ChatMessage(
+      role: ChatRole.coach,
+      content: '',
+      notice: ChatNotice.failure,
+    );
+
+    test('같은 글이어도 키가 다른 실패 메시지는 실패로 남는다', () {
+      const ChatMessage failed = ChatMessage(
+        role: ChatRole.user,
+        content: '네',
+        failed: true,
+        clientRequestId: 'k2',
+      );
+      expect(
+        mergeRestoredChat(
+          const <ChatMessage>[storedQuestion, storedAnswer],
+          const <ChatMessage>[failed, failure],
+        ),
+        const <ChatMessage>[storedQuestion, storedAnswer, failed, failure],
+      );
+    });
+
+    test('실패 메시지의 키가 복원분에 있으면 실패 표시와 안내를 거둔다', () {
+      const ChatMessage failed = ChatMessage(
+        role: ChatRole.user,
+        content: '네',
+        failed: true,
+        clientRequestId: 'k1',
+      );
+      expect(
+        mergeRestoredChat(
+          const <ChatMessage>[storedQuestion, storedAnswer],
+          const <ChatMessage>[failed, failure],
+        ),
+        const <ChatMessage>[storedQuestion, storedAnswer],
+      );
+    });
+
+    test('보내는 중인 질문의 키가 복원분에 있으면 복원분 쪽 두 줄을 뺀다', () {
+      const ChatMessage sending = ChatMessage(
+        role: ChatRole.user,
+        content: '네',
+        clientRequestId: 'k1',
+      );
+      const ChatMessage pending = ChatMessage(
+        role: ChatRole.coach,
+        content: '',
+        pending: true,
+      );
+      expect(
+        mergeRestoredChat(
+          const <ChatMessage>[_yesterdayAnswer, storedQuestion, storedAnswer],
+          const <ChatMessage>[sending, pending],
+        ),
+        const <ChatMessage>[_yesterdayAnswer, sending, pending],
+      );
+    });
+
+    test('이미 답을 받아 화면에 있는 줄은 식별자로 한 번만 남긴다', () {
+      expect(
+        mergeRestoredChat(
+          const <ChatMessage>[_yesterdayAnswer, storedQuestion, storedAnswer],
+          const <ChatMessage>[storedQuestion, storedAnswer],
+        ),
+        const <ChatMessage>[_yesterdayAnswer, storedQuestion, storedAnswer],
+      );
+    });
+
+    test('키도 식별자도 없는 줄은 같은 글이어도 짝짓지 않는다', () {
+      const ChatMessage oldQuestion = ChatMessage(
+        role: ChatRole.user,
+        content: '네',
+      );
+      const ChatMessage failed = ChatMessage(
+        role: ChatRole.user,
+        content: '네',
+        failed: true,
+        clientRequestId: 'k2',
+      );
+      expect(
+        mergeRestoredChat(
+          const <ChatMessage>[oldQuestion, _yesterdayAnswer],
+          const <ChatMessage>[failed, failure],
+        ),
+        const <ChatMessage>[oldQuestion, _yesterdayAnswer, failed, failure],
+      );
+    });
+
+    test('저장분에서 키로 질문과 답을 찾는다', () {
+      const List<ChatMessage> stored = <ChatMessage>[
+        _yesterdayQuestion,
+        _yesterdayAnswer,
+        storedQuestion,
+        storedAnswer,
+      ];
+      expect(storedExchangeOf(stored, 'k1'), (
+        question: storedQuestion,
+        answer: storedAnswer,
+      ));
+      expect(storedExchangeOf(stored, 'k9'), isNull);
+      // 질문만 있고 답이 없으면 아직 저장된 전송이 아니다.
+      expect(
+        storedExchangeOf(const <ChatMessage>[storedQuestion], 'k1'),
+        isNull,
+      );
+    });
+  });
+
   group('컨트롤러', () {
     test('열자마자는 복원 중이다', () {
       final ProviderContainer container = _container(_GatedRepository());

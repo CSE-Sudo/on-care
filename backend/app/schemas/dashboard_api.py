@@ -31,6 +31,9 @@ class DashboardSummary(BaseModel):
     macros: Macros
     diet_entries: int
     exercise_minutes: int
+    #: 이번 주 **유산소** 분 — 운동 조언이 주간 유산소 목표와 견주는 값이고, 조언
+    #: 문장에 적히는 분 수다(#3350). `exercise_minutes` 는 유형을 가리지 않은 합계다.
+    exercise_cardio_minutes: int = 0
     # 식단 카드 주간 추이(이번 주 월~일 일별 영양). 홈 카드는 칼로리를 그린다.
     nutrition_week: list[DashboardNutritionDay] = []
     sodium_warning: Optional[str]
@@ -42,7 +45,7 @@ class DashboardSummary(BaseModel):
     #: 틀은 앱 ARB 가 원본이다.
     #:
     #: `sodium_over` · `sodium_over_sources` · `exercise_on_track` ·
-    #: `exercise_more` · `exercise_start` 중 하나다.
+    #: `exercise_more` · `exercise_cardio_start` · `exercise_start` 중 하나다.
     ai_advice_key: Optional[str] = None
     #: [ai_advice_key] 문장에 끼울 값. `sodium_over_sources` 면 `foods`(나트륨
     #: 상위 급원 음식 이름, 최대 두 개)가 실린다. 음식 이름은 회원이 적은

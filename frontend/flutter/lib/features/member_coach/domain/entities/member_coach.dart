@@ -252,6 +252,7 @@ class CoachSession {
     this.note = '',
     this.program = const <CoachProgramItem>[],
     this.sessionNumber,
+    this.trainerName = '',
   });
 
   /// Server id.
@@ -285,6 +286,11 @@ class CoachSession {
   /// 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터). 서버가 완료 PT 에만
   /// 싣는다 — 예정·취소·상담과 옛 서버 응답은 null 이다. (#2697)
   final int? sessionNumber;
+
+  /// 이 수업의 트레이너 이름. 목록에는 지금 담당의 일정과 함께 지난 담당과 마친
+  /// PT 도 있어, 누구와의 수업이었는지를 행이 직접 말한다. 옛 서버 응답은 비어
+  /// 있다 — 그때는 화면이 지금 담당의 이름으로 읽는다. (#3347)
+  final String trainerName;
 
   /// Whether this session is still ahead.
   ///

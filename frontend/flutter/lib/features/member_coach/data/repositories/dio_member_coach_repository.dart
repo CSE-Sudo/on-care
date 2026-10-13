@@ -21,12 +21,27 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     this._dio, {
     this.pollInterval = const Duration(seconds: 3),
     String Function() requestIdFactory = newClientRequestId,
-  }) : _requestIdFactory = requestIdFactory;
+    DateTime Function() now = nowKst,
+  }) : _requestIdFactory = requestIdFactory,
+       _now = now;
+
+  /// 응답을 받지 못한 글 전송의 키를 붙들어 두는 시간. (#3346)
+  ///
+  /// 재시도는 실패 직후에 한다. 한참 뒤 같은 문장을 또 쓰면 그건 새 메시지인데,
+  /// 옛 키로 가면 서버가 먼저 받은 메시지를 돌려주고 새 글은 저장하지 않는다.
+  static const Duration pendingRequestTtl = Duration(minutes: 5);
 
   final Dio _dio;
   final Duration pollInterval;
   final String Function() _requestIdFactory;
-  final Map<String, String> _pendingRequestIds = <String, String>{};
+  final DateTime Function() _now;
+
+  /// 보낸 글 → 응답을 아직 못 받은 전송 키.
+  final Map<String, _PendingSend> _pendingRequestIds = <String, _PendingSend>{};
+
+  /// 마지막으로 읽은 대화(최신 쪽)의 메시지 id. 전송 키를 만들 때 이미 있던
+  /// 메시지와, 그 뒤에 저장된 메시지를 가른다.
+  Set<String> _threadIds = const <String>{};
 
   @override
   Future<MemberCoach?> fetchCoach() async {
@@ -171,8 +186,57 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       if (createdAtOrder != 0) return createdAtOrder;
       return first.id.compareTo(second.id);
     });
+    if (before == null) _settlePendingSends(messages);
     return messages;
   }
+
+  /// 대화에 저장이 확인된 글의 전송 키를 버린다. (#3346)
+  ///
+  /// 응답만 끊기고 서버는 받은 글이 여기 해당한다 — 키를 만든 뒤에 생긴 내
+  /// 메시지 가운데 같은 글이 있으면 그 전송은 끝난 것이다. 남겨 두면 같은
+  /// 문장을 다음에 보낼 때 그 키가 다시 쓰여 새 글이 가지 않는다.
+  void _settlePendingSends(List<CoachMessage> latest) {
+    if (_pendingRequestIds.isNotEmpty) {
+      _pendingRequestIds.removeWhere(
+        (String text, _PendingSend pending) => latest.any(
+          (CoachMessage m) =>
+              m.fromMe &&
+              m.emoteId == null &&
+              m.body.trim() == text &&
+              !pending.knownIds.contains(m.id),
+        ),
+      );
+    }
+    _threadIds = <String>{for (final CoachMessage m in latest) m.id};
+  }
+
+  /// [text] 를 보낼 전송 키. 응답을 못 받은 같은 글의 키가 살아 있으면 그것을
+  /// 다시 쓰고, 수명이 지났으면 새로 만든다.
+  String _requestIdFor(String text) {
+    final DateTime now = _now();
+    _pendingRequestIds.removeWhere(
+      (_, _PendingSend pending) =>
+          now.difference(pending.createdAt) >= pendingRequestTtl,
+    );
+    return _pendingRequestIds
+        .putIfAbsent(
+          text,
+          () => _PendingSend(
+            id: _requestIdFactory(),
+            createdAt: now,
+            knownIds: _threadIds,
+          ),
+        )
+        .id;
+  }
+
+  /// 전송 실패를 원인별 값으로 옮긴다 — 글·이모티콘·사진·주간 피드백이 같은
+  /// 매핑을 쓴다. 서버가 분명히 거절한 것만 [CoachSendRejected] 다. (#3346)
+  static Object _sendError(DioException e) =>
+      CoachSendRejected.fromStatus(
+        e.type == DioExceptionType.badResponse ? e.response?.statusCode : null,
+      ) ??
+      AppError.fromDio(e);
 
   @override
   Stream<List<CoachMessage>> watchChat() =>
@@ -191,7 +255,7 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     // 두 번째가 재시도로 접힌다. 이모티콘은 누를 때마다 새 키를 만든다.
     final String requestId = emoteId != null
         ? _requestIdFactory()
-        : _pendingRequestIds.putIfAbsent(trimmed, _requestIdFactory);
+        : _requestIdFor(trimmed);
     try {
       await _dio.post<Map<String, Object?>>(
         '/me/coach/chat',
@@ -202,10 +266,17 @@ class DioMemberCoachRepository implements MemberCoachRepository {
         },
       );
     } on DioException catch (e) {
-      throw AppError.fromDio(e);
+      final Object error = _sendError(e);
+      // 거절된 키는 다시 보내도 같은 답이다 — 버려서 다음 전송이 새 키로 간다.
+      if (error is CoachSendRejected) _forgetPendingSend(trimmed, requestId);
+      throw error;
     }
-    if (_pendingRequestIds[trimmed] == requestId) {
-      _pendingRequestIds.remove(trimmed);
+    _forgetPendingSend(trimmed, requestId);
+  }
+
+  void _forgetPendingSend(String text, String requestId) {
+    if (_pendingRequestIds[text]?.id == requestId) {
+      _pendingRequestIds.remove(text);
     }
   }
 
@@ -240,7 +311,7 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       }
       return coachMessageFromJson(data);
     } on DioException catch (e) {
-      throw AppError.fromDio(e);
+      throw _sendError(e);
     }
   }
 
@@ -327,7 +398,7 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       }
       return memberWeeklyFeedbackFromJson(data);
     } on DioException catch (e) {
-      throw AppError.fromDio(e);
+      throw _sendError(e);
     }
   }
 
@@ -389,4 +460,23 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       throw AppError.fromDio(e);
     }
   }
+}
+
+/// 응답을 아직 못 받은 글 전송 하나. (#3346)
+class _PendingSend {
+  const _PendingSend({
+    required this.id,
+    required this.createdAt,
+    required this.knownIds,
+  });
+
+  /// 전송 키(`client_request_id`).
+  final String id;
+
+  /// 키를 만든 때 — 수명을 잰다.
+  final DateTime createdAt;
+
+  /// 키를 만들 때 이미 대화에 있던 메시지 id. 같은 글이 전에도 있었다면 그것을
+  /// 이 전송의 저장으로 잘못 읽지 않는다.
+  final Set<String> knownIds;
 }
