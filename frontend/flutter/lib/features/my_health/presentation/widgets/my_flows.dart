@@ -1899,7 +1899,7 @@ class _MacroSuggestionRow extends StatelessWidget {
   /// 버튼의 키. 식단·운동 두 곳이 같은 줄을 쓰므로 각자 다른 키를 준다.
   final Key buttonKey;
 
-  /// 안내 줄의 항목을 나누는 글자. 두 ARB(ko·en)가 같은 글자를 쓴다.
+  /// 안내 줄의 항목을 나누는 글자. ARB 문구가 같은 글자를 쓴다.
   static const String _separator = ' · ';
 
   @override

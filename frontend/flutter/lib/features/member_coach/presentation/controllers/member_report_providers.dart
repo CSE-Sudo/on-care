@@ -35,17 +35,14 @@ typedef ProviderRead = T Function<T>(ProviderListenable<T> provider);
 Future<ReportSheetInputs> loadMemberReportSheet(
   ProviderRead read, {
   required DateTime weekStart,
-  required String languageCode,
 }) async {
   // 목표를 못 읽어도 결과지는 선다 — 트레이너 웹과 같은 기본값으로 견준다.
   final UserProfile? profile = await read(
     profileProvider.future,
   ).then<UserProfile?>((UserProfile p) => p, onError: (Object _) => null);
-  return read(memberReportSheetRepositoryProvider).fetch(
-    weekStart: weekStart,
-    languageCode: languageCode,
-    goals: reportSheetGoalsOf(profile),
-  );
+  return read(
+    memberReportSheetRepositoryProvider,
+  ).fetch(weekStart: weekStart, goals: reportSheetGoalsOf(profile));
 }
 
 /// 회원이 MY 에서 정한 주간 운동 목표. 비어 있는 칸은 권장값이다.

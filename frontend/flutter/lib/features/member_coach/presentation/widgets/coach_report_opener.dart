@@ -72,7 +72,6 @@ Future<CoachReportPdf> loadCoachReportPdf(
   final ReportSheetInputs inputs = await loadMemberReportSheet(
     read,
     weekStart: weekStart,
-    languageCode: l.localeName,
   );
   return (
     bytes: await read(memberReportPdfGeneratorProvider).generate(

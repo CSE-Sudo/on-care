@@ -65,7 +65,7 @@ List<String>? _foods(Map<String, Object> params) {
   return names.isEmpty ? null : names;
 }
 
-/// 음식 이름을 지금 언어로 잇는다 — 한국어 `라면·김밥`, 영어 `라면 and 김밥`.
+/// 음식 이름을 잇는다 — `라면·김밥`.
 /// 서버는 두 개까지만 보내지만, 더 오더라도 앞의 두 개만 쓴다.
 String _joinFoods(AppLocalizations l, List<String> names) =>
     names.length == 1 ? names.first : l.homeAdviceFoodPair(names[0], names[1]);
