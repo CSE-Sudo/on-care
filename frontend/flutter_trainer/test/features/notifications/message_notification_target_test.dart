@@ -166,35 +166,31 @@ void main() {
   });
 
   group('알림함에서 누르기', () {
-    for (final Locale locale in const <Locale>[Locale('ko'), Locale('en')]) {
-      testWidgets('메시지 알림은 읽음 처리 후 그 회원 대화를 연다 '
-          '(${locale.languageCode})', (tester) async {
-        await withWideSurface(tester, () async {
-          final _FakeRepo repo = _FakeRepo(<TrainerNotification>[
-            _message(subjectId: 'seed-client-1'),
-          ]);
-          await pumpTrainerApp(
-            tester,
-            token: 'demo-token',
-            at: AppRoutes.notifications,
-            locale: locale,
-            extraOverrides: <Override>[
-              trainerNotificationRepositoryProvider.overrideWithValue(repo),
-            ],
-          );
+    testWidgets('메시지 알림은 읽음 처리 후 그 회원 대화를 연다', (tester) async {
+      await withWideSurface(tester, () async {
+        final _FakeRepo repo = _FakeRepo(<TrainerNotification>[
+          _message(subjectId: 'seed-client-1'),
+        ]);
+        await pumpTrainerApp(
+          tester,
+          token: 'demo-token',
+          at: AppRoutes.notifications,
+          extraOverrides: <Override>[
+            trainerNotificationRepositoryProvider.overrideWithValue(repo),
+          ],
+        );
 
-          await tester.tap(
-            find.byKey(const ValueKey<String>('notification-noti-msg')),
-          );
-          await settle(tester);
+        await tester.tap(
+          find.byKey(const ValueKey<String>('notification-noti-msg')),
+        );
+        await settle(tester);
 
-          expect(repo.readCalls, <String>['noti-msg']);
-          expect(currentLocation(tester), '/messages?client=seed-client-1');
-          final ChatView chat = tester.widget<ChatView>(find.byType(ChatView));
-          expect(chat.clientId, 'seed-client-1');
-        });
+        expect(repo.readCalls, <String>['noti-msg']);
+        expect(currentLocation(tester), '/messages?client=seed-client-1');
+        final ChatView chat = tester.widget<ChatView>(find.byType(ChatView));
+        expect(chat.clientId, 'seed-client-1');
       });
-    }
+    });
 
     testWidgets('보낸 회원이 없는 옛 메시지 알림은 메시지 목록을 연다', (tester) async {
       await withWideSurface(tester, () async {

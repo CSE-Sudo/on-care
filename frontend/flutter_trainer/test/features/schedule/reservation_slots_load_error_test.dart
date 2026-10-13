@@ -5,7 +5,6 @@
 /// 재시도를 함께 보인다.
 library;
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,15 +62,12 @@ void main() {
   late _FlakySlotRepository repo;
 
   Future<void> openSheet(
-    WidgetTester tester, {
-    Locale locale = const Locale('ko'),
-  }) async {
+    WidgetTester tester) async {
     repo = _FlakySlotRepository();
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
       at: AppRoutes.schedule,
-      locale: locale,
       extraOverrides: <Override>[
         reservationSlotRepositoryProvider.overrideWithValue(repo),
       ],
@@ -112,9 +108,4 @@ void main() {
     expect(find.text('열린 예약 가능 시간이 없어요.'), findsOneWidget);
   });
 
-  testWidgets('영어 화면은 영어 문구다', (tester) async {
-    await openSheet(tester, locale: const Locale('en'));
-
-    expect(find.text("Couldn't load open booking times"), findsOneWidget);
-  });
 }

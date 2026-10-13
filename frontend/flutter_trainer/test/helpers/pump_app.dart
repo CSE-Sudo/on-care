@@ -94,7 +94,6 @@ Future<ProviderContainer> pumpTrainerApp(
   String? bootAt,
   List<Override> extraOverrides = const <Override>[],
   bool demoEntry = false,
-  Locale locale = const Locale('ko'),
   DateTime? seedClock,
   Stream<DateTime>? kstClock,
 }) async {
@@ -115,21 +114,6 @@ Future<ProviderContainer> pumpTrainerApp(
     buildSignature: '',
   );
   final prefs = await SharedPreferences.getInstance();
-  // 테스트의 '브라우저 언어' 도 [locale] 로 맞춘다. 화면(`MaterialApp`)만 그
-  // 언어이고 브라우저가 테스트 기본값(en-US)으로 남으면, 브라우저 언어를 읽는
-  // 서버 문장·데모 조언(`trainerResolvedLocaleProvider`, #2299)이 화면과 다른
-  // 언어로 나온다.
-  tester.platformDispatcher.localesTestValue = <Locale>[locale];
-  addTearDown(tester.platformDispatcher.clearLocalesTestValue);
-
-  // [locale] 은 '기기(브라우저) 언어' 자리다. 화면만이 아니라 위젯 밖에서
-  // 언어를 읽는 곳([trainerResolvedLocaleProvider] — 데모 저장소의 문구,
-  // Accept-Language)도 같은 언어를 보게 브라우저 언어 목록까지 맞춘다. 그러지
-  // 않으면 테스트 바인딩의 기본값 en 이 새어 들어가, 한국어 화면에 영어 데모
-  // 데이터가 섞인다. (#2301)
-  tester.platformDispatcher.localesTestValue = <Locale>[locale];
-  addTearDown(tester.platformDispatcher.clearLocalesTestValue);
-
   // drift 는 마지막 구독자가 떠난 쿼리 스트림을 한 이벤트 루프 뒤
   // (`Timer.run`)에 치운다. 그 타이머는 구독을 끊는 자리의 zone 에 걸리는데,
   // 여러 리포트를 묶는 작업대 요약(`reportQueueFromReports`, #2863)처럼
@@ -167,7 +151,7 @@ Future<ProviderContainer> pumpTrainerApp(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: OncareTrainerApp(locale: locale),
+      child: const OncareTrainerApp(),
     ),
   );
   await settle(tester);
@@ -310,22 +294,17 @@ class _StillClientRepository implements ClientRepository {
   @override
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+    ClientPeriod period) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+    String clientId) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
   Future<ClientDietRecommendations> confirmDietRecommendation(
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   }) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_report/gen/l10n/report_sheet_localizations_en.dart';
 import 'package:oncare_report/gen/l10n/report_sheet_localizations_ko.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
@@ -9,18 +8,15 @@ import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_result_sheet.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 
 import '../../helpers/client_factory.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 결과지 본문 문구는 공용 패키지(`oncare_report`)의 번역에서 온다.
 final ReportSheetLocalizationsKo _sheetKo = ReportSheetLocalizationsKo();
-final ReportSheetLocalizationsEn _sheetEn = ReportSheetLocalizationsEn();
 
 /// 결과지의 모든 칸. 한 장에 이것이 다 실려야 한다(#2485).
 const List<String> _sections = <String>[
@@ -109,9 +105,8 @@ MemberWeeklyFeedback _answer({String note = '무릎이 조금 불편했어요'})
 /// 생성기가 두르는 것과 같은 틀 — 테마·로케일·글자 배율.
 Future<void> _pump(
   WidgetTester tester,
-  ReportResultSheet sheet, {
-  AppLocalizations? l,
-}) async {
+  ReportResultSheet sheet,
+) async {
   tester.view.physicalSize = const Size(
     ReportResultSheet.width,
     ReportResultSheet.height,
@@ -120,7 +115,7 @@ Future<void> _pump(
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     Localizations(
-      locale: Locale((l ?? _ko).localeName),
+      locale: const Locale('ko'),
       delegates: AppLocalizations.localizationsDelegates,
       child: MediaQuery(
         data: const MediaQueryData(textScaler: TextScaler.noScaling),
@@ -136,12 +131,6 @@ Future<void> _pump(
   );
   await tester.pump();
 }
-
-/// 그려진 글 전부.
-List<String> _texts(WidgetTester tester) => <String>[
-  for (final Text t in tester.widgetList<Text>(find.byType(Text)))
-    if (t.data case final String s) s,
-];
 
 RenderParagraph _paragraph(WidgetTester tester, Finder text) =>
     tester.renderObject<RenderParagraph>(
@@ -455,49 +444,6 @@ void main() {
         find.descendant(of: trend, matching: find.text('8/10')),
         findsOneWidget,
       );
-    });
-
-    testWidgets('영어 로케일이면 결과지 문구가 모두 영어다', (tester) async {
-      await _pump(
-        tester,
-        ReportResultSheet(
-          report: _report(memberFeedback: _answer(note: 'Knee felt sore')),
-          feedback: 'Nice week',
-          trend: _trend(),
-        ),
-        l: _en,
-      );
-
-      expect(find.text(_en.reportsPdfDocTitle), findsOneWidget);
-      expect(find.text(_sheetEn.reportsSheetDietTitle), findsOneWidget);
-      expect(find.text(_sheetEn.reportsSheetScoreTitle), findsOneWidget);
-      // 회원 이름·통증 부위는 사용자 데이터라 검사에서 뺀다.
-      final List<String> leaked = _texts(tester)
-          .where((String s) => !s.contains('김회원') && !s.contains('오른 무릎'))
-          .where(RegExp(r'[가-힣]').hasMatch)
-          .toList();
-      expect(leaked, isEmpty, reason: '결과지에 한국어가 남아 있다: $leaked');
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('영어·긴 피드백·빈 데이터가 겹쳐도 한 장에 머문다', (tester) async {
-      await _pump(
-        tester,
-        ReportResultSheet(
-          report: _empty(),
-          feedback: List<String>.filled(400, 'Keep going strong.').join(' '),
-        ),
-        l: _en,
-      );
-
-      for (final String key in _sections) {
-        expect(find.byKey(ValueKey<String>(key)), findsOneWidget, reason: key);
-      }
-      expect(
-        tester.getSize(find.byType(ReportResultSheet)),
-        const Size(ReportResultSheet.width, ReportResultSheet.height),
-      );
-      expect(tester.takeException(), isNull);
     });
   });
 }

@@ -6,14 +6,12 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/pump_app.dart';
 
 /// 라벨 기대값은 로케일을 명시해 읽는다 — 기본 로케일이 바뀌어도 의도가 남는다.
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 서버 `reset_link()`(backend/app/services/password_reset.py)가 만드는 메일 링크와 같은
 /// 모양(#3033). 앱은 해시 URL 전략이라 브라우저가 `#` 뒤를 라우터 위치로 넘긴다 — 그 위치가
@@ -220,12 +218,10 @@ void main() {
   group('app shell', () {
     test('AI coaching navigation label matches the page title', () {
       expect(navLabel(_ko, NavLabel.coaching), _ko.coachTitle);
-      expect(navLabel(_en, NavLabel.coaching), _en.coachTitle);
     });
 
     test('schedule navigation label matches the page title', () {
       expect(navLabel(_ko, NavLabel.schedule), _ko.schedTitle);
-      expect(navLabel(_en, NavLabel.schedule), _en.schedTitle);
     });
 
     test('messages sits immediately after clients in the sidebar', () {

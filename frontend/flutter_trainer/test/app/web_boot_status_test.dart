@@ -48,14 +48,13 @@ void main() {
       );
     });
 
-    test('noscript explains that JavaScript is required (ko and en)', () {
+    test('noscript explains that JavaScript is required', () {
       final RegExpMatch? noscript = RegExp(
         r'<noscript>(.*?)</noscript>',
         dotAll: true,
       ).firstMatch(markup);
       expect(noscript, isNotNull);
       expect(noscript!.group(1)!, contains('JavaScript 가 필요합니다'));
-      expect(noscript.group(1)!, contains('needs JavaScript'));
     });
 
     test('boot script runs before the loader that starts Flutter', () {
@@ -144,13 +143,9 @@ void main() {
       expect(code, contains('root.querySelector(".boot-reload")'));
     });
 
-    test('Korean by default, English for other browser languages', () {
-      expect(code, contains('트레이너 웹을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.'));
-      expect(code, contains('트레이너 웹을 불러오는 중입니다'));
-      expect(code, contains("Couldn't load the trainer web."));
-      expect(code, contains('reload: "Refresh"'));
-      expect(code, contains('.indexOf("ko") === 0 ? "ko" : "en"'));
-      // 마크업의 한국어 문구와 스크립트의 한국어 문구가 같다.
+    test('the copy lives in the markup and the script does not rewrite it', () {
+      expect(code, isNot(contains('textContent')));
+      expect(code, isNot(contains('navigator.language')));
       for (final String text in <String>[
         '트레이너 웹을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.',
         '트레이너 웹을 불러오는 중입니다',
@@ -160,8 +155,7 @@ void main() {
       }
     });
 
-    test('writes text safely and needs no relaxed CSP', () {
-      expect(code, contains('node.textContent = value;'));
+    test('needs no relaxed CSP', () {
       for (final String unsafe in <String>[
         'innerHTML',
         'outerHTML',

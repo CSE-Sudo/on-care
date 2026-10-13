@@ -255,15 +255,6 @@ Override _demoOptions() => trainerRoutineOptionsRepositoryProvider
     .overrideWithValue(const MockTrainerRoutineOptionsRepository());
 
 void main() {
-  // 이 파일의 흐름 테스트는 `MaterialApp(locale: ko)` 로 띄운다. 데모 저장소는
-  // 화면 언어를 위젯 밖([trainerResolvedLocaleProvider] — 브라우저 언어)에서
-  // 읽으므로, 테스트 바인딩의 기본값 en 이 새지 않게 브라우저 언어도 한국어로
-  // 둔다. 실제 앱에서는 두 값이 같은 곳에서 나온다. (#2301)
-  final TestPlatformDispatcher dispatcher =
-      TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher;
-  setUp(() => dispatcher.localesTestValue = const <Locale>[Locale('ko')]);
-  tearDown(dispatcher.clearLocalesTestValue);
-
   group('생성 실패 문구 분기', _rateLimitMessageTests);
 
   group('trainerRoutineOptionsRepositoryProvider', () {
@@ -369,7 +360,6 @@ void main() {
       List<RoutineHistoryEntry> history = const <RoutineHistoryEntry>[],
       List<TrainerMemo> memos = const <TrainerMemo>[],
       List<RoutineSuggestion>? suggestions,
-      Locale locale = const Locale('ko'),
       void Function(
         List<RoutineExercise> exercises,
         List<RoutineExercise> personal,
@@ -408,7 +398,7 @@ void main() {
               _demoSuggestions(),
           ],
           child: MaterialApp(
-            locale: locale,
+            locale: const Locale('ko'),
             theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -717,14 +707,13 @@ void main() {
     testWidgets('근거 코드는 화면에 그리지 않는다 — 사유 문장이 말한다 (#2579)', (tester) async {
       await pumpFlow(
         tester,
-        locale: const Locale('en'),
         suggestions: const <RoutineSuggestion>[
           RoutineSuggestion(
             id: 'sug-1',
-            name: 'Light interval run',
+            name: '가벼운 인터벌 러닝',
             minutes: 30,
             type: '유산소',
-            reason: 'None of the 240 min in the last 2 weeks was cardio.',
+            reason: '최근 2주 240분 가운데 유산소가 없었어요.',
             evidence: <String>[
               RoutineEvidence.recentPtFeedback,
               RoutineEvidence.lowCardio,
@@ -738,33 +727,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('None of the 240 min in the last 2 weeks was cardio.'),
+        find.text('최근 2주 240분 가운데 유산소가 없었어요.'),
         findsOneWidget,
       );
       for (final String label in <String>[
-        'Recent PT feedback',
-        'Little cardio lately',
+        '최근 PT 피드백 반영',
+        '최근 유산소 비중 낮음',
         'future_code',
       ]) {
         expect(find.text(label), findsNothing, reason: label);
       }
-    });
-
-    testWidgets('영어 화면의 후보 카드는 강도 계약값을 영어로 그린다 (#2301)', (tester) async {
-      await pumpFlow(
-        tester,
-        locale: const Locale('en'),
-        suggestions: const <RoutineSuggestion>[],
-      );
-      await generate(tester);
-
-      // 서버·데모가 보내는 강도는 번역하지 않는 계약값(`높음`)이다 — 화면이
-      // 옮긴다.
-      expect(
-        find.textContaining('45 min total · High', findRichText: true),
-        findsWidgets,
-      );
-      expect(find.textContaining('높음', findRichText: true), findsNothing);
     });
 
     testWidgets('건너뛴 뒤 조건 설정으로 돌아가 후보를 만들면 다시 PT 흐름이 된다 '

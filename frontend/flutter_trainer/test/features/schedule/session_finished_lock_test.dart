@@ -50,7 +50,7 @@ class _Taps {
   int delete = 0;
 }
 
-Widget _app(Widget child, {Locale locale = const Locale('ko')}) =>
+Widget _app(Widget child) =>
     ProviderScope(
       overrides: <Override>[
         clientsProvider.overrideWith(
@@ -59,7 +59,7 @@ Widget _app(Widget child, {Locale locale = const Locale('ko')}) =>
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -73,9 +73,7 @@ Widget _app(Widget child, {Locale locale = const Locale('ko')}) =>
 
 Future<_Taps> _pumpCard(
   WidgetTester tester,
-  ScheduleSession session, {
-  Locale locale = const Locale('ko'),
-}) async {
+  ScheduleSession session) async {
   final taps = _Taps();
   tester.view.physicalSize = const Size(420, 1000);
   tester.view.devicePixelRatio = 1.0;
@@ -95,7 +93,6 @@ Future<_Taps> _pumpCard(
         sendingProgram: false,
         onSendProgram: () {},
       ),
-      locale: locale,
     ),
   );
   await tester.pump();
@@ -212,16 +209,6 @@ void main() {
       await _openMenu(tester);
       await _tapItem(tester, 'session-edit-schedule-chip');
       expect(taps.editSchedule, 1);
-    });
-
-    testWidgets('영어 화면은 영어 안내다', (tester) async {
-      await _pumpCard(
-        tester,
-        _session(ScheduleStatus.cancelled),
-        locale: const Locale('en'),
-      );
-
-      expect(find.textContaining('A finished PT can only'), findsOneWidget);
     });
   });
 

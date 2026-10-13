@@ -121,13 +121,11 @@ Future<void> _pump(
   WidgetTester tester,
   _FakeAdminRepo repo, {
   bool admin = true,
-  Locale locale = const Locale('ko'),
 }) async {
   await pumpTrainerApp(
     tester,
     token: 'demo-trainer-token',
     at: AppRoutes.adminReports,
-    locale: locale,
     extraOverrides: <Override>[
       adminConsoleEnabledProvider.overrideWithValue(admin),
       adminTrainerRepositoryProvider.overrideWithValue(repo),
@@ -454,20 +452,6 @@ void main() {
 
       expect(find.text('소속 헬스장이 없어요'), findsOneWidget);
     });
-  });
-
-  testWidgets('영문 화면도 같은 동작을 보인다', (tester) async {
-    final _FakeAdminRepo repo = _FakeAdminRepo(
-      reports: <AdminTrainerReport>[_report()],
-    );
-    await _pump(tester, repo, locale: const Locale('en'));
-
-    expect(find.text('Reports & accounts'), findsWidgets);
-    expect(find.text('Impersonation'), findsOneWidget);
-    await _tapKey(tester, 'admin-report-dismiss-report-1');
-    await _confirm(tester, 'Dismiss');
-    expect(find.text('Report dismissed'), findsOneWidget);
-    await tester.pump(OnCareMotion.toastActionVisible);
   });
 
   group('사이드바', () {

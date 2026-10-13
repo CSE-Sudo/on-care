@@ -234,22 +234,17 @@ class _RealClientRepository implements ClientRepository {
   @override
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) async => ClientDietAnalysis.empty;
+    ClientPeriod period) async => ClientDietAnalysis.empty;
 
   @override
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  }) async => const ClientDietRecommendations();
+    String clientId) async => const ClientDietRecommendations();
 
   @override
   Future<ClientDietRecommendations> confirmDietRecommendation(
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   }) async => const ClientDietRecommendations();
 
   @override

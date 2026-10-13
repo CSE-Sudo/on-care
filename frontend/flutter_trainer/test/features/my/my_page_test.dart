@@ -9,7 +9,6 @@ import 'package:oncare_trainer/features/auth/presentation/controllers/session_co
 import 'package:oncare_trainer/features/my/data/trainer_location_service.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/presentation/pages/my_page.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -857,25 +856,6 @@ void main() {
       expect(locate, lessThan(firstResult));
       // 테스트 빌드에는 카카오 키가 없어 지도 자리를 비워 둔다.
       expect(find.byKey(const ValueKey<String>('gym-map')), findsNothing);
-    });
-
-    test('현재 위치 찾기 문구는 영어로도 있다', () async {
-      final AppLocalizations en = await AppLocalizations.delegate.load(
-        const Locale('en'),
-      );
-      expect(en.myGymLocateAction, 'Find near my location');
-      expect(
-        en.myGymLocationBlocked,
-        'Allow location access in your browser site settings, then try again.',
-      );
-      expect(
-        en.myGymNearbyCaption,
-        'Gyms near your current location. Your location is not saved.',
-      );
-      expect(
-        en.myGymNearbyEmpty,
-        'No gyms found within 2 km of your location. Try searching by name.',
-      );
     });
 
     testWidgets('소속이 없으면 내 정보에 회원에게 보이지 않는다고 알린다', (tester) async {

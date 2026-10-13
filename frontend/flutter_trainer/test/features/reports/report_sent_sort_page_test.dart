@@ -50,9 +50,7 @@ Map<String, ReportSendRecord> _records() {
 }
 
 Future<void> _open(
-  WidgetTester tester, {
-  Locale locale = const Locale('ko'),
-}) async {
+  WidgetTester tester) async {
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = const Size(1600, 1200);
   addTearDown(tester.view.resetPhysicalSize);
@@ -61,7 +59,6 @@ Future<void> _open(
     tester,
     token: 'demo-trainer-token',
     at: AppRoutes.reports,
-    locale: locale,
     extraOverrides: <Override>[
       reportSendHistoryProvider.overrideWith(
         (ref, DateTime week) async => _records(),
@@ -202,15 +199,4 @@ void main() {
     }
   });
 
-  testWidgets('영어에서도 정렬 이름이 번역된다', (tester) async {
-    await _open(tester, locale: const Locale('en'));
-
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('reports-sent-sort-button')),
-        matching: find.textContaining('Unread first'),
-      ),
-      findsOneWidget,
-    );
-  });
 }
