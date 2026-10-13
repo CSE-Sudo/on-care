@@ -40,6 +40,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     notification_service,
+    report_snapshot_service,
     trainer_report_summary_service,
     report_pdf_storage,
 )
@@ -352,6 +353,11 @@ def trainer_send_report(
         db, trainer.id, member_id, "trainer", text,
         notify=notification_service.WEEKLY_REPORT,
         report_week_start=week.isoformat(),
+        # 회원이 열 때마다 다시 계산하면 보낸 뒤 고친 기록·목표가 이 리포트를
+        # 바꾼다. 보내는 지금의 값을 함께 남긴다(#3349).
+        report_snapshot=report_snapshot_service.build_report_snapshot(
+            db, member_id, week, trainer_id=trainer.id
+        ),
     )
 
 
@@ -404,6 +410,12 @@ def trainer_send_report_pdf(
         raise HTTPException(status_code=413, detail="PDF 파일 용량이 너무 커요.")
     if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-1024:]:
         raise HTTPException(status_code=415, detail="유효한 PDF 파일이 아니에요.")
+    # 파일은 그 자체로 고정이지만, 회원 앱의 결과지가 이 주를 직전 주로 견줄 때는
+    # 수치를 다시 읽는다. 본문 전송과 같이 보내는 지금의 값을 남긴다(#3349). 파일을
+    # 쓰기 전에 만들어, 여기서 실패해도 남는 파일이 없게 한다.
+    snapshot = report_snapshot_service.build_report_snapshot(
+        db, member_id, week, trainer_id=trainer.id
+    )
 
     display_name = re.sub(
         r"[\x00-\x1f]", "_", PurePath(pdf.filename or "weekly-report.pdf").name
@@ -428,6 +440,7 @@ def trainer_send_report_pdf(
             attachment_file_id=file_id,
             attachment_file_size=len(data),
             report_week_start=week.isoformat(),
+            report_snapshot=snapshot,
         )
         # 동시 재시도 두 건이 모두 사전 조회를 통과할 수 있다. DB 멱등키에서
         # 진 요청이 기존 메시지를 반환했다면, 그 요청이 쓴 여분 파일을 지운다.

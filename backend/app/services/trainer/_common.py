@@ -1031,6 +1031,14 @@ def _routine_out(
         completed_duration_seconds=(
             completion.duration_seconds if completion is not None else None
         ),
+        # 회원이 실제로 한 세트·횟수·버틴 시간·중량(#3364). 배정 값과 다를 수
+        # 있어 완료한 줄은 이 값을 읽는다. 근력이 아닌 기록은 비어 있다.
+        completed_sets=completion.sets if completion is not None else None,
+        completed_reps=completion.reps if completion is not None else None,
+        completed_hold_seconds=(
+            completion.hold_seconds if completion is not None else None
+        ),
+        completed_weight=completion.weight if completion is not None else None,
         completed_intensity=completion.intensity if completion is not None else None,
         # 개인 운동 회원 피드백은 없앴다(#1825). 응답 모양은 옛 앱을 위해 남긴다.
         member_note="",

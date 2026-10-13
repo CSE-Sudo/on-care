@@ -1,8 +1,8 @@
 /// MY 탭 → 트레이너 리포트 화면과, 그 목록을 만드는 규칙. (#2232)
 ///
-/// 리포트에는 목록 엔드포인트가 없다. 트레이너가 보낼 때 대화에 남는 안내
-/// 한 줄이 곧 보낸 기록이라, 이 화면의 정확함은 **대화에서 무엇을 골라
-/// 남기는가**에 달려 있다. 여기서 보는 것이 그 규칙이다.
+/// 목록은 서버의 받은 리포트 목록(`GET /me/coach/reports`, #3348)에서 온다 —
+/// 주마다 마지막으로 받은 한 건, 최신 주부터. 대역과 데모 저장소가 같은 규칙
+/// (`foldReceivedReports`)으로 접으니, 여기서 보는 것이 그 규칙이다.
 library;
 
 import 'package:flutter/material.dart';
@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
+import 'package:oncare/features/member_coach/domain/received_report_list.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/pages/coach_reports_page.dart';
@@ -74,9 +75,9 @@ Finder _row(DateTime week) => find.byKey(
 
 /// 받은 리포트 목록을 읽는다. autoDispose 라 듣는 이를 먼저 둔다(#2643) —
 /// 듣는 이가 없으면 읽는 사이에 사라질 수 있다.
-Future<List<SentReportNotice>> _notices(ProviderContainer container) {
-  container.listen(sentReportNoticesProvider, (_, _) {});
-  return container.read(sentReportNoticesProvider.future);
+Future<List<ReceivedReport>> _notices(ProviderContainer container) async {
+  container.listen(receivedReportsProvider, (_, _) {});
+  return (await container.read(receivedReportsProvider.future)).reports;
 }
 
 /// 화면에 보이는 모든 글월.
@@ -104,10 +105,10 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final List<SentReportNotice> notices = await _notices(container);
+      final List<ReceivedReport> notices = await _notices(container);
 
       expect(notices, hasLength(1));
-      expect(notices.single.message.id, 'r1');
+      expect(notices.single.id, 'r1');
       expect(notices.single.weekStart, _lastWeek);
     });
 
@@ -126,10 +127,10 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final List<SentReportNotice> notices = await _notices(container);
+      final List<ReceivedReport> notices = await _notices(container);
 
       expect(
-        notices.map((SentReportNotice n) => n.weekStart).toList(),
+        notices.map((ReceivedReport n) => n.weekStart).toList(),
         <DateTime>[_lastWeek, _twoWeeksAgo, _threeWeeksAgo],
       );
     });
@@ -156,11 +157,11 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final List<SentReportNotice> notices = await _notices(container);
+      final List<ReceivedReport> notices = await _notices(container);
 
       // 회원이 받은 것은 마지막 글이다. 두 줄로 서면 어느 것을 열지 알 수 없다.
       expect(notices, hasLength(1));
-      expect(notices.single.message.id, 'new');
+      expect(notices.single.id, 'new');
     });
 
     test('대화 순서가 뒤바뀌어 와도 마지막 것을 고른다', () async {
@@ -185,9 +186,9 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final List<SentReportNotice> notices = await _notices(container);
+      final List<ReceivedReport> notices = await _notices(container);
 
-      expect(notices.single.message.id, 'new');
+      expect(notices.single.id, 'new');
     });
 
     test('보낸 시각은 안내가 온 시각이다', () async {
@@ -197,7 +198,7 @@ void main() {
       );
 
       expect(
-        SentReportNotice(message: notice, weekStart: _lastWeek).sentAt,
+        foldReceivedReports(<CoachMessage>[notice]).single.sentAt,
         DateTime(2026, 8, 16, 21, 5),
       );
     });
@@ -237,10 +238,7 @@ void main() {
         tester,
         FakeMemberCoachRepository(
           chat: <CoachMessage>[
-            reportNotice(
-              _lastWeek,
-              createdAt: DateTime(2026, 8, 16, 21),
-            ),
+            reportNotice(_lastWeek, createdAt: DateTime(2026, 8, 16, 21)),
           ],
         ),
       );
@@ -250,7 +248,7 @@ void main() {
         isTrue,
         reason: '어느 주의 리포트인지가 줄에 없다',
       );
-      expect(find.text('8월 16일 보냄'), findsOneWidget);
+      expect(find.text('김트레이너 · 8월 16일 보냄'), findsOneWidget);
     });
 
     // 서버 시각은 UTC 순간으로 온다. KST 오전 8시(= 전날 23:00Z)에 보낸
@@ -265,8 +263,8 @@ void main() {
         ),
       );
 
-      expect(find.text('8월 17일 보냄'), findsOneWidget);
-      expect(find.text('8월 16일 보냄'), findsNothing);
+      expect(find.text('김트레이너 · 8월 17일 보냄'), findsOneWidget);
+      expect(find.textContaining('8월 16일 보냄'), findsNothing);
     });
 
     testWidgets('KST 자정 직후에 보낸 리포트도 그날 날짜다', (tester) async {
@@ -280,7 +278,7 @@ void main() {
         ),
       );
 
-      expect(find.text('8월 17일 보냄'), findsOneWidget);
+      expect(find.text('김트레이너 · 8월 17일 보냄'), findsOneWidget);
     });
 
     testWidgets('KST 오전 9시 이후에 보낸 리포트는 날짜가 그대로다', (tester) async {
@@ -294,7 +292,7 @@ void main() {
         ),
       );
 
-      expect(find.text('8월 17일 보냄'), findsOneWidget);
+      expect(find.text('김트레이너 · 8월 17일 보냄'), findsOneWidget);
     });
 
     testWidgets('영어에서도 KST 날짜로 적는다', (tester) async {
@@ -315,6 +313,124 @@ void main() {
       );
     });
 
+    // 받은 리포트는 담당이 해제·교체된 뒤에도 남는다(#3348).
+    testWidgets('담당이 없어도 받은 리포트가 그대로 선다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          coach: null,
+          chat: <CoachMessage>[
+            reportNotice(_lastWeek, id: 'r1'),
+            reportNotice(_twoWeeksAgo, id: 'r2'),
+          ],
+        ),
+      );
+
+      expect(_row(_lastWeek), findsOneWidget);
+      expect(_row(_twoWeeksAgo), findsOneWidget);
+      expect(find.text('받은 리포트'), findsOneWidget);
+    });
+
+    testWidgets('담당이 없으면 피드백 칸은 세우지 않는다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          coach: null,
+          chat: <CoachMessage>[reportNotice(_lastWeek)],
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('my-weekly-feedback-send-now')),
+        findsNothing,
+      );
+      expect(find.text('보낸 주간 피드백'), findsNothing);
+    });
+
+    testWidgets('이름을 모르는 트레이너의 리포트는 보낸 날만 적는다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          coach: null,
+          chat: <CoachMessage>[
+            reportNotice(_lastWeek, createdAt: DateTime(2026, 8, 16, 21)),
+          ],
+        ),
+      );
+
+      expect(find.text('8월 16일 보냄'), findsOneWidget);
+    });
+
+    testWidgets('목록은 대화를 읽지 않고 선다', (tester) async {
+      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
+        chat: <CoachMessage>[
+          reportNotice(_twoWeeksAgo, id: 'r2'),
+          for (int i = 0; i < 120; i++) chatLine(i),
+          reportNotice(_lastWeek, id: 'r1'),
+        ],
+      );
+      await _pump(tester, repository);
+
+      expect(_row(_lastWeek), findsOneWidget);
+      expect(_row(_twoWeeksAgo), findsOneWidget);
+      expect(repository.reportCursors, <DateTime?>[null]);
+      expect(repository.chatCursors, isEmpty);
+    });
+
+    testWidgets('더 받을 주가 없으면 더 보기가 없다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          chat: <CoachMessage>[reportNotice(_lastWeek)],
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('coach-reports-load-more')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('더 보기를 누르면 앞선 주가 이어 선다', (tester) async {
+      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
+        chat: <CoachMessage>[
+          reportNotice(_lastWeek, id: 'r1'),
+          reportNotice(_twoWeeksAgo, id: 'r2'),
+          reportNotice(_threeWeeksAgo, id: 'r3'),
+        ],
+      )..reportPageSize = 2;
+      await _pump(tester, repository);
+      expect(_row(_threeWeeksAgo), findsNothing);
+      expect(find.text('이전 리포트 더 보기'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('coach-reports-load-more')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_row(_lastWeek), findsOneWidget);
+      expect(_row(_threeWeeksAgo), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('coach-reports-load-more')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('영어에서 더 보기도 번역되어 있다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          chat: <CoachMessage>[
+            reportNotice(_lastWeek, id: 'r1'),
+            reportNotice(_twoWeeksAgo, id: 'r2'),
+          ],
+        )..reportPageSize = 1,
+        locale: 'en',
+      );
+
+      expect(find.text('Show earlier reports'), findsOneWidget);
+    });
+
     testWidgets('받은 리포트가 없으면 빈 자리를 설명한다', (tester) async {
       await _pump(tester, FakeMemberCoachRepository());
 
@@ -330,7 +446,9 @@ void main() {
       await _pump(
         tester,
         FakeMemberCoachRepository(
-          feedback: <DateTime, MemberWeeklyFeedback>{_lastWeek: _sent(_lastWeek)},
+          feedback: <DateTime, MemberWeeklyFeedback>{
+            _lastWeek: _sent(_lastWeek),
+          },
         ),
       );
 
@@ -419,7 +537,9 @@ void main() {
     testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
       await _pump(
         tester,
-        FakeMemberCoachRepository(chat: <CoachMessage>[reportNotice(_lastWeek)]),
+        FakeMemberCoachRepository(
+          chat: <CoachMessage>[reportNotice(_lastWeek)],
+        ),
         locale: 'en',
       );
 
@@ -437,24 +557,34 @@ void main() {
     testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
       await _pump(
         tester,
-        FakeMemberCoachRepository(chat: <CoachMessage>[reportNotice(_lastWeek)]),
+        FakeMemberCoachRepository(
+          // 트레이너 이름은 번역이 아니라 자료다 — 줄에 그대로 실린다.
+          coach: const MemberCoach(
+            trainerId: 't1',
+            name: 'Alex Kim',
+            specialty: '',
+            career: '',
+            intro: '',
+            gymName: '',
+            goal: '',
+          ),
+          chat: <CoachMessage>[reportNotice(_lastWeek)],
+        ),
         locale: 'en',
       );
 
       final RegExp hangul = RegExp(r'[가-힣]');
       for (final String t in _texts(tester)) {
-        expect(
-          hangul.hasMatch(t),
-          isFalse,
-          reason: '영어 화면에 번역되지 않은 글이 있다: $t',
-        );
+        expect(hangul.hasMatch(t), isFalse, reason: '영어 화면에 번역되지 않은 글이 있다: $t');
       }
     });
 
     testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {
       await _pump(
         tester,
-        FakeMemberCoachRepository(chat: <CoachMessage>[reportNotice(_lastWeek)]),
+        FakeMemberCoachRepository(
+          chat: <CoachMessage>[reportNotice(_lastWeek)],
+        ),
         size: const Size(320, 1400),
       );
 

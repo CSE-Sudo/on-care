@@ -767,10 +767,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTrainerCertifications => 'Certifications';
 
   @override
-  String get exTrainerRecommendationReason =>
-      'A great fit for reaching my health goals';
-
-  @override
   String get exNearbyGymsMapLabel => 'Gyms near me';
 
   @override
@@ -1193,6 +1189,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exNearbyGyms => 'Nearby gyms';
 
   @override
+  String get exGymSearchResults => 'Search results';
+
+  @override
   String get exGymListCollapse => 'Collapse list';
 
   @override
@@ -1200,6 +1199,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymsLoadError => 'Couldn\'t load gyms.';
+
+  @override
+  String get exGymSearchError => 'Couldn\'t search gyms.';
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -1838,6 +1840,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String challengeAchieved(String reward) {
     return 'Goal reached! You get $reward when the week ends';
   }
+
+  @override
+  String get challengeGoalSource =>
+      'The goal follows the weekly workout goal in your MY health goals';
+
+  @override
+  String get challengeHistoryAction => 'Past results';
+
+  @override
+  String get challengeHistoryTitle => 'Past challenge results';
+
+  @override
+  String get challengeHistoryEmpty => 'No challenges joined yet';
+
+  @override
+  String get challengeHistoryEmptyMessage =>
+      'Join the weekly workout challenge on a Monday or Tuesday and your results will show up here.';
+
+  @override
+  String get challengeHistoryLoadFailed =>
+      'Couldn\'t load your challenge results';
+
+  @override
+  String challengeHistoryResult(int goal, int progress) {
+    return 'Goal $goal · $progress workout days';
+  }
+
+  @override
+  String get challengeStatusSucceeded => 'Succeeded';
+
+  @override
+  String get challengeStatusFailed => 'Missed';
+
+  @override
+  String get challengeStatusActive => 'In progress';
+
+  @override
+  String get challengeStatusSettling => 'Tallying';
 
   @override
   String get myCouponStatusUsable => 'Available';
@@ -2845,6 +2885,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exGymConsultNoTrainers => 'No trainers are affiliated yet.';
 
   @override
+  String get exGymNoTrainersCallHint =>
+      'No trainers from this gym have joined yet, so you can\'t request a consultation in the app. Please call the gym.';
+
+  @override
+  String get exGymNoTrainersHint =>
+      'No trainers from this gym have joined yet, so you can\'t request a consultation in the app.';
+
+  @override
+  String get exGymCallInquiry => 'Call the gym';
+
+  @override
   String get exGymTrainersLoadError => 'Couldn\'t load this gym\'s trainers.';
 
   @override
@@ -2971,6 +3022,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultCancelledByTrainerBody =>
       'The trainer cancelled this consultation. Try requesting another time.';
+
+  @override
+  String get exConsultTrainerNameMissing => 'Trainer unavailable';
 
   @override
   String get exExerciseGoal => 'Exercise goal';
@@ -3775,6 +3829,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGoalFlexibilityWeekly => 'Weekly stretching (min)';
+
+  @override
+  String get myGoalWorkoutsWeekly => 'Weekly workouts (days)';
+
+  @override
+  String myGoalWorkoutsWeeklyHint(int days) {
+    return 'This becomes your weekly workout challenge goal. Without one it is $days days, and a week you already joined keeps its goal.';
+  }
 
   @override
   String myGoalExerciseSuggestionNote(
@@ -5082,12 +5144,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachReportsLoadFailed => 'Couldn\'t load your reports';
 
   @override
+  String get coachReportsLoadMore => 'Show earlier reports';
+
+  @override
   String get weeklyFeedbackLoadFailed =>
       'Couldn\'t load the weekly feedback you sent';
 
   @override
   String coachReportSentOn(int month, int day) {
     return 'Sent $month/$day';
+  }
+
+  @override
+  String coachReportSentBy(String name, String sentOn) {
+    return '$name · $sentOn';
   }
 
   @override

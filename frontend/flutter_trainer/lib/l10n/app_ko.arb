@@ -1649,6 +1649,7 @@
   "notifTplConsultCancelledTitle": "상담 요청이 취소됐어요",
   "notifTplConsultBookingCancelledTitle": "확정된 상담이 취소됐어요",
   "notifTplConsultWithdrawnTitle": "회원 탈퇴로 상담 요청이 취소됐어요",
+  "notifTplConsultWithdrawnBookedTitle": "회원 탈퇴로 확정된 상담이 취소됐어요",
   "notifTplInviteAcceptedTitle": "담당 요청이 수락됐어요",
   "notifTplInviteAcceptedBody": "{name} 회원이 담당으로 연결됐어요.",
   "notifTplInviteRejectedTitle": "담당 요청이 거절됐어요",

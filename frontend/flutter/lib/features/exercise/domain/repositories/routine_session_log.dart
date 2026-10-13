@@ -9,6 +9,9 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 abstract interface class RoutineSessionLog {
   /// 배정 루틴을 수행한 기록을 남긴다. 출처는 `assigned_routine` 이라 회원이
   /// 고치거나 지우지 못한다(#499, #638).
+  ///
+  /// 근력이면 실제로 한 [sets]·[reps](버티는 운동이면 [holdSeconds])·[weight]
+  /// 가 기록에 남는다(#3364) — 실서버 `complete_assigned_routine` 과 같다.
   Future<ExerciseSession> addAssignedRoutineSession({
     required ExerciseType type,
     required int minutes,
@@ -18,6 +21,10 @@ abstract interface class RoutineSessionLog {
     required String name,
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
   });
 
   /// 완료를 되돌릴 때 그 수행 기록을 지운다. 배정 루틴 기록만 지운다.

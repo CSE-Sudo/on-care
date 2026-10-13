@@ -25,6 +25,7 @@ import 'package:oncare/features/auth/presentation/pages/password_reset_page.dart
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:oncare/features/auth/presentation/pages/splash_page.dart';
+import 'package:oncare/features/benefits/presentation/pages/challenge_history_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/coupon_detail_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/my_benefits_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/points_history_page.dart';
@@ -32,6 +33,7 @@ import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
+import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/presentation/pages/consultation_complete_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/consultation_history_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/consultation_request_page.dart';
@@ -247,6 +249,11 @@ GoRouter buildAppRouter({
         path: AppRoutes.myPointsHistory,
         builder: (context, state) => const PointsHistoryPage(),
       ),
+      // 지난 챌린지 결과(#3361) — 사용처의 챌린지 카드 `지난 결과` 에서 들어온다.
+      GoRoute(
+        path: AppRoutes.myChallengeHistory,
+        builder: (context, state) => const ChallengeHistoryPage(),
+      ),
       // 트레이너 리포트 — 받은 리포트 목록과 보낸 주간 피드백(#2232).
       GoRoute(
         path: AppRoutes.myCoachReports,
@@ -277,8 +284,13 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutes.gymDetail,
-        builder: (context, state) =>
-            GymDetailPage(gymId: state.pathParameters['gymId'] ?? ''),
+        // 이름 검색에서 들어오면 그 결과를 `extra` 로 받는다 — 외부 검색에서만
+        // 찾은 헬스장은 서버에 없어 id 로 다시 읽을 수 없다(#3355). 새로고침으로
+        // `extra` 가 사라지면 id 로 읽는 기존 경로를 탄다.
+        builder: (context, state) => GymDetailPage(
+          gymId: state.pathParameters['gymId'] ?? '',
+          initialGym: state.extra is Gym ? state.extra! as Gym : null,
+        ),
       ),
       GoRoute(
         path: AppRoutes.trainerDetail,

@@ -9,7 +9,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,7 +26,11 @@ from app.db.seed_notifications import (
 )
 from app.db.session import get_db
 from app.models.models import Notification
-from app.schemas.misc_api import NotificationAction, NotificationOut
+from app.schemas.misc_api import (
+    NotificationAction,
+    NotificationOut,
+    NotificationReport,
+)
 from app.schemas.user import (
     MemberNotificationSettings,
     MemberNotificationSettingsUpdate,
@@ -49,8 +53,10 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str]] = {
     "achievement": ("대시보드 보기", "dashboard"),
     # 트레이너가 한 일 — 예전에는 전부 `system` 으로 뭉쳐 갈 곳이 없었다(#636).
     notification_service.MEMBER_COACH_CHAT: ("메시지 보기", "coach_chat"),
-    # 주간 리포트 — 리포트 카드가 있는 코치 대화로 간다. 메시지와 목적지는 같고
-    # 알림함 아이콘만 다르다(#2085).
+    # 주간 리포트 — 목적지 값은 메시지와 같은 코치 대화다(#2085). 리포트 전용 값을
+    # 따로 두지 않는 까닭: 이미 배포된 앱은 모르는 값을 받으면 아무 데도 가지 않는다.
+    # 그 주 리포트를 바로 여는 데 쓰는 값은 응답의 `report` 칸으로 따로 준다
+    # ([_report_for], #3344) — 옛 앱은 그 칸을 읽지 않고 지금처럼 대화로 간다.
     notification_service.MEMBER_COACH_REPORT: ("리포트 보기", "coach_chat"),
     notification_service.MEMBER_ROUTINE: ("운동 보기", "exercise"),
     # PT 일정 등록·변경·취소·인계, 담당 해제·트레이너 탈퇴로 취소된 일정(#3028).
@@ -100,6 +106,31 @@ def _action_for(
     return NotificationAction(label=label, target=target)
 
 
+def _report_for(row: Notification) -> NotificationReport | None:
+    """리포트 알림이 가리키는 리포트(#3344). 가리킬 수 없으면 None.
+
+    리포트를 보낼 때 문장 틀 인자에 주(`week_start`)와 메시지(`message_id`)를 함께
+    남긴다(`trainer.chat.send_message`). 그 전에 쌓인 리포트 알림과 데모 시드에는
+    없다 — 그 알림은 `action` 대로 대화로 간다. 주가 날짜로 읽히지 않으면 없는
+    것으로 본다: 열 수 없는 값을 주느니 대화로 보내는 편이 낫다.
+    """
+    if row.category != notification_service.MEMBER_COACH_REPORT:
+        return None
+    args = row.template_args or {}
+    week_start = args.get("week_start")
+    if not isinstance(week_start, str):
+        return None
+    try:
+        date.fromisoformat(week_start)
+    except ValueError:
+        return None
+    message_id = args.get("message_id")
+    return NotificationReport(
+        week_start=week_start,
+        message_id=message_id if isinstance(message_id, str) and message_id else None,
+    )
+
+
 def notification_out(row: Notification) -> NotificationOut:
     """회원 알림 한 건의 응답. 제목·본문은 저장된 문장 그대로다."""
     # 데모 계정 알림은 회원 앱 데모처럼 정해 둔 시각으로 보인다(#2691).
@@ -115,6 +146,7 @@ def notification_out(row: Notification) -> NotificationOut:
         action=_action_for(row.category, row.action_target),
         invite_id=row.invite_id,
         template=row.template, args=row.template_args,
+        report=_report_for(row),
     )
 
 

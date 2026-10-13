@@ -171,6 +171,26 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "회원 탈퇴로 상담 요청이 취소됐어요",
         "이름 없는 회원 · 10월 1일",
     ),
+    # 수락되어 잡혀 있던 상담은 확정된 상담으로 부르고 시각을 적는다(#3360).
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {
+            "member_name": "지수",
+            "preferred_date": "2026-10-01",
+            "booked": True,
+            "starts_at": STARTS.isoformat(),
+        },
+        "",
+        "회원 탈퇴로 확정된 상담이 취소됐어요",
+        "지수 회원 · 10월 1일 09:05",
+    ),
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {"member_name": "", "preferred_date": "2026-10-01", "booked": True, "starts_at": None},
+        "",
+        "회원 탈퇴로 확정된 상담이 취소됐어요",
+        "이름 없는 회원 · 10월 1일",
+    ),
     (
         nt.TRAINER_INVITE_ACCEPTED,
         {"member_name": "지수"},
@@ -389,6 +409,35 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "",
         "상담 요청이 취소되었어요",
         "박코치 트레이너가 서비스를 떠나 상담 요청이 취소되었어요. 다른 트레이너에게 요청해 보세요.",
+    ),
+    # 수락되어 잡혀 있던 상담은 확정된 상담으로 부르고 시각을 적는다(#3360).
+    (
+        nt.MEMBER_CONSULT_TRAINER_LEFT,
+        {"trainer_name": "박코치", "booked": True, "starts_at": STARTS.isoformat()},
+        "",
+        "확정된 상담이 취소되었어요",
+        "박코치 트레이너가 서비스를 떠나 10월 1일 09:05 상담이 취소되었어요. 다른 트레이너에게 요청해 보세요.",
+    ),
+    (
+        nt.MEMBER_CONSULT_TRAINER_LEFT,
+        {"trainer_name": "박코치", "booked": True, "starts_at": None},
+        "",
+        "확정된 상담이 취소되었어요",
+        "박코치 트레이너가 서비스를 떠나 확정된 상담이 취소되었어요. 다른 트레이너에게 요청해 보세요.",
+    ),
+    (
+        nt.MEMBER_CONSULT_TRAINER_UNAVAILABLE,
+        {"trainer_name": "박코치"},
+        "",
+        "상담 요청이 취소되었어요",
+        "박코치 트레이너가 지금은 상담을 진행할 수 없어 상담 요청이 취소되었어요. 다른 트레이너에게 요청해 보세요.",
+    ),
+    (
+        nt.MEMBER_CONSULT_TRAINER_UNAVAILABLE,
+        {"trainer_name": "", "booked": True, "starts_at": STARTS.isoformat()},
+        "",
+        "확정된 상담이 취소되었어요",
+        "트레이너 트레이너가 지금은 상담을 진행할 수 없어 10월 1일 09:05 상담이 취소되었어요. 다른 트레이너에게 요청해 보세요.",
     ),
     (
         nt.MEMBER_TRAINER_LEFT,

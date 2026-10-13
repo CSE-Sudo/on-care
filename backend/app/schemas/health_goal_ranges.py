@@ -60,7 +60,9 @@ WeeklyFlexibilityMinutes = Annotated[int, Field(ge=0, le=MINUTES_PER_WEEK)]
 # 화면은 다루지 않지만 `HealthGoalsUpdate` 는 아직 받으므로, 여기서도 같은
 # 범위를 준다 — 받는 칸에 기준이 없으면 그 칸이 다음 구멍이 된다.
 
-#: 주간 운동 횟수. 상한 21은 하루 세 번이다.
+#: 주간 운동 횟수. 상한 21은 하루 세 번이다. 회원 앱 `건강 목표` 는 이 칸을 주간
+#: 운동 챌린지의 목표로 다시 다루고(#3361), 챌린지가 세는 날 수인 1~7 만 보낸다.
+#: 그 밖의 값은 챌린지가 3 또는 7 로 읽는다(`weekly_challenge_service.goal_for`).
 WeeklyWorkoutGoal = Annotated[int, Field(ge=0, le=21)]
 WeeklyExerciseMinutesGoal = Annotated[int, Field(ge=0, le=MINUTES_PER_WEEK)]
 WeeklyBurnGoal = Annotated[int, Field(ge=0, le=100000)]
