@@ -221,7 +221,29 @@ def expire_stale_requests(
 
     백엔드에 스케줄러가 없어 **읽는 시점에 정리한다** — 트레이너 자리 목록 조회·상담
     인박스 조회·상담 신청 생성이 부른다. 정리 범위를 그 트레이너의 행으로 한정해
-    한 번의 조회가 무거워지지 않게 한다.
+    한 번의 조회가 무거워지지 않게 한다. 회원 쪽 조회는 [expire_stale_for_member]
+    가 그 회원의 행으로 같은 정리를 한다(#3360).
+    """
+    return _expire_stale(db, _inbox_scope(trainer_id), now=now)
+
+
+def expire_stale_for_member(
+    db: Session, member_id: str, *, now: datetime | None = None
+) -> int:
+    """그 회원이 낸 지난 대기 요청을 만료 처리한다. 처리한 건수를 준다. (#3360)
+
+    [expire_stale_requests] 는 트레이너 쪽 조회와 새 신청에서만 돈다. 트레이너가
+    앱을 열지 않으면 시작 시각이 지난 요청이 회원 화면에 "대기 중" 으로 남고,
+    만료 알림도 오지 않고, 같은 트레이너에게 다시 신청할 수도 없다. 회원이 자기
+    상담 목록·상세를 읽을 때 이 정리를 돌린다.
+
+    커밋하지 않는다. 부르는 쪽이 자기 트랜잭션에 함께 담는다.
+    """
+    return _expire_stale(db, ConsultationRequest.member_id == member_id, now=now)
+
+
+def _expire_stale(db: Session, scope: Any, *, now: datetime | None = None) -> int:
+    """[scope] 안의 지난 대기 요청을 만료 처리한다(커밋 없음). 처리한 건수.
 
     `rejected`(트레이너의 판단)와 구분해 `expired` 로 남긴다 — 회원 화면 문구가
     다르고, 트레이너 인박스 대기 건수에서도 빠진다.
@@ -237,7 +259,7 @@ def expire_stale_requests(
     rows = db.scalars(
         select(ConsultationRequest)
         .where(
-            _inbox_scope(trainer_id),
+            scope,
             ConsultationRequest.status == "pending",
         )
         .order_by(ConsultationRequest.id)
@@ -269,7 +291,7 @@ def expire_stale_requests(
             db,
             row_id,
             to="expired",
-            scope=_inbox_scope(trainer_id),
+            scope=scope,
             decided_at=current,
         ):
             continue
@@ -418,6 +440,130 @@ def cancel_pending_for_trainer_deletion(
         )
     db.flush()
     return len(rows)
+
+
+#: 트레이너가 탈퇴·정지되어 거둔 상담 일정에 남기는 취소 사유(#3360). 트레이너만
+#: 보는 기록이다.
+TRAINER_EXIT_CONSULT_CANCEL_REASON = "트레이너 계정 종료"
+
+
+def _cancel_accepted_for_trainer_exit(
+    db: Session, trainer: User, *, template: str, now: datetime
+) -> int:
+    """떠나는 트레이너의 수락된 상담 중 시작 전인 것을 거두고 회원에게 알린다. (#3360)
+
+    일정·자리까지 한 번에 거두는 [cancel_accepted_booking] 을 그대로 쓴다 — 주체만
+    `trainer` 다. 이미 시작했거나 완료·노쇼로 끝난 상담은 있었던 일이라 `수락됨`
+    으로 둔다. 커밋하지 않는다. 거둔 수를 준다.
+    """
+    ids = db.scalars(
+        select(ConsultationRequest.id)
+        .where(
+            ConsultationRequest.trainer_id == trainer.id,
+            ConsultationRequest.status == "accepted",
+        )
+        .order_by(ConsultationRequest.id)
+    ).all()
+    trainer_name = trainer.name or ""
+    cancelled = 0
+    for consultation_id in ids:
+        try:
+            result = cancel_accepted_booking(
+                db,
+                consultation_id,
+                now=now,
+                source="trainer",
+                reason=TRAINER_EXIT_CONSULT_CANCEL_REASON,
+            )
+        except ConsultationAlreadyStarted:
+            continue
+        if result is None:
+            continue
+        row, starts_at = result
+        local = starts_at.astimezone(SEOUL) if starts_at is not None else None
+        _notify(
+            db,
+            user_id=row.member_id,
+            template=template,
+            template_args={
+                "trainer_name": trainer_name,
+                "booked": True,
+                "starts_at": local.isoformat() if local is not None else None,
+            },
+        )
+        cancelled += 1
+    return cancelled
+
+
+def cancel_accepted_for_trainer_deletion(
+    db: Session, trainer: User, *, now: datetime | None = None
+) -> int:
+    """탈퇴하는 트레이너가 수락해 둔 상담을 취소하고 회원에게 알린다. 취소한 수. (#3360)
+
+    대기 요청만 닫으면([cancel_pending_for_trainer_deletion]) 수락된 상담은
+    `수락됨` 으로 남는다 — 트레이너와 그 상담 일정은 사라졌는데 회원 카드는 이름
+    없는 확정 상담을 계속 보여 준다.
+
+    **트레이너를 지우기 전에** 부르고, 커밋하지 않는다 — 탈퇴와 같은 트랜잭션에
+    얹는다.
+    """
+    return _cancel_accepted_for_trainer_exit(
+        db,
+        trainer,
+        template=notification_templates.MEMBER_CONSULT_TRAINER_LEFT,
+        now=now or _now(),
+    )
+
+
+def cancel_for_trainer_suspension(
+    db: Session, trainer: User, *, now: datetime | None = None
+) -> int:
+    """정지된 트레이너에게 낸 대기·수락 상담을 취소하고 회원에게 알린다. 취소한 수. (#3360)
+
+    정지는 담당 연결과 담당 요청만 정리했다. 상담만 신청한 회원은 정지 사실을 모른
+    채 "대기 중"·"수락됨" 카드를 계속 봤다 — 정지된 트레이너는 로그인할 수 없어
+    그 요청에 답할 사람도, 상담에 나올 사람도 없다.
+
+    - 만료 시각이 지난 대기 요청은 평소처럼 만료로 내린다([expire_stale_requests]).
+    - 남은 대기 요청은 `cancelled` 로 닫고 잡고 있던 자리를 돌려준다. 탈퇴와 달리
+      트레이너의 자리는 남는다 — 정지가 풀리면 다시 쓰인다.
+    - 수락된 상담은 시작 전인 것만 일정·자리와 함께 거둔다.
+    - 처리자(`decided_by`)는 남기지 않는다. 남기면 회원 카드가 "트레이너가 상담
+      일정을 취소했어요. 다른 시간으로 다시 신청해 보세요" 를 붙이는데
+      ([_cancelled_by_trainer]), 정지된 트레이너에게는 다시 신청할 수 없다.
+
+    커밋하지 않는다. 다시 불러도 남은 것이 없으면 아무것도 바뀌지 않는다(멱등).
+    """
+    current = now or _now()
+    expire_stale_requests(db, trainer.id, now=current)
+    rows = db.scalars(
+        select(ConsultationRequest)
+        .where(
+            ConsultationRequest.trainer_id == trainer.id,
+            ConsultationRequest.status == "pending",
+        )
+        .order_by(ConsultationRequest.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).all()
+    trainer_name = trainer.name or ""
+    for row in rows:
+        row.status = "cancelled"
+        row.decided_at = current
+        reservation_service.release_consultation_hold(db, row.slot_id)
+        _notify(
+            db,
+            user_id=row.member_id,
+            template=notification_templates.MEMBER_CONSULT_TRAINER_UNAVAILABLE,
+            template_args={"trainer_name": trainer_name},
+        )
+    db.flush()
+    return len(rows) + _cancel_accepted_for_trainer_exit(
+        db,
+        trainer,
+        template=notification_templates.MEMBER_CONSULT_TRAINER_UNAVAILABLE,
+        now=current,
+    )
 
 
 def notify_trainers_of_account_deletion(
@@ -1133,8 +1279,15 @@ def list_my_consultations(
     limit: int = DEFAULT_PAGE,
     before: datetime | None = None,
     before_id: str | None = None,
+    now: datetime | None = None,
 ) -> list[ConsultationOut]:
-    """내가 보낸 상담 요청 한 쪽(최신순). 기본 50건, 다음 쪽은 커서로 이어 받는다."""
+    """내가 보낸 상담 요청 한 쪽(최신순). 기본 50건, 다음 쪽은 커서로 이어 받는다.
+
+    읽기 전에 내 지난 대기 요청을 만료 처리한다(#3360) — 트레이너가 앱을 열지
+    않아도 회원 화면이 "대기 중" 으로 남지 않는다. 커밋은 여기서 한다.
+    """
+    if expire_stale_for_member(db, member_id, now=now):
+        db.commit()
     query = _apply_cursor(
         select(ConsultationRequest).where(
             ConsultationRequest.member_id == member_id
@@ -1154,8 +1307,15 @@ def list_my_consultations(
 
 
 def get_my_consultation(
-    db: Session, member_id: str, consultation_id: str
+    db: Session,
+    member_id: str,
+    consultation_id: str,
+    *,
+    now: datetime | None = None,
 ) -> ConsultationOut | None:
+    # 목록과 같은 상태를 보여 준다 — 지난 대기 요청은 읽기 전에 만료로 내린다(#3360).
+    if expire_stale_for_member(db, member_id, now=now):
+        db.commit()
     row = db.scalar(
         select(ConsultationRequest).where(
             ConsultationRequest.id == consultation_id,
