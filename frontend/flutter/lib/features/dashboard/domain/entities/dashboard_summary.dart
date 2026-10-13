@@ -104,9 +104,8 @@ class DashboardSummary {
   /// 화면이 [AppLocalizations] 로 풀어 쓰고, [sodiumWarning]·[exerciseFeedback]
   /// 보다 우선한다.
   ///
-  /// 데모(목·시드)가 쓰는 통로다. 서버가 만든 문장은 번역본이 없으므로 그대로
-  /// 문자열 필드로 오지만, 데모 문구는 앱이 ARB 에 이미 양쪽 로케일로 갖고
-  /// 있는데도 한국어 문자열을 실어 보내 영어 데모에서 한국어가 나왔다(#435).
+  /// 데모(목·시드)가 쓰는 통로다. 서버가 만든 문장은 그대로 문자열 필드로
+  /// 오지만, 데모 문구는 앱이 ARB 에 갖고 있어 키만 싣는다(#435).
   final String? aiAdviceKey;
 
   /// [aiAdviceKey] 문장에 끼울 값. `sodium_over_sources` 면 `foods`(나트륨 상위

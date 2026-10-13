@@ -290,8 +290,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               ),
             ),
             // 이메일·비밀번호를 잊은 회원이 되찾는 입구(#2824). 비밀번호 칸
-            // 바로 아래 오른쪽 — 막혔다는 걸 깨닫는 자리다. 영어 문구가 길어
-            // 좁은 폭에서는 줄을 바꾼다.
+            // 바로 아래 오른쪽 — 막혔다는 걸 깨닫는 자리다. 좁은 폭에서는
+            // 줄을 바꾼다.
             Wrap(
               alignment: WrapAlignment.end,
               children: <Widget>[
@@ -380,8 +380,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               ],
               const SizedBox(height: OnCareSpacing.s12),
             ],
-            // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.
-            // Row 로 두면 영어에서 화면 밖으로 넘친다(폭 400 기준 실측).
+            // Wrap 인 이유: Row 로 두면 좁은 폭·큰 글자에서 화면 밖으로 넘친다.
             Wrap(
               alignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,

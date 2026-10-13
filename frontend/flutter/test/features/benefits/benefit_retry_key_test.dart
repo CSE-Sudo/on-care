@@ -109,7 +109,6 @@ void main() {
     required FakeBenefitsRepository benefits,
     FakeChallengeRepository? challenges,
     FakeStreakShieldRepository? shields,
-    Locale locale = const Locale('ko'),
   }) async {
     await tester.binding.setSurfaceSize(const Size(390, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -133,7 +132,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
-          locale: locale,
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const PointsBenefitsPage(points: 1000),
@@ -157,7 +156,7 @@ void main() {
   }
 
   /// 교환 버튼을 화면 안으로 올린다 — 교환 목록은 챌린지 카드 아래라, 그 위
-  /// 카드가 길어지면(영어 문구, 지난 결과 입구 #3361) 버튼이 시험 화면 밖으로
+  /// 카드가 길어지면(지난 결과 입구 #3361) 버튼이 시험 화면 밖으로
   /// 밀려 탭이 빗나간다.
   Future<Finder> exchangeButton(WidgetTester tester, String item) async {
     final Finder button = find.byKey(ValueKey<String>('shop-exchange-$item'));
@@ -275,32 +274,6 @@ void main() {
 
       await exchange(tester, 'streak_shield');
       expect(toast('지금은 교환할 수 없는 항목이에요.'), findsOneWidget);
-      await drainToast(tester);
-    });
-
-    testWidgets('영어 화면에서는 서버 사유 대신 앱 문구로 물러난다', (tester) async {
-      final _ShieldShopRepository repo = _ShieldShopRepository()
-        ..errors.addAll(<Object>[
-          _conflict('지금은 교환할 수 없는 항목이에요.'),
-          _conflict('포인트가 부족해요.'),
-        ]);
-      await pumpPage(tester, benefits: repo, locale: const Locale('en'));
-      final AppLocalizations l = AppLocalizations.of(
-        tester.element(find.byType(PointsBenefitsPage)),
-      );
-
-      Future<void> redeem() async {
-        await tester.tap(await exchangeButton(tester, 'streak_shield'));
-        await tester.pumpAndSettle();
-        await confirm(tester, l.myPointsExchangeConfirmAction);
-      }
-
-      await redeem();
-      expect(toast(l.myPointsExchangeBlocked), findsOneWidget);
-      await drainToast(tester);
-
-      await redeem();
-      expect(toast(l.myPointsInsufficient), findsOneWidget);
       await drainToast(tester);
     });
   });

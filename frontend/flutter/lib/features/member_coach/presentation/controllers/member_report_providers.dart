@@ -90,7 +90,6 @@ typedef ProviderRead = T Function<T>(ProviderListenable<T> provider);
 Future<ReportSheetInputs> loadMemberReportSheet(
   ProviderRead read, {
   required DateTime weekStart,
-  required String languageCode,
   String? messageId,
 }) async {
   // 목표를 못 읽어도 결과지는 선다 — 트레이너 웹과 같은 기본값으로 견준다.
@@ -99,7 +98,6 @@ Future<ReportSheetInputs> loadMemberReportSheet(
   ).then<UserProfile?>((UserProfile p) => p, onError: (Object _) => null);
   return read(memberReportSheetRepositoryProvider).fetch(
     weekStart: weekStart,
-    languageCode: languageCode,
     goals: reportSheetGoalsOf(profile),
     messageId: messageId,
   );

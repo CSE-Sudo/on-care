@@ -42,33 +42,6 @@ Future<void> _pumpNotificationPage(
 }
 
 void main() {
-  // 데모 알림은 문구 키로 로케일 문장을 고른다 — 영어 화면에 한국어가 섞이지
-  // 않는다(#1812).
-  testWidgets('영어 화면에서는 데모 알림 제목·본문·시각이 영어다', (WidgetTester tester) async {
-    await _pumpNotificationPage(
-      tester,
-      Brightness.light,
-      locale: const Locale('en'),
-    );
-
-    expect(find.text('New personal exercises'), findsOneWidget);
-    expect(find.text('Scheduled maintenance'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('notification-time-seed-noti-5')),
-      findsOneWidget,
-    );
-    expect(
-      tester
-          .widget<Text>(
-            find.byKey(const ValueKey<String>('notification-time-seed-noti-5')),
-          )
-          .data,
-      '30m ago',
-    );
-    expect(find.text('새 개인운동이 왔어요'), findsNothing);
-    expect(find.text('30분 전'), findsNothing);
-  });
-
   for (final Brightness brightness in Brightness.values) {
     testWidgets(
       'notification page stays light in ${brightness.name} system mode',

@@ -98,7 +98,6 @@ extension _LocalApiCommon on LocalApiInterceptor {
   /// 서버 전체 AI 하루 상한(#3032) — 실서버 `ai_call_errors` 와 같은 503 본문.
   /// 다음 자정까지 남은 초 대신 고정 값을 싣는다(목업은 시각을 흉내 내지 않는다).
   Response<Object?> _aiCapacity(RequestOptions options) {
-    final bool english = _prefersEnglish(options);
     return Response<Object?>(
       requestOptions: options,
       statusCode: 503,
@@ -108,9 +107,7 @@ extension _LocalApiCommon on LocalApiInterceptor {
       data: <String, Object?>{
         'detail': <String, Object?>{
           'code': 'ai_capacity',
-          'message': english
-              ? 'AI features are taking a break due to high demand. Please try again tomorrow.'
-              : '지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 이용해 주세요.',
+          'message': '지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 이용해 주세요.',
         },
       },
     );
@@ -125,15 +122,6 @@ extension _LocalApiCommon on LocalApiInterceptor {
   }
 }
 
-/// 요청의 화면 언어 — `Accept-Language` 가 영어면 `en`, 아니면 `ko`.
-/// 서버 `core.locale` 처럼 지원하지 않는 언어는 한국어로 떨어진다.
-String _requestLang(RequestOptions options) {
-  final Object? header = options.headers['Accept-Language'];
-  return header is String && header.trim().toLowerCase().startsWith('en')
-      ? 'en'
-      : 'ko';
-}
-
 const List<String> _weekdayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
 /// 요청 몸통을 Map 으로. dio 는 Map 으로도 JSON 문자열로도 준다.
@@ -143,12 +131,6 @@ Map<String, Object?> _payloadOf(Object? body) {
     return (jsonDecode(body) as Map<Object?, Object?>).cast<String, Object?>();
   }
   return <String, Object?>{};
-}
-
-/// 요청 언어가 영어인가 — 실서버가 `Accept-Language` 로 고르는 것과 같다.
-bool _prefersEnglish(RequestOptions options) {
-  final Object? lang = options.headers['Accept-Language'];
-  return lang is String && lang.toLowerCase().startsWith('en');
 }
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);

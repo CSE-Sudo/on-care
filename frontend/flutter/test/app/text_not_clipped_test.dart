@@ -94,6 +94,6 @@ void main() {
 
     expect(_isClipped(tester, 'On - Care'), isFalse);
     // 주간 추이 그래프의 목표 라벨 — `목표` 아래 줄(값)이 상자에 눌려 잘렸다.
-    expect(_isClipped(tester, 'Goal'), isFalse);
+    expect(_isClipped(tester, '목표'), isFalse);
   });
 }

@@ -351,19 +351,6 @@ void main() {
       expect(find.text('키는 50~300cm 사이로 입력해 주세요'), findsOneWidget);
       expect(find.text('체중은 20~500kg 사이로 입력해 주세요'), findsOneWidget);
     });
-
-    testWidgets('영어 문구도 같은 범위를 말한다', (tester) async {
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-      expect(en.onboardRequiredTag, '(required)');
-      expect(
-        en.onboardHeightRange(50, 300),
-        'Height must be between 50 and 300 cm',
-      );
-      expect(
-        en.onboardWeightRange(20, 500),
-        'Weight must be between 20 and 500 kg',
-      );
-    });
   });
 
   group('하단 버튼', () {

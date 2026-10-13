@@ -859,7 +859,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
 
   /// 실패한 까닭에 맞는 안내(#3363). "이미 보유" 는 회원이 바란 상태가 이미 서
   /// 있으므로 실패가 아니라 완료로 알린다([owned]). [blocked] 는 서버 사유를 쓸 수
-  /// 없을 때(영어 화면 등)의 문구, [failed] 는 답을 받지 못해 다시 시도를 권하는
+  /// 없을 때의 문구, [failed] 는 답을 받지 못해 다시 시도를 권하는
   /// 문구다.
   void _toastRejection(
     AppLocalizations l,
@@ -879,8 +879,8 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
             : l.myPointsInsufficient,
       BenefitRejectionKind.shieldLimit => l.myPointsShieldLimit,
       BenefitRejectionKind.monthlyLimit => l.myPointsMonthlyLimit,
-      BenefitRejectionKind.alreadyOwned || BenefitRejectionKind.blocked =>
-        serverDetailOr(l, rejection.detail, blocked),
+      BenefitRejectionKind.alreadyOwned ||
+      BenefitRejectionKind.blocked => serverDetailOr(rejection.detail, blocked),
       BenefitRejectionKind.retryable => failed,
     };
     showAppToast(context, message, type: AppToastType.error);

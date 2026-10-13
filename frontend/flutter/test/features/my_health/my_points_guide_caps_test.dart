@@ -74,20 +74,6 @@ void main() {
     );
   });
 
-  testWidgets('영어 안내창은 한 번이면 once a day 로 적는다', (WidgetTester tester) async {
-    await openGuide(tester, const Locale('en'));
-
-    expect(
-      inDialog('Log a meal by photo (up to 3 times a day)'),
-      findsOneWidget,
-    );
-    expect(
-      inDialog('Log a workout yourself (up to 3 times a day)'),
-      findsOneWidget,
-    );
-    expect(inDialog('Finish a personal exercise (once a day)'), findsOneWidget);
-  });
-
   testWidgets('안내창의 숫자는 적립 규칙에서 읽는다', (WidgetTester tester) async {
     final AppLocalizations l = await openGuide(tester, const Locale('ko'));
 

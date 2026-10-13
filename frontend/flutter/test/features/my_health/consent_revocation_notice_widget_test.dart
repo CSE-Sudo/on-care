@@ -1,8 +1,7 @@
 /// 담당 해제 확인 창과 개인정보 처리방침 화면이 동의 철회를 실제로 그리는지. (#1631)
 ///
 /// 문구만 바꿨으므로 화면 모양은 그대로다. 여기서는 바뀐 문구가 확인 창과
-/// 처리방침 화면에 **한국어·영어 모두** 나타나는지, 확인 창의 버튼이 예전과
-/// 같은지를 본다.
+/// 처리방침 화면에 나타나는지, 확인 창의 버튼이 예전과 같은지를 본다.
 library;
 
 import 'package:flutter/material.dart';
@@ -67,7 +66,7 @@ Future<void> _openDialog(
 }
 
 void main() {
-  for (final Locale locale in const <Locale>[Locale('ko'), Locale('en')]) {
+  for (final Locale locale in const <Locale>[Locale('ko')]) {
     final AppLocalizations l = lookupAppLocalizations(locale);
     final String tag = locale.languageCode;
 
@@ -134,9 +133,7 @@ void main() {
         l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
       );
       expect(body, findsOneWidget);
-      final String heading = tag == 'ko'
-          ? '5. 담당 트레이너와의 정보 공유 및 동의 철회'
-          : '5. Sharing with your trainer and withdrawing consent';
+      const String heading = '5. 담당 트레이너와의 정보 공유 및 동의 철회';
       expect(tester.widget<Text>(body).data, contains(heading));
       expect(find.text(l.myLegalPrivacyTitle), findsWidgets);
       expect(tester.takeException(), isNull);

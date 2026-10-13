@@ -626,7 +626,6 @@ void main() {
 
   group('문구', () {
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
     test('닿지 못한 실패는 지금처럼 다시 시도를 권한다', () {
       expect(
@@ -648,22 +647,19 @@ void main() {
     });
 
     test('담당 해제는 무엇을 보냈든 해제를 말하고 재시도를 권하지 않는다', () {
-      for (final AppLocalizations l in <AppLocalizations>[ko, en]) {
-        for (final CoachSendKind kind in CoachSendKind.values) {
-          final String text = coachSendFailureText(
-            l,
-            kind,
-            CoachSendFailure.unassigned,
-          );
-          expect(
-            text,
-            kind == CoachSendKind.weeklyFeedback
-                ? l.weeklyFeedbackSendUnassigned
-                : l.coachChatUnassigned,
-          );
-          expect(text, isNot(contains('다시 시도')));
-          expect(text.toLowerCase(), isNot(contains('try again')));
-        }
+      for (final CoachSendKind kind in CoachSendKind.values) {
+        final String text = coachSendFailureText(
+          ko,
+          kind,
+          CoachSendFailure.unassigned,
+        );
+        expect(
+          text,
+          kind == CoachSendKind.weeklyFeedback
+              ? ko.weeklyFeedbackSendUnassigned
+              : ko.coachChatUnassigned,
+        );
+        expect(text, isNot(contains('다시 시도')));
       }
     });
 
@@ -677,7 +673,6 @@ void main() {
         ko.emoteSendLocked,
       );
       expect(ko.emoteSendLocked, isNot(ko.emoteSendFailed));
-      expect(en.emoteSendLocked, isNot(en.emoteSendFailed));
     });
 
     test('값이 거절된 실패는 다시 시도가 아니라 내용을 가리킨다', () {
@@ -1010,25 +1005,6 @@ void main() {
         find.byKey(const ValueKey<String>('coach-image-retry')),
         findsOneWidget,
       );
-    });
-
-    testWidgets('영어 화면에서도 다시 받기를 안내한다', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: <Override>[
-            coachImageProvider(
-              image.downloadPath,
-            ).overrideWith((ref) async => null),
-          ],
-          child: _app(
-            const Scaffold(body: CoachImageAttachment(attachment: image)),
-            locale: const Locale('en'),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Tap to load again'), findsOneWidget);
     });
   });
 

@@ -72,7 +72,6 @@ class Source:
 SOURCES: tuple[Source, ...] = (
     Source("member-ko", "flutter", "ko", "회원 앱"),
     Source("trainer-ko", "flutter_trainer", "ko", "트레이너 웹"),
-    Source("member-en", "flutter", "en", "Member app"),
 )
 
 

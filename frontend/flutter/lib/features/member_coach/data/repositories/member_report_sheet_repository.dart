@@ -31,9 +31,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 abstract interface class MemberReportSheetRepository {
   /// [weekStart] 가 든 주의 결과지 자료.
   ///
-  /// [languageCode] 는 데모 자료의 회원 답(한 줄 피드백)을 고르는 데 쓴다 — 실서버
-  /// 자료는 회원이 적은 그대로라 언어와 무관하다. [goals] 는 회원이 MY 에서 정한
-  /// 주간 운동 목표다.
+  /// [goals] 는 회원이 MY 에서 정한 주간 운동 목표다.
   ///
   /// 그 주 자체를 읽지 못하면 던진다. 답·추이·직전 주는 못 읽어도 던지지 않고
   /// 그 칸만 `미응답`·`불러올 수 없음`·`미집계` 로 선다 — 트레이너 웹과 같다.
@@ -45,7 +43,6 @@ abstract interface class MemberReportSheetRepository {
   /// 받지도 사지도 않은 주면 [ForbiddenError] 를 던진다(#3366).
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     ReportSheetGoals goals,
     String? messageId,
   });
@@ -68,7 +65,6 @@ class DioMemberReportSheetRepository implements MemberReportSheetRepository {
   @override
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     ReportSheetGoals goals = const ReportSheetGoals(),
     String? messageId,
   }) async {
@@ -223,7 +219,6 @@ class DemoMemberReportSheetRepository implements MemberReportSheetRepository {
   @override
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     // 데모 목표는 트레이너 웹 데모의 김민수 목표(`kDemoReportGoals`)다. 회원
     // 앱 MY 의 목표로 바꾸면 두 앱의 달성률이 어긋난다.
     ReportSheetGoals goals = const ReportSheetGoals(),
@@ -239,7 +234,6 @@ class DemoMemberReportSheetRepository implements MemberReportSheetRepository {
       fixture: _fixture ?? DemoFixture.load(),
       weekStart: monday,
       now: _now(),
-      languageCode: languageCode,
     );
   }
 }

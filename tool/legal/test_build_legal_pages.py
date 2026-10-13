@@ -195,8 +195,8 @@ class BuildTest(unittest.TestCase):
     def test_location_terms_carry_only_the_member_app(self) -> None:
         """위치를 쓰는 것은 회원 앱뿐이다 — 트레이너 웹 절은 없다(#3136)."""
         location = blp.build(self.tmp)[self.tmp / "legal" / "location.html"]
-        for anchor in ("member-ko", "member-en"):
-            self.assertIn(f'id="{anchor}"', location)
+        self.assertIn('id="member-ko"', location)
+        self.assertNotIn('id="member-en"', location)
         for anchor in ("trainer-ko", "trainer-en"):
             self.assertNotIn(f'id="{anchor}"', location)
         self.assertNotIn("{contact}", location)
@@ -211,7 +211,7 @@ class BuildTest(unittest.TestCase):
     def test_doc_sources_keep_the_source_order(self) -> None:
         doc = next(d for d in blp.DOCS if d.slug == "location")
         self.assertEqual(
-            [s.anchor for s in doc.sources()], ["member-ko", "member-en"]
+            [s.anchor for s in doc.sources()], ["member-ko"]
         )
         privacy = next(d for d in blp.DOCS if d.slug == "privacy")
         self.assertEqual(privacy.sources(), blp.SOURCES)

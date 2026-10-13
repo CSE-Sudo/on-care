@@ -112,23 +112,4 @@ void main() {
     expect(historyButton, findsNothing);
     expect(find.byKey(const Key('weeklyChallengeGoalSource')), findsOneWidget);
   });
-
-  testWidgets('영어에서도 아랫줄이 번역된다', (tester) async {
-    await pumpCard(
-      tester,
-      weeklyWith(),
-      onViewHistory: () {},
-      locale: const Locale('en'),
-    );
-
-    expect(tester.widget<AppButton>(historyButton).label, 'Past results');
-    expect(
-      find.text(
-        keepWords(
-          'The goal follows the weekly workout goal in your MY health goals',
-        ),
-      ),
-      findsOneWidget,
-    );
-  });
 }

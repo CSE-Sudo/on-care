@@ -219,13 +219,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeExerciseBurned => '소모 칼로리';
 
   @override
-  String get homeMealReasonSodium => '나트륨 조절에 좋아요';
-
-  @override
   String get homeMealSourceTrainer => '트레이너 추천';
 
   @override
   String get homeMealSourceAi => 'AI 추천';
+
+  @override
+  String get homeMealReasonSodium => '나트륨 조절에 좋아요';
 
   @override
   String get homeMealTagLowSodium => '저나트륨';
@@ -5104,9 +5104,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reauthTitle => '본인 확인';
 
   @override
-  String get reauthEmailMessage => '이메일을 바꾸면 로그인 아이디와 비밀번호 재설정 메일 주소가 바뀌어요.';
-
-  @override
   String get emailChangeCodeTitle => '새 이메일 인증';
 
   @override
@@ -5116,6 +5113,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get emailChangeCodeNext => '다음';
+
+  @override
+  String get reauthEmailMessage => '이메일을 바꾸면 로그인 아이디와 비밀번호 재설정 메일 주소가 바뀌어요.';
 
   @override
   String get reauthPasswordPrompt => '계속하려면 현재 비밀번호를 입력해 주세요.';

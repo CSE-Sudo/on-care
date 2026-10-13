@@ -679,14 +679,7 @@ class _RecommendedExerciseRowState
                       if (routine.effect.isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(
-                          // 공용 표의 자동 문구는 화면 언어로 옮긴다(#2725).
-                          // 번역 표는 두 앱이 함께 쓰는 `oncare_ui` 한 벌이다(#2906).
-                          keepWords(
-                            routineEffectText(
-                              routine.effect,
-                              languageCode: l.localeName,
-                            ),
-                          ),
+                          keepWords(routine.effect),
                           key: ValueKey<String>('routine-effect-${routine.id}'),
                           style: detailStyle,
                         ),

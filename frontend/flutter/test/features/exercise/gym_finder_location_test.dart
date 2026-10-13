@@ -31,7 +31,6 @@ import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/domain/repositories/place_repository.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -355,15 +354,6 @@ void main() {
     expect(find.byKey(_notice), findsNothing);
   });
 
-  testWidgets('영어로도 안내가 보인다', (WidgetTester tester) async {
-    final AppLocalizationsEn en = AppLocalizationsEn();
-    await _pump(tester, _FakeLocationService(), locale: const Locale('en'));
-
-    expect(find.text(en.gymDefaultAreaTitle), findsOneWidget);
-    expect(find.text(en.gymDefaultAreaMessage), findsOneWidget);
-    expect(find.text(en.gymUseLocation), findsOneWidget);
-  });
-
   testWidgets('위치를 얻는 중에는 [위치 사용] 을 다시 누를 수 없다', (WidgetTester tester) async {
     final Completer<PlaceQuery> pending = Completer<PlaceQuery>();
     final _SlowLocationService service = _SlowLocationService(pending.future);
@@ -430,19 +420,6 @@ void main() {
 
       expect(service.checks, 0);
       expect(service.locates, 0);
-    });
-
-    testWidgets('영어로도 안내 줄이 없다', (WidgetTester tester) async {
-      final AppLocalizationsEn en = AppLocalizationsEn();
-      await _pump(
-        tester,
-        _FakeLocationService(),
-        locale: const Locale('en'),
-        demo: true,
-      );
-
-      expect(find.text(en.gymDefaultAreaTitle), findsNothing);
-      expect(find.text(en.gymUseLocation), findsNothing);
     });
   });
 
