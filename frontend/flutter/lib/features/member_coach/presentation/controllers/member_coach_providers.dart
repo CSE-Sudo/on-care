@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
@@ -57,11 +58,23 @@ final Provider<MemberCoachRepository> memberCoachRepositoryProvider =
           // 담당 트레이너 연결은 헬스장 저장소가 들고 있다 — 트레이너를 끊으면
           // 담당 코치도 없어야 헤더가 AI 챗봇 입구로 바뀐다(#1840, #1865).
           linked: gym is MockGymRepository ? () => gym.hasTrainer : null,
+          // 이용권은 이모티콘 원장이 들고 있다 — 끝난 이모티콘은 실서버처럼
+          // 전송에서 막힌다(#3346). 보낼 때 찾는다.
+          emoteUnlocked: (String emoteId) =>
+              ref.read(demoEmoteBookProvider).unlocked.containsKey(emoteId),
           // 끊긴 뒤 온 담당 요청을 수락하면 같은 곳에 다시 잇는다(#2659).
           relink: gym is MockGymRepository ? gym.linkTrainer : null,
           // 보내면 잠시 뒤 트레이너가 답한다 — 실서버에서는 트레이너가 실제로
           // 답한다(#2663).
           replyDelay: const Duration(seconds: 2),
+          // 대화를 읽으면 메시지·리포트 알림도 읽음이 된다(#3343). 알림은 로컬
+          // 목업 API 가 들고 있어 서버와 같은 경로로 알린다. 읽을 때 찾는다 —
+          // 테스트가 목업 API 없는 Dio 를 넣었으면 대화만 읽음이 된다.
+          onChatRead: () async {
+            final Dio dio = ref.read(dioProvider);
+            if (LocalApiInterceptor.of(dio) == null) return;
+            await dio.post<Object?>('/me/coach/chat/read');
+          },
         );
         ref.onDispose(mock.dispose);
         return mock;

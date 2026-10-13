@@ -104,6 +104,22 @@ class DioGymRepository implements GymRepository {
   );
 
   @override
+  Future<Gym?> fetchGym(String gymId) async {
+    try {
+      // 좌표는 `/me/gym` 과 같은 규칙 — 회원 위치를 얻었을 때만 싣는다(#3044).
+      final res = await _dio.get<Map<String, Object?>>(
+        '/gyms/$gymId',
+        queryParameters: _memberCoordinates,
+      );
+      return res.data == null ? null : _gym(res.data!);
+    } on DioException catch (e) {
+      // 카카오로 찾은 헬스장처럼 서버에 없는 헬스장은 404 다.
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  @override
   Future<List<Trainer>> fetchTrainersByGym(String gymId) async {
     try {
       return await _list('/gyms/$gymId/trainers', _trainer);

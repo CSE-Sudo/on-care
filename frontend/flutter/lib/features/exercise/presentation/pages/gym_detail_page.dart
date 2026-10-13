@@ -12,7 +12,6 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
-import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -56,20 +55,31 @@ class GymDetailPage extends ConsumerWidget {
       AsyncData<Gym?>(:final value) when value?.id == gymId => value,
       _ => null,
     };
-    final Gym? gym = nearbyGym ?? myGym;
+    final bool listsLoading = nearbyAsync.isLoading || myGymAsync.isLoading;
+    // 목록은 서버가 반경·개수로 잘라 준다. 두 곳 어디에도 없을 때만 이 헬스장
+    // 하나를 따로 읽는다 — 담당 트레이너의 먼 소속 헬스장처럼 목록 밖에서
+    // 들어온 상세가 "찾을 수 없음"이 되지 않게(#3356).
+    final AsyncValue<Gym?> singleAsync =
+        nearbyGym == null && myGym == null && !listsLoading
+        ? ref.watch(gymProvider(gymId))
+        : const AsyncValue<Gym?>.data(null);
+    final Gym? gym = nearbyGym ?? myGym ?? singleAsync.valueOrNull;
     final Widget body;
     if (gym != null) {
       body = _GymDetails(gym: gym, isMyGym: myGym != null);
-    } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
+    } else if (listsLoading || singleAsync.isLoading) {
       body = const AppLoading();
-    } else if (nearbyAsync.hasError || myGymAsync.hasError) {
+    } else if (nearbyAsync.hasError ||
+        myGymAsync.hasError ||
+        singleAsync.hasError) {
       body = appErrorStateFor(
         context,
-        error: nearbyAsync.error ?? myGymAsync.error,
+        error: nearbyAsync.error ?? myGymAsync.error ?? singleAsync.error,
         title: l.exGymsLoadError,
         onRetry: () {
           ref.invalidate(gymFinderResultsProvider);
           ref.invalidate(myGymProvider);
+          ref.invalidate(gymProvider(gymId));
         },
       );
     } else {
@@ -121,7 +131,6 @@ class _GymDetails extends ConsumerWidget {
     final TextStyle bodyStyle = tokens
         .text(OnCareTypography.body)
         .copyWith(color: OnCareColors.textPrimary);
-    final String? myTrainerId = ref.watch(myTrainerProvider).valueOrNull?.id;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(
@@ -282,16 +291,12 @@ class _GymDetails extends ConsumerWidget {
                 key: const Key('gym-consult-start'),
                 label: l.exGymConsultRequest,
                 // 상담은 트레이너 한 사람에게만 간다 — 헬스장에서 시작해도 소속
-                // 트레이너 중 누구에게 보낼지 먼저 고른다. 담당이 있으면 다른
-                // 헬스장 트레이너에게는 낼 수 없다(#2611).
-                onPressed: myTrainerId == null
-                    ? () => _pickTrainerForConsultation(context, gym)
-                    : null,
+                // 트레이너 중 누구에게 보낼지 먼저 고른다. 담당이 있어도 낼 수
+                // 있다 — 상담은 담당을 바꾸지 않는다(#3358).
+                onPressed: () => _pickTrainerForConsultation(context, gym),
                 size: OnCareButtonSize.large,
                 fullWidth: true,
               ),
-              if (myTrainerId != null)
-                ConsultLinkedNotice(myTrainerId: myTrainerId),
             ],
           ],
         ),

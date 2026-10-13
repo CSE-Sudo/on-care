@@ -150,6 +150,7 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
     status: _str(json['status']),
     note: _str(json['note']),
     sessionNumber: _positiveIntOrNull(json['session_number']),
+    trainerName: _str(json['trainer_name']).trim(),
     program: rawProgram is List<Object?>
         ? rawProgram
               .map((Object? item) {

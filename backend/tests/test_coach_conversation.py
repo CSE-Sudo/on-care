@@ -258,3 +258,133 @@ def test_parse_sources_survives_corrupt_values():
     assert conversation.parse_sources("") == []
     assert conversation.parse_sources("not json") == []
     assert conversation.parse_sources('{"not": "a list"}') == []
+
+
+# ── 전송 멱등키로 찾는 질문·답 (#3352) ────────────────────────────────
+
+
+def test_append_exchange_returns_the_two_stored_rows(db_session, member):
+    """저장한 두 줄을 돌려준다 — 응답이 식별자·저장 시각을 싣는다."""
+    user, _ = member
+
+    saved = conversation.append_exchange(
+        db_session, user.id, question="질문", reply="답", sources=["가이드"],
+        client_request_id="key-1",
+    )
+
+    assert (saved.question.role, saved.reply.role) == ("user", "coach")
+    assert saved.question.seq + 1 == saved.reply.seq
+    assert saved.question.conversation_id == saved.conversation.id
+    assert saved.question.created_at is not None
+    assert saved.reply.created_at is not None
+    assert (saved.question.client_request_id, saved.reply.client_request_id) == (
+        "key-1",
+        "key-1",
+    )
+
+
+def test_append_exchange_without_a_key_leaves_it_empty(db_session, member):
+    user, _ = member
+
+    saved = conversation.append_exchange(
+        db_session, user.id, question="질문", reply="답", sources=[]
+    )
+
+    assert saved.question.client_request_id is None
+    assert saved.reply.client_request_id is None
+
+
+def test_exchange_by_request_finds_the_pair(db_session, member):
+    """같은 글을 두 번 보냈어도 키로 제 쌍을 찾는다."""
+    user, _ = member
+    first = conversation.append_exchange(
+        db_session, user.id, question="네", reply="첫 답", sources=[],
+        client_request_id="key-a",
+    )
+    second = conversation.append_exchange(
+        db_session, user.id, question="네", reply="둘째 답", sources=[],
+        client_request_id="key-b",
+    )
+
+    found = conversation.exchange_by_request(db_session, user.id, "key-b")
+
+    assert found is not None
+    assert found.question.id == second.question.id
+    assert found.reply.id == second.reply.id
+    assert found.reply.id != first.reply.id
+    assert conversation.exchange_by_request(db_session, user.id, "key-none") is None
+
+
+def test_exchange_by_request_ignores_other_members(db_session, member):
+    user, _ = member
+    conversation.append_exchange(
+        db_session, user.id, question="질문", reply="답", sources=[],
+        client_request_id="key-shared",
+    )
+
+    assert (
+        conversation.exchange_by_request(db_session, "user-someone-else", "key-shared")
+        is None
+    )
+
+
+def test_exchange_by_request_ignores_expired_rows(db_session, member):
+    """보관 기간이 지난 대화는 재생하지 않는다 — 조회도 주지 않는 줄이다."""
+    from datetime import timedelta
+
+    from sqlalchemy import update
+
+    from app.core import clock
+
+    user, _ = member
+    saved = conversation.append_exchange(
+        db_session, user.id, question="질문", reply="답", sources=[],
+        client_request_id="key-old",
+    )
+    db_session.execute(
+        update(AiMessage)
+        .where(AiMessage.conversation_id == saved.conversation.id)
+        .values(
+            created_at=clock.now()
+            - timedelta(days=conversation.HISTORY_RETENTION_DAYS + 1)
+        )
+    )
+    db_session.commit()
+
+    assert conversation.exchange_by_request(db_session, user.id, "key-old") is None
+
+
+def test_question_of_finds_the_row_before_the_reply(db_session, member):
+    """키를 남기기 전에 저장된 답도 순번으로 제 질문을 찾는다."""
+    user, _ = member
+    conversation.append_exchange(
+        db_session, user.id, question="앞 질문", reply="앞 답", sources=[]
+    )
+    saved = conversation.append_exchange(
+        db_session, user.id, question="뒤 질문", reply="뒤 답", sources=[]
+    )
+
+    found = conversation.question_of(db_session, saved.reply)
+
+    assert found is not None
+    assert found.id == saved.question.id
+
+
+def test_history_rows_carry_id_and_request_key(client, db_session, member):
+    """복원한 대화의 줄마다 식별자와 그 전송의 키가 실린다."""
+    user, token = member
+    sent = client.post(
+        "/v1/ai-coach/chat",
+        json={"message": "첫 질문", "client_request_id": "key-hist"},
+        headers=_h(token),
+    ).json()
+
+    rows = client.get("/v1/ai-coach/messages", headers=_h(token)).json()["messages"]
+
+    assert [m["id"] for m in rows] == [
+        sent["user_message_id"],
+        sent["reply_message_id"],
+    ]
+    assert [m["client_request_id"] for m in rows] == ["key-hist", "key-hist"]
+    stored = conversation.load_messages(db_session, user.id)
+    assert [m.id for m in stored] == [m["id"] for m in rows]
