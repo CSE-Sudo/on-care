@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tasks_card.dart';
+import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_timeline_card.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
@@ -30,9 +31,10 @@ void main() {
   Future<void> openDashboard(
     WidgetTester tester, {
     List<Override> extraOverrides = const <Override>[],
+    Size size = const Size(1600, 1200),
   }) async {
     tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.physicalSize = size;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await pumpTrainerApp(
@@ -472,6 +474,48 @@ void main() {
     );
     expect(actionRow.children.whereType<Expanded>(), hasLength(2));
     expect(find.text('활동 피드백'), findsOneWidget);
+  });
+
+  // 1280 은 사이드바가 펼쳐져 본문이 1016, 1024 는 레일이라 916 이다. 둘 다
+  // 전체화면과 같은 배치여야 한다(#3316).
+  for (final Size size in const <Size>[Size(1280, 720), Size(1024, 768)]) {
+    testWidgets('${size.width.toInt()} 창에서도 요약 네 칸과 두 열 본문이 선다', (
+      tester,
+    ) async {
+      await openDashboard(tester, size: size);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('dashboard-action-row')),
+        findsOneWidget,
+      );
+      final Set<double> tops = <double>{
+        for (final Element card in find.byType(AppStatCard).evaluate())
+          tester.getTopLeft(find.byWidget(card.widget)).dy,
+      };
+      expect(tops, hasLength(1), reason: '요약 네 칸은 한 줄이다');
+    });
+  }
+
+  testWidgets('한 열로 쌓일 때 일정 → 오늘 할 일 → 활동 피드백 순서다 (#3316)', (tester) async {
+    await openDashboard(tester, size: const Size(768, 1024));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dashboard-action-row')),
+      findsNothing,
+    );
+    final double timeline = tester
+        .getTopLeft(find.byType(TodayTimelineCard))
+        .dy;
+    final double tasks = tester.getTopLeft(find.byType(TodayTasksCard)).dy;
+    final double feedback = tester
+        .getTopLeft(
+          find.byKey(const ValueKey<String>('dashboard-activity-feedback')),
+        )
+        .dy;
+    expect(timeline, lessThan(tasks));
+    expect(tasks, lessThan(feedback));
   });
 
   testWidgets('오늘 할 일은 각 미션에 맞는 회원만 보여준다', (tester) async {

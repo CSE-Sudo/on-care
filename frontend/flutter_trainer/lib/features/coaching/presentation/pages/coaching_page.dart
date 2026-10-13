@@ -1250,31 +1250,69 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
               builder: (context, constraints) {
                 final wide =
                     constraints.maxWidth >= OnCareLayout.splitBreakpoint;
-                // 3열의 고정 폭(왼쪽 목록 + 오른쪽 고객 데이터 열 + 간격 둘)을
-                // 빼고도 편집기가 입력 폼 폭만큼은 가져야 한다.
+                // 세 열은 양옆 열이 가장 좁아졌을 때에도 편집기가
+                // [_editorMinWidth] 를 갖는 폭부터 선다. 양옆을 252·380 으로 못
+                // 박았던 때에는 1280 창(콘텐츠 1016)에서 두 열로 바뀌어, 식단·
+                // 운동이 편집기 위에 얹히고 편집기가 화면 아래에서 시작했다(#3316).
                 final fullWidth =
                     constraints.maxWidth >=
-                    clientPickerColumnWidth +
-                        OnCareLayout.splitListWidth +
+                    _pickerMinWidth +
+                        _railMinWidth +
                         OnCareLayout.splitGap +
                         OnCareLayout.splitGap +
-                        OnCareLayout.dialogSmall;
+                        _editorMinWidth;
+                // 남는 폭은 편집기가 [_editorComfortWidth] 까지 먼저 받고, 그
+                // 다음 양옆 열이 제 폭(252·380)까지 자란다 — 전체화면에서는
+                // 예전과 같은 폭이다.
+                final double sideGrowth = fullWidth
+                    ? ((constraints.maxWidth -
+                                  _pickerMinWidth -
+                                  _railMinWidth -
+                                  OnCareLayout.splitGap * 2 -
+                                  _editorComfortWidth) /
+                              (clientPickerColumnWidth -
+                                  _pickerMinWidth +
+                                  OnCareLayout.splitListWidth -
+                                  _railMinWidth))
+                          .clamp(0.0, 1.0)
+                          .toDouble()
+                    : 1.0;
+                final double pickerWidth =
+                    _pickerMinWidth +
+                    (clientPickerColumnWidth - _pickerMinWidth) * sideGrowth;
+                final double railWidth =
+                    _railMinWidth +
+                    (OnCareLayout.splitListWidth - _railMinWidth) * sideGrowth;
                 if (!wide) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Expanded(
-                        child: ListView(
-                          children: <Widget>[
-                            // Single column: context, then the editor, then
-                            // the library. The editor is the task — pushing it
-                            // below the templates would bury it.
-                            ..._contextChildren(l, clients, selected),
-                            const SizedBox(height: OnCareSpacing.s16),
-                            ..._editorChildren(selected),
-                            const SizedBox(height: OnCareSpacing.s16),
-                            ..._libraryChildren(selected),
-                          ],
+                        // 지연 빌드 목록(`ListView`)이 아니다 — 편집기가 화면
+                        // 밖으로 밀리면 그 상태가 버려져, 근거를 보러 올라갔다
+                        // 오면 작성 내용이 사라졌다(#3316).
+                        child: SingleChildScrollView(
+                          key: const ValueKey<String>('coaching-narrow-scroll'),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              // 한 열은 전체화면의 세 열을 왼쪽부터 읽는
+                              // 순서로 쌓는다 — 회원 · 템플릿 → 편집기 →
+                              // 식단·운동 · 전송 이력(#3316).
+                              ..._pickerChildren(l, clients, selected),
+                              const SizedBox(height: OnCareSpacing.s16),
+                              _TemplateCard(
+                                onApply: (template) =>
+                                    _applyTemplate(selected, template),
+                              ),
+                              const SizedBox(height: OnCareSpacing.s16),
+                              ..._editorChildren(selected),
+                              // 좁은 화면도 넓은 화면과 같은 것을 본다 — 오늘의
+                              // 영양 카드 하나만 붙여 두면 이 폭에서는 운동
+                              // 데이터를 볼 길이 아예 없었다.
+                              ..._recordsSection(l, selected),
+                            ],
+                          ),
                         ),
                       ),
                       _wizardNavBar(),
@@ -1296,7 +1334,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           SizedBox(
                             // 회원을 고르는 열이라 분할 목록 폭의 3분의 2만
                             // 쓴다 — 리포트 탭 왼쪽 열과 같은 폭이다.
-                            width: clientPickerColumnWidth,
+                            width: pickerWidth,
                             // 고객 목록(5줄 고정)은 그 자리·높이 그대로 두고,
                             // 템플릿 카드가 늘어나는 만큼만 그 아래 남는 공간
                             // 안에서 따로 스크롤한다.
@@ -1378,28 +1416,19 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
                                       children: <Widget>[
+                                        ..._editorChildren(selected),
                                         // 오른쪽 열을 세울 만큼 넓지 않은
-                                        // 창에서는 식단·운동이 가운데 열
-                                        // **맨 위**에 온다 — 넓은 화면의
-                                        // 오른쪽 열 맨 위와 같은 자리다(#1027).
-                                        if (!fullWidth) ...<Widget>[
-                                          _ClientDataSwitcher(
-                                            key: const ValueKey<String>(
+                                        // 창에서는 식단·운동과 전송 이력이
+                                        // 편집기 **아래**로 온다 — 오른쪽 열을
+                                        // 편집기 다음에 읽는 순서다(#3316).
+                                        if (!fullWidth)
+                                          ..._recordsSection(
+                                            l,
+                                            selected,
+                                            switcherKey: const ValueKey<String>(
                                               'coaching-wide-client-overview',
                                             ),
-                                            client: selected,
                                           ),
-                                          const SizedBox(
-                                            height: OnCareSpacing.s16,
-                                          ),
-                                        ],
-                                        ..._editorChildren(selected),
-                                        if (!fullWidth) ...<Widget>[
-                                          const SizedBox(
-                                            height: OnCareSpacing.s16,
-                                          ),
-                                          _SendHistoryCard(client: selected),
-                                        ],
                                       ],
                                     ),
                                   ),
@@ -1414,7 +1443,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                               key: const ValueKey<String>(
                                 'coaching-wide-client-overview',
                               ),
-                              width: OnCareLayout.splitListWidth,
+                              width: railWidth,
                               // 가운데 열과 **다른 스크롤**이다 — 편집기를
                               // 아래로 읽어도 이 열은 제자리에 머문다.
                               child: SingleChildScrollView(
@@ -1447,6 +1476,21 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     );
   }
 
+  /// 세 열일 때 회원 열이 줄어드는 가장 좁은 폭.
+  static const double _pickerMinWidth = 224;
+
+  /// 세 열일 때 식단·운동 열이 줄어드는 가장 좁은 폭.
+  ///
+  /// 오늘 식단 카드의 탄단지 세 칸이 줄로 바뀌지 않는 폭이다(카드 안쪽 280).
+  /// 이보다 좁혔던 때에는 창을 넓히는 동안 세 줄 ↔ 세 칸을 오갔다(#3316).
+  static const double _railMinWidth = 312;
+
+  /// 세 열을 세우는 편집기 최소 폭 — `AI가 참고할 자료` 가 두 칸으로 서는 폭.
+  static const double _editorMinWidth = 440;
+
+  /// 편집기가 이 폭이 될 때까지는 양옆 열이 자라지 않는다.
+  static const double _editorComfortWidth = 504;
+
   /// 위저드 단계 진행 줄(`이전` · 다음 단계). 편집기 열 스크롤 바로 아래에
   /// 둔다 — 내용이 짧으면 내용 바로 다음 줄에, 열보다 길면 열 바닥에 머물러
   /// 카드를 채우는 동안에도 어디서 넘어가는지 보인다(#2476). 위저드를 닫으면
@@ -1468,9 +1512,34 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     );
   }
 
-  /// Who the routine is for, and what their day looks like — the
-  /// context the editor is read against.
-  List<Widget> _contextChildren(
+  /// 식단·운동과 전송 이력을 편집기 **아래**에 둘 때의 구역 — 제목 줄로
+  /// 편집기와 가른다(#3316).
+  ///
+  /// 세 열에서는 오른쪽 열이라는 자리가 구분해 주지만, 아래로 내려오면 같은 흰
+  /// 카드가 이어져 어디까지가 프로그램을 짜는 칸인지 읽히지 않았다.
+  List<Widget> _recordsSection(
+    AppLocalizations l,
+    TrainerClient client, {
+    Key? switcherKey,
+  }) {
+    return <Widget>[
+      const SizedBox(height: OnCareSpacing.s24),
+      const AppDivider(),
+      const SizedBox(height: OnCareSpacing.s16),
+      AppSectionHeader(
+        key: const ValueKey<String>('coaching-member-records-header'),
+        title: l.coachMemberRecords,
+        icon: AppIcons.clients,
+      ),
+      const SizedBox(height: OnCareSpacing.s12),
+      _ClientDataSwitcher(key: switcherKey, client: client),
+      const SizedBox(height: OnCareSpacing.s16),
+      _SendHistoryCard(client: client),
+    ];
+  }
+
+  /// 좁은 한 열의 회원 고르기 줄 — 누구의 프로그램인가.
+  List<Widget> _pickerChildren(
     AppLocalizations l,
     List<TrainerClient> clients,
     TrainerClient client,
@@ -1504,23 +1573,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           ],
         ),
       ),
-      const SizedBox(height: OnCareSpacing.s16),
-      // 좁은 화면도 넓은 화면과 같은 것을 본다 — 오늘의 영양 카드 하나만
-      // 붙여 두면 이 폭에서는 운동 데이터를 볼 길이 아예 없었다.
-      _ClientDataSwitcher(client: client),
-    ];
-  }
-
-  /// Reusable blocks and what this client already received — reference
-  /// material, secondary to the editor.
-  ///
-  /// 저장한 프로그램을 위한 별도 보관함은 없다 — `저장` 이 곧장 `_TemplateCard`
-  /// 목록에 쓰기 때문에, 방금 저장한 결과도 이 카드에서 바로 보인다 (#1028).
-  List<Widget> _libraryChildren(TrainerClient client) {
-    return <Widget>[
-      _TemplateCard(onApply: (template) => _applyTemplate(client, template)),
-      const SizedBox(height: OnCareSpacing.s16),
-      _SendHistoryCard(client: client),
     ];
   }
 
@@ -2168,6 +2220,9 @@ class _ClientDataSwitcher extends ConsumerStatefulWidget {
 }
 
 class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
+  /// 전환 토글과 기간 토글을 한 줄에 둘 수 있는 가장 좁은 폭.
+  static const double _twoRowToggleWidth = 360;
+
   _ClientDataView _view = _ClientDataView.diet;
 
   /// 프로그램 탭에서도 `오늘 / 이번 주 / 이번 달` 을 고를 수 있다(#914).
@@ -2183,47 +2238,62 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
         // 기간 토글은 전환 토글과 **한 줄**에 둔다(#943) — 카드 위에 줄을
         // 따로 두면 고객 데이터 열이 그만큼 길어져 당류 카드가 화면 밖으로
         // 밀린다.
-        Row(
-          children: <Widget>[
-            Expanded(
-              // 이식 전 식단·운동 스트립 모양(옅은 띠 + 흰 엄지)이다(#1024,
-              // #1777). 기간 토글은 기본 채움 알약 그대로 둔다.
-              child: AppSegmentedToggle<_ClientDataView>(
-                key: const ValueKey<String>('program-client-data-tabs'),
-                expand: true,
-                style: AppSegmentedToggleStyle.thumb,
-                selected: _view,
-                onChanged: (view) => setState(() => _view = view),
-                segments: <AppSegment<_ClientDataView>>[
-                  AppSegment<_ClientDataView>(
-                    value: _ClientDataView.diet,
-                    label: l.clientTabDiet,
-                    icon: AppIcons.diet,
-                  ),
-                  AppSegment<_ClientDataView>(
-                    value: _ClientDataView.workout,
-                    label: l.clientTabWorkout,
-                    icon: AppIcons.exercise,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s8),
+        //
+        // 다만 열이 [_twoRowToggleWidth] 보다 좁으면(세 열의 가장 좁은 폭) 두
+        // 줄로 나눈다 — 한 줄에 두면 기간 토글이 읽을 수 없게 줄어든다(#3316).
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // 이식 전 식단·운동 스트립 모양(옅은 띠 + 흰 엄지)이다(#1024,
+            // #1777). 기간 토글은 기본 채움 알약 그대로 둔다.
+            final Widget tabs = AppSegmentedToggle<_ClientDataView>(
+              key: const ValueKey<String>('program-client-data-tabs'),
+              expand: true,
+              style: AppSegmentedToggleStyle.thumb,
+              selected: _view,
+              onChanged: (view) => setState(() => _view = view),
+              segments: <AppSegment<_ClientDataView>>[
+                AppSegment<_ClientDataView>(
+                  value: _ClientDataView.diet,
+                  label: l.clientTabDiet,
+                  icon: AppIcons.diet,
+                ),
+                AppSegment<_ClientDataView>(
+                  value: _ClientDataView.workout,
+                  label: l.clientTabWorkout,
+                  icon: AppIcons.exercise,
+                ),
+              ],
+            );
             // 토글은 줄어들되 잘리지는 않는다 — FittedBox 가 세 칸을 다 보여
             // 준 채 통째로 작게 그린다.
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: AppSegmentedToggle<ClientPeriod>(
-                  key: const ValueKey<String>('client-period-toggle'),
-                  segments: clientPeriodSegments(AppLocalizations.of(context)),
-                  selected: _period,
-                  onChanged: (ClientPeriod p) => setState(() => _period = p),
-                ),
+            final Widget period = FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: AppSegmentedToggle<ClientPeriod>(
+                key: const ValueKey<String>('client-period-toggle'),
+                segments: clientPeriodSegments(AppLocalizations.of(context)),
+                selected: _period,
+                onChanged: (ClientPeriod p) => setState(() => _period = p),
               ),
-            ),
-          ],
+            );
+            if (constraints.maxWidth < _twoRowToggleWidth) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  tabs,
+                  const SizedBox(height: OnCareSpacing.s8),
+                  Align(alignment: Alignment.centerRight, child: period),
+                ],
+              );
+            }
+            return Row(
+              children: <Widget>[
+                Expanded(child: tabs),
+                const SizedBox(width: OnCareSpacing.s8),
+                Flexible(child: period),
+              ],
+            );
+          },
         ),
         const SizedBox(height: OnCareSpacing.s8),
         // 전환에 애니메이션을 두지 않는다(#1027).
