@@ -22,7 +22,7 @@ from app.api.deps import CurrentUser
 from app.core.config import get_settings
 from app.db import demo_ids
 from app.db.session import get_db, release_connection
-from app.models.models import Place
+from app.models.models import GymProfile, Place
 from app.schemas.misc_api import PlaceOut
 from app.services.places import kakao
 
@@ -119,16 +119,19 @@ def _seed_nearby(
     """DB 장소를 거리 계산해 반환(카카오 미연동, 데모 서버의 카카오 0건·실패 시).
 
     `exclude` 의 id 는 뺀다 — 실서버가 데모 시드 장소를 거르는 데 쓴다.
+    전화번호는 헬스장 부가 정보(`gym_profiles`)에 있으면 싣는다(#3357).
     """
-    q = select(Place)
+    q = select(Place, GymProfile.phone).outerjoin(
+        GymProfile, GymProfile.place_id == Place.id
+    )
     if category:
         q = q.where(Place.category == category)
     if exclude:
         q = q.where(Place.id.not_in(exclude))
-    rows = db.scalars(q).all()
+    rows = db.execute(q).all()
 
     out: list[PlaceOut] = []
-    for r in rows:
+    for r, phone in rows:
         if r.lat is None or r.lng is None:
             continue
         dist = _haversine_m(lat, lng, r.lat, r.lng)
@@ -136,7 +139,7 @@ def _seed_nearby(
             continue
         out.append(PlaceOut(
             id=r.id, name=r.name, category=r.category, address=r.address,
-            distance_meters=dist, lat=r.lat, lng=r.lng,
+            distance_meters=dist, lat=r.lat, lng=r.lng, phone=phone or None,
         ))
     out.sort(key=lambda p: p.distance_meters)
     return out

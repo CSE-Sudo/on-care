@@ -403,7 +403,9 @@ void main() {
       );
     });
 
-    testWidgets('정말 소속 트레이너가 없으면 기존 빈 상태 문구다', (WidgetTester tester) async {
+    testWidgets('정말 소속 트레이너가 없으면 상담 버튼 대신 안내를 둔다 (#3357)', (
+      WidgetTester tester,
+    ) async {
       await pumpRoute(
         tester,
         AppRoutes.gymDetailPath(_gym.id),
@@ -413,9 +415,12 @@ void main() {
       final AppLocalizations l = _localizations(tester);
       expect(find.byKey(const Key('gym-detail-trainers-error')), findsNothing);
 
-      await openPicker(tester);
-      expect(find.text(l.exGymConsultNoTrainers), findsOneWidget);
-      expect(find.byKey(const Key('gym-consult-trainer-error')), findsNothing);
+      // 눌러도 "소속 트레이너가 없어요" 로 끝나는 버튼은 두지 않는다.
+      final Finder notice = find.byKey(const Key('gym-inquiry-no-trainers'));
+      await _scrollTo(tester, notice, 250);
+      expect(notice, findsOneWidget);
+      expect(find.byKey(const Key('gym-consult-start')), findsNothing);
+      expect(find.text(l.exGymConsultRequest), findsNothing);
     });
   });
 

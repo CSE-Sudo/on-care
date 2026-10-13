@@ -232,7 +232,7 @@ void main() {
     expect(badgeAt('gym-trainer', 0), findsNothing);
   });
 
-  testWidgets('사유가 없으면 상세는 기본 문구를 문장으로 둔다', (tester) async {
+  testWidgets('사유가 없으면 상세에 추천 이유 칸이 없다 (#3357)', (tester) async {
     await pumpAt(
       tester,
       AppRoutes.trainerDetailPath(_noReason.id),
@@ -242,14 +242,15 @@ void main() {
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(Scaffold).first),
     );
-    // 한 문장을 알약에 넣으면 카드 끝까지 늘어져 배지로 읽히지 않는다.
+    // 추천된 적 없는 트레이너에게 고정 문구로 추천 이유를 지어내지 않는다.
+    expect(find.byKey(const Key('trainer-detail-reason')), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('trainer-detail-reasons')),
       findsNothing,
     );
-    expect(find.text(l.exTrainerRecommendationReason), findsOneWidget);
-    // 근거 박스 자체는 남는다 — 소속·상담 CTA 와의 순서가 흔들리지 않게.
-    expect(find.byKey(const Key('trainer-detail-reason')), findsOneWidget);
+    expect(find.text(l.exRecommendationReason), findsNothing);
+    // 상담 요청 CTA 는 그대로 남는다.
+    expect(find.byKey(const Key('consult-start')), findsOneWidget);
   });
 
   testWidgets('좁은 화면·큰 배율에서도 배지가 화면 안에 있다', (tester) async {

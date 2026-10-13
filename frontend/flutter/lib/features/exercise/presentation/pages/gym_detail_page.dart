@@ -297,20 +297,78 @@ class _GymDetails extends ConsumerWidget {
             ],
             if (!isMyGym) ...<Widget>[
               const SizedBox(height: OnCareSpacing.sectionGap),
-              AppButton(
-                key: const Key('gym-consult-start'),
-                label: l.exGymConsultRequest,
-                // 상담은 트레이너 한 사람에게만 간다 — 헬스장에서 시작해도 소속
-                // 트레이너 중 누구에게 보낼지 먼저 고른다. 담당이 있어도 낼 수
-                // 있다 — 상담은 담당을 바꾸지 않는다(#3358).
-                onPressed: () => _pickTrainerForConsultation(context, gym),
-                size: OnCareButtonSize.large,
-                fullWidth: true,
-              ),
+              _GymInquiry(gym: gym),
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 헬스장 상세 맨 아래의 문의 자리 — 상담 신청, 또는 전화 문의. (#3357)
+///
+/// 상담은 소속 트레이너 한 사람에게 간다. 주변 검색·이름 검색으로만 찾은
+/// 헬스장에는 가입한 트레이너가 없어, 예전에는 상담 버튼이 늘 "아직 소속
+/// 트레이너가 없어요" 시트로 끝났다. 소속 트레이너가 없다고 확인되면 버튼 대신
+/// 그 사실을 한 줄로 알리고 전화로 내보낸다. 번호도 모르는 헬스장은 안내만 둔다.
+///
+/// 읽는 중·조회 실패는 '없음' 이 아니다(#2857) — 그때는 상담 버튼을 그대로 두고,
+/// 시트가 로딩·오류와 다시 시도를 보인다.
+class _GymInquiry extends ConsumerWidget {
+  const _GymInquiry({required this.gym});
+
+  final Gym gym;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AsyncValue<List<Trainer>> trainersAsync = ref.watch(
+      gymTrainersProvider(gym.id),
+    );
+    final bool noTrainers =
+        trainersAsync.hasValue &&
+        !trainersAsync.hasError &&
+        trainersAsync.requireValue.isEmpty;
+    if (!noTrainers) {
+      return AppButton(
+        key: const Key('gym-consult-start'),
+        label: l.exGymConsultRequest,
+        // 상담은 트레이너 한 사람에게만 간다 — 헬스장에서 시작해도 소속
+        // 트레이너 중 누구에게 보낼지 먼저 고른다. 담당이 있어도 낼 수
+        // 있다 — 상담은 담당을 바꾸지 않는다(#3358).
+        onPressed: () => _pickTrainerForConsultation(context, gym),
+        size: OnCareButtonSize.large,
+        fullWidth: true,
+      );
+    }
+
+    final String? phone = gym.phone;
+    return Column(
+      key: const Key('gym-inquiry-no-trainers'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          phone == null ? l.exGymNoTrainersHint : l.exGymNoTrainersCallHint,
+          textAlign: TextAlign.center,
+          style: context.oncare
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        if (phone != null) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s12),
+          AppButton(
+            key: const Key('gym-call-inquiry'),
+            label: l.exGymCallInquiry,
+            leadingIcon: AppIcons.phone,
+            // 번호 줄과 같은 시트를 띄운다 — 전화·복사를 회원이 고른다(#1873).
+            onPressed: () => showGymPhoneSheet(context, gym.name, phone),
+            size: OnCareButtonSize.large,
+            fullWidth: true,
+          ),
+        ],
+      ],
     );
   }
 }

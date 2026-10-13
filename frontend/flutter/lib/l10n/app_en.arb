@@ -460,7 +460,6 @@
     }
   },
   "exTrainerCertifications": "Certifications",
-  "exTrainerRecommendationReason": "A great fit for reaching my health goals",
   "exNearbyGymsMapLabel": "Gyms near me",
   "exGymMapUnavailable": "Couldn't load the map",
   "exActivityTitle": "Activity",
@@ -2003,6 +2002,9 @@
   "exGymConsultPickTrainer": "Choose a trainer",
   "exGymConsultPickTrainerHint": "Your request goes to one trainer.",
   "exGymConsultNoTrainers": "No trainers are affiliated yet.",
+  "exGymNoTrainersCallHint": "No trainers from this gym have joined yet, so you can't request a consultation in the app. Please call the gym.",
+  "exGymNoTrainersHint": "No trainers from this gym have joined yet, so you can't request a consultation in the app.",
+  "exGymCallInquiry": "Call the gym",
   "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a trainer consultation",
   "exConsultPendingCta": "Consultation request pending",

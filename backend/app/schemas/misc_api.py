@@ -64,6 +64,9 @@ class PlaceOut(BaseModel):
     distance_meters: int
     lat: Optional[float]
     lng: Optional[float]
+    #: 전화번호. 모르면 null — 가입한 트레이너가 없는 헬스장은 회원이 문의할 길이
+    #: 이 번호뿐이다(#3357).
+    phone: Optional[str] = None
 
 
 # ---- AI 코치 ----
