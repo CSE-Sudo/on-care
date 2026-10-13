@@ -27,7 +27,7 @@ sha() { printf "%040d" 0 | tr 0 "$1"; }
 release_keys() {
   local stamp="$1" id="$2"
   printf '%s:00+00:00\treleases/%s/version.txt\n' "$stamp" "$id"
-  printf '%s:05+00:00\treleases/%s/frontend/version.txt\n' "$stamp" "$id"
+  printf '%s:05+00:00\treleases/%s/member/version.txt\n' "$stamp" "$id"
   printf '%s:07+00:00\treleases/%s/trainer/version.txt\n' "$stamp" "$id"
 }
 

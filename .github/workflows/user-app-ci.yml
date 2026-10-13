@@ -386,7 +386,7 @@ jobs:
 
       - name: Build user web (production settings)
         run: >-
-          flutter build web --release --base-href "/frontend/"
+          flutter build web --release --base-href "/member/"
           --dart-define=USE_MOCK_API=false
           --dart-define=ENV=prod
           --dart-define=API_BASE_URL=https://api.example.org/v1

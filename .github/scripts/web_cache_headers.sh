@@ -20,7 +20,7 @@ AWS_CLI="${AWS_CLI:-aws}"
 ENTRY_CACHE_CONTROL="no-cache"
 ASSET_CACHE_CONTROL="public,max-age=300"
 
-# 이름이 고정된 진입 파일. 폴더(frontend/·trainer/)와 무관하게 파일 이름으로 가른다.
+# 이름이 고정된 진입 파일. 폴더(member/·trainer/)와 무관하게 파일 이름으로 가른다.
 # flutter_service_worker.js 는 지금 빌드가 등록하지 않지만(web/flutter_bootstrap.js,
 # #3204), 예전 빌드가 설치한 워커가 갱신 확인으로 받아 스스로 해제하는 파일이라 늘 새로
 # 받히도록 no-cache 로 둔다.
@@ -43,11 +43,11 @@ ENTRY_FILES=(
 VERIFY_KEYS=(
   "index.html=$ENTRY_CACHE_CONTROL"
   "version.txt=$ENTRY_CACHE_CONTROL"
-  "frontend/index.html=$ENTRY_CACHE_CONTROL"
-  "frontend/flutter_bootstrap.js=$ENTRY_CACHE_CONTROL"
-  "frontend/main.dart.js=$ENTRY_CACHE_CONTROL"
-  "frontend/version.txt=$ENTRY_CACHE_CONTROL"
-  "frontend/canvaskit/canvaskit.wasm=$ASSET_CACHE_CONTROL"
+  "member/index.html=$ENTRY_CACHE_CONTROL"
+  "member/flutter_bootstrap.js=$ENTRY_CACHE_CONTROL"
+  "member/main.dart.js=$ENTRY_CACHE_CONTROL"
+  "member/version.txt=$ENTRY_CACHE_CONTROL"
+  "member/canvaskit/canvaskit.wasm=$ASSET_CACHE_CONTROL"
   "trainer/index.html=$ENTRY_CACHE_CONTROL"
   "trainer/flutter_bootstrap.js=$ENTRY_CACHE_CONTROL"
   "trainer/main.dart.js=$ENTRY_CACHE_CONTROL"

@@ -38,7 +38,7 @@ function hardenedSource(src) {
 }
 
 try {
-  // 절대 경로로 준다 — base href(`/frontend/`·`/trainer/`)에 따라 상대 경로의
+  // 절대 경로로 준다 — base href(`/member/`·`/trainer/`)에 따라 상대 경로의
   // 뜻이 달라진다. `?v=` 는 버전을 바꿀 때 옛 캐시를 피한다.
   const dir = new URL("pdfjs/", document.baseURI).href;
   const lib = await import(`${dir}pdf.min.js?v=${PDFJS_VERSION}`);
