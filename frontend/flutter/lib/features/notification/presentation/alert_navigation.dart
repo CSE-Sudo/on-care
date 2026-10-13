@@ -12,8 +12,13 @@ import 'package:oncare/features/dashboard/presentation/controllers/dashboard_con
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
@@ -88,6 +93,14 @@ Future<void> openAlertTarget(
       ref
         ..invalidate(coachChatProvider)
         ..invalidate(coachUnreadProvider);
+      // 리포트 알림은 대화가 아니라 그 주 리포트를 바로 연다(#3344). 서버가 준
+      // 목적지 값은 메시지 알림과 같은 대화다 — 주·메시지가 함께 실려 왔을 때만
+      // 갈린다. 그 값이 없는 옛 리포트 알림은 아래로 내려가 지금처럼 대화로 간다.
+      final AlertReportRef? report = item.report;
+      if (report != null) {
+        await _openAlertReport(context, ref, report);
+        return;
+      }
       // 대화는 코치 정보를 알아야 열 수 있다. 들고 있는 값을 그냥 읽으면 안 된다 —
       // 아직 로딩 중이거나, 트레이너가 붙기 전에 받아 둔 `null` 이 남아 있으면
       // 눌러도 아무 일이 없다. 코치가 보낸 알림인데 코치를 모른다고 답하는 꼴이다.
@@ -180,5 +193,57 @@ Future<void> openAlertTarget(
       await openGoalsPage(context);
     case AlertTarget.unknown:
       return;
+  }
+}
+
+/// 리포트 알림이 가리킨 그 주 리포트를 연다. (#3344)
+///
+/// 예전에는 대화 맨 아래로만 갔다 — 그 뒤로 메시지가 쌓였으면 회원이 리포트 카드를
+/// 찾아 위로 올라가야 했다. 대화 안내·받은 리포트 목록과 같은 도우미로 연다
+/// ([openCoachReport]): 첨부가 있으면 트레이너가 보낸 PDF, 없으면 그 주 결과지다.
+///
+/// 리포트는 대화 메시지에 실려 온다. 그래서 대화를 끝까지 읽어 그 메시지를 찾는다 —
+/// 받은 리포트 목록이 하는 일과 같다. 담당이 끊겨 대화를 읽을 수 없거나 그 리포트가
+/// 대화에 없으면 받은 리포트 화면으로 보낸다. 말없이 제자리에 두면 고장으로 보이고,
+/// 리포트 알림을 눌렀는데 대화를 열 수 없다는 안내는 엉뚱하다.
+Future<void> _openAlertReport(
+  BuildContext context,
+  WidgetRef ref,
+  AlertReportRef report,
+) async {
+  final AppLocalizations l = AppLocalizations.of(context);
+  final AppToastHost toast = AppToastHost.of(context);
+  final List<CoachMessage> chat;
+  try {
+    chat = await fetchWholeCoachChat(ref.read(memberCoachRepositoryProvider));
+  } on CoachUnassignedException {
+    if (!context.mounted) return;
+    unawaited(context.push(AppRoutes.myCoachReports));
+    return;
+  } on Exception {
+    // 연결·서버 문제다. 리포트를 읽지 못한 사정을 알리고 제자리에 둔다 — 다시
+    // 누르면 된다.
+    toast.show(l.coachReportsLoadFailed, type: AppToastType.error);
+    return;
+  }
+  if (!context.mounted) return;
+  final SentReportNotice? notice = findReportNotice(
+    chat,
+    weekStart: report.weekStart,
+    messageId: report.messageId,
+  );
+  if (notice == null) {
+    unawaited(context.push(AppRoutes.myCoachReports));
+    return;
+  }
+  try {
+    await openCoachReport(
+      context,
+      message: notice.message,
+      weekStart: notice.weekStart,
+    );
+  } catch (_) {
+    // 받은 리포트 목록과 같은 안내다 — 파일을 못 받았거나 결과지를 못 세웠다.
+    toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
   }
 }

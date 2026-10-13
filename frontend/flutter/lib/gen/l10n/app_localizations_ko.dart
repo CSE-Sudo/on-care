@@ -739,9 +739,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exTrainerCertifications => '자격증 · 인증';
 
   @override
-  String get exTrainerRecommendationReason => '내 건강 목표 달성에 잘 맞는 트레이너예요';
-
-  @override
   String get exNearbyGymsMapLabel => '내 주변 헬스장';
 
   @override
@@ -1132,6 +1129,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exNearbyGyms => '주변 헬스장';
 
   @override
+  String get exGymSearchResults => '검색 결과';
+
+  @override
   String get exGymListCollapse => '목록 접기';
 
   @override
@@ -1139,6 +1139,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exGymsLoadError => '헬스장을 불러오지 못했어요.';
+
+  @override
+  String get exGymSearchError => '헬스장을 검색하지 못했어요.';
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -1291,6 +1294,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myPointsExchangeFailed => '교환하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get myPointsExchangeBlocked => '지금은 교환할 수 없어요';
+
+  @override
+  String get myPointsInsufficient => '포인트가 부족해요';
+
+  @override
+  String get myBenefitAlreadyReceived => '이미 받았어요';
 
   @override
   String myPointsShortfall(String points) {
@@ -1715,6 +1727,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get challengeJoinFailed => '참가하지 못했어요. 다시 시도해 주세요.';
 
   @override
+  String get challengeJoinAlready => '이미 참가했어요';
+
+  @override
+  String get challengeJoinBlocked => '지금은 참가할 수 없어요';
+
+  @override
   String get challengeJoinClosed => '다음 주 월요일에 다시 참가할 수 있어요';
 
   @override
@@ -1948,6 +1966,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get emoteSendFailed => '이모티콘을 보내지 못했어요';
+
+  @override
+  String get emoteSendLocked => '이용 기간이 끝난 이모티콘이에요. 다시 사면 보낼 수 있어요';
+
+  @override
+  String get emoteSendRejected => '보낼 수 없는 이모티콘이에요';
 
   @override
   String get a11yOpenEmotes => '이모티콘';
@@ -2379,6 +2403,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachImageUnavailable => '사진을 불러오지 못했어요';
 
   @override
+  String get coachImageRetry => '눌러서 다시 불러오기';
+
+  @override
   String get coachChatSubtitle => '담당 트레이너';
 
   @override
@@ -2402,6 +2429,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatSendFailed => '메시지를 보내지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get coachChatSendRejected => '보낼 수 없는 메시지예요. 내용을 확인해 주세요';
+
+  @override
   String get coachPhotoAttach => '사진 보내기';
 
   @override
@@ -2418,6 +2448,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachPhotoSendFailed => '사진을 보내지 못했어요';
+
+  @override
+  String get coachPhotoSendRejected => '보낼 수 없는 사진이에요';
 
   @override
   String get coachPhotoRetry => '다시 보내기';
@@ -2440,6 +2473,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachChatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
+
+  @override
+  String get coachReportNotReceived => '아직 받지 않은 리포트예요';
 
   @override
   String get coachChatReportRegistered => '주간 리포트를 받았어요';
@@ -2660,6 +2696,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exGymConsultNoTrainers => '아직 소속 트레이너가 없어요.';
+
+  @override
+  String get exGymNoTrainersCallHint =>
+      '아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요. 헬스장에 전화로 문의해 주세요.';
+
+  @override
+  String get exGymNoTrainersHint => '아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요.';
+
+  @override
+  String get exGymCallInquiry => '전화 문의';
 
   @override
   String get exGymTrainersLoadError => '소속 트레이너를 불러오지 못했어요.';
@@ -3117,6 +3163,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => '새 코드 받기';
+
+  @override
+  String trainerSyncConnected(String name) {
+    return '$name 트레이너와 연결됐어요';
+  }
+
+  @override
+  String get trainerSyncConnectedBody => '이제 트레이너가 회원님의 기록을 보고 코칭할 수 있어요.';
 
   @override
   String get signUpCreatedSignInNeeded => '계정이 만들어졌어요. 로그인해 주세요';
@@ -4702,6 +4756,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get weeklyFeedbackSendFailed => '주간 피드백을 보내지 못했어요. 다시 시도해 주세요';
+
+  @override
+  String get weeklyFeedbackSendUnassigned => '담당이 해제되어 주간 피드백을 보낼 수 없어요';
+
+  @override
+  String get weeklyFeedbackSendRejected => '이 주에는 주간 피드백을 보낼 수 없어요';
 
   @override
   String get weeklyFeedbackAlreadySent => '이미 보낸 주예요. 다시 보내면 마지막 답으로 바뀌어요.';

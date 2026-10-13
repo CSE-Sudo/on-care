@@ -1430,12 +1430,6 @@ abstract class AppLocalizations {
   /// **'Certifications'**
   String get exTrainerCertifications;
 
-  /// No description provided for @exTrainerRecommendationReason.
-  ///
-  /// In en, this message translates to:
-  /// **'A great fit for reaching my health goals'**
-  String get exTrainerRecommendationReason;
-
   /// No description provided for @exNearbyGymsMapLabel.
   ///
   /// In en, this message translates to:
@@ -2144,6 +2138,12 @@ abstract class AppLocalizations {
   /// **'Nearby gyms'**
   String get exNearbyGyms;
 
+  /// No description provided for @exGymSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Search results'**
+  String get exGymSearchResults;
+
   /// Hides the gym result list so the map fills the space
   ///
   /// In en, this message translates to:
@@ -2161,6 +2161,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load gyms.'**
   String get exGymsLoadError;
+
+  /// No description provided for @exGymSearchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search gyms.'**
+  String get exGymSearchError;
 
   /// No description provided for @exGymWeekdayHours.
   ///
@@ -2395,6 +2401,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t redeem. Please try again.'**
   String get myPointsExchangeFailed;
+
+  /// No description provided for @myPointsExchangeBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t redeem this right now'**
+  String get myPointsExchangeBlocked;
+
+  /// No description provided for @myPointsInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough points'**
+  String get myPointsInsufficient;
+
+  /// No description provided for @myBenefitAlreadyReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this'**
+  String get myBenefitAlreadyReceived;
 
   /// No description provided for @myPointsShortfall.
   ///
@@ -3104,6 +3128,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t join. Please try again.'**
   String get challengeJoinFailed;
 
+  /// No description provided for @challengeJoinAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve already joined'**
+  String get challengeJoinAlready;
+
+  /// No description provided for @challengeJoinBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t join right now'**
+  String get challengeJoinBlocked;
+
   /// No description provided for @challengeJoinClosed.
   ///
   /// In en, this message translates to:
@@ -3511,6 +3547,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the emote'**
   String get emoteSendFailed;
+
+  /// Toast when the server refuses an emote because the member's unlock ran out (402); the emote shows as locked again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That emote has expired. Buy it again to send it'**
+  String get emoteSendLocked;
+
+  /// No description provided for @emoteSendRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'That emote can\'t be sent'**
+  String get emoteSendRejected;
 
   /// No description provided for @a11yOpenEmotes.
   ///
@@ -4268,6 +4316,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the photo'**
   String get coachImageUnavailable;
 
+  /// Second line under a chat photo that failed to download; tapping the placeholder fetches it again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to load again'**
+  String get coachImageRetry;
+
   /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In en, this message translates to:
@@ -4310,6 +4364,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send your message. Please try again'**
   String get coachChatSendFailed;
 
+  /// Toast when the server rejects the message content itself (400/422); sending the same text again would fail the same way, so it does not suggest retrying (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That message can\'t be sent. Please check what you wrote'**
+  String get coachChatSendRejected;
+
   /// Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665).
   ///
   /// In en, this message translates to:
@@ -4345,6 +4405,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the photo'**
   String get coachPhotoSendFailed;
+
+  /// Status under a chat photo the server refused (unsupported format etc.); only Delete is offered, not Send again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That photo can\'t be sent'**
+  String get coachPhotoSendRejected;
 
   /// No description provided for @coachPhotoRetry.
   ///
@@ -4387,6 +4453,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t open the PDF. Please try again'**
   String get coachChatPdfOpenFailed;
+
+  /// No description provided for @coachReportNotReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t received this report yet'**
+  String get coachReportNotReceived;
 
   /// No description provided for @coachChatReportRegistered.
   ///
@@ -4753,6 +4825,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No trainers are affiliated yet.'**
   String get exGymConsultNoTrainers;
+
+  /// No description provided for @exGymNoTrainersCallHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers from this gym have joined yet, so you can\'t request a consultation in the app. Please call the gym.'**
+  String get exGymNoTrainersCallHint;
+
+  /// No description provided for @exGymNoTrainersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers from this gym have joined yet, so you can\'t request a consultation in the app.'**
+  String get exGymNoTrainersHint;
+
+  /// No description provided for @exGymCallInquiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Call the gym'**
+  String get exGymCallInquiry;
 
   /// No description provided for @exGymTrainersLoadError.
   ///
@@ -5599,6 +5689,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get a new code'**
   String get trainerSyncRetry;
+
+  /// No description provided for @trainerSyncConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected with {name}'**
+  String trainerSyncConnected(String name);
+
+  /// No description provided for @trainerSyncConnectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer can now see your records and coach you.'**
+  String get trainerSyncConnectedBody;
 
   /// Sign-up: the account was created but the follow-up sign-in failed (#1926).
   ///
@@ -7883,6 +7985,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send your weekly feedback. Please try again'**
   String get weeklyFeedbackSendFailed;
+
+  /// No description provided for @weeklyFeedbackSendUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer is no longer assigned, so weekly feedback can\'t be sent'**
+  String get weeklyFeedbackSendUnassigned;
+
+  /// No description provided for @weeklyFeedbackSendRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly feedback can\'t be sent for this week'**
+  String get weeklyFeedbackSendRejected;
 
   /// No description provided for @weeklyFeedbackAlreadySent.
   ///

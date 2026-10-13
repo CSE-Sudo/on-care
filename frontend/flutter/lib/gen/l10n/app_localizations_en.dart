@@ -767,10 +767,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTrainerCertifications => 'Certifications';
 
   @override
-  String get exTrainerRecommendationReason =>
-      'A great fit for reaching my health goals';
-
-  @override
   String get exNearbyGymsMapLabel => 'Gyms near me';
 
   @override
@@ -1193,6 +1189,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exNearbyGyms => 'Nearby gyms';
 
   @override
+  String get exGymSearchResults => 'Search results';
+
+  @override
   String get exGymListCollapse => 'Collapse list';
 
   @override
@@ -1200,6 +1199,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymsLoadError => 'Couldn\'t load gyms.';
+
+  @override
+  String get exGymSearchError => 'Couldn\'t search gyms.';
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -1353,6 +1355,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myPointsExchangeFailed => 'Couldn\'t redeem. Please try again.';
+
+  @override
+  String get myPointsExchangeBlocked => 'You can\'t redeem this right now';
+
+  @override
+  String get myPointsInsufficient => 'Not enough points';
+
+  @override
+  String get myBenefitAlreadyReceived => 'You already have this';
 
   @override
   String myPointsShortfall(String points) {
@@ -1800,6 +1811,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get challengeJoinFailed => 'Couldn\'t join. Please try again.';
 
   @override
+  String get challengeJoinAlready => 'You\'ve already joined';
+
+  @override
+  String get challengeJoinBlocked => 'You can\'t join right now';
+
+  @override
   String get challengeJoinClosed => 'You can join again next Monday';
 
   @override
@@ -2041,6 +2058,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emoteSendFailed => 'Couldn\'t send the emote';
+
+  @override
+  String get emoteSendLocked =>
+      'That emote has expired. Buy it again to send it';
+
+  @override
+  String get emoteSendRejected => 'That emote can\'t be sent';
 
   @override
   String get a11yOpenEmotes => 'Emotes';
@@ -2508,6 +2532,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
+  String get coachImageRetry => 'Tap to load again';
+
+  @override
   String get coachChatSubtitle => 'Your trainer';
 
   @override
@@ -2534,6 +2561,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send your message. Please try again';
 
   @override
+  String get coachChatSendRejected =>
+      'That message can\'t be sent. Please check what you wrote';
+
+  @override
   String get coachPhotoAttach => 'Send a photo';
 
   @override
@@ -2551,6 +2582,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachPhotoSendFailed => 'Couldn\'t send the photo';
+
+  @override
+  String get coachPhotoSendRejected => 'That photo can\'t be sent';
 
   @override
   String get coachPhotoRetry => 'Send again';
@@ -2576,6 +2610,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachChatPdfOpenFailed =>
       'Couldn\'t open the PDF. Please try again';
+
+  @override
+  String get coachReportNotReceived => 'You haven\'t received this report yet';
 
   @override
   String get coachChatReportRegistered => 'Weekly report received';
@@ -2808,6 +2845,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymConsultNoTrainers => 'No trainers are affiliated yet.';
+
+  @override
+  String get exGymNoTrainersCallHint =>
+      'No trainers from this gym have joined yet, so you can\'t request a consultation in the app. Please call the gym.';
+
+  @override
+  String get exGymNoTrainersHint =>
+      'No trainers from this gym have joined yet, so you can\'t request a consultation in the app.';
+
+  @override
+  String get exGymCallInquiry => 'Call the gym';
 
   @override
   String get exGymTrainersLoadError => 'Couldn\'t load this gym\'s trainers.';
@@ -3297,6 +3345,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => 'Get a new code';
+
+  @override
+  String trainerSyncConnected(String name) {
+    return 'You\'re connected with $name';
+  }
+
+  @override
+  String get trainerSyncConnectedBody =>
+      'Your trainer can now see your records and coach you.';
 
   @override
   String get signUpCreatedSignInNeeded =>
@@ -4980,6 +5037,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get weeklyFeedbackSendFailed =>
       'Couldn\'t send your weekly feedback. Please try again';
+
+  @override
+  String get weeklyFeedbackSendUnassigned =>
+      'Your trainer is no longer assigned, so weekly feedback can\'t be sent';
+
+  @override
+  String get weeklyFeedbackSendRejected =>
+      'Weekly feedback can\'t be sent for this week';
 
   @override
   String get weeklyFeedbackAlreadySent =>

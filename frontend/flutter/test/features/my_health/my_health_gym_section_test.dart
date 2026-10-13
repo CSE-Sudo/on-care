@@ -44,6 +44,12 @@ class _FailingGymRepository implements GymRepository {
   Future<List<Gym>> fetchNearby() async => const <Gym>[];
 
   @override
+  Future<Gym?> fetchGym(String gymId) async => null;
+
+  @override
+  Future<List<Gym>> searchGyms(String query) async => const <Gym>[];
+
+  @override
   Future<List<TrainerSlot>> fetchSlots(String trainerId) async =>
       const <TrainerSlot>[];
 

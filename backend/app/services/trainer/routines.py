@@ -368,7 +368,7 @@ def complete_assigned_routine(
     member_id: str,
     routine_id: str,
     *,
-    minutes: int,
+    minutes: int | None = None,
     sets: int | None = None,
     reps: int | None = None,
     hold_seconds: int | None = None,
@@ -392,6 +392,9 @@ def complete_assigned_routine(
     포인트를 적립하고 그 결과를 응답에 싣는다(#1786). 재전송은
     새로 적립하지 않고 처음 완료할 때 받은 값을 돌려준다. 하루 한도는 **적립하는
     날** 기준이라 지난 날짜를 몰아 체크해도 오늘 한 번만 받는다.
+
+    [minutes] 를 비우면 [_completion_minutes] 가 채운다(#3364) — 근력은 세트
+    수에서 환산한다.
 
     [any_owner] 는 회원 본인의 호출이다(#3347). **지난 날짜**에 한해 지난 담당이
     보낸 배정도 완료할 수 있다 — 회원의 그날 목록([build_routines] 의
@@ -446,6 +449,13 @@ def complete_assigned_routine(
     # 함께 따라오면 한 세트가 두 단위로 적힌다. (#1969)
     if hold_seconds is not None:
         reps = None
+    minutes = _completion_minutes(
+        routine,
+        exercise_type,
+        minutes=minutes,
+        sets=sets,
+        duration_seconds=duration_seconds,
+    )
     assigned_estimate = exercise_service.estimate(
         db,
         name=routine.name,
@@ -524,6 +534,33 @@ def complete_assigned_routine(
     db.refresh(row)
     personal_ingest.refresh_exercise(db, member_id, session_id=row.id)
     return _completion_out(db, routine, row, points)
+
+
+def _completion_minutes(
+    routine: TrainerRoutine,
+    exercise_type: str,
+    *,
+    minutes: int | None,
+    sets: int | None,
+    duration_seconds: int | None,
+) -> int:
+    """완료 기록의 분. 회원이 적어 보냈으면 그 값이다. (#3364)
+
+    비어 있으면 운동 직접 입력과 같은 규칙으로 채운다 — 근력은 세트 수 ×
+    세트당 벽시계 시간(`STRENGTH_MINUTES_PER_SET`), 나머지는 초에서 환산한
+    분이다. 둘 다 없으면 배정된 시간이다. 예전에는 분이 없는 근력 배정을 앱이
+    1분으로 지어내 보내, 그날의 운동 시간과 칼로리가 작게 잡혔다.
+
+    저장의 전제는 `minutes > 0` 이다 — 0분짜리 기록은 주간 집계에서 한 적 없는
+    운동과 구분되지 않아, 어디서도 값을 얻지 못하면 1분으로 받는다.
+    """
+    if minutes is not None:
+        return minutes
+    if exercise_type == exercise_types.STRENGTH and sets:
+        return max(1, round(sets * exercise_service.STRENGTH_MINUTES_PER_SET))
+    if duration_seconds:
+        return max(1, round(duration_seconds / 60))
+    return max(1, routine.minutes or 0)
 
 
 def _completion_points(

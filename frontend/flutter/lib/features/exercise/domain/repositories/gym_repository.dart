@@ -39,12 +39,48 @@ class UpcomingReservationError implements Exception {
   String toString() => 'UpcomingReservationError($slotId)';
 }
 
+/// 이름 검색어의 최대 길이 — 서버 `GET /gyms/search` 의 `q` 상한과 같다(#3355).
+const int kGymSearchQueryMaxLength = 100;
+
+/// 검색 칸에 친 글을 서버에 보낼 검색어로 다듬는다. (#3355)
+///
+/// 앞뒤 공백을 떼고 상한을 넘는 뒤쪽을 자른다. 빈 문자열이면 검색하지 않는다는
+/// 뜻이다 — 서버는 빈 검색어를 422 로 돌려보낸다. 서버가 글자(코드 포인트)로
+/// 세므로 여기서도 그렇게 센다.
+String gymSearchQueryOf(String typed) {
+  final String trimmed = typed.trim();
+  if (trimmed.runes.length <= kGymSearchQueryMaxLength) return trimmed;
+  return String.fromCharCodes(
+    trimmed.runes.take(kGymSearchQueryMaxLength),
+  ).trim();
+}
+
 abstract class GymRepository {
   /// User's current gym (one). `null` until they register one.
   Future<Gym?> fetchMyGym();
 
   /// Nearby gyms shown in the "헬스장 찾기" finder sheet.
+  ///
+  /// 서버는 검색 중심에서 기본 반경 안의 헬스장만 가까운 순으로 준다(#3356).
+  /// 목록에 없는 헬스장은 [fetchGym] 으로 읽는다.
   Future<List<Gym>> fetchNearby();
+
+  /// 헬스장을 이름·주소로 찾는다. (#3355)
+  ///
+  /// [fetchNearby] 와 달리 반경이 없다 — 주변 목록에 없는 헬스장, 다른 동네의
+  /// 헬스장도 나온다. 서버는 등록된 헬스장과 외부 장소 검색 결과를 합쳐 주고,
+  /// 회원 위치를 알면 가까운 순으로 준다. [query] 는 [gymSearchQueryOf] 를 거친
+  /// 비어 있지 않은 값이어야 한다.
+  ///
+  /// 외부 검색에서만 찾은 헬스장은 서버에 등록돼 있지 않아 [fetchGym] 으로는
+  /// 읽히지 않는다. 화면은 여기서 받은 값으로 상세를 그린다.
+  Future<List<Gym>> searchGyms(String query);
+
+  /// 헬스장 한 곳을 id 로 읽는다. 없으면 `null`. (#3356)
+  ///
+  /// [fetchNearby] 가 반경·개수로 잘려 오므로, 목록 밖의 헬스장으로 들어온 상세
+  /// 화면(담당 트레이너의 소속, 알림·딥링크)이 이것으로 연다.
+  Future<Gym?> fetchGym(String gymId);
 
   /// Drops the gym link, and the trainer with it — you cannot keep a trainer
   /// at a gym you left. [fetchMyGym] and [fetchMyTrainer] both return `null`

@@ -38,6 +38,8 @@ void main() {
     final res = await dio.get<Map<String, Object?>>('/users/me');
     expect(res.statusCode, 200);
     expect(res.data!['email'], 'minsu@oncare.com');
+    // 서버와 같은 칸(#3340) — 비밀번호로 든 데모 회원이다.
+    expect(res.data!['has_password'], isTrue);
   });
 
   test('GET /users/me/health returns the same shape as the server', () async {

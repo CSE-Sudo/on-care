@@ -285,7 +285,6 @@
     }
   },
   "exTrainerCertifications": "자격증 · 인증",
-  "exTrainerRecommendationReason": "내 건강 목표 달성에 잘 맞는 트레이너예요",
   "exNearbyGymsMapLabel": "내 주변 헬스장",
   "exGymMapUnavailable": "지도를 불러오지 못했어요",
   "exActivityTitle": "운동 현황",
@@ -467,9 +466,11 @@
   "exNoSearchResults": "검색 결과가 없어요.",
   "exTrainersLoadError": "트레이너 정보를 불러오지 못했어요.",
   "exNearbyGyms": "주변 헬스장",
+  "exGymSearchResults": "검색 결과",
   "exGymListCollapse": "목록 접기",
   "exGymListExpand": "목록 펼치기",
   "exGymsLoadError": "헬스장을 불러오지 못했어요.",
+  "exGymSearchError": "헬스장을 검색하지 못했어요.",
   "exGymWeekdayHours": "평일 {hours}",
   "exGymWeekendHours": "주말 {hours}",
   "exTrainerDedicated": "전담 트레이너",
@@ -545,6 +546,9 @@
   "myPointsExchangeConfirmAction": "교환",
   "myPointsExchangeDone": "교환했어요",
   "myPointsExchangeFailed": "교환하지 못했어요. 다시 시도해 주세요.",
+  "myPointsExchangeBlocked": "지금은 교환할 수 없어요",
+  "myPointsInsufficient": "포인트가 부족해요",
+  "myBenefitAlreadyReceived": "이미 받았어요",
   "myPointsShortfall": "{points} 부족해요",
   "@myPointsShortfall": {
     "placeholders": {
@@ -920,6 +924,8 @@
   "challengeJoinConfirmAction": "참가",
   "challengeJoinDone": "챌린지에 참가했어요",
   "challengeJoinFailed": "참가하지 못했어요. 다시 시도해 주세요.",
+  "challengeJoinAlready": "이미 참가했어요",
+  "challengeJoinBlocked": "지금은 참가할 수 없어요",
   "challengeJoinClosed": "다음 주 월요일에 다시 참가할 수 있어요",
   "challengeSettling": "지난주 결과 집계 중이에요. 오늘까지 적은 지난주 운동 기록이 반영돼요",
   "challengeThisWeek": "이번 주 진행",
@@ -1087,6 +1093,8 @@
   "emoteShortfall": "포인트가 부족해요",
   "emoteLoadFailed": "이모티콘을 불러오지 못했어요",
   "emoteSendFailed": "이모티콘을 보내지 못했어요",
+  "emoteSendLocked": "이용 기간이 끝난 이모티콘이에요. 다시 사면 보낼 수 있어요",
+  "emoteSendRejected": "보낼 수 없는 이모티콘이에요",
   "a11yOpenEmotes": "이모티콘",
   "a11yEmote": "이모티콘",
   "myWithdrawTitle": "계정 탈퇴",
@@ -1261,6 +1269,7 @@
   "coachInviteRejected": "요청을 거절했어요",
   "coachInviteFailed": "처리하지 못했어요. 다시 시도해 주세요",
   "coachImageUnavailable": "사진을 불러오지 못했어요",
+  "coachImageRetry": "눌러서 다시 불러오기",
   "coachChatSubtitle": "담당 트레이너",
   "coachChatLoadOlder": "이전 메시지 더 보기",
   "coachChatLoadFailed": "대화를 불러오지 못했어요",
@@ -1268,12 +1277,14 @@
   "coachChatEmptyTitle": "{trainer}님과 대화를 시작해 보세요",
   "coachChatEmptyBody": "오늘 먹은 식단 사진이나 운동하며 궁금한 점을 보내 보세요",
   "coachChatSendFailed": "메시지를 보내지 못했어요. 다시 시도해 주세요",
+  "coachChatSendRejected": "보낼 수 없는 메시지예요. 내용을 확인해 주세요",
   "coachPhotoAttach": "사진 보내기",
   "coachPhotoSheetSubtitle": "식사·자세·인바디 사진을 트레이너에게 보내요",
   "coachPhotoPickSub": "보관함에서 사진 고르기",
   "coachPhotoTakeSub": "카메라로 바로 찍기",
   "coachPhotoSending": "보내는 중",
   "coachPhotoSendFailed": "사진을 보내지 못했어요",
+  "coachPhotoSendRejected": "보낼 수 없는 사진이에요",
   "coachPhotoRetry": "다시 보내기",
   "coachPhotoDiscard": "삭제",
   "coachPhotoPermissionDenied": "사진을 보내려면 카메라·사진 접근을 허용해 주세요",
@@ -1281,6 +1292,10 @@
   "coachPhotoReadFailed": "사진을 읽지 못했어요. 다른 사진으로 다시 시도해 주세요",
   "a11yMyPhoto": "내가 보낸 사진",
   "coachChatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",
+  "coachReportNotReceived": "아직 받지 않은 리포트예요",
+  "@coachReportNotReceived": {
+    "description": "Toast when the server refuses a weekly report the member has neither received nor bought (403)."
+  },
   "coachChatReportRegistered": "주간 리포트를 받았어요",
   "coachChatReportWeek": "{sm}월 {sd}일 ~ {em}월 {ed}일",
   "@coachChatReportWeek": {
@@ -1406,6 +1421,9 @@
   "exGymConsultPickTrainer": "상담받을 트레이너 선택",
   "exGymConsultPickTrainerHint": "상담은 트레이너 한 분에게 전달돼요.",
   "exGymConsultNoTrainers": "아직 소속 트레이너가 없어요.",
+  "exGymNoTrainersCallHint": "아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요. 헬스장에 전화로 문의해 주세요.",
+  "exGymNoTrainersHint": "아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요.",
+  "exGymCallInquiry": "전화 문의",
   "exGymTrainersLoadError": "소속 트레이너를 불러오지 못했어요.",
   "exTrainerConsultRequest": "트레이너 상담 신청",
   "exConsultPendingCta": "상담 요청 대기 중",
@@ -1599,6 +1617,15 @@
   "trainerSyncExpired": "코드가 만료됐어요.",
   "trainerSyncFailed": "코드를 받지 못했어요.",
   "trainerSyncRetry": "새 코드 받기",
+  "trainerSyncConnected": "{name} 트레이너와 연결됐어요",
+  "@trainerSyncConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trainerSyncConnectedBody": "이제 트레이너가 회원님의 기록을 보고 코칭할 수 있어요.",
   "signUpCreatedSignInNeeded": "계정이 만들어졌어요. 로그인해 주세요",
   "signUpEmailTaken": "이미 가입된 이메일이에요. 로그인해 주세요.",
   "signUpFailed": "회원가입을 하지 못했어요. 잠시 후 다시 시도해 주세요.",
@@ -2044,6 +2071,8 @@
   "weeklyFeedbackIncomplete": "컨디션과 운동 강도를 골라 주세요",
   "weeklyFeedbackSent": "주간 피드백을 보냈어요",
   "weeklyFeedbackSendFailed": "주간 피드백을 보내지 못했어요. 다시 시도해 주세요",
+  "weeklyFeedbackSendUnassigned": "담당이 해제되어 주간 피드백을 보낼 수 없어요",
+  "weeklyFeedbackSendRejected": "이 주에는 주간 피드백을 보낼 수 없어요",
   "weeklyFeedbackAlreadySent": "이미 보낸 주예요. 다시 보내면 마지막 답으로 바뀌어요.",
   "weekConditionGreat": "아주 좋았어요",
   "weekConditionGood": "좋았어요",

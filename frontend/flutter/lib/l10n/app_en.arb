@@ -460,7 +460,6 @@
     }
   },
   "exTrainerCertifications": "Certifications",
-  "exTrainerRecommendationReason": "A great fit for reaching my health goals",
   "exNearbyGymsMapLabel": "Gyms near me",
   "exGymMapUnavailable": "Couldn't load the map",
   "exActivityTitle": "Activity",
@@ -714,6 +713,7 @@
   "exNoSearchResults": "No search results.",
   "exTrainersLoadError": "Couldn't load trainers.",
   "exNearbyGyms": "Nearby gyms",
+  "exGymSearchResults": "Search results",
   "exGymListCollapse": "Collapse list",
   "@exGymListCollapse": {
     "description": "Hides the gym result list so the map fills the space"
@@ -723,6 +723,7 @@
     "description": "Brings the gym result list back under the map"
   },
   "exGymsLoadError": "Couldn't load gyms.",
+  "exGymSearchError": "Couldn't search gyms.",
   "exGymWeekdayHours": "Weekdays {hours}",
   "@exGymWeekdayHours": {
     "placeholders": {
@@ -849,6 +850,9 @@
   "myPointsExchangeConfirmAction": "Redeem",
   "myPointsExchangeDone": "Redeemed",
   "myPointsExchangeFailed": "Couldn't redeem. Please try again.",
+  "myPointsExchangeBlocked": "You can't redeem this right now",
+  "myPointsInsufficient": "Not enough points",
+  "myBenefitAlreadyReceived": "You already have this",
   "myPointsShortfall": "{points} short",
   "@myPointsShortfall": {
     "placeholders": {
@@ -1228,6 +1232,8 @@
   "challengeJoinConfirmAction": "Join",
   "challengeJoinDone": "You joined this week's challenge",
   "challengeJoinFailed": "Couldn't join. Please try again.",
+  "challengeJoinAlready": "You've already joined",
+  "challengeJoinBlocked": "You can't join right now",
   "challengeJoinClosed": "You can join again next Monday",
   "challengeSettling": "Tallying last week's result. Workouts you log for last week by today still count",
   "challengeThisWeek": "This week",
@@ -1420,6 +1426,11 @@
   "emoteShortfall": "Not enough points",
   "emoteLoadFailed": "Couldn't load the emotes",
   "emoteSendFailed": "Couldn't send the emote",
+  "emoteSendLocked": "That emote has expired. Buy it again to send it",
+  "@emoteSendLocked": {
+    "description": "Toast when the server refuses an emote because the member's unlock ran out (402); the emote shows as locked again (#3346)."
+  },
+  "emoteSendRejected": "That emote can't be sent",
   "a11yOpenEmotes": "Emotes",
   "a11yEmote": "Emote",
   "myWithdrawTitle": "Delete account",
@@ -1685,6 +1696,10 @@
   "coachInviteRejected": "Request declined",
   "coachInviteFailed": "Couldn't complete that. Please try again",
   "coachImageUnavailable": "Couldn't load the photo",
+  "coachImageRetry": "Tap to load again",
+  "@coachImageRetry": {
+    "description": "Second line under a chat photo that failed to download; tapping the placeholder fetches it again (#3346)."
+  },
   "coachChatSubtitle": "Your trainer",
   "@coachChatSubtitle": {
     "description": "Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089)."
@@ -1708,6 +1723,10 @@
   },
   "coachChatEmptyBody": "Send a photo of what you ate today or ask about your workouts",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
+  "coachChatSendRejected": "That message can't be sent. Please check what you wrote",
+  "@coachChatSendRejected": {
+    "description": "Toast when the server rejects the message content itself (400/422); sending the same text again would fail the same way, so it does not suggest retrying (#3346)."
+  },
   "coachPhotoAttach": "Send a photo",
   "@coachPhotoAttach": {
     "description": "Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665)."
@@ -1720,6 +1739,10 @@
     "description": "Status under a photo the member is still uploading to the trainer chat (#1665)."
   },
   "coachPhotoSendFailed": "Couldn't send the photo",
+  "coachPhotoSendRejected": "That photo can't be sent",
+  "@coachPhotoSendRejected": {
+    "description": "Status under a chat photo the server refused (unsupported format etc.); only Delete is offered, not Send again (#3346)."
+  },
   "coachPhotoRetry": "Send again",
   "coachPhotoDiscard": "Delete",
   "@coachPhotoDiscard": {
@@ -1733,6 +1756,7 @@
     "description": "Screen reader label for a photo the member sent in the trainer chat (#1665)."
   },
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
+  "coachReportNotReceived": "You haven't received this report yet",
   "coachChatReportRegistered": "Weekly report received",
   "coachChatReportWeek": "{sm}/{sd} – {em}/{ed}",
   "@coachChatReportWeek": {
@@ -1978,6 +2002,9 @@
   "exGymConsultPickTrainer": "Choose a trainer",
   "exGymConsultPickTrainerHint": "Your request goes to one trainer.",
   "exGymConsultNoTrainers": "No trainers are affiliated yet.",
+  "exGymNoTrainersCallHint": "No trainers from this gym have joined yet, so you can't request a consultation in the app. Please call the gym.",
+  "exGymNoTrainersHint": "No trainers from this gym have joined yet, so you can't request a consultation in the app.",
+  "exGymCallInquiry": "Call the gym",
   "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a trainer consultation",
   "exConsultPendingCta": "Consultation request pending",
@@ -2237,6 +2264,15 @@
   "trainerSyncExpired": "This code has expired.",
   "trainerSyncFailed": "Couldn't get a code.",
   "trainerSyncRetry": "Get a new code",
+  "trainerSyncConnected": "You're connected with {name}",
+  "@trainerSyncConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trainerSyncConnectedBody": "Your trainer can now see your records and coach you.",
   "signUpCreatedSignInNeeded": "Your account was created. Please sign in.",
   "@signUpCreatedSignInNeeded": {
     "description": "Sign-up: the account was created but the follow-up sign-in failed (#1926)."
@@ -4066,6 +4102,8 @@
   "weeklyFeedbackIncomplete": "Pick your condition and intensity",
   "weeklyFeedbackSent": "Weekly feedback sent",
   "weeklyFeedbackSendFailed": "Couldn't send your weekly feedback. Please try again",
+  "weeklyFeedbackSendUnassigned": "Your trainer is no longer assigned, so weekly feedback can't be sent",
+  "weeklyFeedbackSendRejected": "Weekly feedback can't be sent for this week",
   "weeklyFeedbackAlreadySent": "You already answered this week. Sending again replaces it.",
   "weekConditionGreat": "Great",
   "weekConditionGood": "Good",

@@ -46,6 +46,12 @@ class DioAccountRepository implements AccountRepository {
   }
 
   @override
+  Future<bool> fetchHasPassword() async {
+    final res = await _dio.get<Map<String, Object?>>('/users/me');
+    return (res.data?['has_password'] as bool?) ?? true;
+  }
+
+  @override
   Future<AccountDeletionPreview> fetchDeletionPreview() async {
     final res = await _dio.get<Map<String, Object?>>(
       '/users/me/deletion-preview',
