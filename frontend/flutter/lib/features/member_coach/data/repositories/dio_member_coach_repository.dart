@@ -161,6 +161,27 @@ class DioMemberCoachRepository implements MemberCoachRepository {
   }
 
   @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async {
+    try {
+      final Response<Map<String, Object?>> res = await _dio
+          .get<Map<String, Object?>>(
+            '/me/coach/reports',
+            // 커서는 앞 쪽 마지막 줄의 주(월요일)다.
+            queryParameters: before == null
+                ? null
+                : <String, Object?>{'before': wireDate(before)},
+          );
+      final Map<String, Object?>? data = res.data;
+      if (data == null) {
+        throw const FormatException('Invalid received reports.');
+      }
+      return receivedReportsPageFromJson(data);
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
   Stream<List<CoachMessage>> watchChat() =>
       activePollingStream<List<CoachMessage>>(
         load: fetchChat,

@@ -5018,12 +5018,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachReportsLoadFailed => 'Couldn\'t load your reports';
 
   @override
+  String get coachReportsLoadMore => 'Show earlier reports';
+
+  @override
   String get weeklyFeedbackLoadFailed =>
       'Couldn\'t load the weekly feedback you sent';
 
   @override
   String coachReportSentOn(int month, int day) {
     return 'Sent $month/$day';
+  }
+
+  @override
+  String coachReportSentBy(String name, String sentOn) {
+    return '$name · $sentOn';
   }
 
   @override

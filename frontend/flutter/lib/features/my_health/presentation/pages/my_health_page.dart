@@ -27,7 +27,9 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connected_gym_card.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
@@ -159,8 +161,9 @@ class MyHealthPage extends ConsumerWidget {
 
 /// 트레이너 리포트 입구 — 받은 리포트와 보낸 주간 피드백. (#2232)
 ///
-/// 담당 트레이너가 있을 때만 선다. 예전에는 리포트를 대화 안에서만 열 수 있어,
-/// 지난주 리포트를 다시 보려면 그 주의 메시지까지 스크롤을 올려야 했다.
+/// 담당 트레이너가 있거나 받은 리포트가 남아 있을 때 선다. 예전에는 리포트를
+/// 대화 안에서만 열 수 있어, 지난주 리포트를 다시 보려면 그 주의 메시지까지
+/// 스크롤을 올려야 했다.
 class _CoachReportsEntry extends ConsumerWidget {
   const _CoachReportsEntry();
 
@@ -169,8 +172,17 @@ class _CoachReportsEntry extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     // 담당을 아직 못 읽은 동안에는 자리를 만들지 않는다 — 있다가 사라지는
     // 카드는 누르려던 손을 다른 곳에 떨어뜨린다.
-    final bool hasCoach = ref.watch(memberCoachProvider).valueOrNull != null;
-    if (!hasCoach) return const SizedBox.shrink();
+    final AsyncValue<MemberCoach?> coach = ref.watch(memberCoachProvider);
+    final bool hasCoach = coach.valueOrNull != null;
+    // 담당이 없어도 받은 리포트가 있으면 선다(#3348) — 해제·교체 뒤에도 받은
+    // 리포트는 남고, 리포트 알림이 데려올 자리도 여기다. 담당이 있는 회원은
+    // 목록을 미리 읽지 않는다.
+    final bool hasReports =
+        coach.hasValue &&
+        !hasCoach &&
+        (ref.watch(receivedReportsProvider).valueOrNull?.reports.isNotEmpty ??
+            false);
+    if (!hasCoach && !hasReports) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: OnCareSpacing.sectionGap),
       child: AppCard(

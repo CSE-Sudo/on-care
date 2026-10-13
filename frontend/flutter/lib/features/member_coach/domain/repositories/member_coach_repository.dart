@@ -91,6 +91,15 @@ abstract interface class MemberCoachRepository {
   /// 커서 없이 부르기만 해서 51번째 이전 메시지는 위로 올려도 나오지 않았다.
   Future<List<CoachMessage>> fetchChat({CoachMessage? before});
 
+  /// 받은 주간 리포트 목록(최신 주 → 오래된 주) — `GET /me/coach/reports`.
+  /// (#3348)
+  ///
+  /// 대화를 읽지 않는다. 그래서 대화 길이와 무관하게 한 번에 서고, **담당
+  /// 트레이너가 없어도**(해제·교체·보낸 트레이너 탈퇴) 받은 것은 그대로 준다 —
+  /// [CoachUnassignedException] 을 던지지 않는다. [before] 는 앞 쪽의
+  /// [ReceivedReportsPage.nextBefore] 다.
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before});
+
   /// Watches the chat while its screen is active. Real API implementations
   /// poll the shared thread; demo implementations emit their in-memory state.
   Stream<List<CoachMessage>> watchChat();

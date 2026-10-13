@@ -4739,11 +4739,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachReportsLoadFailed => '받은 리포트를 불러오지 못했어요';
 
   @override
+  String get coachReportsLoadMore => '이전 리포트 더 보기';
+
+  @override
   String get weeklyFeedbackLoadFailed => '보낸 주간 피드백을 불러오지 못했어요';
 
   @override
   String coachReportSentOn(int month, int day) {
     return '$month월 $day일 보냄';
+  }
+
+  @override
+  String coachReportSentBy(String name, String sentOn) {
+    return '$name · $sentOn';
   }
 
   @override

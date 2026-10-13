@@ -2059,6 +2059,7 @@
   "coachReportsEmpty": "아직 받은 리포트가 없어요",
   "coachReportsEmptyHint": "담당 트레이너가 주간 리포트를 보내면 여기에 쌓여요",
   "coachReportsLoadFailed": "받은 리포트를 불러오지 못했어요",
+  "coachReportsLoadMore": "이전 리포트 더 보기",
   "weeklyFeedbackLoadFailed": "보낸 주간 피드백을 불러오지 못했어요",
   "coachReportSentOn": "{month}월 {day}일 보냄",
   "@coachReportSentOn": {
@@ -2068,6 +2069,17 @@
       },
       "day": {
         "type": "int"
+      }
+    }
+  },
+  "coachReportSentBy": "{name} · {sentOn}",
+  "@coachReportSentBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "sentOn": {
+        "type": "String"
       }
     }
   },
