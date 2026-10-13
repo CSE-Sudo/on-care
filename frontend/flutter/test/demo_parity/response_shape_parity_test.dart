@@ -136,6 +136,8 @@ const Set<String> _serverNotificationKeys = <String>{
   'invite_id',
   'template',
   'args',
+  // 리포트 알림이 가리키는 리포트(#3344). 다른 알림은 값이 null 이다.
+  'report',
 };
 
 /// FastAPI `HTTPException` 의 본문.
