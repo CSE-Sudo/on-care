@@ -5654,6 +5654,18 @@ abstract class AppLocalizations {
   /// **'Get a new code'**
   String get trainerSyncRetry;
 
+  /// No description provided for @trainerSyncConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected with {name}'**
+  String trainerSyncConnected(String name);
+
+  /// No description provided for @trainerSyncConnectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer can now see your records and coach you.'**
+  String get trainerSyncConnectedBody;
+
   /// Sign-up: the account was created but the follow-up sign-in failed (#1926).
   ///
   /// In en, this message translates to:

@@ -101,6 +101,20 @@ void invalidateCoachBoundData(void Function(ProviderOrFamily) invalidate) {
   invalidate(coachUnreadProvider);
 }
 
+/// 담당 연결이 새로 생긴 뒤 다시 읽어야 하는 것들. (#2659, #3342)
+///
+/// 담당 요청 수락과 연결 코드 시트의 연결 확인이 같은 목록을 쓴다 — 어느 문으로
+/// 연결됐든 같은 화면이 바뀐다. 코치 카드·루틴·일정이 그 관계 위에 있고,
+/// 헬스장 탭·MY 의 연결 카드도 그 관계를 보여 준다. 다시 읽지 않으면 연결된
+/// 뒤에도 `연결된 트레이너 없음` 으로 남는다.
+void refreshAfterCoachLinked(ProviderInvalidator invalidate) {
+  invalidate(memberCoachProvider);
+  invalidate(coachRoutinesProvider);
+  invalidate(coachSessionsProvider);
+  invalidate(myTrainerProvider);
+  invalidate(myGymProvider);
+}
+
 /// 담당 코치를 다시 읽고, 있던 담당이 사라졌으면 딸린 묶음도 비운다. (#2843)
 ///
 /// [memberCoachProvider] 는 앱을 켤 때 한 번 읽은 값을 계속 쓴다. 앱을 떠난

@@ -3146,6 +3146,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get trainerSyncRetry => '새 코드 받기';
 
   @override
+  String trainerSyncConnected(String name) {
+    return '$name 트레이너와 연결됐어요';
+  }
+
+  @override
+  String get trainerSyncConnectedBody => '이제 트레이너가 회원님의 기록을 보고 코칭할 수 있어요.';
+
+  @override
   String get signUpCreatedSignInNeeded => '계정이 만들어졌어요. 로그인해 주세요';
 
   @override
