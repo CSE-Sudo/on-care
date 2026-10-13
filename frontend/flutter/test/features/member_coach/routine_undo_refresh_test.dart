@@ -44,8 +44,12 @@ class _GatedCoach extends MockMemberCoachRepository {
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) async {
@@ -55,6 +59,10 @@ class _GatedCoach extends MockMemberCoachRepository {
       routineId,
       minutes: minutes,
       durationSeconds: durationSeconds,
+      sets: sets,
+      reps: reps,
+      holdSeconds: holdSeconds,
+      weight: weight,
       intensity: intensity,
       day: day,
     );

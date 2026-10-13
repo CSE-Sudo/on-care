@@ -114,11 +114,20 @@ abstract interface class MemberCoachRepository {
   ///
   /// [durationSeconds] 는 같은 시간을 초로 적은 값이다(#2221). 초로 배정된
   /// 운동(`45초`)을 [minutes] 로만 보내면 `1분` 기록이 된다. 근력처럼 초가 없는
-  /// 배정은 null 로 두고 [minutes] 만 보낸다.
+  /// 배정은 null 로 둔다.
+  ///
+  /// 근력 배정은 회원이 실제로 한 [sets]·[reps](버티는 운동이면 [holdSeconds])·
+  /// [weight] 를 싣는다(#3364) — 비운 값은 배정 값이 남는다. [minutes] 를 비우면
+  /// 근력은 세트 수에서, 나머지는 초·배정 시간에서 채워진다. 앱이 분을 지어내
+  /// 보내지 않는다.
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   });
@@ -149,6 +158,15 @@ abstract interface class MemberCoachRepository {
   /// 받은 것 중 **가장 오래된 메시지**를 커서로 넘긴다(#1943) — 전에는 앱이
   /// 커서 없이 부르기만 해서 51번째 이전 메시지는 위로 올려도 나오지 않았다.
   Future<List<CoachMessage>> fetchChat({CoachMessage? before});
+
+  /// 받은 주간 리포트 목록(최신 주 → 오래된 주) — `GET /me/coach/reports`.
+  /// (#3348)
+  ///
+  /// 대화를 읽지 않는다. 그래서 대화 길이와 무관하게 한 번에 서고, **담당
+  /// 트레이너가 없어도**(해제·교체·보낸 트레이너 탈퇴) 받은 것은 그대로 준다 —
+  /// [CoachUnassignedException] 을 던지지 않는다. [before] 는 앞 쪽의
+  /// [ReceivedReportsPage.nextBefore] 다.
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before});
 
   /// Watches the chat while its screen is active. Real API implementations
   /// poll the shared thread; demo implementations emit their in-memory state.

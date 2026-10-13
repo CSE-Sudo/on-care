@@ -3,6 +3,10 @@
 /// 예전에는 대화의 최신 50건만 읽어 몇 주 전 리포트가 목록에서 사라졌고, 한 번
 /// 읽은 목록이 세션 내내 남아 새 리포트가 앱을 다시 켜기 전까지 보이지 않았다.
 /// 읽기 실패에는 `보내지 못했어요`·`PDF 를 열지 못했어요` 가 떴다.
+///
+/// 목록 자체는 이제 서버의 받은 리포트 목록에서 온다(#3348,
+/// `received_reports_test.dart`). 대화를 끝까지 읽는 길은 알림이 가리킨 리포트를
+/// 대화에서 짚을 때 그대로 쓰여, 그 규칙은 여기서 계속 본다.
 library;
 
 import 'dart:async';
@@ -42,9 +46,9 @@ CoachMessage _reportAt(int minute, DateTime week, {String? id}) => reportNotice(
   createdAt: chatLine(minute).createdAt,
 );
 
-Future<List<SentReportNotice>> _notices(ProviderContainer container) {
-  container.listen(sentReportNoticesProvider, (_, _) {});
-  return container.read(sentReportNoticesProvider.future);
+Future<List<ReceivedReport>> _notices(ProviderContainer container) async {
+  container.listen(receivedReportsProvider, (_, _) {});
+  return (await container.read(receivedReportsProvider.future)).reports;
 }
 
 ProviderContainer _container(MemberCoachRepository repository) {
@@ -84,11 +88,11 @@ class _EndlessRepository extends FakeMemberCoachRepository {
   }
 }
 
-/// 대화를 읽지 못하는 대역.
-class _ChatFailsRepository extends FakeMemberCoachRepository {
+/// 받은 리포트 목록을 읽지 못하는 대역.
+class _ReportsFailRepository extends FakeMemberCoachRepository {
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) =>
-      Future<List<CoachMessage>>.error(StateError('chat unavailable'));
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) =>
+      Future<ReceivedReportsPage>.error(StateError('reports unavailable'));
 }
 
 /// 피드백을 읽지 못하는 대역.
@@ -154,7 +158,7 @@ void main() {
   setUp(() => useFixedKstDate());
 
   group('대화를 끝까지 읽기', () {
-    test('50건보다 앞에 있던 리포트도 목록에 선다', () async {
+    test('50건보다 앞에 있던 리포트도 찾는다', () async {
       // 120건짜리 대화. 리포트는 5번째와 60번째 — 둘 다 최신 50건 밖이다.
       final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
         chat: <CoachMessage>[
@@ -167,8 +171,8 @@ void main() {
         ],
       );
 
-      final List<SentReportNotice> notices = await _notices(
-        _container(repository),
+      final List<SentReportNotice> notices = selectReportNotices(
+        await fetchWholeCoachChat(repository),
       );
 
       expect(
@@ -336,7 +340,7 @@ void main() {
       );
       addTearDown(container.dispose);
       // 목록을 듣고 있는 누군가 — 없으면 autoDispose 로 이미 사라진다.
-      final List<SentReportNotice> first = await _notices(container);
+      final List<ReceivedReport> first = await _notices(container);
       expect(first, hasLength(1));
       await _pumpPage(
         tester,
@@ -349,10 +353,10 @@ void main() {
       ]);
       await tester.pumpAndSettle();
 
-      final List<SentReportNotice> next = await container.read(
-        sentReportNoticesProvider.future,
+      final ReceivedReportsState next = await container.read(
+        receivedReportsProvider.future,
       );
-      expect(next.map((SentReportNotice n) => n.message.id).toSet(), <String>{
+      expect(next.reports.map((ReceivedReport n) => n.id).toSet(), <String>{
         'r1',
         'r2',
       });
@@ -361,7 +365,7 @@ void main() {
 
   group('오류 문구', () {
     testWidgets('목록을 읽지 못하면 불러오지 못했다고 말한다', (tester) async {
-      await _pumpPage(tester, _container(_ChatFailsRepository()));
+      await _pumpPage(tester, _container(_ReportsFailRepository()));
 
       expect(find.text('받은 리포트를 불러오지 못했어요'), findsOneWidget);
       // 예전 문구 — 문서를 열다 실패한 것이 아니다.
@@ -376,7 +380,7 @@ void main() {
     });
 
     testWidgets('다시 시도하면 목록을 다시 읽는다', (tester) async {
-      final _FlakyChatRepository repository = _FlakyChatRepository(
+      final _FlakyReportsRepository repository = _FlakyReportsRepository(
         chat: <CoachMessage>[reportNotice(_week1, id: 'r1')],
       );
       await _pumpPage(tester, _container(repository));
@@ -392,17 +396,19 @@ void main() {
   });
 }
 
-/// 처음에는 대화를 읽지 못하다가 풀리는 대역.
-class _FlakyChatRepository extends FakeMemberCoachRepository {
-  _FlakyChatRepository({super.chat});
+/// 처음에는 목록을 읽지 못하다가 풀리는 대역.
+class _FlakyReportsRepository extends FakeMemberCoachRepository {
+  _FlakyReportsRepository({super.chat});
 
   bool failing = true;
 
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) {
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) {
     if (failing) {
-      return Future<List<CoachMessage>>.error(StateError('chat unavailable'));
+      return Future<ReceivedReportsPage>.error(
+        StateError('reports unavailable'),
+      );
     }
-    return super.fetchChat(before: before);
+    return super.fetchReceivedReports(before: before);
   }
 }

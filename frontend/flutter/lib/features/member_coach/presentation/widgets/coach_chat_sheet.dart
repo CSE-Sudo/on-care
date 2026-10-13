@@ -401,7 +401,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
       }
       if (before == null || after == null) return;
       if (hasNewReportNotice(before, after)) {
-        ref.invalidate(sentReportNoticesProvider);
+        ref.invalidate(receivedReportsProvider);
       }
     });
     return Scaffold(

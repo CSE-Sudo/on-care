@@ -153,9 +153,6 @@ void main() {
               ),
             ),
             coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
-            sentReportNoticesProvider.overrideWith(
-              (ref) async => const <SentReportNotice>[],
-            ),
           ],
           child: MaterialApp(
             theme: AppTheme.light(),
@@ -215,20 +212,33 @@ void main() {
       );
     });
 
-    test('해제된 뒤 받은 리포트 목록은 오류가 아니라 빈 목록이다', () async {
+    // 받은 리포트는 대화가 아니라 회원에게 남는 기록이다(#3348). 해제되면
+    // 대화는 닫히지만 목록은 그대로 서고, 리포트 알림이 데려올 자리도 남는다.
+    test('해제된 뒤에도 받은 리포트 목록은 그대로다', () async {
       final MockGymRepository gym = MockGymRepository();
+      final MockMemberCoachRepository coach = MockMemberCoachRepository(
+        linked: () => gym.hasTrainer,
+      );
       final ProviderContainer container = ProviderContainer(
         overrides: <Override>[
-          memberCoachRepositoryProvider.overrideWithValue(
-            MockMemberCoachRepository(linked: () => gym.hasTrainer),
-          ),
+          memberCoachRepositoryProvider.overrideWithValue(coach),
         ],
       );
       addTearDown(container.dispose);
+      final List<ReceivedReport> before =
+          (await coach.fetchReceivedReports()).reports;
+      expect(before, isNotEmpty);
+
       await gym.disconnectMyTrainer();
 
-      container.listen(sentReportNoticesProvider, (_, _) {});
-      expect(await container.read(sentReportNoticesProvider.future), isEmpty);
+      container.listen(receivedReportsProvider, (_, _) {});
+      final ReceivedReportsState after = await container.read(
+        receivedReportsProvider.future,
+      );
+      expect(
+        after.reports.map((ReceivedReport r) => r.weekStart).toList(),
+        before.map((ReceivedReport r) => r.weekStart).toList(),
+      );
     });
   });
 }

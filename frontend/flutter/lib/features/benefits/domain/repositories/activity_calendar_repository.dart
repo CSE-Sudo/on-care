@@ -11,7 +11,7 @@ import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart'
 /// 운동·식단 화면 테스트의 대역이 모두 함께 바뀌어야 한다.
 abstract interface class ActivityCalendarRepository {
   /// [from]…[to] 의 날짜별 기록·기록 연속·그래프 색. 구간을 주지 않으면 서버 기본
-  /// (오늘로 끝나는 8주)이다.
+  /// (오늘로 끝나는 371일 = 53주)이다.
   Future<ActivityCalendar> fetch({DateTime? from, DateTime? to});
 
   /// 그래프 색을 [color] 로 바꾼다. 아직 열지 않은 색이면 서버 오류로 올라온다.

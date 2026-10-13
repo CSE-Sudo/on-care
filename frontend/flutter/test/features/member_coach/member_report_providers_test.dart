@@ -72,14 +72,17 @@ class _FailingProfile extends ProfileController {
 class _RecordingRepository implements MemberReportSheetRepository {
   DateTime? weekStart;
   ReportSheetGoals? goals;
+  String? messageId;
   int calls = 0;
 
   @override
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
     ReportSheetGoals goals = const ReportSheetGoals(),
+    String? messageId,
   }) async {
     calls++;
+    this.messageId = messageId;
     this.weekStart = weekStart;
     this.goals = goals;
     return _inputs;
@@ -206,6 +209,25 @@ void main() {
       expect(inputs, same(_inputs));
       expect(repository.weekStart, _monday);
       expect(repository.goals!.weeklyCardioMinutes, 120);
+      expect(repository.messageId, isNull, reason: '포인트로 받은 리포트는 주로만 찾는다');
+    });
+
+    test('전송 메시지 id 를 저장소까지 그대로 넘긴다 (#3349)', () async {
+      final _RecordingRepository repository = _RecordingRepository();
+      final ProviderContainer container = ProviderContainer(
+        overrides: <Override>[
+          memberReportSheetRepositoryProvider.overrideWithValue(repository),
+          profileProvider.overrideWith(() => _StubProfile(_profile())),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await loadMemberReportSheet(
+        container.read,
+        weekStart: _monday,
+        messageId: 'chat-abc',
+      );
+      expect(repository.messageId, 'chat-abc');
     });
 
     test('프로필을 못 읽어도 권장 목표로 결과지를 세운다', () async {
@@ -296,6 +318,16 @@ void main() {
       expect(pdf.fileName, ko.coachReportPdfFileName('2026-09-14'));
       expect(repository.weekStart, _monday);
       expect(generator.inputs, same(_inputs));
+    });
+
+    test('보낼 때 굳힌 값을 그 전송 메시지로 찾는다 (#3349)', () async {
+      await loadCoachReportPdf(
+        container.read,
+        l: ko,
+        message: _notice(),
+        weekStart: _monday,
+      );
+      expect(repository.messageId, 'report-1');
     });
 
     test('트레이너가 함께 보낸 글이 트레이너 피드백 칸에 실린다', () async {
@@ -417,5 +449,6 @@ class _ThrowingRepository implements MemberReportSheetRepository {
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
     ReportSheetGoals goals = const ReportSheetGoals(),
+    String? messageId,
   }) async => throw StateError('offline');
 }

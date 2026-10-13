@@ -1426,12 +1426,6 @@ abstract class AppLocalizations {
   /// **'자격증 · 인증'**
   String get exTrainerCertifications;
 
-  /// No description provided for @exTrainerRecommendationReason.
-  ///
-  /// In ko, this message translates to:
-  /// **'내 건강 목표 달성에 잘 맞는 트레이너예요'**
-  String get exTrainerRecommendationReason;
-
   /// No description provided for @exNearbyGymsMapLabel.
   ///
   /// In ko, this message translates to:
@@ -2140,6 +2134,12 @@ abstract class AppLocalizations {
   /// **'주변 헬스장'**
   String get exNearbyGyms;
 
+  /// No description provided for @exGymSearchResults.
+  ///
+  /// In ko, this message translates to:
+  /// **'검색 결과'**
+  String get exGymSearchResults;
+
   /// Hides the gym result list so the map fills the space
   ///
   /// In ko, this message translates to:
@@ -2157,6 +2157,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'헬스장을 불러오지 못했어요.'**
   String get exGymsLoadError;
+
+  /// No description provided for @exGymSearchError.
+  ///
+  /// In ko, this message translates to:
+  /// **'헬스장을 검색하지 못했어요.'**
+  String get exGymSearchError;
 
   /// No description provided for @exGymWeekdayHours.
   ///
@@ -3165,6 +3171,72 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'목표 달성! 주가 끝나면 {reward}를 받아요'**
   String challengeAchieved(String reward);
+
+  /// No description provided for @challengeGoalSource.
+  ///
+  /// In ko, this message translates to:
+  /// **'목표 횟수는 MY 건강 목표의 주간 운동 횟수를 따라요'**
+  String get challengeGoalSource;
+
+  /// No description provided for @challengeHistoryAction.
+  ///
+  /// In ko, this message translates to:
+  /// **'지난 결과'**
+  String get challengeHistoryAction;
+
+  /// No description provided for @challengeHistoryTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'지난 챌린지 결과'**
+  String get challengeHistoryTitle;
+
+  /// No description provided for @challengeHistoryEmpty.
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 참가한 챌린지가 없어요'**
+  String get challengeHistoryEmpty;
+
+  /// No description provided for @challengeHistoryEmptyMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'월·화요일에 주간 운동 챌린지에 참가하면 결과가 여기에 쌓여요.'**
+  String get challengeHistoryEmptyMessage;
+
+  /// No description provided for @challengeHistoryLoadFailed.
+  ///
+  /// In ko, this message translates to:
+  /// **'챌린지 결과를 불러오지 못했어요'**
+  String get challengeHistoryLoadFailed;
+
+  /// No description provided for @challengeHistoryResult.
+  ///
+  /// In ko, this message translates to:
+  /// **'목표 {goal}회 · {progress}회 운동'**
+  String challengeHistoryResult(int goal, int progress);
+
+  /// No description provided for @challengeStatusSucceeded.
+  ///
+  /// In ko, this message translates to:
+  /// **'성공'**
+  String get challengeStatusSucceeded;
+
+  /// No description provided for @challengeStatusFailed.
+  ///
+  /// In ko, this message translates to:
+  /// **'실패'**
+  String get challengeStatusFailed;
+
+  /// No description provided for @challengeStatusActive.
+  ///
+  /// In ko, this message translates to:
+  /// **'진행 중'**
+  String get challengeStatusActive;
+
+  /// No description provided for @challengeStatusSettling.
+  ///
+  /// In ko, this message translates to:
+  /// **'집계 중'**
+  String get challengeStatusSettling;
 
   /// No description provided for @myCouponStatusUsable.
   ///
@@ -4816,6 +4888,24 @@ abstract class AppLocalizations {
   /// **'아직 소속 트레이너가 없어요.'**
   String get exGymConsultNoTrainers;
 
+  /// No description provided for @exGymNoTrainersCallHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요. 헬스장에 전화로 문의해 주세요.'**
+  String get exGymNoTrainersCallHint;
+
+  /// No description provided for @exGymNoTrainersHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요.'**
+  String get exGymNoTrainersHint;
+
+  /// No description provided for @exGymCallInquiry.
+  ///
+  /// In ko, this message translates to:
+  /// **'전화 문의'**
+  String get exGymCallInquiry;
+
   /// No description provided for @exGymTrainersLoadError.
   ///
   /// In ko, this message translates to:
@@ -5025,6 +5115,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'트레이너가 상담 일정을 취소했어요. 다른 시간으로 다시 신청해 보세요.'**
   String get exConsultCancelledByTrainerBody;
+
+  /// No description provided for @exConsultTrainerNameMissing.
+  ///
+  /// In ko, this message translates to:
+  /// **'트레이너 정보 없음'**
+  String get exConsultTrainerNameMissing;
 
   /// No description provided for @exExerciseGoal.
   ///
@@ -6447,6 +6543,18 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'주간 스트레칭 (분)'**
   String get myGoalFlexibilityWeekly;
+
+  /// No description provided for @myGoalWorkoutsWeekly.
+  ///
+  /// In ko, this message translates to:
+  /// **'주간 운동 횟수 (일)'**
+  String get myGoalWorkoutsWeekly;
+
+  /// No description provided for @myGoalWorkoutsWeeklyHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'주간 운동 챌린지의 목표가 돼요. 정하지 않으면 {days}일이고, 이미 참가한 주의 목표는 바뀌지 않아요.'**
+  String myGoalWorkoutsWeeklyHint(int days);
 
   /// Explains the suggested exercise goals, adjusted for the picked health goals.
   ///
@@ -8060,6 +8168,12 @@ abstract class AppLocalizations {
   /// **'받은 리포트를 불러오지 못했어요'**
   String get coachReportsLoadFailed;
 
+  /// No description provided for @coachReportsLoadMore.
+  ///
+  /// In ko, this message translates to:
+  /// **'이전 리포트 더 보기'**
+  String get coachReportsLoadMore;
+
   /// No description provided for @weeklyFeedbackLoadFailed.
   ///
   /// In ko, this message translates to:
@@ -8071,6 +8185,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'{month}월 {day}일 보냄'**
   String coachReportSentOn(int month, int day);
+
+  /// No description provided for @coachReportSentBy.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name} · {sentOn}'**
+  String coachReportSentBy(String name, String sentOn);
 
   /// No description provided for @myWeeklyFeedbackSectionTitle.
   ///

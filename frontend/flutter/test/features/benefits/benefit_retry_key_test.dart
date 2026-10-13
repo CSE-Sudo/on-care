@@ -155,8 +155,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// 교환 버튼을 화면 안으로 올린다 — 교환 목록은 챌린지 카드 아래라, 그 위
+  /// 카드가 길어지면(지난 결과 입구 #3361) 버튼이 시험 화면 밖으로
+  /// 밀려 탭이 빗나간다.
+  Future<Finder> exchangeButton(WidgetTester tester, String item) async {
+    final Finder button = find.byKey(ValueKey<String>('shop-exchange-$item'));
+    await tester.ensureVisible(button);
+    await tester.pumpAndSettle();
+    return button;
+  }
+
   Future<void> exchange(WidgetTester tester, String item) async {
-    await tester.tap(find.byKey(ValueKey<String>('shop-exchange-$item')));
+    await tester.tap(await exchangeButton(tester, item));
     await tester.pumpAndSettle();
     await confirm(tester, '교환');
   }

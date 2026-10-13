@@ -171,6 +171,69 @@ void main() {
     expect((await weekly())['goal'], 7);
   });
 
+  test('MY 에서 정한 횟수가 다음 참가의 목표가 되고, 참가한 주는 그대로다', () async {
+    // 회원 앱 건강 목표가 보내는 모양 그대로다(#3361).
+    await setGoal(5);
+    expect((await join()).statusCode, 201);
+    expect((await weekly())['goal'], 5);
+
+    // 주 중간에 목표를 낮춰도 이번 주는 참가할 때 값이다.
+    await setGoal(2);
+    expect((await weekly())['goal'], 5);
+    expect((await history()).single['goal'], 5);
+
+    // 다음 주에 참가하면 새 목표가 걸린다. 지난주는 여전히 5회다.
+    now = _day(7);
+    expect((await weekly())['goal'], 2);
+    expect((await join()).statusCode, 201);
+    expect(
+      <Object?>[for (final Map<String, Object?> c in await history()) c['goal']],
+      <int>[2, 5],
+    );
+
+    // 목표를 지우면 그다음 참가는 다시 3회다.
+    await setGoal(null);
+    now = _day(14);
+    expect((await weekly())['goal'], 3);
+  });
+
+  test('저장소의 이력은 최근 주 먼저 — 성공·실패와 받은 포인트를 싣는다', () async {
+    final DioChallengeRepository repository = DioChallengeRepository(
+      strictDioOf(dio),
+    );
+    expect(await repository.fetchHistory(), isEmpty);
+
+    // 첫 주는 목표 3회를 채우고, 둘째 주는 한 번만 운동한다.
+    expect((await join()).statusCode, 201);
+    recorded = <DateTime>{_day(0), _day(2), _day(4), _day(7)};
+    now = _day(7);
+    expect((await join()).statusCode, 201);
+    // 셋째 주 화요일 — 첫 주·둘째 주 모두 유예까지 끝났다.
+    now = _day(15);
+    expect((await join()).statusCode, 201);
+
+    final List<Challenge> rows = await repository.fetchHistory();
+    expect(
+      <DateTime>[for (final Challenge c in rows) c.weekStart],
+      <DateTime>[
+        DateTime(2026, 9, 28),
+        DateTime(2026, 9, 21),
+        DateTime(2026, 9, 14),
+      ],
+    );
+    expect(rows[0].status, ChallengeStatus.active);
+    expect(rows[0].settling, isFalse);
+    expect(rows[0].rewarded, 0);
+    expect(rows[1].status, ChallengeStatus.failed);
+    expect(rows[1].goal, 3);
+    expect(rows[1].progress, 1);
+    expect(rows[1].rewarded, 0);
+    expect(rows[2].status, ChallengeStatus.succeeded);
+    expect(rows[2].progress, 3);
+    expect(rows[2].rewarded, 200);
+    expect(rows[2].weekEnd, DateTime(2026, 9, 20));
+  });
+
   test('잔액이 모자라면 참가할 수 없다', () async {
     ledger.spend('other', 940, reason: 'coupon_locker_month');
 

@@ -76,6 +76,8 @@ MEMBER_CONSULT_REJECTED = "member_consult_rejected"
 MEMBER_CONSULT_EXPIRED = "member_consult_expired"
 #: 상담 요청을 받은 트레이너가 확인하기 전에 탈퇴했다(#3241).
 MEMBER_CONSULT_TRAINER_LEFT = "member_consult_trainer_left"
+#: 상담 요청을 받은 트레이너가 정지되어 상담을 진행할 수 없다(#3360).
+MEMBER_CONSULT_TRAINER_UNAVAILABLE = "member_consult_trainer_unavailable"
 MEMBER_TRAINER_LEFT = "member_trainer_left"
 MEMBER_TRAINER_LEFT_BOOKING = "member_trainer_left_booking"
 MEMBER_TRAINER_DISCONNECTED = "member_trainer_disconnected"
@@ -316,6 +318,18 @@ def _trainer_consult_withdrawn(args: Args, locale: Locale) -> Rendered:
     # 회원이 탈퇴해 대기 중이던 요청이 함께 사라졌다(#1632). 이름이 비면 탈퇴
     # 알림(`trainer_member_withdrawn`)과 같은 말을 대신 적는다.
     name, day = _text(args, "member_name").strip(), _day(_text(args, "preferred_date"), locale)
+    if args.get("booked"):
+        # 수락되어 스케줄에 잡혀 있던 상담이다 — 시각까지 적는다(#3360).
+        detail = _when(args, locale) or day
+        if locale == "ko":
+            return (
+                "회원 탈퇴로 확정된 상담이 취소됐어요",
+                f"{name or '이름 없는'} 회원 · {detail}",
+            )
+        return (
+            "Confirmed consultation cancelled: member account deleted",
+            f"{name or 'A member'} · {detail}",
+        )
     if locale == "ko":
         return "회원 탈퇴로 상담 요청이 취소됐어요", f"{name or '이름 없는'} 회원 · {day}"
     return (
@@ -623,18 +637,62 @@ def _member_consult_expired(args: Args, locale: Locale) -> Rendered:
     )
 
 
+def _cancelled_consult(args: Args, locale: Locale) -> tuple[str, str]:
+    """취소된 것을 부르는 말 — (제목, 본문 속 명사구). (#3360)
+
+    `booked` 면 수락되어 잡혀 있던 상담이라 "확정된 상담" 으로 부르고, 시각을 알면
+    함께 적는다. 아니면 답을 기다리던 "상담 요청" 이다.
+    """
+    if not args.get("booked"):
+        if locale == "ko":
+            return "상담 요청이 취소되었어요", "상담 요청이"
+        return "Consultation request cancelled", "your consultation request was"
+    when = _when(args, locale)
+    if locale == "ko":
+        return (
+            "확정된 상담이 취소되었어요",
+            f"{when} 상담이" if when is not None else "확정된 상담이",
+        )
+    return (
+        "Confirmed consultation cancelled",
+        f"your consultation on {when} was"
+        if when is not None
+        else "your confirmed consultation was",
+    )
+
+
 @_template(MEMBER_CONSULT_TRAINER_LEFT)
 def _member_consult_trainer_left(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "trainer_name")
+    title, what = _cancelled_consult(args, locale)
     if locale == "ko":
         return (
-            "상담 요청이 취소되었어요",
-            f"{name or '트레이너'} 트레이너가 서비스를 떠나 상담 요청이 취소되었어요. "
+            title,
+            f"{name or '트레이너'} 트레이너가 서비스를 떠나 {what} 취소되었어요. "
             "다른 트레이너에게 요청해 보세요.",
         )
     return (
-        "Consultation request cancelled",
-        f"{name or 'The trainer'} left the service, so your consultation request was "
+        title,
+        f"{name or 'The trainer'} left the service, so {what} "
+        "cancelled. Try requesting another trainer.",
+    )
+
+
+@_template(MEMBER_CONSULT_TRAINER_UNAVAILABLE)
+def _member_consult_trainer_unavailable(args: Args, locale: Locale) -> Rendered:
+    # 정지 사실은 적지 않는다 — 회원이 알아야 하는 것은 상담이 열리지 않는다는 것과
+    # 다음에 할 일이다(#3360).
+    name = _text(args, "trainer_name")
+    title, what = _cancelled_consult(args, locale)
+    if locale == "ko":
+        return (
+            title,
+            f"{name or '트레이너'} 트레이너가 지금은 상담을 진행할 수 없어 {what} "
+            "취소되었어요. 다른 트레이너에게 요청해 보세요.",
+        )
+    return (
+        title,
+        f"{name or 'The trainer'} can't take consultations right now, so {what} "
         "cancelled. Try requesting another trainer.",
     )
 

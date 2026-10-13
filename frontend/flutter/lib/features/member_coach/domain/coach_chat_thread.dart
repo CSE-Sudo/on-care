@@ -98,8 +98,8 @@ Future<List<CoachMessage>> fetchWholeCoachChat(
 
 /// 폴링으로 새로 받은 [after] 에, [before] 에 없던 리포트 안내가 있는가. (#2643)
 ///
-/// 받은 리포트 목록은 대화에 남은 안내로 만든다. 채팅을 보고 있는 동안 새
-/// 안내가 오면 목록도 다시 읽어야 한다.
+/// 받은 리포트 목록은 서버가 따로 준다(#3348). 채팅을 보고 있는 동안 새 안내가
+/// 오면 그 목록도 다시 읽어야 한다.
 bool hasNewReportNotice(
   Iterable<CoachMessage> before,
   Iterable<CoachMessage> after,

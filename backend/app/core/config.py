@@ -385,6 +385,10 @@ class Settings(BaseSettings):
     # 0 이면 그 한도를 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
     diet_analyze_per_minute: int = 10
     diet_analyze_per_day: int = 20
+    # 회원 헬스장 이름 검색 한도(#3355). 검색 한 번이 외부 장소 검색 호출 한 번이라
+    # 회원 id 버킷으로 분당 횟수를 묶는다. 앱은 입력이 멈춘 뒤에만 묻으므로 사람이
+    # 검색어를 고쳐 치는 속도로는 닿지 않는다. 0 이면 끈다.
+    gym_search_per_minute: int = 30
     # 코칭 시트 피드백(`GET /ai-coach/feedback`)의 캐시와 회원별 하루 상한(#3351).
     # 호출 한 번에 모델을 최대 두 번(식단·운동) 부르는데, 앱은 기록이 바뀔 때마다 다시
     # 받는다. 만든 카드를 `coach_feedback_cache_seconds` 동안 회원별로 들고 있고, 식단·

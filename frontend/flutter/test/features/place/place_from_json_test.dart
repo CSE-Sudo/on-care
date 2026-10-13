@@ -19,6 +19,39 @@ Map<String, Object?> _row({Object? lat = 37.55, Object? lng = 126.93}) =>
     };
 
 void main() {
+  group('전화번호 (#3357)', () {
+    test('번호가 있으면 그대로 읽는다', () {
+      final Place p = Place.fromJson(_row()..['phone'] = '02-123-4567');
+      expect(p.phone, '02-123-4567');
+    });
+
+    test('번호 키가 없는 옛 응답도 읽힌다', () {
+      final Place p = Place.fromJson(_row());
+      expect(p.name, '신촌 헬스');
+      expect(p.phone, isNull);
+    });
+
+    test('null 은 번호 없음이다', () {
+      expect(Place.fromJson(_row()..['phone'] = null).phone, isNull);
+    });
+
+    test('빈 문자열·공백은 번호 없음이다', () {
+      expect(Place.fromJson(_row()..['phone'] = '').phone, isNull);
+      expect(Place.fromJson(_row()..['phone'] = '   ').phone, isNull);
+    });
+
+    test('앞뒤 공백은 잘라 낸다', () {
+      expect(
+        Place.fromJson(_row()..['phone'] = ' 02-123-4567 ').phone,
+        '02-123-4567',
+      );
+    });
+
+    test('문자열이 아닌 값은 번호 없음으로 읽고 목록 파싱을 깨지 않는다', () {
+      expect(Place.fromJson(_row()..['phone'] = 21234567).phone, isNull);
+    });
+  });
+
   test('좌표가 있으면 그대로 읽는다', () {
     final Place p = Place.fromJson(_row());
     expect(p.lat, 37.55);

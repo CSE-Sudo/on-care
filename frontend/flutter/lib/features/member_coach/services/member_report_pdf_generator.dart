@@ -89,7 +89,16 @@ class MemberReportPdfGenerator {
   }) async {
     try {
       return await reportSheetPdf(
-        frame(l, sheet(inputs: inputs, feedback: feedback, today: today)),
+        // 굳힌 리포트는 굳힌 날을 오늘로 그린다(#3349) — 진행 중이던 주의 남은
+        // 요일이 기록하지 않은 날로 서지 않는다.
+        frame(
+          l,
+          sheet(
+            inputs: inputs,
+            feedback: feedback,
+            today: today ?? inputs.asOf,
+          ),
+        ),
         capture: capture,
         encode: encodeImage,
         yieldFrame: yieldFrame,

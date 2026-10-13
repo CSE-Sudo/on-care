@@ -7,7 +7,8 @@
 - **받은 주**: 트레이너가 리포트를 보내며 대화에 남긴 안내(`ChatMessage.
   report_week_start`)가 근거다. 트레이너 화면의 전송 기록(#2288)과 같은 값이다.
   **보낸 트레이너가 지금의 담당인지는 묻지 않는다** — 담당이 바뀌거나 끊긴 뒤에도
-  이미 받은 리포트는 회원의 것이다(#3347).
+  이미 받은 리포트는 회원의 것이다(#3347). 대화는 보낸 트레이너가 탈퇴하면 함께
+  사라지므로, 회원 쪽에 남는 수신 기록(`MemberReceivedReport`, #3348)도 함께 본다.
 - **산 주**: `WeeklyReportPurchase` 한 행(`weekly_report_purchase_service.owns`).
 - 결과지는 그 주와 함께 직전 넉 주를 읽어 `4주 평균 대비` 를 그린다. 열 수 있는
   주를 그리는 데 필요한 직전 주는 **비교에 쓰는 수치만**([comparison_only]) 준다 —
@@ -22,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import ChatMessage
 from app.schemas.trainer_api import WeeklyReportOut
-from app.services import weekly_report_purchase_service
+from app.services import received_reports, weekly_report_purchase_service
 
 #: 결과지가 견주는 직전 주 수 — 앱의 `kReportSheetHistoryWeeks` 와 같다.
 COMPARISON_WEEKS = 4
@@ -32,8 +33,11 @@ def received(db: Session, member_id: str, week: date) -> bool:
     """트레이너가 [week] 주 리포트를 이 회원에게 보낸 적이 있는가.
 
     본문 전송과 PDF 전송 모두 `report_week_start` 를 남긴다. 어느 트레이너가
-    보냈는지는 가리지 않는다.
+    보냈는지는 가리지 않는다. 대화가 지워졌으면(보낸 트레이너의 탈퇴) 수신
+    기록이 근거다(#3348).
     """
+    if received_reports.received(db, member_id, week):
+        return True
     return (
         db.scalar(
             select(ChatMessage.id)

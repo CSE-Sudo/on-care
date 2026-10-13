@@ -5,6 +5,7 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/utils/preferred_time_format.dart';
+import 'package:oncare/features/exercise/presentation/widgets/consultation_request_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -47,8 +48,8 @@ class ConsultationCompletePage extends StatelessWidget {
     ConsultationRequest request,
   ) {
     final OnCareTokens tokens = context.oncare;
-    // 트레이너 이름이 없으면(대상이 지워진 경우) 종류 문구만 남긴다.
-    final String targetName = request.trainerName ?? '';
+    // 트레이너 이름이 없으면(대상이 지워진 경우) 카드와 같은 대체 문구를 적는다.
+    final String targetName = consultationTrainerName(l, request);
     final String targetType = l.exTrainerConsultType;
 
     return <Widget>[

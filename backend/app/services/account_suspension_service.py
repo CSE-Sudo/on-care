@@ -13,6 +13,9 @@ refresh 도 같다). 그런데 그 값을 끄는 경로가 없어 정지가 반�
   않은 PT 일정이 취소되고, PT 재등록 쿠폰이 환불된다.
 - 트레이너가 보낸 대기 중 담당 요청을 거둔다 — 정지된 트레이너의 요청을 회원이
   수락해 새 관계가 생기면 안 된다.
+- 트레이너가 받은 대기 상담 요청과 시작 전인 수락된 상담을 취소하고 회원에게
+  알린다(#3360). 답할 사람도 상담에 나올 사람도 없는 요청이 "대기 중"·"수락됨"
+  으로 남지 않는다.
 
 해제는 계정만 되살린다. 담당 관계는 복구하지 않는다 — 해제가 곧 데이터 공유 동의
 철회이므로(#1631) 회원의 새 동의가 있어야 다시 이어진다.
@@ -28,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import TrainerClient, TrainerClientInvite, User
 from app.schemas.admin_ops import AdminUserStatusOut
-from app.services import auth_tokens
+from app.services import auth_tokens, consultation_service
 from app.services.trainer import client_status
 
 
@@ -79,7 +82,7 @@ def suspend(db: Session, user_id: str, *, admin_id: str) -> AdminUserStatusOut:
 
 
 def _release_trainer(db: Session, trainer_id: str) -> int:
-    """정지된 트레이너의 담당을 모두 해제하고 대기 중 담당 요청을 거둔다."""
+    """정지된 트레이너의 담당을 모두 해제하고 대기 중 담당 요청·상담을 거둔다."""
     for invite in db.scalars(
         select(TrainerClientInvite).where(
             TrainerClientInvite.trainer_id == trainer_id,
@@ -88,6 +91,13 @@ def _release_trainer(db: Session, trainer_id: str) -> int:
     ).all():
         invite.status = "cancelled"
     db.commit()
+
+    # 상담을 담당 해제보다 먼저 거둔다 — 담당 해제가 그 회원의 예정 일정을 취소로
+    # 바꾸기 전이어야 상담 알림에 약속했던 시각이 실린다(#3360).
+    trainer = db.get(User, trainer_id)
+    if trainer is not None:
+        consultation_service.cancel_for_trainer_suspension(db, trainer)
+        db.commit()
 
     links = db.scalars(
         select(TrainerClient)

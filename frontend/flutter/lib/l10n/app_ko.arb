@@ -447,7 +447,6 @@
     }
   },
   "exTrainerCertifications": "자격증 · 인증",
-  "exTrainerRecommendationReason": "내 건강 목표 달성에 잘 맞는 트레이너예요",
   "exNearbyGymsMapLabel": "내 주변 헬스장",
   "exGymMapUnavailable": "지도를 불러오지 못했어요",
   "exActivityTitle": "운동 현황",
@@ -708,6 +707,7 @@
   "exNoSearchResults": "검색 결과가 없어요.",
   "exTrainersLoadError": "트레이너 정보를 불러오지 못했어요.",
   "exNearbyGyms": "주변 헬스장",
+  "exGymSearchResults": "검색 결과",
   "exGymListCollapse": "목록 접기",
   "@exGymListCollapse": {
     "description": "Hides the gym result list so the map fills the space"
@@ -717,6 +717,7 @@
     "description": "Brings the gym result list back under the map"
   },
   "exGymsLoadError": "헬스장을 불러오지 못했어요.",
+  "exGymSearchError": "헬스장을 검색하지 못했어요.",
   "exGymWeekdayHours": "평일 {hours}",
   "@exGymWeekdayHours": {
     "placeholders": {
@@ -1261,6 +1262,27 @@
       }
     }
   },
+  "challengeGoalSource": "목표 횟수는 MY 건강 목표의 주간 운동 횟수를 따라요",
+  "challengeHistoryAction": "지난 결과",
+  "challengeHistoryTitle": "지난 챌린지 결과",
+  "challengeHistoryEmpty": "아직 참가한 챌린지가 없어요",
+  "challengeHistoryEmptyMessage": "월·화요일에 주간 운동 챌린지에 참가하면 결과가 여기에 쌓여요.",
+  "challengeHistoryLoadFailed": "챌린지 결과를 불러오지 못했어요",
+  "challengeHistoryResult": "목표 {goal}회 · {progress}회 운동",
+  "@challengeHistoryResult": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeStatusSucceeded": "성공",
+  "challengeStatusFailed": "실패",
+  "challengeStatusActive": "진행 중",
+  "challengeStatusSettling": "집계 중",
   "myCouponStatusUsable": "사용 가능",
   "myCouponStatusUsed": "사용 완료",
   "myCouponStatusExpired": "만료",
@@ -2000,6 +2022,9 @@
   "exGymConsultPickTrainer": "상담받을 트레이너 선택",
   "exGymConsultPickTrainerHint": "상담은 트레이너 한 분에게 전달돼요.",
   "exGymConsultNoTrainers": "아직 소속 트레이너가 없어요.",
+  "exGymNoTrainersCallHint": "아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요. 헬스장에 전화로 문의해 주세요.",
+  "exGymNoTrainersHint": "아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요.",
+  "exGymCallInquiry": "전화 문의",
   "exGymTrainersLoadError": "소속 트레이너를 불러오지 못했어요.",
   "exTrainerConsultRequest": "트레이너 상담 신청",
   "exConsultPendingCta": "상담 요청 대기 중",
@@ -2080,6 +2105,7 @@
   "exConsultExpired": "만료됨",
   "exConsultExpiredBody": "트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.",
   "exConsultCancelledByTrainerBody": "트레이너가 상담 일정을 취소했어요. 다른 시간으로 다시 신청해 보세요.",
+  "exConsultTrainerNameMissing": "트레이너 정보 없음",
   "exExerciseGoal": "운동 목표",
   "exGoalHealth": "건강 관리",
   "exOptionOther": "기타",
@@ -2636,6 +2662,15 @@
   "myGoalCardioWeekly": "주간 유산소 (분)",
   "myGoalStrengthWeekly": "주간 근력 (세트)",
   "myGoalFlexibilityWeekly": "주간 스트레칭 (분)",
+  "myGoalWorkoutsWeekly": "주간 운동 횟수 (일)",
+  "myGoalWorkoutsWeeklyHint": "주간 운동 챌린지의 목표가 돼요. 정하지 않으면 {days}일이고, 이미 참가한 주의 목표는 바뀌지 않아요.",
+  "@myGoalWorkoutsWeeklyHint": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "myGoalExerciseSuggestionNote": "권장: 하루 {burn}kcal · 주 유산소 {cardio}분 · 근력 {strength}세트 · 스트레칭 {flexibility}분",
   "@myGoalExerciseSuggestionNote": {
     "description": "Explains the suggested exercise goals, adjusted for the picked health goals.",
@@ -4113,6 +4148,7 @@
   "coachReportsEmpty": "아직 받은 리포트가 없어요",
   "coachReportsEmptyHint": "담당 트레이너가 주간 리포트를 보내면 여기에 쌓여요",
   "coachReportsLoadFailed": "받은 리포트를 불러오지 못했어요",
+  "coachReportsLoadMore": "이전 리포트 더 보기",
   "weeklyFeedbackLoadFailed": "보낸 주간 피드백을 불러오지 못했어요",
   "coachReportSentOn": "{month}월 {day}일 보냄",
   "@coachReportSentOn": {
@@ -4122,6 +4158,17 @@
       },
       "day": {
         "type": "int"
+      }
+    }
+  },
+  "coachReportSentBy": "{name} · {sentOn}",
+  "@coachReportSentBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "sentOn": {
+        "type": "String"
       }
     }
   },
