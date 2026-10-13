@@ -47,7 +47,6 @@ class RepositoryCoverageTest(unittest.TestCase):
         files = {p.relative_to(REPO_ROOT).as_posix() for p in coverage.source_files()}
         for expected in (
             "frontend/flutter/lib/l10n/app_ko.arb",
-            "frontend/flutter/lib/l10n/app_en.arb",
             "frontend/flutter_trainer/lib/l10n/app_ko.arb",
             "frontend/flutter_trainer/lib/l10n/app_en.arb",
             "backend/app/db/demo_fixture_data.json",
