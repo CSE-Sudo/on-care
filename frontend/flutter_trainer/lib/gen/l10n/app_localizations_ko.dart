@@ -3652,6 +3652,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTplConsultWithdrawnTitle => '회원 탈퇴로 상담 요청이 취소됐어요';
 
   @override
+  String get notifTplConsultWithdrawnBookedTitle => '회원 탈퇴로 확정된 상담이 취소됐어요';
+
+  @override
   String get notifTplInviteAcceptedTitle => '담당 요청이 수락됐어요';
 
   @override

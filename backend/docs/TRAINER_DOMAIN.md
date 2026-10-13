@@ -164,6 +164,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 |---|---|
 | 회원 예약이 만든 일정 | 예약 정리가 좌석을 돌려주고 일정을 지운다(`reservation_service._release`, 기존 그대로) |
 | 트레이너가 잡은 `예정` 중 아직 시작하지 않은 것 | `취소`(주체 `member`, 사유 `회원 탈퇴`)로 바꾼다. 담당이 아닌 트레이너와 잡힌 일정·수락된 상담 일정도 함께다 — 회원이 사라져 열릴 수 없다 |
+| 수락된 상담 중 아직 시작하지 않은 것 | 일정 정리보다 먼저 `consultation_service.cancel_accepted_for_account_deletion` 이 일정을 `취소`(주체 `member`, 사유 `회원 탈퇴`)로 바꾸고 **신청 때 잠근 자리를 돌려준다**(#3360) — 요청 행은 회원과 함께 CASCADE 로 사라지지만 자리는 남아, 돌려주지 않으면 영영 잠긴다. 담당이 아닌 트레이너에게는 `회원 탈퇴로 확정된 상담이 취소됐어요`(틀 `trainer_consult_withdrawn`, 인자 `booked`·`starts_at`)를 알린다. 일정과 요청의 연결(`consultation_id`)은 뒤따르는 일정 정리가 끊는다 |
 | 지난 일정(완료·취소·노쇼, 시작 시각이 지난 `예정`) | 행과 상태는 그대로 — 트레이너의 수업 기록이다 |
 | 남는 모든 행의 `client_name`·`note` | 이름은 `탈퇴 회원` 으로 바꾸고 메모는 비운다. 가리는 것이 아니라 지운다 |
 | 알림 | 일정별 취소 알림은 없다. 담당 트레이너가 받는 것은 탈퇴 알림(`trainer_member_withdrawn`) 한 건이다 |
@@ -214,6 +215,15 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
   정리는 `consultation_service.cancel_accepted_booking` 한 곳에 있고 커밋·알림을 하지 않아
   다른 정리 경로가 자기 트랜잭션에 얹어 쓴다. 시작 시각이 지났거나 완료·노쇼로 끝난 상담은
   409 `consultation_started` 로 거절한다. 잠금은 일정 → 요청 순서다(트레이너의 일정 취소와 같다).
+- 만료 정리는 읽는 쪽이 한다(주기 작업이 없다). 트레이너 쪽 조회·새 신청은 그 트레이너의 요청을
+  (`expire_stale_requests`), 회원의 상담 목록·상세 조회는 그 회원의 요청을
+  (`expire_stale_for_member`, #3360) 만료로 내린다 — 트레이너가 앱을 열지 않아도 회원 화면에
+  "대기 중" 이 남지 않고, 같은 트레이너에게 다시 신청할 수 있다.
+- 트레이너가 정지되면 받은 대기 요청과 시작 전인 수락된 상담을 `cancelled` 로 거두고 회원에게
+  알린다(`cancel_for_trainer_suspension`, 틀 `member_consult_trainer_unavailable`, #3360).
+  수락된 상담은 `cancel_accepted_booking` 으로 일정(`취소`, 주체 `trainer`, 사유 `트레이너 계정
+  종료`)과 자리까지 함께 거둔다. 처리자는 남기지 않는다 — 남기면 회원 카드가 "다른 시간으로 다시
+  신청" 을 안내하는데 정지된 트레이너에게는 신청할 수 없다. 이미 시작한 상담은 그대로다.
 
 트레이너 웹은 회원 단위 요청이 404 로 돌아오면(`ClientAccessInterceptor`) 명단만
 곧바로 다시 읽는다. 명단에서 빠진 회원은 상세·메시지·리포트가 원래의 '찾을 수 없음'
@@ -1043,7 +1053,9 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 |---|---|
 | 예약(`trainer_reservations`) | 먼저 삭제(좌석 복구 불필요 — 슬롯도 함께 사라진다) |
 | 프로필·담당 링크·채팅·루틴·일정·슬롯·이력·알림 | `users.id` CASCADE |
-| 상담 요청의 `trainer_id`·`decided_by` | SET NULL — 요청 이력은 남는다 |
+| 대기 중 상담 요청 | 삭제 전에 `cancelled` 로 닫고 회원에게 알린다(틀 `member_consult_trainer_left`, #3241). 만료 시각이 지난 것은 알림 없이 `expired` |
+| 수락된 상담 중 시작 전인 것 | 삭제 전에 `cancelled` 로 닫고 회원에게 `확정된 상담이 취소되었어요` 를 알린다(같은 틀, 인자 `booked`·`starts_at`, #3360). 이미 시작했거나 완료·노쇼로 끝난 상담은 `accepted` 로 남는다 |
+| 상담 요청의 `trainer_id`·`decided_by` | SET NULL — 요청 이력은 남는다. 회원 응답의 `trainer_name` 은 `null` 이고 앱이 대체 문구(`트레이너 정보 없음`)를 적는다(#3360) |
 | 상담 요청의 `slot_id`(회원이 고른 자리, #1873) | SET NULL — 슬롯이 CASCADE 로 지워져도 요청과 그 시각 사본(`preferred_date`·`preferred_time_slot`)은 남아 조회된다 |
 | 회원↔헬스장 링크(`member_gyms`) | 그대로 — 트레이너와 별개다(#444) |
 

@@ -6655,6 +6655,12 @@ abstract class AppLocalizations {
   /// **'Consultation request cancelled: member account deleted'**
   String get notifTplConsultWithdrawnTitle;
 
+  /// No description provided for @notifTplConsultWithdrawnBookedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed consultation cancelled: member account deleted'**
+  String get notifTplConsultWithdrawnBookedTitle;
+
   /// No description provided for @notifTplInviteAcceptedTitle.
   ///
   /// In en, this message translates to:

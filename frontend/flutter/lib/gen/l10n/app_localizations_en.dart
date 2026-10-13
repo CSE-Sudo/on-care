@@ -3024,6 +3024,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'The trainer cancelled this consultation. Try requesting another time.';
 
   @override
+  String get exConsultTrainerNameMissing => 'Trainer unavailable';
+
+  @override
   String get exExerciseGoal => 'Exercise goal';
 
   @override

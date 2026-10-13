@@ -1525,6 +1525,7 @@
   "exConsultExpired": "만료됨",
   "exConsultExpiredBody": "트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.",
   "exConsultCancelledByTrainerBody": "트레이너가 상담 일정을 취소했어요. 다른 시간으로 다시 신청해 보세요.",
+  "exConsultTrainerNameMissing": "트레이너 정보 없음",
   "exExerciseGoal": "운동 목표",
   "exGoalHealth": "건강 관리",
   "exOptionOther": "기타",

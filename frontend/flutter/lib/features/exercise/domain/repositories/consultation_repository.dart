@@ -15,6 +15,13 @@ const String kConsultationSessionType = '1:1 PT';
 /// 신청 직후 만료되는 자리를 고를 수 있다(#1873).
 const Duration kConsultationSlotMinLead = Duration(hours: 4);
 
+/// 대기 요청이 자리를 잡고 있을 수 있는 시간 — 신청 뒤 [kConsultationHold] 와 자리
+/// 시작 [kConsultationExpireBeforeStart] 전 중 먼저 오는 쪽에서 만료된다. 서버
+/// `CONSULT_HOLD_HOURS`·`CONSULT_EXPIRE_BEFORE_START_HOURS` 와 같은 값이다 — 데모
+/// 대역이 실서버처럼 내 목록을 읽을 때 지난 요청을 만료로 내린다(#3360).
+const Duration kConsultationHold = Duration(hours: 24);
+const Duration kConsultationExpireBeforeStart = Duration(hours: 2);
+
 /// 답을 기다리는 상담 요청을 동시에 둘 수 있는 수. 서버 설정
 /// `consultation_max_pending`(backend/app/core/config.py) 의 기본값과 같다 —
 /// 데모 대역이 실서버와 같은 자리에서 [TooManyPendingConsultations] 를 낸다(#3099).

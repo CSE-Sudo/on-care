@@ -3846,6 +3846,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Consultation request cancelled: member account deleted';
 
   @override
+  String get notifTplConsultWithdrawnBookedTitle =>
+      'Confirmed consultation cancelled: member account deleted';
+
+  @override
   String get notifTplInviteAcceptedTitle => 'Coaching request accepted';
 
   @override
