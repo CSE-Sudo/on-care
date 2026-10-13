@@ -2610,6 +2610,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t open the PDF. Please try again';
 
   @override
+  String get coachReportNotReceived => 'You haven\'t received this report yet';
+
+  @override
   String get coachChatReportRegistered => 'Weekly report received';
 
   @override

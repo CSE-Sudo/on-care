@@ -1755,6 +1755,7 @@
     "description": "Screen reader label for a photo the member sent in the trainer chat (#1665)."
   },
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
+  "coachReportNotReceived": "You haven't received this report yet",
   "coachChatReportRegistered": "Weekly report received",
   "coachChatReportWeek": "{sm}/{sd} – {em}/{ed}",
   "@coachChatReportWeek": {
