@@ -251,7 +251,7 @@ void main() {
       await DemoRoutineStore(db).assigned('seed-client-2');
 
       // 날짜가 바뀌면 다시 심는다.
-      await db.putValue('trainer_seeded_v57', '2020-01-01');
+      await db.putValue('trainer_seeded_v58', '2020-01-01');
       await seedIfEmpty(db);
 
       expect(await DemoRoutineStore(db).readAssigned('seed-client-2'), isNull);

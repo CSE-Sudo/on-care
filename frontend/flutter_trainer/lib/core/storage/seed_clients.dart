@@ -865,18 +865,16 @@ const List<_Client> _clients = <_Client>[
       _Chat('trainer', '유나님, 나트륨 추이가 2800에서 1700까지 내려왔어요 👏', '13:15'),
       _Chat('client', '이번 주는 다 지켰어요 :)', '13:22'),
       // 재진 소견서를 PDF 로 보냈다(#2669). 트레이너의 다음 말이 그 내용을
-      // 받아 걷기를 얹는다.
+      // 받아 걷기를 얹는다. 한국어 문서라 미리 만든 파일을 붙인다(#3416) —
+      // 본문은 `tool/gen_demo_knee_note_pdf.py` 가 정한다.
       _Chat(
         'client',
         '정형외과 재진 소견서도 보내드려요. 걷기는 괜찮대요',
         '13:23',
-        file: _ChatFile.pdf('knee-follow-up.pdf', <String>[
-          'Orthopedic Follow-up Note',
-          'Region: Right knee',
-          'Findings: Swelling resolved. Range of motion within normal limits.',
-          'Recommendation: Resume low-impact walking.',
-          'Avoid deep squats for two more weeks.',
-        ]),
+        file: _ChatFile.pdfAsset(
+          '무릎 재진 소견서.pdf',
+          'assets/demo/knee-follow-up-note.pdf',
+        ),
       ),
       _Chat('trainer', '무릎 상태 괜찮으면 다음 주에 걷기 조금 얹어볼게요', '13:25'),
     ],
