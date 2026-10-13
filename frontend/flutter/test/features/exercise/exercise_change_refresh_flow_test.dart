@@ -92,6 +92,9 @@ class _CountingRepository implements ExerciseRepository {
   ) async => const ExerciseSessionsAdded(sessions: <ExerciseSession>[]);
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) async {
     deleted++;
   }
