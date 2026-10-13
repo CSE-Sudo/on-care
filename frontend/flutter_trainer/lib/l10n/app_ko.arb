@@ -833,14 +833,6 @@
       }
     }
   },
-  "dateWeeksAgo": "{count}주 전",
-  "@dateWeeksAgo": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "historyDate": "{month}/{day}",
   "@historyDate": {
     "description": "Short date on a workout history card.",
@@ -1997,10 +1989,6 @@
   },
   "aiExerciseNameRequired": "운동 이름을 입력해 주세요",
   "aiKeepOneExercise": "운동을 하나 이상 남겨 주세요",
-  "aiCustomRoutineName": "AI 맞춤 추천안",
-  "@aiCustomRoutineName": {
-    "description": "Routine name sent when the trainer leaves the name blank (#2301)."
-  },
   "aiAnalysing": "AI가 분석 중…",
   "aiGenerateCandidates": "맞춤 추천안 후보 생성",
   "aiReviewDone": "검토 완료",
@@ -2536,6 +2524,7 @@
   },
   "notifTplConsultRequestedTitle": "새 상담 요청이 도착했어요",
   "notifTplConsultCancelledTitle": "상담 요청이 취소됐어요",
+  "notifTplConsultBookingCancelledTitle": "확정된 상담이 취소됐어요",
   "notifTplConsultWithdrawnTitle": "회원 탈퇴로 상담 요청이 취소됐어요",
   "notifTplInviteAcceptedTitle": "담당 요청이 수락됐어요",
   "notifTplInviteAcceptedBody": "{name} 회원이 담당으로 연결됐어요.",

@@ -1287,11 +1287,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String dateWeeksAgo(int count) {
-    return '$count주 전';
-  }
-
-  @override
   String historyDate(int month, int day) {
     return '$month/$day';
   }
@@ -2976,9 +2971,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiKeepOneExercise => '운동을 하나 이상 남겨 주세요';
 
   @override
-  String get aiCustomRoutineName => 'AI 맞춤 추천안';
-
-  @override
   String get aiAnalysing => 'AI가 분석 중…';
 
   @override
@@ -3626,6 +3618,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notifTplConsultCancelledTitle => '상담 요청이 취소됐어요';
+
+  @override
+  String get notifTplConsultBookingCancelledTitle => '확정된 상담이 취소됐어요';
 
   @override
   String get notifTplConsultWithdrawnTitle => '회원 탈퇴로 상담 요청이 취소됐어요';

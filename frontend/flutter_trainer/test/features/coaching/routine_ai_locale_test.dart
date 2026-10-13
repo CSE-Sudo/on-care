@@ -104,10 +104,9 @@ void main() {
       source: 'ai',
     );
 
-    test('기본 이름은 ARB 문구와 같다', () {
+    test('이름이 비면 기본 이름을 싣는다', () {
       expect(kDefaultAiRoutineName, 'AI 맞춤 추천안');
       expect(assignRoutineToJson(unnamed)['name'], 'AI 맞춤 추천안');
-      expect(_ko.aiCustomRoutineName, kDefaultAiRoutineName);
     });
 
     test('이름이 있으면 기본 이름은 쓰지 않는다', () {

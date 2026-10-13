@@ -81,8 +81,7 @@ String routinePlanIntensityLabel(AppLocalizations l, String intensity) =>
       _ => intensity,
     };
 
-/// 트레이너가 이름을 비워 보낸 배정의 기본 이름. ARB 의
-/// `aiCustomRoutineName` 과 같은 글이다. (#2301)
+/// 트레이너가 이름을 비워 보낸 배정의 기본 이름. (#2301)
 const String kDefaultAiRoutineName = 'AI 맞춤 추천안';
 
 AssignedRoutine assignedRoutineFromJson(Map<String, Object?> json) {

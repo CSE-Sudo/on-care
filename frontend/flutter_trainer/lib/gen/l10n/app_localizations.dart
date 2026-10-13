@@ -2446,12 +2446,6 @@ abstract class AppLocalizations {
   /// **'{count}일 전'**
   String dateDaysAgo(int count);
 
-  /// No description provided for @dateWeeksAgo.
-  ///
-  /// In ko, this message translates to:
-  /// **'{count}주 전'**
-  String dateWeeksAgo(int count);
-
   /// Short date on a workout history card.
   ///
   /// In ko, this message translates to:
@@ -5463,12 +5457,6 @@ abstract class AppLocalizations {
   /// **'운동을 하나 이상 남겨 주세요'**
   String get aiKeepOneExercise;
 
-  /// Routine name sent when the trainer leaves the name blank (#2301).
-  ///
-  /// In ko, this message translates to:
-  /// **'AI 맞춤 추천안'**
-  String get aiCustomRoutineName;
-
   /// No description provided for @aiAnalysing.
   ///
   /// In ko, this message translates to:
@@ -6602,6 +6590,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'상담 요청이 취소됐어요'**
   String get notifTplConsultCancelledTitle;
+
+  /// No description provided for @notifTplConsultBookingCancelledTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'확정된 상담이 취소됐어요'**
+  String get notifTplConsultBookingCancelledTitle;
 
   /// No description provided for @notifTplConsultWithdrawnTitle.
   ///

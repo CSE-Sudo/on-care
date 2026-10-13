@@ -1355,6 +1355,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsExchangeFailed => 'Couldn\'t redeem. Please try again.';
 
   @override
+  String get myPointsExchangeBlocked => 'You can\'t redeem this right now';
+
+  @override
+  String get myPointsInsufficient => 'Not enough points';
+
+  @override
+  String get myBenefitAlreadyReceived => 'You already have this';
+
+  @override
   String myPointsShortfall(String points) {
     return '$points short';
   }
@@ -1798,6 +1807,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get challengeJoinFailed => 'Couldn\'t join. Please try again.';
+
+  @override
+  String get challengeJoinAlready => 'You\'ve already joined';
+
+  @override
+  String get challengeJoinBlocked => 'You can\'t join right now';
 
   @override
   String get challengeJoinClosed => 'You can join again next Monday';
@@ -2595,6 +2610,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t open the PDF. Please try again';
 
   @override
+  String get coachReportNotReceived => 'You haven\'t received this report yet';
+
+  @override
   String get coachChatReportRegistered => 'Weekly report received';
 
   @override
@@ -3311,6 +3329,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => 'Get a new code';
+
+  @override
+  String trainerSyncConnected(String name) {
+    return 'You\'re connected with $name';
+  }
+
+  @override
+  String get trainerSyncConnectedBody =>
+      'Your trainer can now see your records and coach you.';
 
   @override
   String get signUpCreatedSignInNeeded =>
@@ -4178,6 +4205,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
+
+  @override
+  String get exConsultAcceptedCancelTitle =>
+      'Cancel this confirmed consultation?';
+
+  @override
+  String get exConsultAcceptedCancelBody =>
+      'We\'ll let the trainer know and free up the time. A cancelled consultation can\'t be restored.';
+
+  @override
+  String get exConsultAcceptedCancelAction => 'Cancel consultation';
+
+  @override
+  String get exConsultCancelStarted =>
+      'A consultation that has already started can\'t be cancelled.';
 
   @override
   String pointsRewardBadge(int points) {

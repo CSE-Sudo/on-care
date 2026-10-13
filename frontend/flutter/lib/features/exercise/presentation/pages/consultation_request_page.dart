@@ -281,7 +281,17 @@ class _ConsultationRequestPageState
       AsyncData<Gym?>(:final value) when value?.id == widget.gymId => value,
       _ => null,
     };
-    final Gym? gym = nearbyGym ?? myGym;
+    final bool listsLoading = nearbyAsync.isLoading || myGymAsync.isLoading;
+    // 목록 밖(반경 밖)의 헬스장 소속 트레이너에게도 상담을 걸 수 있어야 한다 —
+    // 두 곳 어디에도 없을 때만 헬스장 하나를 따로 읽는다(#3356).
+    final AsyncValue<Gym?> singleAsync =
+        nearbyGym == null &&
+            myGym == null &&
+            !listsLoading &&
+            widget.gymId.isNotEmpty
+        ? ref.watch(gymProvider(widget.gymId))
+        : const AsyncValue<Gym?>.data(null);
+    final Gym? gym = nearbyGym ?? myGym ?? singleAsync.valueOrNull;
     final bool hasTrainerId = (widget.trainerId ?? '').isNotEmpty;
     // 대상 트레이너를 id 로 직접 읽는다.
     final AsyncValue<Trainer?> trainerAsync = hasTrainerId
@@ -305,16 +315,19 @@ class _ConsultationRequestPageState
         title: l.exConsultTargetNotFound,
         icon: AppIcons.info,
       );
-    } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
+    } else if (listsLoading || singleAsync.isLoading) {
       body = const AppLoading();
-    } else if (nearbyAsync.hasError || myGymAsync.hasError) {
+    } else if (nearbyAsync.hasError ||
+        myGymAsync.hasError ||
+        singleAsync.hasError) {
       body = appErrorStateFor(
         context,
-        error: nearbyAsync.error ?? myGymAsync.error,
+        error: nearbyAsync.error ?? myGymAsync.error ?? singleAsync.error,
         title: l.exGymsLoadError,
         onRetry: () {
           ref.invalidate(nearbyGymsProvider);
           ref.invalidate(myGymProvider);
+          ref.invalidate(gymProvider(widget.gymId));
         },
       );
     } else {
