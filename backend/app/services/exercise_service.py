@@ -380,6 +380,29 @@ def period_floor_monday(last_monday: date) -> date:
     return last_monday - span
 
 
+def first_record_monday(db: Session, user_id: str, last_monday: date) -> date:
+    """`전체` 가 시작하는 주의 월요일 — 첫 기록이 있는 주다. (#2247, #3365)
+
+    `전체` 그래프([build_period])와 `전체` 조언([period_days])이 이 함수 하나로
+    시작을 정한다. 둘이 따로 세면 오래 쓴 회원에게 그래프는 첫 기록부터, 조언은
+    최근 몇 주만 말하게 된다.
+
+    기록이 하나도 없으면 [last_monday] 다. 그보다 늦은 첫 기록(앞날로 잘못 들어간
+    행)도 [last_monday] 로 끌어내리고, 너무 이른 것은 [period_floor_monday] 로
+    끌어올린다.
+    """
+    first = first_session_date(db, user_id)
+    first_monday = _monday_of(date.fromisoformat(first)) if first else last_monday
+    return max(min(first_monday, last_monday), period_floor_monday(last_monday))
+
+
+def period_weeks(start: str, end: str) -> int:
+    """[start]…[end] 가 걸친 주의 수 — `전체` 그래프가 그리는 칸 수와 같다. (#3365)"""
+    first = _monday_of(date.fromisoformat(start))
+    last = _monday_of(date.fromisoformat(end))
+    return max(1, (last - first).days // 7 + 1)
+
+
 def build_period(
     db: Session,
     user_id: str,
@@ -409,10 +432,7 @@ def build_period(
     if start is not None:
         first_monday = _monday_of(start)
     else:
-        first = first_session_date(db, user_id)
-        first_monday = (
-            _monday_of(date.fromisoformat(first)) if first else last_monday
-        )
+        first_monday = first_record_monday(db, user_id, last_monday)
     if first_monday > last_monday:
         first_monday = last_monday
     first_monday = max(first_monday, period_floor_monday(last_monday))
@@ -646,6 +666,8 @@ def period_advice(
     days: list[ExerciseDayTotals],
     period: str,
     routine_days: Sequence[routine_advice.RoutineDayLike] = (),
+    *,
+    weeks: int | None = None,
 ) -> Advice:
     """기간에 맞는 운동 조언. (#1025, #1574, #2162, #2210)
 
@@ -653,12 +675,17 @@ def period_advice(
     무엇에 치우쳤는지, 전체는 최근 4주와 그 이전의 추세다. 말투도 다르다 —
     오늘은 다음 한 걸음을 제안하고, 이번 주·전체는 되짚어 준다.
 
+    [weeks] 는 `전체` 가 덮는 주의 수다([period_weeks], #3365). 문장의 "○주 동안"
+    이 이 값이라, [period_days] 가 돌려준 구간에서 세어 넘긴다 — 그래야 조언이
+    말하는 기간과 `전체` 그래프가 그리는 기간이 같다. 생략하면 [days] 의 첫 날부터
+    마지막 날까지다.
+
     오늘 걸린 추천 개인운동([routine_days])이 있으면 그 목록을 기준으로 말한다
     (`routine_advice`, #2162) — 회원이 먼저 묻는 것은 "추천 중 뭘 먼저 할까" 다.
     추천이 없는 회원은 아래의 직접 기록 기준 조언을 그대로 듣는다.
 
-    조언은 문장 키와 값으로 돌려준다(#2210) — 앱이 자기 언어로 그리고, 한국어
-    문장은 [Advice.text] 다.
+    조언은 문장 키와 값으로 돌려준다(#2210) — 앱이 키로 직접 그릴 수 있고,
+    서버가 만든 문장은 [Advice.text] 다.
 
     **한 문장 반을 넘기지 않는다.** 카드가 회원 앱·트레이너웹 양쪽에서 좁은 폭에
     들어가고, 길어질수록 정작 숫자가 묻힌다 — 짚어 주는 수치 하나와 다음 행동
@@ -719,7 +746,8 @@ def period_advice(
             return advice("record_all_up")
         if _avg(recent) < _avg(earlier) * 0.9:
             return advice("record_all_down")
-    weeks = round(period_window.ALL_PERIOD_DAYS / 7)
+    if weeks is None:
+        weeks = period_weeks(days[0].date.isoformat(), days[-1].date.isoformat())
     return advice(
         "record_all_steady", weeks=weeks, days=active_days, minutes=total_minutes
     )
@@ -729,9 +757,11 @@ def period_coach_message(
     days: list[ExerciseDayTotals],
     period: str,
     routine_days: Sequence[routine_advice.RoutineDayLike] = (),
+    *,
+    weeks: int | None = None,
 ) -> str:
     """[period_advice] 의 문장 — 키를 모르는 옛 앱과 트레이너웹이 읽는다."""
-    return period_advice(days, period, routine_days).text
+    return period_advice(days, period, routine_days, weeks=weeks).text
 
 
 def period_days(
@@ -743,8 +773,16 @@ def period_days(
     주를 모두 읽어 온 뒤 실제 날짜로 되돌려 거른다. 회원 앱과 트레이너웹이 이
     함수 하나를 함께 쓴다 — 조회 규칙이 갈리면 같은 회원의 `이번 주` 를 두 화면이
     다른 날부터 세게 된다.
+
+    `전체` 는 **첫 기록이 있는 주의 월요일**부터다(#3365) — 같은 화면의 `전체`
+    그래프(`GET /exercise/weeks`)가 시작하는 주와 같다([first_record_monday]).
+    예전에는 최근 84일만 읽어, 12주 넘게 쓴 회원에게 그래프와 조언이 다른 기간을
+    말했다. 기록이 없으면 이번 주 월요일부터다(그래프의 한 칸).
     """
-    start, end = period_window.period_bounds(period)
+    today = clock.today()
+    start, end = period_window.period_bounds(period, today)
+    if period == period_window.PERIOD_ALL:
+        start = first_record_monday(db, user_id, _monday_of(today)).isoformat()
     weeks = exercise_activity.week_starts_covering(
         date.fromisoformat(start), date.fromisoformat(end)
     )

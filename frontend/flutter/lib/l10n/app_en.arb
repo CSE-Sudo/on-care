@@ -849,6 +849,9 @@
   "myPointsExchangeConfirmAction": "Redeem",
   "myPointsExchangeDone": "Redeemed",
   "myPointsExchangeFailed": "Couldn't redeem. Please try again.",
+  "myPointsExchangeBlocked": "You can't redeem this right now",
+  "myPointsInsufficient": "Not enough points",
+  "myBenefitAlreadyReceived": "You already have this",
   "myPointsShortfall": "{points} short",
   "@myPointsShortfall": {
     "placeholders": {
@@ -1228,6 +1231,8 @@
   "challengeJoinConfirmAction": "Join",
   "challengeJoinDone": "You joined this week's challenge",
   "challengeJoinFailed": "Couldn't join. Please try again.",
+  "challengeJoinAlready": "You've already joined",
+  "challengeJoinBlocked": "You can't join right now",
   "challengeJoinClosed": "You can join again next Monday",
   "challengeSettling": "Tallying last week's result. Workouts you log for last week by today still count",
   "challengeThisWeek": "This week",
@@ -1750,6 +1755,7 @@
     "description": "Screen reader label for a photo the member sent in the trainer chat (#1665)."
   },
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
+  "coachReportNotReceived": "You haven't received this report yet",
   "coachChatReportRegistered": "Weekly report received",
   "coachChatReportWeek": "{sm}/{sd} – {em}/{ed}",
   "@coachChatReportWeek": {
@@ -2253,6 +2259,15 @@
   "trainerSyncExpired": "This code has expired.",
   "trainerSyncFailed": "Couldn't get a code.",
   "trainerSyncRetry": "Get a new code",
+  "trainerSyncConnected": "You're connected with {name}",
+  "@trainerSyncConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trainerSyncConnectedBody": "Your trainer can now see your records and coach you.",
   "signUpCreatedSignInNeeded": "Your account was created. Please sign in.",
   "@signUpCreatedSignInNeeded": {
     "description": "Sign-up: the account was created but the follow-up sign-in failed (#1926)."
@@ -3167,6 +3182,16 @@
   "exConsultCancelStale": "This request was already handled. It now shows its latest status.",
   "exConsultHistoryLoadError": "Couldn't load your consultation requests.",
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
+  "exConsultAcceptedCancelTitle": "Cancel this confirmed consultation?",
+  "@exConsultAcceptedCancelTitle": {
+    "description": "Title of the confirm dialog when a member cancels a consultation the trainer already accepted, before it starts (#3359)."
+  },
+  "exConsultAcceptedCancelBody": "We'll let the trainer know and free up the time. A cancelled consultation can't be restored.",
+  "exConsultAcceptedCancelAction": "Cancel consultation",
+  "@exConsultAcceptedCancelAction": {
+    "description": "Confirm button of the cancel dialog for an accepted consultation. Sits next to Keep."
+  },
+  "exConsultCancelStarted": "A consultation that has already started can't be cancelled.",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",

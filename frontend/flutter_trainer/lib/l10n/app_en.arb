@@ -2532,6 +2532,7 @@
   },
   "notifTplConsultRequestedTitle": "New consultation request",
   "notifTplConsultCancelledTitle": "Consultation request cancelled",
+  "notifTplConsultBookingCancelledTitle": "Confirmed consultation cancelled",
   "notifTplConsultWithdrawnTitle": "Consultation request cancelled: member account deleted",
   "notifTplInviteAcceptedTitle": "Coaching request accepted",
   "notifTplInviteAcceptedBody": "{name} is now one of your members.",

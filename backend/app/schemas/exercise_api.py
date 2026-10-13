@@ -10,6 +10,7 @@ from app.schemas.exercise_limits import (
     MAX_EXERCISE_MINUTES,
     MAX_EXERCISE_REPS,
     MAX_EXERCISE_SECONDS,
+    MAX_EXERCISE_SESSIONS_PER_MOVE,
     MAX_EXERCISE_SESSIONS_PER_REQUEST,
     MAX_EXERCISE_SETS,
     MAX_EXERCISE_WEIGHT_KG,
@@ -280,6 +281,33 @@ class ExerciseSessionsCreate(BaseModel):
     #: 다시 보내면 새로 저장·적립하지 않고 처음 결과를 돌려준다. 같은 키에 다른
     #: 목록이 오면 409 다. 없으면 지금처럼 매번 새로 저장한다.
     client_request_id: str | None = Field(default=None, min_length=1, max_length=64)
+
+
+class ExerciseSessionsMove(BaseModel):
+    """POST /exercise/sessions/move 입력 — 날짜를 옮길 기록들과 옮길 날. (#3365)
+
+    회원은 하루의 기록을 통째로 다른 날로 옮긴다. 기록마다 수정 요청을 하나씩
+    보내면 중간에 하나가 실패했을 때 일부만 옮겨진 채로 남는다 — 그래서 **목록
+    하나를 한 트랜잭션으로** 받는다. 날짜 말고는 아무것도 바꾸지 않는다.
+    """
+
+    session_ids: list[str] = Field(
+        min_length=1, max_length=MAX_EXERCISE_SESSIONS_PER_MOVE
+    )
+    #: 옮길 날. 단건 수정(`ExerciseSessionCreate.date`)과 같은 규칙으로, 아직 오지
+    #: 않은 날은 422 다(#3042).
+    date: date_
+
+    @field_validator("date")
+    @classmethod
+    def _past_or_today(cls, value: date_) -> date_:
+        return not_after_today(value)
+
+
+class ExerciseSessionsMovedOut(BaseModel):
+    """POST /exercise/sessions/move 응답 — 옮긴 기록들(요청과 같은 순서)."""
+
+    sessions: list[ExerciseSessionOut]
 
 
 class ExerciseCalorieRequest(BaseModel):

@@ -3,6 +3,7 @@
 
   GET  /exercise/weeks/current   -> 이번 주 운동 집계(요일별/타입별 + streak + 코칭)
   POST /exercise/sessions        -> 운동 기록 1~N개 추가 (집계에 반영, #2544)
+  POST /exercise/sessions/move   -> 운동 기록 1~N개의 날짜를 한 번에 이동 (#3365)
   POST /exercise/calories        -> 운동 이름·시간·강도로 소모 칼로리 미리보기
 """
 from __future__ import annotations
@@ -25,7 +26,8 @@ from app.models.models import ExerciseSession, HealthProfile
 from app.schemas.exercise_api import (
     ExerciseAdviceResponse, ExerciseCalorieRequest, ExerciseCalorieResponse,
     ExercisePeriodResponse, ExerciseSessionCreate, ExerciseSessionOut,
-    ExerciseSessionsCreate, ExerciseSessionsCreatedOut, ExerciseWeekResponse,
+    ExerciseSessionsCreate, ExerciseSessionsCreatedOut, ExerciseSessionsMove,
+    ExerciseSessionsMovedOut, ExerciseWeekResponse,
 )
 from app.schemas.points_api import PointsOut
 from app.schemas.record_dates import parse_ymd
@@ -176,7 +178,11 @@ def exercise_advice(
     """
     start, end, days = exercise_service.period_days(db, current_user.id, period)
     routine_days = trainer_member_mirror_service.advice_routine_days(db, current_user.id, period)
-    advice = exercise_service.period_advice(days, period, routine_days)
+    advice = exercise_service.period_advice(
+        days, period, routine_days,
+        # "○주 동안" 은 읽은 구간의 주 수다 — `전체` 그래프의 칸 수와 같다(#3365).
+        weeks=exercise_service.period_weeks(start, end),
+    )
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
@@ -561,6 +567,91 @@ def update_session(
     # 역순으로 도착해도 최종 문서가 DB 최신값과 어긋나지 않는다.
     personal_ingest.refresh_exercise(db, current_user.id, session_id=row.id)
     return out
+
+
+@router.post("/exercise/sessions/move", response_model=ExerciseSessionsMovedOut)
+def move_sessions(
+    payload: ExerciseSessionsMove,
+    current_user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
+) -> ExerciseSessionsMovedOut:
+    """운동 기록 1~N개의 날짜를 **한 트랜잭션으로** 옮긴다. (#3365)
+
+    회원이 하루의 기록을 다른 날로 옮길 때 쓴다. 전부 옮겨지거나 하나도 옮겨지지
+    않는다 — 기록마다 수정 요청을 보내면 중간에 하나가 실패했을 때 하루치가 두
+    날로 갈린 채 남는다.
+
+    기록마다의 규칙은 단건 수정(`PUT /exercise/sessions/{id}`)과 같다. 본인 것이
+    아닌 id 가 하나라도 있으면 404, PT·배정 루틴에서 생긴 기록이 하나라도 섞여
+    있으면 409 이고, 두 경우 모두 **아무것도 옮기지 않는다.** 날짜 말고는 건드리지
+    않으므로 칼로리도 다시 계산하지 않는다.
+
+    같은 요청을 다시 보내도 결과가 같다 — 날짜를 "얼마만큼" 이 아니라 "어느 날로"
+    옮기는 요청이라, 응답을 잃은 뒤의 재시도가 기록을 한 번 더 옮기지 않는다.
+    같은 id 가 두 번 와도 한 번만 센다.
+    """
+    ids = list(dict.fromkeys(payload.session_ids))
+    found = {
+        row.id: row
+        for row in db.scalars(
+            select(ExerciseSession)
+            .where(ExerciseSession.id.in_(ids))
+            .where(ExerciseSession.user_id == current_user.id)
+        )
+    }
+    if len(found) != len(ids):
+        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없어요.")
+    rows = [found[session_id] for session_id in ids]
+    for row in rows:
+        _reject_if_derived(row)
+
+    # 셋을 함께 옮긴다 — `completed_at` 만 옛 날짜에 남으면 그 기록의 날짜가
+    # 화면과 다른 곳에서 갈린다. (#1264)
+    week_start, day_label, completed_at = _placement(payload.date)
+    for row in rows:
+        row.week_start, row.day_label, row.completed_at = (
+            week_start, day_label, completed_at,
+        )
+    # 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+    # 모두 같은 날로 가므로 한 번이면 된다.
+    streak_shield_service.refund_for_record(db, current_user.id, payload.date)
+    db.commit()
+    for row in rows:
+        db.refresh(row)
+
+    out = ExerciseSessionsMovedOut(
+        sessions=[
+            ExerciseSessionOut(**build_current_week([row])["sessions"][0])
+            for row in rows
+        ]
+    )
+    # 코치가 읽는 근거 문서에도 날짜가 적혀 있다 — 옮긴 날로 맞춘다(#603). 기록마다
+    # 임베딩을 부르므로 추가 경로처럼 응답 뒤에 한다(#3095).
+    background_tasks.add_task(
+        _refresh_exercises, db.get_bind(), current_user.id, ids
+    )
+    return out
+
+
+def _refresh_exercises(
+    bind: Engine | Connection, user_id: str, session_ids: list[str]
+) -> None:
+    """옮긴 운동 기록의 개인 RAG 문서를 현재 행에 맞춘다 — 응답 뒤에 돈다. (#3365)
+
+    [_ingest_exercises] 와 같은 까닭으로 자기 세션을 연다. 갱신은 best-effort 다 —
+    실패해도 이미 나간 응답에는 영향이 없고, 항목 하나가 실패해도 다음 항목은
+    갱신한다.
+    """
+    with Session(bind=bind, autoflush=False) as db:
+        for session_id in session_ids:
+            try:
+                personal_ingest.refresh_exercise(db, user_id, session_id=session_id)
+            except Exception as exc:  # noqa: BLE001 — 갱신 실패가 이동을 깨면 안 된다
+                db.rollback()
+                log.warning(
+                    "운동 기록 RAG 갱신 실패(무시): %s", type(exc).__name__
+                )
 
 
 @router.delete("/exercise/sessions/{session_id}")

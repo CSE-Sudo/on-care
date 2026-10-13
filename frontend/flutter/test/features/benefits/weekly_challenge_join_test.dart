@@ -148,7 +148,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.joins, 1);
-    expect(find.text('참가하지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
+    // 서버가 거절한 것이라 다시 시도를 권하지 않는다(#3363).
+    expect(find.text('지금은 참가할 수 없어요'), findsOneWidget);
     expect(joinButtonOf(tester).onPressed, isNotNull);
     await drainToast(tester);
   });

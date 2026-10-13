@@ -22,7 +22,6 @@ import 'package:oncare_core/clock.dart';
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/mock_account_repository.dart';
 
-
 const List<String> _dayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
 /// 요일마다 [minutes] 분씩 채운 주. 0 을 주면 기록이 없는 주가 된다.
@@ -90,6 +89,9 @@ class _FixedWeekRepository implements ExerciseRepository {
   }) async => ExerciseCalorieEstimate(
     calories: estimateExerciseCalories(type, minutes, intensity: intensity),
   );
+
+  @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
 
   @override
   Future<void> deleteSession(String id) async => throw UnimplementedError();
@@ -335,9 +337,7 @@ void main() {
     );
   });
 
-  testWidgets('다시 시도하면 그 주를 다시 받아 그날 기록을 그린다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('다시 시도하면 그 주를 다시 받아 그날 기록을 그린다', (WidgetTester tester) async {
     useFixedKstDate();
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;

@@ -107,7 +107,15 @@ class ConsultationExpired(ConsultationAlreadyDecided):
 
 
 class ConsultationNotCancellable(Exception):
-    """회원이 취소하려는 요청이 더 이상 대기 중이 아님 — 409."""
+    """회원이 취소하려는 요청이 대기 중도, 수락된 상태도 아님 — 409."""
+
+
+class ConsultationAlreadyStarted(ConsultationNotCancellable):
+    """수락된 상담의 시작 시각이 지났음 — 409 `consultation_started`. (#3359)
+
+    수락된 상담은 시작 전에만 거둘 수 있다. 이미 시작했거나 끝난 약속을 취소로
+    바꾸면 트레이너 스케줄에서 실제로 있었던 상담이 사라진다.
+    """
 
 
 class ConsultationSlotGone(Exception):
@@ -142,6 +150,10 @@ CONSULT_SLOT_MIN_LEAD_HOURS = 4
 #: (`reservation_service.CONSULTATION_SESSION_TYPE`, #1849) 잡히는 것은 상담이다.
 #: (#2584)
 CONSULTATION_SCHEDULE_TYPE = "상담"
+
+#: 회원이 수락된 상담을 취소해 거둔 일정에 남기는 취소 사유(#3359). 트레이너만
+#: 보는 기록이다.
+MEMBER_CONSULT_CANCEL_REASON = "회원 상담 취소"
 
 
 def _aware(value: datetime) -> datetime:
@@ -896,9 +908,168 @@ def release_slot_for_moved_schedule(db: Session, consultation_id: str | None) ->
     return True
 
 
+def _lock_consultation_schedules(
+    db: Session, consultation_id: str
+) -> list[TrainerSchedule]:
+    """상담 요청으로 생긴 일정을 잠가 읽는다(id 순)."""
+    return list(
+        db.scalars(
+            select(TrainerSchedule)
+            .where(TrainerSchedule.consultation_id == consultation_id)
+            .order_by(TrainerSchedule.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        ).all()
+    )
+
+
+def _schedule_starts_at(s: TrainerSchedule) -> datetime | None:
+    """일정의 시작 시각. 날짜·시각은 KST 벽시계다. 읽을 수 없으면 None."""
+    try:
+        return datetime.strptime(f"{s.date} {s.time}", "%Y-%m-%d %H:%M").replace(
+            tzinfo=SEOUL
+        )
+    except ValueError:
+        return None
+
+
+def _accepted_starts_at(
+    db: Session, row: ConsultationRequest, live: list[TrainerSchedule]
+) -> datetime | None:
+    """수락된 상담이 시작하는 시각. 알 수 없으면 None. (#3359)
+
+    회원 화면이 그리는 순서와 같다([attach_target_names]) — 살아 있는 상담 일정이
+    약속이고(트레이너가 옮겼으면 옮긴 시각, #2758), 일정이 없으면 고른 자리,
+    그것도 없으면 요청에 옮겨 적은 희망 날짜·시각이다.
+    """
+    for s in live:
+        starts_at = _schedule_starts_at(s)
+        if starts_at is not None:
+            return starts_at
+    if row.slot_id is not None:
+        slot_starts_at = db.scalar(
+            select(TrainerReservationSlot.starts_at).where(
+                TrainerReservationSlot.id == row.slot_id
+            )
+        )
+        if slot_starts_at is not None:
+            return _aware(slot_starts_at)
+    try:
+        return datetime.strptime(
+            f"{row.preferred_date} {row.preferred_time_slot}", "%Y-%m-%d %H:%M"
+        ).replace(tzinfo=SEOUL)
+    except ValueError:
+        return None
+
+
+def cancel_accepted_booking(
+    db: Session,
+    consultation_id: str,
+    *,
+    now: datetime | None = None,
+    source: str = "member",
+    reason: str = MEMBER_CONSULT_CANCEL_REASON,
+) -> tuple[ConsultationRequest, datetime | None] | None:
+    """수락된 상담을 시작 전에 거둔다(커밋·알림 없음). (#3359)
+
+    요청을 `cancelled` 로 내리고, 그 요청으로 생긴 `예정` 상담 일정을 `취소` 로
+    바꾸고, 신청 때 잠근 자리를 돌려준다. 셋을 한 트랜잭션에 묶어야 반쪽 상태
+    (요청은 취소인데 트레이너 스케줄에는 예정 상담, 자리는 잠긴 채)가 남지 않는다.
+    트레이너가 일정을 거둘 때의 [withdraw_for_trainer_schedule] 과 짝이다.
+
+    - 수락 상태가 아니면 아무것도 하지 않고 None 이다(멱등).
+    - 시작 시각이 지났거나 일정이 이미 완료·노쇼로 끝났으면
+      [ConsultationAlreadyStarted] 다 — 아무것도 바꾸지 않는다.
+    - 거뒀으면 (요청 행, 거두기 전의 시작 시각)을 준다. 알림은 부르는 쪽이 정한다
+      — 회원 취소는 [_notify_trainer_of_booking_cancel] 을 쓴다.
+    - 처리자(`decided_by`)는 비운다. 남기면 트레이너가 거둔 취소로 읽힌다
+      ([_cancelled_by_trainer]).
+
+    [source]·[reason] 은 일정에 남는 취소 주체와 사유다
+    (`trainer.schedule.CANCELLATION_SOURCES`).
+
+    일정을 먼저, 요청을 나중에 잠근다 — 트레이너의 일정 취소
+    (`trainer.schedule.cancel_session`)가 같은 순서라 두 취소가 서로의 잠금을
+    엇갈려 기다리지 않는다.
+    """
+    current = now or _now()
+    schedules = _lock_consultation_schedules(db, consultation_id)
+    row = _lock_accepted(db, consultation_id)
+    if row is None:
+        return None
+    live = [
+        s for s in schedules if s.status == trainer_common_service.SCHEDULE_UPCOMING
+    ]
+    if any(
+        s.status
+        in (trainer_common_service.SCHEDULE_DONE, trainer_common_service.SCHEDULE_NO_SHOW)
+        for s in schedules
+    ):
+        raise ConsultationAlreadyStarted()
+    starts_at = _accepted_starts_at(db, row, live)
+    if starts_at is not None and starts_at <= current:
+        raise ConsultationAlreadyStarted()
+
+    row.status = "cancelled"
+    row.decided_by = None
+    row.decided_at = current
+    for s in live:
+        s.status = trainer_common_service.SCHEDULE_CANCELLED
+        s.cancelled_at = current
+        s.cancellation_source = source
+        s.cancellation_reason = reason[:200]
+    # 일정이 옮겨졌으면 자리는 이미 돌려주고 끊었다([release_slot_for_moved_schedule]).
+    reservation_service.release_consultation_hold(db, row.slot_id)
+    db.flush()
+    return row, starts_at
+
+
+def _notify_trainer_of_booking_cancel(
+    db: Session, consultation: ConsultationRequest, starts_at: datetime | None
+) -> None:
+    """회원이 수락된 상담을 취소했음을 트레이너에게 알린다(커밋 없음). (#3359)
+
+    대기 요청 취소([_notify_trainer_of_cancel])와 틀을 나눈다 — 이쪽은 스케줄에
+    잡혀 있던 약속이 빠진 것이라, 언제의 상담이었는지를 시각까지 적는다.
+    """
+    if consultation.trainer_id is None:
+        return
+
+    # 이름이 없으면 틀이 대신 적는 말(`회원`)을 고른다(#2302).
+    member_name = (
+        db.scalar(select(User.name).where(User.id == consultation.member_id)) or ""
+    )
+    local = starts_at.astimezone(SEOUL) if starts_at is not None else None
+    notification_service.queue_for_trainer(
+        db,
+        trainer_id=consultation.trainer_id,
+        kind=notification_service.TRAINER_CONSULTATION_KIND,
+        template=notification_templates.TRAINER_CONSULT_BOOKING_CANCELLED,
+        template_args={
+            "member_name": member_name,
+            "starts_at": local.isoformat() if local is not None else None,
+        },
+        subject_id=consultation.member_id,
+        # 스케줄을 그 상담이 있던 날짜로 연다(#2292).
+        target_date=(
+            local.date().isoformat() if local is not None else consultation.preferred_date
+        ),
+    )
+
+
 def cancel_my_consultation(
-    db: Session, member_id: str, consultation_id: str
+    db: Session,
+    member_id: str,
+    consultation_id: str,
+    *,
+    now: datetime | None = None,
 ) -> ConsultationOut:
+    """회원이 자기 상담을 취소한다 — 대기 중이거나, 수락됐지만 시작 전인 것. (#3359)
+
+    수락된 뒤에는 못 가게 돼도 알릴 길이 없었다. 담당이 아닌 회원은 그 트레이너와
+    대화할 수 없고, 트레이너의 그 시간은 계속 잡혀 있었다.
+    """
+    current = now or _now()
     row = db.scalar(
         select(ConsultationRequest).where(
             ConsultationRequest.id == consultation_id,
@@ -907,20 +1078,32 @@ def cancel_my_consultation(
     )
     if row is None:
         raise ConsultationNotFound()
-    # 수락과 겹쳐도 덮어쓰지 않게 조건부로 바꾼다(#3091) — 진 쪽은 지금과 같은 409.
-    if not _transition_pending(
+    # 수락과 겹쳐도 덮어쓰지 않게 조건부로 바꾼다(#3091).
+    if _transition_pending(
         db,
         consultation_id,
         to="cancelled",
         scope=ConsultationRequest.member_id == member_id,
-        decided_at=_now(),
+        decided_at=current,
         decision_note=None,
     ):
-        raise ConsultationNotCancellable()
-    row = _reload(db, consultation_id)
-    # 취소도 거절과 같다 — 잡고 있던 자리를 놓아 준다. (#1873)
-    reservation_service.release_consultation_hold(db, row.slot_id)
-    _notify_trainer_of_cancel(db, row, member_id)
+        row = _reload(db, consultation_id)
+        # 취소도 거절과 같다 — 잡고 있던 자리를 놓아 준다. (#1873)
+        reservation_service.release_consultation_hold(db, row.slot_id)
+        _notify_trainer_of_cancel(db, row, member_id)
+    else:
+        # 대기 중이 아니다 — 수락된 상담이면 일정과 자리까지 함께 거둔다. 방금
+        # 수락에 진 취소도 여기로 와서, 시작 전이면 그대로 취소된다.
+        try:
+            cancelled = cancel_accepted_booking(db, consultation_id, now=current)
+        except ConsultationAlreadyStarted:
+            db.rollback()
+            raise
+        if cancelled is None:
+            db.rollback()
+            raise ConsultationNotCancellable()
+        row, starts_at = cancelled
+        _notify_trainer_of_booking_cancel(db, row, starts_at)
     db.commit()
     db.refresh(row)
     return attach_target_names(db, [row])[0]

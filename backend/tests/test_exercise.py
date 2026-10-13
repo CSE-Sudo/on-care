@@ -589,8 +589,8 @@ def test_exercise_advice_changes_with_the_period(client):
     assert day_view["message"] != body["message"]
 
     every = client.get("/v1/exercise/advice?period=all", headers=h).json()
-    # 전체는 12주를 거슬러 본다 — 이번 주와 시작일이 다르다.
-    assert every["from_date"] < body["from_date"]
+    # 전체는 첫 기록이 있는 주부터다(#3365) — 이번 주에만 적었으면 이번 주 월요일.
+    assert every["from_date"] == monday.isoformat()
     assert every["to_date"] == today.isoformat()
 
 

@@ -134,6 +134,21 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "상담 요청이 취소됐어요",
         "지수 회원 · 10월 1일",
     ),
+    # 회원이 수락된 상담을 취소했다(#3359). 새 틀이라 확정 문장을 고정한다.
+    (
+        nt.TRAINER_CONSULT_BOOKING_CANCELLED,
+        {"member_name": "지수", "starts_at": STARTS.isoformat()},
+        "",
+        "확정된 상담이 취소됐어요",
+        "지수 회원 · 10월 1일 09:05",
+    ),
+    (
+        nt.TRAINER_CONSULT_BOOKING_CANCELLED,
+        {"member_name": "", "starts_at": None},
+        "",
+        "확정된 상담이 취소됐어요",
+        "회원 회원",
+    ),
     # 회원 탈퇴로 사라진 대기 요청(#1632). 새 틀이라 확정 문장을 고정한다.
     (
         nt.TRAINER_CONSULT_WITHDRAWN,

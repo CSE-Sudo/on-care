@@ -43,6 +43,8 @@ TRAINER_MEMBER_WITHDRAWN = "trainer_member_withdrawn"
 TRAINER_MEMBER_DISCONNECTED = "trainer_member_disconnected"
 TRAINER_CONSULT_REQUESTED = "trainer_consult_requested"
 TRAINER_CONSULT_CANCELLED = "trainer_consult_cancelled"
+#: 회원이 수락된 상담을 시작 전에 취소했다(#3359).
+TRAINER_CONSULT_BOOKING_CANCELLED = "trainer_consult_booking_cancelled"
 TRAINER_CONSULT_WITHDRAWN = "trainer_consult_withdrawn"
 TRAINER_INVITE_ACCEPTED = "trainer_invite_accepted"
 TRAINER_INVITE_REJECTED = "trainer_invite_rejected"
@@ -229,6 +231,15 @@ def _trainer_consult_requested(args: Args) -> Rendered:
 def _trainer_consult_cancelled(args: Args) -> Rendered:
     name, day = _text(args, "member_name"), _day(_text(args, "preferred_date"))
     return "상담 요청이 취소됐어요", f"{name or '회원'} 회원 · {day}"
+
+
+@_template(TRAINER_CONSULT_BOOKING_CANCELLED)
+def _trainer_consult_booking_cancelled(args: Args) -> Rendered:
+    # 대기 요청 취소와 달리 스케줄에 잡힌 약속이 빠진 것이라 시각까지 적는다(#3359).
+    name = _text(args, "member_name")
+    when = _when(args)
+    who = f"{name or '회원'} 회원"
+    return "확정된 상담이 취소됐어요", f"{who} · {when}" if when is not None else who
 
 
 @_template(TRAINER_CONSULT_WITHDRAWN)

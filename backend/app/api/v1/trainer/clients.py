@@ -535,7 +535,11 @@ def trainer_client_exercise_advice(
     start, end, days = exercise_service.period_days(db, member_id, period)
     # 추천 개인운동 기준 조언(#2162)도 회원 앱과 같은 함수로 읽는다.
     routine_days = trainer_member_mirror_service.advice_routine_days(db, member_id, period)
-    advice = exercise_service.period_advice(days, period, routine_days)
+    advice = exercise_service.period_advice(
+        days, period, routine_days,
+        # "○주 동안" 은 읽은 구간의 주 수다 — `전체` 그래프의 칸 수와 같다(#3365).
+        weeks=exercise_service.period_weeks(start, end),
+    )
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,

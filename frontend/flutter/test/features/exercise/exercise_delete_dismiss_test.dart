@@ -45,6 +45,9 @@ class _GatedDeleteRepository implements ExerciseRepository {
   );
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) async {
     final Completer<void>? g = gate;
     if (g != null) await g.future;
