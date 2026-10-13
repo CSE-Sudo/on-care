@@ -90,10 +90,104 @@ const String _reservationsJson = '''
   "starts_at":"2026-03-02T01:00:00+00:00","cancellable":false}]
 ''';
 
+/// `GET /v1/gyms/search` 실응답 — 등록된 헬스장 한 곳과 외부 검색에서만 찾은 한 곳.
+/// 뒤쪽은 평점·태그·영업시간이 비어 온다(#3355).
+const String _gymSearchJson = '''
+[{"id":"gym-oncare-sinchon","name":"온케어짐 신촌점","address":"서울 서대문구 신촌로 120",
+  "distance_km":0.4,"rating":4.7,"tags":["다이어트","재활운동"],
+  "weekday_hours":"06:00 – 23:00","weekend_hours":"08:00 - 20:00",
+  "phone":"02-1234-5678","lat":37.5559,"lng":126.9368,"is_partner":true},
+ {"id":"328969863","name":"온케어 부산짐","address":"부산 해운대구 테스트로 1",
+  "distance_km":325.2,"rating":0.0,"tags":[],
+  "weekday_hours":null,"weekend_hours":null,
+  "phone":null,"lat":35.1631,"lng":129.1636,"is_partner":false}]
+''';
+
 Dio _dio(_StubAdapter adapter) =>
     Dio(BaseOptions(baseUrl: 'http://x/v1'))..httpClientAdapter = adapter;
 
 void main() {
+  group('이름 검색 (#3355)', () {
+    test('GET /gyms/search 에 검색어를 q 로 싣는다', () async {
+      final adapter = _StubAdapter(<String, Object?>{
+        '/gyms/search': _gymSearchJson,
+      });
+      await DioGymRepository(_dio(adapter)).searchGyms('온케어 부산');
+
+      expect(adapter.calls, <String>['GET /gyms/search']);
+      expect(adapter.queryOf('/gyms/search')['q'], '온케어 부산');
+    });
+
+    test('회원 위치가 없으면 좌표를 싣지 않는다 — 기본 검색 영역도 보내지 않는다', () async {
+      final adapter = _StubAdapter(<String, Object?>{'/gyms/search': '[]'});
+      await DioGymRepository(_dio(adapter)).searchGyms('온케어');
+
+      final Map<String, dynamic> query = adapter.queryOf('/gyms/search');
+      expect(query.keys, <String>['q']);
+    });
+
+    test('회원 위치를 얻었으면 좌표를 함께 싣는다', () async {
+      final adapter = _StubAdapter(<String, Object?>{'/gyms/search': '[]'});
+      await DioGymRepository(
+        _dio(adapter),
+        lat: 35.1,
+        lng: 129.1,
+      ).searchGyms('온케어');
+
+      final Map<String, dynamic> query = adapter.queryOf('/gyms/search');
+      expect(query['q'], '온케어');
+      expect(query['lat'], 35.1);
+      expect(query['lng'], 129.1);
+    });
+
+    test('응답이 서버가 준 순서 그대로 Gym 으로 매핑된다', () async {
+      final adapter = _StubAdapter(<String, Object?>{
+        '/gyms/search': _gymSearchJson,
+      });
+      final List<Gym> gyms = await DioGymRepository(
+        _dio(adapter),
+      ).searchGyms('온케어');
+
+      expect(gyms.map((Gym g) => g.id), <String>[
+        'gym-oncare-sinchon',
+        '328969863',
+      ]);
+      expect(gyms.first.rating, 4.7);
+      expect(gyms.first.distanceKm, 0.4);
+    });
+
+    test('외부 검색에서만 찾은 헬스장은 빈 칸을 비운 채 읽는다', () async {
+      final adapter = _StubAdapter(<String, Object?>{
+        '/gyms/search': _gymSearchJson,
+      });
+      final Gym found = (await DioGymRepository(
+        _dio(adapter),
+      ).searchGyms('온케어')).last;
+
+      expect(found.name, '온케어 부산짐');
+      expect(found.rating, 0);
+      expect(found.tags, isEmpty);
+      expect(found.phone, isNull);
+      expect(found.weekdayHours, isNull);
+      expect(found.weekendHours, isNull);
+      expect(found.hasCoordinates, isTrue);
+    });
+
+    test('빈 배열은 빈 목록이다', () async {
+      final adapter = _StubAdapter(<String, Object?>{'/gyms/search': '[]'});
+      expect(await DioGymRepository(_dio(adapter)).searchGyms('없는곳'), isEmpty);
+    });
+
+    test('서버 오류는 삼키지 않는다 — 화면이 오류 상태를 그린다', () async {
+      // 라우트가 없으면 어댑터가 404 를 준다.
+      final adapter = _StubAdapter(<String, Object?>{});
+      await expectLater(
+        DioGymRepository(_dio(adapter)).searchGyms('온케어'),
+        throwsA(isA<DioException>()),
+      );
+    });
+  });
+
   test('사용자 좌표를 목록과 내 헬스장 API에 전달한다', () async {
     final adapter = _StubAdapter({'/gyms': '[]'});
     final dio = Dio()..httpClientAdapter = adapter;
