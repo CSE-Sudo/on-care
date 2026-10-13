@@ -55,6 +55,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
     show CoachAttachmentKind;
 import 'package:oncare_core/clock.dart';

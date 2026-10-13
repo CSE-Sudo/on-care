@@ -382,24 +382,32 @@ def send_message(
     if notify is not None and sender == "trainer":
         trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
         is_report = notify == notification_service.WEEKLY_REPORT
+        coach_args: dict[str, object] = {
+            "trainer_name": trainer_name or "",
+            "report": is_report,
+            # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
+            # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
+            "photo_only": not text
+            and bool(attachment_file_id)
+            and attachment_type == "image",
+        }
+        if is_report and report_week_start:
+            # 어느 주의 리포트이고 어느 메시지에 실려 왔는지 남긴다(#3344). 회원 앱이
+            # 알림에서 그 리포트를 바로 연다 — 예전에는 대화 맨 아래로만 가서, 그
+            # 뒤로 메시지가 쌓이면 리포트 카드를 찾아 올라가야 했다. 글 메시지의
+            # 인자는 그대로 둔다.
+            coach_args["week_start"] = report_week_start
+            coach_args["message_id"] = msg.id
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notify,
             template=notification_templates.MEMBER_COACH_MESSAGE,
-            template_args={
-                "trainer_name": trainer_name or "",
-                "report": is_report,
-                # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
-                # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
-                "photo_only": not text
-                and bool(attachment_file_id)
-                and attachment_type == "image",
-            },
+            template_args=coach_args,
             body=text,
-            # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다. 목적지는
+            # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다. 목적지 값은
             # 같지만 갈래를 나눠 회원 앱이 리포트를 메시지와 다른 아이콘으로
-            # 그린다(#2085).
+            # 그리고(#2085), 위에서 실은 주·메시지로 리포트를 바로 연다(#3344).
             category=(
                 notification_service.MEMBER_COACH_REPORT
                 if is_report

@@ -265,6 +265,137 @@ def test_report_notification_has_its_own_category(client, db_session):
     assert report["action"] == {"label": "리포트 보기", "target": "coach_chat"}
 
 
+def test_report_notification_points_at_the_report(client, db_session):
+    """리포트 알림은 어느 주·어느 메시지인지 함께 준다(#3344).
+
+    목적지 값은 `coach_chat` 그대로다 — 옛 앱은 `report` 칸을 읽지 않고 지금처럼
+    대화로 간다. 새 앱은 이 칸으로 그 주 리포트를 바로 연다.
+    """
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    client.put(
+        "/v1/users/me/notification-settings",
+        headers=_auth(member_token),
+        json={"weekly_report": True},
+    )
+
+    sent = client.post(
+        f"/v1/trainer/clients/{member_id}/report/send",
+        headers=_auth(trainer_token),
+        json={"message": "이번 주 잘하셨어요"},
+    )
+
+    assert sent.status_code == 201, sent.text
+    message = sent.json()
+    assert message["report_week_start"]
+    report = next(
+        item
+        for item in _items(client, member_token)
+        if item["category"] == notification_service.MEMBER_COACH_REPORT
+    )
+    assert report["report"] == {
+        "week_start": message["report_week_start"],
+        "message_id": message["id"],
+    }
+    assert report["action"] == {"label": "리포트 보기", "target": "coach_chat"}
+    # 문장 틀이 읽는 인자는 그대로다 — 제목이 달라지지 않는다.
+    assert report["args"]["report"] is True
+    assert report["title"] == "주간 리포트가 도착했어요"
+
+
+def test_report_notification_follows_the_week_the_trainer_sent(client, db_session):
+    """지난 주 리포트를 보내면 알림도 그 주(월요일)를 가리킨다(#3344)."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    last_week = clock.today() - timedelta(days=7)
+    monday = last_week - timedelta(days=last_week.weekday())
+
+    sent = client.post(
+        f"/v1/trainer/clients/{member_id}/report/send",
+        headers=_auth(trainer_token),
+        # 주 중간 날짜로 보내도 그 주 월요일로 정규화된다.
+        json={"message": "지난 주 정리예요", "week_start": last_week.isoformat()},
+    )
+
+    assert sent.status_code == 201, sent.text
+    report = next(
+        item
+        for item in _items(client, member_token)
+        if item["category"] == notification_service.MEMBER_COACH_REPORT
+    )
+    assert report["report"]["week_start"] == monday.isoformat()
+    assert report["report"]["message_id"] == sent.json()["id"]
+
+
+def test_message_notification_has_no_report(client, db_session):
+    """메시지 알림에는 리포트가 없다 — 지금처럼 대화로 간다(#3344)."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+
+    sent = client.post(
+        f"/v1/trainer/clients/{member_id}/chat",
+        headers=_auth(trainer_token),
+        json={"text": "오늘 운동 어떠셨어요?"},
+    )
+
+    assert sent.status_code == 201, sent.text
+    message = next(
+        item
+        for item in _items(client, member_token)
+        if item["category"] == notification_service.MEMBER_COACH_CHAT
+    )
+    assert message["report"] is None
+    assert "week_start" not in message["args"]
+    assert "message_id" not in message["args"]
+    assert message["action"]["target"] == "coach_chat"
+
+
+def test_old_report_notification_still_goes_to_the_chat(client, db_session):
+    """주·메시지가 실리기 전에 쌓인 리포트 알림은 대화로 간다(#3344).
+
+    옛 행에는 `week_start` 인자가 없다. 오류 없이 `report` 만 비고, 목적지는
+    그대로다.
+    """
+    _, member_id, member_token, _ = _pair(client, db_session)
+    db_session.add_all(
+        [
+            # 문장 틀이 생긴 뒤, 주가 실리기 전의 리포트 알림.
+            Notification(
+                id=f"noti-{uuid4().hex[:12]}",
+                user_id=member_id,
+                title="주간 리포트가 도착했어요",
+                body="이번 주 잘하셨어요",
+                category=notification_service.MEMBER_COACH_REPORT,
+                read=False,
+                template="member_coach_message",
+                template_args={
+                    "trainer_name": "알림 트레이너",
+                    "report": True,
+                    "photo_only": False,
+                },
+            ),
+            # 문장 틀도 없던 때의 리포트 알림.
+            Notification(
+                id=f"noti-{uuid4().hex[:12]}",
+                user_id=member_id,
+                title="주간 리포트가 도착했어요",
+                body="",
+                category=notification_service.MEMBER_COACH_REPORT,
+                read=False,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    items = [
+        item
+        for item in _items(client, member_token)
+        if item["category"] == notification_service.MEMBER_COACH_REPORT
+    ]
+
+    assert len(items) == 2
+    for item in items:
+        assert item["report"] is None
+        assert item["action"] == {"label": "리포트 보기", "target": "coach_chat"}
+
+
 def test_trainer_message_keeps_the_coach_chat_category(client, db_session):
     """트레이너 메시지는 `coach_chat` 그대로다 — 리포트만 갈래가 나뉜다(#2085)."""
     trainer_token, member_id, member_token, _ = _pair(client, db_session)

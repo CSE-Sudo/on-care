@@ -399,6 +399,14 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 대화는 이번 주인데 안내 상자만 지난 주를 가리키게 된다.
   static final DateTime _reportWeekStart = mondayOf(_seedAt(2, '18:17'));
 
+  /// 데모 리포트 안내 메시지와 그 주 — 데모 알림함의 리포트 알림이 가리키는
+  /// 값이다(#3344). 실서버가 리포트 알림에 싣는 `report` 와 같은 뜻이라, 데모에서도
+  /// 리포트 알림을 누르면 이 리포트가 바로 열린다.
+  static const String demoReportMessageId = 'seed-m19';
+
+  /// [demoReportMessageId] 리포트가 다루는 주의 월요일.
+  static DateTime get demoReportWeekStart => _reportWeekStart;
+
   static int _minutesOfDay(String timeLabel) {
     final match = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeLabel);
     if (match == null) throw FormatException('Invalid chat time: $timeLabel');
