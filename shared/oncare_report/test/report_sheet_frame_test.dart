@@ -57,7 +57,6 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: reportSheetFrame(
-          locale: const Locale('ko'),
           delegates: _delegates,
           sheet: ReportSheetDocument(report: _week(), feedback: '잘하셨어요'),
         ),
@@ -79,7 +78,6 @@ void main() {
         child: Directionality(
           textDirection: TextDirection.ltr,
           child: reportSheetFrame(
-            locale: const Locale('en'),
             delegates: _delegates,
             sheet: Builder(
               builder: (BuildContext context) => Text(
@@ -93,12 +91,13 @@ void main() {
     expect(find.text('10.0'), findsOneWidget);
   });
 
-  testWidgets('the frame passes the locale down', (WidgetTester tester) async {
+  testWidgets('the frame fixes the locale to Korean', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
         child: reportSheetFrame(
-          locale: const Locale('en'),
           delegates: _delegates,
           sheet: Builder(
             builder: (BuildContext context) =>
@@ -107,6 +106,6 @@ void main() {
         ),
       ),
     );
-    expect(find.text('en'), findsOneWidget);
+    expect(find.text('ko'), findsOneWidget);
   });
 }
