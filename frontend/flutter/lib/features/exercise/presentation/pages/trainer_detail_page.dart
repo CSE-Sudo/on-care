@@ -22,6 +22,22 @@ class TrainerDetailPage extends ConsumerWidget {
 
   final String trainerId;
 
+  /// 소속 헬스장. 받아 둔 목록에서 찾고, 목록이 끝났는데 없으면 그 헬스장
+  /// 하나를 따로 읽는다 — 목록은 서버가 반경·개수로 잘라 주므로, 먼 헬스장
+  /// 소속 트레이너의 카드가 비지 않게(#3356). 따로 읽는 것이 실패해도 카드만
+  /// 비고 나머지 정보는 그대로 보인다.
+  static Gym? _affiliatedGym(
+    WidgetRef ref,
+    AsyncValue<List<Gym>> gymsAsync,
+    String gymId,
+  ) {
+    final Gym? listed = gymsAsync.valueOrNull
+        ?.where((Gym gym) => gym.id == gymId)
+        .firstOrNull;
+    if (listed != null || gymsAsync.isLoading || gymId.isEmpty) return listed;
+    return ref.watch(gymProvider(gymId)).valueOrNull;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -40,11 +56,7 @@ class TrainerDetailPage extends ConsumerWidget {
           trainer: trainer,
           // 소속 헬스장은 목록에서 찾는다. 아직 로딩 중이면 카드만 비고
           // 나머지 정보는 그대로 보인다.
-          gym: switch (gymsAsync) {
-            AsyncData<List<Gym>>(:final List<Gym> value) =>
-              value.where((Gym gym) => gym.id == trainer.gymId).firstOrNull,
-            _ => null,
-          },
+          gym: _affiliatedGym(ref, gymsAsync, trainer.gymId),
           // 헬스장이 아니라 이 트레이너 앞으로 낸 요청만 대기중으로 본다.
           // 헬스장이 아니라 트레이너 단위로 비교한다 — 같은 헬스장에 다른
           // 트레이너가 있어도 내 담당이 아니면 상담을 걸 수 있어야 한다.

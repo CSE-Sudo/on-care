@@ -301,9 +301,9 @@ def test_member_can_undo_a_completion(client, assigned_routine):
 def test_the_trainers_sets_and_weight_reach_the_members_record(client, db_session):
     """트레이너가 정한 세트·중량이 회원 기록까지 그대로 간다. (#1276)
 
-    회원 앱은 완료할 때 세트·중량을 따로 묻지 않는다 — 트레이너가 이미 정해
-    보낸 값이 있는데 기록에서 비면, 그래프가 분에서 세트를 되짚어 아무도 적은
-    적 없는 수를 그린다.
+    회원이 완료하며 세트·중량을 비워 보내도(옛 앱) 트레이너가 정해 보낸 값이
+    남는다 — 기록에서 비면, 그래프가 분에서 세트를 되짚어 아무도 적은 적 없는
+    수를 그린다.
     """
     from app.models.models import ExerciseSession, TrainerRoutine
 
@@ -413,3 +413,226 @@ def test_completion_keeps_the_seconds_the_member_sends(client, db_session):
         if stored is not None:
             db_session.delete(stored)
         db_session.commit()
+
+
+@pytest.fixture()
+def strength_routine(client, db_session):
+    """분 없이 세트·횟수·중량만 정한 근력 배정 — 파생 기록까지 정리한다. (#3364)"""
+    from app.models.models import ExerciseSession, TrainerRoutine
+
+    created_ids: list[str] = []
+
+    def _assign(**fields) -> dict:
+        created = client.post(
+            f"/v1/trainer/clients/{MEMBER_ID}/routines",
+            headers=_headers(_login(client, "trainer@oncare.com")),
+            json={
+                "name": f"근력 완료 {uuid4().hex[:6]}",
+                "type": "근력",
+                **fields,
+            },
+        )
+        assert created.status_code == 201, created.text
+        created_ids.append(created.json()["id"])
+        return created.json()
+
+    yield _assign
+
+    db_session.rollback()
+    for routine_id in created_ids:
+        for row in db_session.query(ExerciseSession).filter_by(
+            assigned_routine_id=routine_id
+        ):
+            db_session.delete(row)
+        stored = db_session.get(TrainerRoutine, routine_id)
+        if stored is not None:
+            db_session.delete(stored)
+    db_session.commit()
+
+
+def _points_balance(client, headers) -> int:
+    health = client.get("/v1/users/me/health", headers=headers)
+    assert health.status_code == 200, health.text
+    return health.json()["activity_points"]
+
+
+def _completion_session(client, headers, routine_id: str) -> dict:
+    week = client.get("/v1/exercise/weeks/current", headers=headers).json()
+    return next(
+        row for row in week["sessions"] if row["assigned_routine_id"] == routine_id
+    )
+
+
+def test_strength_completion_without_minutes_reads_time_from_sets(
+    client, strength_routine
+):
+    """분 없이 완료한 근력 배정은 세트 수에서 시간을 얻는다 — 1분이 아니다. (#3364)"""
+    routine = strength_routine(sets=4, reps=12, weight=40)
+    member_headers = _headers(_login(client, "jisu@oncare.com"))
+
+    completed = client.post(
+        f"/v1/me/coach/routines/{routine['id']}/complete",
+        headers=member_headers,
+        json={"intensity": "moderate"},
+    )
+
+    assert completed.status_code == 200, completed.text
+    body = completed.json()
+    assert body["completed_minutes"] == 12
+    assert (
+        body["completed_sets"], body["completed_reps"], body["completed_weight"]
+    ) == (4, 12, 40)
+    session = _completion_session(client, member_headers, routine["id"])
+    assert session["minutes"] == 12
+    assert (session["sets"], session["reps"], session["weight"]) == (4, 12, 40)
+
+
+def test_strength_completion_keeps_what_the_member_actually_did(
+    client, strength_routine
+):
+    """회원이 고쳐 적은 세트·횟수·중량이 배정 값 대신 남는다. (#3364)"""
+    routine = strength_routine(sets=3, reps=10, weight=20)
+    member_headers = _headers(_login(client, "jisu@oncare.com"))
+
+    completed = client.post(
+        f"/v1/me/coach/routines/{routine['id']}/complete",
+        headers=member_headers,
+        json={"sets": 5, "reps": 8, "weight": 27.5, "intensity": "high"},
+    )
+
+    assert completed.status_code == 200, completed.text
+    body = completed.json()
+    # 배정 값은 그대로이고, 완료 값이 따로 온다.
+    assert (body["sets"], body["reps"], body["weight"]) == (3, 10, 20)
+    assert (
+        body["completed_sets"], body["completed_reps"], body["completed_weight"]
+    ) == (5, 8, 27.5)
+    assert body["completed_minutes"] == 15
+    session = _completion_session(client, member_headers, routine["id"])
+    assert (session["sets"], session["reps"], session["weight"]) == (5, 8, 27.5)
+    assert session["minutes"] == 15
+
+    mine = client.get("/v1/me/coach/routines", headers=member_headers).json()
+    listed = next(row for row in mine if row["id"] == routine["id"])
+    assert (listed["completed_sets"], listed["completed_weight"]) == (5, 27.5)
+
+
+def test_strength_completion_passes_hold_seconds_through(client, strength_routine):
+    """회원이 적은 버틴 시간이 기록까지 간다 — 라우터에서 버려지지 않는다. (#3364)"""
+    routine = strength_routine(sets=3, hold_seconds=60)
+    member_headers = _headers(_login(client, "jisu@oncare.com"))
+
+    completed = client.post(
+        f"/v1/me/coach/routines/{routine['id']}/complete",
+        headers=member_headers,
+        json={"sets": 3, "hold_seconds": 45, "intensity": "moderate"},
+    )
+
+    assert completed.status_code == 200, completed.text
+    assert completed.json()["completed_hold_seconds"] == 45
+    assert completed.json()["completed_reps"] is None
+    session = _completion_session(client, member_headers, routine["id"])
+    assert (session["hold_seconds"], session["reps"]) == (45, None)
+
+
+def test_strength_completion_still_honours_minutes_the_client_sends(
+    client, strength_routine
+):
+    """분을 적어 보낸 요청은 그 분이 남는다 — 옛 앱의 요청이 달라지지 않는다. (#3364)"""
+    routine = strength_routine(sets=4, reps=12)
+    member_headers = _headers(_login(client, "jisu@oncare.com"))
+
+    completed = client.post(
+        f"/v1/me/coach/routines/{routine['id']}/complete",
+        headers=member_headers,
+        json={"minutes": 20, "intensity": "moderate"},
+    )
+
+    assert completed.status_code == 200, completed.text
+    assert completed.json()["completed_minutes"] == 20
+
+
+def test_cardio_completion_without_minutes_falls_back_to_the_assignment(
+    client, db_session
+):
+    """분을 비운 유산소 완료는 초에서, 초도 없으면 배정된 시간에서 채운다. (#3364)"""
+    from app.models.models import ExerciseSession, TrainerRoutine
+
+    trainer_headers = _headers(_login(client, "trainer@oncare.com"))
+    member_headers = _headers(_login(client, "jisu@oncare.com"))
+    created_ids: list[str] = []
+    try:
+        for payload, expected in (
+            ({"intensity": "light"}, 25),
+            ({"duration_seconds": 600, "intensity": "light"}, 10),
+        ):
+            created = client.post(
+                f"/v1/trainer/clients/{MEMBER_ID}/routines",
+                headers=trainer_headers,
+                json={
+                    "name": f"유산소 완료 {uuid4().hex[:6]}",
+                    "minutes": 25,
+                    "type": "유산소",
+                },
+            )
+            assert created.status_code == 201, created.text
+            routine = created.json()
+            created_ids.append(routine["id"])
+
+            completed = client.post(
+                f"/v1/me/coach/routines/{routine['id']}/complete",
+                headers=member_headers,
+                json=payload,
+            )
+
+            assert completed.status_code == 200, completed.text
+            body = completed.json()
+            assert body["completed_minutes"] == expected
+            # 세트·중량은 근력 기록에만 있다.
+            assert body["completed_sets"] is None
+            assert body["completed_weight"] is None
+    finally:
+        db_session.rollback()
+        for routine_id in created_ids:
+            for row in db_session.query(ExerciseSession).filter_by(
+                assigned_routine_id=routine_id
+            ):
+                db_session.delete(row)
+            stored = db_session.get(TrainerRoutine, routine_id)
+            if stored is not None:
+                db_session.delete(stored)
+        db_session.commit()
+
+
+def test_undoing_a_strength_completion_removes_the_record_and_points(
+    client, strength_routine
+):
+    """완료를 되돌리면 세트 기록과 그 완료로 받은 포인트가 함께 사라진다. (#3364)"""
+    routine = strength_routine(sets=4, reps=12, weight=40)
+    member_headers = _headers(_login(client, "jisu@oncare.com"))
+    balance_before = _points_balance(client, member_headers)
+
+    completed = client.post(
+        f"/v1/me/coach/routines/{routine['id']}/complete",
+        headers=member_headers,
+        json={"sets": 4, "reps": 12, "weight": 40, "intensity": "moderate"},
+    )
+    assert completed.status_code == 200, completed.text
+    earned = completed.json()["points"]["awarded"]
+
+    undone = client.delete(
+        f"/v1/me/coach/routines/{routine['id']}/complete", headers=member_headers
+    )
+
+    assert undone.status_code == 200, undone.text
+    body = undone.json()
+    assert body["completed"] is False
+    assert body["completed_sets"] is None
+    assert body["completed_minutes"] is None
+    week = client.get("/v1/exercise/weeks/current", headers=member_headers).json()
+    assert not any(
+        row["assigned_routine_id"] == routine["id"] for row in week["sessions"]
+    )
+    # 받은 만큼(하루 한도를 넘었으면 0) 그대로 회수된다.
+    assert completed.json()["points"]["balance"] == balance_before + earned
+    assert _points_balance(client, member_headers) == balance_before
