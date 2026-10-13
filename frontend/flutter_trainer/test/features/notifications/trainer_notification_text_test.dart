@@ -121,6 +121,18 @@ const List<(String, Map<String, Object?>, String, String)> _cases =
     '회원 탈퇴로 상담 요청이 취소됐어요',
     '지수 회원 · 10월 1일',
   ),
+  // 수락되어 잡혀 있던 상담이 회원 탈퇴로 빠졌다(#3360).
+  (
+    'trainer_consult_withdrawn',
+    <String, Object?>{
+      'member_name': '지수',
+      'preferred_date': '2026-10-01',
+      'booked': true,
+      'starts_at': _starts,
+    },
+    '회원 탈퇴로 확정된 상담이 취소됐어요',
+    '지수 회원 · 10월 1일 09:05',
+  ),
   (
     'trainer_invite_accepted',
     <String, Object?>{'member_name': '지수'},

@@ -365,7 +365,9 @@ class AssignedRoutineCompleteRequest(BaseModel):
     모르는 칸이라 무시되고 422 가 나지 않는다.
     """
 
-    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
+    #: 수행한 시간(분). 비우면 서버가 채운다 — 근력은 세트 수에서, 나머지는
+    #: `duration_seconds`·배정된 시간에서. 앱이 분을 지어내 보내지 않는다. (#3364)
+    minutes: int | None = Field(None, gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력 루틴이면 실제로 한 세트 수·횟수·중량. 수기 기록과 같은 값을 남겨야
     #: 그래프가 두 기록을 같은 축으로 읽는다. (#1276, #1310)
     sets: int | None = Field(None, gt=0, le=MAX_EXERCISE_SETS)

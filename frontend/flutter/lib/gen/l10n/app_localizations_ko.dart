@@ -739,9 +739,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exTrainerCertifications => '자격증 · 인증';
 
   @override
-  String get exTrainerRecommendationReason => '내 건강 목표 달성에 잘 맞는 트레이너예요';
-
-  @override
   String get exNearbyGymsMapLabel => '내 주변 헬스장';
 
   @override
@@ -1132,6 +1129,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exNearbyGyms => '주변 헬스장';
 
   @override
+  String get exGymSearchResults => '검색 결과';
+
+  @override
   String get exGymListCollapse => '목록 접기';
 
   @override
@@ -1139,6 +1139,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exGymsLoadError => '헬스장을 불러오지 못했어요.';
+
+  @override
+  String get exGymSearchError => '헬스장을 검색하지 못했어요.';
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -1752,6 +1755,42 @@ class AppLocalizationsKo extends AppLocalizations {
   String challengeAchieved(String reward) {
     return '목표 달성! 주가 끝나면 $reward를 받아요';
   }
+
+  @override
+  String get challengeGoalSource => '목표 횟수는 MY 건강 목표의 주간 운동 횟수를 따라요';
+
+  @override
+  String get challengeHistoryAction => '지난 결과';
+
+  @override
+  String get challengeHistoryTitle => '지난 챌린지 결과';
+
+  @override
+  String get challengeHistoryEmpty => '아직 참가한 챌린지가 없어요';
+
+  @override
+  String get challengeHistoryEmptyMessage =>
+      '월·화요일에 주간 운동 챌린지에 참가하면 결과가 여기에 쌓여요.';
+
+  @override
+  String get challengeHistoryLoadFailed => '챌린지 결과를 불러오지 못했어요';
+
+  @override
+  String challengeHistoryResult(int goal, int progress) {
+    return '목표 $goal회 · $progress회 운동';
+  }
+
+  @override
+  String get challengeStatusSucceeded => '성공';
+
+  @override
+  String get challengeStatusFailed => '실패';
+
+  @override
+  String get challengeStatusActive => '진행 중';
+
+  @override
+  String get challengeStatusSettling => '집계 중';
 
   @override
   String get myCouponStatusUsable => '사용 가능';
@@ -2695,6 +2734,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exGymConsultNoTrainers => '아직 소속 트레이너가 없어요.';
 
   @override
+  String get exGymNoTrainersCallHint =>
+      '아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요. 헬스장에 전화로 문의해 주세요.';
+
+  @override
+  String get exGymNoTrainersHint => '아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요.';
+
+  @override
+  String get exGymCallInquiry => '전화 문의';
+
+  @override
   String get exGymTrainersLoadError => '소속 트레이너를 불러오지 못했어요.';
 
   @override
@@ -2816,6 +2865,9 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get exConsultCancelledByTrainerBody =>
       '트레이너가 상담 일정을 취소했어요. 다른 시간으로 다시 신청해 보세요.';
+
+  @override
+  String get exConsultTrainerNameMissing => '트레이너 정보 없음';
 
   @override
   String get exExerciseGoal => '운동 목표';
@@ -3575,6 +3627,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myGoalFlexibilityWeekly => '주간 스트레칭 (분)';
+
+  @override
+  String get myGoalWorkoutsWeekly => '주간 운동 횟수 (일)';
+
+  @override
+  String myGoalWorkoutsWeeklyHint(int days) {
+    return '주간 운동 챌린지의 목표가 돼요. 정하지 않으면 $days일이고, 이미 참가한 주의 목표는 바뀌지 않아요.';
+  }
 
   @override
   String myGoalExerciseSuggestionNote(
@@ -4796,11 +4856,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachReportsLoadFailed => '받은 리포트를 불러오지 못했어요';
 
   @override
+  String get coachReportsLoadMore => '이전 리포트 더 보기';
+
+  @override
   String get weeklyFeedbackLoadFailed => '보낸 주간 피드백을 불러오지 못했어요';
 
   @override
   String coachReportSentOn(int month, int day) {
     return '$month월 $day일 보냄';
+  }
+
+  @override
+  String coachReportSentBy(String name, String sentOn) {
+    return '$name · $sentOn';
   }
 
   @override

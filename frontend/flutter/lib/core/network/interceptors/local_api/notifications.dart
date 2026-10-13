@@ -70,6 +70,10 @@ extension _LocalApiNotifications on LocalApiInterceptor {
           // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
           // 고른다. 시드 밖의 알림은 키가 없다(#1812).
           'message_key': ?kDemoAlertKeyBySeedId[r.id],
+          // 리포트 알림이 가리키는 리포트 — 서버 `NotificationOut.report` 와 같은
+          // 모양이다(#3344). 데모의 리포트 알림은 시드 한 건이고, 데모 대화의
+          // 리포트 안내를 가리킨다. 나머지는 서버처럼 null 이다.
+          'report': _demoSeedReport(r.id),
         },
     ];
     return _ok(options, list);
@@ -171,6 +175,17 @@ Map<String, Object?>? _demoSeedAction(String id) {
   if (a == null) return null;
   return <String, Object?>{'label': a.label, 'target': a.target};
 }
+
+/// 데모 시드의 리포트 알림(`seed-noti-7`)이 가리키는 리포트. (#3344)
+///
+/// 목적지 값은 서버처럼 대화(`coach_chat`) 그대로 두고 이 값만 더한다.
+Map<String, Object?>? _demoSeedReport(String id) =>
+    kDemoAlertKeyBySeedId[id] == kDemoAlertReport
+    ? <String, Object?>{
+        'week_start': wireDate(MockMemberCoachRepository.demoReportWeekStart),
+        'message_id': MockMemberCoachRepository.demoReportMessageId,
+      }
+    : null;
 
 /// 목업 알림의 행동 유도 — 서버 `_ACTION_BY_CATEGORY` 중 목업이 만드는 것만.
 ///

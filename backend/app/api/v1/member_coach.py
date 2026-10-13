@@ -19,19 +19,23 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequireMember
 from app.api.v1 import chat_attachments
 from app.core import clock
+from app.core.pagination import MAX_PAGE
 from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
 from app.schemas.record_dates import parse_ymd
 from app.schemas.text_limits import TEXT_LONG_MAX
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
-    MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
-    MemberWeeklyFeedbackSaveRequest, RoutineCompleteOut, RoutineOut,
-    ScheduleSessionOut, UpcomingRoutinesOut, WeeklyReportOut,
+    MemberCoachOut, MemberInviteAcceptRequest, MemberReceivedReportsOut,
+    MemberWeeklyFeedbackOut,
+    MemberWeeklyFeedbackSaveRequest, MemberWeeklyReportOut, RoutineCompleteOut,
+    RoutineOut, ScheduleSessionOut, UpcomingRoutinesOut,
 )
 from app.services import (
     emote_service,
     member_departure,
+    received_reports,
+    report_snapshot_service,
     trainer_client_invite_service,
     weekly_report_access,
 )
@@ -183,6 +187,9 @@ def complete_my_routine(
             duration_seconds=payload.duration_seconds,
             sets=payload.sets,
             reps=payload.reps,
+            # 버틴 시간도 서비스까지 넘긴다 — 스키마만 받고 여기서 빠지면
+            # 회원이 적은 초가 버려지고 배정 값이 남는다. (#3364)
+            hold_seconds=payload.hold_seconds,
             weight=payload.weight,
             intensity=payload.intensity,
             day=day,
@@ -537,6 +544,8 @@ def save_my_weekly_feedback(
 # 읽는다. 결과지의 `4주 평균 대비` 가 읽는 직전 넉 주는 `compare_for`(여는 주)를
 # 함께 보내면 비교에 쓰는 수치만 준다.
 #
+# 받았거나 산 주는 그때 굳힌 값을 준다(#3349, `report_snapshot_service`).
+#
 # PT 횟수·이행률·개인운동 수는 **회원 기준**으로 센다(#3347) — 지금의 담당으로
 # 거르면 트레이너를 바꾸거나 담당이 끊긴 뒤 지난 주가 전부 0 이 된다. 담당이 한
 # 명뿐이던 주는 그 트레이너가 보는 값과 같다.
@@ -565,20 +574,28 @@ def _my_report_week(week_start: str | None) -> date:
     return week
 
 
-@router.get("/me/coach/weekly-report", response_model=WeeklyReportOut)
+@router.get("/me/coach/weekly-report", response_model=MemberWeeklyReportOut)
 def my_weekly_report(
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
     week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
+    message_id: str | None = Query(
+        None, max_length=64, description="열려는 리포트 전송 메시지 id"
+    ),
     compare_for: str | None = Query(
         None,
         description="YYYY-MM-DD — 이 주 결과지의 비교 칸이 읽는 직전 주로 요청한다",
     ),
-) -> WeeklyReportOut:
+) -> MemberWeeklyReportOut:
     """내 한 주 리포트 — 그 주에 나에게 걸려 있던 PT·개인운동 전부로 센다.
 
-    받았거나 산 주만 연다. [compare_for] 를 주면 그 주가 열 수 있는 주이고
+    받았거나 산 주만 연다(#3366). [compare_for] 를 주면 그 주가 열 수 있는 주이고
     [week_start] 가 그 직전 넉 주 안일 때 비교용 수치만 돌려준다.
+
+    받았거나 산 리포트는 **그때 굳힌 값**을 준다(#3349). 열 때마다 다시 계산하면
+    보낸 뒤 고친 기록·목표가 지난 리포트를 바꾼다. [message_id] 는 같은 주를 두 번
+    받았을 때 누른 전송을 고른다. 굳힌 값이 없는 주(옛 리포트)는 지금 계산한다.
+    비교용으로 읽는 직전 주도 굳힌 값이 있으면 그 값에서 비교 수치를 뽑는다.
     """
     week = _my_report_week(week_start)
     # 빈 문자열은 보내지 않은 것과 같다 — `week_start` 와 같은 규칙이다.
@@ -591,10 +608,58 @@ def my_weekly_report(
         raise HTTPException(
             status_code=422, detail="비교할 수 있는 주는 직전 4주까지예요."
         )
-    trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
-    report = trainer_reports_service.build_weekly_report(
-        db, trainer_id, user.id, week, member_scope=True
+    # 비교용 직전 주는 누른 전송과 무관하다 — `message_id` 를 넘기지 않는다.
+    snapshot = report_snapshot_service.member_snapshot(
+        db, user.id, week, message_id=None if target is not None else message_id
     )
+    if snapshot is not None:
+        report = snapshot.report
+        taken_at = snapshot.taken_at
+    else:
+        trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
+        report = trainer_reports_service.build_weekly_report(
+            db, trainer_id, user.id, week, member_scope=True
+        )
+        taken_at = None
     if target is not None:
-        return weekly_report_access.comparison_only(report)
-    return report.model_copy(update={"message": ""})
+        report = weekly_report_access.comparison_only(report)
+    return MemberWeeklyReportOut(
+        **report.model_dump(exclude={"message"}), message="", snapshot_at=taken_at
+    )
+
+
+# ---- 받은 리포트 목록 (#3348) ----
+# 예전에는 목록을 주는 경로가 없어 앱이 대화를 처음부터 끝까지 읽고 리포트 안내를
+# 추려 냈다. 대화가 길수록 느렸고, 대화 조회는 지금의 담당 것만 주므로 담당이
+# 끊기거나 바뀌면 목록이 통째로 비었다. 회원 쪽 수신 기록을 읽어 한 번에 준다.
+
+#: 받은 리포트 목록 한 쪽의 주 수. 한 주에 한 줄이라 한 해 치가 한 쪽에 든다.
+_RECEIVED_REPORTS_PAGE = 52
+
+
+@router.get("/me/coach/reports", response_model=MemberReceivedReportsOut)
+def my_received_reports(
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(
+        _RECEIVED_REPORTS_PAGE, ge=1, le=MAX_PAGE, description="한 번에 가져올 주 수"
+    ),
+    before: str | None = Query(
+        None, description="YYYY-MM-DD — 이 주보다 이전 주만(앞 쪽의 next_before)"
+    ),
+) -> MemberReceivedReportsOut:
+    """내가 받은 주간 리포트, 주별로 최신 주부터.
+
+    **담당 트레이너가 없어도 200 이다.** 받은 리포트는 회원의 것이라 담당이
+    끊기거나 바뀐 뒤에도, 보낸 트레이너가 탈퇴한 뒤에도 남는다. 포인트로 산
+    리포트는 여기 싣지 않는다(`GET /me/weekly-reports`).
+    """
+    cursor: date | None = None
+    if before:
+        try:
+            cursor = parse_ymd(before)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 해요."
+            ) from exc
+    return received_reports.list_received(db, user.id, limit=limit, before=cursor)

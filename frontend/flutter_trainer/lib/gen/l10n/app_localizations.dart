@@ -6603,6 +6603,12 @@ abstract class AppLocalizations {
   /// **'회원 탈퇴로 상담 요청이 취소됐어요'**
   String get notifTplConsultWithdrawnTitle;
 
+  /// No description provided for @notifTplConsultWithdrawnBookedTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'회원 탈퇴로 확정된 상담이 취소됐어요'**
+  String get notifTplConsultWithdrawnBookedTitle;
+
   /// No description provided for @notifTplInviteAcceptedTitle.
   ///
   /// In ko, this message translates to:

@@ -85,8 +85,12 @@ class DioMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) async {
@@ -98,11 +102,21 @@ class DioMemberCoachRepository implements MemberCoachRepository {
             ? null
             : <String, Object?>{'date': wireDate(day)},
         data: <String, Object?>{
-          'minutes': minutes,
+          // 분을 모르면 싣지 않는다 — 서버가 세트 수·초·배정 시간에서 채운다.
+          // 0 이하는 서버가 거절해(422) 그때도 뺀다(#3364).
+          if (minutes != null && minutes > 0) 'minutes': minutes,
           // 서버는 0 이하를 거절한다(422) — 초가 없거나 0 이면 키를 싣지 않고
           // 분만 보낸다(#2221).
           if (durationSeconds != null && durationSeconds > 0)
             'duration_seconds': durationSeconds,
+          // 근력 완료의 실제 값(#3364). 비운 값은 서버가 배정 값으로 남긴다.
+          // 한 세트는 회로든 초로든 한 번만 잰다 — 초가 있으면 횟수를 뺀다.
+          if (sets != null && sets > 0) 'sets': sets,
+          if (holdSeconds != null && holdSeconds > 0)
+            'hold_seconds': holdSeconds
+          else if (reps != null && reps > 0)
+            'reps': reps,
+          if (weight != null && weight >= 0) 'weight': weight,
           'intensity': intensity,
         },
       );
@@ -225,6 +239,27 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       AppError.fromDio(e);
 
   @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async {
+    try {
+      final Response<Map<String, Object?>> res = await _dio
+          .get<Map<String, Object?>>(
+            '/me/coach/reports',
+            // 커서는 앞 쪽 마지막 줄의 주(월요일)다.
+            queryParameters: before == null
+                ? null
+                : <String, Object?>{'before': wireDate(before)},
+          );
+      final Map<String, Object?>? data = res.data;
+      if (data == null) {
+        throw const FormatException('Invalid received reports.');
+      }
+      return receivedReportsPageFromJson(data);
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
   Stream<List<CoachMessage>> watchChat() =>
       activePollingStream<List<CoachMessage>>(
         load: fetchChat,
@@ -344,8 +379,9 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       }
       return memberWeeklyFeedbackFromJson(data);
     } on DioException catch (e) {
-      // 담당 트레이너가 없으면 404 다. 그건 오류가 아니라 이 기능이 없는
-      // 상태라, 화면이 칸을 통째로 숨기면 된다.
+      // 서버는 담당 트레이너가 없어도 조회를 200(`submitted=false`)으로 답한다 —
+      // 404 로 막는 것은 저장(PUT)뿐이다. 그래도 404 가 오면 오류가 아니라 낸
+      // 답이 없는 상태로 받는다.
       if (e.response?.statusCode == 404) {
         return MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
       }

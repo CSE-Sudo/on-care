@@ -325,8 +325,9 @@ class StreakShield(Base):
     포인트 사용처에서 300P 로 교환하면 `held` 로 생기고, 회원이 운동을 못 한 어제를
     연속 기록에 이어 붙이면 `used` 가 되며 그 날짜(`protected_on`, KST)를 남긴다.
 
-    - 사용하지 않은 보호권은 회원당 최대 2장이다. 교환이 잔액 행을 잠근 채 세므로
-      같은 회원의 교환이 겹쳐도 넘지 않는다(`streak_shield_service.exchange`).
+    - 사용하지 않은 보호권은 회원당 최대 4장이다(`streak_shield_service.MAX_HELD`).
+      교환이 잔액 행을 잠근 채 세므로 같은 회원의 교환이 겹쳐도 넘지 않는다
+      (`streak_shield_service.exchange`).
     - 한 날짜는 한 번만 보호한다(partial unique index). 같은 날을 다시 보호하려는
       재시도가 보호권을 두 장 쓰지 않게 하는 마지막 방어선이다.
     - 보호한 날은 **연속 일수에만** 운동한 날로 센다. 운동 시간·칼로리·횟수 합계에는
@@ -584,6 +585,9 @@ class WeeklyReportPurchase(Base):
     쌓은 식단·운동 기록과 감지 기록으로 앱이 그때그때 세운다(트레이너 리포트를
     회원 앱이 여는 방식과 같다). 여기에는 **어느 주를 샀는지**만 남는다.
 
+    #3349 부터는 산 시점의 수치와 감지 기록을 함께 남긴다 — 리포트를 세우는 것은
+    여전히 앱이지만, 재료는 살 때의 값으로 고정된다.
+
     같은 주는 한 번만 산다(`uq_weekly_report_purchase_week`).
     """
 
@@ -599,6 +603,17 @@ class WeeklyReportPurchase(Base):
     cost: Mapped[int] = mapped_column(Integer, default=0)
     #: 재시도가 두 번 사지 않게 하는 멱등키.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: 산 시점의 그 주 리포트(`WeeklyReportOut` JSON). (#3349)
+    #:
+    #: 열 때마다 다시 계산하면 산 뒤에 고친 기록·목표가 지난 리포트를 바꾼다.
+    #: NULL 은 이 컬럼이 생기기 전에 산 주로, 읽는 쪽이 다시 계산한다.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 산 시점의 그 주 감지 기록(`[{kind, body_part, created_at}]` JSON). (#3349)
+    #:
+    #: 감지 기록은 최근 30일 대화에서 매번 계산해, 한 달 뒤에는 살 때 적혀 있던
+    #: 감지가 사라졌다. 빈 목록은 "그 주에 감지가 없었다" 이고 NULL 은 "남겨 둔
+    #: 것이 없다" 다 — 둘을 섞으면 옛 리포트가 "감지 없음" 으로 읽힌다.
+    insights_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -2237,6 +2252,12 @@ class ChatMessage(Base):
     # 실어 보낸 값을 그대로 들고 있는다. 일반 대화는 NULL 이라 예전 행과 조회
     # 흐름은 그대로다.
     report_week_start: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 리포트를 보낸 시점의 그 주 수치·목표(`WeeklyReportOut` JSON). (#3349)
+    #
+    # 본문으로 보낸 리포트는 회원이 열 때마다 다시 계산해, 보낸 뒤 회원이 기록이나
+    # 목표를 고치면 같은 리포트가 다른 내용이 됐다. 보낼 때의 값을 남기고 회원
+    # 조회가 이것을 먼저 읽는다. 이 컬럼이 생기기 전의 전송과 일반 대화는 NULL 이다.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 이 메시지가 루틴 전송 안내라면 그 전송(종류·운동 이름)의 JSON. (#2672)
     #
     # 운동을 보내면 알림만 가고 채팅에는 남지 않아, 대화 속에서 "어제 보낸
@@ -2262,6 +2283,53 @@ class ChatMessage(Base):
             "client_request_id",
             name="uq_chat_messages_client_request",
         ),
+    )
+
+
+class MemberReceivedReport(Base):
+    """회원이 받은 주간 리포트 한 건 — 회원 쪽에 남는 수신 기록. (#3348)
+
+    리포트 전송의 근거는 대화 메시지(`ChatMessage.report_week_start`)다. 그런데
+    그 행은 보낸 트레이너에게도 달려 있어(`trainer_id` CASCADE), 트레이너가
+    탈퇴하면 대화와 함께 사라진다 — 회원이 받은 주가 닫히고 목록에서도 빠졌다.
+    받은 것은 회원의 것이므로 **회원에게만 달린** 기록을 전송과 함께 남긴다.
+
+    - `id` 는 그 전송의 채팅 메시지 id 와 같다. 회원 앱이 리포트를 열 때 보내는
+      `message_id` 가 대화가 지워진 뒤에도 같은 전송을 가리킨다.
+    - `trainer_id` 는 SET NULL 이다. 트레이너가 탈퇴하면 누가 보냈는지는 비고
+      (이름을 따로 적어 두지 않는다 — 탈퇴한 사람의 이름을 남기지 않는다),
+      받은 주·본문·굳힌 값은 남는다.
+    - PDF 는 여기 두지 않는다. 파일은 대화 메시지에 달려 있고, 대화가 사라지면
+      함께 지워진다(#2817) — 그때는 굳힌 값(`report_snapshot_json`)으로 앱이 같은
+      주의 결과지를 세운다.
+
+    트레이너 화면의 전송 기록(#2288, #2393)은 전처럼 대화 메시지를 읽는다. 이
+    표는 회원이 읽는 길(받은 리포트 목록·열람 판정·굳힌 값)만 받친다.
+    """
+
+    __tablename__ = "member_received_reports"
+
+    #: 그 전송의 `ChatMessage.id`. 대화가 지워져도 남아야 해 FK 를 걸지 않는다.
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    member_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: 리포트가 가리키는 주의 월요일 `YYYY-MM-DD`.
+    week_start: Mapped[str] = mapped_column(String(10))
+    #: 트레이너가 리포트와 함께 보낸 글 — 결과지의 `트레이너 피드백` 칸에 선다.
+    body: Mapped[str] = mapped_column(Text, default="")
+    #: 보낸 시점의 그 주 수치·목표(`WeeklyReportOut` JSON, #3349). 옛 전송은 NULL.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 보낸 시각 — 메시지의 `created_at` 과 같다.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_member_received_reports_member_week", "member_id", "week_start"),
     )
 
 

@@ -58,6 +58,45 @@ class _KakaoFixtureRepository implements PlaceRepository {
   ];
 }
 
+/// 전화번호가 실린 주변 검색 결과(#3357). 하나는 시연용 보강 값이 있는 가상
+/// 헬스장이고, 하나는 보강 값이 없는 곳이다.
+class _PhonePlaceRepository implements PlaceRepository {
+  const _PhonePlaceRepository();
+
+  @override
+  Future<List<Place>> nearbyPlaces(PlaceQuery query) async => const <Place>[
+    Place(
+      id: 'gym-demo-fitstudio',
+      name: '온케어 핏스튜디오',
+      category: PlaceCategory.fitness,
+      address: '서울 마포구 신촌로 90',
+      distanceMeters: 127,
+      lat: 37.5551767,
+      lng: 126.9356861,
+      phone: '02-000-0001',
+    ),
+    Place(
+      id: 'place-with-phone',
+      name: '전화 있는 헬스장',
+      category: PlaceCategory.fitness,
+      address: '서울 마포구 테스트로 1',
+      distanceMeters: 300,
+      lat: 37.556,
+      lng: 126.936,
+      phone: '02-000-0002',
+    ),
+    Place(
+      id: 'place-without-phone',
+      name: '전화 없는 헬스장',
+      category: PlaceCategory.fitness,
+      address: '서울 마포구 테스트로 2',
+      distanceMeters: 400,
+      lat: 37.557,
+      lng: 126.937,
+    ),
+  ];
+}
+
 /// 카카오가 실패해도 제휴 목록은 남아야 한다(#329 폴백 요건).
 class _FailingPlaceRepository implements PlaceRepository {
   const _FailingPlaceRepository();
@@ -154,6 +193,60 @@ void main() {
     expect(buildUp.tags, isEmpty);
     expect(buildUp.phone, isNull);
     expect(buildUp.weekdayHours, isNull);
+  });
+
+  group('주변 검색의 전화번호 (#3357)', () {
+    test('실 API 모드는 서버가 준 번호를 헬스장에 싣는다', () async {
+      final container = _containerWith(
+        const _PhonePlaceRepository(),
+        useMockApi: false,
+      );
+      final gyms = await container.read(gymFinderResultsProvider.future);
+      Gym byId(String id) => gyms.firstWhere((Gym g) => g.id == id);
+
+      expect(byId('gym-demo-fitstudio').phone, '02-000-0001');
+      expect(byId('place-with-phone').phone, '02-000-0002');
+      expect(byId('place-without-phone').phone, isNull);
+      // 번호만 실린다 — 평점·영업시간은 여전히 지어내지 않는다.
+      expect(byId('place-with-phone').rating, 0);
+      expect(byId('place-with-phone').weekdayHours, isNull);
+    });
+
+    test('목업은 보강 값이 없는 헬스장에 서버 번호를 쓴다', () async {
+      final container = _containerWith(const _PhonePlaceRepository());
+      final gyms = await container.read(gymFinderResultsProvider.future);
+      Gym byId(String id) => gyms.firstWhere((Gym g) => g.id == id);
+
+      expect(byId('place-with-phone').phone, '02-000-0002');
+      expect(byId('place-without-phone').phone, isNull);
+    });
+
+    test('목업의 시연용 번호가 있으면 그 값이 앞선다', () async {
+      final container = _containerWith(const _PhonePlaceRepository());
+      final gyms = await container.read(gymFinderResultsProvider.future);
+      final Gym gym = gyms.firstWhere((Gym g) => g.id == 'gym-demo-fitstudio');
+
+      expect(
+        gym.phone,
+        kKakaoGymDemoProfiles['gym-demo-fitstudio']?.phone ?? '02-000-0001',
+      );
+    });
+
+    test('이름 검색의 목업 경로도 주변 장소의 번호를 싣는다', () async {
+      final container = _containerWith(const _PhonePlaceRepository());
+      final sub = container.listen(gymSearchProvider('전화'), (_, _) {});
+      addTearDown(sub.close);
+      final gyms = await container.read(gymSearchProvider('전화').future);
+
+      expect(
+        gyms.firstWhere((Gym g) => g.id == 'place-with-phone').phone,
+        '02-000-0002',
+      );
+      expect(
+        gyms.firstWhere((Gym g) => g.id == 'place-without-phone').phone,
+        isNull,
+      );
+    });
   });
 
   test('모든 트레이너의 소속 헬스장이 목록에 존재한다', () async {

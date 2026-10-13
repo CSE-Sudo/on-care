@@ -55,6 +55,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
     show CoachAttachmentKind;
 import 'package:oncare_core/clock.dart';
@@ -468,6 +469,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     required String name,
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
   }) async {
     final String kind = type.name;
     // 초로 완료한 배정은 기록도 초를 든다 — 분은 초에서 파생된다(#2221).
@@ -497,6 +502,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
             calories: estimated.calories,
             intensity: Value(intensity.name),
             durationSeconds: Value(durationSeconds),
+            // 근력 완료의 세트·횟수·버틴 시간·중량(#3364) — 수기 기록과 같은
+            // 칸이라 그래프가 두 기록을 같은 축으로 읽는다.
+            sets: Value(sets),
+            reps: Value(reps),
+            holdSeconds: Value(holdSeconds),
+            weight: Value(weight),
             source: const Value('assigned_routine'),
             assignedRoutineId: Value(routineId),
           ),
@@ -511,11 +522,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         type: kind,
         name: name,
         minutes: savedMinutes,
-        sets: null,
-        reps: null,
-        holdSeconds: null,
+        sets: sets,
+        reps: reps,
+        holdSeconds: holdSeconds,
         durationSeconds: durationSeconds,
-        weight: null,
+        weight: weight,
         calories: estimated.calories,
         intensity: intensity.name,
         calorieSource: estimated.source,

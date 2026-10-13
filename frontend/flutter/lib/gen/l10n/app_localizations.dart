@@ -1430,12 +1430,6 @@ abstract class AppLocalizations {
   /// **'Certifications'**
   String get exTrainerCertifications;
 
-  /// No description provided for @exTrainerRecommendationReason.
-  ///
-  /// In en, this message translates to:
-  /// **'A great fit for reaching my health goals'**
-  String get exTrainerRecommendationReason;
-
   /// No description provided for @exNearbyGymsMapLabel.
   ///
   /// In en, this message translates to:
@@ -2144,6 +2138,12 @@ abstract class AppLocalizations {
   /// **'Nearby gyms'**
   String get exNearbyGyms;
 
+  /// No description provided for @exGymSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Search results'**
+  String get exGymSearchResults;
+
   /// Hides the gym result list so the map fills the space
   ///
   /// In en, this message translates to:
@@ -2161,6 +2161,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load gyms.'**
   String get exGymsLoadError;
+
+  /// No description provided for @exGymSearchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search gyms.'**
+  String get exGymSearchError;
 
   /// No description provided for @exGymWeekdayHours.
   ///
@@ -3169,6 +3175,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Goal reached! You get {reward} when the week ends'**
   String challengeAchieved(String reward);
+
+  /// No description provided for @challengeGoalSource.
+  ///
+  /// In en, this message translates to:
+  /// **'The goal follows the weekly workout goal in your MY health goals'**
+  String get challengeGoalSource;
+
+  /// No description provided for @challengeHistoryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Past results'**
+  String get challengeHistoryAction;
+
+  /// No description provided for @challengeHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Past challenge results'**
+  String get challengeHistoryTitle;
+
+  /// No description provided for @challengeHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No challenges joined yet'**
+  String get challengeHistoryEmpty;
+
+  /// No description provided for @challengeHistoryEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Join the weekly workout challenge on a Monday or Tuesday and your results will show up here.'**
+  String get challengeHistoryEmptyMessage;
+
+  /// No description provided for @challengeHistoryLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your challenge results'**
+  String get challengeHistoryLoadFailed;
+
+  /// No description provided for @challengeHistoryResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal {goal} · {progress} workout days'**
+  String challengeHistoryResult(int goal, int progress);
+
+  /// No description provided for @challengeStatusSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Succeeded'**
+  String get challengeStatusSucceeded;
+
+  /// No description provided for @challengeStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get challengeStatusFailed;
+
+  /// No description provided for @challengeStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get challengeStatusActive;
+
+  /// No description provided for @challengeStatusSettling.
+  ///
+  /// In en, this message translates to:
+  /// **'Tallying'**
+  String get challengeStatusSettling;
 
   /// No description provided for @myCouponStatusUsable.
   ///
@@ -4820,6 +4892,24 @@ abstract class AppLocalizations {
   /// **'No trainers are affiliated yet.'**
   String get exGymConsultNoTrainers;
 
+  /// No description provided for @exGymNoTrainersCallHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers from this gym have joined yet, so you can\'t request a consultation in the app. Please call the gym.'**
+  String get exGymNoTrainersCallHint;
+
+  /// No description provided for @exGymNoTrainersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers from this gym have joined yet, so you can\'t request a consultation in the app.'**
+  String get exGymNoTrainersHint;
+
+  /// No description provided for @exGymCallInquiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Call the gym'**
+  String get exGymCallInquiry;
+
   /// No description provided for @exGymTrainersLoadError.
   ///
   /// In en, this message translates to:
@@ -5029,6 +5119,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The trainer cancelled this consultation. Try requesting another time.'**
   String get exConsultCancelledByTrainerBody;
+
+  /// No description provided for @exConsultTrainerNameMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer unavailable'**
+  String get exConsultTrainerNameMissing;
 
   /// No description provided for @exExerciseGoal.
   ///
@@ -6451,6 +6547,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly stretching (min)'**
   String get myGoalFlexibilityWeekly;
+
+  /// No description provided for @myGoalWorkoutsWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly workouts (days)'**
+  String get myGoalWorkoutsWeekly;
+
+  /// No description provided for @myGoalWorkoutsWeeklyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This becomes your weekly workout challenge goal. Without one it is {days} days, and a week you already joined keeps its goal.'**
+  String myGoalWorkoutsWeeklyHint(int days);
 
   /// Explains the suggested exercise goals, adjusted for the picked health goals.
   ///
@@ -8064,6 +8172,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load your reports'**
   String get coachReportsLoadFailed;
 
+  /// No description provided for @coachReportsLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show earlier reports'**
+  String get coachReportsLoadMore;
+
   /// No description provided for @weeklyFeedbackLoadFailed.
   ///
   /// In en, this message translates to:
@@ -8075,6 +8189,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sent {month}/{day}'**
   String coachReportSentOn(int month, int day);
+
+  /// No description provided for @coachReportSentBy.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {sentOn}'**
+  String coachReportSentBy(String name, String sentOn);
 
   /// No description provided for @myWeeklyFeedbackSectionTitle.
   ///

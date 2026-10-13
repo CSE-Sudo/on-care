@@ -614,6 +614,10 @@ def delete_me(
             )
         )
     reservation_service.cancel_member_reservations_for_account_deletion(db, user.id)
+    # 수락된 상담 중 시작 전인 것은 일정을 취소로 바꾸고 신청 때 잠근 자리를 돌려준다
+    # — 요청 행은 CASCADE 로 사라져도 자리는 남아 잠긴 채가 된다(#3360). 아래 일정
+    # 정리가 일정과 요청의 연결을 끊기 전에 부른다.
+    consultation_service.cancel_accepted_for_account_deletion(db, user)
     # 트레이너가 잡은 일정은 회원 행이 사라져도 이름·메모와 함께 남는다 — 시작 전
     # 일정은 취소로 바꾸고, 남는 행에서는 회원 이름과 메모를 지운다(#3341).
     trainer_common_service.clear_sessions_on_withdrawal(db, user.id)

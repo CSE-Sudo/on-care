@@ -460,7 +460,6 @@
     }
   },
   "exTrainerCertifications": "Certifications",
-  "exTrainerRecommendationReason": "A great fit for reaching my health goals",
   "exNearbyGymsMapLabel": "Gyms near me",
   "exGymMapUnavailable": "Couldn't load the map",
   "exActivityTitle": "Activity",
@@ -714,6 +713,7 @@
   "exNoSearchResults": "No search results.",
   "exTrainersLoadError": "Couldn't load trainers.",
   "exNearbyGyms": "Nearby gyms",
+  "exGymSearchResults": "Search results",
   "exGymListCollapse": "Collapse list",
   "@exGymListCollapse": {
     "description": "Hides the gym result list so the map fills the space"
@@ -723,6 +723,7 @@
     "description": "Brings the gym result list back under the map"
   },
   "exGymsLoadError": "Couldn't load gyms.",
+  "exGymSearchError": "Couldn't search gyms.",
   "exGymWeekdayHours": "Weekdays {hours}",
   "@exGymWeekdayHours": {
     "placeholders": {
@@ -1267,6 +1268,27 @@
       }
     }
   },
+  "challengeGoalSource": "The goal follows the weekly workout goal in your MY health goals",
+  "challengeHistoryAction": "Past results",
+  "challengeHistoryTitle": "Past challenge results",
+  "challengeHistoryEmpty": "No challenges joined yet",
+  "challengeHistoryEmptyMessage": "Join the weekly workout challenge on a Monday or Tuesday and your results will show up here.",
+  "challengeHistoryLoadFailed": "Couldn't load your challenge results",
+  "challengeHistoryResult": "Goal {goal} · {progress} workout days",
+  "@challengeHistoryResult": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeStatusSucceeded": "Succeeded",
+  "challengeStatusFailed": "Missed",
+  "challengeStatusActive": "In progress",
+  "challengeStatusSettling": "Tallying",
   "myCouponStatusUsable": "Available",
   "myCouponStatusUsed": "Used",
   "myCouponStatusExpired": "Expired",
@@ -2001,6 +2023,9 @@
   "exGymConsultPickTrainer": "Choose a trainer",
   "exGymConsultPickTrainerHint": "Your request goes to one trainer.",
   "exGymConsultNoTrainers": "No trainers are affiliated yet.",
+  "exGymNoTrainersCallHint": "No trainers from this gym have joined yet, so you can't request a consultation in the app. Please call the gym.",
+  "exGymNoTrainersHint": "No trainers from this gym have joined yet, so you can't request a consultation in the app.",
+  "exGymCallInquiry": "Call the gym",
   "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a trainer consultation",
   "exConsultPendingCta": "Consultation request pending",
@@ -2081,6 +2106,7 @@
   "exConsultExpired": "Expired",
   "exConsultExpiredBody": "The trainer did not respond in time. Try requesting another time.",
   "exConsultCancelledByTrainerBody": "The trainer cancelled this consultation. Try requesting another time.",
+  "exConsultTrainerNameMissing": "Trainer unavailable",
   "exExerciseGoal": "Exercise goal",
   "exGoalHealth": "Health management",
   "exOptionOther": "Other",
@@ -2650,6 +2676,15 @@
   "myGoalCardioWeekly": "Weekly cardio (min)",
   "myGoalStrengthWeekly": "Weekly strength (sets)",
   "myGoalFlexibilityWeekly": "Weekly stretching (min)",
+  "myGoalWorkoutsWeekly": "Weekly workouts (days)",
+  "myGoalWorkoutsWeeklyHint": "This becomes your weekly workout challenge goal. Without one it is {days} days, and a week you already joined keeps its goal.",
+  "@myGoalWorkoutsWeeklyHint": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "myGoalExerciseSuggestionNote": "Suggested: {burn} kcal a day · {cardio} min cardio · {strength} sets · {flexibility} min stretching a week",
   "@myGoalExerciseSuggestionNote": {
     "description": "Explains the suggested exercise goals, adjusted for the picked health goals.",
@@ -4115,6 +4150,7 @@
   "coachReportsEmpty": "No reports yet",
   "coachReportsEmptyHint": "Weekly reports from your trainer land here",
   "coachReportsLoadFailed": "Couldn't load your reports",
+  "coachReportsLoadMore": "Show earlier reports",
   "weeklyFeedbackLoadFailed": "Couldn't load the weekly feedback you sent",
   "coachReportSentOn": "Sent {month}/{day}",
   "@coachReportSentOn": {
@@ -4124,6 +4160,17 @@
       },
       "day": {
         "type": "int"
+      }
+    }
+  },
+  "coachReportSentBy": "{name} · {sentOn}",
+  "@coachReportSentBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "sentOn": {
+        "type": "String"
       }
     }
   },

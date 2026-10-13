@@ -23,6 +23,18 @@ class FakeChallengeRepository implements ChallengeRepository {
 
   int weeklyCalls = 0;
 
+  int historyCalls = 0;
+
+  /// 이력 조회를 서버 오류로 실패시킨다.
+  bool failHistory = false;
+
+  @override
+  Future<List<Challenge>> fetchHistory() async {
+    historyCalls++;
+    if (failHistory) throw const ServerError(statusCode: 500);
+    return history;
+  }
+
   @override
   Future<WeeklyChallenge> fetchWeekly() async {
     weeklyCalls++;
@@ -86,6 +98,7 @@ Challenge challengeOf({
   int progress = 0,
   ChallengeStatus status = ChallengeStatus.active,
   DateTime? weekStart,
+  bool settling = false,
 }) {
   final DateTime start = weekStart ?? DateTime(2026, 9, 14);
   return Challenge(
@@ -97,6 +110,7 @@ Challenge challengeOf({
     stake: 100,
     reward: 200,
     status: status,
+    settling: settling,
     rewarded: status == ChallengeStatus.succeeded ? 200 : 0,
   );
 }
