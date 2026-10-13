@@ -45,6 +45,13 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     completedDurationSeconds: _positiveIntOrNull(
       json['completed_duration_seconds'],
     ),
+    // 회원이 실제로 한 세트·횟수·버틴 시간·중량(#3364). 근력 완료에만 온다.
+    completedSets: _positiveIntOrNull(json['completed_sets']),
+    completedReps: _positiveIntOrNull(json['completed_reps']),
+    completedHoldSeconds: _positiveIntOrNull(json['completed_hold_seconds']),
+    completedWeight: json['completed_weight'] is num
+        ? (json['completed_weight']! as num).toDouble()
+        : null,
     completedIntensity: json['completed_intensity'] as String?,
     programName: _str(json['program_name']),
     sessionName: _str(json['session_name']),

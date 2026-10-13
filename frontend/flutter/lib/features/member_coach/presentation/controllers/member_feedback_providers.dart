@@ -199,3 +199,76 @@ final receivedReportsProvider =
       ReceivedReportsController,
       ReceivedReportsState
     >(ReceivedReportsController.new, name: 'receivedReports');
+
+/// 트레이너가 보낸 리포트 한 건 — 대화에 남은 안내에서 읽는다. (#2232)
+///
+/// 받은 리포트 **목록**은 [receivedReportsProvider] 가 서버에서 따로 읽는다
+/// (#3348). 이것은 알림이 가리킨 한 건을 대화에서 짚을 때 쓴다([findReportNotice]).
+/// 파일명이나 본문으로 추측하지 않는다 — 서버가 실어 보낸 주(월요일)만 본다.
+class SentReportNotice {
+  /// Creates a notice.
+  const SentReportNotice({required this.message, required this.weekStart});
+
+  /// 안내가 실려 온 대화 메시지. 첨부가 있으면 그 PDF 를 연다.
+  final CoachMessage message;
+
+  /// 리포트가 가리키는 주의 월요일.
+  final DateTime weekStart;
+
+  /// 트레이너가 보낸 시각.
+  DateTime get sentAt => message.createdAt;
+}
+
+/// 대화에서 리포트 안내만 골라 목록으로 만든다(최신 주 → 오래된 주). (#2232)
+///
+/// 같은 주 리포트를 두 번 보냈으면 **마지막 것 하나만** 남긴다. 회원이 받은
+/// 것은 마지막 글이고, 목록에 같은 주가 두 줄로 서면 어느 것을 열어야 하는지
+/// 알 수 없다.
+List<SentReportNotice> selectReportNotices(Iterable<CoachMessage> chat) {
+  final Map<String, SentReportNotice> latest = <String, SentReportNotice>{};
+  for (final CoachMessage message in chat) {
+    final DateTime? week = message.reportWeekStart;
+    if (week == null) continue;
+    final DateTime monday = DateTime(week.year, week.month, week.day);
+    final String key = '${monday.year}-${monday.month}-${monday.day}';
+    final SentReportNotice? seen = latest[key];
+    if (seen != null && seen.sentAt.isAfter(message.createdAt)) continue;
+    latest[key] = SentReportNotice(message: message, weekStart: monday);
+  }
+  return latest.values.toList()..sort(
+    (SentReportNotice a, SentReportNotice b) =>
+        b.weekStart.compareTo(a.weekStart),
+  );
+}
+
+/// 알림이 가리킨 리포트 안내를 대화에서 찾는다. 없으면 null. (#3344)
+///
+/// [messageId] 가 대화에 있으면 **그 메시지**다 — 같은 주 리포트를 다시 보냈어도
+/// 알림이 말한 그 한 건을 연다. 메시지를 못 찾으면(식별자가 없는 알림, 지워진
+/// 메시지) [weekStart] 주의 마지막 리포트를 연다 — 받은 리포트 목록이 그 주에
+/// 여는 것과 같은 문서다([selectReportNotices]).
+SentReportNotice? findReportNotice(
+  Iterable<CoachMessage> chat, {
+  required DateTime weekStart,
+  String? messageId,
+}) {
+  if (messageId != null) {
+    for (final CoachMessage message in chat) {
+      final DateTime? week = message.reportWeekStart;
+      if (message.id != messageId || week == null) continue;
+      return SentReportNotice(
+        message: message,
+        weekStart: DateTime(week.year, week.month, week.day),
+      );
+    }
+  }
+  final DateTime monday = DateTime(
+    weekStart.year,
+    weekStart.month,
+    weekStart.day,
+  );
+  for (final SentReportNotice notice in selectReportNotices(chat)) {
+    if (notice.weekStart == monday) return notice;
+  }
+  return null;
+}

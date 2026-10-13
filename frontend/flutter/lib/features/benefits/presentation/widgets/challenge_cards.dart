@@ -34,11 +34,15 @@ String? challengeBlockLabel(AppLocalizations l, WeeklyChallenge state) {
 /// 참가 전에는 건 포인트·목표·보상과 `참가` 버튼을, 참가했으면 이번 주 진행을
 /// 보여 준다. 참가할 수 없으면 버튼을 막고 이유를 버튼 왼쪽에 적는다. 지난주 결과가
 /// 유예 중이면 설명 아래에 집계 중이라고 한 줄 적는다(#3362).
+///
+/// 맨 아래에는 목표 횟수가 어디서 오는지(MY 건강 목표의 주간 운동 횟수)를 적고,
+/// 지난 결과 목록으로 가는 길을 둔다(#3361).
 class WeeklyChallengeCard extends StatelessWidget {
   const WeeklyChallengeCard({
     super.key,
     required this.state,
     required this.onJoin,
+    this.onViewHistory,
     this.busy = false,
   });
 
@@ -46,6 +50,9 @@ class WeeklyChallengeCard extends StatelessWidget {
 
   /// null 이면 버튼이 막힌다(참가 불가이거나 다른 요청이 진행 중).
   final VoidCallback? onJoin;
+
+  /// `지난 결과` 를 눌렀다. null 이면 그 버튼을 세우지 않는다.
+  final VoidCallback? onViewHistory;
 
   /// 참가 요청이 나가 있다.
   final bool busy;
@@ -159,6 +166,33 @@ class WeeklyChallengeCard extends StatelessWidget {
                 ),
               ],
             ),
+          const SizedBox(height: OnCareSpacing.s8),
+          const AppDivider(),
+          const SizedBox(height: OnCareSpacing.s8),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  keepWords(l.challengeGoalSource),
+                  key: const Key('weeklyChallengeGoalSource'),
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+              ),
+              if (onViewHistory != null) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                AppButton(
+                  key: const Key('weeklyChallengeHistory'),
+                  label: l.challengeHistoryAction,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  trailingIcon: AppIcons.chevronRight,
+                  onPressed: onViewHistory,
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );

@@ -20,3 +20,11 @@ final weeklyChallengeProvider = FutureProvider.autoDispose<WeeklyChallenge>(
   (ref) => ref.watch(challengeRepositoryProvider).fetchWeekly(),
   name: 'weeklyChallenge',
 );
+
+/// 지난 챌린지 결과 — 참가한 주를 최근 주 먼저. (#3361)
+///
+/// 화면을 떠나면 버린다 — 다시 열 때 새로 읽어야 그사이 판정된 주가 보인다.
+final challengeHistoryProvider = FutureProvider.autoDispose<List<Challenge>>(
+  (ref) => ref.watch(challengeRepositoryProvider).fetchHistory(),
+  name: 'challengeHistory',
+);

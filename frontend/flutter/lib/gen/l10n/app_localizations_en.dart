@@ -767,10 +767,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTrainerCertifications => 'Certifications';
 
   @override
-  String get exTrainerRecommendationReason =>
-      'A great fit for reaching my health goals';
-
-  @override
   String get exNearbyGymsMapLabel => 'Gyms near me';
 
   @override
@@ -1193,6 +1189,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exNearbyGyms => 'Nearby gyms';
 
   @override
+  String get exGymSearchResults => 'Search results';
+
+  @override
   String get exGymListCollapse => 'Collapse list';
 
   @override
@@ -1200,6 +1199,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymsLoadError => 'Couldn\'t load gyms.';
+
+  @override
+  String get exGymSearchError => 'Couldn\'t search gyms.';
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -1353,6 +1355,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myPointsExchangeFailed => 'Couldn\'t redeem. Please try again.';
+
+  @override
+  String get myPointsExchangeBlocked => 'You can\'t redeem this right now';
+
+  @override
+  String get myPointsInsufficient => 'Not enough points';
+
+  @override
+  String get myBenefitAlreadyReceived => 'You already have this';
 
   @override
   String myPointsShortfall(String points) {
@@ -1800,6 +1811,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get challengeJoinFailed => 'Couldn\'t join. Please try again.';
 
   @override
+  String get challengeJoinAlready => 'You\'ve already joined';
+
+  @override
+  String get challengeJoinBlocked => 'You can\'t join right now';
+
+  @override
   String get challengeJoinClosed => 'You can join again next Monday';
 
   @override
@@ -1823,6 +1840,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String challengeAchieved(String reward) {
     return 'Goal reached! You get $reward when the week ends';
   }
+
+  @override
+  String get challengeGoalSource =>
+      'The goal follows the weekly workout goal in your MY health goals';
+
+  @override
+  String get challengeHistoryAction => 'Past results';
+
+  @override
+  String get challengeHistoryTitle => 'Past challenge results';
+
+  @override
+  String get challengeHistoryEmpty => 'No challenges joined yet';
+
+  @override
+  String get challengeHistoryEmptyMessage =>
+      'Join the weekly workout challenge on a Monday or Tuesday and your results will show up here.';
+
+  @override
+  String get challengeHistoryLoadFailed =>
+      'Couldn\'t load your challenge results';
+
+  @override
+  String challengeHistoryResult(int goal, int progress) {
+    return 'Goal $goal · $progress workout days';
+  }
+
+  @override
+  String get challengeStatusSucceeded => 'Succeeded';
+
+  @override
+  String get challengeStatusFailed => 'Missed';
+
+  @override
+  String get challengeStatusActive => 'In progress';
+
+  @override
+  String get challengeStatusSettling => 'Tallying';
 
   @override
   String get myCouponStatusUsable => 'Available';
@@ -2041,6 +2096,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emoteSendFailed => 'Couldn\'t send the emote';
+
+  @override
+  String get emoteSendLocked =>
+      'That emote has expired. Buy it again to send it';
+
+  @override
+  String get emoteSendRejected => 'That emote can\'t be sent';
 
   @override
   String get a11yOpenEmotes => 'Emotes';
@@ -2508,6 +2570,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
+  String get coachImageRetry => 'Tap to load again';
+
+  @override
   String get coachChatSubtitle => 'Your trainer';
 
   @override
@@ -2534,6 +2599,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send your message. Please try again';
 
   @override
+  String get coachChatSendRejected =>
+      'That message can\'t be sent. Please check what you wrote';
+
+  @override
   String get coachPhotoAttach => 'Send a photo';
 
   @override
@@ -2551,6 +2620,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachPhotoSendFailed => 'Couldn\'t send the photo';
+
+  @override
+  String get coachPhotoSendRejected => 'That photo can\'t be sent';
 
   @override
   String get coachPhotoRetry => 'Send again';
@@ -2811,6 +2883,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymConsultNoTrainers => 'No trainers are affiliated yet.';
+
+  @override
+  String get exGymNoTrainersCallHint =>
+      'No trainers from this gym have joined yet, so you can\'t request a consultation in the app. Please call the gym.';
+
+  @override
+  String get exGymNoTrainersHint =>
+      'No trainers from this gym have joined yet, so you can\'t request a consultation in the app.';
+
+  @override
+  String get exGymCallInquiry => 'Call the gym';
 
   @override
   String get exGymTrainersLoadError => 'Couldn\'t load this gym\'s trainers.';
@@ -3299,6 +3382,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainerSyncRetry => 'Get a new code';
 
   @override
+  String trainerSyncConnected(String name) {
+    return 'You\'re connected with $name';
+  }
+
+  @override
+  String get trainerSyncConnectedBody =>
+      'Your trainer can now see your records and coach you.';
+
+  @override
   String get signUpCreatedSignInNeeded =>
       'Your account was created. Please sign in.';
 
@@ -3736,6 +3828,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalFlexibilityWeekly => 'Weekly stretching (min)';
 
   @override
+  String get myGoalWorkoutsWeekly => 'Weekly workouts (days)';
+
+  @override
+  String myGoalWorkoutsWeeklyHint(int days) {
+    return 'This becomes your weekly workout challenge goal. Without one it is $days days, and a week you already joined keeps its goal.';
+  }
+
+  @override
   String myGoalExerciseSuggestionNote(
     int burn,
     int cardio,
@@ -4164,6 +4264,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
+
+  @override
+  String get exConsultAcceptedCancelTitle =>
+      'Cancel this confirmed consultation?';
+
+  @override
+  String get exConsultAcceptedCancelBody =>
+      'We\'ll let the trainer know and free up the time. A cancelled consultation can\'t be restored.';
+
+  @override
+  String get exConsultAcceptedCancelAction => 'Cancel consultation';
+
+  @override
+  String get exConsultCancelStarted =>
+      'A consultation that has already started can\'t be cancelled.';
 
   @override
   String pointsRewardBadge(int points) {
@@ -4965,6 +5080,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get weeklyFeedbackSendFailed =>
       'Couldn\'t send your weekly feedback. Please try again';
+
+  @override
+  String get weeklyFeedbackSendUnassigned =>
+      'Your trainer is no longer assigned, so weekly feedback can\'t be sent';
+
+  @override
+  String get weeklyFeedbackSendRejected =>
+      'Weekly feedback can\'t be sent for this week';
 
   @override
   String get weeklyFeedbackAlreadySent =>

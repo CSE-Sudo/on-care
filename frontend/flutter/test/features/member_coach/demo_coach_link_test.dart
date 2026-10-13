@@ -8,7 +8,6 @@ library;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -87,7 +86,13 @@ void main() {
 
       await expectLater(
         coach.sendMessage('해제 뒤 인사'),
-        throwsA(isA<NotFoundError>()),
+        throwsA(
+          isA<CoachSendRejected>().having(
+            (CoachSendRejected e) => e.reason,
+            'reason',
+            CoachSendFailure.unassigned,
+          ),
+        ),
       );
 
       linked = true;
@@ -105,7 +110,13 @@ void main() {
           mimeType: 'image/jpeg',
           clientRequestId: 'detached-photo',
         ),
-        throwsA(isA<NotFoundError>()),
+        throwsA(
+          isA<CoachSendRejected>().having(
+            (CoachSendRejected e) => e.reason,
+            'reason',
+            CoachSendFailure.unassigned,
+          ),
+        ),
       );
 
       linked = true;

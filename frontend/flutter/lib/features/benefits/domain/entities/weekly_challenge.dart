@@ -8,6 +8,11 @@ import 'dart:math' as math;
 
 enum ChallengeStatus { active, succeeded, failed }
 
+/// 주간 운동 횟수 목표가 없는 회원에게 챌린지가 거는 횟수. 서버
+/// `weekly_challenge_service.DEFAULT_GOAL` 과 같다 — MY 건강 목표가 세운 적 없는
+/// 칸에 흐리게 적는 값이다(#3361).
+const int kDefaultWeeklyWorkoutDays = 3;
+
 ChallengeStatus _statusFrom(Object? raw) => switch (raw) {
   'succeeded' => ChallengeStatus.succeeded,
   'failed' => ChallengeStatus.failed,

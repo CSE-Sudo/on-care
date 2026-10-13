@@ -161,12 +161,12 @@ def _say(db, member_id: str, text: str, at: datetime) -> None:
     """회원이 AI 챗봇에 한 말 한 줄을 [at] 시각으로 남긴다."""
     from app.services.coach import conversation
 
-    conv = conversation.append_exchange(
+    exchange = conversation.append_exchange(
         db, member_id, question=text, reply="알겠어요", sources=[]
     )
     db.execute(
         update(AiMessage)
-        .where(AiMessage.conversation_id == conv.id, AiMessage.content == text)
+        .where(AiMessage.id == exchange.question.id)
         .values(created_at=at)
     )
     db.commit()
@@ -316,27 +316,27 @@ def test_a_send_made_mid_week_is_only_read_through_its_own_message(
     assert plain["snapshot_at"] is None
 
 
-def test_a_week_that_was_never_sent_does_not_open(client, db_session):
-    """받지도 사지도 않은 주는 굳힌 값을 찾기 전에 막힌다(#3366)."""
+def test_a_week_that_was_never_sent_stays_closed(client, db_session):
+    """받지도 사지도 않은 주는 굳힌 값도 지금 값도 주지 않는다(#3366)."""
     _, member = _pair(db_session)
     week = _last_monday()
     _meal(db_session, member, week, kcal=1200, sodium=100)
 
     r = client.get(REPORT, params={"week_start": week.isoformat()}, headers=_h(member))
-
-    assert r.status_code == 403
+    assert r.status_code == 403, r.text
 
 
 def test_a_send_of_another_week_does_not_freeze_this_one(client, db_session):
     trainer, member = _pair(db_session)
     week = _last_monday()
     _meal(db_session, member, week, kcal=1200, sodium=100)
-    # 이 주는 굳힌 값 없이 받았다 — 받은 주여야 열린다(#3366).
+    # 이 주는 굳힌 값 없이 받았고(옛 전송), 굳힌 값은 다른 주의 전송에만 있다.
     _legacy_send(db_session, trainer, member, week)
     other = _send(client, trainer, member, week - timedelta(days=7))
 
     report = _report(client, member, week, other["id"])
     assert report["week_start"] == week.isoformat()
+    assert report["calories_week"][0] == 1200
     assert report["snapshot_at"] is None
 
 
@@ -351,6 +351,10 @@ def test_an_old_send_without_a_snapshot_opens_with_current_values(client, db_ses
     assert report["calories_week"][0] == 1100
     assert report["snapshot_at"] is None
     assert report["message"] == ""
+
+    # 굳힌 값이 없으니 뒤에 더한 기록이 그대로 보인다.
+    _meal(db_session, member, week, kcal=300, sodium=100)
+    assert _report(client, member, week, legacy)["calories_week"][0] == 1400
 
 
 def test_a_snapshot_that_no_longer_parses_falls_back_to_now(client, db_session):
@@ -387,9 +391,17 @@ def test_another_members_send_is_never_read(client, db_session):
     week = _last_monday()
     _meal(db_session, other, week, kcal=2222, sodium=100)
     theirs = _send(client, trainer, other, week)
-    # 나도 같은 주를 받았다(굳힌 값 없이) — 받은 주여야 열린다(#3366).
-    _legacy_send(db_session, trainer, member, week)
 
+    # 내가 받지 않은 주면 남의 전송 id 로도 열리지 않는다(#3366).
+    closed = client.get(
+        REPORT,
+        params={"week_start": week.isoformat(), "message_id": theirs["id"]},
+        headers=_h(member),
+    )
+    assert closed.status_code == 403, closed.text
+
+    # 나도 그 주를 받았으면 내 값이 열린다 — 남의 굳힌 값이 아니다.
+    _legacy_send(db_session, trainer, member, week)
     report = _report(client, member, week, theirs["id"])
     assert report["member_id"] == member
     assert report["calories_week"][0] == 0
@@ -572,3 +584,27 @@ def test_no_account_from_this_file_is_left_behind(client, db_session):
     """앞선 테스트가 만든 계정이 남아 있지 않다 — 전송·구매·식단 행도 함께 지워진다."""
     left = db_session.scalars(select(User.id).where(User.id.like("snap-%"))).all()
     assert left == []
+
+
+def test_comparison_weeks_read_the_frozen_numbers(client, db_session):
+    """결과지의 직전 주 비교(`compare_for`, #3366)도 받았던 값으로 선다."""
+    trainer, member = _pair(db_session)
+    week = _last_monday()
+    before = week - timedelta(days=7)
+    _meal(db_session, member, before, kcal=1000, sodium=100)
+    _send(client, trainer, member, before)
+    _send(client, trainer, member, week)
+    _meal(db_session, member, before, kcal=500, sodium=100)
+
+    r = client.get(
+        REPORT,
+        params={"week_start": before.isoformat(), "compare_for": week.isoformat()},
+        headers=_h(member),
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["calories_week"][0] == 1000
+    assert body["snapshot_at"] is not None
+    # 축약 응답 그대로다 — 굳힌 값이라고 그 주의 나머지 내용이 실리지 않는다.
+    assert body["days"] == []
+    assert body["message"] == ""

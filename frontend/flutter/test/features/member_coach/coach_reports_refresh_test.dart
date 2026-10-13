@@ -1,9 +1,12 @@
-/// 받은 리포트 목록 — 새 리포트가 오면 다시 읽는다. (#2643)
+/// 받은 리포트 목록 — 대화 전체에서 고르고, 새 리포트가 오면 다시 읽는다. (#2643)
 ///
-/// 예전에는 한 번 읽은 목록이 세션 내내 남아 새 리포트가 앱을 다시 켜기 전까지
-/// 보이지 않았다. 읽기 실패에는 `보내지 못했어요`·`PDF 를 열지 못했어요` 가 떴다.
-/// 목록이 대화가 아니라 서버의 받은 리포트 목록에서 오는 것은 #3348 —
-/// `received_reports_test.dart` 가 본다.
+/// 예전에는 대화의 최신 50건만 읽어 몇 주 전 리포트가 목록에서 사라졌고, 한 번
+/// 읽은 목록이 세션 내내 남아 새 리포트가 앱을 다시 켜기 전까지 보이지 않았다.
+/// 읽기 실패에는 `보내지 못했어요`·`PDF 를 열지 못했어요` 가 떴다.
+///
+/// 목록 자체는 이제 서버의 받은 리포트 목록에서 온다(#3348,
+/// `received_reports_test.dart`). 대화를 끝까지 읽는 길은 알림이 가리킨 리포트를
+/// 대화에서 짚을 때 그대로 쓰여, 그 규칙은 여기서 계속 본다.
 library;
 
 import 'dart:async';
@@ -29,6 +32,19 @@ import '../../helpers/fixed_clock.dart';
 /// 2026-06-01 (월).
 final DateTime _week1 = DateTime(2026, 6);
 final DateTime _week2 = DateTime(2026, 7, 6);
+final DateTime _week3 = DateTime(2026, 8, 10);
+
+/// [from] 부터 [to] 전까지의 보통 대화 — 리포트가 아니다.
+List<CoachMessage> _lines(int from, int to) => <CoachMessage>[
+  for (int i = from; i < to; i++) chatLine(i),
+];
+
+/// 대화 [minute] 분 자리에 놓인 리포트 안내.
+CoachMessage _reportAt(int minute, DateTime week, {String? id}) => reportNotice(
+  week,
+  id: id ?? 'report-$minute',
+  createdAt: chatLine(minute).createdAt,
+);
 
 Future<List<ReceivedReport>> _notices(ProviderContainer container) async {
   container.listen(receivedReportsProvider, (_, _) {});
@@ -43,6 +59,33 @@ ProviderContainer _container(MemberCoachRepository repository) {
   );
   addTearDown(container.dispose);
   return container;
+}
+
+/// 커서를 무시하고 언제나 같은 쪽을 주는 대역 — 멈춤 조건을 본다.
+class _IgnoresCursorRepository extends FakeMemberCoachRepository {
+  _IgnoresCursorRepository({super.chat});
+
+  @override
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async {
+    chatCursors.add(before);
+    return pageCoachChat(chat);
+  }
+}
+
+/// 부를 때마다 새 메시지 한 쪽을 끝없이 주는 대역 — 상한을 본다.
+class _EndlessRepository extends FakeMemberCoachRepository {
+  int _next = 0;
+
+  @override
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async {
+    chatCursors.add(before);
+    final int start = _next;
+    _next += chatPageSize;
+    return <CoachMessage>[
+      for (int i = start; i < start + chatPageSize; i++)
+        chatLine(-i, id: 'endless-$i'),
+    ];
+  }
 }
 
 /// 받은 리포트 목록을 읽지 못하는 대역.
@@ -114,7 +157,115 @@ Finder _row(DateTime week) => find.byKey(
 void main() {
   setUp(() => useFixedKstDate());
 
-  group('새 리포트 알아채기', () {
+  group('대화를 끝까지 읽기', () {
+    test('50건보다 앞에 있던 리포트도 찾는다', () async {
+      // 120건짜리 대화. 리포트는 5번째와 60번째 — 둘 다 최신 50건 밖이다.
+      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
+        chat: <CoachMessage>[
+          ..._lines(0, 120).where((CoachMessage m) {
+            return m.id != chatLine(5).id && m.id != chatLine(60).id;
+          }),
+          _reportAt(5, _week1),
+          _reportAt(60, _week2),
+          _reportAt(119, _week3, id: 'report-latest'),
+        ],
+      );
+
+      final List<SentReportNotice> notices = selectReportNotices(
+        await fetchWholeCoachChat(repository),
+      );
+
+      expect(
+        notices.map((SentReportNotice n) => n.weekStart).toList(),
+        <DateTime>[_week3, _week2, _week1],
+      );
+    });
+
+    test('한 쪽이 다 찼으면 가장 오래된 메시지를 커서로 앞 쪽을 받는다', () async {
+      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
+        chat: _lines(0, 120),
+      );
+
+      final List<CoachMessage> all = await fetchWholeCoachChat(repository);
+
+      expect(all, hasLength(120));
+      expect(
+        repository.chatCursors.map((CoachMessage? m) => m?.id).toList(),
+        <String?>[null, chatLine(70).id, chatLine(20).id],
+      );
+    });
+
+    test('한 쪽이 덜 차면 더 부르지 않는다', () async {
+      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
+        chat: _lines(0, 30),
+      );
+
+      await fetchWholeCoachChat(repository);
+
+      expect(repository.chatCursors, <CoachMessage?>[null]);
+    });
+
+    test('쪽 경계가 정확히 맞아떨어지면 빈 쪽을 받고 멈춘다', () async {
+      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
+        chat: _lines(0, chatPageSize * 2),
+      );
+
+      final List<CoachMessage> all = await fetchWholeCoachChat(repository);
+
+      expect(all, hasLength(chatPageSize * 2));
+      expect(repository.chatCursors, hasLength(3));
+    });
+
+    test('커서를 무시하는 서버를 만나도 새로 받은 것이 없으면 멈춘다', () async {
+      final _IgnoresCursorRepository repository = _IgnoresCursorRepository(
+        chat: _lines(0, 120),
+      );
+
+      final List<CoachMessage> all = await fetchWholeCoachChat(repository);
+
+      expect(all, hasLength(chatPageSize));
+      expect(repository.chatCursors, hasLength(2));
+    });
+
+    test('끝없이 새 쪽을 주는 서버도 상한에서 멈춘다', () async {
+      final _EndlessRepository repository = _EndlessRepository();
+
+      final List<CoachMessage> all = await fetchWholeCoachChat(
+        repository,
+        maxPages: 4,
+      );
+
+      expect(repository.chatCursors, hasLength(4));
+      expect(all, hasLength(chatPageSize * 4));
+    });
+
+    test('받은 대화는 오래된 → 최신으로 겹침 없이 선다', () async {
+      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
+        chat: _lines(0, 120).reversed.toList(),
+      );
+
+      final List<CoachMessage> all = await fetchWholeCoachChat(repository);
+      final List<String> ids = <String>[for (final CoachMessage m in all) m.id];
+
+      expect(ids, <String>[for (int i = 0; i < 120; i++) chatLine(i).id]);
+    });
+  });
+
+  group('리포트 고르기', () {
+    test('리포트 안내만 고르고 같은 주는 마지막 것 하나만 남긴다', () {
+      final List<SentReportNotice> notices = selectReportNotices(<CoachMessage>[
+        plainMessage(),
+        reportNotice(_week2, id: 'old', createdAt: DateTime(2026, 7, 12, 9)),
+        reportNotice(_week2, id: 'new', createdAt: DateTime(2026, 7, 12, 21)),
+        reportNotice(_week1, id: 'r1'),
+      ]);
+
+      expect(
+        notices.map((SentReportNotice n) => n.message.id).toList(),
+        <String>['new', 'r1'],
+      );
+    });
+
     test('새 리포트 안내가 왔는지 가린다', () {
       final List<CoachMessage> before = <CoachMessage>[
         plainMessage(),

@@ -187,6 +187,9 @@ def complete_my_routine(
             duration_seconds=payload.duration_seconds,
             sets=payload.sets,
             reps=payload.reps,
+            # 버틴 시간도 서비스까지 넘긴다 — 스키마만 받고 여기서 빠지면
+            # 회원이 적은 초가 버려지고 배정 값이 남는다. (#3364)
+            hold_seconds=payload.hold_seconds,
             weight=payload.weight,
             intensity=payload.intensity,
             day=day,
@@ -592,6 +595,7 @@ def my_weekly_report(
     받았거나 산 리포트는 **그때 굳힌 값**을 준다(#3349). 열 때마다 다시 계산하면
     보낸 뒤 고친 기록·목표가 지난 리포트를 바꾼다. [message_id] 는 같은 주를 두 번
     받았을 때 누른 전송을 고른다. 굳힌 값이 없는 주(옛 리포트)는 지금 계산한다.
+    비교용으로 읽는 직전 주도 굳힌 값이 있으면 그 값에서 비교 수치를 뽑는다.
     """
     week = _my_report_week(week_start)
     # 빈 문자열은 보내지 않은 것과 같다 — `week_start` 와 같은 규칙이다.
@@ -604,24 +608,23 @@ def my_weekly_report(
         raise HTTPException(
             status_code=422, detail="비교할 수 있는 주는 직전 4주까지예요."
         )
-    # 열어도 되는 주인지 본 다음에 굳힌 값을 찾는다. 비교용 직전 주는 누른 전송이
-    # 아니므로 [message_id] 없이 묻는다.
+    # 비교용 직전 주는 누른 전송과 무관하다 — `message_id` 를 넘기지 않는다.
     snapshot = report_snapshot_service.member_snapshot(
         db, user.id, week, message_id=None if target is not None else message_id
     )
     if snapshot is not None:
         report = snapshot.report
+        taken_at = snapshot.taken_at
     else:
         trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
         report = trainer_reports_service.build_weekly_report(
             db, trainer_id, user.id, week, member_scope=True
         )
+        taken_at = None
     if target is not None:
         report = weekly_report_access.comparison_only(report)
     return MemberWeeklyReportOut(
-        **report.model_dump(exclude={"message"}),
-        message="",
-        snapshot_at=snapshot.taken_at if snapshot is not None else None,
+        **report.model_dump(exclude={"message"}), message="", snapshot_at=taken_at
     )
 
 

@@ -1,4 +1,4 @@
-/// 트레이너 대화를 쪽 단위로 받고 합치는 규칙. (#2640)
+/// 트레이너 대화를 쪽 단위로 받고 합치는 규칙. (#2640, #2643)
 ///
 /// 서버는 대화를 한 번에 최신 [chatPageSize] 건만 주고, 그 앞은 가장 오래된
 /// 메시지를 커서로 넘겨 받는다. 쪽을 여럿 받으면 그 사이가 겹치거나 비지 않게
@@ -7,8 +7,7 @@
 library;
 
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
-import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart'
-    show chatPageSize;
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 
 /// 대화 순서 — 시각이 먼저, 같은 시각이면 id. (#2127)
 ///
@@ -55,6 +54,46 @@ List<CoachMessage> pageCoachChat(
         ];
   final int start = earlier.length > size ? earlier.length - size : 0;
   return earlier.sublist(start);
+}
+
+/// 한 번에 끝까지 읽을 쪽 수의 상한. 커서가 앞으로 나가지 않는 서버를 만나도
+/// 멈추게 하는 안전장치다 — 정상이라면 여기 닿기 전에 한 쪽이 덜 찬다.
+const int maxCoachChatPages = 200;
+
+/// 대화를 **처음부터 끝까지** 읽는다(오래된→최신). (#2643)
+///
+/// 첫 쪽을 받고, 한 쪽이 다 찼으면 그 쪽의 가장 오래된 메시지를 커서로 앞
+/// 쪽을 더 받는다. 한 쪽이 덜 차면 그 앞에는 없다. 새로 받은 것이 하나도 없으면
+/// (커서를 무시하는 서버·대역) 거기서 멈춘다.
+Future<List<CoachMessage>> fetchWholeCoachChat(
+  MemberCoachRepository repository, {
+  int maxPages = maxCoachChatPages,
+}) async {
+  final List<CoachMessage> first = await repository.fetchChat();
+  final Map<String, CoachMessage> byId = <String, CoachMessage>{
+    for (final CoachMessage m in first) m.id: m,
+  };
+  List<CoachMessage> page = first;
+  bool full = first.length >= chatPageSize;
+  int pages = 1;
+  while (full && page.isNotEmpty && pages < maxPages) {
+    final CoachMessage oldest = page.reduce(
+      (CoachMessage a, CoachMessage b) =>
+          compareCoachMessages(a, b) <= 0 ? a : b,
+    );
+    final List<CoachMessage> next = await repository.fetchChat(before: oldest);
+    pages++;
+    final List<CoachMessage> fresh = <CoachMessage>[
+      for (final CoachMessage m in next)
+        if (!byId.containsKey(m.id)) m,
+    ];
+    for (final CoachMessage m in fresh) {
+      byId[m.id] = m;
+    }
+    page = fresh;
+    full = next.length >= chatPageSize;
+  }
+  return byId.values.toList()..sort(compareCoachMessages);
 }
 
 /// 폴링으로 새로 받은 [after] 에, [before] 에 없던 리포트 안내가 있는가. (#2643)

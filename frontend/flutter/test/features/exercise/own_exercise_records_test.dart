@@ -148,6 +148,9 @@ class _RecordingRepository implements ExerciseRepository {
   );
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) async {
     deletedId = id;
     _sessions.removeWhere((ExerciseSession s) => s.id == id);

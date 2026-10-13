@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -11,6 +12,7 @@ import 'package:oncare/features/exercise/domain/entities/consultation_request.da
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
+import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
@@ -39,6 +41,10 @@ const double _myLocationRing = 3;
 
 /// 대체 지도 그래픽의 도로 두께.
 const double _mapRoadWidth = 7;
+
+/// 검색어 입력이 멈춘 뒤 서버에 묻기까지 기다리는 시간(#3355). 글자마다 묻지
+/// 않는다 — 검색 한 번이 외부 장소 검색 한 번이다.
+const Duration kGymSearchDebounce = Duration(milliseconds: 350);
 
 /// 검색 결과 패널이 차지하는 화면 비율. (#865)
 ///
@@ -103,6 +109,7 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _lifecycle?.dispose();
     super.dispose();
   }
@@ -229,8 +236,34 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
     await _locate();
   }
 
+  /// 검색 칸에 지금 적힌 글.
   String _query = '';
+
+  /// 서버에 물은 검색어([gymSearchQueryOf] 를 거친 값). 입력이 멈춘 뒤에야
+  /// [_query] 를 따라온다(#3355).
+  String _searchQuery = '';
+  Timer? _searchDebounce;
   _GymSort _sort = _GymSort.recommended;
+
+  /// 검색 칸이 바뀌었다. 입력이 [kGymSearchDebounce] 동안 멈추면 그 검색어로
+  /// 묻는다. 비우면 기다리지 않고 주변 목록으로 돌아간다(#3355).
+  void _onQueryChanged(String value) {
+    _searchDebounce?.cancel();
+    final String query = gymSearchQueryOf(value);
+    setState(() {
+      _query = value;
+      if (query.isEmpty) _searchQuery = '';
+    });
+    if (query.isEmpty || query == _searchQuery) return;
+    _searchDebounce = Timer(kGymSearchDebounce, () => _submitQuery(value));
+  }
+
+  /// 기다리지 않고 지금 검색어로 묻는다 — 키보드의 검색 버튼과 입력 지연이 쓴다.
+  void _submitQuery(String value) {
+    _searchDebounce?.cancel();
+    if (!mounted) return;
+    setState(() => _searchQuery = gymSearchQueryOf(value));
+  }
 
   // 거리순은 회원 위치를 얻었을 때만 고를 수 있다(#3044). 기본 검색 영역(신촌)에서
   // 잰 거리로 늘어세우면 회원에게는 뜻 없는 순서다 — 고르면 위치 사용을 권한다.
@@ -248,20 +281,18 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
     setState(() => _sort = value);
   }
 
+  /// 정렬한 결과. 걸러 내지는 않는다 — 검색어에 맞는 헬스장을 고르는 것은
+  /// 서버다(#3355). 추천순은 서버가 준 순서 그대로다.
   List<Gym> _visibleGyms(List<Gym> gyms, {required bool byUserLocation}) {
-    final List<Gym> visible = gyms
-        .where((Gym gym) => gym.matchesQuery(_query))
-        .toList(growable: false);
-
     return switch (_sort) {
-      _GymSort.recommended => visible,
+      _GymSort.recommended => gyms,
       // 회원 위치가 아니면 거리순으로 늘어세우지 않는다(#3044).
-      _GymSort.distance when !byUserLocation => visible,
+      _GymSort.distance when !byUserLocation => gyms,
       _GymSort.distance =>
-        visible.toList()
+        gyms.toList()
           ..sort((Gym a, Gym b) => a.distanceKm.compareTo(b.distanceKm)),
       _GymSort.rating =>
-        visible.toList()..sort((Gym a, Gym b) => b.rating.compareTo(a.rating)),
+        gyms.toList()..sort((Gym a, Gym b) => b.rating.compareTo(a.rating)),
     };
   }
 
@@ -270,7 +301,19 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
     final AppLocalizations l = AppLocalizations.of(context);
     // 제휴 헬스장 + 카카오 Local 주변 헬스장(#329). 카카오 쪽만 좌표가 있어도
     // 지도는 뜨고, 카카오가 실패하면 제휴 목록만 남는다.
-    final AsyncValue<List<Gym>> gymsAsync = ref.watch(gymFinderResultsProvider);
+    final AsyncValue<List<Gym>> nearbyAsync = ref.watch(
+      gymFinderResultsProvider,
+    );
+    // 검색어가 있으면 서버에 이름으로 묻는다(#3355). 입력이 멈추기를 기다리는
+    // 동안은 아직 묻지 않았으므로 검색 중으로 그린다 — 앞 검색어의 결과를 지금
+    // 검색어의 결과처럼 보이지 않는다. 검색어를 지우면 주변 목록으로 돌아온다.
+    final String query = gymSearchQueryOf(_query);
+    final bool searching = query.isNotEmpty;
+    final AsyncValue<List<Gym>> gymsAsync = !searching
+        ? nearbyAsync
+        : query == _searchQuery
+        ? ref.watch(gymSearchProvider(query))
+        : const AsyncValue<List<Gym>>.loading();
     // 회원 위치를 얻기 전이면 기본 검색 영역(신촌) 기준이다 — 그렇다고 알리고,
     // 거리는 그리지 않는다(#3044).
     final bool byUserLocation = ref.watch(
@@ -323,8 +366,8 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                         child: AppSearchField(
                           hint: l.exGymSearchPlaceholder,
                           clearTooltip: l.a11yClearSearch,
-                          onChanged: (String value) =>
-                              setState(() => _query = value),
+                          onChanged: _onQueryChanged,
+                          onSubmitted: _submitQuery,
                         ),
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
@@ -355,8 +398,10 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                 Expanded(
                   child: _GymMapAndList(
                     gyms: visible,
-                    header: l.exNearbyGyms,
-                    notice: byUserLocation
+                    header: searching ? l.exGymSearchResults : l.exNearbyGyms,
+                    // 이름 검색은 지역에 묶이지 않는다 — "신촌 주변 결과" 안내는
+                    // 주변 목록일 때만 맞는 말이다(#3355).
+                    notice: byUserLocation || searching
                         ? null
                         : _DefaultAreaNotice(
                             actionLabel: _opensSettings
@@ -377,6 +422,7 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                       gymsAsync,
                       visible,
                       showDistance: byUserLocation,
+                      searchQuery: searching ? query : null,
                     ),
                   ),
                 ),
@@ -399,18 +445,25 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
     AsyncValue<List<Gym>> gymsAsync,
     List<Gym> visible, {
     required bool showDistance,
+    required String? searchQuery,
   }) {
     final AppLocalizations l = AppLocalizations.of(context);
     return gymsAsync.when(
       loading: () => const SliverToBoxAdapter(
-        child: AppLoading(placement: AppStatePlacement.card),
+        child: AppLoading(
+          key: Key('gym-results-loading'),
+          placement: AppStatePlacement.card,
+        ),
       ),
       error: (Object error, StackTrace _) => SliverToBoxAdapter(
         child: appErrorStateFor(
           context,
           error: error,
-          title: l.exGymsLoadError,
-          onRetry: () => ref.invalidate(gymFinderResultsProvider),
+          // 이름 검색이 실패한 것과 주변 목록을 못 읽은 것은 다른 일이다(#3355).
+          title: searchQuery == null ? l.exGymsLoadError : l.exGymSearchError,
+          onRetry: () => searchQuery == null
+              ? ref.invalidate(gymFinderResultsProvider)
+              : ref.invalidate(gymSearchProvider(searchQuery)),
           placement: AppStatePlacement.card,
         ),
       ),
@@ -432,8 +485,12 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
             key: Key('gym-card-${visible[index].id}'),
             gym: visible[index],
             showDistance: showDistance,
-            onTap: () =>
-                context.push(AppRoutes.gymDetailPath(visible[index].id)),
+            // 검색 결과는 헬스장을 함께 넘긴다 — 외부 검색에서만 찾은 곳은
+            // 상세가 id 로 다시 읽을 수 없다(#3355).
+            onTap: () => context.push(
+              AppRoutes.gymDetailPath(visible[index].id),
+              extra: searchQuery == null ? null : visible[index],
+            ),
           ),
         );
       },
