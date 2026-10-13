@@ -416,6 +416,187 @@ void main() {
     });
   });
 
+  group('실서버 — 열 수 있는 주 (#3366)', () {
+    List<String?> compareForAsked(String week) => <String?>[
+      for (final RequestOptions o in server.requests)
+        if (o.path == '/me/coach/weekly-report' &&
+            o.queryParameters['week_start'] == week)
+          o.queryParameters['compare_for'] as String?,
+    ];
+
+    test('여는 주는 비교 표시 없이 묻는다', () async {
+      await repository().fetch(weekStart: _monday, languageCode: 'ko');
+
+      expect(compareForAsked('2026-09-14'), <String?>[null]);
+      final RequestOptions asked = server.requests.firstWhere(
+        (RequestOptions o) =>
+            o.path == '/me/coach/weekly-report' &&
+            o.queryParameters['week_start'] == '2026-09-14',
+      );
+      expect(asked.queryParameters.containsKey('compare_for'), isFalse);
+    });
+
+    test('직전 넉 주는 여는 주를 compare_for 로 함께 보낸다', () async {
+      await repository().fetch(weekStart: _monday, languageCode: 'ko');
+
+      for (final String week in <String>[
+        '2026-09-07',
+        '2026-08-31',
+        '2026-08-24',
+        '2026-08-17',
+      ]) {
+        expect(compareForAsked(week), <String?>['2026-09-14'], reason: week);
+      }
+    });
+
+    test('주 중간 날짜로 열어도 compare_for 는 그 주 월요일이다', () async {
+      await repository().fetch(
+        weekStart: DateTime(2026, 9, 18),
+        languageCode: 'ko',
+      );
+
+      expect(compareForAsked('2026-09-07'), <String?>['2026-09-14']);
+    });
+
+    test('받지도 사지도 않은 주(403)는 권한 오류로 던진다', () async {
+      server.routes['/me/coach/weekly-report'] = (_) => 403;
+
+      await expectLater(
+        repository().fetch(weekStart: _monday, languageCode: 'ko'),
+        throwsA(isA<ForbiddenError>()),
+      );
+    });
+
+    test('직전 주가 403 이어도 여는 주의 결과지는 선다', () async {
+      server.routes['/me/coach/weekly-report'] = (RequestOptions o) =>
+          o.queryParameters.containsKey('compare_for')
+          ? 403
+          : _report(weekStart: o.queryParameters['week_start'] as String);
+
+      final ReportSheetInputs inputs = await repository().fetch(
+        weekStart: _monday,
+        languageCode: 'ko',
+      );
+
+      expect(inputs.week.weekStart, _monday);
+      expect(inputs.history, isEmpty);
+    });
+
+    test('비교용 축약 응답으로 4주 평균이 선다', () async {
+      // 서버가 직전 주에 주는 모양 — 비교가 쓰는 값만 차 있고 나머지는 비어 있다.
+      Map<String, dynamic> slim(String week) => <String, dynamic>{
+        'member_id': 'user-7d4e9a2c5f18',
+        'member_name': '김민수',
+        'week_start': week,
+        'week_end': week,
+        'sessions_booked': 0,
+        'sessions_done': 0,
+        'completion_avg': 60,
+        'sodium_over_days': 0,
+        'sodium_avg': 1900,
+        'week_completion': <int?>[],
+        'sodium_week': <int>[],
+        'calories_week': <int>[1600, 0, 1800, 0, 0, 0, 0],
+        'sugar_week': <double>[],
+        'carbs_week': <double>[],
+        'protein_week': <double>[],
+        'fat_week': <double>[],
+        'meal_counts': <int>[3, 0, 2, 0, 0, 0, 0],
+        'calorie_target': null,
+        'days': <Map<String, dynamic>>[],
+        'calorie_baseline': null,
+        'message': '',
+      };
+      server.routes['/me/coach/weekly-report'] = (RequestOptions o) {
+        final String week = o.queryParameters['week_start'] as String;
+        return o.queryParameters.containsKey('compare_for')
+            ? slim(week)
+            : _report(weekStart: week);
+      };
+
+      final ReportSheetInputs inputs = await repository().fetch(
+        weekStart: _monday,
+        languageCode: 'ko',
+      );
+
+      expect(inputs.history, hasLength(kReportSheetHistoryWeeks));
+      final ReportSheetWeek past = inputs.history.first;
+      expect(past.caloriesWeek, <int>[1600, 0, 1800, 0, 0, 0, 0]);
+      expect(past.completionAvg, 60);
+      expect(past.sodiumAvg, 1900);
+      expect(past.mealLoggedDays, 2);
+      expect(past.days, isEmpty);
+      // 여는 주는 축약되지 않은 그대로다.
+      expect(inputs.week.days, isNotEmpty);
+      expect(inputs.week.calorieTarget, 1900);
+    });
+  });
+
+  group('데모 — 열 수 있는 주 (#3366)', () {
+    final DemoFixture fixture = DemoFixture.load();
+
+    test('받지도 사지도 않은 주는 서버처럼 권한 오류다', () async {
+      final DemoMemberReportSheetRepository repository =
+          DemoMemberReportSheetRepository(
+            fixture: fixture,
+            now: () => _later,
+            canOpen: (_) async => false,
+          );
+
+      await expectLater(
+        repository.fetch(weekStart: _monday, languageCode: 'ko'),
+        throwsA(isA<ForbiddenError>()),
+      );
+    });
+
+    test('열 수 있는 주는 전과 같이 선다', () async {
+      final DemoMemberReportSheetRepository repository =
+          DemoMemberReportSheetRepository(
+            fixture: fixture,
+            now: () => _later,
+            canOpen: (_) async => true,
+          );
+
+      final ReportSheetInputs inputs = await repository.fetch(
+        weekStart: _monday,
+        languageCode: 'ko',
+      );
+
+      expect(inputs.week.weekStart, _monday);
+      expect(inputs.history, hasLength(kReportSheetHistoryWeeks));
+    });
+
+    test('판정은 그 주의 월요일로 묻는다', () async {
+      final List<DateTime> asked = <DateTime>[];
+      final DemoMemberReportSheetRepository repository =
+          DemoMemberReportSheetRepository(
+            fixture: fixture,
+            now: () => _later,
+            canOpen: (DateTime monday) async {
+              asked.add(monday);
+              return true;
+            },
+          );
+
+      await repository.fetch(
+        weekStart: DateTime(2026, 9, 17),
+        languageCode: 'ko',
+      );
+
+      // 직전 주는 비교용이라 따로 판정하지 않는다 — 여는 주 한 번뿐이다.
+      expect(asked, <DateTime>[_monday]);
+    });
+
+    test('판정을 주지 않으면 그대로 세운다', () async {
+      final ReportSheetInputs inputs = await DemoMemberReportSheetRepository(
+        fixture: fixture,
+        now: () => _later,
+      ).fetch(weekStart: _monday, languageCode: 'ko');
+
+      expect(inputs.week.weekStart, _monday);
+    });
+  });
+
   group('실서버 — 여덟 주 운동 추이', () {
     test('기간 조회 한 번으로 여덟 주를 읽는다', () async {
       await repository().fetch(weekStart: _monday, languageCode: 'ko');

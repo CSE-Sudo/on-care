@@ -78,6 +78,9 @@ class _CatalogRepository implements ExerciseRepository {
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async => _emptyWeek;
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) async {}
 
   @override
@@ -138,6 +141,7 @@ Future<void> _openSheet(
   // 않는다(서버가 `minutes > 0` 을 요구한다).
   await _rollWheel(tester, 1, 30);
 }
+
 /// 시·분 휠의 [column] 번째 칸을 [steps] 칸만큼 굴린다. (#2071)
 ///
 /// 시트 안이라 부모 스크롤이 휠과 아레나를 다툰다. 슬롭(`kTouchSlop`)을 **넘는**
@@ -152,7 +156,6 @@ Future<void> _rollWheel(WidgetTester tester, int column, int steps) async {
   await gesture.up();
   await tester.pumpAndSettle();
 }
-
 
 AppLocalizations _l(WidgetTester tester) => AppLocalizations.of(
   tester.element(find.byKey(const Key('exerciseAddContent'))),

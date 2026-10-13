@@ -46,7 +46,10 @@ import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
-    show kExerciseMaxPeriodWeeks, kMaxExerciseSessionsPerSave;
+    show
+        kExerciseMaxPeriodWeeks,
+        kMaxExerciseSessionsPerMove,
+        kMaxExerciseSessionsPerSave;
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -213,6 +216,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'GET /exercise/weeks': _exercisePeriod,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
+    'POST /exercise/sessions/move': _exerciseMove,
     'POST /exercise/calories': _exerciseCalories,
     'GET /notifications': _notifications,
     'GET /notifications/unread-count': _notificationsUnreadCount,

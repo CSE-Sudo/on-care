@@ -166,8 +166,8 @@ class _ReportRowState extends ConsumerState<_ReportRow> {
         message: widget.notice.message,
         weekStart: widget.notice.weekStart,
       );
-    } catch (_) {
-      toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
+    } catch (e) {
+      toast.show(reportOpenFailureText(l, e), type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _opening = false);
     }

@@ -258,6 +258,15 @@ final nearbyGymsProvider = FutureProvider<List<Gym>>((ref) {
   return ref.watch(gymRepositoryProvider).fetchNearby();
 }, name: 'nearbyGyms');
 
+/// 헬스장 한 곳을 id 로 직접 읽는다. (#3356)
+///
+/// 목록([nearbyGymsProvider])은 서버가 반경·개수로 잘라 준다. 상세·상담 신청은
+/// 먼저 받아 둔 목록에서 찾고, 없을 때만 이 provider 를 본다 — 목록에 있는
+/// 헬스장마다 요청을 한 번씩 더 보내지 않는다.
+final gymProvider = FutureProvider.family<Gym?, String>((ref, String gymId) {
+  return ref.watch(gymRepositoryProvider).fetchGym(gymId);
+}, name: 'gym');
+
 /// 카카오 Local 이 준 주변 헬스장을 [Gym] 형태로 옮긴다.
 ///
 /// 이름·주소·거리·좌표는 카카오 실데이터다. 카카오가 주지 않는 평점·전문분야·
