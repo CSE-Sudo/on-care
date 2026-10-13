@@ -161,12 +161,12 @@ def _say(db, member_id: str, text: str, at: datetime) -> None:
     """회원이 AI 챗봇에 한 말 한 줄을 [at] 시각으로 남긴다."""
     from app.services.coach import conversation
 
-    conv = conversation.append_exchange(
+    exchange = conversation.append_exchange(
         db, member_id, question=text, reply="알겠어요", sources=[]
     )
     db.execute(
         update(AiMessage)
-        .where(AiMessage.conversation_id == conv.id, AiMessage.content == text)
+        .where(AiMessage.id == exchange.question.id)
         .values(created_at=at)
     )
     db.commit()
