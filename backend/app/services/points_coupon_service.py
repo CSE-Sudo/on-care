@@ -687,7 +687,7 @@ def cancel_gym_benefit_coupons(db: Session, member_id: str) -> int:
     )
 
 
-#: 쿠폰이 취소된 까닭 — 알림 틀 인자(#2302). 제목·문장은 틀이 항목·언어별로 고른다.
+#: 쿠폰이 취소된 까닭 — 알림 틀 인자(#2302). 제목·문장은 틀이 항목별로 고른다.
 _CANCEL_TRAINER = "trainer"
 _CANCEL_GYM = "gym"
 #: 헬스장 혜택 제공을 멈춰서(#2822).

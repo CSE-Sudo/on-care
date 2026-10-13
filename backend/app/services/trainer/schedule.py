@@ -1334,8 +1334,8 @@ def _raise_scheduled_program(
         # 않았다는 표시다([_retire_personal_routines] 와 같은 규칙).
         row.ended_on = today_iso
     db.flush()
-    # 바로 배정([assign_program])과 같은 틀이다 — 문장이 코드에 박혀 있으면
-    # 영어 화면에서도 한국어로 보인다(#2546). 여러 세션이면 프로그램 이름으로 부른다.
+    # 바로 배정([assign_program])과 같은 틀이다(#2546). 여러 세션이면 프로그램
+    # 이름으로 부른다.
     program_name = rows[0].program_name
     notification_service.queue(
         db,
@@ -1398,8 +1398,7 @@ def _send_scheduled_routines(
         row.ended_on = ended_on
         row.exercise_date = today.isoformat()
     db.flush()
-    # 프로그램 화면의 `개인운동만` 전송과 같은 틀이다 — 문장이 코드에 박혀
-    # 있으면 영어 화면에서도 한국어로 보인다(#2546, #3107).
+    # 프로그램 화면의 `개인운동만` 전송과 같은 틀이다(#2546, #3107).
     notification_service.queue(
         db,
         member_id=session.member_id,

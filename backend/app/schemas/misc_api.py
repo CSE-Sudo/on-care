@@ -16,7 +16,7 @@ class NotificationAction(BaseModel):
     알림에 목적지(`action_target`, #2690·#3028)가 있으면 그 값, 없으면 카테고리에서
     파생한다. PT 일정(`member_schedule`)은 운동 탭(`exercise`)이다(#3028).
     """
-    label: str         # "기록하러 가기" / "Log now" — 요청 언어(#2302)
+    label: str         # "기록하러 가기"
     # 프론트 라우트 힌트: dashboard|coach_chat|exercise|diet|my_benefits|points_shop|
     # health_goals|consultations (`notification_service.MEMBER_ACTION_TARGETS`)
     target: str
@@ -33,7 +33,7 @@ class NotificationOut(BaseModel):
     action: NotificationAction | None = None
     invite_id: str | None = None
     #: 문장 틀 코드와 인자(#2302). 틀이 생기기 전의 알림은 둘 다 없다. `title`·
-    #: `body` 는 이미 요청 언어로 조립돼 있어, 앱이 직접 조립할 때만 쓴다.
+    #: `body` 는 이미 조립돼 있어, 앱이 직접 조립할 때만 쓴다.
     template: str | None = None
     args: dict[str, Any] | None = None
 
