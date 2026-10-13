@@ -767,10 +767,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTrainerCertifications => 'Certifications';
 
   @override
-  String get exTrainerRecommendationReason =>
-      'A great fit for reaching my health goals';
-
-  @override
   String get exNearbyGymsMapLabel => 'Gyms near me';
 
   @override
@@ -2814,6 +2810,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymConsultNoTrainers => 'No trainers are affiliated yet.';
+
+  @override
+  String get exGymNoTrainersCallHint =>
+      'No trainers from this gym have joined yet, so you can\'t request a consultation in the app. Please call the gym.';
+
+  @override
+  String get exGymNoTrainersHint =>
+      'No trainers from this gym have joined yet, so you can\'t request a consultation in the app.';
+
+  @override
+  String get exGymCallInquiry => 'Call the gym';
 
   @override
   String get exGymTrainersLoadError => 'Couldn\'t load this gym\'s trainers.';

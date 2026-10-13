@@ -270,8 +270,8 @@ final gymProvider = FutureProvider.family<Gym?, String>((ref, String gymId) {
 
 /// 카카오 Local 이 준 주변 헬스장을 [Gym] 형태로 옮긴다.
 ///
-/// 이름·주소·거리·좌표는 카카오 실데이터다. 카카오가 주지 않는 평점·전문분야·
-/// 영업시간은 [allowDemoProfile] 일 때만 [kKakaoGymDemoProfiles] 의 시연용 값으로
+/// 이름·주소·거리·좌표·전화번호(#3357)는 카카오 실데이터다. 카카오가 주지 않는
+/// 평점·전문분야·영업시간은 [allowDemoProfile] 일 때만 [kKakaoGymDemoProfiles] 의 시연용 값으로
 /// 채운다. **실 API 응답에는 붙이지 않는다** — 지어낸 값이 실재 업체의 사실
 /// 정보처럼 보이면 안 되기 때문이다(CodeRabbit 리뷰). 값이 없으면 비워 두고,
 /// 평점 0 이면 UI 가 뱃지를 감춘다.
@@ -289,7 +289,7 @@ Gym _gymFromPlace(Place p, {required bool allowDemoProfile}) {
     distanceKm: p.distanceMeters / 1000,
     rating: demo?.rating ?? 0,
     tags: demo?.tags ?? const <String>[],
-    phone: demo?.phone,
+    phone: demo?.phone ?? p.phone,
     weekdayHours: demo?.weekdayHours,
     weekendHours: demo?.weekendHours,
     lat: p.lat,
