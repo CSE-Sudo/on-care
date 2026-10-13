@@ -359,6 +359,79 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
         reservation_service.release_consultation_hold(db, slot_id)
 
 
+def cancel_accepted_for_account_deletion(
+    db: Session, member: User, *, now: datetime | None = None
+) -> int:
+    """탈퇴하는 회원의 수락된 상담 중 시작 전인 것을 거둔다(커밋 없음). 거둔 수. (#3360)
+
+    [release_holds_for_account_deletion] 은 대기 요청의 자리만 되돌린다. 수락된
+    상담이 잡은 자리는 요청 행이 CASCADE 로 사라진 뒤에도 `remaining = 0` 으로 남아
+    **영영 잠겼다** — 회원이 직접 취소할 때([cancel_my_consultation])와 달리 탈퇴는
+    자리를 돌려주지 않았다.
+
+    - 일정·자리 정리는 [cancel_accepted_booking] 그대로다. 일정에 남는 주체·사유는
+      탈퇴의 일정 정리(`clear_sessions_on_withdrawal`, #3341)와 같은 `member`·
+      `회원 탈퇴` 다. **그 정리보다 먼저** 부른다 — 저쪽이 일정과 요청의 연결을
+      끊고 나면 어느 일정이 이 상담의 것인지 알 수 없다. 여기서 `취소` 로 바꾼
+      일정은 저쪽이 다시 취소하지 않고 이름·메모만 지운다.
+    - 이미 시작했거나 완료·노쇼로 끝난 상담은 건드리지 않는다.
+    - 트레이너에게는 확정된 상담이 빠졌음을 알린다. 담당 트레이너는
+      [member_departure.notify_trainer] 가 탈퇴를 알리므로 뺀다 — 대기 요청의
+      [notify_trainers_of_account_deletion] 과 같은 기준이다. 떠난 회원의 상세는
+      열 수 없으므로 `subject_id` 를 남기지 않는다.
+
+    **회원을 지우기 전에** 부른다.
+    """
+    current = now or _now()
+    ids = db.scalars(
+        select(ConsultationRequest.id)
+        .where(
+            ConsultationRequest.member_id == member.id,
+            ConsultationRequest.status == "accepted",
+        )
+        .order_by(ConsultationRequest.id)
+    ).all()
+    if not ids:
+        return 0
+    coach_id = trainer_common_service.get_member_trainer_id(db, member.id)
+    member_name = (member.name or "").strip()
+    cancelled = 0
+    for consultation_id in ids:
+        try:
+            result = cancel_accepted_booking(
+                db,
+                consultation_id,
+                now=current,
+                source="member",
+                reason=trainer_common_service.WITHDRAW_CANCEL_REASON,
+            )
+        except ConsultationAlreadyStarted:
+            continue
+        if result is None:
+            continue
+        cancelled += 1
+        row, starts_at = result
+        if row.trainer_id is None or row.trainer_id == coach_id:
+            continue
+        local = starts_at.astimezone(SEOUL) if starts_at is not None else None
+        notification_service.queue_for_trainer(
+            db,
+            trainer_id=row.trainer_id,
+            kind=notification_service.TRAINER_CONSULT_WITHDRAWN_KIND,
+            template=notification_templates.TRAINER_CONSULT_WITHDRAWN,
+            template_args={
+                "member_name": member_name,
+                "preferred_date": row.preferred_date,
+                "booked": True,
+                "starts_at": local.isoformat() if local is not None else None,
+            },
+            target_date=(
+                local.date().isoformat() if local is not None else row.preferred_date
+            ),
+        )
+    return cancelled
+
+
 def count_live_pending_for_member(
     db: Session, member_id: str, *, now: datetime | None = None
 ) -> int:

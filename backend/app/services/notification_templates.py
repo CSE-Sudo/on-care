@@ -318,6 +318,18 @@ def _trainer_consult_withdrawn(args: Args, locale: Locale) -> Rendered:
     # 회원이 탈퇴해 대기 중이던 요청이 함께 사라졌다(#1632). 이름이 비면 탈퇴
     # 알림(`trainer_member_withdrawn`)과 같은 말을 대신 적는다.
     name, day = _text(args, "member_name").strip(), _day(_text(args, "preferred_date"), locale)
+    if args.get("booked"):
+        # 수락되어 스케줄에 잡혀 있던 상담이다 — 시각까지 적는다(#3360).
+        detail = _when(args, locale) or day
+        if locale == "ko":
+            return (
+                "회원 탈퇴로 확정된 상담이 취소됐어요",
+                f"{name or '이름 없는'} 회원 · {detail}",
+            )
+        return (
+            "Confirmed consultation cancelled: member account deleted",
+            f"{name or 'A member'} · {detail}",
+        )
     if locale == "ko":
         return "회원 탈퇴로 상담 요청이 취소됐어요", f"{name or '이름 없는'} 회원 · {day}"
     return (

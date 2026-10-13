@@ -31,6 +31,7 @@ from tests.test_consultation_decision import (  # noqa: F401 — `_cleanup` 은 
     _cleanup,
     _login,
     _member,
+    _pair_by_code,
     _request_consultation,
     _trainer,
 )
@@ -431,3 +432,117 @@ def test_trainer_deletion_keeps_a_consultation_that_already_started(client, db_s
     assert cancelled == 0
     assert _row(db_session, consultation_id).status == "accepted"
     assert _templates(db_session, member_id) == before
+
+
+# --- 회원 탈퇴 -----------------------------------------------------------------
+
+
+def _withdraw_member(client, member_token: str) -> None:
+    response = client.request(
+        "DELETE",
+        "/v1/users/me",
+        json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
+    assert response.status_code == 200, response.text
+
+
+def _trainer_notices(db_session, trainer_id: str) -> list[Notification]:
+    return [
+        n
+        for n in _notices(db_session, trainer_id)
+        if n.template == notification_templates.TRAINER_CONSULT_WITHDRAWN
+    ]
+
+
+def test_member_withdrawal_reopens_the_slot_of_an_accepted_consultation(
+    client, db_session
+):
+    """회원이 탈퇴하면 수락된 상담이 잡고 있던 자리가 다시 열린다.
+
+    요청 행은 회원과 함께 CASCADE 로 사라지지만 자리는 남는다 — 되돌리지 않으면
+    `remaining = 0` 인 채로 영영 잠긴다. 대기 요청의 자리(#1873)와 같은 문제다.
+    """
+    trainer, trainer_token = _trainer(client, db_session)
+    _, member_token = _member(client)
+    consultation_id = _request_consultation(client, member_token, trainer_id=trainer.id)
+    slot_id = _row(db_session, consultation_id).slot_id
+    _accept(client, trainer_token, consultation_id)
+    schedule_id = _schedule(db_session, consultation_id).id
+    assert _remaining(db_session, slot_id) == 0
+
+    _withdraw_member(client, member_token)
+
+    assert _row(db_session, consultation_id) is None
+    assert _remaining(db_session, slot_id) == 1
+    # 일정은 트레이너 스케줄에 `취소`(주체 member, 사유 회원 탈퇴)로 남는다(#3341).
+    schedule = db_session.get(TrainerSchedule, schedule_id)
+    assert schedule.status == trainer_common_service.SCHEDULE_CANCELLED
+    assert schedule.cancellation_source == "member"
+    assert schedule.cancellation_reason == trainer_common_service.WITHDRAW_CANCEL_REASON
+    assert schedule.consultation_id is None
+
+
+def test_member_withdrawal_tells_the_trainer_the_booked_consultation_is_off(
+    client, db_session
+):
+    """담당이 아닌 트레이너는 탈퇴 알림을 받지 않는다 — 확정된 상담이 빠졌음을 알린다."""
+    trainer, trainer_token = _trainer(client, db_session)
+    _, member_token = _member(client)
+    consultation_id = _request_consultation(client, member_token, trainer_id=trainer.id)
+    _accept(client, trainer_token, consultation_id)
+
+    _withdraw_member(client, member_token)
+
+    notices = _trainer_notices(db_session, trainer.id)
+    assert len(notices) == 1
+    notice = notices[0]
+    assert notice.template_args["booked"] is True
+    assert notice.template_args["starts_at"] is not None
+    assert notice.template_args["member_name"] == "상담 회원"
+    assert notice.title == "회원 탈퇴로 확정된 상담이 취소됐어요"
+    # 떠난 회원의 상세로 가는 길을 남기지 않는다.
+    assert notice.subject_id is None
+
+
+def test_member_withdrawal_leaves_a_consultation_that_already_started(
+    client, db_session
+):
+    """이미 시작한 수락 상담은 자리도 일정도 건드리지 않고 알리지 않는다."""
+    trainer, trainer_token = _trainer(client, db_session)
+    member_id, member_token = _member(client)
+    consultation_id = _request_consultation(
+        client, member_token, trainer_id=trainer.id, hours_ahead=5
+    )
+    slot_id = _row(db_session, consultation_id).slot_id
+    _accept(client, trainer_token, consultation_id)
+    after_start = clock.now() + timedelta(hours=6)
+
+    cancelled = consultation_service.cancel_accepted_for_account_deletion(
+        db_session, db_session.get(User, member_id), now=after_start
+    )
+    db_session.commit()
+
+    assert cancelled == 0
+    assert _row(db_session, consultation_id).status == "accepted"
+    assert _remaining(db_session, slot_id) == 0
+    assert (
+        _schedule(db_session, consultation_id).status
+        == trainer_common_service.SCHEDULE_UPCOMING
+    )
+    assert _trainer_notices(db_session, trainer.id) == []
+
+
+def test_member_withdrawal_does_not_notify_the_coach_twice(client, db_session):
+    """담당 트레이너는 탈퇴 알림 한 건을 받는다(#2174) — 상담 알림을 겹쳐 보내지 않는다."""
+    trainer, trainer_token = _trainer(client, db_session)
+    _, member_token = _member(client)
+    consultation_id = _request_consultation(client, member_token, trainer_id=trainer.id)
+    slot_id = _row(db_session, consultation_id).slot_id
+    _accept(client, trainer_token, consultation_id)
+    _pair_by_code(client, member_token, trainer_token)
+
+    _withdraw_member(client, member_token)
+
+    assert _remaining(db_session, slot_id) == 1
+    assert _trainer_notices(db_session, trainer.id) == []

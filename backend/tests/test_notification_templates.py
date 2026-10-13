@@ -180,6 +180,26 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "회원 탈퇴로 상담 요청이 취소됐어요",
         "이름 없는 회원 · 10월 1일",
     ),
+    # 수락되어 잡혀 있던 상담은 확정된 상담으로 부르고 시각을 적는다(#3360).
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {
+            "member_name": "지수",
+            "preferred_date": "2026-10-01",
+            "booked": True,
+            "starts_at": STARTS.isoformat(),
+        },
+        "",
+        "회원 탈퇴로 확정된 상담이 취소됐어요",
+        "지수 회원 · 10월 1일 09:05",
+    ),
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {"member_name": "", "preferred_date": "2026-10-01", "booked": True, "starts_at": None},
+        "",
+        "회원 탈퇴로 확정된 상담이 취소됐어요",
+        "이름 없는 회원 · 10월 1일",
+    ),
     (
         nt.TRAINER_INVITE_ACCEPTED,
         {"member_name": "지수"},
@@ -833,6 +853,19 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         (
             "Consultation request cancelled: member account deleted",
             "A member · 10/1",
+        ),
+    ),
+    (
+        nt.TRAINER_CONSULT_WITHDRAWN,
+        {
+            "member_name": "Alex",
+            "preferred_date": "2026-10-01",
+            "booked": True,
+            "starts_at": STARTS.isoformat(),
+        },
+        (
+            "Confirmed consultation cancelled: member account deleted",
+            "Alex · 10/1 09:05",
         ),
     ),
     (
