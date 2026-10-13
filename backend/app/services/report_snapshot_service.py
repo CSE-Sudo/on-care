@@ -29,9 +29,10 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.week import monday_of
-from app.models.models import ChatMessage, WeeklyReportPurchase
+from app.models.models import ChatMessage, MemberReceivedReport, WeeklyReportPurchase
 from app.schemas.trainer_api import WeeklyReportOut
 from app.schemas.weekly_report_api import WeeklyReportInsightOut
+from app.services import received_reports
 from app.services.coach import insights
 from app.services.trainer import _common as trainer_common_service
 from app.services.trainer import reports as trainer_reports_service
@@ -123,6 +124,9 @@ def member_snapshot(
        쓰지 않는다: 수요일까지의 값이 그 주 전체인 것처럼 직전 주 비교에 들어간다.
        그 값은 1 처럼 그 전송을 직접 열 때만 읽는다.
 
+    1·3 은 대화 메시지를 먼저 읽고, 그 메시지가 없을 때만(보낸 트레이너가 탈퇴해
+    대화가 지워졌다) 회원 쪽 수신 기록에 남은 같은 값을 읽는다(#3348).
+
     스냅샷이 없는 옛 전송을 가리키면 2·3 으로 내려간다. 저장된 값이 지금의
     응답 모양으로 읽히지 않으면 없는 것으로 친다 — 깨진 한 줄 때문에 리포트가
     열리지 않으면 안 된다.
@@ -142,7 +146,15 @@ def member_snapshot(
     )
     if message_id:
         picked = db.scalars(sent.where(ChatMessage.id == message_id)).first()
-        found = _message_snapshot(picked)
+        found = (
+            _message_snapshot(picked)
+            if picked is not None
+            else _received_snapshot(
+                received_reports.latest_with_snapshot(
+                    db, member_id, monday, message_id=message_id
+                )
+            )
+        )
         if found is not None:
             return found
 
@@ -162,9 +174,26 @@ def member_snapshot(
     week_over = datetime(
         next_monday.year, next_monday.month, next_monday.day, tzinfo=clock.SEOUL
     )
-    return _message_snapshot(
-        db.scalars(sent.where(ChatMessage.created_at >= week_over)).first()
+    after_week = db.scalars(sent.where(ChatMessage.created_at >= week_over)).first()
+    if after_week is not None:
+        return _message_snapshot(after_week)
+    return _received_snapshot(
+        received_reports.latest_with_snapshot(
+            db, member_id, monday, sent_from=week_over
+        )
     )
+
+
+def _received_snapshot(
+    row: MemberReceivedReport | None,
+) -> MemberReportSnapshot | None:
+    """수신 기록에 남은 굳힌 값. 대화가 지워진 전송을 여기서 읽는다(#3348)."""
+    if row is None:
+        return None
+    report = _read_report(row.report_snapshot_json)
+    if report is None:
+        return None
+    return MemberReportSnapshot(report=report, taken_at=row.created_at)
 
 
 def _message_snapshot(msg: ChatMessage | None) -> MemberReportSnapshot | None:
