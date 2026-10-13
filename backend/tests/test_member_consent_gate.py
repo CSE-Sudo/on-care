@@ -120,6 +120,17 @@ def test_health_and_ai_routes_are_not_exempt(method, path):
     assert (method, path.removeprefix("/v1")) not in CONSENT_EXEMPT_ROUTES
 
 
+def test_member_exemptions_are_only_consent_and_withdrawal():
+    """회원 쪽 예외는 동의 여부 조회와 탈퇴(미리보기·삭제)뿐이다(#3340). 늘리려면
+    여기에도 적어야 한다 — 예외가 슬그머니 늘지 않게."""
+    member = {key for key in CONSENT_EXEMPT_ROUTES if key[1].startswith("/users/")}
+    assert member == {
+        ("GET", "/users/me"),
+        ("DELETE", "/users/me"),
+        ("GET", "/users/me/deletion-preview"),
+    }
+
+
 # ---- 엔드포인트 (DB) ----
 
 
@@ -244,6 +255,75 @@ def test_member_without_consent_can_still_withdraw(client, db_session, without_d
         "/v1/users/me",
         json={"current_password": PASSWORD},
         headers=_auth(login["access_token"]),
+    )
+
+    assert r.status_code == 200, r.text
+    db_session.expire_all()
+    assert db_session.get(User, user_id) is None
+
+
+def test_member_without_consent_can_read_the_deletion_preview(
+    client, without_default_consent
+):
+    """탈퇴 확인창이 읽는 미리보기는 동의가 없어도 열린다(#3340)."""
+    _, login = _register_without_consent(client)
+
+    r = client.get("/v1/users/me/deletion-preview", headers=_auth(login["access_token"]))
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["points"] == 0
+    assert body["active_coupons"] == 0
+    assert body["upcoming_reservations"] == 0
+    assert body["pending_consultations"] == 0
+
+
+def test_deletion_preview_exemption_does_not_open_the_profile(
+    client, without_default_consent
+):
+    """미리보기를 열었다고 프로필·건강 데이터가 함께 열리지는 않는다(#3340)."""
+    _, login = _register_without_consent(client)
+    h = _auth(login["access_token"])
+
+    assert client.get("/v1/users/me/deletion-preview", headers=h).status_code == 200
+    _assert_consent_required(client.get("/v1/users/me/profile", headers=h))
+    _assert_consent_required(client.get("/v1/users/me/health", headers=h))
+
+
+def test_me_reports_has_password_without_consent(
+    client, db_session, without_default_consent
+):
+    """동의가 남은 회원은 프로필을 읽지 못한다 — 탈퇴 확인창이 본인 확인 방법을
+    고르도록 `GET /users/me` 가 비밀번호 유무를 준다(#3340)."""
+    user_id, login = _register_without_consent(client)
+    h = _auth(login["access_token"])
+
+    assert client.get("/v1/users/me", headers=h).json()["has_password"] is True
+
+    # 소셜 로그인으로 처음 들어온 계정처럼 비밀번호를 비운다.
+    user = db_session.get(User, user_id)
+    user.hashed_password = ""
+    db_session.commit()
+
+    me = client.get("/v1/users/me", headers=h)
+    assert me.status_code == 200, me.text
+    assert me.json()["has_password"] is False
+    assert me.json()["consent_required"] is True
+
+
+def test_withdrawal_without_consent_goes_from_preview_to_delete(
+    client, db_session, without_default_consent
+):
+    """동의 화면의 탈퇴가 부르는 순서 그대로 — 미리보기, 그다음 삭제(#3340)."""
+    user_id, login = _register_without_consent(client)
+    h = _auth(login["access_token"])
+
+    assert client.get("/v1/users/me/deletion-preview", headers=h).status_code == 200
+    r = client.request(
+        "DELETE",
+        "/v1/users/me",
+        json={"current_password": PASSWORD, "reasons": ["privacy"]},
+        headers=h,
     )
 
     assert r.status_code == 200, r.text

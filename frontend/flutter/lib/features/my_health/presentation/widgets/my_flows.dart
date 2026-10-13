@@ -2178,7 +2178,7 @@ class SupportPage extends StatelessWidget {
           context,
           AppIcons.logout,
           l.myWithdrawTitle,
-          () => context.push<void>(AppRoutes.mySettingsPath('withdraw')),
+          () => context.push<void>(AppRoutes.withdraw),
         ),
       ]),
       const SizedBox(height: OnCareSpacing.s12),

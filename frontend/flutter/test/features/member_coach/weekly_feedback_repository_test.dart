@@ -15,6 +15,7 @@ import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 
 import '../../helpers/fixed_clock.dart';
 
@@ -142,8 +143,10 @@ void main() {
     });
 
     test('공백만 적은 아픈 곳은 통증이 아니다', () {
-      expect(memberWeeklyFeedbackFromJson(_wire(painArea: '   ')).hasPain,
-          isFalse);
+      expect(
+        memberWeeklyFeedbackFromJson(_wire(painArea: '   ')).hasPain,
+        isFalse,
+      );
     });
 
     test('낸 시각이 있으면 읽는다', () {
@@ -323,7 +326,7 @@ void main() {
           condition: WeekCondition.ok,
           intensity: WeekIntensity.right,
         ),
-        throwsA(isA<AppError>()),
+        throwsA(isA<CoachSendRejected>()),
       );
     });
   });
@@ -409,8 +412,9 @@ void main() {
       );
 
       expect(
-        (await repo.fetchWeeklyFeedback(weekStart: DateTime(2026, 9, 14)))
-            .painOn,
+        (await repo.fetchWeeklyFeedback(
+          weekStart: DateTime(2026, 9, 14),
+        )).painOn,
         isNull,
       );
     });
@@ -434,8 +438,14 @@ void main() {
           condition: WeekCondition.ok,
           intensity: WeekIntensity.right,
         ),
-        // 실서버처럼 404 다(#3099).
-        throwsA(isA<NotFoundError>()),
+        // 실서버처럼 404 다(#3099) — 앱에는 담당 해제 거절로 닿는다(#3346).
+        throwsA(
+          isA<CoachSendRejected>().having(
+            (CoachSendRejected e) => e.reason,
+            'reason',
+            CoachSendFailure.unassigned,
+          ),
+        ),
       );
     });
   });

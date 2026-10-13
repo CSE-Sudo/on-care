@@ -123,6 +123,7 @@ def get_me(
         role=current_user.role,
         consent_required=bool(pending),
         consent_pending=pending,
+        has_password=bool(current_user.hashed_password),
     )
 
 
