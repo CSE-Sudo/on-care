@@ -34,6 +34,7 @@ from app.services import (
     member_departure,
     report_snapshot_service,
     trainer_client_invite_service,
+    weekly_report_access,
 )
 from app.services.trainer import chat as trainer_chat_service
 from app.services.trainer import _common as trainer_common_service
@@ -532,6 +533,11 @@ def save_my_weekly_feedback(
 # 초안(`message`)은 비워 보낸다 — 회원에게 가는 글은 트레이너가 보낸 것만이다.
 # 담당 트레이너가 없어도 읽을 수 있다(포인트로 교환한 리포트, #2022).
 #
+# **받았거나 산 주만 연다**(#3366). 트레이너가 리포트를 보낸 주와 포인트로 산 주가
+# 아니면 403 이다 — 잠금이 앱 화면에만 있으면 경로를 직접 불러 사지 않은 주를
+# 읽는다. 결과지의 `4주 평균 대비` 가 읽는 직전 넉 주는 `compare_for`(여는 주)를
+# 함께 보내면 비교에 쓰는 수치만 준다.
+#
 # 받았거나 산 주는 그때 굳힌 값을 준다(#3349, `report_snapshot_service`).
 #
 # PT 횟수·이행률·개인운동 수는 **회원 기준**으로 센다(#3347) — 지금의 담당으로
@@ -570,25 +576,47 @@ def my_weekly_report(
     message_id: str | None = Query(
         None, max_length=64, description="열려는 리포트 전송 메시지 id"
     ),
+    compare_for: str | None = Query(
+        None,
+        description="YYYY-MM-DD — 이 주 결과지의 비교 칸이 읽는 직전 주로 요청한다",
+    ),
 ) -> MemberWeeklyReportOut:
     """내 한 주 리포트 — 그 주에 나에게 걸려 있던 PT·개인운동 전부로 센다.
+
+    받았거나 산 주만 연다(#3366). [compare_for] 를 주면 그 주가 열 수 있는 주이고
+    [week_start] 가 그 직전 넉 주 안일 때 비교용 수치만 돌려준다.
 
     받았거나 산 리포트는 **그때 굳힌 값**을 준다(#3349). 열 때마다 다시 계산하면
     보낸 뒤 고친 기록·목표가 지난 리포트를 바꾼다. [message_id] 는 같은 주를 두 번
     받았을 때 누른 전송을 고른다. 굳힌 값이 없는 주(옛 리포트)는 지금 계산한다.
     """
     week = _my_report_week(week_start)
+    # 빈 문자열은 보내지 않은 것과 같다 — `week_start` 와 같은 규칙이다.
+    target = _my_report_week(compare_for) if compare_for else None
+    if not weekly_report_access.can_open(db, user.id, target or week):
+        raise HTTPException(status_code=403, detail="아직 받지 않은 주간 리포트예요.")
+    if target is not None and not weekly_report_access.is_comparison_week(
+        week, target
+    ):
+        raise HTTPException(
+            status_code=422, detail="비교할 수 있는 주는 직전 4주까지예요."
+        )
+    # 열어도 되는 주인지 본 다음에 굳힌 값을 찾는다. 비교용 직전 주는 누른 전송이
+    # 아니므로 [message_id] 없이 묻는다.
     snapshot = report_snapshot_service.member_snapshot(
-        db, user.id, week, message_id=message_id
+        db, user.id, week, message_id=None if target is not None else message_id
     )
     if snapshot is not None:
-        return MemberWeeklyReportOut(
-            **snapshot.report.model_dump(exclude={"message"}),
-            message="",
-            snapshot_at=snapshot.taken_at,
+        report = snapshot.report
+    else:
+        trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
+        report = trainer_reports_service.build_weekly_report(
+            db, trainer_id, user.id, week, member_scope=True
         )
-    trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
-    report = trainer_reports_service.build_weekly_report(
-        db, trainer_id, user.id, week, member_scope=True
+    if target is not None:
+        report = weekly_report_access.comparison_only(report)
+    return MemberWeeklyReportOut(
+        **report.model_dump(exclude={"message"}),
+        message="",
+        snapshot_at=snapshot.taken_at if snapshot is not None else None,
     )
-    return MemberWeeklyReportOut(**report.model_dump(exclude={"message"}), message="")

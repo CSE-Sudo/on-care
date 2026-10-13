@@ -4388,6 +4388,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t open the PDF. Please try again'**
   String get coachChatPdfOpenFailed;
 
+  /// No description provided for @coachReportNotReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t received this report yet'**
+  String get coachReportNotReceived;
+
   /// No description provided for @coachChatReportRegistered.
   ///
   /// In en, this message translates to:

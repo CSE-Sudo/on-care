@@ -1481,7 +1481,7 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 
 | 메서드 | 경로 | 쓰는 쪽 |
 |---|---|---|
-| `GET` | `/me/coach/weekly-report?week_start=&message_id=` | 회원 앱 — 내 한 주 결과지 |
+| `GET` | `/me/coach/weekly-report?week_start=&message_id=&compare_for=` | 회원 앱 — 내 한 주 결과지 |
 
 - `week_start` 기본값은 **이번 주**(트레이너 리포트와 같다). 주 중간 날짜는 그 주 월요일로
   접히고, 형식이 틀리거나 **아직 오지 않은 주는 422**.
@@ -1506,6 +1506,14 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
   - 고정되는 것은 이 응답의 값(그 주의 수치·목표·요일별 운동)이다. 결과지의 여덟 주 운동 추이(`GET /exercise/weeks`)와
     회원 주간 피드백(`GET /me/coach/weekly-feedback`)은 지금 값을 읽는다.
   - 트레이너 응답(`/trainer/clients/{id}/report`)은 굳히지 않는다. 초안을 쓰는 화면이라 늘 지금 값이다.
+- **받았거나 산 주만 연다 (#3366).** 트레이너가 리포트를 보낸 주(대화에 남은 안내의 `report_week_start`)와 포인트로 산
+  주(`GET /me/weekly-reports`)가 아니면 **403** 이다. 보낸 트레이너가 지금의 담당인지는 묻지 않는다 — 담당이 바뀌거나
+  끊긴 뒤에도 이미 받은 주는 열린다. 주 형식·미래 주 검사(422)가 이 판정보다 먼저다.
+- **`compare_for`**: 결과지의 `4주 평균 대비` 가 읽는 직전 주를 받는 길이다. 여는 주를 `compare_for` 에, 읽을 직전 주를
+  `week_start` 에 보낸다. `compare_for` 주가 열 수 없는 주면 403, `week_start` 가 그 **직전 4주** 밖이면 422 다. 응답은
+  같은 모양에 비교가 쓰는 값(`week_start`·`week_end`·`calories_week`·`completion_avg`·`sodium_avg`·`meal_counts`)만
+  채우고 나머지는 비운다(`sessions_*`·`sodium_over_days` 는 0, 요일 계열·`days` 는 빈 목록, 목표·`calorie_baseline` 은
+  null). 직전 주가 그 자체로 받은 주여도 `compare_for` 로 물으면 같은 축약 응답이다.
 
 **다음 주 목표 (#2232)**: 트레이너가 리포트 ② 에서 고른 목표다. 다음 주 리포트의
 `③ 지난 주 목표 달성` 이 그대로 회수한다 — 목표는 **다음 주에 확인될 때** 비로소 목표이고,
