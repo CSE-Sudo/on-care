@@ -12,6 +12,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
@@ -46,6 +47,15 @@ Future<void> openCoachReport(
   if (!context.mounted) return;
   await openPdfPreviewPage(context, pdf.bytes, pdf.fileName);
 }
+
+/// 리포트를 열지 못했을 때 띄울 안내. (#3366)
+///
+/// 서버는 받지도 사지도 않은 주를 403 으로 답한다. 다시 시도해도 같은 답이라
+/// "다시 시도해 주세요" 가 아니라 아직 받지 않은 리포트라고 알린다.
+String reportOpenFailureText(AppLocalizations l, Object error) =>
+    error is ForbiddenError
+    ? l.coachReportNotReceived
+    : l.coachChatPdfOpenFailed;
 
 /// 미리보기에 띄울 파일 한 부.
 typedef CoachReportPdf = ({Uint8List bytes, String fileName});

@@ -133,9 +133,7 @@ void main() {
         l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
       );
       expect(body, findsOneWidget);
-      final String heading = tag == 'ko'
-          ? '5. 담당 트레이너와의 정보 공유 및 동의 철회'
-          : '5. Sharing with your trainer and withdrawing consent';
+      const String heading = '5. 담당 트레이너와의 정보 공유 및 동의 철회';
       expect(tester.widget<Text>(body).data, contains(heading));
       expect(find.text(l.myLegalPrivacyTitle), findsWidgets);
       expect(tester.takeException(), isNull);

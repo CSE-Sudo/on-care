@@ -114,6 +114,9 @@ class _AdviceRepository implements ExerciseRepository {
   );
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) async => throw UnimplementedError();
 
   @override

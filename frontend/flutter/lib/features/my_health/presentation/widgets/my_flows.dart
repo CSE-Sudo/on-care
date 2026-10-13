@@ -1907,7 +1907,7 @@ class _MacroSuggestionRow extends StatelessWidget {
     final TextStyle noteStyle = context.oncare
         .text(OnCareTypography.caption)
         .copyWith(color: OnCareColors.textSecondary);
-    // 안내와 버튼을 한 줄에 두면 좁은 폰·큰 글자에서 영어 버튼 라벨이 넘친다.
+    // 안내와 버튼을 한 줄에 두면 좁은 폰·큰 글자에서 버튼 라벨이 넘친다.
     // 안내를 위에, 버튼을 그 아래 끝에 둔다.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2178,7 +2178,7 @@ class SupportPage extends StatelessWidget {
           context,
           AppIcons.logout,
           l.myWithdrawTitle,
-          () => context.push<void>(AppRoutes.mySettingsPath('withdraw')),
+          () => context.push<void>(AppRoutes.withdraw),
         ),
       ]),
       const SizedBox(height: OnCareSpacing.s12),

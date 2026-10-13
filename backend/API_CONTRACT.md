@@ -90,7 +90,7 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/users/me` | `{ id(str), name, email, email_is_placeholder, email_placeholder_provider, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `email_is_placeholder`·`email_placeholder_provider` 는 아래 [소셜 가입 계정의 대체 이메일](#소셜-가입-계정의-대체-이메일-3338). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
+| GET | `/users/me` | `{ id(str), name, email, email_is_placeholder, email_placeholder_provider, role, consent_required, consent_pending[], has_password }` (아래 "가입 동의" 참고, #2819). `has_password` 는 프로필의 같은 칸과 같은 값 — 동의가 남아 프로필을 못 읽는 회원의 탈퇴 확인창이 본인 확인 방법을 고르는 데 쓴다(#3340). `email_is_placeholder`·`email_placeholder_provider` 는 아래 [소셜 가입 계정의 대체 이메일](#소셜-가입-계정의-대체-이메일-3338). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET, PUT, DELETE | `/users/me/consents/{kind}` | 선택 동의(`location`) 상태 조회·동의·철회 → `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. 회원 전용, 선택 항목 아닌 `kind` 는 422 (아래 "선택 동의 — 위치정보 이용" 참고, #3136) |
 | GET | `/users/me/health` | `{ profile: { id, name, email, email_is_placeholder, email_placeholder_provider }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
@@ -338,8 +338,9 @@
 | GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247). 구간은 끝 주에서 거슬러 **최대 160주**(`exercise_service.MAX_PERIOD_WEEKS`)이고, 더 이른 `from`·첫 기록 주는 그 하한으로 잘린다 — 응답 `from_week` 가 실제 시작 주다 (#2833) |
 | POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개], client_request_id? }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없어요.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다. `client_request_id`(1~64자)는 저장 시도 단위 멱등키다 — 같은 키로 저장한 기록이 남아 있으면 새로 저장·적립하지 않고 처음 응답(`points` 는 그 기록들이 처음 받은 적립의 합)을 다시 돌려주고, 항목 수나 항목 내용(칼로리 제외, `date` 는 보낸 경우만)이 다르면 409 이고 아무것도 바뀌지 않는다. 그 키의 기록이 모두 지워졌으면 처음 보는 키처럼 새로 저장한다. 키가 없으면 매번 새로 저장한다 (#3095) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(**전체 교체**) → 갱신된 항목(`points` 없음). 보낸 항목으로 그 기록을 통째로 바꾼다 — 빠진 선택 칸(`sets`·`reps`·`hold_seconds`·`weight`·`intensity` 등)은 남아 있던 값이 아니라 기본값이 되므로, 고치지 않은 칸도 지금 값을 함께 보낸다. 예외는 `date` 하나다: 주지 않으면 원래 날짜를 그대로 두고, 오늘보다 뒤로 옮기면 422 다 — 원래 날짜가 남는다(#3042). 칼로리는 저장과 같이 서버가 다시 계산한다 (#3251) |
+| POST | `/exercise/sessions/move` | 입력 `{ session_ids: [id 1~100개], date }` → `{ sessions[](요청 순서) }`. 기록들의 **날짜만** 한 번에 옮긴다 — 하루의 기록을 다른 날로 옮길 때 쓴다. **한 트랜잭션**이라 전부 옮겨지거나 하나도 옮겨지지 않는다. 기록마다의 규칙은 `PUT /exercise/sessions/{id}` 와 같다: 본인 것이 아닌 id 가 하나라도 있으면 404, PT·배정 루틴에서 생긴 기록(`source` 가 `member` 가 아닌 것)이 하나라도 있으면 409, `date` 가 오늘보다 뒤면 422 이고, 어느 경우든 아무것도 바뀌지 않는다. 다른 칸과 칼로리는 그대로다. 옮긴 날에 쓴 보호권은 환급한다. 같은 요청을 다시 보내도 결과가 같고, 같은 id 가 두 번 와도 한 번만 옮긴다 (#3365) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
-| GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210) |
+| GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210). `all` 의 `from_date` 는 **첫 운동 기록이 있는 주의 월요일**이다 — `GET /exercise/weeks` 를 `from` 없이 불렀을 때의 `from_week` 와 같고(160주 하한도 같다), 기록이 없으면 이번 주 월요일이다. 문장의 "○주 동안"(`advice_params.weeks`)은 그 구간이 걸친 주의 수다 (#3365) |
 | POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0) 또는 duration_seconds(>0), intensity }` → `{ calories, source, matched_name, isometric }` — 초가 오면 분은 `/exercise/sessions` 와 같은 규칙으로 초에서 접는다 (#2547) |
 
 추천 개인운동(`GET /me/coach/routines`, 트레이너 쪽 `RoutineOut` 도 같다)은 `effect` 를 싣는다 — 운동 이름 아래 서는 효과 한 줄로, 트레이너가 적은 값이거나 비었으면 운동 유형 × 회원 첫 건강 목표 문구표의 값이다. 운동 여럿으로 짠 세션·`기타` 유형은 빈 문자열이다. 규칙은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "추천 개인운동의 효과 한 줄" (#2570)
@@ -936,8 +937,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/gyms?lat=&lng=&partner_only=` | `[GymOut]` — 좌표를 주면 거리순, 없으면 이름순 |
-| GET | `/gyms/{gym_id}` | 단건(없으면 404) |
+| GET | `/gyms?lat=&lng=&partner_only=&radius_m=&limit=` | `[GymOut]` — 좌표를 주면 반경 안에서 거리순, 없으면 이름순 |
+| GET | `/gyms/{gym_id}?lat=&lng=` | 단건(없으면 404). 목록의 반경·상한과 무관 |
 | GET | `/gyms/{gym_id}/trainers` | 그 헬스장 소속 트레이너 |
 | GET | `/me/gym?lat=&lng=` | 내 헬스장(`member_gyms`) — `GymOut`. 연결이 없으면 404 |
 
@@ -945,6 +946,17 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   `0` 이고 **뜻이 없는 값**이다 — 거리로 그리지 않는다. 회원 앱은 회원 위치를 얻었을 때만 `/me/gym` 에
   좌표를 싣는다. `/gyms` 는 검색 중심이 필요해 위치를 얻기 전에는 기본 검색 영역(신촌) 좌표를 보내고,
   그 거리는 화면에 그리지 않는다(#3044).
+- **좌표가 있는 `/gyms` 는 범위가 있다**(#3356). `radius_m`(100~20000, 기본 5000) 안의 헬스장만
+  가까운 순으로 `limit`(1~100, 기본 50)곳까지 준다. 범위를 벗어난 값은 422. 좌표를 모르는
+  헬스장은 반경 안인지 알 수 없어 이 목록에서 빠진다. **좌표가 없는 조회에는 두 값이 쓰이지
+  않는다** — 지금처럼 전부를 이름순으로 준다. 목록에 없는 헬스장(반경 밖, 상한 밖, 좌표 없음)은
+  `/gyms/{gym_id}` 로 읽는다 — 회원 앱의 헬스장 상세·트레이너 상세·상담 신청이 목록에서 못
+  찾으면 이 경로로 읽는다. `/me/gym` 은 목록을 거치지 않아 소속 헬스장이 반경 밖이어도 그대로 온다.
+- **데모 시드가 꺼진 서버는 가상 헬스장을 내지 않는다**(#3356). `/gyms` 목록에서 빠지고
+  `/gyms/{gym_id}`·`/gyms/{gym_id}/trainers` 는 404 다. 주변 검색(#2914)·트레이너
+  디렉터리(#2811)와 같은 목록(`app/db/demo_ids.py`)을 본다. 데모 서버의 응답은 그대로다.
+  **`/me/gym` 에는 걸지 않는다** — 찾기가 아니라 회원이 이미 연결한 링크라, 가상 헬스장과의
+  옛 링크가 남은 회원도 내 헬스장·쿠폰의 `has_gym`·`/me/coach` 의 `gym` 을 그대로 받는다.
 - **`is_partner` 는 표시 값이다.** `GymOut` 으로 내려가고 `partner_only=true` 로 목록을
   좁히는 기준이 된다(현재 두 앱은 이 값을 읽지 않는다). **접근 제어가 아니다** — 상담 대상 검증과
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을
@@ -1029,9 +1041,20 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/consultations` | 입력 `{ trainer_id, slot_id, exercise_goal, health_purpose_type, message? }` |
 | GET | `/consultations/slots?trainer_id=` | 상담 신청 폼이 고를 수 있는 그 트레이너의 빈 자리 |
 | GET | `/consultations/me` | 내가 보낸 요청 (최신순, 기본 50건·커서) |
-| DELETE | `/consultations/{consultation_id}` | 내가 보낸 대기 중 상담 요청 취소 |
+| DELETE | `/consultations/{consultation_id}` | 내가 보낸 상담 취소 — 대기 중인 요청, 또는 수락됐지만 아직 시작하지 않은 상담(#3359) |
 | GET | `/consultations/{id}` | 단건(남의 것·없는 것 404) |
 
+- **취소** (#3359) — 회원은 대기 중인 요청과, **수락된 뒤 시작 시각 전**인 상담을 취소할 수
+  있습니다. 수락된 상담을 취소하면 한 트랜잭션으로 ① 요청이 `cancelled` 가 되고(처리자는
+  비워 `cancelled_by_trainer` 는 `false`) ② 그 요청으로 생긴 `예정` 상담 일정이 `취소`(주체
+  `member`, 사유 `회원 상담 취소`)로 바뀌고 ③ 신청 때 잠근 자리가 다시 열리고 ④ 트레이너에게
+  알림이 갑니다 — 분류 `consultation`, 틀 `trainer_consult_booking_cancelled`, 인자
+  `member_name`·`starts_at`(KST), `subject_id` 는 그 회원, `target_date` 는 상담 날짜입니다.
+  대기 요청 취소의 틀(`trainer_consult_cancelled`)과 다릅니다. 시작 시각은 상담 일정의 시각이
+  기준입니다(트레이너가 옮겼으면 옮긴 시각). 응답은 취소된 `ConsultationOut` 입니다.
+  - 시작 시각이 지났거나 일정이 이미 완료·노쇼로 끝났으면 409
+    `{ "detail": { "code": "consultation_started", "message" } }` — 아무것도 바뀌지 않습니다.
+  - 거절·만료·취소로 이미 끝난 요청은 409(문자열 `detail`), 남의 것·없는 것은 404 입니다.
 - 상담은 **담당 여부와 관계없이** 낼 수 있습니다(#3358). 담당 트레이너가 있는 회원도 다른
   트레이너에게 신청할 수 있고, 신청·수락만으로는 담당이 바뀌지 않습니다 — 담당은 연결 요청
   수락이나 연결 코드로만 바뀝니다. 아래의 대기 중복·신청 한도는 담당이 있어도 똑같이 적용합니다.
@@ -1475,7 +1498,7 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 
 | 메서드 | 경로 | 쓰는 쪽 |
 |---|---|---|
-| `GET` | `/me/coach/weekly-report?week_start=` | 회원 앱 — 내 한 주 결과지 |
+| `GET` | `/me/coach/weekly-report?week_start=&compare_for=` | 회원 앱 — 내 한 주 결과지 |
 
 - `week_start` 기본값은 **이번 주**(트레이너 리포트와 같다). 주 중간 날짜는 그 주 월요일로
   접히고, 형식이 틀리거나 **아직 오지 않은 주는 422**.
@@ -1485,7 +1508,15 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
   응답(`/trainer/clients/{id}/report`)은 전과 같이 자기 일정·배정만 센다.
 - **`message` 는 항상 빈 문자열**이다 — 트레이너가 손보고 보낼 자동 초안이라 회원에게 먼저
   닿으면 안 된다. 회원이 읽는 코칭 글은 트레이너가 채팅으로 보낸 것뿐이다.
-- 담당 트레이너가 없어도 200 이다(포인트로 교환한 리포트, #2022). 수업을 받은 적이 없으면 `sessions_*` 는 0 이다.
+- 담당 트레이너가 없어도 읽는다(포인트로 교환한 리포트, #2022). 수업을 받은 적이 없으면 `sessions_*` 는 0 이다.
+- **받았거나 산 주만 연다 (#3366).** 트레이너가 리포트를 보낸 주(대화에 남은 안내의 `report_week_start`)와 포인트로 산
+  주(`GET /me/weekly-reports`)가 아니면 **403** 이다. 보낸 트레이너가 지금의 담당인지는 묻지 않는다 — 담당이 바뀌거나
+  끊긴 뒤에도 이미 받은 주는 열린다. 주 형식·미래 주 검사(422)가 이 판정보다 먼저다.
+- **`compare_for`**: 결과지의 `4주 평균 대비` 가 읽는 직전 주를 받는 길이다. 여는 주를 `compare_for` 에, 읽을 직전 주를
+  `week_start` 에 보낸다. `compare_for` 주가 열 수 없는 주면 403, `week_start` 가 그 **직전 4주** 밖이면 422 다. 응답은
+  같은 모양에 비교가 쓰는 값(`week_start`·`week_end`·`calories_week`·`completion_avg`·`sodium_avg`·`meal_counts`)만
+  채우고 나머지는 비운다(`sessions_*`·`sodium_over_days` 는 0, 요일 계열·`days` 는 빈 목록, 목표·`calorie_baseline` 은
+  null). 직전 주가 그 자체로 받은 주여도 `compare_for` 로 물으면 같은 축약 응답이다.
 
 **다음 주 목표 (#2232)**: 트레이너가 리포트 ② 에서 고른 목표다. 다음 주 리포트의
 `③ 지난 주 목표 달성` 이 그대로 회수한다 — 목표는 **다음 주에 확인될 때** 비로소 목표이고,
@@ -1886,8 +1917,12 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   같은 모양이다. 핸들러보다 먼저 막으므로 음식 인식·AI 코치 같은 외부 AI 호출도 일어나지 않는다.
   기록이 없는 계정, 문서 버전이 오른 계정, 동의를 철회(`revoked_at`)한 계정이 모두 해당한다.
   - 동의 없이도 열려 있는 경로: `GET /users/me`(동의 필요 여부 조회), `POST /users/me/consents`,
-    `DELETE /users/me`(탈퇴), `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
+    `DELETE /users/me`(탈퇴), `GET /users/me/deletion-preview`(탈퇴 확인창의 건수, #3340),
+    `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
     계정 데이터가 없는 공개 경로. 목록은 `api/deps.CONSENT_EXEMPT_ROUTES` 한 곳에 있다.
+  - 동의하지 않기로 한 회원은 동의 화면에서 로그아웃하거나 탈퇴할 수 있다(#3340). 회원 앱은
+    동의가 남은 동안 동의 화면과 탈퇴 화면만 열어 두고, 탈퇴 화면은 위 세 경로
+    (`GET /users/me`·`GET /users/me/deletion-preview`·`DELETE /users/me`)만 부른다.
   - **트레이너 계정(#3155)** 도 같은 규칙이다. 트레이너의 필수 항목(`terms`·`privacy`·`age14`)이
     남았으면 트레이너 의존성(`RequireTrainer`)을 쓰는 API 가 같은 모양의 403 을 준다. 동의 없이도
     열린 트레이너 경로는 `GET /trainer/me`(트레이너 웹이 로그인·세션 복구 때 읽는 프로필)와

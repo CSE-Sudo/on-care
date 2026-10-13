@@ -86,6 +86,9 @@ class _RecordingRepository implements AccountRepository {
   }) => _inner.deleteAccount(reasons: reasons, reauth: reauth);
 
   @override
+  Future<bool> fetchHasPassword() => _inner.fetchHasPassword();
+
+  @override
   Future<AccountDeletionPreview> fetchDeletionPreview() =>
       _inner.fetchDeletionPreview();
 

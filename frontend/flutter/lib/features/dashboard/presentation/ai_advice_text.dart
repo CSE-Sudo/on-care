@@ -7,7 +7,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 우선순위:
 ///
 /// 1. [DashboardSummary.aiAdviceKey] — 서버·데모가 싣는 로케일 독립 식별자.
-///    여기서 ARB 문장으로 풀어야 영어 로케일에서 영어가 나온다(#435, #1943).
+///    여기서 ARB 문장으로 푼다(#435, #1943).
 ///    음식 이름이 든 나트륨 경고도 키(`sodium_over_sources`)와 음식 이름
 ///    인자로 온다(#2644).
 /// 2. [DashboardSummary.sodiumWarning] / [DashboardSummary.exerciseFeedback] —

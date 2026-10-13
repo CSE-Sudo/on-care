@@ -6643,6 +6643,12 @@ abstract class AppLocalizations {
   /// **'Consultation request cancelled'**
   String get notifTplConsultCancelledTitle;
 
+  /// No description provided for @notifTplConsultBookingCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed consultation cancelled'**
+  String get notifTplConsultBookingCancelledTitle;
+
   /// No description provided for @notifTplConsultWithdrawnTitle.
   ///
   /// In en, this message translates to:

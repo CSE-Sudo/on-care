@@ -54,9 +54,9 @@ class _CountingRepository extends FakeDietRepository {
   }
 
   @override
-  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) {
+  Future<DietAdvice> fetchAdvice(String period) {
     adviceCalls++;
-    return super.fetchAdvice(period, lang: lang);
+    return super.fetchAdvice(period);
   }
 }
 

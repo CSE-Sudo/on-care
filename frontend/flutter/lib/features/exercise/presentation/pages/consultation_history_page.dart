@@ -9,6 +9,7 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/widgets/consultation_request_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_error_state_for.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 내 상담 요청 전체 내역(#948). 운동 탭은 대기 중이거나 가장 최근 요청 1건만
@@ -64,16 +65,26 @@ class _ConsultationHistoryPageState
   /// 확인 뒤 취소한다. 실패하면 안내하고 카드를 그대로 둔다(#2858). 이미
   /// 트레이너가 결정했거나 서버에 없는 요청이면 서버 목록을 다시 받아 카드를
   /// 실제 상태로 바꾼다.
+  ///
+  /// 수락된 상담은 확인 창의 말이 다르다(#3359) — 거두는 것이 요청이 아니라
+  /// 잡힌 약속이고, 트레이너에게 알림이 간다.
   Future<void> _cancel(AppLocalizations l, ConsultationRequest r) async {
+    final bool accepted = r.status == ConsultationStatus.accepted;
     // 되돌릴 수 없는 쪽이다 — 확정은 파괴적 채움으로, 유지는 중립 버튼으로
     // 그려 두 동작의 위험도 차이가 보이게 한다(#1429).
     final bool confirmed = await showAppConfirmDialog(
       context: context,
-      title: l.exConsultHistoryCancelTitle,
-      message: l.exConsultHistoryCancelBody,
+      title: accepted
+          ? l.exConsultAcceptedCancelTitle
+          : l.exConsultHistoryCancelTitle,
+      message: accepted
+          ? l.exConsultAcceptedCancelBody
+          : l.exConsultHistoryCancelBody,
       cancelLabel: l.exCancelKeep,
       // `예약 취소` 와 같이 무엇을 취소하는지 붙인다(#2554).
-      confirmLabel: l.exConsultHistoryCancelAction,
+      confirmLabel: accepted
+          ? l.exConsultAcceptedCancelAction
+          : l.exConsultHistoryCancelAction,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -83,6 +94,11 @@ class _ConsultationHistoryPageState
     );
     try {
       await controller.cancel(r.id);
+    } on ConsultationAlreadyStarted {
+      // 화면을 열어 둔 사이 시작 시각이 지났다(#3359). 다시 그려 버튼을 치운다.
+      toast.show(l.exConsultCancelStarted);
+      await controller.refresh();
+      if (mounted) setState(() {});
     } on ConsultationNoLongerPending {
       toast.show(l.exConsultCancelStale);
       await controller.refresh();
@@ -111,6 +127,9 @@ class _ConsultationHistoryPageState
           (ConsultationRequest r) => r.status != ConsultationStatus.pending,
         )
         .toList(growable: false);
+    // 수락된 상담은 시작 전까지만 취소할 수 있다(#3359) — 지난 상담에는 버튼이
+    // 없다.
+    final DateTime now = nowKst();
 
     return AppPage(
       header: AppTopBar(title: l.exConsultHistoryTitle),
@@ -159,6 +178,7 @@ class _ConsultationHistoryPageState
           ConsultationRequestCard(
             key: ValueKey<String>('consult-history-${r.id}'),
             request: r,
+            onCancel: r.canCancelAt(now) ? () => _cancel(l, r) : null,
           ),
           const SizedBox(height: OnCareSpacing.cardGap),
         ],

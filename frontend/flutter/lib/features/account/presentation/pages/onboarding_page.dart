@@ -1548,7 +1548,7 @@ class _GenderSelector extends StatelessWidget {
   final String? value;
   final ValueChanged<String?> onChanged;
 
-  /// 전송 값은 이미 영문 코드라 그대로 두고 문구만 로케일을 따른다.
+  /// 전송 값은 이미 영문 코드라 그대로 두고 문구만 ARB 에서 읽는다.
   static Map<String, String> _labelsOf(AppLocalizations l) => <String, String>{
     'male': l.onboardGenderMale,
     'female': l.onboardGenderFemale,

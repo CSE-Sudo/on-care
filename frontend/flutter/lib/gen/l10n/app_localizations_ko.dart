@@ -1293,6 +1293,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsExchangeFailed => '교환하지 못했어요. 다시 시도해 주세요.';
 
   @override
+  String get myPointsExchangeBlocked => '지금은 교환할 수 없어요';
+
+  @override
+  String get myPointsInsufficient => '포인트가 부족해요';
+
+  @override
+  String get myBenefitAlreadyReceived => '이미 받았어요';
+
+  @override
   String myPointsShortfall(String points) {
     return '$points 부족해요';
   }
@@ -1713,6 +1722,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get challengeJoinFailed => '참가하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get challengeJoinAlready => '이미 참가했어요';
+
+  @override
+  String get challengeJoinBlocked => '지금은 참가할 수 없어요';
 
   @override
   String get challengeJoinClosed => '다음 주 월요일에 다시 참가할 수 있어요';
@@ -2457,6 +2472,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get coachReportNotReceived => '아직 받지 않은 리포트예요';
+
+  @override
   String get coachChatReportRegistered => '주간 리포트를 받았어요';
 
   @override
@@ -3129,6 +3147,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => '새 코드 받기';
+
+  @override
+  String trainerSyncConnected(String name) {
+    return '$name 트레이너와 연결됐어요';
+  }
+
+  @override
+  String get trainerSyncConnectedBody => '이제 트레이너가 회원님의 기록을 보고 코칭할 수 있어요.';
 
   @override
   String get signUpCreatedSignInNeeded => '계정이 만들어졌어요. 로그인해 주세요';
@@ -3954,6 +3980,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
+
+  @override
+  String get exConsultAcceptedCancelTitle => '확정된 상담을 취소할까요?';
+
+  @override
+  String get exConsultAcceptedCancelBody =>
+      '트레이너에게 취소를 알리고 잡아 둔 시간을 비워요. 취소한 상담은 다시 되돌릴 수 없어요.';
+
+  @override
+  String get exConsultAcceptedCancelAction => '상담 취소';
+
+  @override
+  String get exConsultCancelStarted => '시작 시각이 지난 상담은 취소할 수 없어요.';
 
   @override
   String pointsRewardBadge(int points) {

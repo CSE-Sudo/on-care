@@ -3,8 +3,14 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
+import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/member_report_sheet_repository.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare_report/oncare_report.dart';
 
 /// 결과지 자료를 어디서 읽는가 — 실서버 또는 데모. (#2652)
@@ -13,13 +19,51 @@ import 'package:oncare_report/oncare_report.dart';
 final memberReportSheetRepositoryProvider =
     Provider<MemberReportSheetRepository>((ref) {
       if (ref.watch(appConfigProvider).useMockApi) {
-        return DemoMemberReportSheetRepository();
+        return DemoMemberReportSheetRepository(
+          canOpen: (DateTime monday) => demoReportWeekOpens(
+            monday,
+            coach: ref.read(memberCoachRepositoryProvider),
+            purchases: ref.read(benefitsRepositoryProvider).fetchWeeklyReports,
+          ),
+        );
       }
       return DioMemberReportSheetRepository(
         ref.watch(dioProvider),
         exercise: ref.watch(exerciseRepositoryProvider),
       );
     }, name: 'memberReportSheetRepository');
+
+/// 데모에서 [monday] 주 리포트를 열 수 있는가 — 서버 판정의 대역. (#3366)
+///
+/// 서버와 같은 두 근거를 본다. **받은 주**는 데모 대화에 남은 리포트 안내
+/// ([CoachMessage.reportWeekStart])이고, **산 주**는 목업 인터셉터의 데모 원장이
+/// 답하는 `GET /me/weekly-reports` 다. 한쪽을 읽지 못하면 그쪽은 없는 것으로 본다 —
+/// 담당이 없는 회원은 대화가 없고, 산 주만으로 연다.
+Future<bool> demoReportWeekOpens(
+  DateTime monday, {
+  required MemberCoachRepository coach,
+  required Future<WeeklyReportPurchases> Function() purchases,
+}) async {
+  bool sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+  try {
+    final WeeklyReportPurchases bought = await purchases();
+    if (bought.weeks.any((DateTime week) => sameDay(week, monday))) return true;
+  } catch (_) {
+    // 산 주를 읽지 못했다 — 받은 주로 넘어간다.
+  }
+  try {
+    final List<CoachMessage> chat = await fetchWholeCoachChat(coach);
+    return chat.any(
+      (CoachMessage m) => switch (m.reportWeekStart) {
+        final DateTime week => sameDay(week, monday),
+        null => false,
+      },
+    );
+  } catch (_) {
+    return false;
+  }
+}
 
 /// `WidgetRef.read` 와 `ProviderContainer.read` 를 함께 받는 모양.
 typedef ProviderRead = T Function<T>(ProviderListenable<T> provider);

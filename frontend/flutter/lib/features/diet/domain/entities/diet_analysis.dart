@@ -20,7 +20,7 @@ class RecognizedFood {
   /// 공공 영양 DB 가 매칭하는 한국어 이름. 화면에는 [label] 을 쓴다.
   final String name;
 
-  /// 화면 언어 표시 이름(#2850) — 영어 화면에서 분석하면 서버가 함께 준다.
+  /// 표시 이름(#2850) — 서버가 함께 줄 때만 있다.
   final String? displayName;
 
   /// 화면에 보일 이름 — 표시 이름이 있으면 그것, 없으면 [name].

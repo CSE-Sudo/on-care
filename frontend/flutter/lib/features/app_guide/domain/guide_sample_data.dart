@@ -74,9 +74,8 @@ List<Override> guideSampleOverrides(AppLocalizations l) {
 
 /// 예시 식단 조언 — 서버가 주는 것과 같은 **문장 키**로 싣는다(#2644).
 ///
-/// 조언 카드는 키가 있으면 지금 언어의 ARB 문장을 그리고, 없으면 받은 문장을
-/// 그대로 쓴다. 예전에는 한국어 문장만 넣어 영어 가이드에서도 한국어 조언이
-/// 나왔다. `text` 는 키를 풀지 못할 때의 한국어 문장이다(ARB 와 같은 문장).
+/// 조언 카드는 키가 있으면 ARB 문장을 그리고, 없으면 받은 문장을 그대로 쓴다.
+/// `text` 는 키를 풀지 못할 때의 문장이다(ARB 와 같은 문장).
 const DietAdvice kGuideSampleDietAdvice = DietAdvice(
   message: '오늘 **1480kcal**, 균형이 좋아요. 오늘 식단을 잘 마무리했어요!',
   analysis: DietAdviceLine(
@@ -150,10 +149,7 @@ const ExerciseWeek kGuideSampleWeek = ExerciseWeek(
 /// 예시 하루 식단 — 홈 요약과 같은 하루다(칼로리 1,480 · 나트륨 1,720 · 당류 32).
 /// 두 화면이 다른 하루를 말하면 가이드 도중 숫자가 바뀌는 것처럼 보인다.
 ///
-/// 음식 이름은 화면 언어의 문구로 싣는다(#2878). 예전에는 한국어 이름이 박혀
-/// 있어 영어 가이드의 식단 단계에서 끼니 카드에 한국어가 섞였다. 썸네일 이모지는
-/// 한국어 이름표로 고르므로 언어와 상관없이 같은 이모지가 나오게 끼니마다 정해
-/// 둔다. 숫자는 언어와 무관하다.
+/// 음식 이름은 ARB 문구로 싣는다(#2878). 썸네일 이모지는 끼니마다 정해 둔다.
 DietDay guideSampleDietDay(AppLocalizations l) => DietDay(
   entries: <DietEntry>[
     DietEntry(

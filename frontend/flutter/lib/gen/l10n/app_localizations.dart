@@ -2392,6 +2392,24 @@ abstract class AppLocalizations {
   /// **'교환하지 못했어요. 다시 시도해 주세요.'**
   String get myPointsExchangeFailed;
 
+  /// No description provided for @myPointsExchangeBlocked.
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 교환할 수 없어요'**
+  String get myPointsExchangeBlocked;
+
+  /// No description provided for @myPointsInsufficient.
+  ///
+  /// In ko, this message translates to:
+  /// **'포인트가 부족해요'**
+  String get myPointsInsufficient;
+
+  /// No description provided for @myBenefitAlreadyReceived.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 받았어요'**
+  String get myBenefitAlreadyReceived;
+
   /// No description provided for @myPointsShortfall.
   ///
   /// In ko, this message translates to:
@@ -3099,6 +3117,18 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'참가하지 못했어요. 다시 시도해 주세요.'**
   String get challengeJoinFailed;
+
+  /// No description provided for @challengeJoinAlready.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 참가했어요'**
+  String get challengeJoinAlready;
+
+  /// No description provided for @challengeJoinBlocked.
+  ///
+  /// In ko, this message translates to:
+  /// **'지금은 참가할 수 없어요'**
+  String get challengeJoinBlocked;
 
   /// No description provided for @challengeJoinClosed.
   ///
@@ -4414,6 +4444,12 @@ abstract class AppLocalizations {
   /// **'PDF를 열지 못했어요. 다시 시도해 주세요'**
   String get coachChatPdfOpenFailed;
 
+  /// Toast when the server refuses a weekly report the member has neither received nor bought (403).
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 받지 않은 리포트예요'**
+  String get coachReportNotReceived;
+
   /// No description provided for @coachChatReportRegistered.
   ///
   /// In ko, this message translates to:
@@ -5619,6 +5655,18 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'새 코드 받기'**
   String get trainerSyncRetry;
+
+  /// No description provided for @trainerSyncConnected.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name} 트레이너와 연결됐어요'**
+  String trainerSyncConnected(String name);
+
+  /// No description provided for @trainerSyncConnectedBody.
+  ///
+  /// In ko, this message translates to:
+  /// **'이제 트레이너가 회원님의 기록을 보고 코칭할 수 있어요.'**
+  String get trainerSyncConnectedBody;
 
   /// Sign-up: the account was created but the follow-up sign-in failed (#1926).
   ///
@@ -7106,6 +7154,30 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'취소한 요청은 다시 되돌릴 수 없어요.'**
   String get exConsultHistoryCancelBody;
+
+  /// Title of the confirm dialog when a member cancels a consultation the trainer already accepted, before it starts (#3359).
+  ///
+  /// In ko, this message translates to:
+  /// **'확정된 상담을 취소할까요?'**
+  String get exConsultAcceptedCancelTitle;
+
+  /// No description provided for @exConsultAcceptedCancelBody.
+  ///
+  /// In ko, this message translates to:
+  /// **'트레이너에게 취소를 알리고 잡아 둔 시간을 비워요. 취소한 상담은 다시 되돌릴 수 없어요.'**
+  String get exConsultAcceptedCancelBody;
+
+  /// Confirm button of the cancel dialog for an accepted consultation. Sits next to Keep.
+  ///
+  /// In ko, this message translates to:
+  /// **'상담 취소'**
+  String get exConsultAcceptedCancelAction;
+
+  /// No description provided for @exConsultCancelStarted.
+  ///
+  /// In ko, this message translates to:
+  /// **'시작 시각이 지난 상담은 취소할 수 없어요.'**
+  String get exConsultCancelStarted;
 
   /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
   ///
