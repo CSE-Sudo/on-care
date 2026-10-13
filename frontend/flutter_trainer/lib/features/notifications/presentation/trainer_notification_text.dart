@@ -87,6 +87,16 @@ TrainerNotificationText? _assemble(
     case 'trainer_consult_withdrawn':
       final String? day = _day(l, args['preferred_date']);
       if (name == null || day == null) return null;
+      // 수락되어 스케줄에 잡혀 있던 상담이 탈퇴로 빠졌다(#3360) — 시각까지 적는다.
+      if (template == 'trainer_consult_withdrawn' && args['booked'] == true) {
+        return (
+          title: l.notifTplConsultWithdrawnBookedTitle,
+          body: l.notifTplMemberWithDetail(
+            name,
+            _when(l, args['starts_at']) ?? day,
+          ),
+        );
+      }
       return (
         title: switch (template) {
           'trainer_consult_requested' => l.notifTplConsultRequestedTitle,

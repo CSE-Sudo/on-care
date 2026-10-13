@@ -395,6 +395,61 @@ class CoachMessage {
   bool get fromMe => sender == CoachSender.me;
 }
 
+/// 회원이 받은 주간 리포트 한 건 — `GET /me/coach/reports` 의 한 줄. (#3348)
+///
+/// 예전에는 대화에 남은 안내 메시지를 끝까지 읽어 목록을 만들었다. 대화는
+/// 담당이 해제되면 읽을 수 없고 보낸 트레이너가 탈퇴하면 함께 지워지지만, 받은
+/// 리포트는 회원에게 남는 기록이라 서버가 따로 들고 준다.
+class ReceivedReport {
+  const ReceivedReport({
+    required this.id,
+    required this.weekStart,
+    required this.sentAt,
+    required this.body,
+    this.trainerName,
+    this.attachment,
+  });
+
+  /// 리포트를 실어 온 전송 메시지의 id. 보낼 때 굳힌 값을 이것으로 찾는다.
+  final String id;
+
+  /// 리포트가 가리키는 주의 월요일.
+  final DateTime weekStart;
+
+  /// 트레이너가 보낸 시각.
+  final DateTime sentAt;
+
+  /// 보낸 트레이너의 이름. 그 트레이너가 탈퇴했으면 없다.
+  final String? trainerName;
+
+  /// 트레이너가 함께 적은 글.
+  final String body;
+
+  /// 함께 온 PDF. 본문만 보낸 리포트이거나 파일이 더 남아 있지 않으면 없다.
+  final CoachAttachment? attachment;
+
+  /// 이 리포트를 실어 온 대화 안내의 모양 — 대화와 목록이 같은 규칙으로 연다.
+  CoachMessage get notice => CoachMessage(
+    id: id,
+    sender: CoachSender.trainer,
+    body: body,
+    timeLabel: '',
+    createdAt: sentAt,
+    attachment: attachment,
+    reportWeekStart: weekStart,
+  );
+}
+
+/// 받은 리포트 한 쪽(최신 주 → 오래된 주). (#3348)
+class ReceivedReportsPage {
+  const ReceivedReportsPage({required this.reports, this.nextBefore});
+
+  final List<ReceivedReport> reports;
+
+  /// 이 쪽보다 앞선 주가 더 있으면 다음 요청에 넘길 커서(주 월요일). 없으면 null.
+  final DateTime? nextBefore;
+}
+
 /// 루틴 전송 안내 — 무엇을 보냈나. 서버 `RoutineDeliveryCardOut`. (#2672)
 ///
 /// [kind] 는 `pt_with_routine` · `routine_only` · `cancelled_routine_only` ·

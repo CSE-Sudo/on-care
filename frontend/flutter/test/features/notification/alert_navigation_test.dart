@@ -85,6 +85,10 @@ class _FakeCoachRepository implements MemberCoachRepository {
       const <CoachMessage>[];
 
   @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async =>
+      const ReceivedReportsPage(reports: <ReceivedReport>[]);
+
+  @override
   Future<List<CoachRoutine>> fetchRoutines() async => const <CoachRoutine>[];
 
   @override

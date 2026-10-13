@@ -1083,7 +1083,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 |---|---|---|
 | POST | `/consultations` | 입력 `{ trainer_id, slot_id, exercise_goal, health_purpose_type, message? }` |
 | GET | `/consultations/slots?trainer_id=` | 상담 신청 폼이 고를 수 있는 그 트레이너의 빈 자리 |
-| GET | `/consultations/me` | 내가 보낸 요청 (최신순, 기본 50건·커서) |
+| GET | `/consultations/me` | 내가 보낸 요청 (최신순, 기본 50건·커서). 읽기 전에 내 지난 대기 요청을 만료로 내린다(#3360) |
 | DELETE | `/consultations/{consultation_id}` | 내가 보낸 상담 취소 — 대기 중인 요청, 또는 수락됐지만 아직 시작하지 않은 상담(#3359) |
 | GET | `/consultations/{id}` | 단건(남의 것·없는 것 404) |
 
@@ -1098,6 +1098,17 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   - 시작 시각이 지났거나 일정이 이미 완료·노쇼로 끝났으면 409
     `{ "detail": { "code": "consultation_started", "message" } }` — 아무것도 바뀌지 않습니다.
   - 거절·만료·취소로 이미 끝난 요청은 409(문자열 `detail`), 남의 것·없는 것은 404 입니다.
+- **회원 조회의 만료 정리** (#3360) — `GET /consultations/me` 와 `GET /consultations/{id}` 는
+  읽기 전에 그 회원의 대기 요청 중 만료 시각(신청 24시간 뒤·자리 시작 2시간 전 중 이른 쪽)이
+  지난 것을 `expired` 로 내리고, 잡고 있던 자리를 풀고, 만료 알림(틀 `member_consult_expired`)을
+  한 번 남깁니다. 트레이너가 앱을 열지 않아도 회원 화면에 "대기 중" 이 남지 않습니다.
+- **트레이너 정지·탈퇴** (#3360) — 그 트레이너에게 낸 대기 요청과 **시작 전인 수락된 상담**은
+  `cancelled` 가 되고(처리자 없음 — `cancelled_by_trainer` 는 `false`) 회원에게 알림이 갑니다.
+  분류는 `consult_decision`, 틀은 탈퇴 `member_consult_trainer_left`, 정지
+  `member_consult_trainer_unavailable` 이고 인자는 `trainer_name`, 수락된 상담이면
+  `booked: true`·`starts_at`(KST)이 더 실립니다(제목이 `확정된 상담이 취소되었어요` 로 바뀝니다).
+  이미 시작했거나 완료·노쇼로 끝난 상담은 `accepted` 로 남습니다. 탈퇴한 트레이너의 요청은
+  `trainer_id`·`trainer_name` 이 `null` 로 내려가고, 앱은 이름 자리에 대체 문구를 적습니다.
 - 상담은 **담당 여부와 관계없이** 낼 수 있습니다(#3358). 담당 트레이너가 있는 회원도 다른
   트레이너에게 신청할 수 있고, 신청·수락만으로는 담당이 바뀌지 않습니다 — 담당은 연결 요청
   수락이나 연결 코드로만 바뀝니다. 아래의 대기 중복·신청 한도는 담당이 있어도 똑같이 적용합니다.
@@ -1225,7 +1236,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`|`consult_withdrawn`|`weekly_feedback`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `health_goal` 중 틀이 `trainer_health_notes` 인 알림(회원이 건강상태·주의사항을 고침, 인자 `member_name`·`with_focus`)은 글을 싣지 않고, 앱은 회원 상세에서 신체·목표 창의 `건강 목표` 탭을 바로 엽니다. (#2619) `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174) `consult_withdrawn` 은 회원이 탈퇴(`DELETE /users/me`)하면서 대기 중(`pending`)이던 상담 요청이 함께 사라졌을 때 그 요청을 받은 트레이너에게 남습니다 — 틀 `trainer_consult_withdrawn`, 인자 `member_name`(탈퇴 직전 이름)·`preferred_date`, `target_date` 는 희망 날짜입니다. 처리된 요청과 만료 시각이 지난 요청은 알리지 않고, 담당 트레이너는 `member_left` 만 받습니다. 떠난 회원을 가리키지 않도록 `subject_id` 는 없고 앱은 상담 요청함으로 갑니다. (#1632)
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`|`consult_withdrawn`|`weekly_feedback`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `health_goal` 중 틀이 `trainer_health_notes` 인 알림(회원이 건강상태·주의사항을 고침, 인자 `member_name`·`with_focus`)은 글을 싣지 않고, 앱은 회원 상세에서 신체·목표 창의 `건강 목표` 탭을 바로 엽니다. (#2619) `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174) `consult_withdrawn` 은 회원이 탈퇴(`DELETE /users/me`)하면서 대기 중(`pending`)이던 상담 요청이 함께 사라졌을 때 그 요청을 받은 트레이너에게 남습니다 — 틀 `trainer_consult_withdrawn`, 인자 `member_name`(탈퇴 직전 이름)·`preferred_date`, `target_date` 는 희망 날짜입니다. 처리된 요청과 만료 시각이 지난 요청은 알리지 않고, 담당 트레이너는 `member_left` 만 받습니다. 떠난 회원을 가리키지 않도록 `subject_id` 는 없고 앱은 상담 요청함으로 갑니다. (#1632) 수락되어 잡혀 있던 상담이 **시작 전**에 탈퇴로 빠졌을 때도 같은 종류·틀로 남습니다 — 인자에 `booked: true`·`starts_at`(KST)이 더 실려 제목이 `회원 탈퇴로 확정된 상담이 취소됐어요` 로 바뀌고 본문에 시각을 적으며, `target_date` 는 상담 날짜입니다. 이때 상담 일정은 `취소`(주체 `member`, 사유 `회원 탈퇴`)가 되고 신청 때 잠근 자리가 다시 열립니다. 이미 시작했거나 완료·노쇼로 끝난 상담은 그대로 두고 알리지 않습니다. (#3360)
 - **회원 주간 피드백(#3026)**: 회원이 `PUT /me/coach/weekly-feedback` 로 그 주 답을 내면 담당 트레이너에게
   `weekly_feedback` 알림 — 틀 `trainer_member_weekly_feedback`, 인자 `member_name`·`condition`·`intensity`(저장 값)·
   `pain`(통증 유무)·`revised`(고쳐 낸 답), `subject_id` = 회원, `target_date` = 그 주 월요일. 통증이 있으면 제목이
@@ -1312,6 +1323,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/me/coach/routines/{routine_id}` | 204 — 내 개인운동 취소. **담당 트레이너가 있으면 403**(취소는 트레이너의 일), 없는 루틴 404 (#1020) |
 | GET | `/me/coach/sessions` | `ScheduleSessionOut[]` — 담당 트레이너 일정 중 나와 매칭된 것과 지난 담당과 완료한 PT, 최신순(완료 회차 `session_number`, 수업한 트레이너 `trainer_name`) |
 | GET | `/me/coach/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, `sender` 는 `me`\|`trainer`). 담당이 없으면 404 |
+| GET | `/me/coach/reports?limit=&before=` | `{ reports, next_before }` — 받은 주간 리포트, 주별 최신순. 담당이 없어도 200 (#3348) |
 | POST | `/me/coach/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지 400, 이모티콘 규칙은 위 "채팅 이모티콘" |
 | GET | `/me/coach/chat/unread` | `{ unread }` — 트레이너가 보낸 안 읽은 메시지 수 |
 | POST | `/me/coach/chat/read` | `{ marked_read }` — 트레이너 메시지를 읽음 처리. 내 미읽음 메시지·리포트 알림(`coach_chat`·`coach_report`)도 함께 읽음이 된다. `marked_read` 는 메시지 수만 센다(#3343) |
@@ -1555,6 +1567,9 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 - **받았거나 산 주만 연다 (#3366).** 트레이너가 리포트를 보낸 주(대화에 남은 안내의 `report_week_start`)와 포인트로 산
   주(`GET /me/weekly-reports`)가 아니면 **403** 이다. 보낸 트레이너가 지금의 담당인지는 묻지 않는다 — 담당이 바뀌거나
   끊긴 뒤에도 이미 받은 주는 열린다. 주 형식·미래 주 검사(422)가 이 판정보다 먼저다.
+  - 보낸 트레이너가 **탈퇴해 대화가 지워진 뒤에도** 받은 주는 열린다(#3348). 전송은 회원 쪽 수신 기록
+    (`member_received_reports`)을 함께 남기고, 판정과 굳힌 값(①·③)은 대화 메시지가 없을 때 그 기록을 읽는다.
+    `message_id` 는 대화가 지워진 뒤에도 같은 전송을 가리킨다.
 - **`compare_for`**: 결과지의 `4주 평균 대비` 가 읽는 직전 주를 받는 길이다. 여는 주를 `compare_for` 에, 읽을 직전 주를
   `week_start` 에 보낸다. `compare_for` 주가 열 수 없는 주면 403, `week_start` 가 그 **직전 4주** 밖이면 422 다. 응답은
   같은 모양에 비교가 쓰는 값(`week_start`·`week_end`·`calories_week`·`completion_avg`·`sodium_avg`·`meal_counts`)만
@@ -1577,6 +1592,45 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 - **`compare_for` 응답도 굳힌 값에서 뽑는다 (#3349).** 직전 주에 ②·③ 으로 읽히는 굳힌 값이 있으면 축약 응답의 수치는 그
   값의 것이고 `snapshot_at` 이 실린다. `compare_for` 요청에서는 `message_id` 를 읽지 않는다.
 - 굳힌 값이 있어도 열람 판정(403)이 먼저다.
+
+**받은 리포트 목록 (#3348)**: 회원이 받은 리포트를 한 번에 읽는 경로다. 예전에는 앱이 대화 전체를 읽어 리포트
+안내를 추렸다 — 대화가 길수록 느렸고, 대화 조회는 지금의 담당 것만 주므로 담당이 끊기거나 바뀌면 목록이 비었다.
+
+| 메서드 | 경로 | 쓰는 쪽 |
+|---|---|---|
+| `GET` | `/me/coach/reports?limit=&before=` | 회원 앱 — MY 의 받은 리포트 |
+
+```json
+{
+  "reports": [
+    {
+      "id": "chat-1a2b3c4d5e6f",
+      "week_start": "2026-10-05",
+      "sent_at": "2026-10-12T01:20:00+00:00",
+      "trainer_name": "김코치",
+      "body": "이번 주 수고했어요",
+      "attachment": null
+    }
+  ],
+  "next_before": null
+}
+```
+
+- **담당 트레이너가 없어도 200 이다.** 받은 적이 없으면 빈 목록이다. 보낸 트레이너가 지금의 담당인지 묻지 않는다 —
+  담당을 해제하거나 바꾼 뒤에도, 이전 트레이너가 보낸 리포트까지 모두 나온다.
+- 한 주에 한 줄, **최신 주부터**다. 같은 주를 여러 번 받았으면 가장 최근 전송 하나만 싣는다.
+- 쪽은 **주** 단위다. `limit` 기본 52·최대 100, `next_before`(그 쪽의 가장 오래된 주)를 `before` 로 되돌려 주면 그
+  앞 주가 온다. 더 없으면 `next_before` 는 null 이다. `before` 가 `YYYY-MM-DD` 가 아니면 422, 주 중간 날짜는 그 주
+  월요일로 접는다.
+- `id` 는 그 전송의 채팅 메시지 id 다. 리포트를 열 때 `GET /me/coach/weekly-report` 의 `message_id` 로 보낸다.
+- `attachment` 는 PDF 로 받았고 파일이 남아 있을 때만 온다(`ChatMessageOut.attachment` 와 같은 모양,
+  `download_path` 로 받는다). null 이면 앱이 `weekly-report` 로 결과지를 세우고 `body` 를 트레이너 피드백 칸에 싣는다.
+- 근거는 회원 쪽 수신 기록(`member_received_reports`)이다. 리포트 전송(`report/send`·`report/send-pdf`)이 대화 메시지와
+  같은 id·같은 시각으로 함께 남긴다. 이 기록은 회원에게만 달려 있어, **보낸 트레이너가 탈퇴해 대화가 지워져도**
+  남는다. 그때 `trainer_name` 은 null 이고(탈퇴한 사람의 이름은 남기지 않는다), PDF 는 대화와 함께 지워져
+  `attachment` 도 null 이다 — 그 주는 굳힌 값으로 결과지가 열린다.
+- 포인트로 산 리포트는 싣지 않는다(`GET /me/weekly-reports`).
+- 트레이너 화면의 전송 기록(`/trainer/reports/sent`, `/trainer/clients/{id}/reports/sent`)은 전처럼 대화 메시지를 읽는다.
 
 **다음 주 목표 (#2232)**: 트레이너가 리포트 ② 에서 고른 목표다. 다음 주 리포트의
 `③ 지난 주 목표 달성` 이 그대로 회수한다 — 목표는 **다음 주에 확인될 때** 비로소 목표이고,
@@ -2254,6 +2308,10 @@ open_reports }`. `AdminUserStatusOut = { user_id, role, is_active, released_clie
   /trainer/clients/{id}`)와 같은 경로라 회원에게 `member_trainer_disconnected` 알림이 가고, 아직
   시작하지 않은 PT 일정이 취소되고, PT 재등록 쿠폰이 환불된다. 대기 중 담당 요청은 `cancelled` 로
   거둔다. `released_clients` 는 이번에 해제한 수다. 정지된 트레이너는 디렉터리에서도 빠진다.
+- 트레이너를 정지하면 받은 대기 상담 요청과 시작 전인 수락된 상담도 `cancelled` 로 거둔다(#3360).
+  수락된 상담은 상담 일정이 `취소`(주체 `trainer`, 사유 `트레이너 계정 종료`)로 바뀌고, 두 경우 모두
+  잡고 있던 자리가 풀리고 회원에게 `member_consult_trainer_unavailable` 알림이 간다. 만료 시각이
+  지난 대기 요청은 평소처럼 `expired` 다. 다시 정지해도 알림은 늘지 않는다.
 - 이미 정지된 계정을 다시 정지하면 토큰 세대는 그대로이고, 남은 담당이 있을 때만 마저 해제한다.
 - 해제는 계정만 되살린다. 해제했던 담당 관계는 복구하지 않는다 — 회원의 새 동의가 필요하다.
 - 회원 계정을 정지해도 그 회원의 담당 관계는 건드리지 않는다.

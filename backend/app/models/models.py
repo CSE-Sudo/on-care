@@ -2286,6 +2286,53 @@ class ChatMessage(Base):
     )
 
 
+class MemberReceivedReport(Base):
+    """회원이 받은 주간 리포트 한 건 — 회원 쪽에 남는 수신 기록. (#3348)
+
+    리포트 전송의 근거는 대화 메시지(`ChatMessage.report_week_start`)다. 그런데
+    그 행은 보낸 트레이너에게도 달려 있어(`trainer_id` CASCADE), 트레이너가
+    탈퇴하면 대화와 함께 사라진다 — 회원이 받은 주가 닫히고 목록에서도 빠졌다.
+    받은 것은 회원의 것이므로 **회원에게만 달린** 기록을 전송과 함께 남긴다.
+
+    - `id` 는 그 전송의 채팅 메시지 id 와 같다. 회원 앱이 리포트를 열 때 보내는
+      `message_id` 가 대화가 지워진 뒤에도 같은 전송을 가리킨다.
+    - `trainer_id` 는 SET NULL 이다. 트레이너가 탈퇴하면 누가 보냈는지는 비고
+      (이름을 따로 적어 두지 않는다 — 탈퇴한 사람의 이름을 남기지 않는다),
+      받은 주·본문·굳힌 값은 남는다.
+    - PDF 는 여기 두지 않는다. 파일은 대화 메시지에 달려 있고, 대화가 사라지면
+      함께 지워진다(#2817) — 그때는 굳힌 값(`report_snapshot_json`)으로 앱이 같은
+      주의 결과지를 세운다.
+
+    트레이너 화면의 전송 기록(#2288, #2393)은 전처럼 대화 메시지를 읽는다. 이
+    표는 회원이 읽는 길(받은 리포트 목록·열람 판정·굳힌 값)만 받친다.
+    """
+
+    __tablename__ = "member_received_reports"
+
+    #: 그 전송의 `ChatMessage.id`. 대화가 지워져도 남아야 해 FK 를 걸지 않는다.
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    member_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: 리포트가 가리키는 주의 월요일 `YYYY-MM-DD`.
+    week_start: Mapped[str] = mapped_column(String(10))
+    #: 트레이너가 리포트와 함께 보낸 글 — 결과지의 `트레이너 피드백` 칸에 선다.
+    body: Mapped[str] = mapped_column(Text, default="")
+    #: 보낸 시점의 그 주 수치·목표(`WeeklyReportOut` JSON, #3349). 옛 전송은 NULL.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 보낸 시각 — 메시지의 `created_at` 과 같다.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_member_received_reports_member_week", "member_id", "week_start"),
+    )
+
+
 class TrainerSchedule(Base):
     """트레이너의 일일 타임라인 슬롯 — 프론트 TrainerScheduleEntries 대응.
 

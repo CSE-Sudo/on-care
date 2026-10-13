@@ -19,19 +19,22 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequireMember
 from app.api.v1 import chat_attachments
 from app.core import clock
+from app.core.pagination import MAX_PAGE
 from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
 from app.schemas.record_dates import parse_ymd
 from app.schemas.text_limits import TEXT_LONG_MAX
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
-    MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
+    MemberCoachOut, MemberInviteAcceptRequest, MemberReceivedReportsOut,
+    MemberWeeklyFeedbackOut,
     MemberWeeklyFeedbackSaveRequest, MemberWeeklyReportOut, RoutineCompleteOut,
     RoutineOut, ScheduleSessionOut, UpcomingRoutinesOut,
 )
 from app.services import (
     emote_service,
     member_departure,
+    received_reports,
     report_snapshot_service,
     trainer_client_invite_service,
     weekly_report_access,
@@ -623,3 +626,40 @@ def my_weekly_report(
     return MemberWeeklyReportOut(
         **report.model_dump(exclude={"message"}), message="", snapshot_at=taken_at
     )
+
+
+# ---- 받은 리포트 목록 (#3348) ----
+# 예전에는 목록을 주는 경로가 없어 앱이 대화를 처음부터 끝까지 읽고 리포트 안내를
+# 추려 냈다. 대화가 길수록 느렸고, 대화 조회는 지금의 담당 것만 주므로 담당이
+# 끊기거나 바뀌면 목록이 통째로 비었다. 회원 쪽 수신 기록을 읽어 한 번에 준다.
+
+#: 받은 리포트 목록 한 쪽의 주 수. 한 주에 한 줄이라 한 해 치가 한 쪽에 든다.
+_RECEIVED_REPORTS_PAGE = 52
+
+
+@router.get("/me/coach/reports", response_model=MemberReceivedReportsOut)
+def my_received_reports(
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(
+        _RECEIVED_REPORTS_PAGE, ge=1, le=MAX_PAGE, description="한 번에 가져올 주 수"
+    ),
+    before: str | None = Query(
+        None, description="YYYY-MM-DD — 이 주보다 이전 주만(앞 쪽의 next_before)"
+    ),
+) -> MemberReceivedReportsOut:
+    """내가 받은 주간 리포트, 주별로 최신 주부터.
+
+    **담당 트레이너가 없어도 200 이다.** 받은 리포트는 회원의 것이라 담당이
+    끊기거나 바뀐 뒤에도, 보낸 트레이너가 탈퇴한 뒤에도 남는다. 포인트로 산
+    리포트는 여기 싣지 않는다(`GET /me/weekly-reports`).
+    """
+    cursor: date | None = None
+    if before:
+        try:
+            cursor = parse_ymd(before)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 해요."
+            ) from exc
+    return received_reports.list_received(db, user.id, limit=limit, before=cursor)

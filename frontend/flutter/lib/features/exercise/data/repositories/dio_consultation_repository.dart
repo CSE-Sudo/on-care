@@ -156,6 +156,9 @@ class MockConsultationRepository implements ConsultationRepository {
   /// 까닭으로 헬스장 저장소도 기다리지 않는 조회만 쓴다.
   @override
   Future<String> create(ConsultationDraft draft) async {
+    // 서버도 접수 전에 지난 대기 요청부터 만료로 내린다 — 만료된 요청이 대기 중복과
+    // 대기 상한에 걸리지 않는다(#3360).
+    _expireStale(nowKst());
     if (_mine.any(
       (ConsultationRequest r) => r.trainerId == draft.trainerId && r.isPending,
     )) {
@@ -209,10 +212,38 @@ class MockConsultationRepository implements ConsultationRepository {
   }
 
   /// 이번 세션에 낸 신청. 앱을 새로 켜면 사라진다 — 데모의 다른 기록과 같다.
+  ///
+  /// 실서버처럼 읽기 전에 지난 대기 요청을 만료로 내리고 자리를 푼다(#3360).
+  /// 데모에는 요청을 확인해 줄 트레이너가 없어, 두면 "대기 중" 으로 영영 남는다.
   @override
   Future<List<ConsultationRequest>> fetchMine({
     int limit = consultationPageSize,
-  }) async => List<ConsultationRequest>.unmodifiable(_mine.take(limit));
+  }) async {
+    _expireStale(nowKst());
+    return List<ConsultationRequest>.unmodifiable(_mine.take(limit));
+  }
+
+  /// 만료 시각이 지난 대기 요청을 만료로 바꾸고 잡아 둔 자리를 푼다. 만료 시각은
+  /// 서버 `_expires_at` 과 같다 — 신청 뒤 [kConsultationHold] 와 자리 시작
+  /// [kConsultationExpireBeforeStart] 전 중 이른 쪽.
+  void _expireStale(DateTime now) {
+    for (int i = 0; i < _mine.length; i++) {
+      final ConsultationRequest request = _mine[i];
+      if (!request.isPending) continue;
+      DateTime expiresAt = request.createdAt.add(kConsultationHold);
+      final DateTime? startsAt = request.slotStartsAt;
+      if (startsAt != null) {
+        final DateTime beforeStart = startsAt.subtract(
+          kConsultationExpireBeforeStart,
+        );
+        if (beforeStart.isBefore(expiresAt)) expiresAt = beforeStart;
+      }
+      if (expiresAt.isAfter(now)) continue;
+      _mine[i] = request.copyWith(status: ConsultationStatus.expired);
+      final String? slotId = _slotOf.remove(request.id);
+      if (slotId != null) _mockGyms?.setSlotBooked(slotId, booked: false);
+    }
+  }
 
   /// 신청을 취소하고 잡아 둔 자리를 푼다. 실서버처럼 대기 중이거나, 수락됐지만
   /// 아직 시작하지 않은 상담만 취소할 수 있다(#3359).

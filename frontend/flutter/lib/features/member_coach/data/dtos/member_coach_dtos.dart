@@ -207,6 +207,47 @@ CoachMessage coachMessageFromJson(Map<String, Object?> json) {
   );
 }
 
+/// `GET /me/coach/reports` (MemberReceivedReportsOut) → [ReceivedReportsPage].
+/// (#3348)
+///
+/// 한 줄이 어긋나면 목록 전체를 포기한다 — 주나 보낸 시각을 모르는 줄을 지어내
+/// 세우면 엉뚱한 주의 리포트가 열린다.
+ReceivedReportsPage receivedReportsPageFromJson(Map<String, Object?> json) {
+  final Object? rows = json['reports'];
+  if (rows is! List) {
+    throw const FormatException('Invalid received reports.');
+  }
+  final Object? next = json['next_before'];
+  return ReceivedReportsPage(
+    reports: <ReceivedReport>[
+      for (final Object? row in rows)
+        if (row is Map<String, Object?>)
+          _receivedReport(row)
+        else
+          throw const FormatException('Invalid received report.'),
+    ],
+    nextBefore: next is String ? DateTime.tryParse(next) : null,
+  );
+}
+
+ReceivedReport _receivedReport(Map<String, Object?> json) {
+  final DateTime? week = _reportWeekStart(json['week_start']);
+  if (week == null) {
+    throw const FormatException('Invalid received report week_start.');
+  }
+  final Object? trainerName = json['trainer_name'];
+  return ReceivedReport(
+    id: _requiredString(json, 'id'),
+    weekStart: week,
+    sentAt: _requiredDateTime(json, 'sent_at'),
+    trainerName: trainerName is String && trainerName.isNotEmpty
+        ? trainerName
+        : null,
+    body: _str(json['body']),
+    attachment: _attachment(json['attachment']),
+  );
+}
+
 /// 루틴 전송 안내라면 그 전송. (#2672)
 ///
 /// 리포트 안내([_reportWeekStart])처럼 모양이 어긋나면 안내를 포기하고 일반

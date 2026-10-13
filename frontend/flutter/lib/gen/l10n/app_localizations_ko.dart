@@ -2867,6 +2867,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '트레이너가 상담 일정을 취소했어요. 다른 시간으로 다시 신청해 보세요.';
 
   @override
+  String get exConsultTrainerNameMissing => '트레이너 정보 없음';
+
+  @override
   String get exExerciseGoal => '운동 목표';
 
   @override
@@ -4853,11 +4856,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachReportsLoadFailed => '받은 리포트를 불러오지 못했어요';
 
   @override
+  String get coachReportsLoadMore => '이전 리포트 더 보기';
+
+  @override
   String get weeklyFeedbackLoadFailed => '보낸 주간 피드백을 불러오지 못했어요';
 
   @override
   String coachReportSentOn(int month, int day) {
     return '$month월 $day일 보냄';
+  }
+
+  @override
+  String coachReportSentBy(String name, String sentOn) {
+    return '$name · $sentOn';
   }
 
   @override

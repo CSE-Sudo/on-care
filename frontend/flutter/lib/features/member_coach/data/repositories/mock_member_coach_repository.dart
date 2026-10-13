@@ -16,6 +16,7 @@ import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
+import 'package:oncare/features/member_coach/domain/received_report_list.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds;
@@ -895,6 +896,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       holdSeconds: e.holdSeconds,
     );
   }
+
+  @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async =>
+      // 대화와 달리 담당이 끊겨도 준다 — 받은 리포트는 회원에게 남는
+      // 기록이다(#3348). 실서버도 담당 여부를 묻지 않는다.
+      pageReceivedReports(
+        foldReceivedReports(_chat, trainerName: _coach.name),
+        before: before,
+      );
 
   @override
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>

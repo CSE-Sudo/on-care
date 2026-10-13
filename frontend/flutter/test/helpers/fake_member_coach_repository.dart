@@ -11,6 +11,7 @@ import 'dart:typed_data';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
+import 'package:oncare/features/member_coach/domain/received_report_list.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare_core/clock.dart';
 
@@ -39,7 +40,7 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
   /// 주 월요일 → 그 주 답.
   final Map<DateTime, MemberWeeklyFeedback> feedback;
 
-  /// 대화 — 리포트 안내가 여기 섞여 있다.
+  /// 대화 — 리포트 안내가 여기 섞여 있다. 받은 리포트 목록도 여기서 접는다.
   final List<CoachMessage> chat;
 
   /// 보내기가 실패하는가.
@@ -107,6 +108,24 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
   @override
   Stream<List<CoachMessage>> watchChat() =>
       Stream<List<CoachMessage>>.value(pageCoachChat(chat));
+
+  /// [fetchReceivedReports] 가 받은 커서들 — 첫 쪽은 null 이다.
+  final List<DateTime?> reportCursors = <DateTime?>[];
+
+  /// 받은 리포트 한 쪽의 크기. 줄이면 쪽을 넘기는 길을 본다.
+  int reportPageSize = receivedReportsPageSize;
+
+  /// 서버처럼 주마다 마지막 한 건을 최신 주부터 준다(#3348). 대화와 달리
+  /// 담당([coach])이 없어도 준다.
+  @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async {
+    reportCursors.add(before);
+    return pageReceivedReports(
+      foldReceivedReports(chat, trainerName: coach?.name),
+      before: before,
+      size: reportPageSize,
+    );
+  }
 
   /// 운동 탭의 추천 개인운동 카드가 오늘 목록과 함께 읽는다(#3106). 예정이
   /// 없는 회원이 기본이다.

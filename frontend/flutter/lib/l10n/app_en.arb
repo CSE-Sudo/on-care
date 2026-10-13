@@ -2106,6 +2106,7 @@
   "exConsultExpired": "Expired",
   "exConsultExpiredBody": "The trainer did not respond in time. Try requesting another time.",
   "exConsultCancelledByTrainerBody": "The trainer cancelled this consultation. Try requesting another time.",
+  "exConsultTrainerNameMissing": "Trainer unavailable",
   "exExerciseGoal": "Exercise goal",
   "exGoalHealth": "Health management",
   "exOptionOther": "Other",
@@ -4149,6 +4150,7 @@
   "coachReportsEmpty": "No reports yet",
   "coachReportsEmptyHint": "Weekly reports from your trainer land here",
   "coachReportsLoadFailed": "Couldn't load your reports",
+  "coachReportsLoadMore": "Show earlier reports",
   "weeklyFeedbackLoadFailed": "Couldn't load the weekly feedback you sent",
   "coachReportSentOn": "Sent {month}/{day}",
   "@coachReportSentOn": {
@@ -4158,6 +4160,17 @@
       },
       "day": {
         "type": "int"
+      }
+    }
+  },
+  "coachReportSentBy": "{name} · {sentOn}",
+  "@coachReportSentBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "sentOn": {
+        "type": "String"
       }
     }
   },

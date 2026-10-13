@@ -2487,6 +2487,35 @@ class MemberReportSendsOut(BaseModel):
     next_before: str | None = None
 
 
+class MemberReceivedReportOut(BaseModel):
+    """회원이 받은 한 주 리포트 — `GET /me/coach/reports` 의 한 줄. (#3348)
+
+    한 주를 여러 번 받았으면 가장 최근 전송 하나다. 회원 쪽 수신 기록에서 읽어,
+    담당이 끊기거나 바뀌거나 보낸 트레이너가 탈퇴한 뒤에도 남는다.
+    """
+    #: 그 전송의 채팅 메시지 id. `GET /me/coach/weekly-report` 의 `message_id` 로
+    #: 보내면 그때 굳힌 값이 열린다. 대화가 지워진 뒤에도 같은 값이다.
+    id: str
+    week_start: str              # 리포트 주의 월요일 YYYY-MM-DD
+    #: 보낸 시각(ISO, UTC).
+    sent_at: str
+    #: 보낸 트레이너의 이름. 그 계정이 탈퇴했으면 null 이다.
+    trainer_name: str | None = None
+    #: 트레이너가 리포트와 함께 보낸 글 — 회원이 받은 그대로다.
+    body: str = ""
+    #: PDF 로 받았고 그 파일이 남아 있으면 그 첨부. 본문으로 받았거나, 대화가
+    #: 지워져 파일이 없으면 null 이다 — 그때 앱은 결과지를 세워 연다.
+    attachment: ChatAttachmentOut | None = None
+
+
+class MemberReceivedReportsOut(BaseModel):
+    """회원이 받은 리포트를 최신 주부터. 받은 적이 없으면 빈 목록이다. (#3348)"""
+    reports: list[MemberReceivedReportOut] = Field(default_factory=list)
+    #: 다음 쪽 커서 — 이 값을 `before` 로 다시 주면 더 오래된 주가 온다.
+    #: 더 없으면 null 이다.
+    next_before: str | None = None
+
+
 class TrainerPasswordChange(BaseModel):
     """비밀번호 변경 — 현재 비밀번호 확인 후 교체.
 

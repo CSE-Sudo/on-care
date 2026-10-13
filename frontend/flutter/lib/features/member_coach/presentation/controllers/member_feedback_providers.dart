@@ -1,17 +1,16 @@
-/// 회원이 담당 트레이너에게 내는 주간 피드백과, 트레이너가 보낸 리포트 목록.
+/// 회원이 담당 트레이너에게 내는 주간 피드백과, 트레이너에게 받은 리포트 목록.
 /// (#2232)
 ///
-/// 둘 다 **담당 트레이너가 있는 회원**의 기능이다. 트레이너 없이 보는 주간
-/// 리포트(포인트 교환, #2022)와는 다른 길이므로 그 provider 를 재사용하지
-/// 않는다 — 받는 사람이 다르면 같은 이름의 화면이라도 다른 기능이다.
+/// 피드백은 **담당 트레이너가 있는 회원**의 기능이다. 받은 리포트는 담당이
+/// 없어진 뒤에도 남는다(#3348). 트레이너 없이 보는 주간 리포트(포인트 교환,
+/// #2022)와는 다른 길이므로 그 provider 를 재사용하지 않는다 — 받는 사람이
+/// 다르면 같은 이름의 화면이라도 다른 기능이다.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
-import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 
 /// 그 주에 내가 낸 답. 아직 안 냈으면 `submitted == false` 인 빈 답이다.
@@ -110,10 +109,101 @@ final weeklyFeedbackSenderProvider = Provider<WeeklyFeedbackSender>(
   name: 'weeklyFeedbackSender',
 );
 
+/// 받은 리포트 목록의 지금 모습 — 받아 둔 줄과, 더 있는지. (#3348)
+class ReceivedReportsState {
+  /// Creates a state.
+  const ReceivedReportsState({
+    required this.reports,
+    this.nextBefore,
+    this.loadingMore = false,
+  });
+
+  /// 받아 둔 리포트(최신 주 → 오래된 주).
+  final List<ReceivedReport> reports;
+
+  /// 더 앞선 주가 있으면 그 커서. 없으면 null — 끝까지 받았다.
+  final DateTime? nextBefore;
+
+  /// 앞 쪽을 받는 중인가.
+  final bool loadingMore;
+
+  /// 더 받을 것이 남았는가.
+  bool get hasMore => nextBefore != null;
+}
+
+/// 트레이너에게 받은 리포트 목록(최신 주 → 오래된 주). (#2232, #3348)
+///
+/// 서버의 받은 리포트 목록 하나를 읽는다. 예전에는 대화를 **끝까지** 읽어 그 안의
+/// 안내를 골랐다(#2643) — 대화가 길수록 요청이 늘었고, 담당이 해제되면 대화를
+/// 읽을 수 없어 받은 리포트가 통째로 사라졌다. 받은 리포트는 대화가 아니라
+/// 회원에게 남는 기록이라, 담당이 없어도 그대로 선다.
+///
+/// autoDispose 다. 화면에 들어올 때마다 새로 읽고, 채팅이 폴링으로 새 리포트
+/// 안내를 받으면 다시 읽는다(`TrainerChatPage`).
+class ReceivedReportsController
+    extends AutoDisposeAsyncNotifier<ReceivedReportsState> {
+  @override
+  Future<ReceivedReportsState> build() async {
+    final ReceivedReportsPage page = await ref
+        .watch(memberCoachRepositoryProvider)
+        .fetchReceivedReports();
+    return ReceivedReportsState(
+      reports: page.reports,
+      nextBefore: page.nextBefore,
+    );
+  }
+
+  /// 더 앞선 주를 한 쪽 더 받아 뒤에 잇는다.
+  ///
+  /// 실패해도 받아 둔 줄은 그대로 둔다 — 한 해 전 리포트를 못 읽었다고 방금
+  /// 보던 목록까지 오류 화면으로 바꿀 이유가 없다. `더 보기` 가 남아 다시 누를
+  /// 수 있다.
+  Future<void> loadMore() async {
+    final ReceivedReportsState? current = state.valueOrNull;
+    final DateTime? cursor = current?.nextBefore;
+    if (current == null || cursor == null || current.loadingMore) return;
+    state = AsyncData<ReceivedReportsState>(
+      ReceivedReportsState(
+        reports: current.reports,
+        nextBefore: cursor,
+        loadingMore: true,
+      ),
+    );
+    try {
+      final ReceivedReportsPage page = await ref
+          .read(memberCoachRepositoryProvider)
+          .fetchReceivedReports(before: cursor);
+      final Set<String> seen = <String>{
+        for (final ReceivedReport report in current.reports) report.id,
+      };
+      state = AsyncData<ReceivedReportsState>(
+        ReceivedReportsState(
+          reports: <ReceivedReport>[
+            ...current.reports,
+            for (final ReceivedReport report in page.reports)
+              if (seen.add(report.id)) report,
+          ],
+          nextBefore: page.nextBefore,
+        ),
+      );
+    } catch (_) {
+      state = AsyncData<ReceivedReportsState>(
+        ReceivedReportsState(reports: current.reports, nextBefore: cursor),
+      );
+    }
+  }
+}
+
+final receivedReportsProvider =
+    AsyncNotifierProvider.autoDispose<
+      ReceivedReportsController,
+      ReceivedReportsState
+    >(ReceivedReportsController.new, name: 'receivedReports');
+
 /// 트레이너가 보낸 리포트 한 건 — 대화에 남은 안내에서 읽는다. (#2232)
 ///
-/// 리포트에는 따로 목록 엔드포인트가 없다. 트레이너가 보낼 때 대화에 안내
-/// 메시지 한 건이 남고([CoachMessage.reportWeekStart]), 그것이 곧 보낸 기록이다.
+/// 받은 리포트 **목록**은 [receivedReportsProvider] 가 서버에서 따로 읽는다
+/// (#3348). 이것은 알림이 가리킨 한 건을 대화에서 짚을 때 쓴다([findReportNotice]).
 /// 파일명이나 본문으로 추측하지 않는다 — 서버가 실어 보낸 주(월요일)만 본다.
 class SentReportNotice {
   /// Creates a notice.
@@ -128,30 +218,6 @@ class SentReportNotice {
   /// 트레이너가 보낸 시각.
   DateTime get sentAt => message.createdAt;
 }
-
-/// 트레이너가 보낸 리포트 목록(최신 → 오래된). (#2232)
-///
-/// 대화를 **끝까지** 읽어 만든다(#2643). 예전에는 커서 없이 한 번만 불러 최신
-/// 50건 안의 리포트만 보였다 — 대화가 길어지면 몇 주 전 리포트가 목록에서
-/// 사라졌다.
-///
-/// autoDispose 다. 예전에는 한 번 읽은 목록이 세션 내내 남아, 앱을 다시 켜기
-/// 전까지 새 리포트가 보이지 않았다. 이제 화면에 들어올 때마다 새로 읽고,
-/// 채팅이 폴링으로 새 리포트 안내를 받으면 다시 읽는다(`TrainerChatPage`).
-final sentReportNoticesProvider =
-    FutureProvider.autoDispose<List<SentReportNotice>>((ref) async {
-      final List<CoachMessage> chat;
-      try {
-        chat = await fetchWholeCoachChat(
-          ref.watch(memberCoachRepositoryProvider),
-        );
-      } on CoachUnassignedException {
-        // 담당이 해제되면 대화를 읽을 수 없다 — 받은 리포트도 없는 것으로 본다.
-        // 대화 404 를 해제 신호로 바꾸기 전(#2843)과 같은 빈 목록이다.
-        return const <SentReportNotice>[];
-      }
-      return selectReportNotices(chat);
-    }, name: 'sentReportNotices');
 
 /// 대화에서 리포트 안내만 골라 목록으로 만든다(최신 주 → 오래된 주). (#2232)
 ///
