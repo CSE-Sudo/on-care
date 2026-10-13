@@ -486,7 +486,7 @@ def _join_out(db: Session, member_id: str, row: WeeklyChallenge) -> ChallengeJoi
 def _result_args(
     row: WeeklyChallenge, *, days: int, succeeded: bool
 ) -> dict[str, object]:
-    """결과 알림 틀의 인자(#2302). 문장은 `notification_templates` 가 언어별로 만든다."""
+    """결과 알림 틀의 인자(#2302). 문장은 `notification_templates` 가 만든다."""
     return {
         "succeeded": succeeded,
         "week_start": row.week_start,

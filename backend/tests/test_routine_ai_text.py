@@ -1,16 +1,13 @@
-"""AI 운동 추천의 언어. (#2301)
+"""AI 운동 추천의 문장과 근거 코드. (#2301, #3404)
 
 지키는 계약은 넷이다.
 
-1. **근거는 코드다.** 자동 후보의 근거는 언어와 무관한 코드로 저장·전달되고,
-   트레이너 웹이 화면 언어로 표시한다. 코드로 바꾸기 전에 문장으로 저장된
-   행도 읽을 때 코드로 되돌린다.
-2. **AI·규칙형 출력은 요청한 트레이너의 언어를 따른다.** 영어 요청은 영어
-   이름·사유·근거 문장을, 한국어(또는 헤더 없음)는 지금까지와 **같은 바이트**를
-   받는다. `intensity`·`type` 은 번역하지 않는 계약값이다.
-3. **시작 템플릿도 요청 언어다.** 저장된 템플릿(트레이너가 쓴 글)은 옮기지 않는다.
-4. **회원에게 가는 사유는 트레이너가 보낸 언어 그대로다.** 트레이너가 검토하고
-   승인한 문장을 회원 화면 언어로 다시 쓰지 않는다.
+1. **근거는 코드다.** 자동 후보의 근거는 코드로 저장·전달되고, 트레이너 웹이
+   문구를 붙인다. 코드로 바꾸기 전에 문장으로 저장된 행도 읽을 때 코드로 되돌린다.
+2. **AI·규칙형 출력은 한국어다.** 서버는 `Accept-Language` 를 읽지 않는다 —
+   `en` 을 보내도 헤더 없는 요청과 같은 문장이다. `intensity`·`type` 은 계약값이다.
+3. **시작 템플릿도 한국어다.** 저장된 템플릿(트레이너가 쓴 글)은 그대로 돌려준다.
+4. **회원에게 가는 사유는 트레이너가 보낸 그대로다.**
 """
 from __future__ import annotations
 
@@ -21,7 +18,6 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import select
 
-from app.core import locale as request_locale
 from app.core.security import hash_password
 from app.db.session import SessionLocal
 from app.models.models import TrainerProgramTemplate, TrainerRoutine, User
@@ -105,7 +101,7 @@ def test_every_legacy_label_maps_to_a_known_code():
     ],
 )
 def test_legacy_sentence_rows_are_read_back_as_codes(legacy, code):
-    """코드로 바꾸기 전에 준비된 후보도 영어 화면에서 번역돼야 한다."""
+    """코드로 바꾸기 전에 준비된 후보도 코드로 읽힌다."""
     assert trainer_common_service.suggestion_evidence(
         json.dumps([legacy], ensure_ascii=False)
     ) == [code]
@@ -155,7 +151,7 @@ def test_mixed_legacy_and_code_rows_keep_order_and_item_limit():
 
 
 # ---------------------------------------------------------------------------
-# 2-a. 개인운동 후보(규칙) — 이름·사유는 요청 언어, 근거는 코드
+# 2-a. 개인운동 후보(규칙) — 이름·사유는 한국어, 근거는 코드
 # ---------------------------------------------------------------------------
 
 _ALL_SIGNALS = suggestions._Signals(
@@ -174,8 +170,8 @@ _RECORDS_ONLY = suggestions._Signals(has_records=True, total_minutes=60)
 
 def test_korean_candidates_keep_their_exact_wording():
     """한국어 사유는 트레이너가 읽는 문장이다 — 회원 기록 숫자로 말한다(#2579)."""
-    recovery, walking = suggestions._candidates_for(_ALL_SIGNALS, "ko")
-    (light,) = suggestions._candidates_for(_RECORDS_ONLY, "ko")
+    recovery, walking = suggestions._candidates_for(_ALL_SIGNALS)
+    (light,) = suggestions._candidates_for(_RECORDS_ONLY)
 
     assert recovery.name == "하체·전신 회복 스트레칭"
     assert recovery.reason == (
@@ -214,7 +210,7 @@ def test_korean_candidates_keep_their_exact_wording():
     ],
 )
 def test_recovery_reason_says_only_the_signals_it_has(signals, expected):
-    (recovery,) = suggestions._candidates_for(signals, "ko")
+    (recovery,) = suggestions._candidates_for(signals)
     assert recovery.reason == expected
 
 
@@ -229,65 +225,33 @@ def test_recovery_reason_says_only_the_signals_it_has(signals, expected):
     ],
 )
 def test_walk_reason_names_the_signal(signals, head):
-    (walking,) = suggestions._candidates_for(signals, "ko")
+    (walking,) = suggestions._candidates_for(signals)
     assert walking.reason.startswith(head)
 
 
-def test_default_locale_is_korean():
-    assert suggestions._candidates_for(_ALL_SIGNALS) == suggestions._candidates_for(
-        _ALL_SIGNALS, "ko"
-    )
-
-
-@pytest.mark.parametrize("signals", [_ALL_SIGNALS, _RECORDS_ONLY])
-def test_english_candidates_have_no_korean_text(signals):
-    for candidate in suggestions._candidates_for(signals, "en"):
-        assert not _has_hangul(candidate.name), candidate.name
-        assert not _has_hangul(candidate.reason), candidate.reason
-        assert candidate.name.strip() and candidate.reason.strip()
-
-
-def test_english_candidates_fit_the_suggestion_schema():
-    for signals in (_ALL_SIGNALS, _RECORDS_ONLY):
-        for candidate in suggestions._candidates_for(signals, "en"):
-            assert len(candidate.name) <= 100
-            assert len(candidate.reason) <= 200
-
-
-@pytest.mark.parametrize("signals", [_ALL_SIGNALS, _RECORDS_ONLY])
-def test_language_changes_only_the_words(signals):
-    """구성(시간·유형·근거)은 언어와 무관하다 — 영어 화면이라고 다른 운동이 아니다."""
-    ko = suggestions._candidates_for(signals, "ko")
-    en = suggestions._candidates_for(signals, "en")
-    assert [(c.minutes, c.type, c.evidence) for c in ko] == [
-        (c.minutes, c.type, c.evidence) for c in en
-    ]
-
-
-@pytest.mark.parametrize("locale", ["ko", "en"])
-def test_candidate_evidence_is_always_codes(locale):
+def test_candidate_evidence_is_always_codes():
     for signals in (_ALL_SIGNALS, _RECORDS_ONLY, suggestions._Signals(
         pt_just_finished=True, has_records=True
     )):
-        for candidate in suggestions._candidates_for(signals, locale):
+        for candidate in suggestions._candidates_for(signals):
             assert candidate.evidence
             assert set(candidate.evidence) <= set(suggestions.EVIDENCE_CODES)
 
 
 def test_trainer_feedback_without_pt_uses_the_recent_pt_code():
     (light,) = suggestions._candidates_for(
-        suggestions._Signals(trainer_feedback=True, has_records=True), "en"
+        suggestions._Signals(trainer_feedback=True, has_records=True)
     )
     assert light.evidence == (suggestions.EV_RECENT_PT,)
 
 
-def test_contract_types_are_never_translated():
-    for candidate in suggestions._candidates_for(_ALL_SIGNALS, "en"):
+def test_candidate_types_are_contract_values():
+    for candidate in suggestions._candidates_for(_ALL_SIGNALS):
         assert candidate.type in {"스트레칭", "유산소"}
 
 
 # ---------------------------------------------------------------------------
-# 2-b. 개인운동 후보(API) — 준비하는 요청의 언어
+# 2-b. 개인운동 후보(API)
 # ---------------------------------------------------------------------------
 
 
@@ -324,33 +288,24 @@ def _review_list(client, token: str, member_id: str, headers: dict | None = None
     return res.json()
 
 
-def test_english_trainer_gets_english_candidates_with_codes(client, fresh):
-    rows = _review_list(client, fresh, BP_MEMBER, EN)
+@pytest.mark.parametrize("headers", [None, KO, EN])
+def test_candidates_are_korean_whatever_the_header(client, fresh, headers):
+    rows = _review_list(client, fresh, BP_MEMBER, headers)
 
     assert rows
-    for row in rows:
-        assert not _has_hangul(row["name"]), row["name"]
-        assert not _has_hangul(row["reason"]), row["reason"]
-        assert row["evidence"]
-        assert set(row["evidence"]) <= set(suggestions.EVIDENCE_CODES)
-    walking = [row for row in rows if row["name"] == "Low-intensity walk"]
+    walking = [row for row in rows if row["name"] == "저강도 걷기"]
     assert walking, rows
     assert suggestions.EV_BLOOD_PRESSURE in walking[0]["evidence"]
-
-
-def test_without_a_header_candidates_stay_korean(client, fresh):
-    rows = _review_list(client, fresh, BP_MEMBER)
-
-    assert rows
-    assert any(row["name"] == "저강도 걷기" for row in rows)
     for row in rows:
         assert _has_hangul(row["name"])
-        # 근거는 한국어 화면에서도 코드다 — 문구는 앱이 붙인다.
+        assert _has_hangul(row["reason"])
+        # 근거는 코드다 — 문구는 앱이 붙인다.
+        assert row["evidence"]
         assert set(row["evidence"]) <= set(suggestions.EVIDENCE_CODES)
 
 
-def test_korean_header_matches_no_header(client, fresh):
-    with_header = _review_list(client, fresh, BP_MEMBER, KO)
+def test_english_header_matches_no_header(client, fresh):
+    with_header = _review_list(client, fresh, BP_MEMBER, EN)
     _clear_prepared(BP_MEMBER)
     without = _review_list(client, fresh, BP_MEMBER)
 
@@ -379,8 +334,8 @@ def test_stored_evidence_column_holds_codes(client, fresh):
         assert stored and set(stored) <= set(suggestions.EVIDENCE_CODES)
 
 
-def test_prepared_candidates_keep_the_language_they_were_written_in(client, fresh):
-    """후보는 하루 한 번 준비한다 — 나중에 다른 언어로 열어도 문장은 그대로, 근거만 코드."""
+def test_prepared_candidates_are_served_as_written(client, fresh):
+    """후보는 하루 한 번 준비한다 — 다시 열어도(헤더가 달라도) 같은 행·같은 문장이다."""
     first = _review_list(client, fresh, BP_MEMBER, EN)
     again = _review_list(client, fresh, BP_MEMBER, KO)
 
@@ -488,107 +443,6 @@ def test_rule_plans_korean_wording_is_unchanged():
     assert [e["name"] for e in b["exercises"]] == ["인터벌 러닝", "스쿼트", "플랭크"]
 
 
-def test_rule_plans_default_to_korean():
-    assert routine_ai.rule_based_plans(**_RULE_KW) == routine_ai.rule_based_plans(
-        **_RULE_KW, locale="ko"
-    )
-
-
-def test_rule_plans_in_english():
-    a, b = routine_ai.rule_based_plans(**{**_RULE_KW, "goal": ""}, locale="en")
-
-    for plan in (a, b):
-        for text in (plan["label"], plan["reason"], plan["rationale"]):
-            assert not _has_hangul(text), text
-        for exercise in plan["exercises"]:
-            assert not _has_hangul(exercise["name"]), exercise["name"]
-    assert a["label"] == "Recovery & consistency"
-    assert b["label"] == "Intensity & volume"
-    assert "the set goal" in b["rationale"]
-    assert "(over goal)" in a["rationale"]
-    assert [e["name"] for e in b["exercises"]] == ["Interval running", "Squat", "Plank"]
-
-
-def test_rule_plans_english_step_up_wording_follows_completion():
-    _, high = routine_ai.rule_based_plans(
-        **{**_RULE_KW, "avg_completion_rate": 80}, locale="en"
-    )
-    _, low = routine_ai.rule_based_plans(
-        **{**_RULE_KW, "avg_completion_rate": 30}, locale="en"
-    )
-    assert "room to step up" in high["rationale"]
-    assert "gradually adding" in low["rationale"]
-
-
-def test_rule_plans_keep_the_member_goal_verbatim_in_english():
-    """회원이 고른 목표 이름은 서버가 바꿔 부르지 않고 인용한다."""
-    _, b = routine_ai.rule_based_plans(**_RULE_KW, locale="en")
-    assert "'체중 감량'" in b["rationale"]
-
-
-@pytest.mark.parametrize("kwargs", [
-    {},
-    {"conditions": "무릎 통증"},
-    {"conditions": "허리 디스크, 어깨 회전근"},
-    {"recent_messages": ["회원: 발목이 아파요"]},
-    {"conditions": "최근 수술"},
-    {"frequent_exercises": ["레그프레스", "런닝머신"]},
-    {"frequent_exercises": ["스쿼트"], "conditions": "무릎"},
-])
-def test_language_never_changes_the_plan_shape(kwargs):
-    """부위 주의·대체 운동 판단은 언어와 무관하다 — 영어 화면만 주의를 놓치면 안 된다."""
-    ko = routine_ai.rule_based_plans(**_RULE_KW, **kwargs)
-    en = routine_ai.rule_based_plans(**_RULE_KW, **kwargs, locale="en")
-    for ko_plan, en_plan in zip(ko, en):
-        assert ko_plan["key"] == en_plan["key"]
-        assert ko_plan["total_minutes"] == en_plan["total_minutes"]
-        assert ko_plan["intensity"] == en_plan["intensity"]
-        assert [(e["minutes"], e["type"]) for e in ko_plan["exercises"]] == [
-            (e["minutes"], e["type"]) for e in en_plan["exercises"]
-        ]
-        assert [routine_ai.exercise_name(e["name"], "en") for e in ko_plan["exercises"]] == [
-            e["name"] for e in en_plan["exercises"]
-        ]
-
-
-def test_english_caution_notes_name_the_body_part():
-    a, _ = routine_ai.rule_based_plans(
-        **_RULE_KW, conditions="무릎 통증, 허리 디스크", locale="en"
-    )
-    assert "Cautions (knee, lower back) applied" in a["rationale"]
-    assert "스쿼트" not in json.dumps(a, ensure_ascii=False)
-
-
-def test_english_escalation_note():
-    _, b = routine_ai.rule_based_plans(
-        **_RULE_KW, conditions="가슴 통증", locale="en"
-    )
-    assert "Intensity was not raised" in b["rationale"]
-    assert b["intensity"] == "보통"
-
-
-def test_english_trainer_note_is_quoted_as_written():
-    a, _ = routine_ai.rule_based_plans(
-        **{**_RULE_KW, "trainer_note": "무릎 부담 낮게"}, locale="en"
-    )
-    assert a["rationale"].endswith("Trainer note applied: 무릎 부담 낮게.")
-
-
-def test_english_pattern_plans_keep_member_exercise_names():
-    """회원 기록의 운동 이름은 번역하지 않는다 — 회원이 적은 이름 그대로 부른다."""
-    a, b = routine_ai.rule_based_plans(
-        **_RULE_KW, frequent_exercises=["레그프레스", "런닝머신"], locale="en"
-    )
-    assert a["label"] == "Keep current pattern"
-    assert b["label"] == "Gradual progression"
-    assert [e["name"] for e in a["exercises"]] == ["레그프레스", "런닝머신"]
-    # 라이브러리에서 더한 운동만 영어다.
-    assert b["exercises"][-1]["name"] == "Squat"
-    assert "'Squat'" in b["rationale"]
-    for text in (a["label"], a["reason"], b["label"], b["reason"]):
-        assert not _has_hangul(text)
-
-
 def test_pattern_plans_korean_wording_is_unchanged():
     a, b = routine_ai.rule_based_plans(
         **_RULE_KW, frequent_exercises=["레그프레스"]
@@ -604,18 +458,11 @@ def test_pattern_plans_korean_wording_is_unchanged():
     )
 
 
-def test_unknown_exercise_names_are_left_alone():
-    assert routine_ai.exercise_name("케틀벨 스윙", "en") == "케틀벨 스윙"
-    assert routine_ai.exercise_name("스쿼트", "ko") == "스쿼트"
-    assert routine_ai.exercise_name("스쿼트", "en") == "Squat"
-
-
-@pytest.mark.parametrize("locale", ["ko", "en"])
 @pytest.mark.parametrize("note_length", [0, 200, 500])
 @pytest.mark.parametrize("minutes", [5, 30, 180])
 @pytest.mark.parametrize("pattern", [(), ("레그프레스",)])
-def test_rule_plans_satisfy_the_response_schema(minutes, pattern, note_length, locale):
-    """영어 문장은 길다 — 최대 길이 메모와 주의 문장이 모두 붙어도 폴백이 죽지 않는다."""
+def test_rule_plans_satisfy_the_response_schema(minutes, pattern, note_length):
+    """최대 길이 메모와 주의 문장이 모두 붙어도 폴백이 죽지 않는다."""
     a, b = routine_ai.rule_based_plans(
         **{
             **_RULE_KW,
@@ -624,7 +471,6 @@ def test_rule_plans_satisfy_the_response_schema(minutes, pattern, note_length, l
         },
         frequent_exercises=pattern,
         conditions="무릎 허리 어깨 발목 수술",
-        locale=locale,
     )
     for plan in (a, b):
         RoutineOptionPlanOut.model_validate(plan)
@@ -633,31 +479,22 @@ def test_rule_plans_satisfy_the_response_schema(minutes, pattern, note_length, l
 
 def test_only_overlong_rationales_are_clipped():
     a, _ = routine_ai.rule_based_plans(
-        **{**_RULE_KW, "trainer_note": "x" * 500}, locale="en"
+        **{**_RULE_KW, "trainer_note": "x" * 500}
     )
     assert len(a["rationale"]) == routine_ai.RATIONALE_MAX_CHARS
     assert a["rationale"].endswith("…")
-    short, _ = routine_ai.rule_based_plans(**_RULE_KW, locale="en")
+    short, _ = routine_ai.rule_based_plans(**_RULE_KW)
     assert not short["rationale"].endswith("…")
 
 
 # ---------------------------------------------------------------------------
-# 2-d. AI A/B — 프롬프트와 폴백의 언어
+# 2-d. AI A/B — 프롬프트와 폴백
 # ---------------------------------------------------------------------------
 
 
-def test_korean_system_prompt_is_byte_identical():
-    assert options_service.system_prompt("ko") is options_service._SYSTEM_PROMPT
+def test_system_prompt_is_the_korean_prompt_as_written():
     assert options_service.system_prompt() is options_service._SYSTEM_PROMPT
-
-
-def test_english_system_prompt_extends_the_korean_one():
-    en = options_service.system_prompt("en")
-    assert en.startswith(options_service._SYSTEM_PROMPT)
-    assert "natural English" in en
-    # 계약값을 번역하지 말라는 지시가 빠지면 영어 응답이 422 → 폴백이 된다.
-    assert "Do NOT translate" in en
-    assert "intensity" in en and "type" in en
+    assert "Output language" not in options_service._SYSTEM_PROMPT
 
 
 class _Result:
@@ -675,7 +512,7 @@ class _CapturingLlm:
         return _Result(self._text)
 
 
-_EN_LLM_JSON = json.dumps(
+_LLM_JSON = json.dumps(
     {
         "plan_a": {
             "key": "A",
@@ -714,70 +551,54 @@ def _analysis() -> RoutineOptionAnalysisOut:
     )
 
 
-@pytest.mark.parametrize(
-    ("locale", "expects_english_rule"), [("ko", False), ("en", True)]
-)
-def test_generator_sends_the_requested_language_to_the_llm(
-    monkeypatch, locale, expects_english_rule
-):
-    llm = _CapturingLlm(_EN_LLM_JSON)
-    monkeypatch.setattr(options_service, "build_member_analysis", lambda *_: _analysis())
-    # DB 없이 돈다 — 연계안 기준(#3282)은 기록 없음으로 둔다.
+def _no_next_pt(monkeypatch) -> None:
+    """DB 없이 돈다 — 연계안 기준(#3282)은 기록 없음으로 둔다."""
     monkeypatch.setattr(
         options_service,
         "build_next_pt",
-        lambda *_a, **_k: options_service.routine_next_pt.choose_next([], today=options_service.clock.today()),
+        lambda *_a, **_k: options_service.routine_next_pt.choose_next(
+            [], today=options_service.clock.today()
+        ),
     )
+
+
+def test_generator_sends_the_korean_prompt_to_the_llm(monkeypatch):
+    llm = _CapturingLlm(_LLM_JSON)
+    monkeypatch.setattr(options_service, "build_member_analysis", lambda *_: _analysis())
+    _no_next_pt(monkeypatch)
     monkeypatch.setattr(options_service, "get_coach_llm", lambda: llm)
-    token = request_locale._request_locale_ctx.set(locale)
-    try:
-        result = options_service.generate_routine_options(
-            object(), "trainer", "member", RoutineOptionsRequest(available_minutes=30)
-        )
-    finally:
-        request_locale._request_locale_ctx.reset(token)
+
+    result = options_service.generate_routine_options(
+        object(), "trainer", "member", RoutineOptionsRequest(available_minutes=30)
+    )
 
     assert result.generated_by == "ai"
     (system,) = llm.system_prompts
-    # 워커 스레드는 요청 컨텍스트를 보지 못한다 — 언어가 인자로 건너가야 한다.
-    assert (options_service._ENGLISH_OUTPUT_RULE in system) is expects_english_rule
-    if not expects_english_rule:
-        assert system == options_service._SYSTEM_PROMPT
+    assert system == options_service._SYSTEM_PROMPT
 
 
-def test_english_fallback_when_the_llm_breaks(monkeypatch):
+def test_rule_fallback_when_the_llm_breaks(monkeypatch):
     monkeypatch.setattr(options_service, "build_member_analysis", lambda *_: _analysis())
-    # DB 없이 돈다 — 연계안 기준(#3282)은 기록 없음으로 둔다.
-    monkeypatch.setattr(
-        options_service,
-        "build_next_pt",
-        lambda *_a, **_k: options_service.routine_next_pt.choose_next([], today=options_service.clock.today()),
-    )
+    _no_next_pt(monkeypatch)
     monkeypatch.setattr(
         options_service, "get_coach_llm", lambda: _CapturingLlm("not json")
     )
-    token = request_locale._request_locale_ctx.set("en")
-    try:
-        result = options_service.generate_routine_options(
-            object(), "trainer", "member", RoutineOptionsRequest(available_minutes=30)
-        )
-    finally:
-        request_locale._request_locale_ctx.reset(token)
+
+    result = options_service.generate_routine_options(
+        object(), "trainer", "member", RoutineOptionsRequest(available_minutes=30)
+    )
 
     assert result.generated_by == "rule"
     for plan in (result.plan_a, result.plan_b):
-        assert not _has_hangul(plan.label)
-        assert not _has_hangul(plan.reason)
+        assert _has_hangul(plan.label)
+        assert _has_hangul(plan.reason)
         assert plan.intensity in {"낮음", "보통", "높음"}
 
 
-def test_build_rule_options_defaults_to_korean():
+def test_build_rule_options_wording():
     request = RoutineOptionsRequest(available_minutes=30, intensity_preference="high")
-    ko = options_service.build_rule_options(_analysis(), request)
-    assert ko.plan_a.label == "회복·지속 중심"
-    en = options_service.build_rule_options(_analysis(), request, "en")
-    assert en.plan_a.label == "Recovery & consistency"
-    assert ko.plan_a.total_minutes == en.plan_a.total_minutes
+    options = options_service.build_rule_options(_analysis(), request)
+    assert options.plan_a.label == "회복·지속 중심"
 
 
 def _first_client_id(client, token: str) -> str:
@@ -786,12 +607,8 @@ def _first_client_id(client, token: str) -> str:
     return res.json()[0]["id"]
 
 
-@pytest.mark.parametrize(
-    ("headers", "english"), [(EN, True), (KO, False), ({}, False)]
-)
-def test_routine_options_api_follows_accept_language(
-    client, monkeypatch, headers, english
-):
+@pytest.mark.parametrize("headers", [EN, KO, {}])
+def test_routine_options_api_is_korean_whatever_the_header(client, monkeypatch, headers):
     llm = _CapturingLlm("not json")
     monkeypatch.setattr(options_service, "get_coach_llm", lambda: llm)
     token = _trainer_token(client)
@@ -806,9 +623,9 @@ def test_routine_options_api_follows_accept_language(
     body = res.json()
     assert body["generated_by"] == "rule"
     labels = [body["plan_a"]["label"], body["plan_b"]["label"]]
-    assert all(_has_hangul(label) != english for label in labels), labels
+    assert all(_has_hangul(label) for label in labels), labels
     assert llm.system_prompts
-    assert (options_service._ENGLISH_OUTPUT_RULE in llm.system_prompts[0]) is english
+    assert llm.system_prompts[0] == options_service._SYSTEM_PROMPT
 
 
 # ---------------------------------------------------------------------------
@@ -816,8 +633,8 @@ def test_routine_options_api_follows_accept_language(
 # ---------------------------------------------------------------------------
 
 
-def test_korean_starters_are_unchanged():
-    ko = templates.starter_templates("ko")
+def test_starters_wording():
+    ko = templates.starter_templates()
     assert [t.name for t in ko] == ["혈압 관리 기본", "체중 감량 순환", "하체 근력 A"]
     assert [t.goal for t in ko] == [
         "혈압 관리 · 초급",
@@ -827,35 +644,11 @@ def test_korean_starters_are_unchanged():
     assert [e.name for e in ko[0].exercises] == ["준비 스트레칭", "저강도 걷기", "호흡 이완"]
 
 
-def test_starters_default_to_the_request_language():
-    assert templates.starter_templates() == templates.starter_templates("ko")
-    token = request_locale._request_locale_ctx.set("en")
-    try:
-        assert templates.starter_templates() == templates.starter_templates("en")
-    finally:
-        request_locale._request_locale_ctx.reset(token)
-
-
-def test_english_starters_mirror_the_korean_ones():
-    ko = templates.starter_templates("ko")
-    en = templates.starter_templates("en")
-    assert [t.id for t in ko] == [t.id for t in en]
-    assert [t.updated_at for t in ko] == [t.updated_at for t in en]
-    for ko_t, en_t in zip(ko, en):
-        assert not _has_hangul(en_t.name)
-        assert not _has_hangul(en_t.goal)
-        assert [(e.minutes, e.type) for e in ko_t.exercises] == [
-            (e.minutes, e.type) for e in en_t.exercises
-        ]
-        for exercise in en_t.exercises:
-            assert not _has_hangul(exercise.name)
-
-
 # 템플릿 API 는 전용 트레이너를 만들어 본다 — 데모 트레이너가 저장한 템플릿이
 # 있으면 시작 구성이 나오지 않는다.
 
-EMAIL_PREFIX = "tpl-locale-"
-PASSWORD = "tpl-locale-pw-1234"
+EMAIL_PREFIX = "tpl-text-"
+PASSWORD = "tpl-text-pw-1234"
 
 
 @pytest.fixture()
@@ -863,9 +656,9 @@ def lone_trainer(client, db_session):
     suffix = uuid4().hex[:10]
     email = f"{EMAIL_PREFIX}{suffix}@oncare.com"
     user = User(
-        id=f"tpl-locale-{suffix}",
+        id=f"tpl-text-{suffix}",
         email=email,
-        name="Template Locale",
+        name="Template Text",
         hashed_password=hash_password(PASSWORD),
         role="trainer",
         is_active=True,
@@ -885,23 +678,18 @@ def lone_trainer(client, db_session):
     db_session.commit()
 
 
-@pytest.mark.parametrize(
-    ("headers", "first_name"),
-    [(EN, "Blood pressure basics"), (KO, "혈압 관리 기본"), ({}, "혈압 관리 기본")],
-)
-def test_template_api_serves_starters_in_the_request_language(
-    client, lone_trainer, headers, first_name
-):
+@pytest.mark.parametrize("headers", [EN, KO, {}])
+def test_template_api_serves_korean_starters(client, lone_trainer, headers):
     _, token = lone_trainer
     res = client.get("/v1/trainer/program-templates", headers=_h(token, headers))
     assert res.status_code == 200, res.text
     rows = res.json()
     assert [r["id"] for r in rows] == ["starter:0", "starter:1", "starter:2"]
-    assert rows[0]["name"] == first_name
+    assert rows[0]["name"] == "혈압 관리 기본"
 
 
-def test_saved_templates_are_not_translated(client, lone_trainer):
-    """트레이너가 쓴 템플릿은 트레이너의 글이다 — 영어 화면이라고 바꾸지 않는다."""
+def test_saved_templates_are_served_as_written(client, lone_trainer):
+    """트레이너가 쓴 템플릿은 트레이너의 글이다 — 그대로 돌려준다."""
     _, token = lone_trainer
     created = client.post(
         "/v1/trainer/program-templates",
@@ -929,14 +717,9 @@ def test_saved_templates_are_not_translated(client, lone_trainer):
         suggestions._Signals(strength_heavy=True, total_minutes=100, strength_minutes=60),
     ],
 )
-def test_strength_candidate_is_translated_and_keeps_its_amounts(signals):
-    """근력 후보도 이름·사유만 옮기고 세트·횟수·중량은 같다 (#2703)."""
-    ko = suggestions._suggestions_for(signals, "ko")[-1]
-    en = suggestions._suggestions_for(signals, "en")[-1]
-    assert ko.type == en.type == "근력"
-    assert (ko.sets, ko.reps, ko.weight, ko.evidence) == (
-        en.sets, en.reps, en.weight, en.evidence
-    )
-    assert not _has_hangul(en.name) and not _has_hangul(en.reason)
-    assert len(en.name) <= 100 and len(en.reason) <= 200
-    assert len(ko.reason) <= 200
+def test_strength_candidate_fits_the_suggestion_schema(signals):
+    """근력 후보는 세트·횟수·중량을 싣고, 이름·사유는 스키마 길이 안이다 (#2703)."""
+    strength = suggestions._suggestions_for(signals)[-1]
+    assert strength.type == "근력"
+    assert _has_hangul(strength.name) and _has_hangul(strength.reason)
+    assert len(strength.name) <= 100 and len(strength.reason) <= 200

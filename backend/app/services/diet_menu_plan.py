@@ -13,7 +13,7 @@
   * 만든 지 28일이 지났을 때.
   * 목표(건강 목표 칩·수치 목표)가 바뀌었을 때.
   * 기록이 7일 미만일 때 만든 리스트인데 최근 28일 기록이 7일 이상 쌓였을 때.
-  * 앱 언어가 바뀌었을 때 — 메뉴 이름을 그 언어로 받는다.
+  * 예전에 영어로 만든 리스트일 때 — 한국어로 다시 만든다.
   * AI 가 실패해 카탈로그로 채운 리스트이고 재시도 시각(1시간 뒤)이 지났을 때.
 
 담당 트레이너가 바뀌는 것은 계기가 아니다. 트레이너 메시지는 만들 때 프롬프트에
@@ -56,11 +56,13 @@ MIN_BASIS_DAYS = 7
 #: 매 요청이 타임아웃까지 기다린다.
 RETRY_AFTER = timedelta(hours=1)
 
-LANGS = ("ko", "en")
+#: 리스트 행의 `lang` 칸에 적는 값. 리스트는 한국어로만 만든다 — 칸은 예전에
+#: 영어로 만든 리스트를 가려 다시 만드는 데만 쓴다.
+PLAN_LANG = "ko"
 #: 메뉴 이름·키워드 길이 한도. 카드의 두 문장이 합쳐 45자 안팎이라 이름이 길면
 #: 문장이 넘친다. 키워드는 카드 문장에 싣지 않고 리스트에만 남는다.
-NAME_MAX = {"ko": 12, "en": 28}
-KEYWORD_MAX = {"ko": 6, "en": 16}
+NAME_MAX = 12
+KEYWORD_MAX = 6
 #: 1인분 추정치로 받아들일 범위. 벗어나면 그 메뉴를 버린다(단위를 헷갈린 값이다).
 _KCAL_RANGE = (20, 1500)
 _PROTEIN_RANGE = (0, 100)
@@ -99,7 +101,6 @@ class PlanMenu:
 @dataclass(frozen=True)
 class MenuPlan:
     id: str
-    lang: str
     source: str
     items: tuple[PlanMenu, ...]
     basis_days: int
@@ -160,7 +161,7 @@ def _load_items(row: DietMenuPlan) -> tuple[PlanMenu, ...]:
 
 def _to_plan(row: DietMenuPlan) -> MenuPlan:
     return MenuPlan(
-        id=row.id, lang=row.lang, source=row.source, items=_load_items(row),
+        id=row.id, source=row.source, items=_load_items(row),
         basis_days=row.basis_days, created_on=row.created_on, expires_on=row.expires_on,
     )
 
@@ -172,7 +173,6 @@ def _aware(ts: datetime) -> datetime:
 def regeneration_reason(
     row: DietMenuPlan | None,
     *,
-    lang: str,
     today: date,
     fingerprint: str,
     recent_days: int,
@@ -180,7 +180,7 @@ def regeneration_reason(
     """다시 만들어야 하면 그 이유, 아니면 None. (재시도는 따로 본다.)"""
     if row is None:
         return "missing"
-    if row.lang != lang:
+    if row.lang != PLAN_LANG:
         return "lang"
     if today.isoformat() >= row.expires_on:
         return "expired"
@@ -195,13 +195,11 @@ def get_plan(
     db: Session,
     user_id: str,
     *,
-    lang: str = "ko",
     use_llm: bool = True,
     today: date | None = None,
     now: datetime | None = None,
 ) -> MenuPlan:
     """지금 리스트. 없거나 다시 만들 때가 되었으면 만들어 저장한다(커밋한다)."""
-    lang = lang if lang in LANGS else "ko"
     now = now or clock.now()
     today = today or now.date()
 
@@ -214,7 +212,7 @@ def get_plan(
 
     def due(row: DietMenuPlan | None) -> str | None:
         reason = regeneration_reason(
-            row, lang=lang, today=today, fingerprint=fingerprint,
+            row, today=today, fingerprint=fingerprint,
             recent_days=recent.days_logged,
         )
         if reason is not None:
@@ -250,7 +248,7 @@ def get_plan(
 
     targets = inputs.targets_of(profile)
     source, items = _generate(
-        db, user_id, lang=lang, use_llm=use_llm, profile=profile, targets=targets,
+        db, user_id, use_llm=use_llm, profile=profile, targets=targets,
         recent=recent, excluded=excluded, previous=previous,
     )
     metrics.incr("diet_menu_plan.generated", by=source, reason=reason)
@@ -269,7 +267,7 @@ def get_plan(
     new_row = DietMenuPlan(
         id=f"menuplan-{uuid.uuid4().hex[:16]}",
         user_id=user_id,
-        lang=lang,
+        lang=PLAN_LANG,
         source=source,
         items_json=items_json,
         basis_days=recent.days_logged,
@@ -339,7 +337,6 @@ def catalog_fill(
     slot: str,
     count: int,
     *,
-    lang: str,
     needs: list[str],
     taken: set[str],
     excluded: set[str],
@@ -361,10 +358,10 @@ def catalog_fill(
                 pool = pools[tag]
                 while pool:
                     m = pool.pop(0)
-                    key = norm_name(m.name(lang))
+                    key = norm_name(m.name)
                     if key in taken or (key in excluded and not allow_excluded):
                         continue
-                    out.append(_from_catalog(m, lang))
+                    out.append(_from_catalog(m))
                     taken.add(key)
                     break
                 if len(out) >= count:
@@ -377,22 +374,20 @@ def catalog_fill(
     return picked
 
 
-def _from_catalog(m: catalog.CatalogMenu, lang: str) -> PlanMenu:
+def _from_catalog(m: catalog.CatalogMenu) -> PlanMenu:
     return PlanMenu(
-        slot=m.slot, name=m.name(lang), tag=m.tag,
-        keyword=catalog.TAG_KEYWORDS[lang][m.tag],
+        slot=m.slot, name=m.name, tag=m.tag,
+        keyword=catalog.TAG_KEYWORDS[m.tag],
         kcal=m.kcal, protein_g=m.protein_g, sodium_mg=m.sodium_mg,
     )
 
 
-def rules_plan(
-    *, lang: str, needs: list[str], excluded: set[str]
-) -> tuple[PlanMenu, ...]:
+def rules_plan(*, needs: list[str], excluded: set[str]) -> tuple[PlanMenu, ...]:
     taken: set[str] = set()
     items: list[PlanMenu] = []
     for slot in catalog.SLOTS:
         items += catalog_fill(
-            slot, catalog.SLOT_COUNTS[slot], lang=lang, needs=needs,
+            slot, catalog.SLOT_COUNTS[slot], needs=needs,
             taken=taken, excluded=excluded,
         )
     return tuple(items)
@@ -402,7 +397,6 @@ def _generate(
     db: Session,
     user_id: str,
     *,
-    lang: str,
     use_llm: bool,
     profile,
     targets: inputs.DietTargets,
@@ -415,11 +409,11 @@ def _generate(
         try:
             notes = inputs.trainer_notes(db, user_id)
             system, user = build_prompt(
-                lang=lang, profile=profile, targets=targets, recent=recent,
+                profile=profile, targets=targets, recent=recent,
                 needs=needs, notes=notes, previous=previous,
             )
             raw = _call_llm(system, user)
-            return "llm", parse_items(raw, lang=lang, needs=needs, excluded=excluded)
+            return "llm", parse_items(raw, needs=needs, excluded=excluded)
         except LLMBusyError:
             metrics.incr("diet_menu_plan.fallback", reason="busy")
             logger.info("diet menu plan LLM 포화 — 카탈로그로 채움")
@@ -433,7 +427,7 @@ def _generate(
             metrics.incr("diet_menu_plan.fallback", reason="error")
             # 카탈로그로 채운다. 예외 메시지·스택은 남기지 않는다(#3090).
             log_ai_fallback(logger, "diet_menu_plan", "error", exc=exc)
-    return "rules", rules_plan(lang=lang, needs=needs, excluded=excluded)
+    return "rules", rules_plan(needs=needs, excluded=excluded)
 
 
 _SLOT_LABELS = {"breakfast": "아침", "lunch": "점심", "dinner": "저녁", "snack": "간식"}
@@ -449,7 +443,6 @@ _TAG_LABELS = {
 
 def build_prompt(
     *,
-    lang: str,
     profile,
     targets: inputs.DietTargets,
     recent: inputs.DietDigest,
@@ -457,7 +450,6 @@ def build_prompt(
     notes: list[str],
     previous: tuple[PlanMenu, ...],
 ) -> tuple[str, str]:
-    language = "영어(English)" if lang == "en" else "한국어"
     counts = ", ".join(
         f"{_SLOT_LABELS[s]}({s}) {n}개" for s, n in catalog.SLOT_COUNTS.items()
     )
@@ -468,15 +460,15 @@ def build_prompt(
         "규칙:\n"
         f"1. {counts}. 모든 메뉴 이름이 서로 달라야 한다.\n"
         "2. 한국에서 쉽게 사 먹거나 만들 수 있는 구체적인 1인분 메뉴 이름을 쓴다"
-        f"(예: 구운 고등어 정식). 이름은 {NAME_MAX[lang]}자 이내.\n"
+        f"(예: 구운 고등어 정식). 이름은 {NAME_MAX}자 이내.\n"
         "3. [이전 추천]에 있는 메뉴는 다시 넣지 않는다.\n"
         "4. 메뉴마다 tag 를 하나 붙인다. 회원에게 급한 태그([급한 태그])를 우선하되, "
         "한 끼니 안에서 태그가 한쪽에 몰리지 않게 섞는다. tag 는 아래 값 중 하나다:\n"
         f"{tags}\n"
-        f"5. keyword 는 추천 이유를 한눈에 보여 주는 말(예: 저나트륨, 고단백), {KEYWORD_MAX[lang]}자 이내.\n"
+        f"5. keyword 는 추천 이유를 한눈에 보여 주는 말(예: 저나트륨, 고단백), {KEYWORD_MAX}자 이내.\n"
         "6. kcal·protein_g·sodium_mg 는 1인분 기준 추정 정수다.\n"
         "7. 의학적 진단·치료를 단정하지 않는다. 식단 제안에 그친다.\n"
-        f"8. name 과 keyword 는 {language}로 쓴다.\n"
+        "8. name 과 keyword 는 한국어로 쓴다.\n"
         f"{TRAINER_DIET_GUARD}\n{FOOD_NAME_GUARD}\n"
         'JSON 만 출력한다: {"items":[{"slot":"breakfast","name":"...","tag":"...",'
         '"keyword":"...","kcal":0,"protein_g":0,"sodium_mg":0}]}'
@@ -530,7 +522,7 @@ def _int_in(value, lo: int, hi: int) -> int | None:
 
 
 def parse_items(
-    raw: str, *, lang: str, needs: list[str], excluded: set[str]
+    raw: str, *, needs: list[str], excluded: set[str]
 ) -> tuple[PlanMenu, ...]:
     """AI 응답 → 검증된 리스트. 모자란 칸은 카탈로그로 채운다.
 
@@ -553,7 +545,7 @@ def parse_items(
         name = " ".join(str(row.get("name", "")).split())
         if slot not in by_slot or tag not in catalog.TAGS:
             continue
-        if not name or len(name) > NAME_MAX[lang]:
+        if not name or len(name) > NAME_MAX:
             continue
         key = norm_name(name)
         if key in taken or key in excluded:
@@ -566,8 +558,8 @@ def parse_items(
         if kcal is None or protein is None or sodium is None:
             continue
         keyword = " ".join(str(row.get("keyword") or "").split())
-        if not keyword or len(keyword) > KEYWORD_MAX[lang]:
-            keyword = catalog.TAG_KEYWORDS[lang][tag]
+        if not keyword or len(keyword) > KEYWORD_MAX:
+            keyword = catalog.TAG_KEYWORDS[tag]
         by_slot[slot].append(
             PlanMenu(slot=slot, name=name, tag=tag, keyword=keyword,
                      kcal=kcal, protein_g=protein, sodium_mg=sodium)
@@ -583,7 +575,7 @@ def parse_items(
         missing = catalog.SLOT_COUNTS[slot] - len(got)
         if missing > 0:
             got = got + catalog_fill(
-                slot, missing, lang=lang, needs=needs, taken=taken, excluded=excluded
+                slot, missing, needs=needs, taken=taken, excluded=excluded
             )
         items += got
     return tuple(items)

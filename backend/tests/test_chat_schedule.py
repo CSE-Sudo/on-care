@@ -308,7 +308,7 @@ def test_chat_booking_sends_the_member_one_schedule_notice(
     assert notice.body == f"{day.month}월 {day.day}일 20:00 · 1:1 PT"
 
 
-def test_chat_schedule_notice_opens_the_exercise_tab_in_both_languages(
+def test_chat_schedule_notice_opens_the_exercise_tab_whatever_the_header(
     client, pair  # noqa: F811
 ):
     """알림함 응답 — 날짜·시각이 보이고 누르면 운동 탭 일정으로 간다."""
@@ -326,15 +326,12 @@ def test_chat_schedule_notice_opens_the_exercise_tab_in_both_languages(
         rows = body["items"] if isinstance(body, dict) else body
         return [n for n in rows if n["category"] == "member_schedule"]
 
-    [ko] = _inbox("ko")
-    assert ko["title"] == "새 일정이 등록됐어요"
-    assert ko["body"] == f"{day.month}월 {day.day}일 20:00 · 1:1 PT"
-    assert ko["action"] == {"label": "일정 보기", "target": "exercise"}
-
-    [en] = _inbox("en")
-    assert en["title"] == "New appointment scheduled"
-    assert "20:00" in en["body"]
-    assert en["action"] == {"label": "View schedule", "target": "exercise"}
+    # 서버 문장은 한국어 하나다 — `en` 을 보내도 같은 알림이다(#3404).
+    for language in ("ko", "en"):
+        [row] = _inbox(language)
+        assert row["title"] == "새 일정이 등록됐어요"
+        assert row["body"] == f"{day.month}월 {day.day}일 20:00 · 1:1 PT"
+        assert row["action"] == {"label": "일정 보기", "target": "exercise"}
 
 
 def test_repeating_the_same_promise_does_not_notify_twice(

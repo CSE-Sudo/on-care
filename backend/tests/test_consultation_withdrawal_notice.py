@@ -6,8 +6,8 @@
   * 서비스 — 대기 요청을 받은 트레이너마다 한 건씩, 요청 당시 이름·희망 날짜를
     담아 남긴다. 처리된 요청·만료 시각이 지난 요청·받는 사람 없는 옛 요청은
     알리지 않는다. 담당 트레이너는 탈퇴 알림(#2174)이 따로 가므로 빠진다.
-  * API — `DELETE /users/me` 뒤 트레이너 알림함에 남고, 영어 로케일에서는 영어로
-    조립된다. 떠난 회원의 상세로 가는 `subject_id` 를 남기지 않는다.
+  * API — `DELETE /users/me` 뒤 트레이너 알림함에 남고, 헤더와 무관하게 한국어
+    문장이다. 떠난 회원의 상세로 가는 `subject_id` 를 남기지 않는다.
 """
 from __future__ import annotations
 
@@ -524,23 +524,22 @@ def test_withdrawal_tells_each_requested_trainer(client, db_session):
         assert row["read"] is False
 
 
-def test_withdrawal_notice_is_english_for_an_english_trainer(client, db_session):
-    """영어 로케일은 같은 알림을 영어로 조립해 준다."""
+def test_withdrawal_notice_is_korean_for_an_english_header(client, db_session):
+    """서버 문장은 한국어 하나다 — `en` 을 보내도 헤더 없는 요청과 같은 알림이다(#3404)."""
     _, member_token = _register_member(client, name="Alex")
     trainer = _trainer(db_session)
-    item = _apply(client, db_session, member_token, trainer)
+    _apply(client, db_session, member_token, trainer)
 
     _withdraw(client, member_token)
 
-    rows = [
-        row
-        for row in _inbox(client, _trainer_token(client, trainer), EN)
-        if row["category"] == KIND
+    token = _trainer_token(client, trainer)
+    plain = [row for row in _inbox(client, token) if row["category"] == KIND]
+    english = [row for row in _inbox(client, token, EN) if row["category"] == KIND]
+    assert len(plain) == 1
+    assert [(r["title"], r["body"]) for r in english] == [
+        (r["title"], r["body"]) for r in plain
     ]
-    assert len(rows) == 1
-    assert rows[0]["title"] == "Consultation request cancelled: member account deleted"
-    day = date.fromisoformat(item["preferred_date"])
-    assert rows[0]["body"] == f"Alex · {day.month}/{day.day}"
+    assert any("가" <= ch <= "힣" for ch in english[0]["title"])
 
 
 def test_withdrawal_clears_the_pending_badge_with_a_reason(client, db_session):

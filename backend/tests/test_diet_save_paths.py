@@ -4,7 +4,7 @@
   호출을 더 쓰지 않는다. 저장분만 보던 재생은 진행 중인 요청을 알아보지 못했다.
 - 날짜 하한(작년 1월 1일)은 사진 분석·직접 입력·수정이 같은 규칙을 쓴다.
 - 지난 날짜에 적는 끼니의 시각은 적는 시각이 아니라 끼니 종류의 기본 시각이다.
-- 홈 나트륨 경고는 영어 화면에서 음식의 영어 표시 이름을 쓴다.
+- 홈 나트륨 경고는 저장된 음식 이름을 쓴다 — 표시 이름(`display_name`)은 읽지 않는다.
 
 순수 검사는 DB 가 필요 없고, API·서비스 검사는 DB 테스트(로컬 skip, CI 실행)다.
 """
@@ -150,26 +150,14 @@ _MEALS_WITH_DISPLAY_NAMES = [
 ]
 
 
-def test_sodium_sources_use_display_names_on_an_english_screen():
+def test_sodium_sources_use_the_stored_names():
     from app.api.v1.dashboard import _rank_sodium_sources
 
-    # 표시 이름이 없는 음식·빈 표시 이름은 저장된 이름 그대로다.
-    assert _rank_sodium_sources(_MEALS_WITH_DISPLAY_NAMES, "en") == [
-        "Ramyeon", "김밥", "단무지",
-    ]
-
-
-def test_sodium_sources_keep_stored_names_on_a_korean_screen():
-    from app.api.v1.dashboard import _rank_sodium_sources
-
-    assert _rank_sodium_sources(_MEALS_WITH_DISPLAY_NAMES, "ko") == [
-        "라면", "김밥", "단무지",
-    ]
-    # 요청 밖에서는 기본 언어(한국어)다.
+    # 표시 이름이 있어도 저장된 이름이다.
     assert _rank_sodium_sources(_MEALS_WITH_DISPLAY_NAMES) == ["라면", "김밥", "단무지"]
 
 
-def test_sodium_sources_still_sum_one_food_across_meals_in_english():
+def test_sodium_sources_sum_one_food_across_meals():
     """같은 음식이 표시 이름 유무로 둘로 갈리지 않는다 — 합산은 저장 이름으로 한다."""
     from app.api.v1.dashboard import _rank_sodium_sources
 
@@ -184,7 +172,7 @@ def test_sodium_sources_still_sum_one_food_across_meals_in_english():
             ensure_ascii=False,
         ),
     ]
-    assert _rank_sodium_sources(meals, "en") == ["Gimbap", "Ramyeon"]
+    assert _rank_sodium_sources(meals) == ["김밥", "라면"]
 
 
 # ── 순수: 멱등키 줄 id ────────────────────────────────────────────────────
@@ -664,7 +652,7 @@ def test_moving_an_entry_does_not_rewrite_its_time(client, frozen_now):
 # ── DB: 홈 나트륨 경고의 음식 이름 ────────────────────────────────────────
 
 
-def test_home_sodium_warning_uses_english_food_names_on_an_english_screen(client):
+def test_home_sodium_warning_uses_stored_food_names_whatever_the_header(client):
     _, h = _register(client)
     # 목표를 정하지 않은 회원의 나트륨 기준은 2,000mg 이다.
     foods = [
@@ -680,9 +668,8 @@ def test_home_sodium_warning_uses_english_food_names_on_an_english_screen(client
         "/v1/dashboard/summary", headers={**h, "Accept-Language": "ko"}
     ).json()
 
-    assert en["ai_advice_key"] == ko["ai_advice_key"] == "sodium_over_sources"
-    # 영어 이름이 있는 음식은 그것으로, 없는 음식은 저장된 이름 그대로다.
-    assert en["ai_advice_params"] == {"foods": ["Ramyeon", "김밥"]}
-    assert en["sodium_warning"] == "Sodium is high from Ramyeon and 김밥."
-    assert ko["ai_advice_params"] == {"foods": ["라면", "김밥"]}
-    assert ko["sodium_warning"] == "라면·김밥 섭취로 나트륨이 높아요."
+    # 서버 문장은 한국어 하나다 — `en` 을 보내도 같은 경고다(#3404).
+    for body in (en, ko):
+        assert body["ai_advice_key"] == "sodium_over_sources"
+        assert body["ai_advice_params"] == {"foods": ["라면", "김밥"]}
+        assert body["sodium_warning"] == "라면·김밥 섭취로 나트륨이 높아요."

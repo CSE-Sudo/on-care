@@ -206,7 +206,6 @@ def test_the_expired_menu_plan_is_rebuilt_on_the_next_read(
     assert (
         diet_menu_plan.regeneration_reason(
             latest,
-            lang="ko",
             today=clock.today(),
             fingerprint=latest.goal_fingerprint,
             recent_days=0,

@@ -30,7 +30,6 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
-from app.core.locale import Locale, localized
 from app.core.security import hash_password
 from app.models.models import PasswordResetToken, User
 from app.services import auth_tokens
@@ -138,42 +137,24 @@ def _link_base(settings: Settings, user: User) -> str:
 
 
 def _compose(
-    user: User, code: str, minutes: int, link: str, locale: Locale | None
+    user: User, code: str, minutes: int, link: str
 ) -> OutgoingMail:
-    subject = localized(
-        "[On-Care] 비밀번호 재설정 코드", "[On-Care] Your password reset code", locale
-    )
+    subject = "[On-Care] 비밀번호 재설정 코드"
     lines = [
-        localized(
-            "On-Care 비밀번호 재설정을 요청하셨습니다.",
-            "We received a request to reset your On-Care password.",
-            locale,
-        ),
+        "On-Care 비밀번호 재설정을 요청하셨습니다.",
         "",
-        localized("재설정 코드", "Reset code", locale) + f": {code}",
-        localized(
-            f"이 코드는 {minutes}분 동안 한 번만 쓸 수 있습니다.",
-            f"The code works once and expires in {minutes} minutes.",
-            locale,
-        ),
+        f"재설정 코드: {code}",
+        f"이 코드는 {minutes}분 동안 한 번만 쓸 수 있습니다.",
     ]
     if link:
         lines += [
             "",
-            localized(
-                "아래 링크를 열어 새 비밀번호를 정할 수도 있습니다.",
-                "You can also open this link to set a new password.",
-                locale,
-            ),
+            "아래 링크를 열어 새 비밀번호를 정할 수도 있습니다.",
             link,
         ]
     lines += [
         "",
-        localized(
-            "직접 요청하지 않으셨다면 이 메일을 무시하세요. 비밀번호는 바뀌지 않습니다.",
-            "If you didn't ask for this, ignore this email. Your password stays the same.",
-            locale,
-        ),
+        "직접 요청하지 않으셨다면 이 메일을 무시하세요. 비밀번호는 바뀌지 않습니다.",
     ]
     return OutgoingMail(to=user.email, subject=subject, body="\n".join(lines))
 
@@ -216,7 +197,6 @@ def request_reset(
     now: datetime,
     settings: Settings | None = None,
     mailer: Mailer | None = None,
-    locale: Locale | None = None,
     schedule: Callable[..., object] | None = None,
 ) -> IssuedReset | None:
     """재설정 코드를 만들어 보낸다. 보낼 계정이 없으면 None.
@@ -267,7 +247,6 @@ def request_reset(
         code,
         settings.password_reset_token_minutes,
         reset_link(_link_base(settings, user), code),
-        locale,
     )
     sender = mailer or get_mailer(settings)
     if schedule is None:

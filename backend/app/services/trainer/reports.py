@@ -12,7 +12,6 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.locale import Locale, current_locale
 from app.core.week import monday_of
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, HealthProfile,
@@ -301,7 +300,7 @@ def build_report_queue(db: Session, trainer_id: str, week: date) -> ReportQueueO
     return ReportQueueOut(week_start=monday_str, items=items)
 
 
-def report_message(report: WeeklyReportOut, locale: Locale | None = None) -> str:
+def report_message(report: WeeklyReportOut) -> str:
     """회원 채팅 스레드에 그대로 들어갈 본문.
 
     별도 리포트 함이 아니라 이미 읽고 있는 대화에 도착하도록 평문으로 쓴다 —
@@ -313,19 +312,7 @@ def report_message(report: WeeklyReportOut, locale: Locale | None = None) -> str
     손보지 않고 그대로 보내도 사람이 쓴 것으로 읽혀야 한다.
 
     기록이 없는 항목은 문장을 아예 뺀다 — '이행률 0%'는 거짓말이다.
-
-    [locale] 은 초안을 쓰는 트레이너 화면의 언어다(#2298). 생략하면 지금 요청의
-    언어이고, 헤더가 없으면 지금까지처럼 한국어다. 영어 문장은 트레이너 웹의
-    `reportBody*` 문구와 같은 말투로 쓴다 — 서버 초안과 화면 초안이 다른 사람이
-    쓴 글처럼 읽히면 안 된다.
     """
-    if (locale or current_locale()) == "en":
-        return _report_message_en(report)
-    return _report_message_ko(report)
-
-
-def _report_message_ko(report: WeeklyReportOut) -> str:
-    """한국어 본문. 헤더가 없는 요청과 한국어 화면이 받는 지금까지의 문장이다."""
     start = date.fromisoformat(report.week_start)
     end = date.fromisoformat(report.week_end)
     good = (
@@ -398,82 +385,6 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
             "정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!"
             if good
             else "다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요."
-        )
-    return "\n\n".join(paragraphs)
-
-
-def _plural_days(n: int) -> str:
-    """영어 날 수(`1 day`·`3 days`)."""
-    return f"{n} day" if n == 1 else f"{n} days"
-
-
-def _report_message_en(report: WeeklyReportOut) -> str:
-    """영어 본문. 한국어 본문과 같은 문단·같은 판정이고 문장만 영어다."""
-    start = date.fromisoformat(report.week_start)
-    end = date.fromisoformat(report.week_end)
-    good = (
-        (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
-        and report.sodium_over_days <= 2
-    )
-    # 트레이너 웹 `dateMonthDay`·`dateRange` 와 같은 모양(`8/10 – 8/16`).
-    period = f"{start.month}/{start.day} – {end.month}/{end.day}"
-
-    paragraphs: list[str] = [
-        f"Hi {report.member_name}, here's your weekly report for {period}."
-    ]
-
-    workout: list[str] = []
-    if report.completion_avg is not None:
-        if report.completion_avg >= client_signals.COMPLETION_GOOD_PERCENT:
-            line = f"You kept up well — {report.completion_avg}% of your workouts done."
-        elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
-            line = f"You stayed steady — {report.completion_avg}% of your workouts done."
-        else:
-            line = (
-                f"Workout completion rate came in at {report.completion_avg}%. "
-                "Sounds like a busy week."
-            )
-        workout.append(line)
-    skipped = _skipped_names(report)
-    if skipped:
-        workout.append(
-            f"One thing — {', '.join(skipped)} got skipped. If that was down to how "
-            "you were feeling, tell me at our next PT and I'll swap in an "
-            "alternative."
-        )
-    if workout:
-        paragraphs.append(" ".join(workout))
-
-    diet: list[str] = []
-    sodium_limit = sodium_limit_mg(report.sodium_target)
-    if report.sodium_avg is not None:
-        diet.append(
-            f"Sodium averaged {report.sodium_avg:,} mg a day, and went over the "
-            f"{sodium_limit:,} mg goal on {_plural_days(report.sodium_over_days)}. "
-            "Leaving half the broth behind saves 400–500 mg a day."
-            if report.sodium_over_days > 0
-            else f"Sodium averaged {report.sodium_avg:,} mg a day — comfortably "
-            f"inside the {sodium_limit:,} mg goal."
-        )
-    recorded = [v for v in report.calories_week if v > 0]
-    if recorded:
-        diet.append(
-            f"Calories averaged {round(sum(recorded) / len(recorded)):,} kcal a day."
-        )
-    if diet:
-        paragraphs.append(" ".join(diet))
-
-    if len(paragraphs) == 1:
-        paragraphs.append(
-            "There's nothing logged for this week, so nothing to sum up. "
-            "Let's plan next week's start together."
-        )
-    else:
-        paragraphs.append(
-            "Great work — let's keep this pace next week!"
-            if good
-            else "Let's focus on just these things next week. "
-            "I'll adjust your program and send it over."
         )
     return "\n\n".join(paragraphs)
 

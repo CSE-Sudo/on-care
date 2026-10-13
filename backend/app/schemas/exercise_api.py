@@ -106,11 +106,10 @@ class ExerciseAdviceResponse(BaseModel):
     from_date: str
     to_date: str
     days_logged: int
-    #: 조언 문장 — 요청 언어(`Accept-Language`)로, 헤더가 없으면 한국어다(#2299).
-    #: 키를 모르는 옛 앱과 트레이너웹이 그대로 보여 준다.
+    #: 조언 문장. 키를 모르는 옛 앱과 트레이너웹이 그대로 보여 준다.
     message: str
     #: 조언 문장의 **로케일과 무관한 키**(#2210). 앱은 이 키와 [advice_params] 로
-    #: 자기 언어의 문장을 그리고, 모르는 키면 [message] 를 쓴다 — 홈 통합 조언의
+    #: 자기 문장을 그리고, 모르는 키면 [message] 를 쓴다 — 홈 통합 조언의
     #: `ai_advice_key`(#1943)와 같은 방식이다.
     advice_key: str | None = None
     #: 문장에 드는 값 — 수, 운동 유형·부위 코드, 운동 이름(트레이너가 적은 그대로).

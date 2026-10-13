@@ -46,7 +46,6 @@ from app.core.body_limit import BodyLimitRule, RequestBodySizeLimitMiddleware
 from app.core.client_ip import warn_if_untrusted_setup
 from app.core.client_platform import RequestClientPlatformMiddleware
 from app.core.config import Settings, get_settings
-from app.core.locale import RequestLocaleMiddleware
 from app.core.security_headers import security_headers_for
 from app.db.init_db import init_db
 from app.services import mailer, retention
@@ -211,11 +210,6 @@ if settings.security_headers:
 # 클라이언트 종류(#2828): 웹 빌드가 보내는 `X-Client-Platform: web` 을 읽어, 웹 로그인·
 # 회전에는 짧은 refresh 토큰을 준다(`services/auth_tokens.py`).
 app.add_middleware(RequestClientPlatformMiddleware)
-
-
-# 요청 언어(#2297): `Accept-Language` 를 읽어 `current_locale()` 을 채운다. 서버가 만드는
-# 문장은 이 값으로 한국어·영어를 고른다(헤더가 없으면 한국어).
-app.add_middleware(RequestLocaleMiddleware)
 
 
 # 관측성: request-id 미들웨어(가장 바깥 — 컨텍스트를 먼저 세팅) + 액세스 로그 + 전역 500 핸들러.

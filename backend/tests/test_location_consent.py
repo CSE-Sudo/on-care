@@ -40,10 +40,8 @@ PATH = "/v1/users/me/consents/location"
 FIXED_NOW = datetime(2026, 10, 5, 9, 30, tzinfo=clock.SEOUL)
 
 _ROOT = Path(__file__).resolve().parents[2]
-_MEMBER_ARB = {
-    lang: _ROOT / "frontend" / "flutter" / "lib" / "l10n" / f"app_{lang}.arb"
-    for lang in ("ko", "en")
-}
+#: 앱은 한국어 하나다(#3404) — 약관 본문은 한국어 ARB 에서 읽는다.
+_MEMBER_ARB = _ROOT / "frontend" / "flutter" / "lib" / "l10n" / "app_ko.arb"
 
 
 def _email(tag: str) -> str:
@@ -118,13 +116,13 @@ def test_register_does_not_take_location():
 # ---- 약관 시행일과 버전 (DB 불필요) ----
 
 _needs_arb = pytest.mark.skipif(
-    not all(p.exists() for p in _MEMBER_ARB.values()),
+    not _MEMBER_ARB.exists(),
     reason="프론트 소스가 없는 체크아웃",
 )
 
 
-def _location_terms(lang: str) -> dict[str, str]:
-    data = json.loads(_MEMBER_ARB[lang].read_text(encoding="utf-8"))
+def _location_terms() -> dict[str, str]:
+    data = json.loads(_MEMBER_ARB.read_text(encoding="utf-8"))
     return {
         "title": data["myLegalLocationTitle"],
         "body": data["myLegalLocationBody"],
@@ -137,9 +135,9 @@ def _location_version() -> date:
 
 
 @_needs_arb
-def test_korean_terms_take_effect_on_the_consent_version():
+def test_terms_take_effect_on_the_consent_version():
     found = re.findall(
-        r"(\d{4})년 (\d{1,2})월 (\d{1,2})일부터 시행", _location_terms("ko")["body"]
+        r"(\d{4})년 (\d{1,2})월 (\d{1,2})일부터 시행", _location_terms()["body"]
     )
     assert len(found) == 1, "부칙의 시행일 줄이 하나여야 한다"
     y, m, d = (int(x) for x in found[0])
@@ -147,34 +145,17 @@ def test_korean_terms_take_effect_on_the_consent_version():
 
 
 @_needs_arb
-def test_english_terms_take_effect_on_the_consent_version():
-    v = _location_version()
-    body = _location_terms("en")["body"]
-    month = v.strftime("%B")
-    assert f"{v.day} {month} {v.year}" in body
-
-
-@_needs_arb
 def test_terms_header_date_is_the_consent_version():
     v = _location_version()
-    assert _location_terms("ko")["date"] == f"시행일 {v:%Y. %m. %d.}"
-    assert _location_terms("en")["date"] == f"Effective {v:%b} {v.day}, {v.year}"
+    assert _location_terms()["date"] == f"시행일 {v:%Y. %m. %d.}"
 
 
 @_needs_arb
 def test_terms_cover_what_the_consent_sheet_promises():
     """동의 시트가 말하는 내용(목적·항목·보관·제공·철회)이 약관에도 있다."""
-    ko = _location_terms("ko")["body"]
+    ko = _location_terms()["body"]
     for words in ("헬스장", "좌표", "저장하지 않", "카카오", "철회", "{contact}"):
         assert words in ko, words
-    en = _location_terms("en")["body"]
-    for words in ("gym", "coordinates", "not stored", "Kakao", "withdraw", "{contact}"):
-        assert words in en, words
-
-
-@_needs_arb
-def test_english_terms_say_the_korean_original_governs():
-    assert "Korean" in _location_terms("en")["body"]
 
 
 # ---- 엔드포인트 ----
