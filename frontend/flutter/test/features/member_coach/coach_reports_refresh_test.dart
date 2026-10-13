@@ -1,8 +1,9 @@
-/// 받은 리포트 목록 — 대화 전체에서 고르고, 새 리포트가 오면 다시 읽는다. (#2643)
+/// 받은 리포트 목록 — 새 리포트가 오면 다시 읽는다. (#2643)
 ///
-/// 예전에는 대화의 최신 50건만 읽어 몇 주 전 리포트가 목록에서 사라졌고, 한 번
-/// 읽은 목록이 세션 내내 남아 새 리포트가 앱을 다시 켜기 전까지 보이지 않았다.
-/// 읽기 실패에는 `보내지 못했어요`·`PDF 를 열지 못했어요` 가 떴다.
+/// 예전에는 한 번 읽은 목록이 세션 내내 남아 새 리포트가 앱을 다시 켜기 전까지
+/// 보이지 않았다. 읽기 실패에는 `보내지 못했어요`·`PDF 를 열지 못했어요` 가 떴다.
+/// 목록이 대화가 아니라 서버의 받은 리포트 목록에서 오는 것은 #3348 —
+/// `received_reports_test.dart` 가 본다.
 library;
 
 import 'dart:async';
@@ -28,23 +29,10 @@ import '../../helpers/fixed_clock.dart';
 /// 2026-06-01 (월).
 final DateTime _week1 = DateTime(2026, 6);
 final DateTime _week2 = DateTime(2026, 7, 6);
-final DateTime _week3 = DateTime(2026, 8, 10);
 
-/// [from] 부터 [to] 전까지의 보통 대화 — 리포트가 아니다.
-List<CoachMessage> _lines(int from, int to) => <CoachMessage>[
-  for (int i = from; i < to; i++) chatLine(i),
-];
-
-/// 대화 [minute] 분 자리에 놓인 리포트 안내.
-CoachMessage _reportAt(int minute, DateTime week, {String? id}) => reportNotice(
-  week,
-  id: id ?? 'report-$minute',
-  createdAt: chatLine(minute).createdAt,
-);
-
-Future<List<SentReportNotice>> _notices(ProviderContainer container) {
-  container.listen(sentReportNoticesProvider, (_, _) {});
-  return container.read(sentReportNoticesProvider.future);
+Future<List<ReceivedReport>> _notices(ProviderContainer container) async {
+  container.listen(receivedReportsProvider, (_, _) {});
+  return (await container.read(receivedReportsProvider.future)).reports;
 }
 
 ProviderContainer _container(MemberCoachRepository repository) {
@@ -57,38 +45,11 @@ ProviderContainer _container(MemberCoachRepository repository) {
   return container;
 }
 
-/// 커서를 무시하고 언제나 같은 쪽을 주는 대역 — 멈춤 조건을 본다.
-class _IgnoresCursorRepository extends FakeMemberCoachRepository {
-  _IgnoresCursorRepository({super.chat});
-
+/// 받은 리포트 목록을 읽지 못하는 대역.
+class _ReportsFailRepository extends FakeMemberCoachRepository {
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async {
-    chatCursors.add(before);
-    return pageCoachChat(chat);
-  }
-}
-
-/// 부를 때마다 새 메시지 한 쪽을 끝없이 주는 대역 — 상한을 본다.
-class _EndlessRepository extends FakeMemberCoachRepository {
-  int _next = 0;
-
-  @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async {
-    chatCursors.add(before);
-    final int start = _next;
-    _next += chatPageSize;
-    return <CoachMessage>[
-      for (int i = start; i < start + chatPageSize; i++)
-        chatLine(-i, id: 'endless-$i'),
-    ];
-  }
-}
-
-/// 대화를 읽지 못하는 대역.
-class _ChatFailsRepository extends FakeMemberCoachRepository {
-  @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) =>
-      Future<List<CoachMessage>>.error(StateError('chat unavailable'));
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) =>
+      Future<ReceivedReportsPage>.error(StateError('reports unavailable'));
 }
 
 /// 피드백을 읽지 못하는 대역.
@@ -153,115 +114,7 @@ Finder _row(DateTime week) => find.byKey(
 void main() {
   setUp(() => useFixedKstDate());
 
-  group('대화를 끝까지 읽기', () {
-    test('50건보다 앞에 있던 리포트도 목록에 선다', () async {
-      // 120건짜리 대화. 리포트는 5번째와 60번째 — 둘 다 최신 50건 밖이다.
-      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
-        chat: <CoachMessage>[
-          ..._lines(0, 120).where((CoachMessage m) {
-            return m.id != chatLine(5).id && m.id != chatLine(60).id;
-          }),
-          _reportAt(5, _week1),
-          _reportAt(60, _week2),
-          _reportAt(119, _week3, id: 'report-latest'),
-        ],
-      );
-
-      final List<SentReportNotice> notices = await _notices(
-        _container(repository),
-      );
-
-      expect(
-        notices.map((SentReportNotice n) => n.weekStart).toList(),
-        <DateTime>[_week3, _week2, _week1],
-      );
-    });
-
-    test('한 쪽이 다 찼으면 가장 오래된 메시지를 커서로 앞 쪽을 받는다', () async {
-      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
-        chat: _lines(0, 120),
-      );
-
-      final List<CoachMessage> all = await fetchWholeCoachChat(repository);
-
-      expect(all, hasLength(120));
-      expect(
-        repository.chatCursors.map((CoachMessage? m) => m?.id).toList(),
-        <String?>[null, chatLine(70).id, chatLine(20).id],
-      );
-    });
-
-    test('한 쪽이 덜 차면 더 부르지 않는다', () async {
-      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
-        chat: _lines(0, 30),
-      );
-
-      await fetchWholeCoachChat(repository);
-
-      expect(repository.chatCursors, <CoachMessage?>[null]);
-    });
-
-    test('쪽 경계가 정확히 맞아떨어지면 빈 쪽을 받고 멈춘다', () async {
-      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
-        chat: _lines(0, chatPageSize * 2),
-      );
-
-      final List<CoachMessage> all = await fetchWholeCoachChat(repository);
-
-      expect(all, hasLength(chatPageSize * 2));
-      expect(repository.chatCursors, hasLength(3));
-    });
-
-    test('커서를 무시하는 서버를 만나도 새로 받은 것이 없으면 멈춘다', () async {
-      final _IgnoresCursorRepository repository = _IgnoresCursorRepository(
-        chat: _lines(0, 120),
-      );
-
-      final List<CoachMessage> all = await fetchWholeCoachChat(repository);
-
-      expect(all, hasLength(chatPageSize));
-      expect(repository.chatCursors, hasLength(2));
-    });
-
-    test('끝없이 새 쪽을 주는 서버도 상한에서 멈춘다', () async {
-      final _EndlessRepository repository = _EndlessRepository();
-
-      final List<CoachMessage> all = await fetchWholeCoachChat(
-        repository,
-        maxPages: 4,
-      );
-
-      expect(repository.chatCursors, hasLength(4));
-      expect(all, hasLength(chatPageSize * 4));
-    });
-
-    test('받은 대화는 오래된 → 최신으로 겹침 없이 선다', () async {
-      final FakeMemberCoachRepository repository = FakeMemberCoachRepository(
-        chat: _lines(0, 120).reversed.toList(),
-      );
-
-      final List<CoachMessage> all = await fetchWholeCoachChat(repository);
-      final List<String> ids = <String>[for (final CoachMessage m in all) m.id];
-
-      expect(ids, <String>[for (int i = 0; i < 120; i++) chatLine(i).id]);
-    });
-  });
-
-  group('리포트 고르기', () {
-    test('리포트 안내만 고르고 같은 주는 마지막 것 하나만 남긴다', () {
-      final List<SentReportNotice> notices = selectReportNotices(<CoachMessage>[
-        plainMessage(),
-        reportNotice(_week2, id: 'old', createdAt: DateTime(2026, 7, 12, 9)),
-        reportNotice(_week2, id: 'new', createdAt: DateTime(2026, 7, 12, 21)),
-        reportNotice(_week1, id: 'r1'),
-      ]);
-
-      expect(
-        notices.map((SentReportNotice n) => n.message.id).toList(),
-        <String>['new', 'r1'],
-      );
-    });
-
+  group('새 리포트 알아채기', () {
     test('새 리포트 안내가 왔는지 가린다', () {
       final List<CoachMessage> before = <CoachMessage>[
         plainMessage(),
@@ -336,7 +189,7 @@ void main() {
       );
       addTearDown(container.dispose);
       // 목록을 듣고 있는 누군가 — 없으면 autoDispose 로 이미 사라진다.
-      final List<SentReportNotice> first = await _notices(container);
+      final List<ReceivedReport> first = await _notices(container);
       expect(first, hasLength(1));
       await _pumpPage(
         tester,
@@ -349,10 +202,10 @@ void main() {
       ]);
       await tester.pumpAndSettle();
 
-      final List<SentReportNotice> next = await container.read(
-        sentReportNoticesProvider.future,
+      final ReceivedReportsState next = await container.read(
+        receivedReportsProvider.future,
       );
-      expect(next.map((SentReportNotice n) => n.message.id).toSet(), <String>{
+      expect(next.reports.map((ReceivedReport n) => n.id).toSet(), <String>{
         'r1',
         'r2',
       });
@@ -361,7 +214,7 @@ void main() {
 
   group('오류 문구', () {
     testWidgets('목록을 읽지 못하면 불러오지 못했다고 말한다', (tester) async {
-      await _pumpPage(tester, _container(_ChatFailsRepository()));
+      await _pumpPage(tester, _container(_ReportsFailRepository()));
 
       expect(find.text('받은 리포트를 불러오지 못했어요'), findsOneWidget);
       // 예전 문구 — 문서를 열다 실패한 것이 아니다.
@@ -376,7 +229,11 @@ void main() {
     });
 
     testWidgets('영어에서도 읽기 실패 문구가 번역되어 있다', (tester) async {
-      await _pumpPage(tester, _container(_ChatFailsRepository()), locale: 'en');
+      await _pumpPage(
+        tester,
+        _container(_ReportsFailRepository()),
+        locale: 'en',
+      );
 
       expect(find.text("Couldn't load your reports"), findsOneWidget);
     });
@@ -395,7 +252,7 @@ void main() {
     });
 
     testWidgets('다시 시도하면 목록을 다시 읽는다', (tester) async {
-      final _FlakyChatRepository repository = _FlakyChatRepository(
+      final _FlakyReportsRepository repository = _FlakyReportsRepository(
         chat: <CoachMessage>[reportNotice(_week1, id: 'r1')],
       );
       await _pumpPage(tester, _container(repository));
@@ -411,17 +268,19 @@ void main() {
   });
 }
 
-/// 처음에는 대화를 읽지 못하다가 풀리는 대역.
-class _FlakyChatRepository extends FakeMemberCoachRepository {
-  _FlakyChatRepository({super.chat});
+/// 처음에는 목록을 읽지 못하다가 풀리는 대역.
+class _FlakyReportsRepository extends FakeMemberCoachRepository {
+  _FlakyReportsRepository({super.chat});
 
   bool failing = true;
 
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) {
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) {
     if (failing) {
-      return Future<List<CoachMessage>>.error(StateError('chat unavailable'));
+      return Future<ReceivedReportsPage>.error(
+        StateError('reports unavailable'),
+      );
     }
-    return super.fetchChat(before: before);
+    return super.fetchReceivedReports(before: before);
   }
 }

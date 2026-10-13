@@ -316,23 +316,23 @@ def test_a_send_made_mid_week_is_only_read_through_its_own_message(
     assert plain["snapshot_at"] is None
 
 
-def test_a_week_that_was_never_sent_is_still_computed_now(client, db_session):
+def test_a_week_that_was_never_sent_does_not_open(client, db_session):
+    """받지도 사지도 않은 주는 굳힌 값을 찾기 전에 막힌다(#3366)."""
     _, member = _pair(db_session)
     week = _last_monday()
     _meal(db_session, member, week, kcal=1200, sodium=100)
 
-    report = _report(client, member, week)
-    assert report["calories_week"][0] == 1200
-    assert report["snapshot_at"] is None
+    r = client.get(REPORT, params={"week_start": week.isoformat()}, headers=_h(member))
 
-    _meal(db_session, member, week, kcal=300, sodium=100)
-    assert _report(client, member, week)["calories_week"][0] == 1500
+    assert r.status_code == 403
 
 
 def test_a_send_of_another_week_does_not_freeze_this_one(client, db_session):
     trainer, member = _pair(db_session)
     week = _last_monday()
     _meal(db_session, member, week, kcal=1200, sodium=100)
+    # 이 주는 굳힌 값 없이 받았다 — 받은 주여야 열린다(#3366).
+    _legacy_send(db_session, trainer, member, week)
     other = _send(client, trainer, member, week - timedelta(days=7))
 
     report = _report(client, member, week, other["id"])
@@ -387,6 +387,8 @@ def test_another_members_send_is_never_read(client, db_session):
     week = _last_monday()
     _meal(db_session, other, week, kcal=2222, sodium=100)
     theirs = _send(client, trainer, other, week)
+    # 나도 같은 주를 받았다(굳힌 값 없이) — 받은 주여야 열린다(#3366).
+    _legacy_send(db_session, trainer, member, week)
 
     report = _report(client, member, week, theirs["id"])
     assert report["member_id"] == member
