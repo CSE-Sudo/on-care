@@ -63,6 +63,7 @@ WeeklyChallenge weeklyWith({
   ChallengeBlockReason? blockReason,
   int shortfall = 0,
   Challenge? challenge,
+  Challenge? settlingChallenge,
 }) => WeeklyChallenge(
   weekStart: DateTime(2026, 9, 14),
   weekEnd: DateTime(2026, 9, 20),
@@ -76,6 +77,7 @@ WeeklyChallenge weeklyWith({
   blockReason: blockReason,
   shortfall: shortfall,
   challenge: challenge,
+  settlingChallenge: settlingChallenge,
 );
 
 Challenge challengeOf({

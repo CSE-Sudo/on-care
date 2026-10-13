@@ -44,7 +44,16 @@ abstract class GymRepository {
   Future<Gym?> fetchMyGym();
 
   /// Nearby gyms shown in the "헬스장 찾기" finder sheet.
+  ///
+  /// 서버는 검색 중심에서 기본 반경 안의 헬스장만 가까운 순으로 준다(#3356).
+  /// 목록에 없는 헬스장은 [fetchGym] 으로 읽는다.
   Future<List<Gym>> fetchNearby();
+
+  /// 헬스장 한 곳을 id 로 읽는다. 없으면 `null`. (#3356)
+  ///
+  /// [fetchNearby] 가 반경·개수로 잘려 오므로, 목록 밖의 헬스장으로 들어온 상세
+  /// 화면(담당 트레이너의 소속, 알림·딥링크)이 이것으로 연다.
+  Future<Gym?> fetchGym(String gymId);
 
   /// Drops the gym link, and the trainer with it — you cannot keep a trainer
   /// at a gym you left. [fetchMyGym] and [fetchMyTrainer] both return `null`

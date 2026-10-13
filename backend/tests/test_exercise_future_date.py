@@ -326,7 +326,8 @@ def test_a_member_cannot_fill_the_week_in_advance_through_the_api(
         r = post_exercise(client, json=_walk(day), headers=h)
         assert r.status_code == 422, r.text
 
-    at(NEXT_MON, 0, 1)
+    # 월요일 하루는 유예다 — 화요일부터 판정한다(#3362).
+    at(NEXT_MON + timedelta(days=1), 0, 1)
     assert _settled(client, h)["status"] == "failed"
 
 
@@ -343,7 +344,8 @@ def test_records_written_in_advance_do_not_count_at_settlement(
     for day in (TUE, WED, SAT):
         _stored_record(db_session, member_id, day, stored_on=MON)
 
-    at(NEXT_MON, 0, 1)
+    # 월요일 하루는 유예다 — 화요일부터 판정한다(#3362).
+    at(NEXT_MON + timedelta(days=1), 0, 1)
     settled = _settled(client, h)
 
     assert settled["status"] == "failed"
@@ -360,7 +362,8 @@ def test_records_written_on_the_day_or_later_still_count(client, db_session, at)
     _stored_record(db_session, member_id, WED, stored_on=WED)  # 그날 적음
     _stored_record(db_session, member_id, TUE, stored_on=SUN)  # 뒤늦게 적음
 
-    at(NEXT_MON, 0, 1)
+    # 월요일 하루는 유예다 — 화요일부터 판정한다(#3362).
+    at(NEXT_MON + timedelta(days=1), 0, 1)
     settled = _settled(client, h)
 
     assert settled["status"] == "succeeded"

@@ -41,7 +41,14 @@ def test_member_without_risk_copy_gets_no_fixed_rank(client):
     body = r.json()
     assert set(body) == {"profile", "activity_points"}
     assert body["activity_points"] == 0
-    assert set(body["profile"]) == {"id", "name", "email"}
+    # 대체 이메일 여부와 가입 수단이 함께 실린다(#3338).
+    assert set(body["profile"]) == {
+        "id",
+        "name",
+        "email",
+        "email_is_placeholder",
+        "email_placeholder_provider",
+    }
 
 
 def test_stored_risk_and_rank_are_not_exposed(client, db_session):

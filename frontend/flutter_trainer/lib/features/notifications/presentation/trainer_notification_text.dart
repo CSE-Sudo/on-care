@@ -95,6 +95,15 @@ TrainerNotificationText? _assemble(
         },
         body: l.notifTplMemberWithDetail(name, day),
       );
+    // 회원이 수락된 상담을 시작 전에 취소했다(#3359). 스케줄에 잡혀 있던 약속이라
+    // 대기 요청 취소와 달리 시각까지 적는다.
+    case 'trainer_consult_booking_cancelled':
+      final String? when = _when(l, args['starts_at']);
+      if (name == null || when == null) return null;
+      return (
+        title: l.notifTplConsultBookingCancelledTitle,
+        body: l.notifTplMemberWithDetail(name, when),
+      );
     case 'trainer_invite_accepted':
       if (name == null) return null;
       return (

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
@@ -23,6 +24,9 @@ import 'package:oncare_core/clock.dart';
 /// (`memberResumeRefreshTargets`)이 홈·기록을 새 날로 바꾸는데 조언만 남아,
 /// 다음 날 돌아오면 어제 이야기를 했다. 복귀마다 비우면 같은 날에도 조언을 매번
 /// 새로 만들게 되므로, 날이 바뀐 때만 비운다.
+///
+/// 홈 코칭 시트(#3351)도 같다 — 자동 해제되지 않아 자정을 넘겨도 어제의 인사말과
+/// "오늘" 카드가 남았다. 서버도 날이 바뀌면 어제 만든 카드를 쓰지 않는다.
 final List<ProviderOrFamily> kDayChangeRefreshTargets = <ProviderOrFamily>[
   activityCalendarProvider,
   myStreakShieldsProvider,
@@ -30,6 +34,7 @@ final List<ProviderOrFamily> kDayChangeRefreshTargets = <ProviderOrFamily>[
   profilePetProvider,
   dietAdviceProvider,
   exerciseAdviceProvider,
+  aiCoachStateProvider,
 ];
 
 /// 마지막으로 갱신한 날을 기억했다가 날이 바뀐 계기(앱 복귀·MY 탭 재진입)에만

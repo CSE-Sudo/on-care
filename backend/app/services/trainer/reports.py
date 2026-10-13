@@ -62,13 +62,23 @@ def week_start_of(day: date) -> date:
 
 
 def build_weekly_report(
-    db: Session, trainer_id: str, member_id: str, week_start: date
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    week_start: date,
+    *,
+    member_scope: bool = False,
 ) -> WeeklyReportOut:
     """담당 고객 한 명의 한 주.
 
     O2O 코칭에서 회원이 재등록하는 이유는 "좋아졌다"를 볼 수 있을 때다. 여기서
     쓰는 값은 전부 두 앱이 이미 공유하는 데이터(식단·운동기록·스케줄)이며 새로
     수집하는 것이 없다.
+
+    [member_scope] 는 회원 본인이 자기 주를 읽는 자리다(#3347). 켜면 PT 횟수·
+    요일 이행률·개인운동 수를 [trainer_id] 로 거르지 않고 그 주에 그 회원에게
+    걸려 있던 것 전부로 센다 — 담당이 바뀌거나 끊긴 뒤에도 지난 주의 값이
+    그대로다. 트레이너 화면은 켜지 않는다(자기 담당 기간의 것만 본다).
     """
     monday = week_start_of(week_start)
     sunday = monday + timedelta(days=6)
@@ -83,9 +93,10 @@ def build_weekly_report(
     # 자체에 패널티를 주는 지표는 이번 범위가 아니라 별도 정책이다.
     # 상담도 세지 않는다(#2741) — 리포트가 말하는 것은 **PT** 횟수다. 상담이 있던
     # 주는 PT 가 1회 더 나오고 이행률 분모도 그만큼 커졌다.
+    owner = () if member_scope else (TrainerSchedule.trainer_id == trainer_id,)
     sessions = db.scalars(
         select(TrainerSchedule).where(
-            TrainerSchedule.trainer_id == trainer_id,
+            *owner,
             TrainerSchedule.member_id == member_id,
             TrainerSchedule.date >= monday_str,
             TrainerSchedule.date <= sunday_str,
@@ -97,7 +108,9 @@ def build_weekly_report(
     done = sum(1 for s in sessions if s.status == SCHEDULE_DONE)
 
     # 요일 이행률은 로스터와 같은 계산이다(#2513) — 걸린 개인운동과 잡힌 PT.
-    week = week_completion_by_member(db, trainer_id, [member_id], monday)[member_id]
+    week = week_completion_by_member(
+        db, trainer_id, [member_id], monday, member_scope=member_scope
+    )[member_id]
     # 요일 칸은 회원의 실제 운동 기록에서 만든다(#1288). 기록이 (그 주 월요일,
     # 요일) 로 저장되므로 월요일 하나로 한 주가 그대로 걸린다.
     exercise_rows = db.scalars(
@@ -110,7 +123,9 @@ def build_weekly_report(
         # 열 때 칸 안의 줄 순서가 바뀐다.
         .order_by(ExerciseSession.completed_at, ExerciseSession.id)
     ).all()
-    assigned, assigned_done = _assigned_week_counts(db, trainer_id, member_id, monday)
+    assigned, assigned_done = _assigned_week_counts(
+        db, trainer_id, member_id, monday, member_scope=member_scope
+    )
     days = _week_days(list(exercise_rows), week, assigned, assigned_done)
     recorded = [d for d in week if d is not None]
     # 걸린 것이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이

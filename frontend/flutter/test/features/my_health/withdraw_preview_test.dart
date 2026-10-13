@@ -1,6 +1,6 @@
 /// 탈퇴 확인창의 "잃는 것" 건수 — 엔티티·읽기·문구. (#3006)
 ///
-/// 실서버는 `GET /users/me/deletion-preview` 하나로 네 숫자를 준다. 데모는 PT
+/// 실서버는 `GET /users/me/deletion-preview` 하나로 숫자를 모두 준다. 데모는 PT
 /// 예약·상담 요청을 목 저장소가 들고 있어 그 둘을 저장소에서 다시 센다. 어느
 /// 쪽이든 읽기가 실패하면 확인창은 일반 문구로 물러서고 탈퇴는 막지 않는다.
 library;
@@ -82,6 +82,7 @@ void main() {
             'points': 1200,
             'active_coupons': 2,
             'upcoming_reservations': 1,
+            'upcoming_sessions': 4,
             'pending_consultations': 3,
           });
       expect(
@@ -90,6 +91,7 @@ void main() {
           points: 1200,
           activeCoupons: 2,
           upcomingReservations: 1,
+          upcomingSessions: 4,
           pendingConsultations: 3,
         ),
       );
@@ -102,6 +104,32 @@ void main() {
       );
       expect(p, const AccountDeletionPreview());
       expect(p.hasLosses, isFalse);
+    });
+
+    test('PT 일정 칸이 없는 옛 응답도 읽는다 (#3341)', () {
+      final AccountDeletionPreview p = AccountDeletionPreview.fromJson(
+        <String, Object?>{'points': 10, 'upcoming_reservations': 1},
+      );
+      expect(p.upcomingSessions, 0);
+      expect(p.upcomingReservations, 1);
+    });
+
+    test('트레이너가 잡은 PT 일정만 있어도 잃는 것이 있다 (#3341)', () {
+      const AccountDeletionPreview p = AccountDeletionPreview(
+        upcomingSessions: 1,
+      );
+      expect(p.hasLosses, isTrue);
+      expect(p, isNot(const AccountDeletionPreview()));
+      expect(
+        p.hashCode,
+        const AccountDeletionPreview(upcomingSessions: 1).hashCode,
+      );
+      expect(p.toString(), contains('sessions: 1'));
+      expect(
+        p.copyWith(points: 5),
+        const AccountDeletionPreview(points: 5, upcomingSessions: 1),
+      );
+      expect(p.copyWith(upcomingSessions: 3).upcomingSessions, 3);
     });
 
     test('copyWith 는 준 칸만 바꾼다', () {
@@ -138,6 +166,47 @@ void main() {
       );
       expect(message, contains('1,500P'));
       expect(message, isNot(contains(ko.myWithdrawLoseCoupons(0))));
+    });
+
+    test('취소될 PT 일정은 예약 줄 다음, 상담 줄 앞에 온다 (#3341)', () {
+      final String message = withdrawConfirmMessage(
+        ko,
+        const AccountDeletionPreview(
+          upcomingReservations: 1,
+          upcomingSessions: 3,
+          pendingConsultations: 2,
+        ),
+      );
+      expect(
+        message,
+        '${ko.myWithdrawConfirm}\n\n'
+        '${ko.myWithdrawCancelReservations(1)}\n'
+        '${ko.myWithdrawCancelSessions(3)}\n'
+        '${ko.myWithdrawCancelConsultations(2)}',
+      );
+      expect(ko.myWithdrawCancelSessions(3), contains('3건'));
+    });
+
+    test('PT 일정이 0 이면 그 줄은 없다 (#3341)', () {
+      final String message = withdrawConfirmMessage(
+        ko,
+        const AccountDeletionPreview(upcomingReservations: 2),
+      );
+      expect(message, isNot(contains(ko.myWithdrawCancelSessions(0))));
+      expect(message, contains(ko.myWithdrawCancelReservations(2)));
+    });
+
+    test('PT 일정 줄은 영어에서 단수·복수를 가른다 (#3341)', () {
+      final String message = withdrawConfirmMessage(
+        en,
+        const AccountDeletionPreview(upcomingSessions: 2),
+      );
+      expect(message, contains(en.myWithdrawCancelSessions(2)));
+      expect(en.myWithdrawCancelSessions(2), contains('2'));
+      expect(
+        en.myWithdrawCancelSessions(1),
+        isNot(en.myWithdrawCancelSessions(2)),
+      );
     });
 
     test('영어 문구도 숫자를 싣는다', () {
@@ -209,12 +278,13 @@ void main() {
   });
 
   group('withdrawPreviewLoaderProvider', () {
-    test('실서버는 서버가 준 네 숫자를 그대로 쓴다', () async {
+    test('실서버는 서버가 준 숫자를 그대로 쓴다', () async {
       final MockAccountRepository account = MockAccountRepository()
         ..deletionPreview = const AccountDeletionPreview(
           points: 900,
           activeCoupons: 1,
           upcomingReservations: 2,
+          upcomingSessions: 3,
           pendingConsultations: 1,
         );
       final ProviderContainer c = ProviderContainer(

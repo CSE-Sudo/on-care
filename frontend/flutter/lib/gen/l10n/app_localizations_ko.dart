@@ -148,13 +148,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String homeAdviceExerciseOnTrack(int minutes) {
-    return '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!';
+    return '이번 주 유산소 $minutes분 운동했어요. 목표 달성 중이에요!';
   }
 
   @override
   String homeAdviceExerciseMore(int minutes) {
-    return '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!';
+    return '이번 주 유산소 $minutes분 운동했어요. 조금만 더 힘내요!';
   }
+
+  @override
+  String get homeAdviceExerciseCardioStart =>
+      '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?';
 
   @override
   String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
@@ -660,7 +664,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietManualAddTitle => '식단 직접 추가';
 
   @override
-  String get dietManualAddHint => '음식 이름을 적으면 영양 정보를 찾아 채워요';
+  String get dietManualAddHint =>
+      '음식 이름을 적으면 영양 정보를 찾아 채워요. 포인트는 사진으로 기록한 끼니에만 쌓여요';
 
   @override
   String get dietManualAddEmpty => '음식을 하나 이상 적어 주세요';
@@ -1210,6 +1215,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myDefaultUserName => '사용자';
 
   @override
+  String myEmailUnregistered(String provider) {
+    String _temp0 = intl.Intl.selectLogic(provider, {
+      'kakao': '카카오로 가입',
+      'google': '구글로 가입',
+      'other': '소셜 로그인으로 가입',
+    });
+    return '$_temp0 · 이메일 미등록';
+  }
+
+  @override
   String get myProfileLoadFailed => '내 정보를 불러오지 못했어요';
 
   @override
@@ -1589,7 +1604,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsHistoryEmpty => '아직 포인트 내역이 없어요';
 
   @override
-  String get myPointsHistoryEmptyMessage => '식단·운동을 기록하면 포인트가 쌓여요.';
+  String get myPointsHistoryEmptyMessage => '사진으로 식단을 기록하거나 운동을 기록하면 포인트가 쌓여요.';
 
   @override
   String get myPointsHistoryLoadFailed => '포인트 내역을 불러오지 못했어요';
@@ -1716,6 +1731,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get challengeJoinClosed => '다음 주 월요일에 다시 참가할 수 있어요';
+
+  @override
+  String get challengeSettling => '지난주 결과 집계 중이에요. 오늘까지 적은 지난주 운동 기록이 반영돼요';
 
   @override
   String get challengeThisWeek => '이번 주 진행';
@@ -1947,6 +1965,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteSendFailed => '이모티콘을 보내지 못했어요';
 
   @override
+  String get emoteSendLocked => '이용 기간이 끝난 이모티콘이에요. 다시 사면 보낼 수 있어요';
+
+  @override
+  String get emoteSendRejected => '보낼 수 없는 이모티콘이에요';
+
+  @override
   String get a11yOpenEmotes => '이모티콘';
 
   @override
@@ -1976,6 +2000,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String myWithdrawCancelReservations(int count) {
     return '• 예정된 PT 예약 $count건이 취소돼요';
+  }
+
+  @override
+  String myWithdrawCancelSessions(int count) {
+    return '• 트레이너가 잡은 PT 일정 $count건이 취소돼요';
   }
 
   @override
@@ -2120,6 +2149,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myProfileEmailTaken => '이미 사용 중인 이메일이에요';
 
   @override
+  String get myProfileEmailEmptyHint => '사용할 이메일 주소';
+
+  @override
   String get myProfilePhoneRequired => '등록된 전화번호는 비울 수 없어요';
 
   @override
@@ -2166,7 +2198,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifWeeklyReportDesc => '담당 트레이너가 주간 리포트를 보내면 알려요';
 
   @override
-  String get myNotifAlwaysSent => 'PT 일정 등록·변경·취소와 담당 트레이너 연결·해제 알림은 항상 보내요';
+  String get myNotifAlwaysSent =>
+      'PT 일정 등록·변경·취소, 담당 트레이너 요청·연결·해제, 상담 요청 결과, 건강 목표 변경, 쿠폰 만료·취소, 주간 챌린지 결과 알림은 항상 보내요';
 
   @override
   String get mySupportFaq => '자주 묻는 질문';
@@ -2367,6 +2400,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachImageUnavailable => '사진을 불러오지 못했어요';
 
   @override
+  String get coachImageRetry => '눌러서 다시 불러오기';
+
+  @override
   String get coachChatSubtitle => '담당 트레이너';
 
   @override
@@ -2390,6 +2426,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatSendFailed => '메시지를 보내지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get coachChatSendRejected => '보낼 수 없는 메시지예요. 내용을 확인해 주세요';
+
+  @override
   String get coachPhotoAttach => '사진 보내기';
 
   @override
@@ -2406,6 +2445,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachPhotoSendFailed => '사진을 보내지 못했어요';
+
+  @override
+  String get coachPhotoSendRejected => '보낼 수 없는 사진이에요';
 
   @override
   String get coachPhotoRetry => '다시 보내기';
@@ -2540,7 +2582,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicPaidInsufficient(String shortfall) {
-    return '포인트가 $shortfall 부족해요. 식단·운동을 기록하면 포인트가 쌓여요.';
+    return '포인트가 $shortfall 부족해요. 사진으로 식단을 기록하거나 운동을 기록하면 포인트가 쌓여요.';
   }
 
   @override
@@ -2657,13 +2699,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultPendingCta => '상담 요청 대기 중';
-
-  @override
-  String get exConsultLinkedToOtherTrainer =>
-      '담당 트레이너와 연결되어 있어요. 다른 트레이너에게 상담을 신청하려면 담당 연결을 먼저 해제해 주세요.';
-
-  @override
-  String get exConsultGoToMyTrainer => '담당 트레이너 보기';
 
   @override
   String get exViewConsultationRequest => '상담 요청 확인';
@@ -3264,7 +3299,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 직접 기록 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
+    return '기록하면 포인트가 쌓여요.\n사진으로 식단 기록 +${diet}P(직접 추가는 제외), 운동 직접 기록 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
   }
 
   @override
@@ -3616,7 +3651,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsGuideTitle => '포인트 적립 안내';
 
   @override
-  String get myPointsDietAdd => '식단 기록';
+  String get myPointsDietAdd => '사진으로 식단 기록';
 
   @override
   String get myPointsRoutineComplete => '개인운동 완료';
@@ -3934,6 +3969,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
+
+  @override
+  String get exConsultAcceptedCancelTitle => '확정된 상담을 취소할까요?';
+
+  @override
+  String get exConsultAcceptedCancelBody =>
+      '트레이너에게 취소를 알리고 잡아 둔 시간을 비워요. 취소한 상담은 다시 되돌릴 수 없어요.';
+
+  @override
+  String get exConsultAcceptedCancelAction => '상담 취소';
+
+  @override
+  String get exConsultCancelStarted => '시작 시각이 지난 상담은 취소할 수 없어요.';
 
   @override
   String pointsRewardBadge(int points) {
@@ -4683,6 +4731,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get weeklyFeedbackSendFailed => '주간 피드백을 보내지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get weeklyFeedbackSendUnassigned => '담당이 해제되어 주간 피드백을 보낼 수 없어요';
+
+  @override
+  String get weeklyFeedbackSendRejected => '이 주에는 주간 피드백을 보낼 수 없어요';
+
+  @override
   String get weeklyFeedbackAlreadySent => '이미 보낸 주예요. 다시 보내면 마지막 답으로 바뀌어요.';
 
   @override
@@ -4791,7 +4845,37 @@ class AppLocalizationsKo extends AppLocalizations {
   String get findEmailAction => '아이디 찾기';
 
   @override
-  String get findEmailComingSoon => '아이디 찾기는 준비 중이에요.';
+  String get findEmailFoundSubtitle => '입력한 정보로 가입한 계정이에요.';
+
+  @override
+  String get findEmailMaskedNote => '개인정보 보호를 위해 이메일 일부를 가렸어요.';
+
+  @override
+  String findEmailSocialTitle(String provider) {
+    return '$provider 계정으로 가입했어요';
+  }
+
+  @override
+  String get findEmailSocialBody => '로그인 화면에서 가입한 방법으로 로그인해 주세요.';
+
+  @override
+  String get findEmailProviderKakao => '카카오';
+
+  @override
+  String get findEmailProviderGoogle => '구글';
+
+  @override
+  String get findEmailProviderOther => '소셜';
+
+  @override
+  String get findEmailNotFoundTitle => '일치하는 계정을 찾지 못했어요';
+
+  @override
+  String get findEmailNotFoundBody =>
+      '이름과 휴대폰 번호를 다시 확인해 주세요. 가입할 때 번호를 넣지 않았거나 나중에 바꿨다면 찾을 수 없어요.';
+
+  @override
+  String get findEmailRetry => '다시 찾기';
 
   @override
   String get passwordChangeTitle => '비밀번호 변경';
@@ -4861,6 +4945,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get passwordResetConfirmSubtitle => '메일로 받은 코드와 새 비밀번호를 입력해 주세요.';
+
+  @override
+  String get passwordResetSocialNote =>
+      '카카오·구글 같은 소셜 로그인으로 가입했다면 메일이 오지 않아요. 가입한 방법으로 로그인해 주세요.';
 
   @override
   String get passwordResetCodeHint => '재설정 코드 16자리';

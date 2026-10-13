@@ -23,6 +23,13 @@ abstract class AccountRepository {
     AccountReauth? reauth,
   });
 
+  /// GET /users/me — 확인할 비밀번호가 있는 계정인가(#3340).
+  ///
+  /// 값은 프로필의 `hasPassword` 와 같다. 동의가 남은 회원은 프로필을 읽지
+  /// 못해(403), 탈퇴 확인창이 본인 확인 방법을 고를 때 이쪽을 읽는다. 서버가
+  /// 값을 주지 않으면(옛 서버) 비밀번호 계정으로 본다.
+  Future<bool> fetchHasPassword();
+
   /// GET /users/me/deletion-preview — 탈퇴하면 사라지는 포인트·쿠폰과 취소되는
   /// 예약·상담 요청의 건수(#3006). 탈퇴 확인창이 이 숫자로 무엇을 잃는지 말한다.
   Future<AccountDeletionPreview> fetchDeletionPreview();

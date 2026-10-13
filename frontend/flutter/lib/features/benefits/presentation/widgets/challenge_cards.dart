@@ -32,7 +32,8 @@ String? challengeBlockLabel(AppLocalizations l, WeeklyChallenge state) {
 /// 사용처 화면의 주간 운동 챌린지 카드. (#1789)
 ///
 /// 참가 전에는 건 포인트·목표·보상과 `참가` 버튼을, 참가했으면 이번 주 진행을
-/// 보여 준다. 참가할 수 없으면 버튼을 막고 이유를 버튼 왼쪽에 적는다.
+/// 보여 준다. 참가할 수 없으면 버튼을 막고 이유를 버튼 왼쪽에 적는다. 지난주 결과가
+/// 유예 중이면 설명 아래에 집계 중이라고 한 줄 적는다(#3362).
 class WeeklyChallengeCard extends StatelessWidget {
   const WeeklyChallengeCard({
     super.key,
@@ -108,6 +109,18 @@ class WeeklyChallengeCard extends StatelessWidget {
                         style: tokens
                             .text(OnCareTypography.caption)
                             .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                    ],
+                    if (state.settlingChallenge != null) ...<Widget>[
+                      const SizedBox(height: OnCareSpacing.s4),
+                      Text(
+                        keepWords(l.challengeSettling),
+                        key: const Key('weeklyChallengeSettling'),
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(OnCareTypography.caption),
+                            )
+                            .copyWith(color: OnCareColors.textSecondary),
                       ),
                     ],
                   ],

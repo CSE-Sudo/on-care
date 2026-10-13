@@ -554,6 +554,31 @@ void main() {
       expect(repo.deletes, 0);
     });
 
+    testWidgets('트레이너가 잡은 PT 일정이 있으면 취소될 수를 한 줄로 말한다 (#3341)', (
+      WidgetTester tester,
+    ) async {
+      final (
+        AppLocalizations l,
+        _CountingAccountRepository repo,
+        _,
+      ) = await _pumpWithdraw(
+        tester,
+        preview: () async => const AccountDeletionPreview(upcomingSessions: 3),
+      );
+      await _openWithdraw(tester, l);
+      await _reachConfirm(tester);
+
+      expect(find.byType(AppDialog), findsOneWidget);
+      final String message = withdrawConfirmMessage(
+        l,
+        const AccountDeletionPreview(upcomingSessions: 3),
+      );
+      expect(find.text(message), findsOneWidget);
+      expect(message, endsWith(l.myWithdrawCancelSessions(3)));
+      expect(message, isNot(contains(l.myWithdrawCancelReservations(0))));
+      expect(repo.deletes, 0);
+    });
+
     testWidgets('잃는 것이 없으면 기본 문구만 띄운다', (WidgetTester tester) async {
       final (AppLocalizations l, _, _) = await _pumpWithdraw(tester);
       await _openWithdraw(tester, l);
@@ -610,6 +635,7 @@ void main() {
           points: 125000,
           activeCoupons: 12,
           upcomingReservations: 4,
+          upcomingSessions: 16,
           pendingConsultations: 3,
         ),
       );
