@@ -7,7 +7,7 @@
 | 앱 | 한국어(원본) | 영문 |
 | --- | --- | --- |
 | 회원 앱 | `frontend/flutter/lib/l10n/app_ko.arb` | `frontend/flutter/lib/l10n/app_en.arb` |
-| 트레이너 웹 | `frontend/flutter_trainer/lib/l10n/app_ko.arb` | `frontend/flutter_trainer/lib/l10n/app_en.arb` |
+| 트레이너 웹 | `frontend/flutter_trainer/lib/l10n/app_ko.arb` | 없음 (한국어 단일) |
 
 > 이 표와 처리방침 문안은 법률 검토 전의 초안이다. 스토어 제출·정식 출시 전에 법률 검토를 받고,
 > 아래 "확정이 필요한 값" 을 채운다.
