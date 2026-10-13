@@ -1,8 +1,5 @@
-import 'dart:ui' show Locale;
-
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_core/network/accept_language_interceptor.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
@@ -36,10 +33,8 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  // 브라우저가 제 언어를 `Accept-Language` 로 붙이지 않게 한국어로 고정한다.
   // 실행 중 만료된 토큰은 갱신 뒤 원 요청을 한 번 다시 보낸다(#1546).
   dio.interceptors
-    ..add(AcceptLanguageInterceptor(() => const Locale('ko')))
     ..add(authInterceptorFor(ref, retryClient: dio))
     // 필수 동의가 남은 트레이너는 서버가 403 으로 막는다 — 동의 화면으로 보낸다(#3155).
     ..add(
