@@ -849,6 +849,9 @@
   "myPointsExchangeConfirmAction": "Redeem",
   "myPointsExchangeDone": "Redeemed",
   "myPointsExchangeFailed": "Couldn't redeem. Please try again.",
+  "myPointsExchangeBlocked": "You can't redeem this right now",
+  "myPointsInsufficient": "Not enough points",
+  "myBenefitAlreadyReceived": "You already have this",
   "myPointsShortfall": "{points} short",
   "@myPointsShortfall": {
     "placeholders": {
@@ -1228,6 +1231,8 @@
   "challengeJoinConfirmAction": "Join",
   "challengeJoinDone": "You joined this week's challenge",
   "challengeJoinFailed": "Couldn't join. Please try again.",
+  "challengeJoinAlready": "You've already joined",
+  "challengeJoinBlocked": "You can't join right now",
   "challengeJoinClosed": "You can join again next Monday",
   "challengeSettling": "Tallying last week's result. Workouts you log for last week by today still count",
   "challengeThisWeek": "This week",

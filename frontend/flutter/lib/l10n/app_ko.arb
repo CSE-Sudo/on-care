@@ -545,6 +545,9 @@
   "myPointsExchangeConfirmAction": "교환",
   "myPointsExchangeDone": "교환했어요",
   "myPointsExchangeFailed": "교환하지 못했어요. 다시 시도해 주세요.",
+  "myPointsExchangeBlocked": "지금은 교환할 수 없어요",
+  "myPointsInsufficient": "포인트가 부족해요",
+  "myBenefitAlreadyReceived": "이미 받았어요",
   "myPointsShortfall": "{points} 부족해요",
   "@myPointsShortfall": {
     "placeholders": {
@@ -920,6 +923,8 @@
   "challengeJoinConfirmAction": "참가",
   "challengeJoinDone": "챌린지에 참가했어요",
   "challengeJoinFailed": "참가하지 못했어요. 다시 시도해 주세요.",
+  "challengeJoinAlready": "이미 참가했어요",
+  "challengeJoinBlocked": "지금은 참가할 수 없어요",
   "challengeJoinClosed": "다음 주 월요일에 다시 참가할 수 있어요",
   "challengeSettling": "지난주 결과 집계 중이에요. 오늘까지 적은 지난주 운동 기록이 반영돼요",
   "challengeThisWeek": "이번 주 진행",

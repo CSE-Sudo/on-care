@@ -2396,6 +2396,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t redeem. Please try again.'**
   String get myPointsExchangeFailed;
 
+  /// No description provided for @myPointsExchangeBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t redeem this right now'**
+  String get myPointsExchangeBlocked;
+
+  /// No description provided for @myPointsInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough points'**
+  String get myPointsInsufficient;
+
+  /// No description provided for @myBenefitAlreadyReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this'**
+  String get myBenefitAlreadyReceived;
+
   /// No description provided for @myPointsShortfall.
   ///
   /// In en, this message translates to:
@@ -3103,6 +3121,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t join. Please try again.'**
   String get challengeJoinFailed;
+
+  /// No description provided for @challengeJoinAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve already joined'**
+  String get challengeJoinAlready;
+
+  /// No description provided for @challengeJoinBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t join right now'**
+  String get challengeJoinBlocked;
 
   /// No description provided for @challengeJoinClosed.
   ///

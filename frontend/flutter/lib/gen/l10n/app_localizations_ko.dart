@@ -1293,6 +1293,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsExchangeFailed => '교환하지 못했어요. 다시 시도해 주세요.';
 
   @override
+  String get myPointsExchangeBlocked => '지금은 교환할 수 없어요';
+
+  @override
+  String get myPointsInsufficient => '포인트가 부족해요';
+
+  @override
+  String get myBenefitAlreadyReceived => '이미 받았어요';
+
+  @override
   String myPointsShortfall(String points) {
     return '$points 부족해요';
   }
@@ -1713,6 +1722,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get challengeJoinFailed => '참가하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get challengeJoinAlready => '이미 참가했어요';
+
+  @override
+  String get challengeJoinBlocked => '지금은 참가할 수 없어요';
 
   @override
   String get challengeJoinClosed => '다음 주 월요일에 다시 참가할 수 있어요';
