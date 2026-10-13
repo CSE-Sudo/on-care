@@ -18,6 +18,8 @@ _ROOT = Path(__file__).resolve().parents[2]
 _CASES = json.loads(
     (_ROOT / "frontend/flutter/test/core/demo/diet_advice_cases.json").read_text(encoding="utf-8")
 )
+#: 서버 문장은 한국어 하나다(#3404). 공유 파일에 영어 사례가 남아 있어도 견주지 않는다.
+_SERVER_CASES = [c for c in _CASES["cases"] if c.get("lang", "ko") == "ko"]
 
 _spec = importlib.util.spec_from_file_location(
     "gen_diet_advice_cases", _ROOT / "backend/scripts/gen_diet_advice_cases.py"
@@ -26,12 +28,12 @@ gen = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gen)
 
 
-@pytest.mark.parametrize("case", _CASES["cases"], ids=[c["name"] for c in _CASES["cases"]])
+@pytest.mark.parametrize("case", _SERVER_CASES, ids=[c["name"] for c in _SERVER_CASES])
 def test_server_matches_the_shared_cases(case):
     assert gen.RUN[case["period"]](case) == case["expected"]
 
 
-@pytest.mark.parametrize("case", _CASES["cases"], ids=[c["name"] for c in _CASES["cases"]])
+@pytest.mark.parametrize("case", _SERVER_CASES, ids=[c["name"] for c in _SERVER_CASES])
 def test_cases_fit_the_card(case):
     expected = case["expected"]
     analysis = copy.Line(key=expected["analysis"]["key"], params=expected["analysis"]["params"])
@@ -42,7 +44,7 @@ def test_cases_fit_the_card(case):
 
 def test_demo_plan_is_the_servers_rules_plan():
     """데모의 고정 메뉴 리스트는 서버가 기록 없는 회원에게 만드는 카탈로그 리스트다."""
-    assert _CASES["demo_plan"] == gen.DEMO_PLAN
+    assert _CASES["demo_plan"]["ko"] == gen.DEMO_PLAN["ko"]
 
 
 def test_renderings_cover_every_key_and_match_the_server():

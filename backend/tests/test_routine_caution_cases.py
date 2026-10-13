@@ -27,9 +27,24 @@ _CASES = _FILE["cases"]
 svc = gen.svc
 
 
+#: 서버가 더는 만들지 않는 영어 항목(#3404). 공유 파일에 남아 있어도 견주지 않는다.
+_RETIRED_TABLES = ("en_caution_parts", "en_exercise_names")
+
+
+def _without_english(file: dict) -> dict:
+    tables = {k: v for k, v in file["tables"].items() if k not in _RETIRED_TABLES}
+    cases = dict(file["cases"])
+    cases["caution_suffix"] = [
+        {k: v for k, v in case.items() if k != "en"} for case in cases["caution_suffix"]
+    ]
+    return {**file, "tables": tables, "cases": cases}
+
+
 def test_the_shared_file_is_up_to_date() -> None:
     """표와 사례가 서버와 같다 — 서버 표를 바꾸고 파일을 다시 만들지 않으면 깨진다."""
-    assert _FILE == json.loads(json.dumps(gen.build(), ensure_ascii=False))
+    assert _without_english(_FILE) == json.loads(
+        json.dumps(gen.build(), ensure_ascii=False)
+    )
 
 
 @pytest.mark.parametrize("case", _CASES["detect"])
@@ -59,11 +74,7 @@ def test_guess_type_matches_the_shared_cases(case: dict) -> None:
 
 @pytest.mark.parametrize("case", _CASES["caution_suffix"])
 def test_caution_suffix_matches_the_shared_cases(case: dict) -> None:
-    for locale in ("ko", "en"):
-        assert (
-            svc._caution_suffix(case["cautions"], case["escalate"], locale)
-            == case[locale]
-        )
+    assert svc._caution_suffix(case["cautions"], case["escalate"]) == case["ko"]
 
 
 def test_cases_touch_every_caution_part() -> None:

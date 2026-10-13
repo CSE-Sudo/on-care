@@ -150,10 +150,6 @@ def diet_advice(
         Literal["today", "week", "all"],
         Query(description="조언이 다룰 구간 — 화면의 기간 토글과 같은 이름"),
     ] = "today",
-    lang: Annotated[
-        Literal["ko", "en"],
-        Query(description="앱 언어 — 메뉴 이름·AI 문장을 이 언어로 준다"),
-    ] = "ko",
 ) -> DietAdviceResponse:
     """기간에 맞는 식단 조언. (#1017)
 
@@ -170,14 +166,10 @@ def diet_advice(
     `diet_trainer_analysis` 의 식단 분석 문장이다(#2379).
     """
     if period == diet_period_advice.PERIOD_TODAY:
-        return _advice_response(
-            diet_period_advice.today_advice(db, current_user.id, lang=lang)
-        )
+        return _advice_response(diet_period_advice.today_advice(db, current_user.id))
     if period == diet_week_advice.PERIOD_WEEK:
-        return _advice_response(
-            diet_week_advice.week_advice(db, current_user.id, lang=lang)
-        )
-    return _advice_response(diet_all_advice.all_advice(db, current_user.id, lang=lang))
+        return _advice_response(diet_week_advice.week_advice(db, current_user.id))
+    return _advice_response(diet_all_advice.all_advice(db, current_user.id))
 
 
 def _advice_response(advice: diet_period_advice.DietAdvice) -> DietAdviceResponse:

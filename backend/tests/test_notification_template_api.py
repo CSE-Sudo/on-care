@@ -1,18 +1,17 @@
-"""알림 목록의 요청 언어 대응. (#2302) DB 필요.
+"""알림 목록의 문장과 문장 틀. (#2302, #3404) DB 필요.
 
-알림은 만든 순간의 한국어 문장만 저장해, 영어 화면에서도 한국어로 보였다. 이제
-문장 틀과 인자를 함께 저장하고 목록 API 가 요청 언어로 조립한다.
+알림은 문장(`title`·`body`)과 함께 문장 틀·인자를 저장한다. 서버 문장은 한국어
+하나다 — `Accept-Language` 가 무엇이든 목록은 저장된 문장을 그대로 준다.
 
-  * 저장: 틀·인자와 **예전과 같은 한국어** `title`·`body`.
-  * 트레이너 목록(`/trainer/notifications`)·회원 목록(`/notifications`): 영어 요청은
-    영어 제목·본문, 한국어 요청과 헤더 없는 요청은 저장된 문장 그대로.
-  * 응답에 `template`·`args` 가 실린다 — 트레이너 웹이 ARB 로 조립하는 재료다.
-  * 틀 없는 옛 알림·모르는 틀·깨진 인자는 저장된 문장으로 돌아간다(500 이 아니다).
-  * 회원 알림의 액션 라벨도 요청 언어다.
+  * 저장: 틀·인자와 한국어 `title`·`body`.
+  * 트레이너 목록(`/trainer/notifications`)·회원 목록(`/notifications`): 헤더가
+    없든 `ko` 든 `en` 이든 저장된 문장 그대로.
+  * 응답에 `template`·`args` 가 실린다 — 앱이 문장을 직접 조립할 때 쓰는 재료다.
+  * 틀 없는 옛 알림·모르는 틀·깨진 인자도 저장된 문장이다(500 이 아니다).
+  * 회원 알림의 액션 라벨·상대 시각도 한국어다.
 """
 from __future__ import annotations
 
-import re
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -38,10 +37,11 @@ from app.services import notification_templates as nt
 EMAIL_PREFIX = "noti-l10n-"
 PLACE_PREFIX = "noti-l10n-place-"
 PASSWORD = "noti-l10n-pw-1234"
-HANGUL = re.compile(r"[가-힣]")
 
 EN = {"Accept-Language": "en"}
 KO = {"Accept-Language": "ko"}
+#: 어떤 헤더로 불러도 같은 한국어 응답이어야 한다.
+HEADERS = [None, KO, EN, {"Accept-Language": "en-US,en;q=0.9"}]
 
 
 @pytest.fixture(autouse=True)
@@ -184,43 +184,28 @@ def test_member_message_is_stored_with_its_template_and_korean_text(client, db_s
         )
     )
     assert row is not None
-    # 저장되는 문장은 예전과 같은 한국어다 — 옛 앱·푸시가 이 값을 읽는다.
+    # 저장되는 문장은 한국어다 — 옛 앱·푸시가 이 값을 읽는다.
     assert row.title == "Alex 회원의 메시지"
     assert row.template == nt.TRAINER_MEMBER_MESSAGE
     assert row.template_args == {"member_name": "Alex"}
 
 
-def test_trainer_inbox_speaks_the_request_language(client, db_session):
+@pytest.mark.parametrize("headers", HEADERS)
+def test_trainer_inbox_is_korean_whatever_the_header(client, db_session, headers):
     trainer_token, _, _, member_token = _pair(client, db_session)
     text = f"Hello coach {uuid4().hex[:4]}"
     client.post("/v1/me/coach/chat", json={"text": text}, headers=_auth(member_token))
 
-    en = _trainer_inbox(client, trainer_token, EN)[0]
-    assert en["title"] == "Message from Alex"
-    # 회원이 쓴 글은 번역하지 않는다.
-    assert en["body"] == text
-    assert en["template"] == nt.TRAINER_MEMBER_MESSAGE
-    assert en["args"] == {"member_name": "Alex"}
-
-    for headers in (KO, None, {"Accept-Language": "fr"}):
-        ko = _trainer_inbox(client, trainer_token, headers)[0]
-        assert ko["title"] == "Alex 회원의 메시지"
-        assert ko["body"] == text
-        # 틀은 언어와 무관하게 같이 실린다.
-        assert ko["template"] == nt.TRAINER_MEMBER_MESSAGE
+    newest = _trainer_inbox(client, trainer_token, headers)[0]
+    assert newest["title"] == "Alex 회원의 메시지"
+    # 회원이 쓴 글은 그대로다.
+    assert newest["body"] == text
+    # 틀과 인자는 함께 실린다 — 트레이너 웹이 문장을 조립할 때 쓰는 재료다.
+    assert newest["template"] == nt.TRAINER_MEMBER_MESSAGE
+    assert newest["args"] == {"member_name": "Alex"}
 
 
-@pytest.mark.parametrize(
-    "header", ["en-US,en;q=0.9", "EN", "fr, en;q=0.5", "ko;q=0.2, en;q=0.8"]
-)
-def test_english_is_picked_from_real_browser_headers(client, db_session, header):
-    trainer_token, _, _, member_token = _pair(client, db_session)
-    client.post("/v1/me/coach/chat", json={"text": "hi"}, headers=_auth(member_token))
-    newest = _trainer_inbox(client, trainer_token, {"Accept-Language": header})[0]
-    assert newest["title"] == "Message from Alex"
-
-
-def test_member_goal_change_reaches_the_trainer_in_english(client, db_session):
+def test_member_goal_change_reaches_the_trainer_in_korean(client, db_session):
     trainer_token, _, _, member_token = _pair(client, db_session)
     saved = client.put(
         "/v1/users/me/health-goals",
@@ -229,15 +214,14 @@ def test_member_goal_change_reaches_the_trainer_in_english(client, db_session):
     )
     assert saved.status_code == 200, saved.text
 
-    [en] = [n for n in _trainer_inbox(client, trainer_token, EN) if n["category"] == "health_goal"]
-    assert en["title"] == "Member goals changed"
-    assert en["body"] == "Alex changed their health goals: Build strength · Rehab"
-    assert en["args"] == {"member_name": "Alex", "focus": ["근력 향상", "재활"]}
-    assert not HANGUL.search(en["title"] + en["body"])
-
-    [ko] = [n for n in _trainer_inbox(client, trainer_token) if n["category"] == "health_goal"]
-    assert ko["title"] == "회원 건강 목표가 바뀌었어요"
-    assert ko["body"] == "Alex 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활"
+    for headers in (None, EN):
+        [row] = [
+            n for n in _trainer_inbox(client, trainer_token, headers)
+            if n["category"] == "health_goal"
+        ]
+        assert row["title"] == "회원 건강 목표가 바뀌었어요"
+        assert row["body"] == "Alex 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활"
+        assert row["args"] == {"member_name": "Alex", "focus": ["근력 향상", "재활"]}
 
 
 def test_member_clearing_goals_says_none(client, db_session):
@@ -248,12 +232,11 @@ def test_member_clearing_goals_says_none(client, db_session):
     client.put(
         "/v1/users/me/health-goals", headers=_auth(member_token), json={"conditions": ""}
     )
-    newest = _trainer_inbox(client, trainer_token, EN)[0]
-    assert newest["body"] == "Alex changed their health goals: none"
-    assert _trainer_inbox(client, trainer_token)[0]["body"].endswith(": 목표 없음")
+    for headers in (None, EN):
+        assert _trainer_inbox(client, trainer_token, headers)[0]["body"].endswith(": 목표 없음")
 
 
-def test_reservation_booked_and_cancelled_in_english(client, db_session):
+def test_reservation_booked_and_cancelled_in_korean(client, db_session):
     trainer_token, _, _, member_token = _pair(client, db_session)
     starts = (datetime.now(timezone.utc) + timedelta(days=5)).replace(
         minute=30, second=0, microsecond=0
@@ -270,30 +253,30 @@ def test_reservation_booked_and_cancelled_in_english(client, db_session):
     assert booked.status_code == 201, booked.text
 
     seoul = starts.astimezone(timezone(timedelta(hours=9)))
-    en = _trainer_inbox(client, trainer_token, EN)[0]
-    assert en["title"] == "New booking"
-    assert en["body"] == f"Alex · {seoul.month}/{seoul.day} {seoul:%H:%M}"
-    ko = _trainer_inbox(client, trainer_token)[0]
-    assert ko["title"] == "새 예약이 들어왔어요"
-    assert ko["body"] == f"Alex 회원 · {seoul.month}월 {seoul.day}일 {seoul:%H:%M}"
+    for headers in (None, EN):
+        row = _trainer_inbox(client, trainer_token, headers)[0]
+        assert row["title"] == "새 예약이 들어왔어요"
+        assert row["body"] == f"Alex 회원 · {seoul.month}월 {seoul.day}일 {seoul:%H:%M}"
 
     client.delete(f"/v1/reservations/{booked.json()['id']}", headers=_auth(member_token))
-    en = _trainer_inbox(client, trainer_token, EN)[0]
-    assert en["title"] == "Booking cancelled"
-    assert en["body"] == f"Alex · {seoul.month}/{seoul.day} {seoul:%H:%M}"
-    assert _trainer_inbox(client, trainer_token)[0]["title"] == "예약이 취소됐어요"
+    for headers in (None, EN):
+        assert _trainer_inbox(client, trainer_token, headers)[0]["title"] == "예약이 취소됐어요"
 
 
-def test_member_rename_reaches_the_trainer_in_english(client, db_session):
+def test_member_rename_reaches_the_trainer_in_korean(client, db_session):
     trainer_token, _, _, member_token = _pair(client, db_session)
     renamed = client.put(
         "/v1/users/me", headers=_auth(member_token), json={"name": "Alexandra"}
     )
     assert renamed.status_code == 200, renamed.text
-    [en] = [n for n in _trainer_inbox(client, trainer_token, EN) if n["category"] == "member_name"]
-    assert (en["title"], en["body"]) == ("Member renamed", "Alex changed their name to Alexandra.")
-    [ko] = [n for n in _trainer_inbox(client, trainer_token) if n["category"] == "member_name"]
-    assert (ko["title"], ko["body"]) == ("회원 이름이 바뀌었어요", "Alex 회원이 이름을 바꿨어요: Alexandra")
+    for headers in (None, EN):
+        [row] = [
+            n for n in _trainer_inbox(client, trainer_token, headers)
+            if n["category"] == "member_name"
+        ]
+        assert (row["title"], row["body"]) == (
+            "회원 이름이 바뀌었어요", "Alex 회원이 이름을 바꿨어요: Alexandra",
+        )
 
 
 # --------------------------------------------------------------------------
@@ -301,13 +284,14 @@ def test_member_rename_reaches_the_trainer_in_english(client, db_session):
 # --------------------------------------------------------------------------
 
 
-def test_old_notifications_without_a_template_keep_their_text(client, db_session):
+@pytest.mark.parametrize("headers", HEADERS)
+def test_old_notifications_without_a_template_keep_their_text(client, db_session, headers):
     trainer_token, trainer_id, _, _ = _pair(client, db_session)
     _add_row(
         db_session, trainer_id, title="새 상담 요청이 도착했어요",
         body="지수 회원 · 2026-10-01", category="consultation",
     )
-    newest = _trainer_inbox(client, trainer_token, EN)[0]
+    newest = _trainer_inbox(client, trainer_token, headers)[0]
     assert newest["title"] == "새 상담 요청이 도착했어요"
     assert newest["body"] == "지수 회원 · 2026-10-01"
     assert newest["template"] is None
@@ -322,7 +306,7 @@ def test_old_notifications_without_a_template_keep_their_text(client, db_session
         (nt.TRAINER_HEALTH_GOAL, {"member_name": "Alex", "focus": 7}),
     ],
 )
-def test_unknown_or_broken_templates_fall_back_to_the_stored_text(
+def test_unknown_or_broken_templates_answer_with_the_stored_text(
     client, db_session, template, args
 ):
     trainer_token, trainer_id, _, _ = _pair(client, db_session)
@@ -330,22 +314,23 @@ def test_unknown_or_broken_templates_fall_back_to_the_stored_text(
         db_session, trainer_id, title="저장된 제목", body="저장된 본문",
         category="reservation", template=template, template_args=args,
     )
-    newest = _trainer_inbox(client, trainer_token, EN)[0]
-    assert (newest["title"], newest["body"]) == ("저장된 제목", "저장된 본문")
-    # 틀은 그대로 실어 준다 — 앱이 아는 틀이면 앱이 조립한다.
-    assert newest["template"] == template
+    for headers in (None, EN):
+        newest = _trainer_inbox(client, trainer_token, headers)[0]
+        assert (newest["title"], newest["body"]) == ("저장된 제목", "저장된 본문")
+        # 틀은 그대로 실어 준다 — 앱이 아는 틀이면 앱이 조립한다.
+        assert newest["template"] == template
 
 
-def test_korean_never_rerenders_a_stored_notification(client, db_session):
-    """한국어 응답은 저장된 문장이다 — 틀 문구가 바뀌어도 받은 알림은 그대로다."""
+@pytest.mark.parametrize("headers", HEADERS)
+def test_a_stored_notification_is_never_rerendered(client, db_session, headers):
+    """응답은 저장된 문장이다 — 틀 문구가 바뀌어도 받은 알림은 그대로다."""
     trainer_token, trainer_id, _, _ = _pair(client, db_session)
     _add_row(
         db_session, trainer_id, title="예전 문구", body="예전 본문", category="message",
         template=nt.TRAINER_MEMBER_MESSAGE, template_args={"member_name": "Alex"},
     )
-    newest = _trainer_inbox(client, trainer_token, KO)[0]
+    newest = _trainer_inbox(client, trainer_token, headers)[0]
     assert (newest["title"], newest["body"]) == ("예전 문구", "예전 본문")
-    assert _trainer_inbox(client, trainer_token, EN)[0]["title"] == "Message from Alex"
 
 
 # --------------------------------------------------------------------------
@@ -353,7 +338,7 @@ def test_korean_never_rerenders_a_stored_notification(client, db_session):
 # --------------------------------------------------------------------------
 
 
-def test_trainer_message_reaches_the_member_in_english(client, db_session):
+def test_trainer_message_reaches_the_member_in_korean(client, db_session):
     trainer_token, _, member_id, member_token = _pair(client, db_session)
     sent = client.post(
         f"/v1/trainer/clients/{member_id}/chat",
@@ -362,18 +347,15 @@ def test_trainer_message_reaches_the_member_in_english(client, db_session):
     )
     assert sent.status_code == 201, sent.text
 
-    en = _member_inbox(client, member_token, EN)[0]
-    assert en["title"] == "Message from Coach Park"
-    assert en["body"] == "Great session today"
-    assert en["action"] == {"label": "View messages", "target": "coach_chat"}
-    assert en["template"] == nt.MEMBER_COACH_MESSAGE
-
-    ko = _member_inbox(client, member_token)[0]
-    assert ko["title"] == "Coach Park 트레이너의 메시지"
-    assert ko["action"] == {"label": "메시지 보기", "target": "coach_chat"}
+    for headers in (None, EN):
+        row = _member_inbox(client, member_token, headers)[0]
+        assert row["title"] == "Coach Park 트레이너의 메시지"
+        assert row["body"] == "Great session today"
+        assert row["action"] == {"label": "메시지 보기", "target": "coach_chat"}
+        assert row["template"] == nt.MEMBER_COACH_MESSAGE
 
 
-def test_routine_assignment_reaches_the_member_in_english(client, db_session):
+def test_routine_assignment_reaches_the_member_in_korean(client, db_session):
     trainer_token, _, member_id, member_token = _pair(client, db_session)
     assigned = client.post(
         f"/v1/trainer/clients/{member_id}/routines",
@@ -388,15 +370,13 @@ def test_routine_assignment_reaches_the_member_in_english(client, db_session):
     )
     assert assigned.status_code == 201, assigned.text
 
-    en = _member_inbox(client, member_token, EN)[0]
-    assert en["title"] == "New personal exercise"
-    assert en["body"] == "Interval run · 30 min"
-    assert en["action"] == {"label": "View workouts", "target": "exercise"}
-    ko = _member_inbox(client, member_token)[0]
-    assert (ko["title"], ko["body"]) == ("새 개인운동이 왔어요", "Interval run · 30분")
+    for headers in (None, EN):
+        row = _member_inbox(client, member_token, headers)[0]
+        assert (row["title"], row["body"]) == ("새 개인운동이 왔어요", "Interval run · 30분")
+        assert row["action"] == {"label": "운동 보기", "target": "exercise"}
 
 
-def test_trainer_goal_change_reaches_the_member_in_english(client, db_session):
+def test_trainer_goal_change_reaches_the_member_in_korean(client, db_session):
     trainer_token, _, member_id, member_token = _pair(client, db_session)
     saved = client.put(
         f"/v1/trainer/clients/{member_id}/health-profile",
@@ -405,48 +385,46 @@ def test_trainer_goal_change_reaches_the_member_in_english(client, db_session):
     )
     assert saved.status_code == 200, saved.text
 
-    [en] = [n for n in _member_inbox(client, member_token, EN) if n["category"] == "health_goals"]
-    assert en["title"] == "Your health goals changed"
-    assert en["body"] == "Coach Park changed your health goals: Posture correction"
-    assert en["action"] == {"label": "View goals", "target": "health_goals"}
-    [ko] = [n for n in _member_inbox(client, member_token) if n["category"] == "health_goals"]
-    assert ko["body"] == "Coach Park 트레이너가 건강 목표를 바꿨어요: 자세 교정"
-    assert ko["action"] == {"label": "목표 보기", "target": "health_goals"}
+    for headers in (None, EN):
+        [row] = [
+            n for n in _member_inbox(client, member_token, headers)
+            if n["category"] == "health_goals"
+        ]
+        assert row["body"] == "Coach Park 트레이너가 건강 목표를 바꿨어요: 자세 교정"
+        assert row["action"] == {"label": "목표 보기", "target": "health_goals"}
 
 
 # --------------------------------------------------------------------------
 # 액션 라벨
 # --------------------------------------------------------------------------
 
-# 회원 알림 갈래 → (한국어 라벨, 영어 라벨). 한국어는 예전 값 그대로다.
+# 회원 알림 갈래 → 라벨.
 ACTION_LABELS = {
-    "reminder": ("기록하러 가기", "Log now"),
-    "health_check": ("기록하러 가기", "Log now"),
-    "achievement": ("대시보드 보기", "View dashboard"),
-    "coach_chat": ("메시지 보기", "View messages"),
-    "coach_report": ("리포트 보기", "View report"),
-    "routine": ("운동 보기", "View workouts"),
-    "coach_invite": ("요청 확인", "View request"),
-    "consultation_result": ("트레이너 보기", "View trainer"),
-    "consult_decision": ("상담 요청 보기", "View consultation requests"),
-    "benefits": ("내 혜택 보기", "View my benefits"),
-    "points_shop": ("포인트 사용처 보기", "View points shop"),
-    "health_goals": ("목표 보기", "View goals"),
+    "reminder": "기록하러 가기",
+    "health_check": "기록하러 가기",
+    "achievement": "대시보드 보기",
+    "coach_chat": "메시지 보기",
+    "coach_report": "리포트 보기",
+    "routine": "운동 보기",
+    "coach_invite": "요청 확인",
+    "consultation_result": "트레이너 보기",
+    "consult_decision": "상담 요청 보기",
+    "benefits": "내 혜택 보기",
+    "points_shop": "포인트 사용처 보기",
+    "health_goals": "목표 보기",
     # PT 일정 — 운동 탭의 다음 PT 배지·예약(#3028).
-    "member_schedule": ("일정 보기", "View schedule"),
+    "member_schedule": "일정 보기",
     # PT 수업 완료·피드백 도착 — 운동 탭의 PT 기록(#3027).
-    "pt_done": ("PT 기록 보기", "View PT record"),
+    "pt_done": "PT 기록 보기",
 }
 
 
-@pytest.mark.parametrize(("category", "labels"), sorted(ACTION_LABELS.items()))
-def test_action_labels_follow_the_request_language(client, db_session, category, labels):
+@pytest.mark.parametrize(("category", "label"), sorted(ACTION_LABELS.items()))
+def test_action_labels_are_korean_whatever_the_header(client, db_session, category, label):
     _, _, member_id, member_token = _pair(client, db_session)
     _add_row(db_session, member_id, title="t", body="b", category=category)
-    ko_label, en_label = labels
-    assert _member_inbox(client, member_token)[0]["action"]["label"] == ko_label
-    assert _member_inbox(client, member_token, KO)[0]["action"]["label"] == ko_label
-    assert _member_inbox(client, member_token, EN)[0]["action"]["label"] == en_label
+    for headers in HEADERS:
+        assert _member_inbox(client, member_token, headers)[0]["action"]["label"] == label
 
 
 @pytest.mark.parametrize("category", ["system", "brand_new"])
@@ -456,13 +434,13 @@ def test_categories_without_an_action_stay_without_one(client, db_session, categ
     assert _member_inbox(client, member_token, EN)[0]["action"] is None
 
 
-def test_every_action_category_has_an_english_label():
+def test_every_action_category_has_a_label():
     from app.api.v1 import notifications as router
 
     for category in router._ACTION_BY_CATEGORY:
-        action = router._action_for(category, "en")
+        action = router._action_for(category)
         assert action is not None
-        assert not HANGUL.search(action.label), (category, action.label)
+        assert action.label == ACTION_LABELS[category]
 
 
 # --------------------------------------------------------------------------
@@ -474,11 +452,11 @@ def _future_day(days: int = 30) -> str:
     return (datetime.now(timezone.utc) + timedelta(days=days)).date().isoformat()
 
 
-def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_session):
+def test_schedule_added_and_cancelled_reach_the_member_in_korean(client, db_session):
     trainer_token, _, member_id, member_token = _pair(client, db_session)
     day = _future_day()
     month, dom = int(day[5:7]), int(day[8:10])
-    ko_day, en_day = f"{month}월 {dom}일", f"{month}/{dom}"
+    ko_day = f"{month}월 {dom}일"
     created = client.post(
         "/v1/trainer/schedule",
         json={
@@ -496,7 +474,7 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
         )
     )
     assert row is not None
-    # 저장 문장은 한국어다. 날짜는 0 을 채우지 않는 `10월 1일` 꼴(#3120).
+    # 날짜는 0 을 채우지 않는 `10월 1일` 꼴(#3120).
     assert (row.title, row.body) == ("새 일정이 등록됐어요", f"{ko_day} 19:00 · 상담")
     assert row.template_args == {"date": day, "time": "19:00", "type": "상담"}
 
@@ -505,58 +483,51 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
     )
     assert removed.status_code in (200, 204), removed.text
 
-    en = {n["title"]: n for n in _member_inbox(client, member_token, EN)}
-    assert en["New appointment scheduled"]["body"] == f"{en_day} 19:00 · Consultation"
-    assert en["Appointment cancelled"]["body"] == f"{en_day} 19:00 · Consultation"
-    ko = {n["title"]: n for n in _member_inbox(client, member_token, KO)}
-    assert ko["새 일정이 등록됐어요"]["body"] == f"{ko_day} 19:00 · 상담"
-    assert ko["일정이 취소됐어요"]["body"] == f"{ko_day} 19:00 · 상담"
+    for headers in (None, EN):
+        rows = {n["title"]: n for n in _member_inbox(client, member_token, headers)}
+        assert rows["새 일정이 등록됐어요"]["body"] == f"{ko_day} 19:00 · 상담"
+        assert rows["일정이 취소됐어요"]["body"] == f"{ko_day} 19:00 · 상담"
 
 
 @pytest.mark.parametrize(
-    ("template", "args", "category", "en_title"),
+    ("template", "args", "category"),
     [
         (
             nt.MEMBER_COUPON_EXPIRING,
             {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "days": 2,
              "last_day": "2026-10-03"},
             "benefits",
-            "Coupon expiring soon",
         ),
         (
             nt.MEMBER_COUPON_CANCELLED,
             {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
              "refunded": 7000},
             "benefits",
-            "Personal locker coupon cancelled",
         ),
         (
             nt.MEMBER_CHALLENGE_RESULT,
             {"succeeded": True, "week_start": "2026-09-28", "goal": 4, "days": 4,
              "reward": 1200, "stake": 1000},
             "points_shop",
-            "Weekly challenge complete! You earned 1,200P",
         ),
     ],
 )
-def test_points_notifications_reach_the_member_in_english(
-    client, db_session, template, args, category, en_title
+def test_points_notifications_reach_the_member_as_stored(
+    client, db_session, template, args, category
 ):
     _, _, member_id, member_token = _pair(client, db_session)
     cols = nt.columns(template, args)
     _add_row(db_session, member_id, category=category, **cols)
 
-    en = _member_inbox(client, member_token, EN)[0]
-    assert en["title"] == en_title
-    assert not HANGUL.search(en["title"] + en["body"])
-    assert en["template"] == template
-    assert en["args"] == args
-    ko = _member_inbox(client, member_token, KO)[0]
-    assert (ko["title"], ko["body"]) == (cols["title"], cols["body"])
+    for headers in (None, EN):
+        row = _member_inbox(client, member_token, headers)[0]
+        assert (row["title"], row["body"]) == (cols["title"], cols["body"])
+        assert row["template"] == template
+        assert row["args"] == args
 
 
 def test_queue_stores_points_templates_with_korean_text(client, db_session):
-    """서비스 경로(`notification_service.queue`)가 틀·인자와 한국어를 함께 저장한다."""
+    """서비스 경로(`notification_service.queue`)가 틀·인자와 문장을 함께 저장한다."""
     from app.services import notification_service
 
     _, _, member_id, _ = _pair(client, db_session)
@@ -577,17 +548,15 @@ def test_queue_stores_points_templates_with_korean_text(client, db_session):
 
 
 @pytest.mark.parametrize(
-    ("ago", "ko", "en"),
+    ("ago", "label"),
     [
-        (timedelta(seconds=5), "방금 전", "just now"),
-        (timedelta(minutes=5, seconds=10), "5분 전", "5 min ago"),
-        (timedelta(hours=3, minutes=1), "3시간 전", "3 hours ago"),
-        (timedelta(days=2, minutes=1), "2일 전", "2 days ago"),
+        (timedelta(seconds=5), "방금 전"),
+        (timedelta(minutes=5, seconds=10), "5분 전"),
+        (timedelta(hours=3, minutes=1), "3시간 전"),
+        (timedelta(days=2, minutes=1), "2일 전"),
     ],
 )
-def test_time_ago_follows_the_request_language_in_both_inboxes(
-    client, db_session, ago, ko, en
-):
+def test_time_ago_is_korean_in_both_inboxes(client, db_session, ago, label):
     trainer_token, trainer_id, member_id, member_token = _pair(client, db_session)
     for user_id in (trainer_id, member_id):
         row_id = _add_row(db_session, user_id, category="system", title="t", body="b")
@@ -595,7 +564,5 @@ def test_time_ago_follows_the_request_language_in_both_inboxes(
         db_session.commit()
 
     for inbox, token in ((_trainer_inbox, trainer_token), (_member_inbox, member_token)):
-        assert inbox(client, token, EN)[0]["time_ago"] == en
-        assert inbox(client, token, KO)[0]["time_ago"] == ko
-        # 헤더 없는 요청(옛 앱)은 예전 그대로 한국어다.
-        assert inbox(client, token)[0]["time_ago"] == ko
+        for headers in HEADERS:
+            assert inbox(client, token, headers)[0]["time_ago"] == label

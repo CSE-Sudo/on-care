@@ -36,7 +36,6 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
-from app.core.locale import Locale, localized
 from app.models.models import EmailVerificationCode, User
 from app.services.account_notice import support_lines
 from app.services.mailer import (
@@ -120,97 +119,60 @@ def _compose_code(
     code: str,
     minutes: int,
     settings: Settings,
-    locale: Locale | None,
     purpose: str = MEMBER_SIGNUP,
 ) -> OutgoingMail:
-    subject = localized(
-        "[On-Care] 이메일 인증 코드", "[On-Care] Your email verification code", locale
-    )
+    subject = "[On-Care] 이메일 인증 코드"
     changing = purpose == EMAIL_CHANGE
     lead = (
-        localized(
-            "On-Care 로그인 이메일을 이 주소로 바꾸기 위한 인증 코드를 보내 드립니다.",
-            "Here is the code to make this address your On-Care sign-in email.",
-            locale,
-        )
+        "On-Care 로그인 이메일을 이 주소로 바꾸기 위한 인증 코드를 보내 드립니다."
         if changing
-        else localized(
-            "On-Care 가입을 위해 이메일 인증 코드를 보내 드립니다.",
-            "Here is the code to verify your email for your On-Care sign-up.",
-            locale,
-        )
+        else "On-Care 가입을 위해 이메일 인증 코드를 보내 드립니다."
     )
     ignore = (
-        localized(
+        (
             "직접 요청하지 않으셨다면 이 메일을 무시하세요. 어떤 계정의 이메일도 이 주소로 "
-            "바뀌지 않습니다.",
-            "If you didn't ask for this, ignore this email. No account will switch to "
-            "this address.",
-            locale,
+            "바뀌지 않습니다."
         )
         if changing
-        else localized(
-            "직접 가입하지 않으셨다면 이 메일을 무시하세요. 계정이 만들어지지 않습니다.",
-            "If you didn't try to sign up, ignore this email. No account will be created.",
-            locale,
-        )
+        else "직접 가입하지 않으셨다면 이 메일을 무시하세요. 계정이 만들어지지 않습니다."
     )
     lines = [
         lead,
         "",
-        localized("인증 코드", "Verification code", locale) + f": {code}",
-        localized(
-            f"이 코드는 {minutes}분 동안 한 번만 쓸 수 있습니다.",
-            f"The code works once and expires in {minutes} minutes.",
-            locale,
-        ),
+        f"인증 코드: {code}",
+        f"이 코드는 {minutes}분 동안 한 번만 쓸 수 있습니다.",
         "",
         ignore,
     ]
-    lines += support_lines(settings, locale)
+    lines += support_lines(settings)
     return OutgoingMail(to=email, subject=subject, body="\n".join(lines))
 
 
 def _compose_already_registered(
-    email: str, settings: Settings, locale: Locale | None, purpose: str = MEMBER_SIGNUP
+    email: str, settings: Settings, purpose: str = MEMBER_SIGNUP
 ) -> OutgoingMail:
-    subject = localized(
-        "[On-Care] 이미 가입된 이메일입니다", "[On-Care] You already have an account", locale
-    )
+    subject = "[On-Care] 이미 가입된 이메일입니다"
     asked = (
-        localized(
+        (
             "다른 On-Care 계정의 로그인 이메일을 이 주소로 바꾸려는 인증 코드 요청이 "
-            "들어왔지만, 이 주소로는 이미 계정이 있어 바꿀 수 없습니다.",
-            "Someone asked for a code to switch another On-Care account to this email, "
-            "but an account already uses this address, so it can't be switched.",
-            locale,
+            "들어왔지만, 이 주소로는 이미 계정이 있어 바꿀 수 없습니다."
         )
         if purpose == EMAIL_CHANGE
-        else localized(
+        else (
             "이 이메일로 On-Care 가입 인증 코드 요청이 들어왔지만, 이 주소로는 이미 "
-            "계정이 있습니다.",
-            "Someone asked for an On-Care sign-up code for this email, but an account "
-            "already uses this address.",
-            locale,
+            "계정이 있습니다."
         )
     )
     lines = [
         asked,
-        localized(
+        (
             "본인이라면 로그인하시고, 비밀번호가 기억나지 않으면 로그인 화면에서 "
-            "비밀번호 재설정을 이용하세요.",
-            "If this was you, sign in instead. Forgot your password? Use password reset "
-            "on the sign-in screen.",
-            locale,
+            "비밀번호 재설정을 이용하세요."
         ),
         "",
-        localized(
-            "직접 요청하지 않으셨다면 이 메일을 무시하세요. 계정은 그대로입니다.",
-            "If you didn't ask for this, ignore this email. Your account is unchanged.",
-            locale,
-        ),
+        "직접 요청하지 않으셨다면 이 메일을 무시하세요. 계정은 그대로입니다.",
     ]
-    lines += support_lines(settings, locale)
+    lines += support_lines(settings)
     return OutgoingMail(to=email, subject=subject, body="\n".join(lines))
 
 
@@ -230,7 +192,6 @@ def request_code(
     now: datetime,
     settings: Settings | None = None,
     mailer: Mailer | None = None,
-    locale: Locale | None = None,
     schedule: Callable[..., object] | None = None,
 ) -> IssuedCode | None:
     """코드를 만들어 보낸다. 이미 가입된 주소면 안내만 보내고 None.
@@ -265,7 +226,7 @@ def request_code(
     )
     if registered is not None:
         db.commit()
-        send(_compose_already_registered(email, settings, locale, purpose), "가입 안내 메일")
+        send(_compose_already_registered(email, settings, purpose), "가입 안내 메일")
         return None
 
     # 새 코드를 보내면 앞서 보낸 코드는 닫는다 — 살아 있는 코드가 여럿이면 맞힐 확률이
@@ -285,7 +246,7 @@ def request_code(
     db.commit()
     send(
         _compose_code(
-            email, code, settings.signup_email_code_minutes, settings, locale, purpose
+            email, code, settings.signup_email_code_minutes, settings, purpose
         ),
         "가입 인증 메일",
     )

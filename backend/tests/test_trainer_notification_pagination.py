@@ -404,8 +404,11 @@ def test_offsetless_cursor_is_read_as_utc(client, db_session, trainer):
     assert [r["id"] for r in res.json()] == expected[3:]
 
 
-def test_paged_rows_keep_template_target_and_locale(client, db_session, trainer):
-    """두 번째 쪽도 첫 쪽과 같은 필드(#2302 틀·인자, #2292 목적지 날짜)와 언어로 온다."""
+def test_paged_rows_keep_template_and_target(client, db_session, trainer):
+    """두 번째 쪽도 첫 쪽과 같은 필드(#2302 틀·인자, #2292 목적지 날짜)로 온다.
+
+    서버 문장은 한국어 하나다 — `en` 을 보내도 저장된 한국어 문장이다(#3404).
+    """
     token, trainer_id = trainer
     _seed(db_session, trainer_id, 3, base=_BASE + timedelta(days=1))
     old = Notification(
@@ -442,8 +445,9 @@ def test_paged_rows_keep_template_target_and_locale(client, db_session, trainer)
     assert row["args"] == {"old_name": "이지수", "new_name": "Jisoo"}
     assert row["target_date"] == "2026-01-05"
     assert row["subject_id"] == "member-1"
-    assert row["title"] == "Member renamed"
-    assert row["time_ago"].endswith("ago")
+    assert row["title"] == nt.render(nt.TRAINER_MEMBER_RENAMED, row["args"])[0]
+    assert any("가" <= ch <= "힣" for ch in row["title"])
+    assert row["time_ago"].endswith("전")
 
 
 # --------------------------------------------------------------------------

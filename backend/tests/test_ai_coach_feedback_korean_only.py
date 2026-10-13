@@ -1,13 +1,10 @@
-"""AI 코칭 시트 문구가 요청 언어를 따른다(#2707). DB 필요.
+"""AI 코칭 시트 문구는 한국어 하나다(#2707, #3404). DB 필요.
 
-회원 앱은 화면 언어를 모든 요청의 `Accept-Language` 로 보낸다. 데모 코칭 카드는
-앱 문구라 영어 화면에서 영어인데, 실서버는 서버가 만든 한국어 문장 그대로였다.
-여기서 보는 것:
+회원 앱이 `Accept-Language` 로 무엇을 보내든 서버는 읽지 않는다. 여기서 보는 것:
 
-  * 영어 요청이면 인사말과 식단·운동 규칙 문구(AI 가 실패했을 때의 폴백)가 영어다.
-  * 헤더가 없으면 지금까지처럼 한국어다.
-  * AI 코치는 영어 요청일 때만 시스템 프롬프트 끝에 출력 언어 규칙이 붙고, 제목도
-    영어다. 한국어 프롬프트는 그대로다.
+  * 인사말과 식단·운동 규칙 문구(AI 가 실패했을 때의 폴백)가 `en` 요청에도 한국어다.
+  * AI 코치에게 넘기는 시스템 프롬프트에 출력 언어 규칙이 붙지 않고, 카드 제목도
+    한국어다.
 """
 from __future__ import annotations
 
@@ -27,7 +24,7 @@ _HANGUL = re.compile("[가-힣]")
 def member(client) -> dict[str, str]:
     """새 회원의 인증 헤더. 이 경로는 회원 전용이고(#3351) 카드를 회원별로 캐시하므로
     테스트마다 새 회원을 쓴다."""
-    email = f"coach-locale-{uuid4().hex[:8]}@oncare.com"
+    email = f"coach-ko-{uuid4().hex[:8]}@oncare.com"
     client.post(
         "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
     )
@@ -59,7 +56,7 @@ class _RecordingLLM:
 
     def generate(self, system_prompt: str, user_prompt: str):
         self.system_prompts.append(system_prompt)
-        return SimpleNamespace(text="Take a 20-minute walk after dinner.")
+        return SimpleNamespace(text="저녁 식사 뒤 20분 걸어 보세요.")
 
 
 @pytest.fixture
@@ -73,38 +70,23 @@ def recording_llm(monkeypatch) -> _RecordingLLM:
     return llm
 
 
-def test_english_request_gets_english_rule_texts(client, no_llm, member):
-    r = client.get("/v1/ai-coach/feedback", headers={**member, **EN})
-    assert r.status_code == 200
-    body = r.json()
-    assert "님" not in body["greeting"]
-    assert [s["tag"] for s in body["suggestions"]] == ["diet", "exercise"]
-    for card in body["suggestions"]:
-        assert not _HANGUL.search(card["title"]), card
-        assert not _HANGUL.search(card["body"]), card
-
-
-def test_without_header_stays_korean(client, no_llm, member):
-    r = client.get("/v1/ai-coach/feedback", headers=member)
+@pytest.mark.parametrize("extra", [{}, EN, {"Accept-Language": "en-US,en;q=0.9"}])
+def test_rule_texts_are_korean_whatever_the_header(client, no_llm, member, extra):
+    r = client.get("/v1/ai-coach/feedback", headers={**member, **extra})
     assert r.status_code == 200
     body = r.json()
     assert "님" in body["greeting"]
+    assert [s["tag"] for s in body["suggestions"]] == ["diet", "exercise"]
     for card in body["suggestions"]:
         assert _HANGUL.search(card["title"]), card
+        assert _HANGUL.search(card["body"]), card
 
 
-def test_english_request_asks_the_coach_for_english(client, recording_llm, member):
-    r = client.get("/v1/ai-coach/feedback", headers={**member, **EN})
-    assert r.status_code == 200
-    exercise = _card(r.json(), "exercise")
-    assert exercise["title"] == "Today's workout coaching"
-    assert exercise["body"] == "Take a 20-minute walk after dinner."
-    assert recording_llm.system_prompts
-    assert all("Output language" in p for p in recording_llm.system_prompts)
-
-
-def test_korean_request_keeps_the_korean_prompt(client, recording_llm, member):
-    r = client.get("/v1/ai-coach/feedback", headers=member)
+@pytest.mark.parametrize("extra", [{}, EN])
+def test_the_coach_is_always_asked_with_the_korean_prompt(
+    client, recording_llm, member, extra
+):
+    r = client.get("/v1/ai-coach/feedback", headers={**member, **extra})
     assert r.status_code == 200
     assert _card(r.json(), "exercise")["title"] == "오늘의 운동 코칭"
     assert recording_llm.system_prompts

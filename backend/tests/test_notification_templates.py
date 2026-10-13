@@ -1,18 +1,16 @@
-"""알림 문장 틀. (#2302) DB 없이 돈다.
+"""알림 문장 틀. (#2302, #3404) DB 없이 돈다.
 
 여기서 고정하는 것:
 
-  * **한국어는 바이트 단위로 예전과 같다.** 틀로 옮기기 전 각 호출부가 직접 조립하던
+  * **문장은 바이트 단위로 고정이다.** 틀로 옮기기 전 각 호출부가 직접 조립하던
     문장을 그대로 적어 두고 비교한다 — 저장되는 `title`·`body` 가 옛 앱·푸시가 읽는
     값이라, 한 글자라도 바뀌면 회귀다.
-  * 영어 조립이 자연스러운 영어이고 한글이 섞이지 않는다(이름·사람이 쓴 글 제외).
-  * 이름이 비었을 때 대신 적는 말이 언어마다 알맞다.
-  * 모르는 틀·깨진 인자·틀 없는 옛 알림은 저장된 문장으로 돌아간다.
+  * 문장은 한국어 하나다. 틀과 인자는 앱이 문장을 직접 조립할 때 쓰는 재료로 남는다.
+  * 모르는 틀·깨진 인자는 조립하지 않는다(`render` 가 ``None``).
 """
 from __future__ import annotations
 
 import json
-import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -22,7 +20,6 @@ from app.core.clock import SEOUL
 from app.services import health_focus, notification_service, notification_templates as nt
 from app.services.trainer._common import _amount_label, _routine_notification_args
 
-HANGUL = re.compile(r"[가-힣]")
 STARTS = datetime(2026, 10, 1, 9, 5, tzinfo=SEOUL)
 
 
@@ -31,14 +28,8 @@ def _ko(code: str, args: dict, body: str = "") -> tuple[str, str]:
     return cols["title"], cols["body"]
 
 
-def _en(code: str, args: dict) -> tuple[str, str | None]:
-    rendered = nt.render(code, args, "en")
-    assert rendered is not None
-    return rendered
-
-
 # --------------------------------------------------------------------------
-# 한국어 — 예전 문장과 바이트 단위로 같다
+# 문장 — 예전 문장과 바이트 단위로 같다
 # --------------------------------------------------------------------------
 
 # (틀, 인자, 사람이 쓴 본문, 예전 제목, 예전 본문). 예전 문장은 틀로 옮기기 전
@@ -709,45 +700,17 @@ def test_routine_amount_matches_the_trainer_routine_rule(type_, minutes, sets, r
     )
     assert title == "새 개인운동이 왔어요"
     assert body.encode() == legacy.encode()
-    # 영어에는 단위 한글이 남지 않는다(운동 이름은 데이터라 그대로다).
-    _, body_en = _en(nt.MEMBER_ROUTINE_ASSIGNED, args)
-    assert body_en.startswith("스쿼트 · ")
-    assert not HANGUL.search(body_en.removeprefix("스쿼트 · "))
 
 
 @pytest.mark.parametrize(
-    ("type_", "minutes", "sets", "reps", "hold", "weight", "expected"),
+    ("seconds", "minutes", "ko"),
     [
-        ("유산소", 30, None, None, None, None, "30 min"),
-        ("근력", 15, 3, 12, None, 40.0, "3 sets · 12 reps · 40 kg"),
-        ("근력", 15, 1, 1, None, None, "1 set · 1 rep"),
-        ("근력", 10, 3, None, 60, None, "3 sets · 60 sec"),
-        ("strength", 15, 3, 12, None, 0.0, "3 sets · 12 reps"),
-        ("근력", 10, 4, 8, None, 22.5, "4 sets · 8 reps · 22.5 kg"),
-        ("근력", 20, None, 10, None, 30.0, "20 min"),
-        ("유산소", 90, None, None, None, None, "1 hr 30 min"),
+        (45, 1, "45초"),
+        (5415, 90, "1시간 30분 15초"),
+        (1800, 30, "30분"),
     ],
 )
-def test_routine_amount_in_english(type_, minutes, sets, reps, hold, weight, expected):
-    args = _routine_notification_args(
-        "Squat", type_, minutes=minutes, sets=sets, reps=reps,
-        hold_seconds=hold, weight=weight,
-    )
-    assert _en(nt.MEMBER_ROUTINE_ASSIGNED, args) == (
-        "New personal exercise",
-        f"Squat · {expected}",
-    )
-
-
-@pytest.mark.parametrize(
-    ("seconds", "minutes", "ko", "en"),
-    [
-        (45, 1, "45초", "45 sec"),
-        (5415, 90, "1시간 30분 15초", "1 hr 30 min 15 sec"),
-        (1800, 30, "30분", "30 min"),
-    ],
-)
-def test_routine_amount_reads_seconds(seconds, minutes, ko, en):
+def test_routine_amount_reads_seconds(seconds, minutes, ko):
     """초로 적은 배정은 초까지 적는다 — `45초` 가 `1분` 이 되지 않는다. (#2546)"""
     args = _routine_notification_args(
         "버피", "유산소", minutes=minutes, duration_seconds=seconds,
@@ -758,571 +721,22 @@ def test_routine_amount_reads_seconds(seconds, minutes, ko, en):
         "유산소", minutes=minutes, duration_seconds=seconds,
         sets=None, reps=None, weight=None,
     )
-    assert _en(nt.MEMBER_ROUTINE_ASSIGNED, args)[1] == f"버피 · {en}"
 
 
 # --------------------------------------------------------------------------
-# 영어
+# 건강 목표
 # --------------------------------------------------------------------------
 
-ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
-    (
-        nt.TRAINER_HEALTH_GOAL,
-        {"member_name": "Alex", "focus": ["근력 향상", "재활"]},
-        ("Member goals changed", "Alex changed their health goals: Build strength · Rehab"),
-    ),
-    (
-        nt.TRAINER_HEALTH_GOAL,
-        {"member_name": "Alex", "focus": []},
-        ("Member goals changed", "Alex changed their health goals: none"),
-    ),
-    (
-        nt.TRAINER_HEALTH_NOTES,
-        {"member_name": "Alex", "with_focus": False},
-        ("Member health notes changed", "Alex updated their health notes"),
-    ),
-    (
-        nt.TRAINER_HEALTH_NOTES,
-        {"member_name": "Alex", "with_focus": True},
-        ("Member health notes changed", "Alex updated their health goals and health notes"),
-    ),
-    (
-        nt.TRAINER_MEMBER_RENAMED,
-        {"old_name": "Alex", "new_name": "Alexandra"},
-        ("Member renamed", "Alex changed their name to Alexandra."),
-    ),
-    (
-        nt.TRAINER_MEMBER_WITHDRAWN,
-        {"member_name": "Alex"},
-        ("Member account deleted", "Alex deleted their account."),
-    ),
-    (
-        nt.TRAINER_MEMBER_WITHDRAWN,
-        {"member_name": ""},
-        ("Member account deleted", "A member deleted their account."),
-    ),
-    (
-        nt.TRAINER_MEMBER_DISCONNECTED,
-        {"member_name": "Alex"},
-        ("Member disconnected", "Alex ended their connection with you."),
-    ),
-    (
-        nt.TRAINER_MEMBER_DISCONNECTED,
-        {"member_name": "Alex", "cancelled_sessions": 1},
-        (
-            "Member disconnected",
-            "Alex ended their connection with you. 1 remaining appointment was cancelled.",
-        ),
-    ),
-    (
-        nt.TRAINER_CONSULT_REQUESTED,
-        {"member_name": "Alex", "preferred_date": "2026-10-01"},
-        ("New consultation request", "Alex · 10/1"),
-    ),
-    (
-        nt.TRAINER_CONSULT_REQUESTED,
-        {"member_name": "", "preferred_date": "2026-10-01"},
-        ("New consultation request", "Member · 10/1"),
-    ),
-    (
-        nt.TRAINER_CONSULT_CANCELLED,
-        {"member_name": "Alex", "preferred_date": "2026-10-01"},
-        ("Consultation request cancelled", "Alex · 10/1"),
-    ),
-    (
-        nt.TRAINER_CONSULT_BOOKING_CANCELLED,
-        {"member_name": "Alex", "starts_at": STARTS.isoformat()},
-        ("Confirmed consultation cancelled", "Alex · 10/1 09:05"),
-    ),
-    (
-        nt.TRAINER_CONSULT_BOOKING_CANCELLED,
-        {"member_name": "", "starts_at": None},
-        ("Confirmed consultation cancelled", "Member"),
-    ),
-    (
-        nt.TRAINER_CONSULT_WITHDRAWN,
-        {"member_name": "Alex", "preferred_date": "2026-10-01"},
-        (
-            "Consultation request cancelled: member account deleted",
-            "Alex · 10/1",
-        ),
-    ),
-    (
-        nt.TRAINER_CONSULT_WITHDRAWN,
-        {"member_name": "", "preferred_date": "2026-10-01"},
-        (
-            "Consultation request cancelled: member account deleted",
-            "A member · 10/1",
-        ),
-    ),
-    (
-        nt.TRAINER_CONSULT_WITHDRAWN,
-        {
-            "member_name": "Alex",
-            "preferred_date": "2026-10-01",
-            "booked": True,
-            "starts_at": STARTS.isoformat(),
-        },
-        (
-            "Confirmed consultation cancelled: member account deleted",
-            "Alex · 10/1 09:05",
-        ),
-    ),
-    (
-        nt.TRAINER_INVITE_ACCEPTED,
-        {"member_name": "Alex"},
-        ("Coaching request accepted", "Alex is now one of your members."),
-    ),
-    (
-        nt.TRAINER_INVITE_ACCEPTED,
-        {"member_name": ""},
-        ("Coaching request accepted", "A member is now one of your members."),
-    ),
-    (
-        nt.TRAINER_INVITE_REJECTED,
-        {"member_name": "Alex"},
-        ("Coaching request declined", "Alex declined your coaching request."),
-    ),
-    (
-        nt.TRAINER_RESERVATION_BOOKED,
-        {"member_name": "Alex", "starts_at": STARTS.isoformat()},
-        ("New booking", "Alex · 10/1 09:05"),
-    ),
-    (
-        nt.TRAINER_RESERVATION_CANCELLED,
-        {"member_name": "Alex", "starts_at": STARTS.isoformat()},
-        ("Booking cancelled", "Alex · 10/1 09:05"),
-    ),
-    (
-        nt.TRAINER_RESERVATION_CANCELLED,
-        {"member_name": "", "starts_at": None},
-        ("Booking cancelled", "Member"),
-    ),
-    (
-        nt.TRAINER_MEMBER_MESSAGE,
-        {"member_name": "Alex"},
-        ("Message from Alex", None),
-    ),
-    (
-        nt.TRAINER_MEMBER_MESSAGE,
-        {"member_name": ""},
-        ("Message from a member", None),
-    ),
-    (
-        nt.MEMBER_COACH_MESSAGE,
-        {"trainer_name": "Coach Park", "report": False, "photo_only": False},
-        ("Message from Coach Park", None),
-    ),
-    (
-        nt.MEMBER_COACH_MESSAGE,
-        {"trainer_name": "", "report": False, "photo_only": True},
-        ("Message from your trainer", "Sent a photo"),
-    ),
-    (
-        nt.MEMBER_COACH_MESSAGE,
-        {"trainer_name": "Coach Park", "report": True, "photo_only": False},
-        ("Your weekly report is here", None),
-    ),
-    (
-        nt.MEMBER_ROUTINE_PROGRAM,
-        {"name": "Leg day", "sessions": 3, "minutes": 150, "multi": True},
-        ("New PT program", "Leg day · 3 sessions · 2 hr 30 min"),
-    ),
-    (
-        nt.MEMBER_ROUTINE_PROGRAM,
-        {"name": "Core", "sessions": 3, "seconds": 135, "minutes": 2, "multi": True},
-        ("New PT program", "Core · 3 sessions · 2 min 15 sec"),
-    ),
-    (
-        nt.MEMBER_ROUTINE_PROGRAM,
-        {"name": "Leg day", "sessions": 1, "minutes": 50, "multi": False},
-        ("New PT program", "Leg day · 50 min"),
-    ),
-    (
-        nt.MEMBER_ROUTINE_PROGRAM,
-        {"name": "Personal exercise", "sessions": 2, "seconds": 2520,
-         "multi": True, "routine_only": True},
-        ("New personal exercises", "2 personal exercises · 42 min"),
-    ),
-    (
-        nt.MEMBER_ROUTINE_PROGRAM,
-        {"name": "Walk", "sessions": 1, "seconds": 1800, "multi": False,
-         "personal": True},
-        ("New personal exercise", "Walk · 30 min"),
-    ),
-    (
-        nt.MEMBER_TRAINER_CONNECTED,
-        {"trainer_name": "Coach Park"},
-        (
-            "Connected with a trainer",
-            "Coach Park is now your trainer. Your meal and workout logs are shared.",
-        ),
-    ),
-    (
-        nt.MEMBER_COACH_INVITE,
-        {"trainer_name": ""},
-        ("Coaching request received", "A trainer wants to be your trainer."),
-    ),
-    (
-        nt.MEMBER_HEALTH_GOAL,
-        {"trainer_name": "Coach Park", "focus": ["자세 교정", "혈압 관리"]},
-        (
-            "Your health goals changed",
-            "Coach Park changed your health goals: Posture correction · Blood pressure care",
-        ),
-    ),
-    (
-        nt.MEMBER_CONSULT_APPROVED,
-        {"trainer_name": "Coach Park", "starts_at": STARTS.isoformat(), "note": None},
-        (
-            "Consultation request approved",
-            "Your consultation with Coach Park is confirmed for 10/1 09:05.",
-        ),
-    ),
-    (
-        nt.MEMBER_CONSULT_APPROVED,
-        {"trainer_name": "", "starts_at": STARTS.isoformat(), "note": "See you soon!"},
-        (
-            "Consultation request approved",
-            "Your consultation with your trainer is confirmed for 10/1 09:05."
-            " See you soon!",
-        ),
-    ),
-    (
-        nt.MEMBER_CONSULT_REJECTED,
-        {"has_note": False},
-        (
-            "Consultation request declined",
-            "Try requesting a consultation with another trainer.",
-        ),
-    ),
-    (
-        nt.MEMBER_CONSULT_REJECTED,
-        {"has_note": True},
-        ("Consultation request declined", None),
-    ),
-    (
-        nt.MEMBER_CONSULT_EXPIRED,
-        {},
-        (
-            "Consultation request expired",
-            "The trainer didn't respond in time. Try requesting a different time.",
-        ),
-    ),
-    (
-        nt.MEMBER_CONSULT_TRAINER_LEFT,
-        {"trainer_name": "Coach Park"},
-        (
-            "Consultation request cancelled",
-            "Coach Park left the service, so your consultation request was cancelled."
-            " Try requesting another trainer.",
-        ),
-    ),
-    (
-        nt.MEMBER_CONSULT_TRAINER_LEFT,
-        {"trainer_name": "Coach Park", "booked": True, "starts_at": STARTS.isoformat()},
-        (
-            "Confirmed consultation cancelled",
-            "Coach Park left the service, so your consultation on 10/1 09:05 was"
-            " cancelled. Try requesting another trainer.",
-        ),
-    ),
-    (
-        nt.MEMBER_CONSULT_TRAINER_UNAVAILABLE,
-        {"trainer_name": "Coach Park"},
-        (
-            "Consultation request cancelled",
-            "Coach Park can't take consultations right now, so your consultation"
-            " request was cancelled. Try requesting another trainer.",
-        ),
-    ),
-    (
-        nt.MEMBER_CONSULT_TRAINER_UNAVAILABLE,
-        {"trainer_name": "", "booked": True, "starts_at": None},
-        (
-            "Confirmed consultation cancelled",
-            "The trainer can't take consultations right now, so your confirmed"
-            " consultation was cancelled. Try requesting another trainer.",
-        ),
-    ),
-    (
-        nt.MEMBER_TRAINER_LEFT,
-        {"trainer_name": ""},
-        ("Your trainer connection ended", "Your trainer has left the service. Find a new trainer."),
-    ),
-    (
-        nt.MEMBER_TRAINER_LEFT_BOOKING,
-        {"trainer_name": "Coach Park"},
-        (
-            "Your booked PT was cancelled",
-            "Coach Park left the service, so your booking was cancelled.",
-        ),
-    ),
-    (
-        nt.MEMBER_TRAINER_DISCONNECTED,
-        {"trainer_name": "Coach Park", "cancelled_sessions": 2},
-        (
-            "Your trainer connection ended",
-            "Your connection with Coach Park has ended."
-            " 2 remaining PT appointments were cancelled too.",
-        ),
-    ),
-    (
-        nt.MEMBER_TRAINER_DISCONNECTED,
-        {"trainer_name": ""},
-        ("Your trainer connection ended", "Your connection with your trainer has ended."),
-    ),
-    (
-        nt.MEMBER_SCHEDULE_ADDED,
-        {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"},
-        ("New appointment scheduled", "10/1 09:00 · 1:1 PT"),
-    ),
-    (
-        nt.MEMBER_SCHEDULE_CHANGED,
-        {"date": "2026-10-02", "time": "18:30", "type": "상담"},
-        ("Appointment rescheduled", "10/2 18:30 · Consultation"),
-    ),
-    (
-        nt.MEMBER_SCHEDULE_CANCELLED,
-        {"date": "2026-10-02", "time": "18:30", "type": "Stretching class"},
-        ("Appointment cancelled", "10/2 18:30 · Stretching class"),
-    ),
-    (
-        nt.MEMBER_SCHEDULE_SERIES,
-        {"first": "2026-10-01", "last": "2026-11-19", "time": "09:00", "count": 8},
-        ("Recurring appointments scheduled", "10/1 – 11/19 · 09:00 · 8 appointments"),
-    ),
-    (
-        nt.MEMBER_SCHEDULE_SERIES,
-        {"first": "2026-10-01", "last": "2026-10-01", "time": "09:00", "count": 1},
-        ("Recurring appointments scheduled", "10/1 – 10/1 · 09:00 · 1 appointment"),
-    ),
-    (
-        nt.MEMBER_COUPON_EXPIRING,
-        {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "days": 3,
-         "last_day": "2026-10-04"},
-        (
-            "Coupon expiring soon",
-            "Your ₩30,000 off PT renewal coupon expires in 3 days (10/4). "
-            "Points can't be refunded once it expires.",
-        ),
-    ),
-    (
-        nt.MEMBER_COUPON_EXPIRING,
-        {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "days": 1,
-         "last_day": "2026-10-02"},
-        (
-            "Coupon expiring soon",
-            "Your free personal locker for 1 month coupon expires in 1 day (10/2). "
-            "Points can't be refunded once it expires.",
-        ),
-    ),
-    (
-        nt.MEMBER_COUPON_EXPIRING,
-        {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "days": 0,
-         "last_day": "2026-10-01"},
-        (
-            "Coupon expiring soon",
-            "Your free personal locker for 1 month coupon expires today. "
-            "Points can't be refunded once it expires.",
-        ),
-    ),
-    (
-        nt.MEMBER_COUPON_CANCELLED,
-        {"item": "pt_renewal", "benefit": "PT 재등록 30,000원 할인", "reason": "trainer",
-         "refunded": 21000},
-        (
-            "PT renewal discount coupon cancelled",
-            "Your ₩30,000 off PT renewal coupon was cancelled because your "
-            "trainer connection ended. We refunded 21,000P.",
-        ),
-    ),
-    (
-        nt.MEMBER_COUPON_CANCELLED,
-        {"item": "diet_tray", "benefit": "분석용 규격 식판", "reason": "trainer",
-         "refunded": None},
-        (
-            "Tray pickup coupon cancelled",
-            "Your free analysis tray coupon was cancelled because "
-            "your trainer connection ended.",
-        ),
-    ),
-    (
-        nt.MEMBER_COUPON_CANCELLED,
-        {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
-         "refunded": 7000},
-        (
-            "Personal locker coupon cancelled",
-            "Your free personal locker for 1 month coupon was cancelled because your "
-            "gym connection ended. We refunded 7,000P.",
-        ),
-    ),
-    (
-        nt.MEMBER_CHALLENGE_RESULT,
-        {"succeeded": True, "week_start": "2026-09-28", "goal": 4, "days": 5,
-         "reward": 1200, "stake": 1000},
-        (
-            "Weekly challenge complete! You earned 1,200P",
-            "You reached your goal of 4 workouts for 9/28 – 10/4 and got 1,200P back.",
-        ),
-    ),
-    (
-        nt.MEMBER_CHALLENGE_RESULT,
-        {"succeeded": False, "week_start": "2026-09-28", "goal": 4, "days": 2,
-         "reward": 1200, "stake": 1000},
-        (
-            "Weekly challenge goal not reached",
-            "You logged 2 of 4 workouts for 9/28 – 10/4, so the 1,000P you staked is "
-            "gone. You can join again next Monday or Tuesday.",
-        ),
-    ),
-    (
-        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
-        {"member_name": "Alex", "condition": "good", "intensity": "right",
-         "pain": False, "revised": False},
-        ("Alex sent their weekly feedback", "Condition: Good · Intensity: Just right"),
-    ),
-    (
-        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
-        {"member_name": "Alex", "condition": "tired", "intensity": "too_hard",
-         "pain": True, "revised": True},
-        (
-            "Alex reported pain",
-            "Condition: Worn out · Intensity: Too hard · Pain reported",
-        ),
-    ),
-    (
-        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
-        {"member_name": "", "condition": "great", "intensity": "too_easy",
-         "pain": False, "revised": True},
-        (
-            "A member updated their weekly feedback",
-            "Condition: Great · Intensity: Too easy",
-        ),
-    ),
-    (
-        nt.MEMBER_PT_COMPLETED,
-        {"trainer_name": "Coach Park", "session_number": 3, "has_note": True},
-        ("You finished PT #3 with Coach Park", None),
-    ),
-    (
-        nt.MEMBER_PT_COMPLETED,
-        {"trainer_name": "", "session_number": 0, "has_note": False},
-        ("You finished PT with your trainer", "Saved to your workout log"),
-    ),
-    (
-        nt.MEMBER_PT_FEEDBACK,
-        {"trainer_name": "Coach Park"},
-        ("New PT feedback from Coach Park", None),
-    ),
-    (
-        nt.MEMBER_PT_FEEDBACK,
-        {"trainer_name": ""},
-        ("New PT feedback from your trainer", None),
-    ),
-]
 
-
-@pytest.mark.parametrize(
-    ("code", "args", "expected"),
-    ENGLISH,
-    ids=[f"{row[0]}-{i}" for i, row in enumerate(ENGLISH)],
-)
-def test_english_sentences(code, args, expected):
-    assert _en(code, args) == expected
-
-
-@pytest.mark.parametrize("code", sorted(nt.codes()))
-def test_english_has_no_korean_left(code):
-    """영어 문장에 한글이 남지 않는다 — 인자에 한글이 없으면 결과에도 없어야 한다."""
-    args = {
-        "member_name": "Alex",
-        "trainer_name": "Coach Park",
-        "old_name": "Alex",
-        "new_name": "Sam",
-        "name": "Squat",
-        "focus": list(health_focus.FOCUS_OPTIONS[:2]),
-        "preferred_date": "2026-10-01",
-        "starts_at": STARTS.isoformat(),
-        "sessions": 2,
-        "minutes": 30,
-        "multi": True,
-        "strength": True,
-        "sets": 3,
-        "reps": 10,
-        "weight": 20.0,
-        "note": None,
-        "photo_only": True,
-        "date": "2026-10-01",
-        "time": "09:00",
-        "type": "상담",
-        "first": "2026-10-01",
-        "last": "2026-11-19",
-        "count": 8,
-        "item": "pt_renewal",
-        "benefit": "PT 재등록 30,000원 할인",
-        "days": 3,
-        "last_day": "2026-10-04",
-        "reason": "trainer",
-        "refunded": 21000,
-        "week_start": "2026-09-28",
-        "goal": 4,
-        "reward": 1200,
-        "stake": 1000,
-        "succeeded": False,
-    }
-    title, body = _en(code, args)
-    assert not HANGUL.search(title), title
-    assert body is None or not HANGUL.search(body), body
-
-
-@pytest.mark.parametrize("code", sorted(nt.codes()))
-def test_empty_names_never_leave_a_dangling_space_in_english(code):
-    # 이름 칸만 비운다. 운동 이름·옛 이름처럼 비울 수 없는 값은 채워 둔다.
-    args = {
-        "member_name": "",
-        "trainer_name": "",
-        "name": "Squat",
-        "old_name": "Alex",
-        "new_name": "Sam",
-        "focus": [],
-        "preferred_date": "2026-10-01",
-        "starts_at": STARTS.isoformat(),
-        "date": "2026-10-01",
-        "time": "09:00",
-        "type": "상담",
-        "first": "2026-10-01",
-        "last": "2026-11-19",
-        "count": 8,
-        "item": "pt_renewal",
-        "benefit": "PT 재등록 30,000원 할인",
-        "days": 3,
-        "last_day": "2026-10-04",
-        "reason": "trainer",
-        "refunded": 21000,
-        "week_start": "2026-09-28",
-        "goal": 4,
-        "reward": 1200,
-        "stake": 1000,
-        "succeeded": False,
-    }
-    title, body = _en(code, args)
-    for text in (title, body or ""):
-        assert not text.startswith(" "), text
-        assert "  " not in text, text
-
-
-def test_every_focus_option_has_an_english_label():
-    """건강 목표가 늘면 영어도 함께 는다 — 빠지면 영어 알림에 한국어 목표가 남는다."""
-    args = {"member_name": "Alex", "focus": list(health_focus.FOCUS_OPTIONS)}
-    _, body = _en(nt.TRAINER_HEALTH_GOAL, args)
-    assert not HANGUL.search(body)
-    assert body.count(" · ") == len(health_focus.FOCUS_OPTIONS) - 1
+def test_every_focus_option_is_named_in_the_goal_notice():
+    args = {"member_name": "지수", "focus": list(health_focus.FOCUS_OPTIONS)}
+    _, body = _ko(nt.TRAINER_HEALTH_GOAL, args)
+    assert all(option in body for option in health_focus.FOCUS_OPTIONS)
 
 
 def test_unknown_focus_value_stays_as_it_was():
     args = {"member_name": "Alex", "focus": ["고혈압"]}
-    assert _en(nt.TRAINER_HEALTH_GOAL, args)[1].endswith(": 고혈압")
+    assert _ko(nt.TRAINER_HEALTH_GOAL, args)[1].endswith(": 고혈압")
 
 
 # --------------------------------------------------------------------------
@@ -1383,65 +797,12 @@ def test_template_codes_fit_the_column():
 
 
 # --------------------------------------------------------------------------
-# 읽기
+# 조립
 # --------------------------------------------------------------------------
 
-STORED = {"title": "지수 회원의 메시지", "body": "안녕하세요"}
 
-
-def test_korean_reads_the_stored_sentence_even_if_the_template_would_differ():
-    """한국어는 저장된 문장이다 — 받은 순간의 문장을 다시 쓰지 않는다."""
-    title, body = nt.localize(
-        title="예전 제목", body="예전 본문",
-        template=nt.TRAINER_MEMBER_MESSAGE, template_args={"member_name": "지수"},
-        locale="ko",
-    )
-    assert (title, body) == ("예전 제목", "예전 본문")
-
-
-def test_english_reads_the_template():
-    assert nt.localize(
-        **STORED, template=nt.TRAINER_MEMBER_MESSAGE,
-        template_args={"member_name": "Alex"}, locale="en",
-    ) == ("Message from Alex", "안녕하세요")
-
-
-@pytest.mark.parametrize(
-    ("template", "args"),
-    [
-        (None, None),  # 틀이 생기기 전의 알림
-        ("no_such_template", {"member_name": "Alex"}),  # 이 서버가 모르는 틀
-        (nt.TRAINER_RESERVATION_BOOKED, {"member_name": "A", "starts_at": "not-a-date"}),
-        (nt.MEMBER_ROUTINE_PROGRAM, {"name": "x", "sessions": "many"}),
-        (nt.TRAINER_HEALTH_GOAL, {"member_name": "A", "focus": 3}),
-    ],
-)
-def test_english_falls_back_to_the_stored_sentence(template, args):
-    assert nt.localize(**STORED, template=template, template_args=args, locale="en") == (
-        STORED["title"],
-        STORED["body"],
-    )
-
-
-def test_localize_defaults_to_the_request_locale(monkeypatch):
-    from app.core import locale as locale_module
-
-    token = locale_module._request_locale_ctx.set("en")
-    try:
-        assert nt.localize(
-            **STORED, template=nt.TRAINER_MEMBER_MESSAGE,
-            template_args={"member_name": "Alex"},
-        )[0] == "Message from Alex"
-    finally:
-        locale_module._request_locale_ctx.reset(token)
-    # 요청 밖(기본값)은 한국어 — 저장된 문장이다.
-    assert nt.localize(
-        **STORED, template=nt.TRAINER_MEMBER_MESSAGE, template_args={"member_name": "Alex"},
-    ) == (STORED["title"], STORED["body"])
-
-
-#: 숫자·날짜 인자가 있어야 문장이 되는 틀. 인자가 빠지면 조립하지 않고 저장된
-#: 문장으로 돌아간다 — "0회"·"1월 1일" 같은 지어낸 값을 보여 주지 않는다.
+#: 숫자·날짜 인자가 있어야 문장이 되는 틀. 인자가 빠지면 조립하지 않는다 —
+#: "0회"·"1월 1일" 같은 지어낸 값을 만들지 않는다.
 NEEDS_ARGS = {
     nt.MEMBER_SCHEDULE_SERIES,
     nt.MEMBER_COUPON_EXPIRING,
@@ -1453,12 +814,11 @@ NEEDS_ARGS = {
 def test_render_tolerates_missing_args():
     """인자가 빠진 틀도 예외를 내지 않는다(목록이 500 이 되지 않게).
 
-    이름·글자만 쓰는 틀은 빈 값으로 문장을 만들고, [NEEDS_ARGS] 는 ``None`` 으로
-    저장된 문장에 맡긴다.
+    이름·글자만 쓰는 틀은 빈 값으로 문장을 만들고, [NEEDS_ARGS] 는 ``None`` 이다.
     """
     for code in nt.codes():
-        for args, locale in (({}, "en"), (None, "ko")):
-            rendered = nt.render(code, args, locale)
+        for args in ({}, None):
+            rendered = nt.render(code, args)
             if code in NEEDS_ARGS:
                 assert rendered is None, code
             else:
@@ -1466,9 +826,9 @@ def test_render_tolerates_missing_args():
 
 
 def test_render_unknown_or_empty_code_is_none():
-    assert nt.render(None, {}, "en") is None
-    assert nt.render("", {}, "en") is None
-    assert nt.render("no_such_template", {}, "en") is None
+    assert nt.render(None, {}) is None
+    assert nt.render("", {}) is None
+    assert nt.render("no_such_template", {}) is None
 
 
 # --------------------------------------------------------------------------
@@ -1483,9 +843,9 @@ _TRAINER_TEXT = (
 
 @pytest.mark.skipif(not _TRAINER_TEXT.exists(), reason="프론트 소스가 없는 체크아웃")
 def test_trainer_web_knows_every_trainer_template():
-    """트레이너가 받는 틀은 트레이너 웹이 모두 ARB 로 조립한다.
+    """트레이너가 받는 틀은 트레이너 웹이 모두 직접 조립한다.
 
-    한쪽에만 더하면 트레이너 웹은 서버가 조립한 문장으로 돌아가 동작은 하지만,
+    한쪽에만 더하면 트레이너 웹은 서버가 저장한 문장으로 돌아가 동작은 하지만,
     앱이 문구의 주인이라는 약속이 조용히 깨진다.
     """
     source = _TRAINER_TEXT.read_text(encoding="utf-8")
@@ -1499,117 +859,36 @@ def test_trainer_web_knows_every_trainer_template():
 # --------------------------------------------------------------------------
 
 
-def test_every_coupon_with_a_notification_has_english_and_a_title():
-    """만료 예고·취소 알림이 가는 쿠폰(`PointsCoupon` 으로 발급되는 항목)은 영어
-    이름과 취소 제목이 있다. 보호권·그래프 색·펫·리포트는 쿠폰이 아니다."""
+def test_every_coupon_with_a_notification_has_a_cancel_title():
+    """만료 예고·취소 알림이 가는 쿠폰(`PointsCoupon` 으로 발급되는 항목)은 취소
+    제목이 있다. 보호권·그래프 색·펫·리포트는 쿠폰이 아니다."""
     from app.services import points_coupon_service as pcs
 
     coupons = {pcs.PT_RENEWAL.id, pcs.LOCKER_MONTH.id, pcs.DIET_TRAY.id}
-    assert coupons <= set(nt._BENEFIT_EN)
     assert coupons <= set(nt._COUPON_CANCELLED_TITLE)
 
 
-def test_coupon_cancel_reasons_match_the_service():
-    from app.services import points_coupon_service as pcs
-
-    assert {pcs._CANCEL_TRAINER, pcs._CANCEL_GYM, pcs._CANCEL_SERVICE} == set(
-        nt._COUPON_CANCEL_REASON
-    )
-
-
-def test_coupon_cancelled_for_paused_gym_benefits_reads_in_both_languages():
-    """헬스장 혜택을 멈춰 취소한 쿠폰(#2822)도 두 언어로 까닭과 환불을 알린다."""
+def test_coupon_cancelled_for_paused_gym_benefits_says_why_and_the_refund():
+    """헬스장 혜택을 멈춰 취소한 쿠폰(#2822)도 까닭과 환불을 알린다."""
     args = {
         "item": "locker_month",
         "benefit": "개인 락커 1개월 무료",
         "reason": "service",
         "refunded": 7000,
     }
-    ko_title, ko_body = nt.render(nt.MEMBER_COUPON_CANCELLED, args, "ko")
-    assert ko_title == "개인 락커 쿠폰이 취소됐어요"
-    assert "헬스장 혜택 제공을 잠시 멈추게 되어" in ko_body
-    assert "7,000P" in ko_body
-    en_title, en_body = nt.render(nt.MEMBER_COUPON_CANCELLED, args, "en")
-    assert en_title == "Personal locker coupon cancelled"
-    assert "gym benefits are paused" in en_body
-    assert "7,000P" in en_body
+    title, body = nt.render(nt.MEMBER_COUPON_CANCELLED, args)
+    assert title == "개인 락커 쿠폰이 취소됐어요"
+    assert "헬스장 혜택 제공을 잠시 멈추게 되어" in body
+    assert "7,000P" in body
 
 
-def test_coupon_benefit_in_korean_is_the_stored_catalog_text():
-    """한국어 혜택 문구는 인자에 담긴 교환 당시 문구다 — 카탈로그를 다시 읽지 않는다."""
-    title, body = _ko(
-        nt.MEMBER_COUPON_EXPIRING,
-        {"item": "pt_renewal", "benefit": "옛 혜택 문구", "days": 2, "last_day": "2026-10-03"},
-    )
-    assert body.startswith("옛 혜택 문구 쿠폰이 2일 뒤(10월 3일)")
-
-
-def test_unknown_coupon_item_keeps_the_korean_benefit_in_english():
-    _, body = _en(
-        nt.MEMBER_COUPON_EXPIRING,
-        {"item": "retired_item", "benefit": "없어진 혜택", "days": 2, "last_day": "2026-10-03"},
-    )
-    assert body.startswith("Your 없어진 혜택 coupon expires in 2 days")
-
-
-def test_unknown_coupon_cancel_falls_back_to_the_stored_text():
-    """모르는 항목·까닭의 취소 알림은 조립하지 않고 저장된 문장을 쓴다."""
+def test_unknown_coupon_cancel_is_not_assembled():
+    """모르는 항목·까닭의 취소 알림은 조립하지 않는다."""
     for args in (
         {"item": "retired_item", "benefit": "x", "reason": "trainer", "refunded": 1},
         {"item": "pt_renewal", "benefit": "x", "reason": "moved", "refunded": 1},
     ):
-        assert nt.render(nt.MEMBER_COUPON_CANCELLED, args, "en") is None
-        assert nt.localize(
-            title="저장 제목", body="저장 본문",
-            template=nt.MEMBER_COUPON_CANCELLED, template_args=args, locale="en",
-        ) == ("저장 제목", "저장 본문")
-
-
-def test_session_types_in_english_follow_the_trainer_web_values():
-    """일정 종류 저장 값은 트레이너 웹 `SessionType` 과 같다."""
-    source = (
-        Path(__file__).resolve().parents[2]
-        / "frontend/flutter_trainer/lib/features/schedule/domain/entities/schedule_status.dart"
-    )
-    if not source.exists():
-        pytest.skip("프론트 소스가 없는 체크아웃")
-    text = source.read_text(encoding="utf-8")
-    for stored in nt._SESSION_TYPE_EN:
-        assert f"'{stored}'" in text, stored
-
-
-def test_challenge_result_args_carry_everything_the_sentence_needs():
-    from types import SimpleNamespace
-
-    from app.services import weekly_challenge_service as wcs
-
-    row = SimpleNamespace(week_start="2026-09-28", goal=3, reward=900, stake=600)
-    args = wcs._result_args(row, days=1, succeeded=False)
-    assert json.loads(json.dumps(args)) == args
-    assert _ko(nt.MEMBER_CHALLENGE_RESULT, args)[1].startswith(
-        "9월 28일 ~ 10월 4일 목표 3회 중 1회 운동해 건 600P"
-    )
-    assert _en(nt.MEMBER_CHALLENGE_RESULT, args)[1].startswith(
-        "You logged 1 of 3 workouts for 9/28 – 10/4, so the 600P"
-    )
-
-
-def test_challenge_period_crosses_the_year():
-    args = {"succeeded": True, "week_start": "2026-12-28", "goal": 1, "days": 1,
-            "reward": 100, "stake": 100}
-    assert _ko(nt.MEMBER_CHALLENGE_RESULT, args)[1].startswith("12월 28일 ~ 1월 3일 목표 1회")
-    assert _en(nt.MEMBER_CHALLENGE_RESULT, args) == (
-        "Weekly challenge complete! You earned 100P",
-        "You reached your goal of 1 workout for 12/28 – 1/3 and got 100P back.",
-    )
-
-
-def test_schedule_slot_args_match_the_member_visible_slot():
-    from app.services.trainer import schedule as trainer_schedule_service
-
-    args = trainer_schedule_service._slot_args(("2026-10-01", "09:00", "1:1 PT", 50))
-    assert args == {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"}
-    assert _ko(nt.MEMBER_SCHEDULE_CANCELLED, args)[1] == "10월 1일 09:00 · 1:1 PT"
+        assert nt.render(nt.MEMBER_COUPON_CANCELLED, args) is None
 
 
 @pytest.mark.parametrize(
@@ -1625,11 +904,52 @@ def test_schedule_slot_args_match_the_member_visible_slot():
          {"succeeded": True, "week_start": "bad", "goal": 1, "reward": 1}),
     ],
 )
-def test_broken_points_and_schedule_args_fall_back(code, args):
-    assert nt.render(code, args, "en") is None
-    assert nt.localize(
-        title="저장 제목", body="저장 본문", template=code, template_args=args, locale="en",
-    ) == ("저장 제목", "저장 본문")
+def test_broken_points_and_schedule_args_are_not_assembled(code, args):
+    assert nt.render(code, args) is None
+
+
+def test_coupon_cancel_reasons_match_the_service():
+    from app.services import points_coupon_service as pcs
+
+    assert {pcs._CANCEL_TRAINER, pcs._CANCEL_GYM, pcs._CANCEL_SERVICE} == set(
+        nt._COUPON_CANCEL_REASON
+    )
+
+
+def test_coupon_benefit_is_the_stored_catalog_text():
+    """혜택 문구는 인자에 담긴 교환 당시 문구다 — 카탈로그를 다시 읽지 않는다."""
+    title, body = _ko(
+        nt.MEMBER_COUPON_EXPIRING,
+        {"item": "pt_renewal", "benefit": "옛 혜택 문구", "days": 2, "last_day": "2026-10-03"},
+    )
+    assert body.startswith("옛 혜택 문구 쿠폰이 2일 뒤(10월 3일)")
+
+
+def test_challenge_result_args_carry_everything_the_sentence_needs():
+    from types import SimpleNamespace
+
+    from app.services import weekly_challenge_service as wcs
+
+    row = SimpleNamespace(week_start="2026-09-28", goal=3, reward=900, stake=600)
+    args = wcs._result_args(row, days=1, succeeded=False)
+    assert json.loads(json.dumps(args)) == args
+    assert _ko(nt.MEMBER_CHALLENGE_RESULT, args)[1].startswith(
+        "9월 28일 ~ 10월 4일 목표 3회 중 1회 운동해 건 600P"
+    )
+
+
+def test_challenge_period_crosses_the_year():
+    args = {"succeeded": True, "week_start": "2026-12-28", "goal": 1, "days": 1,
+            "reward": 100, "stake": 100}
+    assert _ko(nt.MEMBER_CHALLENGE_RESULT, args)[1].startswith("12월 28일 ~ 1월 3일 목표 1회")
+
+
+def test_schedule_slot_args_match_the_member_visible_slot():
+    from app.services.trainer import schedule as trainer_schedule_service
+
+    args = trainer_schedule_service._slot_args(("2026-10-01", "09:00", "1:1 PT", 50))
+    assert args == {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"}
+    assert _ko(nt.MEMBER_SCHEDULE_CANCELLED, args)[1] == "10월 1일 09:00 · 1:1 PT"
 
 
 # --------------------------------------------------------------------------
@@ -1640,49 +960,28 @@ NOW = datetime(2026, 10, 1, 12, 0, tzinfo=timezone.utc)
 
 
 @pytest.mark.parametrize(
-    ("ago", "ko", "en"),
+    ("ago", "label"),
     [
-        (timedelta(seconds=0), "방금 전", "just now"),
-        (timedelta(seconds=59), "방금 전", "just now"),
-        (timedelta(seconds=60), "1분 전", "1 min ago"),
-        (timedelta(minutes=5), "5분 전", "5 min ago"),
-        (timedelta(minutes=59, seconds=59), "59분 전", "59 min ago"),
-        (timedelta(hours=1), "1시간 전", "1 hour ago"),
-        (timedelta(hours=3), "3시간 전", "3 hours ago"),
-        (timedelta(hours=23, minutes=59), "23시간 전", "23 hours ago"),
-        (timedelta(days=1), "1일 전", "1 day ago"),
-        (timedelta(days=2), "2일 전", "2 days ago"),
-        (timedelta(days=45), "45일 전", "45 days ago"),
+        (timedelta(seconds=0), "방금 전"),
+        (timedelta(seconds=59), "방금 전"),
+        (timedelta(seconds=60), "1분 전"),
+        (timedelta(minutes=5), "5분 전"),
+        (timedelta(minutes=59, seconds=59), "59분 전"),
+        (timedelta(hours=1), "1시간 전"),
+        (timedelta(hours=3), "3시간 전"),
+        (timedelta(hours=23, minutes=59), "23시간 전"),
+        (timedelta(days=1), "1일 전"),
+        (timedelta(days=2), "2일 전"),
+        (timedelta(days=45), "45일 전"),
     ],
 )
-def test_time_ago_in_both_languages(ago, ko, en):
-    assert notification_service.time_ago(NOW - ago, "ko", now=NOW) == ko
-    assert notification_service.time_ago(NOW - ago, "en", now=NOW) == en
+def test_time_ago(ago, label):
+    assert notification_service.time_ago(NOW - ago, now=NOW) == label
 
 
 def test_time_ago_treats_a_naive_time_as_utc():
     naive = (NOW - timedelta(hours=2)).replace(tzinfo=None)
-    assert notification_service.time_ago(naive, "en", now=NOW) == "2 hours ago"
-
-
-def test_time_ago_follows_the_request_locale_by_default():
-    from app.core.locale import _request_locale_ctx
-
-    three_hours = NOW - timedelta(hours=3)
-    assert notification_service.time_ago(three_hours, now=NOW) == "3시간 전"
-    token = _request_locale_ctx.set("en")
-    try:
-        assert notification_service.time_ago(three_hours, now=NOW) == "3 hours ago"
-    finally:
-        _request_locale_ctx.reset(token)
-
-
-def test_time_ago_english_matches_what_the_member_app_parses():
-    """회원 앱 `localizeTimeAgo` 가 읽는 영어 모양과 같아야 앱 문장으로 옮겨진다."""
-    shape = re.compile(r"^(just now|\d+ (min|hours?|days?) ago)$")
-    for ago in (timedelta(0), timedelta(minutes=7), timedelta(hours=1),
-                timedelta(hours=5), timedelta(days=1), timedelta(days=9)):
-        assert shape.match(notification_service.time_ago(NOW - ago, "en", now=NOW))
+    assert notification_service.time_ago(naive, now=NOW) == "2시간 전"
 
 
 # --------------------------------------------------------------------------
@@ -1691,7 +990,7 @@ def test_time_ago_english_matches_what_the_member_app_parses():
 
 
 def test_weekly_feedback_labels_cover_every_stored_value():
-    """저장 값이 늘면 알림 문장도 함께 늘어야 한다 — 빠지면 영어에 저장 값이 그대로 보인다."""
+    """저장 값이 늘면 알림 문장도 함께 늘어야 한다 — 빠지면 문장에 저장 값이 그대로 보인다."""
     from app.services.trainer.weekly_feedback import (
         _WEEKLY_FEEDBACK_CONDITIONS,
         _WEEKLY_FEEDBACK_INTENSITIES,
@@ -1705,19 +1004,9 @@ def test_weekly_feedback_never_carries_the_pain_area():
     """아픈 곳은 회원이 쓴 건강 정보다 — 알림 미리보기에 싣지 않는다(#2619 와 같은 규칙)."""
     args = {"member_name": "지수", "condition": "ok", "intensity": "hard",
             "pain": True, "pain_area": "왼쪽 어깨"}
-    for locale in ("ko", "en"):
-        title, body = nt.render(nt.TRAINER_MEMBER_WEEKLY_FEEDBACK, args, locale)
-        assert "어깨" not in title
-        assert "어깨" not in (body or "")
-
-
-def test_weekly_feedback_unknown_value_stays_as_stored():
-    title, body = _en(
-        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
-        {"member_name": "Alex", "condition": "sleepy", "intensity": ""},
-    )
-    assert title == "Alex sent their weekly feedback"
-    assert body == "Condition: sleepy"
+    title, body = nt.render(nt.TRAINER_MEMBER_WEEKLY_FEEDBACK, args)
+    assert "어깨" not in title
+    assert "어깨" not in (body or "")
 
 
 def test_weekly_feedback_without_answers_has_an_empty_body():
@@ -1730,19 +1019,6 @@ def test_weekly_feedback_without_answers_has_an_empty_body():
 def test_pt_completed_ignores_a_broken_session_number(bad):
     title, _ = _ko(nt.MEMBER_PT_COMPLETED, {"trainer_name": "박코치", "session_number": bad})
     assert title == "박코치 트레이너와 PT를 마쳤어요"
-
-
-def test_pt_completed_note_is_not_translated():
-    """트레이너가 쓴 피드백은 번역하지 않는다 — 영어 화면에서도 저장된 글이 본문이다."""
-    title, body = nt.localize(
-        title="박코치 트레이너와 2회차 PT를 마쳤어요",
-        body="허리 각도 신경 써 주세요",
-        template=nt.MEMBER_PT_COMPLETED,
-        template_args={"trainer_name": "Coach Park", "session_number": 2, "has_note": True},
-        locale="en",
-    )
-    assert title == "You finished PT #2 with Coach Park"
-    assert body == "허리 각도 신경 써 주세요"
 
 
 def test_pt_codes_are_member_templates():

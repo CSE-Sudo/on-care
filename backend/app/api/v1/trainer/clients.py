@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
 from app.core import clock
-from app.core.locale import RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE
 from app.db.session import get_db
 from app.models.models import (
@@ -405,7 +404,6 @@ def trainer_client_diet_advice(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    locale: RequestLocale,
     period: Annotated[
         Literal["today", "week", "all"],
         Query(description="조언이 다룰 구간 — 회원 앱 기간 토글과 같은 이름"),
@@ -425,7 +423,7 @@ def trainer_client_diet_advice(
         from_date=result.from_date,
         to_date=result.to_date,
         days_logged=result.days_logged,
-        message=result.message_in(locale),
+        message=result.message,
         sentences=[
             DietAdviceSentence(key=s.key, params=s.params) for s in result.sentences
         ],
@@ -445,11 +443,11 @@ def _diet_pick_out(pick) -> TrainerDietPick:
 
 
 def _diet_recommendations(
-    db: Session, trainer_id: str, member_id: str, locale: str
+    db: Session, trainer_id: str, member_id: str
 ) -> TrainerDietRecommendationsResponse:
     pick = diet_trainer_pick.current(db, member_id, trainer_id)
     exclude = {diet_trainer_pick.norm(pick.name)} if pick is not None else set()
-    found = diet_trainer_pick.candidates(db, member_id, lang=locale, exclude=exclude)
+    found = diet_trainer_pick.candidates(db, member_id, exclude=exclude)
     return TrainerDietRecommendationsResponse(
         needs=found.needs,
         basis_days=found.basis_days,
@@ -475,7 +473,6 @@ def trainer_client_diet_recommendations(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    locale: RequestLocale,
 ) -> TrainerDietRecommendationsResponse:
     """담당 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2378)
 
@@ -483,7 +480,7 @@ def trainer_client_diet_recommendations(
     리스트를 읽기만 하므로 후보를 넘겨 봐도 AI 를 새로 부르지 않는다.
     """
     _require_client(db, trainer.id, member_id)
-    return _diet_recommendations(db, trainer.id, member_id, locale)
+    return _diet_recommendations(db, trainer.id, member_id)
 
 
 @router.put(
@@ -495,7 +492,6 @@ def trainer_confirm_diet_recommendation(
     payload: TrainerDietPickRequest,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    locale: RequestLocale,
 ) -> TrainerDietRecommendationsResponse:
     """후보 하나를 회원에게 추천한다 — 회원 앱 홈 `추천 식단` 첫 장이 된다. (#2378)
 
@@ -505,13 +501,13 @@ def trainer_confirm_diet_recommendation(
     try:
         diet_trainer_pick.confirm(
             db, member_id, trainer.id,
-            name=payload.name, slot=payload.slot, lang=locale,
+            name=payload.name, slot=payload.slot,
         )
     except diet_trainer_pick.PickNotInPlan as exc:
         raise HTTPException(
             status_code=422, detail="추천 후보에 없는 메뉴예요."
         ) from exc
-    return _diet_recommendations(db, trainer.id, member_id, locale)
+    return _diet_recommendations(db, trainer.id, member_id)
 
 
 @router.get(
@@ -549,7 +545,7 @@ def trainer_client_exercise_advice(
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=advice.text_for(),
+        message=advice.text,
         advice_key=advice.key,
         advice_params=advice.params,
     )

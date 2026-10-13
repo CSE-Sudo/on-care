@@ -102,12 +102,11 @@ def test_other_categories_never_carry_a_report():
         assert _report_for(_row(category=category, args=args)) is None
 
 
-@pytest.mark.parametrize("locale", ["ko", "en"])
-def test_response_keeps_the_chat_target_and_adds_the_report(locale):
+def test_response_keeps_the_chat_target_and_adds_the_report():
     """목적지 값은 그대로 `coach_chat` 이고 `report` 칸만 더해진다."""
     row = _row(args=_report_args(week_start="2026-10-05", message_id="chat-abc"))
 
-    out = notification_out(row, locale)
+    out = notification_out(row)
 
     assert out.action is not None
     assert out.action.target == "coach_chat"
@@ -117,14 +116,15 @@ def test_response_keeps_the_chat_target_and_adds_the_report(locale):
         "week_start": "2026-10-05",
         "message_id": "chat-abc",
     }
-    # 문장 틀은 새 인자를 몰라도 제목을 만든다.
-    assert out.title == (
-        "주간 리포트가 도착했어요" if locale == "ko" else "Your weekly report is here"
-    )
+    # 제목은 저장된 문장 그대로이고, 문장 틀은 새 인자를 몰라도 같은 제목을 만든다.
+    assert out.title == "주간 리포트가 도착했어요"
+    rendered = notification_templates.render(row.template, row.template_args)
+    assert rendered is not None
+    assert rendered[0] == "주간 리포트가 도착했어요"
 
 
 def test_old_report_row_serializes_with_an_empty_report():
-    out = notification_out(_row(args=None, template=None), "ko")
+    out = notification_out(_row(args=None, template=None))
 
     assert out.report is None
     assert out.action is not None

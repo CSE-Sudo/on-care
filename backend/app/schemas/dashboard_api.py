@@ -41,8 +41,7 @@ class DashboardSummary(BaseModel):
     #: 홈 `오늘의 AI 통합 조언` 이 고른 문장의 **로케일 독립 식별자**. (#1943)
     #:
     #: 앱은 이 키를 먼저 보고 자기 문장을 그린다. 키가 없으면 위 두 문장을 받은
-    #: 그대로 쓴다 — 그 두 문장도 요청 언어(`Accept-Language`)를 따르지만, 문장
-    #: 틀은 앱 ARB 가 원본이다.
+    #: 그대로 쓴다. 문장 틀은 앱 ARB 가 원본이다.
     #:
     #: `sodium_over` · `sodium_over_sources` · `exercise_on_track` ·
     #: `exercise_more` · `exercise_cardio_start` · `exercise_start` 중 하나다.

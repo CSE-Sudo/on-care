@@ -25,7 +25,6 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequireMember, RequireUser
 from app.core import clock
 from app.core.config import get_settings
-from app.core.locale import get_request_locale
 from app.core.rate_limit import (
     PasswordChangeGuard,
     check_key,
@@ -494,7 +493,7 @@ def update_me(
     view = _profile_view(user)
     if email_changed:
         account_notice.send_email_changed(
-            old_email, new_email or "", locale=get_request_locale(request)
+            old_email, new_email or ""
         )
         tokens = auth_tokens.issue_token_pair(user)
         view.access_token = tokens.access_token
@@ -839,7 +838,6 @@ def request_email_change_code(
             signup_email_code.EMAIL_CHANGE,
             now=clock.now(),
             settings=settings,
-            locale=get_request_locale(request),
             schedule=background_tasks.add_task,
         )
     except signup_email_code.CodeUnavailable:
@@ -897,7 +895,6 @@ def request_signup_email_code(
             payload.purpose,
             now=clock.now(),
             settings=settings,
-            locale=get_request_locale(request),
             schedule=background_tasks.add_task,
         )
     except signup_email_code.CodeUnavailable:
@@ -1292,7 +1289,6 @@ def request_password_reset(
             payload.email,
             now=clock.now(),
             settings=settings,
-            locale=get_request_locale(request),
             schedule=background_tasks.add_task,
         )
     except password_reset.ResetUnavailable:

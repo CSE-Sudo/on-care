@@ -34,6 +34,10 @@ from app.services import diet_coach_inputs as inputs
 from app.services import diet_menu_plan
 from app.services.diet_advice_copy import Line, line
 
+#: 상태 행의 `lang` 칸에 적는 값. 조언은 한국어로만 만든다 — 칸은 유일 키에 남아
+#: 있어 같은 값으로 채운다.
+STATE_LANG = "ko"
+
 PERIOD_TODAY = "today"
 
 MAIN_SLOTS = (catalog.SLOT_BREAKFAST, catalog.SLOT_LUNCH, catalog.SLOT_DINNER)
@@ -255,19 +259,19 @@ def _recent_picks(db: Session, user_id: str, today: date) -> set[str]:
     return names
 
 
-def _remember_pick(db: Session, user_id: str, today: date, lang: str, name: str) -> None:
+def _remember_pick(db: Session, user_id: str, today: date, name: str) -> None:
     key = today.isoformat()
     row = db.scalar(
         select(DietAdviceState)
         .where(DietAdviceState.user_id == user_id)
         .where(DietAdviceState.period == PERIOD_TODAY)
         .where(DietAdviceState.key_date == key)
-        .where(DietAdviceState.lang == lang)
+        .where(DietAdviceState.lang == STATE_LANG)
     )
     if row is None:
         db.add(DietAdviceState(
             id=f"dadv-{uuid.uuid4().hex[:16]}", user_id=user_id, period=PERIOD_TODAY,
-            key_date=key, lang=lang, payload_json=json.dumps({"picks": [name]}, ensure_ascii=False),
+            key_date=key, lang=STATE_LANG, payload_json=json.dumps({"picks": [name]}, ensure_ascii=False),
         ))
         try:
             db.commit()
@@ -291,7 +295,6 @@ def today_advice(
     db: Session,
     user_id: str,
     *,
-    lang: str = "ko",
     use_llm: bool = True,
     now: datetime | None = None,
 ) -> DietAdvice:
@@ -306,13 +309,13 @@ def today_advice(
 
     action, source = decision.action, decision.action_source
     if decision.slot is not None:
-        plan = diet_menu_plan.get_plan(db, user_id, lang=lang, use_llm=use_llm, now=now)
+        plan = diet_menu_plan.get_plan(db, user_id, use_llm=use_llm, now=now)
         menu = pick_menu(
             plan.for_slot(decision.slot), decision.needs, _recent_picks(db, user_id, today),
             decision.satisfied,
         )
         if menu is not None:
-            _remember_pick(db, user_id, today, plan.lang, menu.name)
+            _remember_pick(db, user_id, today, menu.name)
             action, source = menu_line(decision.slot, menu), "plan"
     analysis = decision.analysis
 
@@ -331,14 +334,14 @@ def today_advice(
 
 
 def load_state(
-    db: Session, user_id: str, period: str, key_date: str, lang: str
+    db: Session, user_id: str, period: str, key_date: str
 ) -> DietAdviceState | None:
     return db.scalar(
         select(DietAdviceState)
         .where(DietAdviceState.user_id == user_id)
         .where(DietAdviceState.period == period)
         .where(DietAdviceState.key_date == key_date)
-        .where(DietAdviceState.lang == lang)
+        .where(DietAdviceState.lang == STATE_LANG)
     )
 
 
@@ -385,10 +388,10 @@ def advice_from_state(period: str, row: DietAdviceState) -> DietAdvice | None:
 
 
 def cached_advice(
-    db: Session, user_id: str, period: str, key_date: str, lang: str, now: datetime
+    db: Session, user_id: str, period: str, key_date: str, now: datetime
 ) -> DietAdvice | None:
     """보관한 조언. 없거나, AI 실패로 둔 대체 문장의 재시도 시각이 지났으면 None."""
-    row = load_state(db, user_id, period, key_date, lang)
+    row = load_state(db, user_id, period, key_date)
     if row is None:
         return None
     if row.retry_after is not None:
@@ -403,18 +406,17 @@ def store_advice(
     user_id: str,
     period: str,
     key_date: str,
-    lang: str,
     advice: DietAdvice,
     *,
     retry_after: datetime | None,
 ) -> None:
     """만든 조언을 둔다. 같은 날(주)의 것이 있으면 갈아 끼운다."""
     payload = json.dumps(advice_payload(advice), ensure_ascii=False)
-    row = load_state(db, user_id, period, key_date, lang)
+    row = load_state(db, user_id, period, key_date)
     if row is None:
         db.add(DietAdviceState(
             id=f"dadv-{uuid.uuid4().hex[:16]}", user_id=user_id, period=period,
-            key_date=key_date, lang=lang, payload_json=payload, retry_after=retry_after,
+            key_date=key_date, lang=STATE_LANG, payload_json=payload, retry_after=retry_after,
         ))
     else:
         row.payload_json = payload
