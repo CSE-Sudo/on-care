@@ -2197,8 +2197,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myProfileSaveFailed => 'Couldn\'t save your profile.';
 
   @override
-  String get myGymChangeFailed =>
-      'Couldn\'t change your gym. The rest of your profile was saved.';
+  String get myGymChangeFailed => 'Couldn\'t change your gym.';
 
   @override
   String get myTabProfile => 'My profile';
@@ -2769,16 +2768,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySecurity => 'Security';
 
   @override
-  String get myDiscardTitle => 'Stop editing?';
+  String get myDiscardTitle => 'Save your changes?';
 
   @override
-  String get myDiscardBody => 'Your changes won\'t be saved.';
+  String get myDiscardBody =>
+      'If you leave without saving, your changes will be lost.';
 
   @override
   String get myKeepEditing => 'Keep editing';
 
   @override
-  String get myDiscardAction => 'Leave';
+  String get myDiscardAction => 'Don\'t save';
+
+  @override
+  String get mySaveAndLeave => 'Save and leave';
 
   @override
   String get mySignOutConfirm => 'Sign out of this browser?';
@@ -2794,11 +2797,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCertsEmpty => 'No certifications yet';
 
   @override
-  String get myGymEmpty => 'No gym yet. Set yours in Edit profile.';
+  String get myGymEmpty => 'No gym yet. Pick yours in Set gym.';
 
   @override
   String get myEditVisibleBody =>
-      'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.';
+      'Your specialty, career, introduction and certifications appear on your trainer profile in the member app.';
 
   @override
   String get myClientManagementNoteTitle =>
@@ -3074,6 +3077,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachTemplates => 'Program templates';
+
+  @override
+  String get coachMemberRecords => 'Member records';
 
   @override
   String get coachSentHistory => 'Sent history';
@@ -6379,7 +6385,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The server is having a temporary problem. Please try again in a moment.';
 
   @override
-  String get myGymInfoEdit => 'Edit gym info';
+  String get myGymChange => 'Change gym';
+
+  @override
+  String get myGymInfoEdit => 'Edit hours & contact';
 
   @override
   String get myGymInfoSubtitle =>

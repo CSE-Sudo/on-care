@@ -1215,6 +1215,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myDefaultUserName => '사용자';
 
   @override
+  String myEmailUnregistered(String provider) {
+    String _temp0 = intl.Intl.selectLogic(provider, {
+      'kakao': '카카오로 가입',
+      'google': '구글로 가입',
+      'other': '소셜 로그인으로 가입',
+    });
+    return '$_temp0 · 이메일 미등록';
+  }
+
+  @override
   String get myProfileLoadFailed => '내 정보를 불러오지 못했어요';
 
   @override
@@ -1708,6 +1718,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get challengeJoinClosed => '다음 주 월요일에 다시 참가할 수 있어요';
 
   @override
+  String get challengeSettling => '지난주 결과 집계 중이에요. 오늘까지 적은 지난주 운동 기록이 반영돼요';
+
+  @override
   String get challengeThisWeek => '이번 주 진행';
 
   @override
@@ -2113,6 +2126,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myProfileEmailTaken => '이미 사용 중인 이메일이에요';
+
+  @override
+  String get myProfileEmailEmptyHint => '사용할 이메일 주소';
 
   @override
   String get myProfilePhoneRequired => '등록된 전화번호는 비울 수 없어요';
@@ -4893,6 +4909,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get passwordResetConfirmSubtitle => '메일로 받은 코드와 새 비밀번호를 입력해 주세요.';
+
+  @override
+  String get passwordResetSocialNote =>
+      '카카오·구글 같은 소셜 로그인으로 가입했다면 메일이 오지 않아요. 가입한 방법으로 로그인해 주세요.';
 
   @override
   String get passwordResetCodeHint => '재설정 코드 16자리';

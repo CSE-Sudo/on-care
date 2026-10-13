@@ -791,6 +791,15 @@
   "exSpecialty": "Specialties",
   "myTabTitle": "MY",
   "myDefaultUserName": "User",
+  "myEmailUnregistered": "{provider, select, kakao{Signed up with Kakao} google{Signed up with Google} other{Signed up with a social account}} · No email on file",
+  "@myEmailUnregistered": {
+    "description": "Shown instead of the email when the account only has the internal placeholder address from a social sign-up.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "myProfileLoadFailed": "Couldn't load your profile",
   "myPointsLoadFailed": "Couldn't load your points balance",
   "mySettingsTitle": "Settings",
@@ -1220,6 +1229,7 @@
   "challengeJoinDone": "You joined this week's challenge",
   "challengeJoinFailed": "Couldn't join. Please try again.",
   "challengeJoinClosed": "You can join again next Monday",
+  "challengeSettling": "Tallying last week's result. Workouts you log for last week by today still count",
   "challengeThisWeek": "This week",
   "challengeProgress": "{progress} / {goal} workouts",
   "@challengeProgress": {
@@ -1537,6 +1547,7 @@
   "myProfileSaved": "Profile saved",
   "mySaveFailed": "Couldn't save. Please try again in a moment",
   "myProfileEmailTaken": "That email is already in use",
+  "myProfileEmailEmptyHint": "Email address to use",
   "myProfilePhoneRequired": "Your phone number can't be left empty",
   "myProfileInvalid": "Please check what you entered",
   "myFieldName": "Name",
@@ -4175,6 +4186,7 @@
     }
   },
   "passwordResetConfirmSubtitle": "Enter the code from the email and your new password.",
+  "passwordResetSocialNote": "If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.",
   "passwordResetCodeHint": "16-character reset code",
   "passwordResetCodeEmpty": "Enter the code",
   "passwordResetCodeMalformed": "Enter the 16-character code from the email",

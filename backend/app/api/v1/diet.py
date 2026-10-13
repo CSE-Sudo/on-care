@@ -6,6 +6,7 @@
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
   POST /diet/analyze             -> 사진 정리(EXIF 제거) → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
+                                    같은 멱등키가 아직 분석 중이면 409 in_progress(#3354)
   POST /diet/analyze?engine=gemini -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
   GET  /diet/photos/{photo_id}   -> 내 끼니 사진 원본 바이트(본인만)
   POST /diet/entries             -> 사진 없이 직접 적은 끼니 저장(포인트 없음)
@@ -80,6 +81,11 @@ _RATE_LIMITED = {
     "code": "rate_limited",
     "message": "사진 분석 요청이 너무 잦아요. 잠시 후 다시 시도해 주세요.",
 }
+
+#: 같은 멱등키의 분석이 아직 끝나지 않았을 때의 409 본문(#3354). AI 대화의
+#: `in_progress` 와 같은 모양이다. 횟수도 모델 호출도 쓰지 않았다 — 앱은 잠시 뒤 같은
+#: 키로 다시 물어 저장된 결과를 받는다.
+_IN_PROGRESS_CODE = "in_progress"
 
 #: 사진 분석을 쓸 수 없는 설정(운영에서 키 없음)일 때의 503 본문(#2812). 앱은 `code` 로
 #: 일반 실패와 구분해 직접 입력으로 이어 준다.
@@ -317,7 +323,8 @@ async def diet_analyze(
     user_id = current_user.id
     is_admin = current_user.is_admin
 
-    # 멱등키가 있고 이미 저장된 요청이면 인식·저장을 건너뛰고 기존 결과 반환(재시도 중복 방지)
+    # 멱등키가 있고 이미 저장된 요청이면 인식·저장을 건너뛰고 기존 결과 반환(재시도 중복 방지).
+    # 아직 분석 중인 같은 키는 아래 한도 예약에서 409 `in_progress` 로 가린다(#3354).
     if idempotency_key:
         replay = await run_in_threadpool(_replay_if_saved, db, user_id, idempotency_key)
         if replay is not None:
@@ -353,7 +360,7 @@ async def diet_analyze(
         raise HTTPException(status_code=415, detail=_UNREADABLE_IMAGE) from e
     del image_bytes
 
-    usage_id = await run_in_threadpool(_reserve_analysis, db, user_id)
+    usage_id = await run_in_threadpool(_reserve_analysis, db, user_id, idempotency_key)
 
     try:
         analysis = await recognizer.recognize(clean.data, clean.media_type)
@@ -382,12 +389,30 @@ async def diet_analyze(
     # 저장하고 포인트를 주면 아무 사진으로나 적립할 수 있고, 트레이너는 굶은 날과
     # 구분하지 못한다 — 저장·적립·사진 저장 전에 거절한다(#2848).
     if not analysis.foods:
+        # 모델은 불렀으니 그 한 번은 남기되, 끼니가 없어 이 키로 돌려줄 저장분이
+        # 없다 — 줄에서 키를 떼어 다음 전송이 "분석 중" 에 걸리지 않게 한다(#3354).
+        await run_in_threadpool(diet_analysis_quota_service.settle, db, usage_id)
         raise HTTPException(status_code=422, detail=_NO_FOOD_DETECTED)
 
-    return await run_in_threadpool(
-        _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, clean.data,
-        entry_date,
-    )
+    try:
+        return await run_in_threadpool(
+            _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, clean.data,
+            entry_date,
+        )
+    except Exception:
+        # 저장하지 못했다 — 이 키로 돌려줄 끼니가 없으니 줄에서 키를 뗀다(#3354).
+        # 붙여 두면 같은 키의 다음 전송이 묵을 때까지 "분석 중" 으로만 답한다.
+        await run_in_threadpool(_settle_after_failed_save, db, usage_id)
+        raise
+
+
+def _settle_after_failed_save(db: Session, usage_id: str | None) -> None:
+    """저장이 실패한 분석의 줄을 정리한다. 동기 DB(스레드풀에서 부른다).
+
+    실패한 트랜잭션이 세션에 남아 있을 수 있어 먼저 되돌린다.
+    """
+    db.rollback()
+    diet_analysis_quota_service.settle(db, usage_id)
 
 
 def _replay_if_saved(db: Session, user_id: str, idempotency_key: str) -> DietAnalyzeResponse | None:
@@ -403,19 +428,28 @@ def _replay_if_saved(db: Session, user_id: str, idempotency_key: str) -> DietAna
     )
 
 
-def _reserve_analysis(db: Session, user_id: str) -> str | None:
+def _reserve_analysis(
+    db: Session, user_id: str, idempotency_key: str | None = None
+) -> str | None:
     """모델 호출 한 번을 한도에서 잡는다(#2827). 동기 DB(스레드풀에서 부른다).
 
     사진 한 장이 외부 비전 모델 호출 한 번이라 비용이 가장 큰 축이다. 멱등 재전송은
     앞에서 모델 없이 돌아갔으므로 여기 오지 않아 세지 않는다. 분당 한도는 사람
     단위(같은 헬스장 Wi-Fi 회원끼리 나눠 쓰지 않게), 하루 상한은 DB 에서 KST 날짜로
     센다.
+
+    같은 멱등키의 요청이 아직 모델을 기다리는 중이면 409 `in_progress` 다(#3354) —
+    앞의 저장분 조회는 끝난 요청만 알아보므로, 진행 중인 것은 여기서 가린다.
     """
     rate_limit.check_user(
         "diet-analyze", user_id, get_settings().diet_analyze_per_minute, detail=_RATE_LIMITED
     )
     try:
-        return diet_analysis_quota_service.reserve(db, user_id)
+        return diet_analysis_quota_service.reserve(db, user_id, idempotency_key)
+    except diet_analysis_quota_service.AnalysisInProgress as e:
+        raise HTTPException(
+            status_code=409, detail={"code": _IN_PROGRESS_CODE, "message": str(e)}
+        ) from e
     except diet_analysis_quota_service.DailyAnalysisLimitReached as e:
         raise HTTPException(
             status_code=429, detail={"code": "daily_limit", "message": str(e)}

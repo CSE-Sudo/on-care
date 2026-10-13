@@ -5,12 +5,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/features/ai_coach/data/repositories/dio_ai_coach_repository.dart';
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 
 class _StubAdapter implements HttpClientAdapter {
-  _StubAdapter(this.body);
+  _StubAdapter(this.body, {this.status = 200});
 
   final String body;
+  final int status;
   RequestOptions? lastRequest;
 
   @override
@@ -18,7 +20,7 @@ class _StubAdapter implements HttpClientAdapter {
     lastRequest = options;
     return ResponseBody.fromString(
       body,
-      200,
+      status,
       headers: <String, List<String>>{
         Headers.contentTypeHeader: <String>[Headers.jsonContentType],
       },
@@ -31,9 +33,8 @@ class _StubAdapter implements HttpClientAdapter {
 
 Dio _dioWith(_StubAdapter adapter) {
   // 전역 기본값을 앱과 같게 둔다 — 채팅만 더 긴 타임아웃을 쓰는지 확인해야 하므로.
-  final dio = Dio(
-    BaseOptions(receiveTimeout: const Duration(seconds: 15)),
-  )..httpClientAdapter = adapter;
+  final dio = Dio(BaseOptions(receiveTimeout: const Duration(seconds: 15)))
+    ..httpClientAdapter = adapter;
   return dio;
 }
 
@@ -59,7 +60,9 @@ void main() {
   });
 
   test('빈 히스토리도 정상 처리한다', () async {
-    final repo = DioAiCoachRepository(_dioWith(_StubAdapter('{"messages":[]}')));
+    final repo = DioAiCoachRepository(
+      _dioWith(_StubAdapter('{"messages":[]}')),
+    );
     expect(await repo.fetchHistory(), isEmpty);
   });
 
@@ -109,5 +112,119 @@ void main() {
       reply.sources,
       contains('2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회 — 나트륨과 염소'),
     );
+  });
+
+  group('메시지 식별자와 요청 키 (#3352)', () {
+    test('저장된 대화의 식별자와 키를 읽는다', () async {
+      final adapter = _StubAdapter(
+        '{"messages":['
+        '{"id":"aimsg-q","role":"user","content":"네","sources":[],'
+        '"created_at":"2026-08-08T10:00:00Z","client_request_id":"k1"},'
+        '{"id":"aimsg-a","role":"coach","content":"좋아요","sources":[],'
+        '"created_at":"2026-08-08T10:00:00Z","client_request_id":"k1"}]}',
+      );
+      final repo = DioAiCoachRepository(_dioWith(adapter));
+
+      final history = await repo.fetchHistory();
+
+      expect(history.first.id, 'aimsg-q');
+      expect(history.last.id, 'aimsg-a');
+      expect(history.first.clientRequestId, 'k1');
+      expect(history.last.clientRequestId, 'k1');
+    });
+
+    test('식별자·키를 주지 않는 예전 응답도 그대로 읽는다', () async {
+      final adapter = _StubAdapter(
+        '{"messages":[{"role":"user","content":"네","sources":[],'
+        '"created_at":"2026-08-08T10:00:00Z"}]}',
+      );
+      final repo = DioAiCoachRepository(_dioWith(adapter));
+
+      final history = await repo.fetchHistory();
+
+      expect(history.single.id, isNull);
+      expect(history.single.clientRequestId, isNull);
+      expect(history.single.at, isNotNull);
+    });
+
+    test('답에 실려 온 두 줄의 식별자·시각·키를 읽는다', () async {
+      final adapter = _StubAdapter(
+        '{"reply":"좋아요","sources":[],'
+        '"user_message_id":"aimsg-q","user_created_at":"2026-08-08T10:00:00Z",'
+        '"reply_message_id":"aimsg-a","reply_created_at":"2026-08-08T10:00:00Z",'
+        '"client_request_id":"k1"}',
+      );
+      final repo = DioAiCoachRepository(_dioWith(adapter));
+
+      final reply = await repo.sendMessage(
+        message: '네',
+        history: const <ChatMessage>[],
+        clientRequestId: 'k1',
+      );
+
+      expect(reply.id, 'aimsg-a');
+      expect(reply.questionId, 'aimsg-q');
+      expect(reply.clientRequestId, 'k1');
+      // 서버 시각은 KST 벽시계로 읽는다 — 10:00Z 는 19:00 이다.
+      expect(reply.at?.hour, 19);
+      expect(reply.questionAt, reply.at);
+    });
+
+    test('식별자가 없는 예전 답은 비워 둔다', () async {
+      final repo = DioAiCoachRepository(
+        _dioWith(_StubAdapter('{"reply":"좋아요","sources":[]}')),
+      );
+
+      final reply = await repo.sendMessage(
+        message: '네',
+        history: const <ChatMessage>[],
+      );
+
+      expect(reply.id, isNull);
+      expect(reply.questionId, isNull);
+      expect(reply.at, isNull);
+    });
+
+    test('409 in_progress 는 처리 중으로 던진다', () async {
+      final repo = DioAiCoachRepository(
+        _dioWith(
+          _StubAdapter(
+            '{"detail":{"code":"in_progress","message":"같은 메시지에 답하는 중이에요."}}',
+            status: 409,
+          ),
+        ),
+      );
+
+      await expectLater(
+        repo.sendMessage(
+          message: '네',
+          history: const <ChatMessage>[],
+          clientRequestId: 'k1',
+        ),
+        throwsA(isA<AiChatInProgress>()),
+      );
+    });
+
+    test('409 insufficient_points 는 여전히 한도 거절이다', () async {
+      final repo = DioAiCoachRepository(
+        _dioWith(
+          _StubAdapter(
+            '{"detail":{"code":"insufficient_points","message":"","shortfall":20}}',
+            status: 409,
+          ),
+        ),
+      );
+
+      await expectLater(
+        repo.sendMessage(message: '네', history: const <ChatMessage>[]),
+        throwsA(
+          isA<AiChatBlocked>().having(
+            (AiChatBlocked b) => b.shortfall,
+            'shortfall',
+            20,
+          ),
+        ),
+      );
+    });
   });
 }

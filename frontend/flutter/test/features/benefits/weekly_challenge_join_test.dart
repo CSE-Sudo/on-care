@@ -203,6 +203,61 @@ void main() {
     expect(find.text(keepWords('일요일까지 1회 더 운동하면 200P를 돌려받아요')), findsOneWidget);
   });
 
+  group('지난주 결과 집계 중(#3362)', () {
+    final Finder settling = find.byKey(const Key('weeklyChallengeSettling'));
+    Challenge lastWeek() => Challenge(
+      id: 'chl-last',
+      weekStart: DateTime(2026, 9, 7),
+      weekEnd: DateTime(2026, 9, 13),
+      goal: 3,
+      progress: 2,
+      stake: 100,
+      reward: 200,
+      status: ChallengeStatus.active,
+      settling: true,
+    );
+
+    testWidgets('유예 중이면 카드에 집계 중이라고 적고 참가는 그대로 된다', (tester) async {
+      await pumpShop(
+        tester,
+        FakeChallengeRepository(
+          weekly: weeklyWith(settlingChallenge: lastWeek()),
+        ),
+      );
+
+      expect(settling, findsOneWidget);
+      expect(
+        tester.widget<Text>(settling).data,
+        keepWords('지난주 결과 집계 중이에요. 오늘까지 적은 지난주 운동 기록이 반영돼요'),
+      );
+      expect(joinButtonOf(tester).onPressed, isNotNull);
+    });
+
+    testWidgets('이번 주에 참가했어도 집계 중 문구와 이번 주 진행을 함께 보여 준다', (tester) async {
+      await pumpShop(
+        tester,
+        FakeChallengeRepository(
+          weekly: weeklyWith(
+            progress: 1,
+            joinable: false,
+            blockReason: ChallengeBlockReason.alreadyJoined,
+            challenge: challengeOf(progress: 1),
+            settlingChallenge: lastWeek(),
+          ),
+        ),
+      );
+
+      expect(settling, findsOneWidget);
+      expect(find.text('1 / 3회'), findsOneWidget);
+    });
+
+    testWidgets('집계 중인 주가 없으면 문구가 없다', (tester) async {
+      await pumpShop(tester, FakeChallengeRepository());
+
+      expect(settling, findsNothing);
+    });
+  });
+
   testWidgets('목표를 채운 진행 중 챌린지는 주가 끝나면 받는다고 알린다', (tester) async {
     await pumpShop(
       tester,
