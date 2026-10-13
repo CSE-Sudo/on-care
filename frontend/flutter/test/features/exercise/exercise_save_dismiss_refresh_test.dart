@@ -108,6 +108,9 @@ class _GatedRepository implements ExerciseRepository {
   }
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) => _wait();
 
   @override
