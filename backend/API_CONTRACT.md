@@ -919,7 +919,7 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/places/nearby?lat=&lng=&category=&radius_m=` | `[{ id, name, category, address, distance_meters, lat, lng }]` (거리순 배열) |
+| GET | `/places/nearby?lat=&lng=&category=&radius_m=` | `[{ id, name, category, address, distance_meters, lat, lng, phone }]` (거리순 배열) |
 
 category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **공급자**: `places_provider` 설정에 따라 **카카오 Local 실검색**(서버가 키를 쥐고 프록시,
@@ -930,6 +930,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   실서버는 데모 시드 장소(가상 헬스장·데모 장소 id)를 뺀다.
 - **무카테고리**: `category` 생략 시 네 카테고리를 **모두 검색·병합**하고 각 결과를 해당
   카테고리로 태깅한다(공급자 간 의미 일치, 빈 category 없음).
+- **`phone`**(#3357): 카카오가 준 전화번호, DB 장소는 헬스장 부가 정보(`gym_profiles`)의 번호다.
+  모르면 `null`. 가입한 트레이너가 없는 헬스장은 상담을 걸 대상이 없어, 회원 앱이 헬스장 상세에서
+  이 번호로 전화 문의를 연다.
+- **헬스장 판별**(#3357): `fitness` 는 카카오 `category_name` 에 `스포츠시설` 이 든 장소만 싣는다 —
+  트레이너 소속 헬스장 찾기·`/gyms/search` 와 같은 기준이다. "헬스장" 검색어에 걸린 다른 업종
+  (용품점 등)은 빠진다. 다른 카테고리는 검색 결과를 그대로 싣는다.
 - **검증**: `lat`(-90~90)·`lng`(-180~180)·`category`(허용값)는 위반 시 **422**.
 
 ### 헬스장 (`fitness` 장소 + 프로필)
