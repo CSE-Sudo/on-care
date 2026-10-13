@@ -9,9 +9,6 @@
 
 식단·운동을 각각 생성한 뒤 합치는 구조는 coach_service.build_feedback 에서.
 AI 코치 채팅(coach/chat.py)은 같은 검색·LLM 계층(retrieve, get_coach_llm)을 따로 쓴다.
-
-제목과 코칭 문장은 요청 언어(`Accept-Language`, #2297)로 만든다(#2707). 영어면
-한국어 지시문 끝에 출력 언어 규칙만 덧붙인다 — 한국어 프롬프트는 그대로다.
 """
 from __future__ import annotations
 import logging
@@ -19,7 +16,6 @@ from collections.abc import Callable
 
 from sqlalchemy.orm import Session
 
-from app.core.locale import current_locale, localized
 from app.db.session import release_connection
 from app.schemas.misc_api import CoachSuggestion
 from app.services import ai_call_quota
@@ -63,21 +59,6 @@ _EXERCISE_SYSTEM = (
     + prompt_safety.FOOD_NAME_GUARD
 )
 
-#: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2707).
-#: 검색 자료·기록 요약은 한국어 그대로 넘기고, 쓰는 언어만 바꾸게 한다.
-_ENGLISH_OUTPUT_RULE = (
-    " Output language: the member is using the app in English. Write the advice "
-    "in natural English, ignoring the instruction above to write in Korean. Quote "
-    "food or exercise names from the records as-is if you cite them, but write the "
-    "surrounding sentences in English."
-)
-
-
-def _system_prompt(base: str) -> str:
-    """요청 언어에 맞는 시스템 프롬프트. 한국어는 [base] 그대로다."""
-    return base + _ENGLISH_OUTPUT_RULE if current_locale() == "en" else base
-
-
 def _rag_suggestion(
     db: Session, user_id: str, *, domain: str, system_prompt: str,
     query: str, tag: str, title: str, fallback: CoachSuggestion,
@@ -96,16 +77,13 @@ def _rag_suggestion(
         if not combined:
             return fallback  # 검색 자료도 기간 요약도 전혀 없으면 규칙 기반
         llm = get_coach_llm()
-        ask = localized(
-            "위 정보를 바탕으로 조언해 주세요.",
-            "Please give advice based on the information above.",
-        )
+        ask = "위 정보를 바탕으로 조언해 주세요."
         user_prompt = f"{combined}\n\n{ask}"
         # LLM 을 기다리는 동안 DB 연결을 쥐지 않는다(#2836) — 여기까지는 읽기뿐이다.
         release_connection(db)
         # 서버 전체 하루 상한(#3032). 넘으면 규칙 기반 카드로 내려간다.
         ai_call_quota.acquire(ai_call_quota.FEATURE_COACH_FEEDBACK)
-        result = llm.generate(_system_prompt(system_prompt), user_prompt)
+        result = llm.generate(system_prompt, user_prompt)
         if not result.text.strip():
             return fallback
         return CoachSuggestion(tag=tag, title=title, body=result.text.strip())
@@ -138,7 +116,7 @@ def diet_coach(db: Session, user_id: str) -> CoachSuggestion:
     return _rag_suggestion(
         db, user_id, domain="diet", system_prompt=_DIET_SYSTEM,
         query="최근 식단의 나트륨·당류 관리와 개선점",
-        tag="diet", title=localized("오늘의 식단 코칭", "Today's diet coaching"),
+        tag="diet", title="오늘의 식단 코칭",
         fallback=fallback,
         # 이번 주 집계는 위 fallback 계산과 별개로 여기서 한 번 더 조회된다.
         # try 밖(폴백)과 try 안(extra_context)이 같은 값을 나눠 쓰면, 그 조회의
@@ -156,6 +134,6 @@ def exercise_coach(db: Session, user_id: str) -> CoachSuggestion:
         # 문서에는 없고, 엉뚱한 공공 문서만 상위로 끌어올린다(#602).
         query="이번 주 운동량과 최근 운동 기록을 바탕으로 한 운동 제안",
         tag="exercise",
-        title=localized("오늘의 운동 코칭", "Today's workout coaching"),
+        title="오늘의 운동 코칭",
         fallback=fallback,
     )

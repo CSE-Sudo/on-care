@@ -5,7 +5,7 @@
 횟수만큼 모델을 부르고 직접 반복 호출하면 끝이 없다.
 
 - **캐시** — 만든 카드를 회원별로 `coach_feedback_cache_seconds` 동안 들고 있다가, 같은
-  날(KST)·같은 언어의 요청에 그대로 돌려준다. 인사말은 시각에 따라 달라지고 모델을 쓰지
+  날(KST)의 요청에 그대로 돌려준다. 인사말은 시각에 따라 달라지고 모델을 쓰지
   않으므로 담지 않고 매번 만든다.
 - **무효화** — 그 회원의 식단(`DietEntry`)·운동(`ExerciseSession`) 기록이 바뀌면 카드를
   버린다. 기록을 바꾸는 경로(회원 저장·수정·삭제, 트레이너의 PT 완료·루틴 완료 등)가
@@ -36,7 +36,6 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.config import get_settings
-from app.core.locale import current_locale
 from app.models.models import (
     CoachFeedbackState,
     DietEntry,
@@ -47,6 +46,10 @@ from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
 from app.services import coach_service
 
 logger = logging.getLogger(__name__)
+
+#: 캐시 행의 `locale` 칸에 적는 값. 카드는 한국어로만 만든다 — 칸은 예전에 영어로
+#: 만든 카드를 가려 쓰지 않는 데만 쓴다.
+CACHE_LOCALE = "ko"
 
 
 def cache_seconds() -> int:
@@ -66,9 +69,8 @@ def feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback:
     """코칭 시트 응답. 캐시가 살아 있으면 그 카드를, 아니면 새로 만들어 돌려준다."""
     greeting = coach_service.build_greeting(user_name)
     today = clock.today_iso()
-    locale = current_locale()
 
-    cached = _cached(db, user_id, today=today, locale=locale)
+    cached = _cached(db, user_id, today=today)
     if cached is not None:
         return AiCoachFeedback(greeting=greeting, suggestions=cached)
 
@@ -82,7 +84,7 @@ def feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback:
         )
 
     suggestions = coach_service.build_suggestions(db, user_id)
-    _store(db, user_id, revision=revision, today=today, locale=locale, cards=suggestions)
+    _store(db, user_id, revision=revision, today=today, cards=suggestions)
     return AiCoachFeedback(greeting=greeting, suggestions=suggestions)
 
 
@@ -100,9 +102,9 @@ def used_today(db: Session, user_id: str) -> int:
 
 
 def _cached(
-    db: Session, user_id: str, *, today: str, locale: str
+    db: Session, user_id: str, *, today: str
 ) -> list[CoachSuggestion] | None:
-    """살아 있는 카드. 없거나 날·언어가 다르거나 오래됐으면 None."""
+    """살아 있는 카드. 없거나 날이 다르거나 오래됐으면 None."""
     ttl = cache_seconds()
     if ttl <= 0:
         return None
@@ -112,7 +114,7 @@ def _cached(
         or row.payload_json is None
         or row.generated_at is None
         or row.kst_date != today
-        or row.locale != locale
+        or row.locale != CACHE_LOCALE
     ):
         return None
     if clock.to_seoul(row.generated_at) + timedelta(seconds=ttl) <= clock.now():
@@ -164,7 +166,6 @@ def _store(
     *,
     revision: int,
     today: str,
-    locale: str,
     cards: list[CoachSuggestion],
 ) -> None:
     """만든 카드를 캐시에 남긴다. 커밋한다.
@@ -187,7 +188,7 @@ def _store(
                 payload_json=json.dumps(
                     [card.model_dump() for card in cards], ensure_ascii=False
                 ),
-                locale=locale,
+                locale=CACHE_LOCALE,
                 generated_at=clock.now(),
                 updated_at=func.now(),
             )
