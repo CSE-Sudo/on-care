@@ -467,7 +467,11 @@ def cancel_pending_for_trainer_deletion(
     트레이너에게 신청할 자리가 줄어든다.
 
     - 처리자(`decided_by`)는 남기지 않는다 — 트레이너 행이 곧 사라진다.
-    - 자리는 되돌리지 않는다. 트레이너의 자리가 함께 지워진다.
+    - 자리는 되돌리지 않는다. 트레이너의 자리가 함께 지워진다. 대신 요청이 가리키던
+      자리(`slot_id`)는 여기서 끊는다 — 같은 트랜잭션에서 고친 행은 트레이너 삭제가
+      `trainer_id` 를 비울 때 나머지 FK 까지 다시 검사받는데, 그 시점에 자리가 먼저
+      연쇄 삭제돼 있으면 `slot_id` 검사가 실패해 탈퇴 전체가 막힌다(#3360). 희망
+      날짜·시간대는 요청에 따로 남아 있다.
     - 알림은 회원이 아직 답을 기다리는 요청에만 보낸다. 만료 시각이 지났지만 정리되지
       않은 요청은 이미 끝난 요청이라 조용히 만료로 내린다.
 
@@ -501,7 +505,9 @@ def cancel_pending_for_trainer_deletion(
     trainer_name = trainer.name or ""
     for row in rows:
         row.decided_at = current
-        if _expires_at(row, starts.get(row.slot_id or "")) <= current:
+        expired = _expires_at(row, starts.get(row.slot_id or "")) <= current
+        row.slot_id = None
+        if expired:
             row.status = "expired"
             continue
         row.status = "cancelled"
@@ -521,13 +527,19 @@ TRAINER_EXIT_CONSULT_CANCEL_REASON = "트레이너 계정 종료"
 
 
 def _cancel_accepted_for_trainer_exit(
-    db: Session, trainer: User, *, template: str, now: datetime
+    db: Session, trainer: User, *, template: str, now: datetime, detach_slot: bool = False
 ) -> int:
     """떠나는 트레이너의 수락된 상담 중 시작 전인 것을 거두고 회원에게 알린다. (#3360)
 
     일정·자리까지 한 번에 거두는 [cancel_accepted_booking] 을 그대로 쓴다 — 주체만
     `trainer` 다. 이미 시작했거나 완료·노쇼로 끝난 상담은 있었던 일이라 `수락됨`
     으로 둔다. 커밋하지 않는다. 거둔 수를 준다.
+
+    [detach_slot] 은 탈퇴용이다 — 거둔 요청이 가리키던 자리(`slot_id`)를 끊는다.
+    트레이너 삭제로 자리가 연쇄 삭제될 때, 이 트랜잭션에서 고친 요청 행이 지워진
+    자리를 가리킨 채 FK 재검사에 걸리지 않게 한다
+    ([cancel_pending_for_trainer_deletion] 과 같은 이유). 정지는 자리가 남으므로
+    끊지 않는다.
     """
     ids = db.scalars(
         select(ConsultationRequest.id)
@@ -553,6 +565,8 @@ def _cancel_accepted_for_trainer_exit(
         if result is None:
             continue
         row, starts_at = result
+        if detach_slot:
+            row.slot_id = None
         local = starts_at.astimezone(SEOUL) if starts_at is not None else None
         _notify(
             db,
@@ -565,6 +579,8 @@ def _cancel_accepted_for_trainer_exit(
             },
         )
         cancelled += 1
+    if detach_slot:
+        db.flush()
     return cancelled
 
 
@@ -585,6 +601,7 @@ def cancel_accepted_for_trainer_deletion(
         trainer,
         template=notification_templates.MEMBER_CONSULT_TRAINER_LEFT,
         now=now or _now(),
+        detach_slot=True,
     )
 
 

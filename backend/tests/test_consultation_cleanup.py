@@ -381,6 +381,8 @@ def test_trainer_deletion_cancels_an_accepted_consultation(client, db_session):
 
     row = _row(db_session, consultation_id)
     assert (row.status, row.trainer_id) == ("cancelled", None)
+    # 자리는 트레이너와 함께 지워진다 — 요청이 지워진 자리를 가리킨 채 남지 않는다.
+    assert row.slot_id is None
     notice = next(
         n
         for n in _notices(db_session, member_id)
@@ -403,7 +405,8 @@ def test_trainer_deletion_still_cancels_pending_requests(client, db_session):
 
     assert _delete_trainer(client, trainer_token).status_code == 200
 
-    assert _row(db_session, consultation_id).status == "cancelled"
+    row = _row(db_session, consultation_id)
+    assert (row.status, row.trainer_id, row.slot_id) == ("cancelled", None, None)
     notice = next(
         n
         for n in _notices(db_session, member_id)
