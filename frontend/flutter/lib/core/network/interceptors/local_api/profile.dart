@@ -111,6 +111,8 @@ extension _LocalApiProfile on LocalApiInterceptor {
       // 화면이 끼면 시연 흐름이 끊긴다.
       'consent_required': false,
       'consent_pending': const <String>[],
+      // 서버와 같은 칸(#3340) — 프로필의 같은 이름 칸과 같은 값이다.
+      'has_password': await _hasDemoPassword(),
     });
   }
 

@@ -79,7 +79,9 @@ class ReportExerciseTrend extends ConsumerWidget {
             ];
             // 좁으면 셋을 아래로 쌓는다 — 도넛 옆에 칼로리가 서야 하는 칸이라
             // 폭이 모자라면 글씨부터 줄바꿈으로 무너진다.
-            if (constraints.maxWidth < OnCareLayout.splitBreakpoint) {
+            // 분할 화면 기준(900)을 빌려 쓰던 때에는 1024 창에서도 셋이 텅 빈
+            // 가로 띠로 쌓였다(#3316).
+            if (constraints.maxWidth < OnCareLayout.threeTileBreakpoint) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
