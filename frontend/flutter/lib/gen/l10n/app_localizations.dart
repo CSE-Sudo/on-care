@@ -3508,6 +3508,18 @@ abstract class AppLocalizations {
   /// **'이모티콘을 보내지 못했어요'**
   String get emoteSendFailed;
 
+  /// Toast when the server refuses an emote because the member's unlock ran out (402); the emote shows as locked again (#3346).
+  ///
+  /// In ko, this message translates to:
+  /// **'이용 기간이 끝난 이모티콘이에요. 다시 사면 보낼 수 있어요'**
+  String get emoteSendLocked;
+
+  /// No description provided for @emoteSendRejected.
+  ///
+  /// In ko, this message translates to:
+  /// **'보낼 수 없는 이모티콘이에요'**
+  String get emoteSendRejected;
+
   /// No description provided for @a11yOpenEmotes.
   ///
   /// In ko, this message translates to:
@@ -4264,6 +4276,12 @@ abstract class AppLocalizations {
   /// **'사진을 불러오지 못했어요'**
   String get coachImageUnavailable;
 
+  /// Second line under a chat photo that failed to download; tapping the placeholder fetches it again (#3346).
+  ///
+  /// In ko, this message translates to:
+  /// **'눌러서 다시 불러오기'**
+  String get coachImageRetry;
+
   /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In ko, this message translates to:
@@ -4306,6 +4324,12 @@ abstract class AppLocalizations {
   /// **'메시지를 보내지 못했어요. 다시 시도해 주세요'**
   String get coachChatSendFailed;
 
+  /// Toast when the server rejects the message content itself (400/422); sending the same text again would fail the same way, so it does not suggest retrying (#3346).
+  ///
+  /// In ko, this message translates to:
+  /// **'보낼 수 없는 메시지예요. 내용을 확인해 주세요'**
+  String get coachChatSendRejected;
+
   /// Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665).
   ///
   /// In ko, this message translates to:
@@ -4341,6 +4365,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'사진을 보내지 못했어요'**
   String get coachPhotoSendFailed;
+
+  /// Status under a chat photo the server refused (unsupported format etc.); only Delete is offered, not Send again (#3346).
+  ///
+  /// In ko, this message translates to:
+  /// **'보낼 수 없는 사진이에요'**
+  String get coachPhotoSendRejected;
 
   /// No description provided for @coachPhotoRetry.
   ///
@@ -7849,6 +7879,18 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'주간 피드백을 보내지 못했어요. 다시 시도해 주세요'**
   String get weeklyFeedbackSendFailed;
+
+  /// No description provided for @weeklyFeedbackSendUnassigned.
+  ///
+  /// In ko, this message translates to:
+  /// **'담당이 해제되어 주간 피드백을 보낼 수 없어요'**
+  String get weeklyFeedbackSendUnassigned;
+
+  /// No description provided for @weeklyFeedbackSendRejected.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 주에는 주간 피드백을 보낼 수 없어요'**
+  String get weeklyFeedbackSendRejected;
 
   /// No description provided for @weeklyFeedbackAlreadySent.
   ///

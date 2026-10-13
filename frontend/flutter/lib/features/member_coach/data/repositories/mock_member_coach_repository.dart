@@ -30,6 +30,12 @@ typedef DemoCoachLinkCheck = bool Function();
 /// [DemoCoachLinkCheck] 와 같은 까닭으로 연결 상태는 헬스장 저장소에 둔다.
 typedef DemoCoachRelink = void Function(String trainerId);
 
+/// 데모에서 그 이모티콘을 지금 보낼 수 있는지(샀고 기간이 남았는지) 묻는다.
+/// (#3346)
+///
+/// 이용권은 이모티콘 원장(`DemoEmoteBook`)이 들고 있다 — 이 저장소는 묻기만 한다.
+typedef DemoEmoteCheck = bool Function(String emoteId);
+
 /// 데모에서 대화를 읽었을 때 알림함에 알린다. (#3343)
 ///
 /// 실서버는 대화 읽음 한 번에 메시지·리포트 알림도 읽음으로 바꾼다. 데모의 알림은
@@ -49,18 +55,23 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   ///
   /// [replyDelay] 를 주면 회원이 보낸 뒤 그만큼 지나 트레이너가 답한다(#2663).
   /// 없으면 답하지 않는다 — 시험이 남은 타이머를 신경 쓰지 않게 한다.
+  ///
+  /// [emoteUnlocked] 를 주면 이용권이 없는 이모티콘 전송을 실서버처럼 막는다
+  /// (#3346). 없으면 모두 보낸다.
   MockMemberCoachRepository({
     RoutineSessionLog? exercise,
     DemoPointsLedger? points,
     DemoCoachLinkCheck? linked,
     DemoCoachRelink? relink,
     Duration? replyDelay,
+    DemoEmoteCheck? emoteUnlocked,
     DemoCoachChatRead? onChatRead,
   }) : _exercise = exercise,
        _points = points,
        _linked = linked,
        _relink = relink,
        _replyDelay = replyDelay,
+       _emoteUnlocked = emoteUnlocked,
        _onChatRead = onChatRead;
 
   final RoutineSessionLog? _exercise;
@@ -75,6 +86,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   final DemoCoachRelink? _relink;
 
   final Duration? _replyDelay;
+
+  final DemoEmoteCheck? _emoteUnlocked;
 
   /// 대화를 읽었을 때 알림함에 알리는 곳. 주지 않으면 대화만 읽음이 된다
   /// (테스트·단독 사용).
@@ -881,6 +894,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     final trimmed = text.trim();
     if (trimmed.isEmpty && emoteId == null) return;
     _requireCoachForChat();
+    if (emoteId != null) {
+      // 실서버와 같은 순서다 — 모르는 id 는 400, 이용권이 없으면 402 (#3346).
+      if (!AppEmotes.has(emoteId)) {
+        throw const CoachSendRejected(CoachSendFailure.invalid);
+      }
+      if (!(_emoteUnlocked?.call(emoteId) ?? true)) {
+        throw const CoachSendRejected(CoachSendFailure.emoteLocked);
+      }
+    }
     final now = nowKst();
     _chat.add(
       CoachMessage(
@@ -915,7 +937,16 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   }) async {
     _requireCoachForChat();
     final CoachMessage? sent = _sentPhotos[clientRequestId];
-    if (sent != null) return sent;
+    if (sent != null) {
+      // 같은 키에 다른 글이면 실서버처럼 409 다(#3346).
+      if (sent.body != text.trim()) {
+        throw const CoachSendRejected(CoachSendFailure.conflict);
+      }
+      return sent;
+    }
+    if (bytes.length > _maxPhotoBytes) {
+      throw const CoachSendRejected(CoachSendFailure.photoTooLarge);
+    }
     final DateTime now = nowKst();
     final String fileId = 'demo-photo-${now.microsecondsSinceEpoch}';
     final CoachMessage message = CoachMessage(
@@ -939,6 +970,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     _scheduleReply(_photoReply);
     return message;
   }
+
+  /// 서버가 받는 사진 한 장의 최대 크기(`max_chat_image_bytes`) — 넘으면 413.
+  static const int _maxPhotoBytes = 6 * 1024 * 1024;
 
   /// 멱등키 → 그 키로 보낸 사진 메시지.
   final Map<String, CoachMessage> _sentPhotos = <String, CoachMessage>{};
@@ -1000,9 +1034,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// `/me/coach/chat/image`). 목록만 비우고 전송을 받아 주면 데모에서만 해제한
   /// 트레이너에게 말이 간다 — 다시 불러오면 끊긴 대화에 그 말이 붙어 있다.
   void _requireCoachForChat() {
-    // 실서버는 404 다 — 앱에는 [NotFoundError] 로 닿는다(#3099).
+    // 실서버는 404 다(#3099) — 앱에는 담당 해제 거절로 닿는다(#3346).
     if (!_hasCoach()) {
-      throw const NotFoundError(detail: '담당 트레이너가 없어요.');
+      throw const CoachSendRejected(CoachSendFailure.unassigned);
     }
   }
 
@@ -1081,9 +1115,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     DateTime? painOn,
     String note = '',
   }) async {
-    // 실서버 `_my_trainer_or_404` 와 같은 404 다(#3099).
+    // 실서버 `_my_trainer_or_404` 와 같은 404 다(#3099) — 앱에는 담당 해제
+    // 거절로 닿는다(#3346).
     if (!_hasCoach()) {
-      throw const NotFoundError(detail: '담당 트레이너가 없어요.');
+      throw const CoachSendRejected(CoachSendFailure.unassigned);
     }
     _seedFeedback();
     final DateTime week = mondayOf(weekStart);
