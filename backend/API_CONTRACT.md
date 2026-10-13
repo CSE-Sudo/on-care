@@ -90,7 +90,7 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/users/me` | `{ id(str), name, email, email_is_placeholder, email_placeholder_provider, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `email_is_placeholder`·`email_placeholder_provider` 는 아래 [소셜 가입 계정의 대체 이메일](#소셜-가입-계정의-대체-이메일-3338). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
+| GET | `/users/me` | `{ id(str), name, email, email_is_placeholder, email_placeholder_provider, role, consent_required, consent_pending[], has_password }` (아래 "가입 동의" 참고, #2819). `has_password` 는 프로필의 같은 칸과 같은 값 — 동의가 남아 프로필을 못 읽는 회원의 탈퇴 확인창이 본인 확인 방법을 고르는 데 쓴다(#3340). `email_is_placeholder`·`email_placeholder_provider` 는 아래 [소셜 가입 계정의 대체 이메일](#소셜-가입-계정의-대체-이메일-3338). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET, PUT, DELETE | `/users/me/consents/{kind}` | 선택 동의(`location`) 상태 조회·동의·철회 → `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. 회원 전용, 선택 항목 아닌 `kind` 는 422 (아래 "선택 동의 — 위치정보 이용" 참고, #3136) |
 | GET | `/users/me/health` | `{ profile: { id, name, email, email_is_placeholder, email_placeholder_provider }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
@@ -1886,8 +1886,12 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   같은 모양이다. 핸들러보다 먼저 막으므로 음식 인식·AI 코치 같은 외부 AI 호출도 일어나지 않는다.
   기록이 없는 계정, 문서 버전이 오른 계정, 동의를 철회(`revoked_at`)한 계정이 모두 해당한다.
   - 동의 없이도 열려 있는 경로: `GET /users/me`(동의 필요 여부 조회), `POST /users/me/consents`,
-    `DELETE /users/me`(탈퇴), `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
+    `DELETE /users/me`(탈퇴), `GET /users/me/deletion-preview`(탈퇴 확인창의 건수, #3340),
+    `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
     계정 데이터가 없는 공개 경로. 목록은 `api/deps.CONSENT_EXEMPT_ROUTES` 한 곳에 있다.
+  - 동의하지 않기로 한 회원은 동의 화면에서 로그아웃하거나 탈퇴할 수 있다(#3340). 회원 앱은
+    동의가 남은 동안 동의 화면과 탈퇴 화면만 열어 두고, 탈퇴 화면은 위 세 경로
+    (`GET /users/me`·`GET /users/me/deletion-preview`·`DELETE /users/me`)만 부른다.
   - **트레이너 계정(#3155)** 도 같은 규칙이다. 트레이너의 필수 항목(`terms`·`privacy`·`age14`)이
     남았으면 트레이너 의존성(`RequireTrainer`)을 쓰는 API 가 같은 모양의 403 을 준다. 동의 없이도
     열린 트레이너 경로는 `GET /trainer/me`(트레이너 웹이 로그인·세션 복구 때 읽는 프로필)와
