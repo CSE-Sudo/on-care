@@ -250,6 +250,99 @@ def test_join_stakes_100_points_and_freezes_goal(client, db_session, at):
     assert state["challenge"]["goal"] == 4
 
 
+def _set_goal(client, headers, goal: int | None) -> None:
+    """회원 앱 MY 건강 목표가 보내는 모양으로 주간 운동 횟수를 정한다. (#3361)"""
+    r = client.put(
+        "/v1/users/me/health-goals",
+        json={"weekly_workout_goal": goal},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["weekly_workout_goal"] == goal
+
+
+def test_member_set_goal_applies_from_the_next_join(client, db_session, at):
+    """회원이 정한 주간 운동 횟수가 목표가 되고, 참가한 주는 그대로다. (#3361)"""
+    _, h = _new_member(client, db_session)
+    at(MON)
+    assert _weekly(client, h)["goal"] == 3
+
+    _set_goal(client, h, 5)
+    assert _weekly(client, h)["goal"] == 5
+    r = _join(client, h)
+    assert r.status_code == 201, r.text
+    assert r.json()["challenge"]["goal"] == 5
+
+    # 주 중간에 목표를 낮춰도 이번 주 챌린지는 참가할 때 값이다.
+    at(WED)
+    _set_goal(client, h, 2)
+    state = _weekly(client, h)
+    assert state["goal"] == 5
+    assert state["challenge"]["goal"] == 5
+
+    # 다음 주에 참가하면 새 목표가 걸리고, 지난주 기록의 목표는 5 그대로다.
+    at(NEXT_MON)
+    assert _weekly(client, h)["goal"] == 2
+    assert _join(client, h).status_code == 201
+    assert [c["goal"] for c in _history(client, h)] == [2, 5]
+
+
+def test_clearing_the_goal_falls_back_to_three(client, db_session, at):
+    """목표를 지운 회원의 다음 챌린지는 다시 3회다. (#3361)"""
+    _, h = _new_member(client, db_session, goal=6)
+    at(MON)
+    assert _weekly(client, h)["goal"] == 6
+
+    _set_goal(client, h, None)
+    assert _weekly(client, h)["goal"] == 3
+
+
+def test_history_lists_results_newest_first_with_rewards(client, db_session, at):
+    """지난 결과 — 주·목표·운동한 날·성공 여부·받은 포인트를 최근 주 먼저. (#3361)"""
+    member_id, h = _new_member(client, db_session, points=1000, goal=3)
+    assert _history(client, h) == []
+
+    # 첫 주는 목표를 채우고, 둘째 주는 하루만 운동한다.
+    at(MON)
+    assert _join(client, h).status_code == 201
+    for day in (MON, WED, SAT):
+        _record(db_session, member_id, day)
+    at(NEXT_MON)
+    assert _join(client, h).status_code == 201
+    _record(db_session, member_id, NEXT_MON)
+
+    # 셋째 주 화요일 — 두 주 모두 유예까지 끝났다.
+    third_tue = MON + timedelta(days=15)
+    at(third_tue)
+    assert _join(client, h).status_code == 201
+
+    rows = _history(client, h)
+    assert [c["week_start"] for c in rows] == [
+        (MON + timedelta(days=14)).isoformat(),
+        NEXT_MON.isoformat(),
+        MON.isoformat(),
+    ]
+    assert [c["status"] for c in rows] == ["active", "failed", "succeeded"]
+    assert [c["goal"] for c in rows] == [3, 3, 3]
+    assert [c["progress"] for c in rows] == [0, 1, 3]
+    assert [c["rewarded"] for c in rows] == [0, 0, 200]
+    assert rows[0]["settling"] is False
+    assert rows[2]["week_end"] == SUN.isoformat()
+    # 건 포인트 셋(-300)과 첫 주 보상(+200).
+    assert _balance(client, h) == 900
+
+
+def test_history_is_per_member(client, db_session, at):
+    """다른 회원의 참가 기록은 섞이지 않는다. (#3361)"""
+    _, mine = _new_member(client, db_session)
+    _, other = _new_member(client, db_session)
+    at(MON)
+    assert _join(client, other).status_code == 201
+
+    assert _history(client, mine) == []
+    assert len(_history(client, other)) == 1
+
+
 @pytest.mark.parametrize(("goal", "expected"), [(None, 3), (0, 3), (5, 5), (10, 7)])
 def test_goal_defaults_to_three_and_caps_at_seven(
     client, db_session, at, goal, expected

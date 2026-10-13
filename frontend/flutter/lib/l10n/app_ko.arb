@@ -959,6 +959,27 @@
       }
     }
   },
+  "challengeGoalSource": "목표 횟수는 MY 건강 목표의 주간 운동 횟수를 따라요",
+  "challengeHistoryAction": "지난 결과",
+  "challengeHistoryTitle": "지난 챌린지 결과",
+  "challengeHistoryEmpty": "아직 참가한 챌린지가 없어요",
+  "challengeHistoryEmptyMessage": "월·화요일에 주간 운동 챌린지에 참가하면 결과가 여기에 쌓여요.",
+  "challengeHistoryLoadFailed": "챌린지 결과를 불러오지 못했어요",
+  "challengeHistoryResult": "목표 {goal}회 · {progress}회 운동",
+  "@challengeHistoryResult": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeStatusSucceeded": "성공",
+  "challengeStatusFailed": "실패",
+  "challengeStatusActive": "진행 중",
+  "challengeStatusSettling": "집계 중",
   "myCouponStatusUsable": "사용 가능",
   "myCouponStatusUsed": "사용 완료",
   "myCouponStatusExpired": "만료",
@@ -1755,6 +1776,15 @@
   "myGoalCardioWeekly": "주간 유산소 (분)",
   "myGoalStrengthWeekly": "주간 근력 (세트)",
   "myGoalFlexibilityWeekly": "주간 스트레칭 (분)",
+  "myGoalWorkoutsWeekly": "주간 운동 횟수 (일)",
+  "myGoalWorkoutsWeeklyHint": "주간 운동 챌린지의 목표가 돼요. 정하지 않으면 {days}일이고, 이미 참가한 주의 목표는 바뀌지 않아요.",
+  "@myGoalWorkoutsWeeklyHint": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "myGoalExerciseSuggestionNote": "권장: 하루 {burn}kcal · 주 유산소 {cardio}분 · 근력 {strength}세트 · 스트레칭 {flexibility}분",
   "myGoalExerciseApplySuggestion": "권장값으로 채우기",
   "myGoalCalories": "하루 칼로리 목표 (kcal)",

@@ -25,6 +25,7 @@ import 'package:oncare/features/auth/presentation/pages/password_reset_page.dart
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:oncare/features/auth/presentation/pages/splash_page.dart';
+import 'package:oncare/features/benefits/presentation/pages/challenge_history_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/coupon_detail_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/my_benefits_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/points_history_page.dart';
@@ -247,6 +248,11 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.myPointsHistory,
         builder: (context, state) => const PointsHistoryPage(),
+      ),
+      // 지난 챌린지 결과(#3361) — 사용처의 챌린지 카드 `지난 결과` 에서 들어온다.
+      GoRoute(
+        path: AppRoutes.myChallengeHistory,
+        builder: (context, state) => const ChallengeHistoryPage(),
       ),
       // 트레이너 리포트 — 받은 리포트 목록과 보낸 주간 피드백(#2232).
       GoRoute(

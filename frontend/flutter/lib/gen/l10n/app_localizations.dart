@@ -3176,6 +3176,72 @@ abstract class AppLocalizations {
   /// **'Goal reached! You get {reward} when the week ends'**
   String challengeAchieved(String reward);
 
+  /// No description provided for @challengeGoalSource.
+  ///
+  /// In en, this message translates to:
+  /// **'The goal follows the weekly workout goal in your MY health goals'**
+  String get challengeGoalSource;
+
+  /// No description provided for @challengeHistoryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Past results'**
+  String get challengeHistoryAction;
+
+  /// No description provided for @challengeHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Past challenge results'**
+  String get challengeHistoryTitle;
+
+  /// No description provided for @challengeHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No challenges joined yet'**
+  String get challengeHistoryEmpty;
+
+  /// No description provided for @challengeHistoryEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Join the weekly workout challenge on a Monday or Tuesday and your results will show up here.'**
+  String get challengeHistoryEmptyMessage;
+
+  /// No description provided for @challengeHistoryLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your challenge results'**
+  String get challengeHistoryLoadFailed;
+
+  /// No description provided for @challengeHistoryResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal {goal} · {progress} workout days'**
+  String challengeHistoryResult(int goal, int progress);
+
+  /// No description provided for @challengeStatusSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Succeeded'**
+  String get challengeStatusSucceeded;
+
+  /// No description provided for @challengeStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get challengeStatusFailed;
+
+  /// No description provided for @challengeStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get challengeStatusActive;
+
+  /// No description provided for @challengeStatusSettling.
+  ///
+  /// In en, this message translates to:
+  /// **'Tallying'**
+  String get challengeStatusSettling;
+
   /// No description provided for @myCouponStatusUsable.
   ///
   /// In en, this message translates to:
@@ -6475,6 +6541,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly stretching (min)'**
   String get myGoalFlexibilityWeekly;
+
+  /// No description provided for @myGoalWorkoutsWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly workouts (days)'**
+  String get myGoalWorkoutsWeekly;
+
+  /// No description provided for @myGoalWorkoutsWeeklyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This becomes your weekly workout challenge goal. Without one it is {days} days, and a week you already joined keeps its goal.'**
+  String myGoalWorkoutsWeeklyHint(int days);
 
   /// Explains the suggested exercise goals, adjusted for the picked health goals.
   ///
