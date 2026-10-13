@@ -6,7 +6,11 @@ import 'package:logger/logger.dart';
 
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart' show wireDate;
 
 void main() {
   late AppDatabase db;
@@ -242,6 +246,60 @@ void main() {
     expect(target('c-coach_chat'), 'coach_chat');
     expect(target('c-coach_report'), 'coach_chat');
     expect(target('c-routine'), 'exercise');
+  });
+
+  // 데모의 리포트 알림은 데모 대화의 리포트 안내를 가리킨다 — 서버
+  // `NotificationOut.report` 와 같은 모양이다. 목적지 값은 대화 그대로다(#3344).
+  test('데모 리포트 알림만 가리키는 리포트를 싣는다', () async {
+    await db.batch((b) {
+      b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-7',
+          createdAt: nowKst().subtract(const Duration(minutes: 45)),
+          title: '주간 리포트가 도착했어요',
+          body: '트레이너가 주간 리포트를 보냈어요.',
+          category: 'coach_report',
+        ),
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-3',
+          createdAt: nowKst().subtract(const Duration(hours: 2)),
+          title: '트레이너 피드백이 도착했어요',
+          body: '마무리로 어깨 회전근개 스트레칭을 꼭 해 주세요.',
+          category: 'coach_chat',
+        ),
+      ]);
+    });
+
+    final list = (await dio.get<List<Object?>>(
+      '/notifications',
+    )).data!.cast<Map<String, Object?>>();
+    final report = list.firstWhere((e) => e['id'] == 'seed-noti-7');
+    expect(report['report'], <String, Object?>{
+      'week_start': wireDate(MockMemberCoachRepository.demoReportWeekStart),
+      'message_id': MockMemberCoachRepository.demoReportMessageId,
+    });
+    expect((report['action']! as Map<String, Object?>)['target'], 'coach_chat');
+    // 나머지는 서버처럼 키는 있고 값이 null 이다.
+    for (final String id in <String>['seed-noti-3', 'n-1', 'n-3']) {
+      final Map<String, Object?> other = list.firstWhere((e) => e['id'] == id);
+      expect(other.containsKey('report'), isTrue, reason: id);
+      expect(other['report'], isNull, reason: id);
+    }
+  });
+
+  // 알림이 가리키는 메시지가 데모 대화에 실제로 있어야 눌렀을 때 열린다(#3344).
+  test('데모 리포트 알림이 가리키는 메시지는 데모 대화의 리포트 안내다', () async {
+    final List<CoachMessage> chat = await fetchWholeCoachChat(
+      MockMemberCoachRepository(),
+    );
+    final CoachMessage message = chat.singleWhere(
+      (CoachMessage m) => m.id == MockMemberCoachRepository.demoReportMessageId,
+    );
+    expect(message.reportWeekStart, isNotNull);
+    expect(
+      wireDate(message.reportWeekStart!),
+      wireDate(MockMemberCoachRepository.demoReportWeekStart),
+    );
   });
 
   // 데모 시드 알림은 예전 데모 목록처럼 보인다 — 시각은 정해 둔 값, 목적지는 알림별

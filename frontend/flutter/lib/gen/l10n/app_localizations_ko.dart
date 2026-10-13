@@ -739,9 +739,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exTrainerCertifications => '자격증 · 인증';
 
   @override
-  String get exTrainerRecommendationReason => '내 건강 목표 달성에 잘 맞는 트레이너예요';
-
-  @override
   String get exNearbyGymsMapLabel => '내 주변 헬스장';
 
   @override
@@ -1132,6 +1129,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exNearbyGyms => '주변 헬스장';
 
   @override
+  String get exGymSearchResults => '검색 결과';
+
+  @override
   String get exGymListCollapse => '목록 접기';
 
   @override
@@ -1139,6 +1139,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exGymsLoadError => '헬스장을 불러오지 못했어요.';
+
+  @override
+  String get exGymSearchError => '헬스장을 검색하지 못했어요.';
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -2729,6 +2732,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exGymConsultNoTrainers => '아직 소속 트레이너가 없어요.';
+
+  @override
+  String get exGymNoTrainersCallHint =>
+      '아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요. 헬스장에 전화로 문의해 주세요.';
+
+  @override
+  String get exGymNoTrainersHint => '아직 가입한 트레이너가 없어 앱에서 상담을 신청할 수 없어요.';
+
+  @override
+  String get exGymCallInquiry => '전화 문의';
 
   @override
   String get exGymTrainersLoadError => '소속 트레이너를 불러오지 못했어요.';

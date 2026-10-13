@@ -193,6 +193,113 @@ void main() {
       expect(week.isCurrentWeek, isTrue);
     });
 
+    test('지금 계산한 값이면 굳힌 시각이 없다', () async {
+      final ReportSheetInputs inputs = await repository().fetch(
+        weekStart: _monday,
+        languageCode: 'ko',
+      );
+      expect(inputs.asOf, isNull);
+    });
+
+    test('전송 메시지 id 는 그 주에만 싣고 직전 주에는 싣지 않는다 (#3349)', () async {
+      await repository().fetch(
+        weekStart: _monday,
+        languageCode: 'ko',
+        messageId: 'chat-abc',
+      );
+
+      final Map<String, Object?> asked = <String, Object?>{
+        for (final RequestOptions o in server.requests)
+          if (o.path == '/me/coach/weekly-report')
+            o.queryParameters['week_start'] as String:
+                o.queryParameters['message_id'],
+      };
+      expect(asked['2026-09-14'], 'chat-abc');
+      expect(asked.length, kReportSheetHistoryWeeks + 1);
+      expect(
+        asked.entries.where(
+          (MapEntry<String, Object?> e) => e.key != '2026-09-14',
+        ),
+        everyElement(
+          isA<MapEntry<String, Object?>>().having(
+            (MapEntry<String, Object?> e) => e.value,
+            'message_id',
+            isNull,
+          ),
+        ),
+      );
+    });
+
+    test('메시지 id 가 없으면 질의에 싣지 않는다', () async {
+      await repository().fetch(weekStart: _monday, languageCode: 'ko');
+      expect(
+        server.requests.any(
+          (RequestOptions o) => o.queryParameters.containsKey('message_id'),
+        ),
+        isFalse,
+      );
+    });
+
+    test('굳힌 값이면 그 시각을 KST 로 싣는다 (#3349)', () async {
+      server.routes['/me/coach/weekly-report'] = (RequestOptions o) =>
+          <String, dynamic>{
+            ..._report(weekStart: o.queryParameters['week_start'] as String),
+            if (o.queryParameters['week_start'] == '2026-09-14')
+              'snapshot_at': '2026-09-16T03:00:00Z',
+          };
+
+      final ReportSheetInputs inputs = await repository().fetch(
+        weekStart: _monday,
+        languageCode: 'ko',
+      );
+      expect(inputs.asOf, DateTime(2026, 9, 16, 12));
+    });
+
+    test('진행 중에 굳힌 주는 나중에 열어도 이번 주로 읽는다 (#3349)', () async {
+      // 수요일에 받은 리포트를 다음 주에 연다 — 목~일은 기록하지 않은 날이 아니라
+      // 그때 아직 오지 않은 날이다.
+      server.routes['/me/coach/weekly-report'] = (RequestOptions o) =>
+          <String, dynamic>{
+            ..._report(weekStart: o.queryParameters['week_start'] as String),
+            if (o.queryParameters['week_start'] == '2026-09-14')
+              'snapshot_at': '2026-09-16T03:00:00Z',
+          };
+
+      final ReportSheetWeek week = (await repository().fetch(
+        weekStart: _monday,
+        languageCode: 'ko',
+      )).week;
+      expect(week.isCurrentWeek, isTrue);
+    });
+
+    test('주가 끝난 뒤 굳힌 주는 지난 주로 읽는다', () async {
+      server.routes['/me/coach/weekly-report'] = (RequestOptions o) =>
+          <String, dynamic>{
+            ..._report(weekStart: o.queryParameters['week_start'] as String),
+            'snapshot_at': '2026-09-21T01:00:00Z',
+          };
+
+      final ReportSheetInputs inputs = await repository(
+        now: DateTime(2026, 9, 16, 9),
+      ).fetch(weekStart: _monday, languageCode: 'ko');
+      expect(inputs.week.isCurrentWeek, isFalse);
+    });
+
+    test('모르는 모양의 굳힌 시각은 지금 값으로 읽는다', () async {
+      server.routes['/me/coach/weekly-report'] = (RequestOptions o) =>
+          <String, dynamic>{
+            ..._report(weekStart: o.queryParameters['week_start'] as String),
+            'snapshot_at': 20260916,
+          };
+
+      final ReportSheetInputs inputs = await repository().fetch(
+        weekStart: _monday,
+        languageCode: 'ko',
+      );
+      expect(inputs.asOf, isNull);
+      expect(inputs.week.isCurrentWeek, isFalse);
+    });
+
     test('그 주를 못 읽으면 던진다 — 빈 결과지를 그리지 않는다', () async {
       server.routes['/me/coach/weekly-report'] = (_) => 500;
       await expectLater(

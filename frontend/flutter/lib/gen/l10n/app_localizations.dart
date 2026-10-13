@@ -1430,12 +1430,6 @@ abstract class AppLocalizations {
   /// **'Certifications'**
   String get exTrainerCertifications;
 
-  /// No description provided for @exTrainerRecommendationReason.
-  ///
-  /// In en, this message translates to:
-  /// **'A great fit for reaching my health goals'**
-  String get exTrainerRecommendationReason;
-
   /// No description provided for @exNearbyGymsMapLabel.
   ///
   /// In en, this message translates to:
@@ -2144,6 +2138,12 @@ abstract class AppLocalizations {
   /// **'Nearby gyms'**
   String get exNearbyGyms;
 
+  /// No description provided for @exGymSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Search results'**
+  String get exGymSearchResults;
+
   /// Hides the gym result list so the map fills the space
   ///
   /// In en, this message translates to:
@@ -2161,6 +2161,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load gyms.'**
   String get exGymsLoadError;
+
+  /// No description provided for @exGymSearchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search gyms.'**
+  String get exGymSearchError;
 
   /// No description provided for @exGymWeekdayHours.
   ///
@@ -4885,6 +4891,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No trainers are affiliated yet.'**
   String get exGymConsultNoTrainers;
+
+  /// No description provided for @exGymNoTrainersCallHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers from this gym have joined yet, so you can\'t request a consultation in the app. Please call the gym.'**
+  String get exGymNoTrainersCallHint;
+
+  /// No description provided for @exGymNoTrainersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers from this gym have joined yet, so you can\'t request a consultation in the app.'**
+  String get exGymNoTrainersHint;
+
+  /// No description provided for @exGymCallInquiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Call the gym'**
+  String get exGymCallInquiry;
 
   /// No description provided for @exGymTrainersLoadError.
   ///

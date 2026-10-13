@@ -484,6 +484,8 @@ def test_member_week_matches_the_trainer_while_there_is_one_trainer(
     their_body = theirs.json()
     mine.pop("message")
     their_body.pop("message")
+    # 회원 응답에만 있는 칸 — 보낸 적 없는 주라 지금 값을 계산해 준 것이다(#3349).
+    assert mine.pop("snapshot_at") is None
     assert mine == their_body
 
 

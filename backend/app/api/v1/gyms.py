@@ -10,9 +10,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
+from app.core import rate_limit
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.schemas.gym_api import GymOut, TrainerOut
-from app.services import gym_service
+from app.services import gym_search, gym_service
 
 router = APIRouter(tags=["gyms"])
 
@@ -63,6 +65,33 @@ def list_gyms(
         radius_m=radius_m,
         limit=limit,
     )
+
+
+# `/gyms/{gym_id}` 보다 먼저 등록한다 — 뒤에 두면 `search` 가 헬스장 id 로 읽힌다.
+@router.get("/gyms/search", response_model=list[GymOut])
+async def search_gyms(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    q: str = Query(min_length=1, max_length=100, description="헬스장 이름·주소"),
+    lat: float | None = Query(None, ge=-90, le=90, description="거리 계산·정렬용 위도"),
+    lng: float | None = Query(None, ge=-180, le=180),
+) -> list[GymOut]:
+    """헬스장 이름 검색. (#3355)
+
+    등록된 헬스장과 카카오 이름 검색 결과를 합쳐 준다. 목록(`GET /gyms`)과 달리
+    반경을 걸지 않는다 — 다른 동네의 헬스장도 이름으로 찾는다. 좌표를 주면 가까운
+    순이고, 카카오를 쓸 수 없거나 실패하면 등록된 헬스장만 나온다.
+
+    검색 한 번이 외부 호출 한 번이라 회원 단위로 분당 횟수를 묶는다(429).
+    """
+    _require_coordinate_pair(lat, lng)
+    query = q.strip()
+    if not query:
+        raise HTTPException(status_code=422, detail="검색어를 입력하세요.")
+    rate_limit.check_user(
+        "gym-search", current_user.id, get_settings().gym_search_per_minute
+    )
+    return await gym_search.search(db, query, lat, lng)
 
 
 @router.get("/me/gym", response_model=GymOut)
