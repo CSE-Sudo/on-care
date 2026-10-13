@@ -349,6 +349,7 @@
 `time_label`: PT(`trainer_pt`) 기록만 그 수업 일정의 시각(`HH:MM`)을 싣는다. 배정 개인운동·회원 기록은 언제 했는지를 남기지 않아 `null` 이고, 수업을 찾지 못한 PT 도 `null` 이다 — 유형별 시각을 지어내지 않는다. 회원 앱은 이 값을 "○○ 수업 완료" 로 그린다. (#2692)
 `record`: 개인 기록 태그 — `max_weight`(같은 근력 운동을 전에 든 어떤 중량보다 무겁다) · `longest`(같은 운동을 전에 한 어떤 시간보다 길다, 근력 외) · `first`(이 이름으로 처음 적은 운동) · `null`. 회원이 직접 적은 기록(`source == member`)에만, 한 기록에 하나 붙는다(우선순위도 이 순서). 같은 운동은 이름의 공백을 지우고 소문자로 맞춰 묶고, 지난 주 기록까지 견준다. 평가가 아니라 사실만 알린다 (#2971)
 `week_start`: 그 주의 월요일. 월요일이 아닌 날짜를 줘도 그 날이 속한 주로 맞춘다. 형식이 깨지면 422. 회원 앱이 지난 날짜를 골랐을 때 그 주를 받는다. (#671)
+`ai_coach_message`(`/exercise/weeks/current`): **쓰이지 않음.** 주간 운동 시간으로 고른 고정 문장 두 가지 중 하나(`exercise_service`)이고, 회원 앱은 값을 읽어만 두고 화면에 그리지 않으며 트레이너 웹은 읽지 않는다. 운동 탭의 조언은 `GET /exercise/advice` 가 준다. 회원 앱이 이 키를 필수로 파싱하므로 응답에서 빼지 않는다.
 `intensity`: 생략 시 `moderate`. 수정 시트가 저장된 강도로 복원되고 칼로리 추정 배수(0.85/1.0/1.2)의 근거가 된다.
 `calories`(입력): **서버가 다시 계산하므로 쓰이지 않는다.** 이 필드를 채워 보내는 옛 클라이언트를 422 로 막지 않으려고 받아만 둔다. 앱이 화면에 띄우는 미리보기는 `POST /exercise/calories` 로 같은 계산을 받아 오므로, 저장 뒤 숫자가 달라지지 않는다. (#1312)
 `calorie_source`: 그 칼로리가 어디서 나왔나 — `db`(운동 이름이 종목 참조표에 붙고 회원 체중 반영) · `mixed`(수치는 참조표, 이름 해석만 AI) · `estimate`(유형 평균 어림값). 식단(`RecognizedFood.source`)과 같은 어휘다. 이 필드가 생기기 전 기록은 전부 `estimate` 다. (#1312)
@@ -691,7 +692,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
   | --- | --- | --- |
   | `reminder`·`health_check` | 기록하러 가기 / Log now | `dashboard` |
   | `achievement` | 대시보드 보기 / View dashboard | `dashboard` |
-  | `coach_chat` | 대화 보기 / View chat | `coach_chat` |
+  | `coach_chat` | 메시지 보기 / View messages | `coach_chat` |
   | `coach_report` | 리포트 보기 / View report | `coach_chat` |
   | `routine` | 운동 보기 / View workouts | `exercise` |
   | `member_schedule` | 일정 보기 / View schedule | `exercise` (#3028) |
@@ -765,7 +766,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 회원 알림(`/notifications`)과 트레이너 알림(`/trainer/notifications`)이 같은 규칙입니다.
 
 - **저장**: `notifications.template`(틀 코드)·`template_args`(JSON 인자)와 함께, `title`·`body` 에는
-  예전과 **같은 한국어 문장**을 계속 적습니다 — 틀을 모르는 옛 앱과 푸시가 이 값을 씁니다.
+  예전과 **같은 한국어 문장**을 계속 적습니다 — 틀을 모르는 옛 앱이 이 값을 씁니다(푸시 발송은 아직 없습니다, #474).
   인자에는 언어와 무관한 값(이름·날짜·수량·건강 목표 저장 값)만 담습니다. 회원·트레이너가
   직접 쓴 글(메시지·반려 사유)은 번역하지 않고 저장된 `body` 를 그대로 씁니다.
 - **응답의 `title`·`body`**: 요청 언어로 조립한 문장입니다. 한국어(헤더 없음 포함)는 저장된
@@ -806,7 +807,8 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 | `coach_chat` | 트레이너 메시지·피드백 | `coach_chat` |
 | `coach_report` | **트레이너가 등록한 주간 리포트**(#2085) | `coach_chat` — `report` 가 있으면 그 주 리포트를 바로 연다(#3344) |
 | `routine` | 루틴 배정 | `exercise` |
-| `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
+| `member_schedule` | PT 일정 등록·변경·취소·인계 | `exercise`(#3028) |
+| `pt_done` | PT 완료·피드백 도착(#3027) | `exercise` |
 | `coach_invite` | 담당 요청 도착 — `invite_id`로 수락·거절 창 열기 | `exercise`(처리·취소 시 이동) |
 | `consultation_result` | 담당 연결 — 연결됨·연결 해제 및 과거 담당 요청 | `exercise` |
 | `consult_decision` | **내 상담 요청의 승인·거절·만료**(#2067) | `consultations`(내 상담 요청) |
