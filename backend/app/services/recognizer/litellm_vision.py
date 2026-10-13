@@ -17,7 +17,6 @@ import time
 from app.core.config import get_settings
 from app.schemas.diet import DietAnalysis
 from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
-from app.services.recognizer.locale_prompt import localized_prompt
 from app.services.recognizer.parse import parse_payload
 
 _PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
@@ -55,8 +54,7 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
 
     async def recognize(self, image_bytes: bytes, mime_type: str) -> DietAnalysis:
         import asyncio
-        # 요청 언어는 컨텍스트 변수라 작업 스레드로 넘기기 전에 고른다. (#2850)
-        prompt = localized_prompt(_PROMPT)
+        prompt = _PROMPT
         # 서버 전체 하루 상한(#3032) — Gemini 인식기와 같다.
         from app.services import ai_call_quota
 
