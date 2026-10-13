@@ -2508,6 +2508,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get coachReportNotReceived => '아직 받지 않은 리포트예요';
+
+  @override
   String get coachChatReportRegistered => '주간 리포트를 받았어요';
 
   @override

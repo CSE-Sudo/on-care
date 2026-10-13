@@ -11,6 +11,7 @@ import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/clock.dart';
@@ -107,8 +108,8 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
         bytes,
         l.coachReportPdfFileName(wireDate(widget.weekStart)),
       );
-    } catch (_) {
-      toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
+    } catch (e) {
+      toast.show(reportOpenFailureText(l, e), type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _opening = false);
     }
