@@ -193,14 +193,6 @@ void main() {
       // 대화방은 담당 코치를 보지 않는다 — 다시 읽은 것은 해제 신호 덕분이다.
       expect(repo.coachLoads, greaterThanOrEqualTo(1));
     });
-
-    testWidgets('영어 안내도 해제를 말한다', (WidgetTester tester) async {
-      await pumpChat(tester, locale: const Locale('en'));
-
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-      expect(find.text(en.coachChatUnassigned), findsOneWidget);
-      expect(en.coachChatUnassigned, isNot(en.coachChatLoadFailed));
-    });
   });
 
   group('데모', () {

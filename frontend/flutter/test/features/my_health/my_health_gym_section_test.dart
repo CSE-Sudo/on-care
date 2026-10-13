@@ -160,21 +160,6 @@ void main() {
     );
   });
 
-  testWidgets('영어 로케일에서 섹션 액션이 영어로 표시된다', (WidgetTester tester) async {
-    await pumpMyTab(tester, locale: const Locale('en'));
-    await tester.scrollUntilVisible(
-      gymCard(),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-
-    expect(find.text('My gym & trainer'), findsOneWidget);
-    // 카드의 동작은 상세로 가는 길이다 — 삭제는 그 화면 하단에 있다. (#1057)
-    expect(find.byTooltip('Gym details'), findsOneWidget);
-    expect(find.byTooltip('Trainer details'), findsOneWidget);
-    expect(find.text('내 헬스장 · 트레이너'), findsNothing);
-  });
-
   testWidgets('헬스장 연결 조회 실패 시 재시도 상태를 표시한다', (WidgetTester tester) async {
     await pumpMyTab(tester, gymRepository: const _FailingGymRepository());
 

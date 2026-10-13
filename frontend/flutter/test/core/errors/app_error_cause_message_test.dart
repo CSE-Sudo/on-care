@@ -19,7 +19,6 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 문구도 달라야 한다.
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   DioException dio(DioExceptionType type, {int? status, Object? body}) {
     final RequestOptions options = RequestOptions(path: '/v1/x');
@@ -37,7 +36,7 @@ void main() {
   }
 
   group('appErrorCauseMessage — 원인별', () {
-    for (final AppLocalizations l in <AppLocalizations>[ko, en]) {
+    for (final AppLocalizations l in <AppLocalizations>[ko]) {
       final String lang = l.localeName;
 
       test('[$lang] 연결 끊김·시간 초과', () {
@@ -99,7 +98,7 @@ void main() {
     }
 
     test('네트워크·서버·403·429·422 문구가 서로 다르다', () {
-      for (final AppLocalizations l in <AppLocalizations>[ko, en]) {
+      for (final AppLocalizations l in <AppLocalizations>[ko]) {
         final List<String?> messages = <String?>[
           appErrorCauseMessage(l, const NetworkError()),
           appErrorCauseMessage(l, const ServerError(statusCode: 500)),
@@ -116,7 +115,7 @@ void main() {
       }
     });
 
-    test('한국어 화면의 422 는 서버 사유를 보인다', () {
+    test('422 는 서버 사유를 보인다', () {
       expect(
         appErrorCauseMessage(
           ko,
@@ -124,24 +123,6 @@ void main() {
         ),
         '날짜 형식이 아닙니다.',
       );
-      // 영어 화면은 한국어 사유 대신 앱 문구다.
-      expect(
-        appErrorCauseMessage(
-          en,
-          const ValidationError(statusCode: 422, detail: '날짜 형식이 아닙니다.'),
-        ),
-        en.errorInvalidRequest,
-      );
-    });
-
-    test('영어 문구에는 한글이 없다', () {
-      for (final String text in <String>[
-        en.errorNetwork,
-        en.errorServer,
-        en.errorInvalidRequest,
-      ]) {
-        expect(RegExp(r'[가-힣]').hasMatch(text), isFalse, reason: text);
-      }
     });
   });
 
@@ -267,17 +248,6 @@ void main() {
       expect(find.text(ko.errorServer), findsOneWidget);
       await tester.tap(find.byKey(const Key('retry')));
       expect(retried, 1);
-    });
-
-    testWidgets('영어 화면은 영어 원인 문구다', (WidgetTester tester) async {
-      await pump(
-        tester,
-        error: const ServerError(statusCode: 500),
-        locale: const Locale('en'),
-      );
-
-      expect(find.text(en.errorServer), findsOneWidget);
-      expect(find.text(en.actionRetry), findsOneWidget);
     });
   });
 

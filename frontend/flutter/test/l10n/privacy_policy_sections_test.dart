@@ -19,9 +19,8 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/legal_contact.dart';
 
 final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
-/// 절 번호 순서대로의 제목. 한국어가 원본이고 영문은 같은 번호를 쓴다.
+/// 절 번호 순서대로의 제목.
 const List<String> _koSections = <String>[
   '1. 수집하는 개인정보 항목',
   '2. 개인정보의 수집 및 이용 목적',
@@ -39,25 +38,6 @@ const List<String> _koSections = <String>[
   '14. 개인정보 보호책임자',
   '15. 권익침해 구제 방법',
   '16. 처리방침의 변경',
-];
-
-const List<String> _enSections = <String>[
-  '1. Personal information collected',
-  '2. Purpose of collection and use',
-  '3. Retention and use period',
-  '4. Provision to third parties',
-  '5. Sharing with your trainer and withdrawing consent',
-  '6. Entrusted processing',
-  '7. Transfer of personal information overseas',
-  '8. Processing of sensitive (health) information',
-  '9. Children under 14',
-  '10. Destruction procedure and method',
-  '11. Automatic collection tools',
-  '12. Safeguards',
-  '13. Rights of the user and how to exercise them',
-  '14. Personal information protection officer',
-  '15. Remedies for infringement',
-  '16. Changes to this policy',
 ];
 
 /// 실제로 쓰는 수탁자 — `docs/privacy_processing.md` 1절과 같다.
@@ -81,30 +61,13 @@ void main() {
         last = at;
       }
     });
-
-    test('영문본에 같은 절이 같은 순서로 있다', () {
-      final String body = en.myLegalPrivacyBody(
-        LegalContact.privacyOfficerEmail,
-      );
-      int last = -1;
-      for (final String heading in _enSections) {
-        final int at = body.indexOf('\n$heading\n');
-        expect(at, greaterThan(last), reason: '$heading 이 없거나 순서가 다르다');
-        last = at;
-      }
-    });
   });
 
   group('처리 위탁·국외 이전', () {
-    test('두 언어 모두 실제 수탁자를 적는다', () {
+    test('실제 수탁자를 적는다', () {
       for (final String name in _processors) {
         expect(
           ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-          contains(name),
-          reason: name,
-        );
-        expect(
-          en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
           contains(name),
           reason: name,
         );
@@ -112,10 +75,6 @@ void main() {
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('주식회사 카카오'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Kakao Corp.'),
       );
     });
 
@@ -132,18 +91,6 @@ void main() {
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('제28조의8'),
       );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Singapore'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('the United States'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Article 28-8'),
-      );
     });
 
     test('기록을 저장할 때마다 색인용으로 전송된다는 사실을 숨기지 않는다', () {
@@ -151,10 +98,6 @@ void main() {
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('저장할 때마다'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Each time you save'),
       );
     });
   });
@@ -168,11 +111,6 @@ void main() {
       expect(body, contains('첨부 사진'));
       expect(body, contains('IP 주소'));
       expect(body, contains('현재 위치'));
-      final String e = en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
-      expect(e, contains('food photos'));
-      expect(e, contains('attached photos'));
-      expect(e, contains('IP address'));
-      expect(e, contains('current location'));
     });
   });
 
@@ -182,9 +120,7 @@ void main() {
     // 처리방침이 쓰지 않는 수집 경로를 적으면 사실과 다른 고지가 된다.
     test('수집 항목에 카카오·구글만 적는다', () {
       final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
-      final String e = en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
       expect(k, contains('소셜 로그인(카카오·구글)으로 가입하면'));
-      expect(e, contains('social login (Kakao or Google)'));
     });
 
     test('네이버·애플은 제외를 알리는 개정 이력에만 남는다', () {
@@ -199,21 +135,6 @@ void main() {
           '위치기반서비스 이용약관 안내 추가(1항 ⑤), 소셜 로그인 수단에서 네이버·애플 제외, '
           '동의 철회 방법을 앱 화면과 같은 말(연결 해제)로 정리(5항)';
       expect(koLines, <String>[koRevision]);
-      final List<String> enLines = en
-          .myLegalPrivacyBody(LegalContact.privacyOfficerEmail)
-          .split('\n')
-          .where(
-            (String line) => line.contains('Apple') || line.contains('Naver'),
-          )
-          .toList();
-      const String enRevision =
-          '- 5 October 2026: changed the contact address of the personal '
-          'information protection officer, added the location consent step and '
-          'the Location-Based Services Terms to (5) of section 1, removed Naver '
-          'and Apple from the social login options, and aligned the wording for '
-          'withdrawing consent with the app (connection code, disconnect) in '
-          'section 5';
-      expect(enLines, <String>[enRevision]);
     });
 
     test('미배포 판에 합쳐 시행일은 그대로다', () {
@@ -223,19 +144,12 @@ void main() {
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('시행일: 2026년 10월 5일'),
       );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Effective date: 5 October 2026'),
-      );
       expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
-      expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 5, 2026');
     });
 
     test('이용약관에는 소셜 로그인 수단으로 네이버·애플이 없다', () {
       expect(ko.myLegalTermsBody, isNot(contains('애플')));
       expect(ko.myLegalTermsBody, isNot(contains('네이버')));
-      expect(en.myLegalTermsBody, isNot(contains('Apple')));
-      expect(en.myLegalTermsBody, isNot(contains('Naver')));
     });
   });
 
@@ -249,14 +163,6 @@ void main() {
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('탈퇴 기록: 2년'),
       );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('one year'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('two years'),
-      );
     });
 
     test('탈퇴하면 첨부 파일까지 지운다는 것과 남는 것을 함께 적는다', () {
@@ -267,14 +173,6 @@ void main() {
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('트레이너의 업무 기록으로 남습니다'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('report PDF files'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains("trainer's work record"),
       );
     });
   });
@@ -289,35 +187,18 @@ void main() {
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('연락처: ${LegalContact.privacyOfficerEmail}'),
       );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Position:'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Contact: ${LegalContact.privacyOfficerEmail}'),
-      );
     });
 
-    test('시행일이 자리표시자(2026년 1월 1일)가 아니고 두 언어가 같다', () {
+    test('시행일이 자리표시자(2026년 1월 1일)가 아니다', () {
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('시행일: 2026년 10월 5일'),
       );
       expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Effective date: 5 October 2026'),
-      );
-      expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         isNot(contains('2026년 1월 1일')),
       );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        isNot(contains('1 January 2026')),
-      );
       expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
-      expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 5, 2026');
     });
 
     test('개정 이력이 있다', () {
@@ -325,29 +206,13 @@ void main() {
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('2026년 10월 1일: 제정'),
       );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('1 October 2026: first issued'),
-      );
     });
 
     test('보호책임자 연락처 변경이 개정 이력의 맨 위에 있다 (#3132)', () {
       final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
-      final String e = en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
       expect(k, contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'));
-      expect(
-        e,
-        contains(
-          '- 5 October 2026: changed the contact address of the personal '
-          'information protection officer',
-        ),
-      );
       // 새 항목이 옛 항목보다 앞에 온다 — 개정 이력은 최신순이다.
       expect(k.indexOf('2026년 10월 5일:'), lessThan(k.indexOf('2026년 10월 3일:')));
-      expect(
-        e.indexOf('5 October 2026:'),
-        lessThan(e.indexOf('3 October 2026:')),
-      );
     });
 
     test('보호책임자 연락처가 팀 수신 주소로 채워진다 (#3132)', () {
@@ -356,23 +221,16 @@ void main() {
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('연락처: sudo.capstone@gmail.com'),
       );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Contact: sudo.capstone@gmail.com'),
+      final String body = ko.myLegalPrivacyBody(
+        LegalContact.privacyOfficerEmail,
       );
-      for (final String body in <String>[
-        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-      ]) {
-        expect(body, isNot(contains('{contact}')));
-        expect(body, isNot(contains('@oncare.com')));
-      }
+      expect(body, isNot(contains('{contact}')));
+      expect(body, isNot(contains('@oncare.com')));
     });
 
     test('약관의 시행일도 자리표시자가 아니다 — 처리방침과 따로 간다', () {
       expect(ko.myLegalTermsBody, contains('2026년 10월 3일부터 시행'));
       expect(ko.myLegalTermsEffectiveDate, '시행일 2026. 10. 03.');
-      expect(en.myLegalTermsEffectiveDate, 'Effective Oct 3, 2026');
     });
   });
 
@@ -399,7 +257,6 @@ void main() {
     for (final (String tag, Locale locale, AppLocalizations l)
         in <(String, Locale, AppLocalizations)>[
           ('ko', const Locale('ko'), ko),
-          ('en', const Locale('en'), en),
         ]) {
       testWidgets('[$tag] 위탁·국외 이전·파기·보호책임자 절과 처리방침 시행일이 보인다', (
         WidgetTester tester,
@@ -414,7 +271,7 @@ void main() {
               find.text(l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
             )
             .data!;
-        final List<String> sections = tag == 'ko' ? _koSections : _enSections;
+        const List<String> sections = _koSections;
         for (final int i in <int>[5, 6, 9, 13]) {
           expect(shown, contains(sections[i]));
         }

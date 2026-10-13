@@ -141,21 +141,6 @@ void main() {
     expect(find.byKey(const Key('coachUpcomingRoutines')), findsNothing);
   });
 
-  testWidgets('영어는 `From Sat 8/22 · … +1 more`', (tester) async {
-    await _pump(
-      tester,
-      routines: const <CoachRoutine>[_walk],
-      upcoming: _upcoming,
-      locale: const Locale('en'),
-    );
-
-    expect(
-      find.textContaining('From Sat 8/22 · ', findRichText: true),
-      findsOneWidget,
-    );
-    expect(find.textContaining('+1 more', findRichText: true), findsOneWidget);
-  });
-
   testWidgets('시작일에 오늘 목록을 다시 읽으면 예정이 빠지고 오늘 목록으로 넘어온다', (tester) async {
     final _StartingRepository repo = _StartingRepository();
     final ProviderContainer container = ProviderContainer(

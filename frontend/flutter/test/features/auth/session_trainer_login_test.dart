@@ -338,7 +338,7 @@ void main() {
       }
     }
 
-    for (final Locale locale in const <Locale>[Locale('ko'), Locale('en')]) {
+    for (final Locale locale in const <Locale>[Locale('ko')]) {
       testWidgets('트레이너 계정 로그인은 트레이너 웹 안내를 보인다 (${locale.languageCode})', (
         WidgetTester tester,
       ) async {

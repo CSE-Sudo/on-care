@@ -158,7 +158,6 @@ void main() {
     test('회원 본인 리포트 엔드포인트에서 그 주 월요일로 읽는다', () async {
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: DateTime(2026, 9, 17),
-        languageCode: 'ko',
       );
 
       expect(
@@ -172,7 +171,6 @@ void main() {
     test('트레이너 리포트와 같은 필드를 그대로 싣는다', () async {
       final ReportSheetWeek week = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).week;
 
       expect(week.sessionsBooked, 2);
@@ -189,14 +187,14 @@ void main() {
     test('지나는 중인 주는 이번 주로 읽는다', () async {
       final ReportSheetWeek week = (await repository(
         now: DateTime(2026, 9, 16, 9),
-      ).fetch(weekStart: _monday, languageCode: 'ko')).week;
+      ).fetch(weekStart: _monday)).week;
       expect(week.isCurrentWeek, isTrue);
     });
 
     test('그 주를 못 읽으면 던진다 — 빈 결과지를 그리지 않는다', () async {
       server.routes['/me/coach/weekly-report'] = (_) => 500;
       await expectLater(
-        repository().fetch(weekStart: _monday, languageCode: 'ko'),
+        repository().fetch(weekStart: _monday),
         throwsA(isA<AppError>()),
       );
     });
@@ -211,7 +209,7 @@ void main() {
         ),
       ).thenThrow(StateError('offline'));
       await expectLater(
-        repository().fetch(weekStart: _monday, languageCode: 'ko'),
+        repository().fetch(weekStart: _monday),
         throwsA(isA<AppError>()),
       );
     });
@@ -221,7 +219,6 @@ void main() {
     test('낸 답은 결과지 ② 칸에 실린다', () async {
       final ReportSheetAnswers? answers = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).week.answers;
 
       expect(answers, isNotNull);
@@ -240,7 +237,6 @@ void main() {
           _feedback(submitted: false);
       final ReportSheetWeek week = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).week;
       expect(week.answers, isNull);
     });
@@ -249,7 +245,6 @@ void main() {
       server.routes['/me/coach/weekly-feedback'] = (_) => 404;
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.week.answers, isNull);
       expect(inputs.week.memberName, '김민수');
@@ -259,7 +254,6 @@ void main() {
       server.routes['/me/coach/weekly-feedback'] = (_) => 500;
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.week.answers, isNull);
     });
@@ -269,7 +263,6 @@ void main() {
     test('4주 평균 대비에 쓸 직전 넉 주를 최근 주부터 읽는다', () async {
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(
         server.weeksAsked('/me/coach/weekly-report'),
@@ -299,7 +292,6 @@ void main() {
       };
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.history, hasLength(3));
       expect(
@@ -311,7 +303,7 @@ void main() {
 
   group('실서버 — 여덟 주 운동 추이', () {
     test('기간 조회 한 번으로 여덟 주를 읽는다', () async {
-      await repository().fetch(weekStart: _monday, languageCode: 'ko');
+      await repository().fetch(weekStart: _monday);
       verify(
         () => exercise.fetchPeriod(
           from: DateTime(2026, 7, 27),
@@ -321,9 +313,7 @@ void main() {
     });
 
     test('지나는 중인 주는 오늘까지만 묻는다', () async {
-      await repository(
-        now: DateTime(2026, 9, 16, 9),
-      ).fetch(weekStart: _monday, languageCode: 'ko');
+      await repository(now: DateTime(2026, 9, 16, 9)).fetch(weekStart: _monday);
       verify(
         () => exercise.fetchPeriod(
           from: DateTime(2026, 7, 27),
@@ -352,7 +342,6 @@ void main() {
       );
       final ReportSheetTrend trend = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       )).trend!;
 
       expect(trend.weeks, hasLength(kReportSheetTrendWeeks));
@@ -366,7 +355,6 @@ void main() {
     test('회원이 정한 목표로 견준다', () async {
       final ReportSheetTrend trend = (await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
         goals: const ReportSheetGoals(
           weeklyCardioMinutes: 200,
           weeklyStrengthSets: 12,
@@ -387,7 +375,6 @@ void main() {
       ).thenThrow(StateError('offline'));
       final ReportSheetInputs inputs = await repository().fetch(
         weekStart: _monday,
-        languageCode: 'ko',
       );
       expect(inputs.trend, isNull);
       expect(inputs.week.memberName, '김민수');
@@ -449,7 +436,7 @@ void main() {
       final ReportSheetInputs mine = await DemoMemberReportSheetRepository(
         fixture: fixture,
         now: () => now,
-      ).fetch(weekStart: DateTime(2026, 9, 10), languageCode: 'ko');
+      ).fetch(weekStart: DateTime(2026, 9, 10));
       final ReportSheetInputs trainer = demoReportSheetInputs(
         fixture: fixture,
         weekStart: lastMonday,
@@ -475,30 +462,12 @@ void main() {
             now: () => now,
           ).fetch(
             weekStart: lastMonday,
-            languageCode: 'ko',
             goals: const ReportSheetGoals(weeklyCardioMinutes: 999),
           );
       expect(
         mine.trend!.goalOf(ExerciseKind.cardio),
         kDemoReportGoals.weeklyCardioMinutes,
       );
-    });
-
-    test('영어 화면이면 회원 답도 영어다', () async {
-      final ReportSheetInputs ko = await DemoMemberReportSheetRepository(
-        fixture: fixture,
-        now: () => now,
-      ).fetch(weekStart: lastMonday, languageCode: 'ko');
-      final ReportSheetInputs en = await DemoMemberReportSheetRepository(
-        fixture: fixture,
-        now: () => now,
-      ).fetch(weekStart: lastMonday, languageCode: 'en');
-      final ReportSheetAnswers? koAnswers = ko.week.answers;
-      final ReportSheetAnswers? enAnswers = en.week.answers;
-      expect(koAnswers?.conditionWire, enAnswers?.conditionWire);
-      if (koAnswers != null && koAnswers.note.isNotEmpty) {
-        expect(enAnswers!.note, isNot(koAnswers.note));
-      }
     });
   });
 }

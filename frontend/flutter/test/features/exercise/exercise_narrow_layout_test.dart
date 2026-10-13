@@ -5,10 +5,6 @@
 /// 그래프 범례·PT 카드의 칩과 운동 항목이 각각 넘쳐, 글자가 잘리거나 노랑·검정
 /// 줄무늬가 그려졌다.
 ///
-/// **한국어와 영어를 모두 검증한다.** 영어는 라벨이 훨씬 길어(`This month` vs
-/// `이번 달`) 기본 배율에서도 넘쳤다 — 식단 탭에서 en 만 따로 새던 일(#743)을
-/// 여기서 되풀이하지 않으려고 처음부터 두 로케일을 함께 돈다.
-///
 /// 높이를 넉넉히 두는 이유는 `ListView` 가 보이는 자식만 만들기 때문이다 —
 /// 짧은 화면에서는 아래쪽 카드가 아예 그려지지 않아 검증 대상이 사라진다.
 library;
@@ -89,7 +85,7 @@ void main() {
   }
 
   group('운동 탭 좁은 화면 레이아웃 (#766)', () {
-    for (final String lang in <String>['ko', 'en']) {
+    for (final String lang in <String>['ko']) {
       for (final double scale in <double>[1.0, 1.3, 1.6, 2.0]) {
         testWidgets('폭 320 · $lang · 글자 배율 $scale 에서 넘치지 않는다', (
           WidgetTester tester,

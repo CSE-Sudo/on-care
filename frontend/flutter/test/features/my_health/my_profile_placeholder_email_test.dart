@@ -118,19 +118,6 @@ void main() {
     expect(l.myEmailUnregistered('google'), '구글로 가입 · 이메일 미등록');
   });
 
-  testWidgets('영어 화면도 주소를 가리고 가입 수단을 말한다', (WidgetTester tester) async {
-    final (AppLocalizations l, _) = await _open(
-      tester,
-      profile: _social(provider: 'google'),
-      locale: const Locale('en'),
-      edit: false,
-    );
-
-    expect(find.textContaining('social.oncare'), findsNothing);
-    expect(find.text(l.myEmailUnregistered('google')), findsOneWidget);
-    expect(l.myEmailUnregistered('google'), contains('Google'));
-  });
-
   testWidgets('수정에서는 이메일 칸을 비운 채로 연다', (WidgetTester tester) async {
     final (AppLocalizations l, _) = await _open(tester, profile: _social());
 

@@ -105,9 +105,7 @@ void main() {
     await container.read(dietPeriodProvider(all).future);
     await container.read(dietTodayProvider.future);
     await container.read(dietByDateProvider(DateTime(2026, 8, 18)).future);
-    await container.read(
-      dietAdviceProvider((period: 'week', lang: 'ko')).future,
-    );
+    await container.read(dietAdviceProvider('week').future);
     await container.read(recordSpanProvider.future);
   }
 
@@ -142,9 +140,7 @@ void main() {
 
     refreshDietRecords(container.invalidate);
     await container.read(dietTodayProvider.future);
-    await container.read(
-      dietAdviceProvider((period: 'week', lang: 'ko')).future,
-    );
+    await container.read(dietAdviceProvider('week').future);
 
     expect(repo.todayCalls, greaterThan(today));
     expect(repo.adviceCalls, advice + 1);

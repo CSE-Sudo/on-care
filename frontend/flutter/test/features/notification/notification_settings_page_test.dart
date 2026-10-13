@@ -431,22 +431,6 @@ void main() {
       expect(tester.getTopLeft(note).dy, greaterThan(lastSwitchY));
     });
 
-    testWidgets('영어 안내도 끌 수 없는 알림을 같은 갈래로 밝힌다 (#3367)', (
-      WidgetTester tester,
-    ) async {
-      await pumpIn(tester, const Locale('en'));
-
-      expect(
-        find.text(
-          'PT bookings, changes and cancellations, trainer requests, connect '
-          'and disconnect notices, consultation request results, health goal '
-          'changes, coupon expiry and cancellation, and weekly challenge '
-          'results are always sent',
-        ),
-        findsOneWidget,
-      );
-    });
-
     testWidgets('안내에는 스위치가 없다 — 끌 수 있는 항목은 세 개뿐', (WidgetTester tester) async {
       await pumpIn(tester, const Locale('ko'));
 
@@ -460,32 +444,6 @@ void main() {
           matching: find.byType(Switch),
         ),
         findsNothing,
-      );
-    });
-
-    testWidgets('영어 라벨·설명·안내', (WidgetTester tester) async {
-      await pumpIn(tester, const Locale('en'));
-
-      expect(find.text('Exercises & programs'), findsOneWidget);
-      expect(find.text('Trainer message'), findsOneWidget);
-      expect(find.text('Trainer weekly report'), findsOneWidget);
-      expect(
-        find.text(
-          'When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback',
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.text('When your trainer sends you a message'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('When your trainer sends your weekly report'),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('notificationSettingsAlwaysSent')),
-        findsOneWidget,
       );
     });
 

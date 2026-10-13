@@ -340,29 +340,6 @@ void main() {
     expect(find.byKey(const Key('findEmailFormStep')), findsOneWidget);
   });
 
-  testWidgets('영어·좁은 폭에서도 결과 화면이 넘치지 않는다', (tester) async {
-    await _pump(
-      tester,
-      initialLocation: AppRoutes.findEmail,
-      locale: const Locale('en'),
-      width: 320,
-      repository: _FakeFindEmail(
-        accounts: const <FoundEmailAccount>[
-          FoundEmailAccount(
-            maskedEmail: 'on***@a-rather-long-mail-domain.example.com',
-            providers: <String>['kakao'],
-          ),
-          FoundEmailAccount(providers: <String>['kakao', 'google']),
-        ],
-      ),
-    );
-    await _submit(tester);
-
-    expect(tester.takeException(), isNull);
-    expect(_key('findEmail-to-sign-in'), findsOneWidget);
-    expect(_key('findEmail-result-password-reset'), findsOneWidget);
-  });
-
   testWidgets('비밀번호도 잊었으면 재설정 화면으로 넘어간다', (tester) async {
     await _pump(tester);
     await _tap(tester, _key('member-login-find-email'));
@@ -371,13 +348,5 @@ void main() {
     // 재설정에서 뒤로 가면 아이디 찾기를 거치지 않고 로그인 화면이다.
     await _tap(tester, find.byType(AppBackButton));
     expect(find.byType(SignInPage), findsOneWidget);
-  });
-
-  testWidgets('영어·좁은 폭에서도 두 입구가 넘치지 않는다', (tester) async {
-    await _pump(tester, locale: const Locale('en'), width: 320);
-
-    expect(tester.takeException(), isNull);
-    expect(_key('member-login-find-email'), findsOneWidget);
-    expect(_key('member-login-forgot-password'), findsOneWidget);
   });
 }

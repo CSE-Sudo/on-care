@@ -46,11 +46,10 @@ void main() {
       (e.response!.data! as Map<String, Object?>)['detail']!
           as Map<String, Object?>;
 
-  Future<Response<Map<String, Object?>>> chat({String? lang}) =>
+  Future<Response<Map<String, Object?>>> chat() =>
       dio.post<Map<String, Object?>>(
         '/ai-coach/chat',
         data: <String, Object?>{'message': '오늘 뭐 먹을까요'},
-        options: Options(headers: <String, Object?>{'Accept-Language': ?lang}),
       );
 
   Future<Response<Map<String, Object?>>> analyze() {
@@ -90,12 +89,6 @@ void main() {
       expect(detailOf(error)['code'], 'ai_capacity');
       expect(await quota(), before);
       expect(await storedMessages(), storedBefore, reason: '대화를 저장하지 않는다');
-    });
-
-    test('영어 화면에는 영어 문구를 싣는다', () async {
-      final DioException error = await refused(chat(lang: 'en'));
-
-      expect(detailOf(error)['message'], contains('high demand'));
     });
 
     test('저장소가 읽는 거절은 대화 한도와 같은 길이다', () async {

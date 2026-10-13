@@ -12,7 +12,6 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
-import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -133,17 +132,6 @@ void main() {
         '체중 감량, 혈압 관리, 무릎 통증',
       );
     });
-  });
-
-  test('모든 건강 목표에 ko·en 문구가 있고 영어에 한글이 없다', () {
-    final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-    expect(kHealthFocusOptions, hasLength(8));
-    for (final String option in kHealthFocusOptions) {
-      expect(healthFocusLabel(ko, option), option);
-      expect(healthFocusLabel(en, option), isNot(matches(RegExp('[가-힣]'))));
-    }
-    expect(healthFocusLabel(en, '무릎 통증'), '무릎 통증');
   });
 
   testWidgets('건강 목표 화면이 관리 초점과 운동 목표를 먼저 보여 준다', (tester) async {

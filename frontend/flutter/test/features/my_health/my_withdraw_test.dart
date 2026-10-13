@@ -112,7 +112,6 @@ Future<(AppLocalizations, _CountingAccountRepository, AppPrefs)> _pumpWithdraw(
   SharedPreferences.setMockInitialValues(<String, Object>{
     'onboarding_done': true,
     'home_guide_done': true,
-    'locale_code': 'ko',
   });
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   final _CountingAccountRepository repository = hasPassword
@@ -320,8 +319,6 @@ void main() {
     expect(repo.lastReauth?.socialToken, isNull);
     expect(prefs.onboardingDone, isFalse);
     expect(prefs.homeGuideDone, isFalse);
-    // 언어는 기기 설정이라 남는다.
-    expect(prefs.localeCode, 'ko');
     expect(find.text('로그인 화면'), findsOneWidget);
   });
 
@@ -606,25 +603,6 @@ void main() {
       await _confirmWithPassword(tester);
       await _settleDeletion(tester);
       expect(repo.deletes, 1);
-    });
-
-    testWidgets('영어 로케일에서도 숫자 줄이 붙는다', (WidgetTester tester) async {
-      final (AppLocalizations l, _, _) = await _pumpWithdraw(
-        tester,
-        locale: const Locale('en'),
-        preview: () async =>
-            const AccountDeletionPreview(points: 300, pendingConsultations: 1),
-      );
-      await _openWithdraw(tester, l);
-      await _reachConfirm(tester);
-
-      final String message = withdrawConfirmMessage(
-        l,
-        const AccountDeletionPreview(points: 300, pendingConsultations: 1),
-      );
-      expect(find.text(message), findsOneWidget);
-      expect(message, contains('300P'));
-      expect(message, contains(l.myWithdrawCancelConsultations(1)));
     });
 
     testWidgets('작은 화면에서도 확인창이 넘치지 않는다', (WidgetTester tester) async {
