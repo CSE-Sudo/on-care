@@ -486,7 +486,7 @@ class DietMenuPlan(Base):
     user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    #: 메뉴 이름·키워드의 언어(`ko`|`en`).
+    #: 메뉴 이름·키워드의 언어. 늘 `ko` 다 — 예전 `en` 행은 읽을 때 다시 만든다.
     lang: Mapped[str] = mapped_column(String(5), default="ko")
     #: `llm` — AI 가 만든 리스트, `rules` — 내장 카탈로그로 채운 리스트.
     source: Mapped[str] = mapped_column(String(10))
@@ -1049,10 +1049,9 @@ class Notification(Base):
     subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # 담당 요청 알림이 가리키는 요청. 과거 알림은 연결 정보가 없다. (#1802)
     invite_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    # 문장 틀 코드와 그 인자(#2302). `title`·`body` 는 만든 순간의 한국어 문장이라
-    # 영어 화면에서도 한국어로 보였다. 틀과 인자를 함께 남기면 읽는 쪽이 자기
-    # 언어로 다시 조립한다(`notification_templates`). 틀이 생기기 전의 알림과
-    # 푸시·옛 앱은 `title`·`body` 를 그대로 쓴다.
+    # 문장 틀 코드와 그 인자(#2302). `title`·`body` 는 만든 순간의 문장이고,
+    # 틀과 인자는 앱이 문장을 직접 조립할 때 쓴다(`notification_templates`).
+    # 틀이 생기기 전의 알림과 푸시·옛 앱은 `title`·`body` 를 그대로 쓴다.
     template: Mapped[str | None] = mapped_column(String(40), nullable=True)
     template_args: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # 알림이 가리키는 날짜(`YYYY-MM-DD`, #2292). 트레이너의 예약·상담 알림이
@@ -2958,7 +2957,7 @@ class CoachFeedbackState(Base):
     """회원별 코칭 시트 피드백의 캐시와 하루 생성 횟수. (#3351)
 
     회원 한 명에 한 행이다. `GET /ai-coach/feedback` 은 호출 한 번에 모델을 최대 두 번
-    부르므로, 만든 카드(`payload_json`)를 잠깐 들고 있다가 같은 날·같은 언어의 다음
+    부르므로, 만든 카드(`payload_json`)를 잠깐 들고 있다가 같은 날의 다음
     요청에 그대로 돌려준다. 식단·운동 기록이 바뀌면 카드를 버리고 `revision` 을 올린다
     — 그 사이에 만들던 응답이 옛 기록으로 캐시를 채우지 못하게 하는 표시다.
 
@@ -2981,7 +2980,7 @@ class CoachFeedbackState(Base):
     revision: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0", default=0
     )
-    #: 카드를 만든 요청 언어(`ko`·`en`). 다른 언어의 요청에는 쓰지 않는다.
+    #: 카드의 언어. 늘 `ko` 다 — 예전 `en` 카드는 쓰지 않고 다시 만든다.
     locale: Mapped[str | None] = mapped_column(String(8), nullable=True)
     #: 식단·운동 카드 목록(JSON). 비어 있으면 버려진 상태다. 인사말은 담지 않는다.
     payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
