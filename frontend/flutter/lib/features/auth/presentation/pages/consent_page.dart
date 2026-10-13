@@ -20,7 +20,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 라우터 가드가 동의가 끝날 때까지 이 화면에 붙든다. 가입 화면과 같은 동의
 /// 묶음을 쓴다.
 ///
-/// 동의하지 않을 길도 둔다 — 로그아웃. 그 밖의 화면으로는 갈 수 없다.
+/// 동의하지 않을 길도 둔다 — 로그아웃과 계정 탈퇴(#3340). 탈퇴는 MY 의 탈퇴
+/// 화면을 그대로 연다. 그 밖의 화면으로는 갈 수 없다.
 class ConsentPage extends ConsumerStatefulWidget {
   const ConsentPage({super.key});
 
@@ -115,6 +116,20 @@ class _ConsentPageState extends ConsumerState<ConsentPage> {
               label: l.myLogout,
               onPressed: _saving ? null : _signOut,
               variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+            ),
+          ),
+          // 동의하지 않는 회원이 계정까지 지울 수 있게 한다(#3340). 소셜 첫
+          // 로그인은 계정이 먼저 생기고 이 화면이 뒤따른다 — 로그아웃만 있으면
+          // 계정이 남는다. 확정은 탈퇴 화면의 확인창에서 한다.
+          Center(
+            child: AppButton(
+              key: const ValueKey<String>('consent-withdraw'),
+              label: l.myWithdrawTitle,
+              onPressed: _saving
+                  ? null
+                  : () => context.push<void>(AppRoutes.withdraw),
+              variant: AppButtonVariant.destructiveText,
               size: OnCareButtonSize.small,
             ),
           ),

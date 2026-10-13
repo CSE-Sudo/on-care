@@ -3512,6 +3512,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send the emote'**
   String get emoteSendFailed;
 
+  /// Toast when the server refuses an emote because the member's unlock ran out (402); the emote shows as locked again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That emote has expired. Buy it again to send it'**
+  String get emoteSendLocked;
+
+  /// No description provided for @emoteSendRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'That emote can\'t be sent'**
+  String get emoteSendRejected;
+
   /// No description provided for @a11yOpenEmotes.
   ///
   /// In en, this message translates to:
@@ -4268,6 +4280,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the photo'**
   String get coachImageUnavailable;
 
+  /// Second line under a chat photo that failed to download; tapping the placeholder fetches it again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to load again'**
+  String get coachImageRetry;
+
   /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In en, this message translates to:
@@ -4310,6 +4328,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send your message. Please try again'**
   String get coachChatSendFailed;
 
+  /// Toast when the server rejects the message content itself (400/422); sending the same text again would fail the same way, so it does not suggest retrying (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That message can\'t be sent. Please check what you wrote'**
+  String get coachChatSendRejected;
+
   /// Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665).
   ///
   /// In en, this message translates to:
@@ -4345,6 +4369,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the photo'**
   String get coachPhotoSendFailed;
+
+  /// Status under a chat photo the server refused (unsupported format etc.); only Delete is offered, not Send again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That photo can\'t be sent'**
+  String get coachPhotoSendRejected;
 
   /// No description provided for @coachPhotoRetry.
   ///
@@ -7877,6 +7907,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send your weekly feedback. Please try again'**
   String get weeklyFeedbackSendFailed;
+
+  /// No description provided for @weeklyFeedbackSendUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer is no longer assigned, so weekly feedback can\'t be sent'**
+  String get weeklyFeedbackSendUnassigned;
+
+  /// No description provided for @weeklyFeedbackSendRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly feedback can\'t be sent for this week'**
+  String get weeklyFeedbackSendRejected;
 
   /// No description provided for @weeklyFeedbackAlreadySent.
   ///
