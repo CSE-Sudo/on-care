@@ -8,6 +8,8 @@ import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
+    show kStrengthMinutesPerSetWithRest;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
@@ -16,6 +18,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds;
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모에서 담당 트레이너 연결이 아직 살아 있는지 묻는다. (#1865)
@@ -453,6 +456,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         completed: true,
         completedMinutes: s.minutes,
         completedDurationSeconds: s.durationSeconds,
+        completedSets: s.sets,
+        completedReps: s.reps,
+        completedHoldSeconds: s.holdSeconds,
+        completedWeight: s.weight,
         completedIntensity: s.intensity.name,
       );
       final String slot = '$day|$routineId';
@@ -579,8 +586,12 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) async {
@@ -612,11 +623,33 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     final DateTime at = target == todayKst()
         ? nowKst()
         : DateTime(target.year, target.month, target.day, 12);
+    // 세트·횟수·중량은 근력에서만 남긴다. 회원이 비운 값은 배정 값이고, 초로
+    // 버틴 운동이면 횟수를 비운다 — 실서버 `complete_assigned_routine` 과 같다.
+    // (#3364)
+    final bool strength =
+        exerciseTypeFromLabel(routine.type) == ExerciseType.strength;
+    final int? doneSets = strength ? sets ?? routine.sets : null;
+    final int? doneHold = strength ? holdSeconds ?? routine.holdSeconds : null;
+    final int? doneReps = strength && doneHold == null
+        ? reps ?? routine.reps
+        : null;
+    final double? doneWeight = strength ? weight ?? routine.weight : null;
+    final int doneMinutes = _completionMinutes(
+      routine,
+      minutes: minutes,
+      sets: doneSets,
+      durationSeconds: seconds,
+    );
     final CoachRoutine completed = routine.copyWith(
       completed: true,
       completedAt: at,
-      completedMinutes: minutes,
-      completedDurationSeconds: seconds,
+      completedMinutes: doneMinutes,
+      // 근력은 세트로 읽는다 — 초를 남기지 않는다(실서버와 같다).
+      completedDurationSeconds: strength ? null : seconds,
+      completedSets: doneSets,
+      completedReps: doneReps,
+      completedHoldSeconds: doneHold,
+      completedWeight: doneWeight,
       completedIntensity: intensity,
     );
     _fixtureUndone.remove(slot);
@@ -624,13 +657,33 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     await _logSession(
       completed,
       slot: slot,
-      minutes: minutes,
-      durationSeconds: seconds,
+      minutes: doneMinutes,
+      durationSeconds: strength ? null : seconds,
       intensity: intensity,
       at: at,
     );
     final PointsAward? award = _awardCompletion(slot);
     return award == null ? completed : completed.copyWith(pointsAward: award);
+  }
+
+  /// 완료 기록의 분 — 실서버 `_completion_minutes` 와 같은 규칙이다. (#3364)
+  ///
+  /// 적어 보낸 분이 있으면 그 값, 없으면 근력은 세트 수 × 세트당 시간
+  /// ([kStrengthMinutesPerSetWithRest], 운동 직접 입력과 같은 환산), 나머지는
+  /// 초에서 환산한 분, 그것도 없으면 배정된 시간이다. 어디서도 얻지 못하면
+  /// 1분이다 — 0분짜리 기록은 한 적 없는 운동과 구분되지 않는다.
+  static int _completionMinutes(
+    CoachRoutine routine, {
+    required int? minutes,
+    required int? sets,
+    required int? durationSeconds,
+  }) {
+    if (minutes != null && minutes > 0) return minutes;
+    if (sets != null && sets > 0) {
+      return math.max(1, (sets * kStrengthMinutesPerSetWithRest).round());
+    }
+    if (durationSeconds != null) return minutesFromSeconds(durationSeconds);
+    return math.max(1, routine.minutes);
   }
 
   /// 완료 적립(#1786). AI 추천이든 트레이너 배정이든 `추천·배정 운동 완료` 한
@@ -705,6 +758,11 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       routineId: routine.id,
       minutes: minutes,
       durationSeconds: durationSeconds,
+      // 회원이 실제로 한 세트·횟수·버틴 시간·중량(#3364) — 근력에만 있다.
+      sets: routine.completedSets,
+      reps: routine.completedReps,
+      holdSeconds: routine.completedHoldSeconds,
+      weight: routine.completedWeight,
       calories: estimateExerciseCalories(type, minutes, intensity: level),
       date: at,
       intensity: level,
