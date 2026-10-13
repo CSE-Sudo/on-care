@@ -26,7 +26,7 @@
   - 경쟁 상황(같은 이메일로 동시에 바꾸기, 같은 회원 담당 복구·수락·연결 코드가 겹침)도 DB 제약 위반을 500 이 아니라
     앞선 조회로 막았을 때와 같은 409 로 돌려준다.
 - **AI 하루 호출 상한(#3032).** 회원 한도(AI 코치 대화·사진 분석) 위에 두 상한을 더 둔다. 둘 다 DB 에서 KST 날짜로 세고
-  (인스턴스 수와 무관), 모델을 **부르기 직전에** 센다 — 키가 없어 모델을 부르지 않는 폴백은 세지 않는다. 문구는 `Accept-Language` 를 따른다.
+  (인스턴스 수와 무관), 모델을 **부르기 직전에** 센다 — 키가 없어 모델을 부르지 않는 폴백은 세지 않는다. 문구는 한국어다.
   - **트레이너 한 계정**(`TRAINER_AI_CALLS_PER_DAY`, 기본 200):
     `POST /trainer/clients/{member_id}/routine-options`·`GET /trainer/clients/{member_id}/report/summary` 의 AI 호출 합.
     넘으면 **429** `detail = { code: "daily_limit", message }` + `Retry-After`(다음 KST 자정까지 초). 분당 한도의 429(`detail` 이
@@ -36,19 +36,10 @@
     (회원·트레이너)와 **사진 분석**만 **503** `detail = { code: "ai_capacity", message }` + `Retry-After` 를 받는다. 이때 회원 하루
     몫·포인트·끼니는 남기지 않는다.
   - 호출 한 번의 출력 토큰은 `LLM_MAX_OUTPUT_TOKENS`(기본 4096) 이하이고, 기능별로 더 작게 묶는다. 잘린 응답은 폴백(사진 분석은 502)이다.
-- **언어(`Accept-Language`, #2297)**: 회원 앱·트레이너 웹은 **모든 요청**에 지금 화면 언어를
-  `Accept-Language: ko` 또는 `Accept-Language: en` 으로 보냅니다(호출부가 직접 넣은 값은 덮지 않음).
-  서버는 `app/core/locale.py` 에서 이 값을 읽어 **`ko` 또는 `en` 하나**로 정합니다.
-  - 주 언어만 봅니다(`en-US` → `en`). 가중치(`q`)가 가장 큰 지원 언어를 고르고, 같으면 먼저 적힌 것.
-    `q=0`·`*`·지원하지 않는 언어·깨진 항목은 건너뜁니다.
-  - 헤더가 없거나 고를 언어가 없으면 **`ko`** — 헤더를 보내지 않는 옛 클라이언트는 지금과 같습니다.
-  - 서비스 코드는 인자 없이 `current_locale()` 을 부르면 됩니다. `RequestLocaleMiddleware` 가
-    요청마다 컨텍스트 변수를 채우고 요청이 끝나면 되돌려, 동시에 도는 요청끼리 섞이지 않습니다
-    (동기 엔드포인트의 스레드풀에서도 같은 값). 요청 밖(배치·스케줄러)에서는 `ko`.
-  - 라우터에서 받으려면 `locale: RequestLocale` 의존성. 두 문장 중 고를 때는
-    `localized("한국어", "English")`.
-  - 지금 이 값을 반영하는 서버 문장은 **전역 500 응답의 `detail`** 뿐입니다. 리포트 요약·조언·
-    라벨·AI 추천·알림은 후속 이슈(#2298~#2302)에서 이 기반 위에 영어를 붙입니다.
+- **언어(#3404)**: **서버 문장은 한국어 하나입니다.** 서버는 `Accept-Language` 를 읽지 않습니다 —
+  헤더가 없든 `ko` 든 `en` 이든 응답은 같습니다. 오류 `detail`·조언·리포트 요약·AI 추천·알림·메일이
+  모두 한국어이고, 모델에 주는 지시문도 한국어 하나입니다. 헤더를 보내는 옛 클라이언트는 그대로
+  동작합니다(CORS 는 계속 허용하고, 값만 쓰지 않습니다).
 - **사용자 id**: **문자열** (`"user-7d4e9a2c5f18"`). 정수 아님.
 - **목록 페이지네이션**: 계속 자라는 목록은 **한 쪽**만 돌려줍니다. 파라미터 없이 부르면
   기본 50건이라 기존 클라이언트는 그대로 동작합니다. 커서 모양은 한 가지입니다 —
@@ -235,9 +226,9 @@
 |---|---|---|
 | GET | `/dashboard/summary` | `{ indicators[], macros, diet_entries(int), exercise_minutes, exercise_cardio_minutes, nutrition_week[], sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable), ai_advice_params }` |
 
-`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 값은 `sodium_over` · `sodium_over_sources` · `exercise_on_track` · `exercise_more` · `exercise_cardio_start` · `exercise_start` 중 하나다.
+`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장과 별개인 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 값은 `sodium_over` · `sodium_over_sources` · `exercise_on_track` · `exercise_more` · `exercise_cardio_start` · `exercise_start` 중 하나다.
 
-`ai_advice_params` 는 그 문장에 끼울 값이다(#2644). 음식 이름이 들어간 나트륨 경고(`sodium_over_sources`)는 `{ "foods": ["라면", "김밥"] }` 처럼 나트륨 상위 급원 음식 이름(최대 두 개)을 싣고, 나머지 키는 빈 객체다. 음식 이름은 회원이 적은 데이터라 번역하지 않고 앱 ARB 의 문장 틀에 그대로 끼운다. 다만 요청 언어가 영어이고 그 음식에 영어 표시 이름(`foods[].display_name`, 영어 화면에서 사진 분석한 기록)이 남아 있으면 그 이름을 싣는다(#3354) — 식단 탭이 같은 음식을 보여 주는 이름과 같다. 표시 이름이 없는 음식은 저장된 이름 그대로다. `sodium_warning` · `exercise_feedback` 문장도 요청 `Accept-Language` 를 따른다.
+`ai_advice_params` 는 그 문장에 끼울 값이다(#2644). 음식 이름이 들어간 나트륨 경고(`sodium_over_sources`)는 `{ "foods": ["라면", "김밥"] }` 처럼 나트륨 상위 급원 음식 이름(최대 두 개)을 싣고, 나머지 키는 빈 객체다. 음식 이름은 회원이 적은 데이터라 저장된 이름(`foods[].name`) 그대로 앱의 문장 틀에 끼운다 — 표시 이름(`display_name`)은 읽지 않는다(#3404). `sodium_warning` · `exercise_feedback` 문장은 한국어다.
 
 운동 되먹임(`exercise_*` 키와 `exercise_feedback`)의 판정은 운동 탭과 같다(#3350). 이번 주 **유산소 분**(`exercise_cardio_minutes`)을 회원의 주간 유산소 목표(`weekly_cardio_minutes`, 없으면 150분)와 견줘, 목표 이상이면 `exercise_on_track`, 못 미치면 `exercise_more` 다. 다른 운동은 했는데 유산소가 0분인 주는 `exercise_cardio_start`(유산소를 권하는 문장)다. 이번 주 기록이 유형과 무관하게 하나도 없을 때만 `exercise_start` 다. 문장에 적는 분 수도 `exercise_cardio_minutes` 이고, `exercise_minutes` 는 유형을 가리지 않은 합계다. 나트륨 경고의 기준도 회원의 `daily_sodium_mg`(없으면 2,000mg)이다.
 
@@ -256,7 +247,7 @@
 | GET | `/diet/days/{date}` | `today` 와 같은 모양으로 그 날짜(`YYYY-MM-DD`) 하루. 형식이 깨지면 422 |
 | GET | `/diet/photos/{photo_id}` | 끼니 사진 바이트(이미지). `entries[].photo_url` 이 이 주소를 가리킨다. **남의 사진은 404** — 주소를 추측해도 열리지 않는다(#699) |
 | GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236). 구간은 끝(`to`, 오늘 이후면 오늘)에서 거슬러 **최대 1100일**(`diet_service.MAX_PERIOD_DAYS`)이고, 더 이른 `from`·첫 기록일은 그 하한으로 잘린다 — 응답 `from_date` 가 실제 시작일이다 (#2833). `from > to` 면 `to` 하루다 |
-| GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
+| GET | `/diet/advice?period=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`. 문장은 한국어다. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다. `meal_type` 이 다섯 값 밖이면 인식 전에 422(#2882). `time_label` 은 아래 "끼니 시각" 규칙으로 정한다(#3354) |
 | POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날·작년 1월 1일 이전은 422(사진 분석과 같은 규칙, #3354). `time_label` 은 아래 "끼니 시각" 규칙으로 정한다. 당류 > 탄수화물인 음식이 있으면 422. 같은 `idempotency_key` 재전송은 처음 끼니를 돌려주고, 같은 키에 끼니·음식·(보냈다면)날짜가 다르면 409 이고 아무것도 바뀌지 않는다(#3095) |
@@ -285,17 +276,17 @@
 `GET /diet/advice` 는 **규칙 한 줄 + 다음 할 일 한 문장**이다(#2251). 수치는 규칙이 계산하고, 두 문장을 합쳐 45자 안이다.
 
 - `analysis`·`action` 은 한국어 문장이고 굵게 보일 곳(메뉴 이름·수치)을 `**` 로 감싼다. `message` 는 두 문장을 이어 `**` 를 뗀 평문으로, 두 문장을 모르는 옛 앱이 읽는다.
-- `analysis_key`·`action_key` 가 있으면 앱이 그 키와 `*_params` 로 자기 언어의 문장을 그린다(운동 조언 `advice_key` 와 같은 방식, #2210). 키가 없으면 받은 문장을 그대로 쓴다 — AI 가 `lang` 으로 만든 문장이다.
+- `analysis_key`·`action_key` 가 있으면 앱이 그 키와 `*_params` 로 문장을 그린다(운동 조언 `advice_key` 와 같은 방식, #2210). 키가 없으면 받은 문장을 그대로 쓴다 — AI 가 만든 한국어 문장이다. 예전의 `lang` 쿼리는 없어졌고, 보내도 무시한다(#3404).
 - `오늘` 의 `analysis_key`: `today_empty`·`today_missing_meal`(시각이 지났는데 비어 있는 아침·점심·저녁이 있다)·`today_sodium_over{sodium_mg}`·`today_calorie_over{kcal}`·`today_protein_left{protein_g}`·`today_balanced{kcal}`.
 - `오늘` 의 `action_key`: `next_meal{slot, menu, keyword}`·`next_snack{menu, keyword}` 는 최근 4주 기록으로 만든 **끼니별 추천 메뉴 리스트**(#2250)에서 오늘 가장 급한 부족·초과를 메우는 메뉴다(`action_source: "plan"`). 그 이유가 충족되면 다른 메뉴로 바뀌고, 최근 3일 안에 추천한 메뉴는 뒤로 미룬다. `keyword`(추천 이유, 예: `저나트륨`)는 문장에 싣지 않고 값으로만 준다. `today_done` 은 저녁까지 적었고 채울 것이 없을 때, `today_log_first` 는 `today_missing_meal` 일 때다 — 이때는 메뉴를 고르지 않고 리스트도 열지 않는다(`action_source: "rules"`).
 - `이번 주` 는 **하루에 한 번** 만들어 그날 내내 같은 조언을 준다(#2253). 경계는 운동 조언과 같다 — 월·화이고 이번 주에 끼니를 기록한 날이 이틀 미만이며 지난주 기록이 있으면 지난주(월~일)를 돌아본다(`scope: last`, `from_date`·`to_date` 도 지난주다). `analysis_key`: `week_empty`·`week_skip_breakfast{scope, days}`·`week_skip_breakfast_snack{scope, days, snack_days}`·`week_focus_sodium|calorie|sugar|protein{scope, days}`·`week_good{scope, days}` — 끼니 습관(아침을 3번 이상 건너뜀) → 집중 목표(가장 많이 넘긴 영양소) → 칭찬 순으로 하나다.
-- `이번 주` 의 `action` 은 AI 가 `lang` 으로 만든 한 문장이다(`action_key` 없음, `action_source: "llm"`). 원인 메뉴를 짚거나 대안을 주고, **수치를 쓰지 않는다**(검사해서 걸러 낸다). AI 가 실패하면 규칙 문장 `tip_breakfast|sodium|calorie|sugar|protein` 을 주고 1시간 뒤 다시 만든다. 칭찬은 `tip_keep`, 기록이 없으면 `week_empty_hint` 로 AI 를 부르지 않는다.
+- `이번 주` 의 `action` 은 AI 가 만든 한 문장이다(`action_key` 없음, `action_source: "llm"`). 원인 메뉴를 짚거나 대안을 주고, **수치를 쓰지 않는다**(검사해서 걸러 낸다). AI 가 실패하면 규칙 문장 `tip_breakfast|sodium|calorie|sugar|protein` 을 주고 1시간 뒤 다시 만든다. 칭찬은 `tip_keep`, 기록이 없으면 `week_empty_hint` 로 AI 를 부르지 않는다.
 - `전체` 는 **최근 4주(28일)** 를 읽고 **한 주(월~일)에 한 번** 만든다(#2254). 그래프의 `전체` 기간(#2079)과는 무관하다. 기록이 7일 미만이면 `all_few_records{days}` + `all_few_hint` 로 AI 를 부르지 않는다. 그 밖의 `analysis_key` 는 `all_slot_sodium{slot, days}`·`all_carb_heavy{pct}`·`all_protein_light{pct}`·`all_protein_trend_up|down{before, after}`·`all_frequent_menu{slot, food, count}`·`all_repeated_foods{food1, food2}` 중 하나이고, 지난주에 말한 종류는 한 번 건너뛴다. 말할 것이 없으면 `all_good{days}` + `tip_keep`. `action` 은 AI 가 쓴 다음 4주의 행동 목표·대안이고(수치 없음), 실패하면 `tip_sodium|carb|protein|keep|swap|variety` 를 주고 1시간 뒤 다시 만든다.
-- 트레이너웹 `GET /trainer/clients/{id}/diet-advice` 는 **트레이너용 `식단 분석`** 이다(#2379). 회원 앱과 같은 기간·같은 판정(오늘 합계, 이번 주 `decide_week`, 전체 최근 4주 `decide_all`)에 원인 음식·끼니를 붙인 서술형 규칙 문장이고 AI 를 부르지 않는다. 문장은 `sentences[{ key, params }]` 로 오고 트레이너 웹이 ARB 로 그린다. `message` 는 그 문장들을 요청 언어(`Accept-Language`)로 이은 평문이다. 키: 오늘 `tr_today_empty|over{nutrient, slot, food, food_value, value, target, ratio}|over_meal|protein_short{value, gap}|protein_chronic{value, gap, avg}|missing{slot}|good{kcal}`, 이번 주 `tr_week_empty|skip_breakfast{scope, logged, days}|skip_breakfast_snack|over{scope, logged, days, nutrient}|cause{weekday, slot, food, food_value, nutrient}|protein_short|good{scope, days}`, 전체 `tr_all_few{days}|slot_sodium{slot, days}|carb_heavy{pct}|protein_light{pct}|protein_trend_up|down{before, after}|frequent{slot, food, count}|repeated{food1, food2}|good{days}` 와 원인 음식 `tr_foods_one|two{food1, count1, food2, count2}`. 음식 이름은 회원이 기록한 말 그대로다. 회원 경로의 `sentences` 는 비어 있다.
+- 트레이너웹 `GET /trainer/clients/{id}/diet-advice` 는 **트레이너용 `식단 분석`** 이다(#2379). 회원 앱과 같은 기간·같은 판정(오늘 합계, 이번 주 `decide_week`, 전체 최근 4주 `decide_all`)에 원인 음식·끼니를 붙인 서술형 규칙 문장이고 AI 를 부르지 않는다. 문장은 `sentences[{ key, params }]` 로 오고 트레이너 웹이 ARB 로 그린다. `message` 는 그 문장들을 이은 한국어 평문이다. 키: 오늘 `tr_today_empty|over{nutrient, slot, food, food_value, value, target, ratio}|over_meal|protein_short{value, gap}|protein_chronic{value, gap, avg}|missing{slot}|good{kcal}`, 이번 주 `tr_week_empty|skip_breakfast{scope, logged, days}|skip_breakfast_snack|over{scope, logged, days, nutrient}|cause{weekday, slot, food, food_value, nutrient}|protein_short|good{scope, days}`, 전체 `tr_all_few{days}|slot_sodium{slot, days}|carb_heavy{pct}|protein_light{pct}|protein_trend_up|down{before, after}|frequent{slot, food, count}|repeated{food1, food2}|good{days}` 와 원인 음식 `tr_foods_one|two{food1, count1, food2, count2}`. 음식 이름은 회원이 기록한 말 그대로다. 회원 경로의 `sentences` 는 비어 있다.
 
 **트레이너 식단 추천(#2378).** 트레이너가 회원의 4주 추천 메뉴 리스트(#2250)에서 AI 후보를 골라 확정하면, 회원 `GET /diet/recommendations` 의 `trainer_pick` 이 되어 홈 `추천 식단` 첫 장에 `트레이너 추천` 으로 뜬다.
 
-- `GET /trainer/clients/{id}/diet-recommendations` → `{ needs[], basis_days, pick?, candidates[] }`. `needs` 는 최근 4주 평균이 목표에서 벗어난 태그(`sodium_low`·`protein_high`·`calorie_low|high`·`sugar_low`)를 급한 순서로 담고, 비면 채울 점이 없어 `candidates` 도 빈다. `candidates[{ slot, name, tag, keyword, kcal, protein_g, sodium_mg, urgent }]` 는 급한 태그의 메뉴부터 끼니 순이며 지금 확정한 메뉴는 뺀다. 저장된 리스트를 읽기만 하므로 조회로 AI 를 부르지 않고, 리스트는 회원 언어 그대로다(없을 때만 요청 언어로 한 번 만든다).
+- `GET /trainer/clients/{id}/diet-recommendations` → `{ needs[], basis_days, pick?, candidates[] }`. `needs` 는 최근 4주 평균이 목표에서 벗어난 태그(`sodium_low`·`protein_high`·`calorie_low|high`·`sugar_low`)를 급한 순서로 담고, 비면 채울 점이 없어 `candidates` 도 빈다. `candidates[{ slot, name, tag, keyword, kcal, protein_g, sodium_mg, urgent }]` 는 급한 태그의 메뉴부터 끼니 순이며 지금 확정한 메뉴는 뺀다. 저장된 리스트를 읽기만 하므로 조회로 AI 를 부르지 않고, 리스트가 없을 때만 한 번 만든다. 리스트는 한국어다 — 예전에 다른 언어로 저장된 리스트는 다음 조회 때 한 번 다시 만든다(#3404).
 - `pick{ slot, name, tag, keyword, status(active|resolved), confirmed_at, resolved_at? }` — 회원이 확정 뒤 기록한 끼니의 음식 이름이 메뉴 이름을 품으면(띄어쓰기·대소문자 무시) 즉시 `resolved` 가 되고 회원 홈에서 내려간다.
 - `PUT /trainer/clients/{id}/diet-recommendations` `{ slot, name }` → 같은 응답. 회원당 한 건이라 다시 부르면 바꾸기다. 지금 리스트에 없는 메뉴는 422.
 - 담당이 아니거나 해제·동의 철회된 회원은 다른 트레이너 경로와 같은 404. 담당을 해제하면 그 트레이너의 추천도 지운다.
@@ -313,7 +304,7 @@
 
 `POST /diet/nutrition` 의 `match` 는 찾은 음식이 **같은 음식**(`exact` — 이름·별칭·양 표기를 뗀 이름·`계란`→`달걀` 표기 변형이 표 이름과 같다)인지, 이름 끝말로 붙은 **비슷한 음식**(`similar` — `야채비빔밥` → `비빔밥`)인지다(#2107). 수정 화면은 이름을 바꾼 음식이 같은 음식에 붙으면 곧바로 그 값으로 채우고, 비슷한 음식이면 제안만 한다. 매칭은 사진 분석 보정과 같은 것이다.
 
-`display_name` 은 화면 언어로 된 표시 이름이다(#2850). `Accept-Language: en` 으로 사진을 분석하면 인식기가 영어 이름을 함께 내고, `name` 은 공공 DB 매칭용이라 **한국어 그대로** 둔다 — 영양 보정은 화면 언어와 상관없이 같다. 같은 요청의 식단평(`analysis.coach_comment`, 저장되는 `ai_comment`)도 영어로 쓴다. 한국어 화면·수기 입력·이 필드 이전 기록에는 키가 없고, 읽는 쪽은 `display_name` 이 있으면 그것을, 없으면 `name` 을 보인다. `PUT` 은 앱이 이름을 바꾸지 않은 음식에만 되돌려 싣는다(바꾼 이름이 회원이 쓴 표시 이름이다). 저장된 식단평은 분석 당시 언어로 남는다.
+`display_name` 은 예전 영어 화면에서 사진을 분석한 기록에 남아 있는 표시 이름이다(#2850). **필드는 그대로 두지만 서버는 더 만들지 않는다(#3404)** — 사진 분석 응답(`analysis.foods[]`)에서는 늘 `null` 이고, 모델이 실어 보내도 읽지 않으며, 새 기록에는 키가 없다. 식단평(`analysis.coach_comment`, 저장되는 `ai_comment`)은 한국어다. 예전 기록에 저장된 값과 `PUT` 으로 클라이언트가 되돌려 보낸 값은 그대로 지킨다. 읽는 쪽은 `name` 을 보이면 된다. 예전에 영어로 저장된 식단평은 저장된 그대로 남는다.
 
 `amount_g` 는 **그 영양이 무엇을 재고 나온 값인가** 다. 공공 DB 는 100g 기준이라 보정이 이 양으로 환산하며, 환산에 실제로 쓴 값(인식기 추정 또는 알려진 1회 섭취량)이 그대로 실린다. 양을 못 얻어 추정치를 그대로 둔 음식과 이 필드 이전 기록은 `null` 이다 — 읽는 쪽이 null 을 견뎌야 한다. 앱은 이 값으로 나머지 여섯 값을 비례 환산한다(#1876).
 
@@ -339,7 +330,7 @@
 | POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개], client_request_id? }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없어요.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다. `client_request_id`(1~64자)는 저장 시도 단위 멱등키다 — 같은 키로 저장한 기록이 남아 있으면 새로 저장·적립하지 않고 처음 응답(`points` 는 그 기록들이 처음 받은 적립의 합)을 다시 돌려주고, 항목 수나 항목 내용(칼로리 제외, `date` 는 보낸 경우만)이 다르면 409 이고 아무것도 바뀌지 않는다. 그 키의 기록이 모두 지워졌으면 처음 보는 키처럼 새로 저장한다. 키가 없으면 매번 새로 저장한다 (#3095) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(**전체 교체**) → 갱신된 항목(`points` 없음). 보낸 항목으로 그 기록을 통째로 바꾼다 — 빠진 선택 칸(`sets`·`reps`·`hold_seconds`·`weight`·`intensity` 등)은 남아 있던 값이 아니라 기본값이 되므로, 고치지 않은 칸도 지금 값을 함께 보낸다. 예외는 `date` 하나다: 주지 않으면 원래 날짜를 그대로 두고, 오늘보다 뒤로 옮기면 422 다 — 원래 날짜가 남는다(#3042). 칼로리는 저장과 같이 서버가 다시 계산한다 (#3251) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
-| GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210) |
+| GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). `message` 는 한국어이고, 앱은 `advice_key`·`advice_params` 로 문장을 직접 그릴 수 있다(#2210) |
 | POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0) 또는 duration_seconds(>0), intensity }` → `{ calories, source, matched_name, isometric }` — 초가 오면 분은 `/exercise/sessions` 와 같은 규칙으로 초에서 접는다 (#2547) |
 
 추천 개인운동(`GET /me/coach/routines`, 트레이너 쪽 `RoutineOut` 도 같다)은 `effect` 를 싣는다 — 운동 이름 아래 서는 효과 한 줄로, 트레이너가 적은 값이거나 비었으면 운동 유형 × 회원 첫 건강 목표 문구표의 값이다. 운동 여럿으로 짠 세션·`기타` 유형은 빈 문자열이다. 규칙은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "추천 개인운동의 효과 한 줄" (#2570)
@@ -667,30 +658,30 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
   는 부를 때마다, `GET /notifications/unread-count` 는 회원마다 5분에 한 번 확인합니다 — 배지는 자주 읽으므로 나머지
   조회는 세기만 합니다. 알림함을 열지 않아도 배지 조회만으로 알림이 생기고, 쿠폰·챌린지마다 한 번뿐입니다.
 
-`action` 은 `{ label, target }` 또는 `null`(읽음 처리만 하는 알림)입니다. `label` 은 요청 언어(`Accept-Language`)이고
+`action` 은 `{ label, target }` 또는 `null`(읽음 처리만 하는 알림)입니다. `label` 은 한국어이고
 `target` 은 회원 앱이 아는 목적지(`dashboard`|`coach_chat`|`exercise`|`diet`|`my_benefits`|`points_shop`|`health_goals`|
 `consultations`)입니다.
 
 - **알림별 목적지 우선(#2690·#3028)**: 알림 행의 `action_target` 이 있으면 그 목적지, 없으면 아래 갈래별 표를 씁니다.
   서버는 `notification_service.queue(action_target=...)` 로 이 칸을 채웁니다 — 갈래(아이콘)는 같은데 갈 곳만 다른 알림에
   씁니다. 허용 목록(`MEMBER_ACTION_TARGETS`) 밖의 값은 저장 전에 거부합니다.
-- **갈래별 액션** (한국어 / 영어 → target)
+- **갈래별 액션**
 
   | category | label | target |
   | --- | --- | --- |
-  | `reminder`·`health_check` | 기록하러 가기 / Log now | `dashboard` |
-  | `achievement` | 대시보드 보기 / View dashboard | `dashboard` |
-  | `coach_chat` | 대화 보기 / View chat | `coach_chat` |
-  | `coach_report` | 리포트 보기 / View report | `coach_chat` |
-  | `routine` | 운동 보기 / View workouts | `exercise` |
-  | `member_schedule` | 일정 보기 / View schedule | `exercise` (#3028) |
-  | `pt_done` | PT 기록 보기 / View PT record | `exercise` (#3027) |
-  | `coach_invite` | 요청 확인 / View request | `exercise` |
-  | `consultation_result` | 트레이너 보기 / View trainer | `exercise` |
-  | `consult_decision` | 상담 요청 보기 / View consultation requests | `consultations` |
-  | `benefits` | 내 혜택 보기 / View my benefits | `my_benefits` |
-  | `points_shop` | 포인트 사용처 보기 / View points shop | `points_shop` |
-  | `health_goals` | 목표 보기 / View goals | `health_goals` |
+  | `reminder`·`health_check` | 기록하러 가기 | `dashboard` |
+  | `achievement` | 대시보드 보기 | `dashboard` |
+  | `coach_chat` | 대화 보기 | `coach_chat` |
+  | `coach_report` | 리포트 보기 | `coach_chat` |
+  | `routine` | 운동 보기 | `exercise` |
+  | `member_schedule` | 일정 보기 | `exercise` (#3028) |
+  | `pt_done` | PT 기록 보기 | `exercise` (#3027) |
+  | `coach_invite` | 요청 확인 | `exercise` |
+  | `consultation_result` | 트레이너 보기 | `exercise` |
+  | `consult_decision` | 상담 요청 보기 | `consultations` |
+  | `benefits` | 내 혜택 보기 | `my_benefits` |
+  | `points_shop` | 포인트 사용처 보기 | `points_shop` |
+  | `health_goals` | 목표 보기 | `health_goals` |
   | `system`·그 밖 | 없음 | — |
 
   `member_schedule`(PT 일정 등록·변경·취소·인계, 담당 해제·트레이너 탈퇴로 취소된 일정)은 예전에 회원 앱에 일정 화면이
@@ -740,32 +731,26 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
   '예약한 PT가 취소됐어요' 알림을 받습니다. 새 회원 알림 kind 는 설정 키이거나 이 집합에
   있어야 합니다.
 
-#### 알림 문장의 언어 (#2302)
+#### 알림 문장과 문장 틀 (#2302, #3404)
 
-알림은 만든 순간의 한국어 문장만 저장해 영어 화면에서도 한국어로 보였습니다. 이제 **문장 틀
-코드와 인자를 함께 저장하고, 읽을 때 요청 언어(`Accept-Language`)로 조립합니다.**
+알림은 **문장(`title`·`body`)과 함께 문장 틀 코드·인자를 저장합니다.** 서버 문장은 한국어 하나이고,
+목록은 `Accept-Language` 와 무관하게 **저장된 문장을 그대로** 줍니다.
 회원 알림(`/notifications`)과 트레이너 알림(`/trainer/notifications`)이 같은 규칙입니다.
 
-- **저장**: `notifications.template`(틀 코드)·`template_args`(JSON 인자)와 함께, `title`·`body` 에는
-  예전과 **같은 한국어 문장**을 계속 적습니다 — 틀을 모르는 옛 앱과 푸시가 이 값을 씁니다.
-  인자에는 언어와 무관한 값(이름·날짜·수량·건강 목표 저장 값)만 담습니다. 회원·트레이너가
-  직접 쓴 글(메시지·반려 사유)은 번역하지 않고 저장된 `body` 를 그대로 씁니다.
-- **응답의 `title`·`body`**: 요청 언어로 조립한 문장입니다. 한국어(헤더 없음 포함)는 저장된
-  문장 **그대로**입니다 — 틀 문구를 나중에 다듬어도 받은 알림은 받은 순간의 문장으로 남습니다.
-  틀이 없는 옛 알림, 서버가 모르는 틀, 인자가 깨진 틀도 저장된 문장입니다(오류가 아닙니다).
-- **응답의 `template`·`args`**: 틀 코드와 인자(없으면 `null`). 트레이너 웹은 이 둘로 ARB 문장을
-  직접 조립하고, 모르는 틀일 때만 `title`·`body` 를 씁니다. 회원 앱은 `title`·`body` 를 그대로
-  그립니다.
-- **`action.label`** 도 요청 언어입니다(저장하지 않고 응답마다 만드는 말). 예: `운동 보기` / `View workouts`.
+- **저장**: `notifications.template`(틀 코드)·`template_args`(JSON 인자)와 함께, `title`·`body` 에
+  한국어 문장을 적습니다 — 푸시와 목록이 이 값을 씁니다. 인자에는 문장과 무관한 값(이름·날짜·수량·
+  건강 목표 저장 값)만 담습니다. 회원·트레이너가 직접 쓴 글(메시지·반려 사유)은 저장된 `body`
+  그대로입니다. 저장 구조(칼럼)와 응답 필드는 예전과 같습니다.
+- **응답의 `title`·`body`**: 저장된 문장 **그대로**입니다 — 틀 문구를 나중에 다듬어도 받은 알림은
+  받은 순간의 문장으로 남습니다. 틀이 없는 옛 알림, 서버가 모르는 틀, 인자가 깨진 틀도 저장된
+  문장입니다(오류가 아닙니다).
+- **응답의 `template`·`args`**: 틀 코드와 인자(없으면 `null`). 앱이 문장을 직접 조립할 때 쓰는
+  재료입니다. 모르는 틀이면 `title`·`body` 를 쓰면 됩니다.
+- **`action.label`** 은 한국어입니다(저장하지 않고 응답마다 만드는 말). 예: `운동 보기`.
 - 틀 목록과 문장은 `app/services/notification_templates.py` 에 있습니다. 트레이너가 받는 틀
   (`trainer_*`)은 트레이너 웹 `trainer_notification_text.dart` 가 같은 코드를 읽습니다.
-- 일정 등록·변경·취소·반복 등록, 포인트 쿠폰 만료 예고·취소, 주간 챌린지 결과도 틀로
-  저장합니다. 일정 종류는 저장 값(`1:1 PT`·`상담`)을 영어로 옮기고, 트레이너가 직접 적은 종류는
-  그대로 둡니다. 쿠폰 혜택 이름은 항목 id 로 영어를 고릅니다.
-- **`time_ago`** 도 요청 언어입니다. 한국어는 예전 그대로(`방금 전`·`5분 전`·`3시간 전`·`2일 전`),
-  영어는 `just now`·`5 min ago`·`1 hour ago`·`3 hours ago`·`1 day ago`·`2 days ago` 입니다.
-  회원 앱은 두 모양을 모두 읽어 자기 로케일 문장으로 옮기고, 트레이너 웹은 받은 값을 그대로
-  그립니다(요청 언어가 곧 화면 언어).
+- 일정 등록·변경·취소·반복 등록, 포인트 쿠폰 만료 예고·취소, 주간 챌린지 결과도 틀로 저장합니다.
+- **`time_ago`** 는 한국어입니다 — `방금 전`·`5분 전`·`3시간 전`·`2일 전`.
 
 #### 담당 요청 알림 (#1802)
 
@@ -845,7 +830,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707). 규칙 기반 판정과 AI 에 싣는 주간 요약의 기준은 회원 목표다 — 나트륨 `daily_sodium_mg`, 운동은 이번 주 유산소 분 대 `weekly_cardio_minutes`. 없을 때만 기본값(2,000mg·150분)(#3350). **회원 전용**(트레이너 계정 403, 토큰 없으면 401). 카드는 회원별로 잠깐 캐시한다(`COACH_FEEDBACK_CACHE_SECONDS`, 기본 1800초) — 같은 날(KST)·같은 언어로 다시 부르면 모델을 부르지 않고, 그 회원의 식단·운동 기록이나 판정 기준인 목표(`daily_sodium_mg`·`weekly_cardio_minutes`)가 바뀌면 캐시를 버린다. 인사말은 캐시하지 않는다. 하루에 카드를 새로 만드는 횟수는 회원별 `COACH_FEEDBACK_PER_DAY`(기본 20)까지이고, 넘으면 **오류가 아니라 200** 으로 규칙 기반 카드를 준다 — 응답 모양은 같다(#3351) |
+| GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 한국어다(#3404). 규칙 기반 판정과 AI 에 싣는 주간 요약의 기준은 회원 목표다 — 나트륨 `daily_sodium_mg`, 운동은 이번 주 유산소 분 대 `weekly_cardio_minutes`. 없을 때만 기본값(2,000mg·150분)(#3350). **회원 전용**(트레이너 계정 403, 토큰 없으면 401). 카드는 회원별로 잠깐 캐시한다(`COACH_FEEDBACK_CACHE_SECONDS`, 기본 1800초) — 같은 날(KST)에 다시 부르면 모델을 부르지 않고, 그 회원의 식단·운동 기록이나 판정 기준인 목표(`daily_sodium_mg`·`weekly_cardio_minutes`)가 바뀌면 캐시를 버린다. 인사말은 캐시하지 않는다. 하루에 카드를 새로 만드는 횟수는 회원별 `COACH_FEEDBACK_PER_DAY`(기본 20)까지이고, 넘으면 **오류가 아니라 200** 으로 규칙 기반 카드를 준다 — 응답 모양은 같다(#3351) |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
 | GET | `/ai-coach/messages` | `{ messages[{ id, role, content, sources, created_at, insight, points_spent, balance_after, client_request_id }] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |
@@ -1169,7 +1154,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   담당 회원 소식(`notify_member_updates`)을 따르고, 꺼 두면 안 읽은 그 주 알림을 고쳐 쓰지도 않습니다(#2420).
 - **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
 - **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`, 사진은 `POST /me/coach/chat/image` — #1665), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832)·건강상태·주의사항 변경(#2619), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
-- **언어**: 제목·본문은 요청 언어로 조립합니다. 트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립합니다 — 규칙은 위 [알림 문장의 언어](#알림-문장의-언어-2302) 와 같습니다. (#2302)
+- **문장**: 제목·본문은 저장된 한국어 문장입니다. `template`·`args` 는 앱이 문장을 직접 조립할 때 쓰는 재료입니다 — 규칙은 위 [알림 문장과 문장 틀](#알림-문장과-문장-틀-2302-3404) 과 같습니다. (#2302, #3404)
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정(#2420)**: 종류마다 `trainer_profiles` 의 칸 하나를 따르고, 꺼 두면 그 종류는 알림함에 새 줄을 만들지 않습니다. 기본값은 모두 켬입니다. 사이드바·대시보드의 안 읽은 메시지 수와 상담 요청 수는 설정과 상관없이 그대로 셉니다.
 
@@ -1207,8 +1192,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 브라우저가 두 헤더를 읽을 수 있게 CORS `Access-Control-Expose-Headers` 에 올려 둡니다.
 - **미읽음 배지(`/trainer/notifications/unread-count`)와 모두 읽음(`/trainer/notifications/read-all`)은
   쪽 나눔과 무관합니다** — 이 트레이너의 알림 전체를 세고 바꿉니다.
-- 다른 쪽의 알림도 필드(`template`·`args`·`target_date`·`subject_id`)와 언어(`Accept-Language`)가
-  첫 쪽과 같습니다.
+- 다른 쪽의 알림도 필드(`template`·`args`·`target_date`·`subject_id`)가 첫 쪽과 같습니다.
 
 ### 트레이너 도메인 / 회원측 코치 미러
 
@@ -1309,7 +1293,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/clients/{member_id}/routine-suggestions` | 후보 `{ name, minutes\|duration_seconds, type, …, evidence?, client_request_id? }` → **201** `RoutineOut`. 회원에게는 아직 안 보인다 |
 | POST | `/trainer/routine-suggestions/{suggestion_id}/approve` | 고칠 칸만 → `RoutineOut` — 승인해 배정. 빈 이름 400, 없음 404, 이미 처리 409 |
 | POST | `/trainer/routine-suggestions/{suggestion_id}/dismiss` | `RoutineOut` — 추천하지 않음. 없음 404, 이미 처리 409 |
-| POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, plan_c, generated_by, findings }` — AI 루틴 A/B/C 후보. `plan_c` 는 지난 PT 흐름상 이번 차례 프로그램(최근 완료 PT 에서 두 번 이상 반복된 프로그램이 둘 이상이면 그중 가장 오래 안 한 것, 순환이 보이지 않으면 가장 최근 PT, 기록이 없으면 전신 기본 프로그램)을 최근 분석에 맞게 고친 안으로, `basis`(차례 근거)·`changes`(바꾼 점) 를 함께 싣고 운동에 `sets`·`reps`·`weight` 가 있을 수 있다. AI 가 C안을 어기면 규칙형 C안으로 채운다(#3282). `findings` 는 서버 규칙이 이번 생성에서 찾은 신호와 반영 방향 목록(`[{ kind: caution\|escalation\|pattern\|sodium\|adherence\|rotation, finding, source, action }]`, 요청 언어, 없으면 `[]`, #3280) — AI·규칙형 어느 쪽이 답해도 같은 규칙으로 채운다. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE`, 트레이너 하루 상한 429 `daily_limit`(서버 전체 상한은 규칙형 후보로 폴백, #3032) |
+| POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, plan_c, generated_by, findings }` — AI 루틴 A/B/C 후보. `plan_c` 는 지난 PT 흐름상 이번 차례 프로그램(최근 완료 PT 에서 두 번 이상 반복된 프로그램이 둘 이상이면 그중 가장 오래 안 한 것, 순환이 보이지 않으면 가장 최근 PT, 기록이 없으면 전신 기본 프로그램)을 최근 분석에 맞게 고친 안으로, `basis`(차례 근거)·`changes`(바꾼 점) 를 함께 싣고 운동에 `sets`·`reps`·`weight` 가 있을 수 있다. AI 가 C안을 어기면 규칙형 C안으로 채운다(#3282). `findings` 는 서버 규칙이 이번 생성에서 찾은 신호와 반영 방향 목록(`[{ kind: caution\|escalation\|pattern\|sodium\|adherence\|rotation, finding, source, action }]`, 한국어, 없으면 `[]`, #3280) — AI·규칙형 어느 쪽이 답해도 같은 규칙으로 채운다. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE`, 트레이너 하루 상한 429 `daily_limit`(서버 전체 상한은 규칙형 후보로 폴백, #3032) |
 | POST | `/trainer/clients/{member_id}/program` | `{ name, sessions[], client_request_id?, delivery_kind?, trainer_message?, start_date?, active_days?, suggestion_ids? }` → **201** `RoutineOut[]` — 다중 세션 프로그램 배정(#709) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 + 날짜·시각(또는 붙일 `session_id`) → **201** `{ routines, session, attached_to_existing, personal_routines }` — 배정과 PT 일정 등록을 한 트랜잭션으로(#1580). `note`(선택)는 그 PT 의 트레이너 피드백 — 새 일정엔 그대로, 붙인 회차엔 기존 피드백 뒤에 줄을 바꿔 이어 붙인다(#2374). 붙일 일정이 모호하면 409 `{ message, candidates }` |
 | GET | `/trainer/programs?member_id=` | `[{ id, name, goal, period, session_count, exercise_count, member_id, updated_at }]` — 프로그램 초안 목록. `member_id` 를 주면 그 회원에게 자동 보관한 것만(#2873) |
@@ -1519,8 +1503,7 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 - 요청은 `multipart/form-data` 다: `pdf`(파일, 필수)·`week_start`(필수)·`message`(글, **필수**)·
   `client_request_id`(선택, 1~64자).
 - `message` 는 앞뒤 공백을 걷어 저장한다. **비었거나 공백뿐이면 422** 이고 아무것도 저장하지 않는다.
-  예전에는 서버가 한국어 기본 문장으로 채웠는데, 서버는 회원의 언어를 몰라 영어로 쓰는 회원에게도
-  한국어가 나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+  예전에는 서버가 기본 문장으로 채웠다 — 회원이 받을 글은 트레이너가 쓰거나 앱이 만든다.
 - 같은 `client_request_id` 재시도는 처음 메시지를 그대로 돌려준다(한 번 전송). 같은 키에 **다른 본문**이면
   **409** 다. 트레이너 웹은 보낼 문구가 바뀌면 새 키를 쓴다(#2773).
 - 담당이 아니거나 해제된 회원은 **404**, PDF 가 아니면 **415**, 용량 초과는 **413**. 요청 본문이
@@ -2024,7 +2007,7 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 | `POST /auth/password-reset/confirm` | `new_password` (#2824) |
 
 **어긋나면 422** 이고, `detail[].type` 에 코드가 실린다. 앱은 문장(`msg`)이 아니라 이 코드로
-자기 로케일의 문구를 고른다. 검사 순서는 빈 값 → 상한 → 약함이다.
+자기 문구를 고른다. 검사 순서는 빈 값 → 상한 → 약함이다.
 
 | `type` | 뜻 | `ctx` |
 |---|---|---|
