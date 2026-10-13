@@ -211,7 +211,6 @@ class ReportPdfGenerator {
   ) => UncontrolledProviderScope(
     container: scope,
     child: reportSheetFrame(
-      locale: const Locale('ko'),
       delegates: AppLocalizations.localizationsDelegates,
       sheet: sheet,
     ),

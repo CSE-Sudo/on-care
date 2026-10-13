@@ -120,6 +120,12 @@ void main() {
     for (final Object? r in file['renderings']! as List<Object?>)
       r! as Map<String, Object?>,
   ];
+  test('공유 사례의 문장은 한국어 하나다 — 영어 칸이 없다 (#3415)', () {
+    for (final Map<String, Object?> r in renderings) {
+      expect(r.keys.toSet(), <String>{'key', 'params', 'ko'});
+    }
+  });
+
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
   for (final Map<String, Object?> r in renderings) {
     test('ARB 가 서버와 같은 문장을 그린다 — ${r['key']}', () {

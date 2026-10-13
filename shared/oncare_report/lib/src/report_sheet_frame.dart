@@ -17,15 +17,15 @@ ThemeData reportSheetTheme() => OnCareTheme.light(
 );
 
 /// 화면 밖 트리가 앱 안에서처럼 그려지도록 로케일·글자 배율·테마를 두른다.
+/// 로케일은 두 앱과 같은 한국어 하나다(#3415).
 ///
 /// [delegates] 는 부르는 앱의 것이다 — 결과지 문구는 이 패키지가 들고 있지만,
 /// `Material` 이 찾는 기본 문구는 앱이 준다.
 Widget reportSheetFrame({
-  required Locale locale,
   required Iterable<LocalizationsDelegate<dynamic>> delegates,
   required Widget sheet,
 }) => Localizations(
-  locale: locale,
+  locale: const Locale('ko'),
   delegates: delegates.toList(growable: false),
   child: MediaQuery(
     // 문서는 사용자의 글자 배율과 상관없이 같은 크기로 나가야 한다.

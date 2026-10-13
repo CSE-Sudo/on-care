@@ -8,12 +8,11 @@ final DemoFixture _fixture = DemoFixture.load();
 final DateTime _now = DateTime(2026, 9, 17, 20);
 final DateTime _thisMonday = DateTime(2026, 9, 14);
 
-ReportSheetInputs _inputs({DateTime? weekStart, String lang = 'ko'}) =>
+ReportSheetInputs _inputs({DateTime? weekStart}) =>
     demoReportSheetInputs(
       fixture: _fixture,
       weekStart: weekStart ?? _thisMonday,
       now: _now,
-      languageCode: lang,
     );
 
 void main() {
@@ -119,12 +118,6 @@ void main() {
       expect(a.note, startsWith('야근이 많아서'));
     });
 
-    test('영어면 답도 영어로 옮긴다', () {
-      final ReportSheetAnswers a = _inputs(lang: 'en').week.answers!;
-      expect(a.painArea, 'Right shoulder');
-      expect(a.note, startsWith('Lots of late nights'));
-    });
-
     test('메모 없이 답만 낸 주와 답이 없는 주도 있다', () {
       final ReportSheetAnswers nine = _inputs(
         weekStart: DateTime(2026, 7, 13),
@@ -143,8 +136,6 @@ void main() {
       for (final DemoReportAnswer a in kDemoReportAnswers) {
         expect(kReportConditionWires, contains(a.condition));
         expect(kReportIntensityWires, contains(a.intensity));
-        expect(a.painArea.isEmpty, a.painAreaEn.isEmpty);
-        expect(a.note.isEmpty, a.noteEn.isEmpty);
       }
     });
   });

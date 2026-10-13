@@ -10,7 +10,7 @@ import 'package:demo_fixture/demo_fixture.dart';
 /// 과 같고, 칸마다 메뉴만 회원에 따라 바꾼다. 김민수(`seed-client-1`)는 회원
 /// 앱 데모와 같은 사람이라 공유 리스트를 그대로 쓴다.
 List<DemoPlanMenu> demoMenuPlanFor(String clientId) {
-  final List<DemoPlanMenu> base = kDemoMenuPlan['ko']!;
+  const List<DemoPlanMenu> base = kDemoMenuPlan;
   final int? n = int.tryParse(clientId.replaceFirst('seed-client-', ''));
   if (n == null || n <= 1) return base;
   return <DemoPlanMenu>[

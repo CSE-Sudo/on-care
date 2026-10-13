@@ -1,335 +1,169 @@
 {
   "_comment": "식단 AI 맞춤 조언 공유 사례(#2255). backend/scripts/gen_diet_advice_cases.py 가 서버 규칙으로 만든다 — 손으로 고치지 말고 스크립트를 다시 돌린다. 서버(test_diet_advice_cases.py)와 데모(diet_advice_test.dart)가 같은 입력에 같은 결과를 내는지, 앱 한국어 ARB 가 서버 문장 틀과 같은지(renderings) 본다.",
-  "demo_plan": {
-    "ko": [
-      {
-        "slot": "breakfast",
-        "name": "그릭요거트 볼",
-        "tag": "protein_high",
-        "keyword": "고단백",
-        "kcal": 220,
-        "protein_g": 18,
-        "sodium_mg": 80
-      },
-      {
-        "slot": "breakfast",
-        "name": "현미 누룽지와 달걀",
-        "tag": "sodium_low",
-        "keyword": "저나트륨",
-        "kcal": 280,
-        "protein_g": 10,
-        "sodium_mg": 150
-      },
-      {
-        "slot": "breakfast",
-        "name": "바나나 오트밀",
-        "tag": "fiber_high",
-        "keyword": "식이섬유",
-        "kcal": 320,
-        "protein_g": 10,
-        "sodium_mg": 60
-      },
-      {
-        "slot": "breakfast",
-        "name": "과일 요거트 스무디",
-        "tag": "calorie_low",
-        "keyword": "가벼운",
-        "kcal": 200,
-        "protein_g": 8,
-        "sodium_mg": 70
-      },
-      {
-        "slot": "breakfast",
-        "name": "요거트와 견과",
-        "tag": "sugar_low",
-        "keyword": "저당",
-        "kcal": 260,
-        "protein_g": 12,
-        "sodium_mg": 60
-      },
-      {
-        "slot": "lunch",
-        "name": "닭가슴살 샐러드",
-        "tag": "protein_high",
-        "keyword": "고단백",
-        "kcal": 380,
-        "protein_g": 32,
-        "sodium_mg": 520
-      },
-      {
-        "slot": "lunch",
-        "name": "두부 스테이크 정식",
-        "tag": "sodium_low",
-        "keyword": "저나트륨",
-        "kcal": 480,
-        "protein_g": 24,
-        "sodium_mg": 600
-      },
-      {
-        "slot": "lunch",
-        "name": "현미 비빔밥",
-        "tag": "fiber_high",
-        "keyword": "식이섬유",
-        "kcal": 550,
-        "protein_g": 18,
-        "sodium_mg": 700
-      },
-      {
-        "slot": "lunch",
-        "name": "닭안심 샐러드 랩",
-        "tag": "calorie_low",
-        "keyword": "가벼운",
-        "kcal": 420,
-        "protein_g": 26,
-        "sodium_mg": 600
-      },
-      {
-        "slot": "lunch",
-        "name": "곤약 채소 비빔밥",
-        "tag": "sugar_low",
-        "keyword": "저당",
-        "kcal": 380,
-        "protein_g": 12,
-        "sodium_mg": 500
-      },
-      {
-        "slot": "dinner",
-        "name": "구운 고등어 정식",
-        "tag": "protein_high",
-        "keyword": "고단백",
-        "kcal": 600,
-        "protein_g": 32,
-        "sodium_mg": 650
-      },
-      {
-        "slot": "dinner",
-        "name": "연두부 채소찜",
-        "tag": "sodium_low",
-        "keyword": "저나트륨",
-        "kcal": 300,
-        "protein_g": 18,
-        "sodium_mg": 350
-      },
-      {
-        "slot": "dinner",
-        "name": "잡곡밥과 나물 반찬",
-        "tag": "fiber_high",
-        "keyword": "식이섬유",
-        "kcal": 480,
-        "protein_g": 14,
-        "sodium_mg": 550
-      },
-      {
-        "slot": "dinner",
-        "name": "두부 닭가슴살볼",
-        "tag": "calorie_low",
-        "keyword": "가벼운",
-        "kcal": 350,
-        "protein_g": 30,
-        "sodium_mg": 450
-      },
-      {
-        "slot": "dinner",
-        "name": "돼지 안심 수육",
-        "tag": "sugar_low",
-        "keyword": "저당",
-        "kcal": 480,
-        "protein_g": 34,
-        "sodium_mg": 400
-      },
-      {
-        "slot": "snack",
-        "name": "그릭요거트",
-        "tag": "protein_high",
-        "keyword": "고단백",
-        "kcal": 120,
-        "protein_g": 10,
-        "sodium_mg": 40
-      },
-      {
-        "slot": "snack",
-        "name": "방울토마토",
-        "tag": "calorie_low",
-        "keyword": "가벼운",
-        "kcal": 30,
-        "protein_g": 1,
-        "sodium_mg": 10
-      },
-      {
-        "slot": "snack",
-        "name": "무가당 두유",
-        "tag": "sugar_low",
-        "keyword": "저당",
-        "kcal": 90,
-        "protein_g": 7,
-        "sodium_mg": 90
-      }
-    ],
-    "en": [
-      {
-        "slot": "breakfast",
-        "name": "Greek yogurt bowl",
-        "tag": "protein_high",
-        "keyword": "High protein",
-        "kcal": 220,
-        "protein_g": 18,
-        "sodium_mg": 80
-      },
-      {
-        "slot": "breakfast",
-        "name": "Brown rice porridge & egg",
-        "tag": "sodium_low",
-        "keyword": "Low sodium",
-        "kcal": 280,
-        "protein_g": 10,
-        "sodium_mg": 150
-      },
-      {
-        "slot": "breakfast",
-        "name": "Banana oatmeal",
-        "tag": "fiber_high",
-        "keyword": "High fiber",
-        "kcal": 320,
-        "protein_g": 10,
-        "sodium_mg": 60
-      },
-      {
-        "slot": "breakfast",
-        "name": "Fruit yogurt smoothie",
-        "tag": "calorie_low",
-        "keyword": "Light",
-        "kcal": 200,
-        "protein_g": 8,
-        "sodium_mg": 70
-      },
-      {
-        "slot": "breakfast",
-        "name": "Plain yogurt & nuts",
-        "tag": "sugar_low",
-        "keyword": "Low sugar",
-        "kcal": 260,
-        "protein_g": 12,
-        "sodium_mg": 60
-      },
-      {
-        "slot": "lunch",
-        "name": "Chicken breast salad",
-        "tag": "protein_high",
-        "keyword": "High protein",
-        "kcal": 380,
-        "protein_g": 32,
-        "sodium_mg": 520
-      },
-      {
-        "slot": "lunch",
-        "name": "Tofu steak set",
-        "tag": "sodium_low",
-        "keyword": "Low sodium",
-        "kcal": 480,
-        "protein_g": 24,
-        "sodium_mg": 600
-      },
-      {
-        "slot": "lunch",
-        "name": "Brown rice bibimbap",
-        "tag": "fiber_high",
-        "keyword": "High fiber",
-        "kcal": 550,
-        "protein_g": 18,
-        "sodium_mg": 700
-      },
-      {
-        "slot": "lunch",
-        "name": "Chicken tender wrap",
-        "tag": "calorie_low",
-        "keyword": "Light",
-        "kcal": 420,
-        "protein_g": 26,
-        "sodium_mg": 600
-      },
-      {
-        "slot": "lunch",
-        "name": "Konjac veggie bibimbap",
-        "tag": "sugar_low",
-        "keyword": "Low sugar",
-        "kcal": 380,
-        "protein_g": 12,
-        "sodium_mg": 500
-      },
-      {
-        "slot": "dinner",
-        "name": "Grilled mackerel set",
-        "tag": "protein_high",
-        "keyword": "High protein",
-        "kcal": 600,
-        "protein_g": 32,
-        "sodium_mg": 650
-      },
-      {
-        "slot": "dinner",
-        "name": "Steamed soft tofu & veggies",
-        "tag": "sodium_low",
-        "keyword": "Low sodium",
-        "kcal": 300,
-        "protein_g": 18,
-        "sodium_mg": 350
-      },
-      {
-        "slot": "dinner",
-        "name": "Multigrain rice & namul",
-        "tag": "fiber_high",
-        "keyword": "High fiber",
-        "kcal": 480,
-        "protein_g": 14,
-        "sodium_mg": 550
-      },
-      {
-        "slot": "dinner",
-        "name": "Chicken tofu patties",
-        "tag": "calorie_low",
-        "keyword": "Light",
-        "kcal": 350,
-        "protein_g": 30,
-        "sodium_mg": 450
-      },
-      {
-        "slot": "dinner",
-        "name": "Boiled pork tenderloin",
-        "tag": "sugar_low",
-        "keyword": "Low sugar",
-        "kcal": 480,
-        "protein_g": 34,
-        "sodium_mg": 400
-      },
-      {
-        "slot": "snack",
-        "name": "Greek yogurt",
-        "tag": "protein_high",
-        "keyword": "High protein",
-        "kcal": 120,
-        "protein_g": 10,
-        "sodium_mg": 40
-      },
-      {
-        "slot": "snack",
-        "name": "Cherry tomatoes",
-        "tag": "calorie_low",
-        "keyword": "Light",
-        "kcal": 30,
-        "protein_g": 1,
-        "sodium_mg": 10
-      },
-      {
-        "slot": "snack",
-        "name": "Unsweetened soy milk",
-        "tag": "sugar_low",
-        "keyword": "Low sugar",
-        "kcal": 90,
-        "protein_g": 7,
-        "sodium_mg": 90
-      }
-    ]
-  },
+  "demo_plan": [
+    {
+      "slot": "breakfast",
+      "name": "그릭요거트 볼",
+      "tag": "protein_high",
+      "keyword": "고단백",
+      "kcal": 220,
+      "protein_g": 18,
+      "sodium_mg": 80
+    },
+    {
+      "slot": "breakfast",
+      "name": "현미 누룽지와 달걀",
+      "tag": "sodium_low",
+      "keyword": "저나트륨",
+      "kcal": 280,
+      "protein_g": 10,
+      "sodium_mg": 150
+    },
+    {
+      "slot": "breakfast",
+      "name": "바나나 오트밀",
+      "tag": "fiber_high",
+      "keyword": "식이섬유",
+      "kcal": 320,
+      "protein_g": 10,
+      "sodium_mg": 60
+    },
+    {
+      "slot": "breakfast",
+      "name": "과일 요거트 스무디",
+      "tag": "calorie_low",
+      "keyword": "가벼운",
+      "kcal": 200,
+      "protein_g": 8,
+      "sodium_mg": 70
+    },
+    {
+      "slot": "breakfast",
+      "name": "요거트와 견과",
+      "tag": "sugar_low",
+      "keyword": "저당",
+      "kcal": 260,
+      "protein_g": 12,
+      "sodium_mg": 60
+    },
+    {
+      "slot": "lunch",
+      "name": "닭가슴살 샐러드",
+      "tag": "protein_high",
+      "keyword": "고단백",
+      "kcal": 380,
+      "protein_g": 32,
+      "sodium_mg": 520
+    },
+    {
+      "slot": "lunch",
+      "name": "두부 스테이크 정식",
+      "tag": "sodium_low",
+      "keyword": "저나트륨",
+      "kcal": 480,
+      "protein_g": 24,
+      "sodium_mg": 600
+    },
+    {
+      "slot": "lunch",
+      "name": "현미 비빔밥",
+      "tag": "fiber_high",
+      "keyword": "식이섬유",
+      "kcal": 550,
+      "protein_g": 18,
+      "sodium_mg": 700
+    },
+    {
+      "slot": "lunch",
+      "name": "닭안심 샐러드 랩",
+      "tag": "calorie_low",
+      "keyword": "가벼운",
+      "kcal": 420,
+      "protein_g": 26,
+      "sodium_mg": 600
+    },
+    {
+      "slot": "lunch",
+      "name": "곤약 채소 비빔밥",
+      "tag": "sugar_low",
+      "keyword": "저당",
+      "kcal": 380,
+      "protein_g": 12,
+      "sodium_mg": 500
+    },
+    {
+      "slot": "dinner",
+      "name": "구운 고등어 정식",
+      "tag": "protein_high",
+      "keyword": "고단백",
+      "kcal": 600,
+      "protein_g": 32,
+      "sodium_mg": 650
+    },
+    {
+      "slot": "dinner",
+      "name": "연두부 채소찜",
+      "tag": "sodium_low",
+      "keyword": "저나트륨",
+      "kcal": 300,
+      "protein_g": 18,
+      "sodium_mg": 350
+    },
+    {
+      "slot": "dinner",
+      "name": "잡곡밥과 나물 반찬",
+      "tag": "fiber_high",
+      "keyword": "식이섬유",
+      "kcal": 480,
+      "protein_g": 14,
+      "sodium_mg": 550
+    },
+    {
+      "slot": "dinner",
+      "name": "두부 닭가슴살볼",
+      "tag": "calorie_low",
+      "keyword": "가벼운",
+      "kcal": 350,
+      "protein_g": 30,
+      "sodium_mg": 450
+    },
+    {
+      "slot": "dinner",
+      "name": "돼지 안심 수육",
+      "tag": "sugar_low",
+      "keyword": "저당",
+      "kcal": 480,
+      "protein_g": 34,
+      "sodium_mg": 400
+    },
+    {
+      "slot": "snack",
+      "name": "그릭요거트",
+      "tag": "protein_high",
+      "keyword": "고단백",
+      "kcal": 120,
+      "protein_g": 10,
+      "sodium_mg": 40
+    },
+    {
+      "slot": "snack",
+      "name": "방울토마토",
+      "tag": "calorie_low",
+      "keyword": "가벼운",
+      "kcal": 30,
+      "protein_g": 1,
+      "sodium_mg": 10
+    },
+    {
+      "slot": "snack",
+      "name": "무가당 두유",
+      "tag": "sugar_low",
+      "keyword": "저당",
+      "kcal": 90,
+      "protein_g": 7,
+      "sodium_mg": 90
+    }
+  ],
   "cases": [
     {
       "name": "today_empty_morning",
@@ -902,64 +736,6 @@
             "keyword": "저나트륨"
           },
           "text": "아침은 **현미 누룽지와 달걀** 어때요?"
-        }
-      }
-    },
-    {
-      "name": "today_english",
-      "period": "today",
-      "now": "2026-09-24T13:00",
-      "targets": {
-        "calories": 2000,
-        "protein_g": 90,
-        "sodium_mg": 2000,
-        "sugar_g": 50
-      },
-      "entries": [
-        {
-          "date": "2026-09-24",
-          "meal_type": "breakfast",
-          "foods": [
-            "밥"
-          ],
-          "kcal": 500,
-          "protein_g": 15,
-          "sodium_mg": 500,
-          "sugar_g": 5,
-          "carbs_g": 60,
-          "fat_g": 15
-        },
-        {
-          "date": "2026-09-24",
-          "meal_type": "lunch",
-          "foods": [
-            "밥"
-          ],
-          "kcal": 500,
-          "protein_g": 20,
-          "sodium_mg": 500,
-          "sugar_g": 5,
-          "carbs_g": 60,
-          "fat_g": 15
-        }
-      ],
-      "lang": "en",
-      "expected": {
-        "analysis": {
-          "key": "today_protein_left",
-          "params": {
-            "protein_g": 55
-          },
-          "text": "단백질 **55g** 더 필요해요."
-        },
-        "action": {
-          "key": "next_meal",
-          "params": {
-            "slot": "dinner",
-            "menu": "Grilled mackerel set",
-            "keyword": "High protein"
-          },
-          "text": "저녁은 **Grilled mackerel set** 어때요?"
         }
       }
     },

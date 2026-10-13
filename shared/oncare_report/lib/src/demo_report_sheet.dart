@@ -42,10 +42,8 @@ class DemoReportAnswer {
     required this.condition,
     required this.intensity,
     this.painArea = '',
-    this.painAreaEn = '',
     this.painDay = 0,
     this.note = '',
-    this.noteEn = '',
   });
 
   /// 0 이면 이번 주, 1 이면 지난 주.
@@ -57,31 +55,30 @@ class DemoReportAnswer {
   /// `too_easy` · `right` · `hard` · `too_hard`.
   final String intensity;
 
-  /// 아픈 곳(한국어·영어).
+  /// 아픈 곳.
   final String painArea;
-  final String painAreaEn;
 
   /// 통증이 있던 요일(0 = 월).
   final int painDay;
 
-  /// 한 줄 메모(한국어·영어).
+  /// 한 줄 메모.
   final String note;
-  final String noteEn;
 
-  /// [weekStart] 주의 답을 [languageCode] 로.
-  ReportSheetAnswersData toAnswers(DateTime weekStart, String languageCode) {
-    final bool en = languageCode == 'en';
-    final String area = en ? painAreaEn : painArea;
-    return ReportSheetAnswersData(
-      conditionWire: condition,
-      intensityWire: intensity,
-      painArea: area,
-      painOn: area.isEmpty
-          ? null
-          : DateTime(weekStart.year, weekStart.month, weekStart.day + painDay),
-      note: en ? noteEn : note,
-    );
-  }
+  /// [weekStart] 주의 답.
+  ReportSheetAnswersData toAnswers(DateTime weekStart) =>
+      ReportSheetAnswersData(
+        conditionWire: condition,
+        intensityWire: intensity,
+        painArea: painArea,
+        painOn: painArea.isEmpty
+            ? null
+            : DateTime(
+                weekStart.year,
+                weekStart.month,
+                weekStart.day + painDay,
+              ),
+        note: note,
+      );
 }
 
 /// 김민수의 주별 답 — 트레이너 웹 시드(`_demoFeedback[1]`)와 같다. 9주 전은
@@ -92,72 +89,56 @@ const List<DemoReportAnswer> kDemoReportAnswers = <DemoReportAnswer>[
     condition: 'ok',
     intensity: 'too_hard',
     painArea: '오른쪽 어깨',
-    painAreaEn: 'Right shoulder',
     painDay: 3,
     note: '야근이 많아서 저녁 운동을 못 갔어요. 벤치 할 때 어깨가 좀 걸리는 느낌이 있습니다.',
-    noteEn:
-        'Lots of late nights, so I missed my evening workouts. My shoulder catches a bit on the bench.',
   ),
   DemoReportAnswer(
     weeksAgo: 1,
     condition: 'good',
     intensity: 'right',
     note: '지난주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
-    noteEn:
-        'I felt better than last week, but I kept missing protein at dinner.',
   ),
   DemoReportAnswer(
     weeksAgo: 2,
     condition: 'tired',
     intensity: 'right',
     note: '회식이 세 번이나 있어서 술이랑 안주를 많이 먹었어요. 운동은 그래도 빠지지 않았어요.',
-    noteEn:
-        'Three team dinners this week, so plenty of drinks and bar food. I still made every workout.',
   ),
   DemoReportAnswer(
     weeksAgo: 3,
     condition: 'good',
     intensity: 'right',
     note: '국물 절반 남기기 해 봤는데 생각보다 어렵지 않았어요.',
-    noteEn: 'I tried leaving half the soup, and it was easier than I expected.',
   ),
   DemoReportAnswer(
     weeksAgo: 4,
     condition: 'ok',
     intensity: 'right',
     note: '구내식당 메뉴가 거의 국이라 나트륨 조절이 힘들었어요.',
-    noteEn:
-        'The cafeteria served soup almost every day, so sodium was hard to control.',
   ),
   DemoReportAnswer(
     weeksAgo: 5,
     condition: 'tired',
     intensity: 'hard',
     note: '야근 때문에 저녁을 늦게 먹어서 기록을 몇 번 빼먹었어요.',
-    noteEn:
-        'Late nights meant late dinners, and I skipped logging a few of them.',
   ),
   DemoReportAnswer(
     weeksAgo: 6,
     condition: 'ok',
     intensity: 'hard',
     note: '기록하는 게 아직 익숙하지 않아서 빠진 날이 있어요.',
-    noteEn: 'Logging still feels new, so I missed a day or two.',
   ),
   DemoReportAnswer(
     weeksAgo: 7,
     condition: 'ok',
     intensity: 'right',
     note: '화·목은 여전히 바빴지만 나머지 날은 계획대로 했어요.',
-    noteEn:
-        'Tuesdays and Thursdays were still busy, but I stuck to the plan on the other days.',
   ),
   DemoReportAnswer(
     weeksAgo: 8,
     condition: 'good',
     intensity: 'too_easy',
     note: '이번 주는 몸이 가벼웠어요. 걷기 시간을 조금 늘려도 될 것 같아요.',
-    noteEn: 'I felt light this week. I think I can walk a little longer.',
   ),
   DemoReportAnswer(weeksAgo: 9, condition: 'tired', intensity: 'right'),
   DemoReportAnswer(
@@ -165,36 +146,31 @@ const List<DemoReportAnswer> kDemoReportAnswers = <DemoReportAnswer>[
     condition: 'good',
     intensity: 'right',
     note: '아침에 혈압을 재 보니 전보다 조금 내려갔어요.',
-    noteEn: 'My morning blood pressure reading came down a little.',
   ),
   DemoReportAnswer(
     weeksAgo: 11,
     condition: 'ok',
     intensity: 'hard',
     painArea: '오른쪽 무릎',
-    painAreaEn: 'Right knee',
     painDay: 3,
     note: '스쿼트 뒤로 계단 내려갈 때 무릎이 살짝 시큰했어요.',
-    noteEn: 'After squats my knee twinged a bit going down stairs.',
   ),
   DemoReportAnswer(
     weeksAgo: 12,
     condition: 'tired',
     intensity: 'too_hard',
     note: '야근이 이어져서 운동 강도가 버거웠어요.',
-    noteEn: 'Back-to-back late nights made the workouts feel too heavy.',
   ),
 ];
 
 /// [weekStart] 주의 김민수 결과지 자료 — 그 주, 직전 네 주, 여덟 주 운동 추이.
 ///
 /// [now] 는 지금 서울 시각이다. 픽스처는 [now] 까지의 날만 날짜를 붙인다 —
-/// 오지 않은 요일은 비어 있다. [languageCode] 는 회원 답을 옮길 언어다.
+/// 오지 않은 요일은 비어 있다.
 ReportSheetInputs demoReportSheetInputs({
   required DemoFixture fixture,
   required DateTime weekStart,
   required DateTime now,
-  String languageCode = 'ko',
 }) {
   final DateTime monday = reportWeekStartOf(weekStart);
   final List<FixtureDay> days = fixture.daysFor(now);
@@ -205,7 +181,6 @@ ReportSheetInputs demoReportSheetInputs({
     weekStart: start,
     thisMonday: thisMonday,
     today: now,
-    languageCode: languageCode,
   );
   return ReportSheetInputs(
     week: week(monday),
@@ -230,7 +205,6 @@ ReportSheetWeekData demoReportSheetWeek({
   required DateTime weekStart,
   required DateTime thisMonday,
   DateTime? today,
-  String languageCode = 'ko',
 }) {
   final DateTime monday = reportWeekStartOf(weekStart);
   final String mondayYmd = _ymd(monday);
@@ -255,10 +229,7 @@ ReportSheetWeekData demoReportSheetWeek({
   for (final DemoReportAnswer a in kDemoReportAnswers) {
     if (a.weeksAgo == back) answer = a;
   }
-  final ReportSheetAnswersData? answers = answer?.toAnswers(
-    monday,
-    languageCode,
-  );
+  final ReportSheetAnswersData? answers = answer?.toAnswers(monday);
   if (byWeekday.isEmpty) {
     // 기록이 하나도 없는 주 — 계열 없이 `미집계` 로 선다.
     return ReportSheetWeekData(

@@ -205,7 +205,7 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
   /// 트레이너 웹 데모가 같은 리스트에서 후보를 낸다. 담당이 없는 데모 회원이면
   /// 홈이 담당을 확인해 그리지 않는다.
   Map<String, Object?> _demoTrainerPick() {
-    final DemoPlanMenu menu = kDemoMenuPlan['ko']!.firstWhere(
+    final DemoPlanMenu menu = kDemoMenuPlan.firstWhere(
       (DemoPlanMenu m) => m.slot == 'dinner' && m.tag == 'protein_high',
     );
     return <String, Object?>{
