@@ -3,15 +3,14 @@
   "short_name": "On-Care",
   "description": "회원·트레이너 연동 식단·운동 관리 서비스",
   "lang": "ko",
-  "id": "/",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "../../",
+  "scope": "../../",
   "display": "standalone",
   "background_color": "#f5f9fc",
   "theme_color": "#f5f9fc",
   "icons": [
-    { "src": "/docs/assets/landing/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/docs/assets/landing/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/docs/assets/landing/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
