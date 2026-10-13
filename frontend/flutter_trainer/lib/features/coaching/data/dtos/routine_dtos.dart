@@ -81,9 +81,8 @@ String routinePlanIntensityLabel(AppLocalizations l, String intensity) =>
       _ => intensity,
     };
 
-/// 트레이너가 이름을 비워 보낸 배정의 기본 이름(한국어). 화면 언어의 이름은
-/// `AppLocalizations.aiCustomRoutineName` 이고, 저장소가 그 값을
-/// [assignRoutineToJson] 의 `fallbackName` 으로 넘긴다. (#2301)
+/// 트레이너가 이름을 비워 보낸 배정의 기본 이름. ARB 의
+/// `aiCustomRoutineName` 과 같은 글이다. (#2301)
 const String kDefaultAiRoutineName = 'AI 맞춤 추천안';
 
 AssignedRoutine assignedRoutineFromJson(Map<String, Object?> json) {
@@ -115,18 +114,16 @@ AssignedRoutine assignedRoutineFromJson(Map<String, Object?> json) {
 /// [clientRequestId] 는 전송 시도의 멱등키다. 넣어 보내면 같은 키의 재요청이
 /// 새 배정을 만들지 않는다(#581). 생략하면 서버는 기존처럼 매번 새로 배정한다.
 ///
-/// [fallbackName] 은 이름이 비었을 때 쓰는 이름이다. 회원에게 그대로 보이므로
-/// 보내는 트레이너의 화면 언어로 넘긴다(#2301). 생략하면 한국어다.
+/// 이름이 비었으면 [kDefaultAiRoutineName] 을 싣는다 — 회원에게 그대로 보인다.
 Map<String, Object?> assignRoutineToJson(
   AssignedRoutine r, {
   String? clientRequestId,
-  String fallbackName = kDefaultAiRoutineName,
 }) {
   final String type = normaliseRoutineType(r.type);
   final bool strength = type == '근력';
   return <String, Object?>{
     'name': r.name.trim().isEmpty
-        ? _truncate(fallbackName, 100)
+        ? _truncate(kDefaultAiRoutineName, 100)
         : _truncate(r.name.trim(), 100),
     'minutes': r.minutes.clamp(0, 600),
     // 시·분·초로 적은 시간(#2547). 서버는 초가 있으면 초를 기준으로 분을

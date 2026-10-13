@@ -8,8 +8,6 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/seed_data.dart'
-    show seedLanguageKey;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_chat_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/chat_thread_paging.dart';
@@ -448,40 +446,30 @@ class DemoRepliesChatRepository extends DriftChatRepository {
     _scheduleReply(clientId);
   }
 
-  /// 돌아가며 쓰는 답 — (한국어, 영어). 데모 내용 언어를 따른다.
-  static const List<(String, String)> _replies = <(String, String)>[
-    ('네, 확인했어요! 오늘 해 볼게요 💪', "Got it! I'll give it a try today 💪"),
-    (
-      '알겠습니다 🙂 해 보고 다시 말씀드릴게요',
-      "Okay 🙂 I'll try it and let you know how it goes",
-    ),
-    ('감사합니다! 다음 PT 때 뵐게요', 'Thank you! See you at the next PT'),
+  /// 돌아가며 쓰는 답.
+  static const List<String> _replies = <String>[
+    '네, 확인했어요! 오늘 해 볼게요 💪',
+    '알겠습니다 🙂 해 보고 다시 말씀드릴게요',
+    '감사합니다! 다음 PT 때 뵐게요',
   ];
 
   int _replySeq = 0;
   final Set<Timer> _replyTimers = <Timer>{};
 
   void _scheduleReply(String clientId) {
-    final (String ko, String en) = _replies[_replySeq++ % _replies.length];
+    final String text = _replies[_replySeq++ % _replies.length];
     late final Timer timer;
     timer = Timer(replyDelay, () {
       _replyTimers.remove(timer);
-      unawaited(_reply(clientId, ko: ko, en: en));
+      unawaited(_reply(clientId, text));
     });
     _replyTimers.add(timer);
   }
 
-  Future<void> _reply(
-    String clientId, {
-    required String ko,
-    required String en,
-  }) async {
+  Future<void> _reply(String clientId, String text) async {
     try {
       // 기다리는 사이 담당을 종료했으면 답할 회원이 없다.
       if (demoUnregisteredClientIdsSnapshot(_db).contains(clientId)) return;
-      final String text = await _db.readValue(seedLanguageKey) == 'en'
-          ? en
-          : ko;
       final now = nowKst();
       await _db.transaction(() async {
         await _db

@@ -9,7 +9,6 @@ import 'package:oncare_report/oncare_report.dart'
         sugarLimitG;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
-import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount;
@@ -24,9 +23,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 export 'package:oncare_report/oncare_report.dart'
     show calorieTolerance, recordedMean, sugarLimitG;
 export 'package:oncare_trainer/core/utils/korean_josa.dart'
-    show hasFinalConsonant;
-export 'package:oncare_trainer/core/utils/korean_josa_l10n.dart'
-    show withParticle;
+    show hasFinalConsonant, withJosa;
 
 /// Monday of the week containing [day], stripped to a date.
 ///
@@ -640,7 +637,7 @@ List<String> _workoutSentences(AppLocalizations l, WeeklyReport report) {
   }
   final skipped = _skippedNames(report);
   if (skipped.isNotEmpty) {
-    workout.add(l.reportBodySkipped(_topicParticle(l, skipped.join(', '))));
+    workout.add(l.reportBodySkipped(withTopicJosa(skipped.join(', '))));
   }
   // PT 한 줄만 남았으면 운동 문단이라 할 것이 없다.
   return hasWorkoutData ? workout : const <String>[];
@@ -733,7 +730,7 @@ String? _memberFeedbackSentence(
 ) {
   if (feedback == null) return null;
   if (feedback.hasPain) {
-    return l.reportBodyMemberPain(withParticle(l, feedback.painArea, '이', '가'));
+    return l.reportBodyMemberPain(withJosa(feedback.painArea, '이', '가'));
   }
   return switch (feedback.intensity) {
     WeekIntensity.tooHard => l.reportBodyMemberTooHard,
@@ -822,8 +819,8 @@ String exerciseBaseName(String line) {
   var name = line.replaceAll('✗', '').replaceAll('✓', '').trim();
   final cut = name.indexOf('·');
   if (cut > 0) name = name.substring(0, cut).trim();
-  // 영어 분량(`30 min`, `12 reps`)도 뗀다 — 영어 리포트에서 같은 운동이
-  // 분량마다 다른 운동으로 세어지지 않게(#2885).
+  // 영어로 적힌 분량(`30 min`, `12 reps`)도 뗀다 — 같은 운동이 분량마다
+  // 다른 운동으로 세어지지 않게(#2885).
   final RegExp amount = RegExp(
     r'\s*\d+(?:\.\d+)?\s*(?:분|초|kg|km|회|세트|mins?|secs?|reps?|sets?)$',
     caseSensitive: false,
@@ -833,7 +830,3 @@ String exerciseBaseName(String line) {
   }
   return name;
 }
-
-/// `은`/`는` 을 받침에 맞춰 붙인다. 규칙은 [withTopicJosa] 에 있다.
-String _topicParticle(AppLocalizations l, String word) =>
-    withParticle(l, word, '은', '는');

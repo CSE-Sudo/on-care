@@ -154,11 +154,10 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
   }
 
   /// 실패를 화면 문구로 옮긴다. 서버가 이유를 문장으로 준 경우에는 그 문장이
-  /// 트레이너가 다음에 할 일을 정한다(한국어 로케일에서만 — 영어 화면에
-  /// 한국어가 새지 않게 한다).
+  /// 트레이너가 다음에 할 일을 정한다.
   String _messageFor(AppLocalizations l, Object error) => switch (error) {
     NotFoundError() => l.clientConnectCodeInvalid,
-    // 타입으로 받은 사유는 로케일 문구로 — 한국어 문장이 새지 않는다(#2893).
+    // 타입으로 받은 사유는 화면 문구로 옮긴다(#2893).
     AlreadyManagedError() => l.clientConnectAlreadyManaged,
     AppError() => appErrorMessage(l, error, fallback: l.clientInviteFailed),
     _ => l.clientInviteFailed,

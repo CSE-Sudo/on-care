@@ -12,9 +12,7 @@ import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_r
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// Assigns a routine to a member and reads their assigned routines.
 ///
@@ -414,13 +412,7 @@ final trainerRoutineRepositoryProvider = Provider<TrainerRoutineRepository>((
     ref.onDispose(demo.dispose);
     return demo;
   }
-  return DioTrainerRoutineRepository(
-    ref.watch(dioProvider),
-    // 이름 없는 배정은 회원에게 그대로 보인다 — 보내는 순간의 화면 언어로(#2301).
-    fallbackName: () => lookupAppLocalizations(
-      ref.read(trainerResolvedLocaleProvider),
-    ).aiCustomRoutineName,
-  );
+  return DioTrainerRoutineRepository(ref.watch(dioProvider));
 }, name: 'trainerRoutineRepository');
 
 /// Streams the routines currently assigned to a member (newest first).

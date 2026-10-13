@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' show Locale;
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
@@ -43,7 +42,6 @@ import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Reads a trainer's clients + their diet/history for the 고객 관리 tab.
@@ -114,22 +112,19 @@ abstract interface class ClientRepository {
   /// 회원 앱 조언과 **같은 기간·같은 판정**이다(이번 주는 월·화 지난주 회고,
   /// 전체는 최근 4주). 같은 회원의 같은 기간을 두 화면이 다른 기준으로 말하면
   /// 상담에서 둘이 다른 이야기를 들고 앉는다. 문장은 키·값으로 오고 화면이 ARB 로
-  /// 그린다. 실서버는 [locale] 을 `Accept-Language` 로 보낸다(#2299) — 문장 키는
-  /// 언어와 무관하다.
+  /// 그린다.
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  });
+    ClientPeriod period,
+  );
 
   /// 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2378, #2379)
   ///
   /// 후보는 회원의 4주 추천 메뉴 리스트에서 급한 태그를 채우는 메뉴부터다. 조회로
   /// AI 를 새로 부르지 않는다.
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  });
+    String clientId,
+  );
 
   /// 후보 하나를 회원에게 추천한다 — 회원 앱 홈 `추천 식단` 첫 장이 된다. 다시
   /// 부르면 바꾸기다. 돌려주는 것은 확정 뒤의 상태다.
@@ -137,7 +132,6 @@ abstract interface class ClientRepository {
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   });
 
   Future<ClientDietPeriod> fetchDietPeriod(
@@ -877,9 +871,8 @@ class DriftClientRepository implements ClientRepository {
   @override
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) async {
+    ClientPeriod period,
+  ) async {
     // 데모는 서버 규칙(`diet_trainer_analysis`)을 옮긴 [todaySentences]·
     // [weekSentences]·[allSentences] 로 로컬 기록을 읽는다(#2379). 고정 문장을
     // 돌려주면 어느 고객을 열어도 같은 말을 해서 기간을 바꿔도 분석이 따라 바뀌는지
@@ -1014,9 +1007,8 @@ class DriftClientRepository implements ClientRepository {
 
   @override
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  }) async {
+    String clientId,
+  ) async {
     // 데모 후보는 회원별 4주 추천 메뉴 리스트([demoMenuPlanFor])다(#2667) — 실서버가
     // 회원마다 리스트를 따로 두는 것과 같다. 김민수는 회원 앱 데모가 다음 식사를
     // 고르는 공유 리스트([kDemoMenuPlan]) 그대로라, 두 앱이 같은 메뉴를 말한다.
@@ -1032,10 +1024,7 @@ class DriftClientRepository implements ClientRepository {
     );
     final List<String> needs = _needsOf(recent, targets);
     final ClientDietPick? pick = await _demoPick(clientId, recent);
-    final List<DemoPlanMenu> plan = demoMenuPlanFor(
-      clientId,
-      locale.languageCode,
-    );
+    final List<DemoPlanMenu> plan = demoMenuPlanFor(clientId);
     final Set<String> days = <String>{
       for (final DietRuleEntry e in recent) e.date,
     };
@@ -1094,12 +1083,8 @@ class DriftClientRepository implements ClientRepository {
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   }) async {
-    final List<DemoPlanMenu> plan = demoMenuPlanFor(
-      clientId,
-      locale.languageCode,
-    );
+    final List<DemoPlanMenu> plan = demoMenuPlanFor(clientId);
     final DemoPlanMenu? menu = plan
         .where(
           (DemoPlanMenu m) => m.slot == slot && _norm(m.name) == _norm(name),
@@ -1118,7 +1103,7 @@ class DriftClientRepository implements ClientRepository {
         'confirmed_at': nowKst().toIso8601String(),
       }),
     );
-    return fetchDietRecommendations(clientId, locale: locale);
+    return fetchDietRecommendations(clientId);
   }
 
   /// 데모 트레이너가 확정해 둔 추천. 확정한 날부터 그 메뉴를 기록했으면 해소다 —
@@ -1687,11 +1672,9 @@ void refreshClientDietInsights(WidgetRef ref) {
 final clientDietAdviceProvider = FutureProvider.autoDispose
     .family<ClientDietAnalysis, ClientDietAdviceKey>((ref, key) async {
       keepAliveForAccount(ref);
-      // 화면 언어가 바뀌면 다시 읽는다 — 조언 문장이 그 언어로 온다(#2299).
-      final Locale locale = ref.watch(trainerResolvedLocaleProvider);
       return ref
           .watch(clientRepositoryProvider)
-          .fetchDietAdvice(key.clientId, key.period, locale: locale);
+          .fetchDietAdvice(key.clientId, key.period);
     });
 
 /// 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2379)
@@ -1704,10 +1687,9 @@ final clientDietRecommendationsProvider = FutureProvider.autoDispose
       key,
     ) async {
       keepAliveForAccount(ref);
-      final Locale locale = ref.watch(trainerResolvedLocaleProvider);
       return ref
           .watch(clientRepositoryProvider)
-          .fetchDietRecommendations(key.clientId, locale: locale);
+          .fetchDietRecommendations(key.clientId);
     });
 
 /// 추천 확정 — 저장한 뒤 후보·상태를 다시 읽는다. 실패는 호출한 쪽으로 던진다.
@@ -1716,14 +1698,12 @@ Future<void> confirmClientDietRecommendation(
   String clientId,
   ClientDietCandidate candidate,
 ) async {
-  final Locale locale = ref.read(trainerResolvedLocaleProvider);
   await ref
       .read(clientRepositoryProvider)
       .confirmDietRecommendation(
         clientId,
         slot: candidate.slot,
         name: candidate.name,
-        locale: locale,
       );
   ref.invalidate(
     clientDietRecommendationsProvider(clientDietRecommendationsKey(clientId)),

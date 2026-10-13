@@ -42,8 +42,7 @@ const String _kFont = 'Pretendard';
 /// 한 쪽에서 멈추고 말줄임으로 끝난다. 회원에게 아무것도 못 보내는 것보다
 /// 그래프 없는 리포트가 낫다.
 ///
-/// 문구는 전부 [AppLocalizations] 에서 온다. 이 PDF 는 회원이 실제로 받아 보는
-/// 산출물이라, 화면은 영어인데 문서만 한국어로 나가면 안 된다(#964).
+/// 문구는 전부 [AppLocalizations] 에서 온다(#964).
 class ReportPdfGenerator {
   /// Creates the generator.
   ///
@@ -212,7 +211,7 @@ class ReportPdfGenerator {
   ) => UncontrolledProviderScope(
     container: scope,
     child: reportSheetFrame(
-      locale: Locale(l.localeName),
+      locale: const Locale('ko'),
       delegates: AppLocalizations.localizationsDelegates,
       sheet: sheet,
     ),
