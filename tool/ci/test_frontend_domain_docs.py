@@ -1,7 +1,7 @@
 """프론트 배포 문서의 데모·운영 도메인 모델 검사(#3021).
 
-데모(GitHub Pages)와 운영(CloudFront)은 서로 다른 도메인이다. 데모 도메인(CNAME)은 사람이
-주기적으로 갱신해야 살아 있는 무료 DNS 라 운영 도메인·운영 인증서의 근거가 될 수 없다(#2000).
+데모(GitHub Pages)와 운영(CloudFront)은 서로 다른 도메인이다. 데모는 커스텀 도메인 없이 GitHub 이
+소유한 Pages 기본 주소를 쓰므로(#2000) 운영 도메인·운영 인증서의 근거가 될 수 없다.
 예전 문서에는 그 데모 도메인으로 ACM 인증서를 발급해 CloudFront 로 옮기고 Pages 배포를
 중단하라는 절차가 현행 계획처럼 남아 있었다. 같은 서술이 다시 들어오지 않게 막는다.
 
@@ -19,7 +19,8 @@ DOCS = (
     REPO_ROOT / "docs" / "frontend_deployment.md",
     REPO_ROOT / "docs" / "aws-frontend-deployment.md",
 )
-DEMO_DOMAIN = (REPO_ROOT / "CNAME").read_text(encoding="utf-8").strip()
+# 데모 Pages 주소의 호스트. 저장소에 CNAME 을 두지 않는다(#2000).
+DEMO_DOMAIN = "cse-sudo.github.io"
 
 # 데모 도메인과 한 줄에 함께 나오면 "데모 도메인을 운영으로 옮긴다"는 서술로 본다.
 OPERATIONAL_WORDS = re.compile(r"ACM|인증서|certificate|CloudFront\s*로|alternate|대체 도메인|Aliases",

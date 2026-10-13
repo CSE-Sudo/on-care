@@ -33,7 +33,7 @@ flutter run -d chrome \
 
 # Web (배포본과 같은 경로로 로컬 확인 — 배포 인자는 docs/frontend_deployment.md)
 flutter build web --release \
-  --base-href "/frontend/" \
+  --base-href "/member/" \
   --dart-define=KAKAO_JS_KEY=<카카오 JavaScript 키> \
   --dart-define=DEMO_BUILD=true   # 목업 릴리스 빌드는 데모 표시가 있어야 뜬다(#3022)
 
@@ -63,8 +63,8 @@ flutter build ios --release --dart-define-from-file=config/release.json  # Xcode
 워크플로는 저장소 **루트** `.github/workflows/` 에 있습니다.
 
 - **`user-app-ci.yml`** — 회원 앱을 건드린 PR·푸시에서 `flutter analyze`·`flutter test`. 웹 빌드는 하지 않습니다.
-- **`deploy.yml`** — `main` 푸시 / `workflow_dispatch` 시 회원 앱(`--base-href "/frontend/"`)·트레이너 웹(`/trainer/`)을
-  빌드해 소개 페이지(`index.html`)와 함께 GitHub Pages 에 배포 → `https://ewhasudo.zapto.org/frontend/`
+- **`deploy.yml`** — `main` 푸시 / `workflow_dispatch` 시 회원 앱(`--base-href "/on-care/member/"`)·트레이너 웹(`/on-care/trainer/`)을
+  빌드해 소개 페이지(`index.html`)와 함께 GitHub Pages 에 배포 → `https://cse-sudo.github.io/on-care/member/`
 - **`aws-frontend-deploy.yml`** — 저장소 변수 `AWS_FRONTEND_DEPLOY_ENABLED=true` 일 때만 같은 빌드를 S3 + CloudFront 로 배포
 
 배포 빌드가 넘기는 인자(카카오 지도 키, 목 데이터·실서버 전환)와 실서버 전환 절차는

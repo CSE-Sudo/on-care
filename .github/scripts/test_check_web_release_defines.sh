@@ -26,7 +26,7 @@ expect() {
 
 # 운영 웹 빌드가 실제로 넘기는 모양(aws-frontend-deploy.yml).
 GOOD=(
-  --release --base-href "/frontend/"
+  --release --base-href "/member/"
   --dart-define=RELEASE_SHA=abc123
   --dart-define=KAKAO_JS_KEY=
   --dart-define=USE_MOCK_API=false

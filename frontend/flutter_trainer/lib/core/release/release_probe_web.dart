@@ -36,7 +36,7 @@ class _BrowserReleaseProbe implements ReleaseProbe {
   const _BrowserReleaseProbe();
 
   /// 앱 경로(`/trainer/clients/12` 등)가 아니라 `<base href>` 기준으로 찾는다 —
-  /// 두 앱은 각자 폴더(`/frontend/`·`/trainer/`)에 자기 version.txt 를 둔다.
+  /// 두 앱은 각자 폴더(`/member/`·`/trainer/`)에 자기 version.txt 를 둔다.
   Uri get _base => Uri.parse(web.document.baseURI);
 
   @override

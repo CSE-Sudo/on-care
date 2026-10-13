@@ -11,9 +11,9 @@ import 'package:oncare/features/auth/presentation/controllers/session_controller
 /// 모양(#3033). 앱은 해시 URL 전략이라 브라우저가 `#` 뒤를 라우터 위치로 넘긴다 — 그 위치가
 /// 재설정 경로이고 `token` 이 그대로 읽혀야 한다. 서버 형식을 바꾸면 이 표도 같이 바꾼다.
 const List<String> _mailLinks = <String>[
-  'https://oncare.example/frontend/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS',
-  'https://oncare.example/frontend/?ref=mail#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS',
-  'https://oncare.example/frontend/#/auth/password-reset?lang=ko&token=ABCD-EFGH-JKMN-PQRS',
+  'https://oncare.example/member/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS',
+  'https://oncare.example/member/?ref=mail#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS',
+  'https://oncare.example/member/#/auth/password-reset?lang=ko&token=ABCD-EFGH-JKMN-PQRS',
 ];
 
 /// 브라우저가 해시 URL 전략 앱에 넘기는 라우터 위치(`#` 뒤).
