@@ -22,12 +22,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  /// 첫 설정과 홈 가이드를 모두 끝낸 기기. 언어도 골라 두었다.
+  /// 첫 설정과 홈 가이드를 모두 끝낸 기기.
   Future<SharedPreferences> seenDevice() async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'onboarding_done': true,
       'home_guide_done': true,
-      'locale_code': 'ko',
     });
     return SharedPreferences.getInstance();
   }
@@ -89,7 +88,7 @@ void main() {
       expect(prefs.onboardingDone, isFalse);
     });
 
-    test('홈 가이드 기록과 언어는 건드리지 않는다', () async {
+    test('로그아웃은 홈 가이드 기록도 지운다 (#3154)', () async {
       final (ProviderContainer container, AppPrefs prefs) = await start(
         statusByPath: <String, int>{},
       );
@@ -101,8 +100,9 @@ void main() {
 
       await container.read(sessionControllerProvider.notifier).signOut();
 
-      expect(prefs.homeGuideDone, isTrue);
-      expect(prefs.localeCode, 'ko');
+      // 다음에 들어올 계정이 같은 사람이라는 보장이 없다 — 첫 사용 안내를
+      // 앞 계정 기록 때문에 건너뛰지 않게 한다.
+      expect(prefs.homeGuideDone, isFalse);
     });
 
     test('데모 진입은 계정이 아니라 기록을 건드리지 않는다', () async {

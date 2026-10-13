@@ -539,10 +539,10 @@ void main() {
     testWidgets('김민수 데모 시드에 리포트 등록 카드가 있다 (#1605)', (tester) async {
       await openMessages(tester);
 
-      expect(find.text('리포트가 등록되었어요'), findsOneWidget);
+      expect(find.text('주간 리포트를 보냈어요'), findsOneWidget);
       expect(find.text('리포트 탭으로 가기'), findsOneWidget);
       // 카드로 그리므로 본문은 말풍선으로 나타나지 않는다.
-      expect(find.text('이번 주 리포트 등록해 뒀어요. 확인해 보세요'), findsNothing);
+      expect(find.text('이번 주 리포트 보내 드렸어요. 확인해 보세요'), findsNothing);
     });
 
     testWidgets('리포트 전송 메시지는 일반 말풍선이 아니라 카드로 뜨고, 누르면 리포트로 이동한다 (#1378)', (
@@ -559,7 +559,7 @@ void main() {
           .read(chatRepositoryProvider)
           .sendTrainerMessage(
             clientId: 'seed-client-1',
-            text: '김민수님, 8월 18일 – 8월 24일 주간 리포트 정리해서 보내드려요.',
+            text: '김민수님, 8월 18일 ~ 8월 24일 주간 리포트 정리해서 보내드려요.',
             reportWeekStart: DateTime(2026, 8, 18),
           );
       await settle(tester);
@@ -568,14 +568,14 @@ void main() {
       // 주로 갈라 짚는다 — 시드가 가리키는 주는 언제나 이번 주라, 지나간
       // 이 주와 겹치지 않는다.
       final card = find.ancestor(
-        of: find.text('8월 18일 – 8월 24일'),
+        of: find.text('8월 18일 ~ 8월 24일'),
         matching: find.byType(ReportRegisteredCard),
       );
       expect(card, findsOneWidget);
       // 회원 앱과 같은 정보 구조 — 상태 문구, 대상 주, 다음 행동.
       final notice = find.descendant(
         of: card,
-        matching: find.text('리포트가 등록되었어요'),
+        matching: find.text('주간 리포트를 보냈어요'),
       );
       final goToReports = find.descendant(
         of: card,
@@ -585,7 +585,7 @@ void main() {
       expect(goToReports, findsOneWidget);
       // 본문 그대로의 일반 말풍선은 그려지지 않는다.
       expect(
-        find.text('김민수님, 8월 18일 – 8월 24일 주간 리포트 정리해서 보내드려요.'),
+        find.text('김민수님, 8월 18일 ~ 8월 24일 주간 리포트 정리해서 보내드려요.'),
         findsNothing,
       );
 
@@ -708,7 +708,7 @@ void main() {
         await tester.pump();
         await tester.pump();
         expect(tester.takeException(), isNull);
-        expect(find.text('메시지 전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+        expect(find.text('메시지를 보내지 못했어요. 다시 시도해 주세요'), findsNothing);
       },
     );
 

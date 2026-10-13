@@ -135,7 +135,7 @@ void main() {
       );
       expect(
         AccountReauthRejected.fromResponse(409, <String, Object?>{
-          'detail': '이미 사용 중인 이메일입니다.',
+          'detail': '이미 사용 중인 이메일이에요.',
         }),
         isNull,
       );
@@ -204,7 +204,7 @@ void main() {
 
     test('본인 확인 뒤의 409 는 지금처럼 이메일 중복이다', () async {
       final (DioAccountRepository repo, _) = _repo(409, <String, Object?>{
-        'detail': '이미 사용 중인 이메일입니다.',
+        'detail': '이미 사용 중인 이메일이에요.',
       });
       await expectLater(
         repo.updateProfile(
@@ -219,6 +219,43 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('DioAccountRepository.fetchHasPassword (#3340)', () {
+    test('GET /users/me 의 has_password 를 읽는다', () async {
+      final (DioAccountRepository repo, _Server server) = _repo(
+        200,
+        <String, Object?>{'id': 'u1', 'has_password': false},
+      );
+
+      expect(await repo.fetchHasPassword(), isFalse);
+      expect(server.requests.single.method, 'GET');
+      // 동의 없이도 열린 경로다 — 프로필(`/users/me/profile`)이 아니다.
+      expect(server.requests.single.path, '/users/me');
+    });
+
+    test('비밀번호 계정은 참이다', () async {
+      final (DioAccountRepository repo, _) = _repo(200, <String, Object?>{
+        'id': 'u1',
+        'has_password': true,
+      });
+
+      expect(await repo.fetchHasPassword(), isTrue);
+    });
+
+    test('값을 주지 않는 옛 서버면 비밀번호 계정으로 본다', () async {
+      final (DioAccountRepository repo, _) = _repo(200, <String, Object?>{
+        'id': 'u1',
+      });
+
+      expect(await repo.fetchHasPassword(), isTrue);
+    });
+
+    test('실패는 그대로 올린다 — 부른 쪽이 비밀번호 계정으로 물러선다', () async {
+      final (DioAccountRepository repo, _) = _repo(500, null);
+
+      await expectLater(repo.fetchHasPassword(), throwsA(isA<DioException>()));
     });
   });
 

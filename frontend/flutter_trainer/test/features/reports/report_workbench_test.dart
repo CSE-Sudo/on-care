@@ -54,7 +54,6 @@ void main() {
     Size size = const Size(1600, 1200),
     List<TrainerClient> clients = const <TrainerClient>[],
     String at = AppRoutes.reports,
-    Locale locale = const Locale('ko'),
     List<Override> extraOverrides = const <Override>[],
   }) async {
     tester.view.devicePixelRatio = 1.0;
@@ -65,7 +64,6 @@ void main() {
       tester,
       token: 'demo-trainer-token',
       at: at,
-      locale: locale,
       extraOverrides: <Override>[
         if (clients.isNotEmpty)
           clientsProvider.overrideWith(
@@ -144,7 +142,7 @@ void main() {
       clients: _roster,
     );
 
-    expect(find.text('0 / 2 전송'), findsOneWidget);
+    expect(find.text('0 / 2 보냄'), findsOneWidget);
     // 아직 아무도 안 보냈으니 전송 완료 열은 비어 있다고 말한다.
     expect(find.text('아직 보낸 리포트가 없어요'), findsOneWidget);
 
@@ -157,7 +155,7 @@ void main() {
         );
     await settle(tester);
 
-    expect(find.text('1 / 2 전송'), findsOneWidget);
+    expect(find.text('1 / 2 보냄'), findsOneWidget);
     // 보낸 회원은 큐에서 빠지고 전송 완료 열로 옮겨 간다.
     expect(queueOrder(tester), <String>['h']);
     expect(
@@ -283,38 +281,6 @@ void main() {
     expect(find.text('PT'), findsOneWidget);
   });
 
-  testWidgets('영어로 켜도 작업대에 한국어가 남지 않는다 (#501, #2232)', (tester) async {
-    await openWorkbench(
-      tester,
-      locale: const Locale('en'),
-      clients: <TrainerClient>[
-        makeClient(
-          id: 'a',
-          name: 'Alex Kim',
-          goal: 'Lose weight',
-          lastMessage: 'hi',
-          lastTime: 'now',
-          lastRoutine: 'today',
-          weekCompletion: const <int>[10, 0, 0, 10, 0, 0, 0],
-        ),
-      ],
-    );
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    final List<String> leftovers = tester
-        .widgetList<Text>(
-          find.descendant(
-            of: find.byType(ReportWorkbench),
-            matching: find.byType(Text),
-          ),
-        )
-        .map((Text t) => t.data ?? t.textSpan?.toPlainText() ?? '')
-        .where(hangul.hasMatch)
-        .toList();
-
-    expect(leftovers, isEmpty, reason: '영어 로케일인데 한국어가 그려졌어요: $leftovers');
-  });
-
   testWidgets('작업대 줄은 훈련 쪽 사실만 적는다 — 칼로리·나트륨·당류는 없다 (#2232)', (tester) async {
     await openWorkbench(
       tester,
@@ -338,9 +304,9 @@ void main() {
 
     // 운동 이행률 0 인 날을 따로 세어 `N일 무기록` 이라 말하지 않는다 — 기록
     // 끊김은 PT 관리 신호가 말한다(#2344).
-    await waitFor(tester, find.text('이행 75%'));
+    await waitFor(tester, find.text('완료율 75%'));
     expect(find.textContaining('무기록'), findsNothing);
-    expect(find.text('이행 75%'), findsOneWidget);
+    expect(find.text('완료율 75%'), findsOneWidget);
     // 식단 지표는 작업대에 오지 않는다 — 그 답은 리포트 본문의 식단 카드다.
     for (final String banned in <String>['나트륨', '칼로리', '당류']) {
       expect(
@@ -392,8 +358,8 @@ void main() {
     expect(tag.tone, AppTagTone.danger);
     expect(tag.icon, AppIcons.error);
     // 리포트 고유 배지는 그 뒤에 남는다.
-    await waitFor(tester, find.text('이행 80%'));
-    expect(find.text('이행 80%'), findsOneWidget);
+    await waitFor(tester, find.text('완료율 80%'));
+    expect(find.text('완료율 80%'), findsOneWidget);
     // 예전의 앱 로컬 노쇼 문구는 없다.
     expect(find.text('노쇼 1회'), findsNothing);
   });
@@ -437,7 +403,7 @@ void main() {
         clients: _roster,
       );
 
-      expect(find.text('0 / 2 전송'), findsOneWidget);
+      expect(find.text('0 / 2 보냄'), findsOneWidget);
       expect(tester.widget<Text>(percent()).data, '0%');
 
       container
@@ -515,13 +481,6 @@ void main() {
       expect(row.bottom, lessThanOrEqualTo(tester.getRect(queueBox()).top));
       expect(percent(), findsOneWidget);
       expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('영어에서는 sent 와 비율을 함께 적는다', (tester) async {
-      await openWorkbench(tester, clients: _roster, locale: const Locale('en'));
-
-      expect(find.text('0 / 2 sent'), findsOneWidget);
-      expect(tester.widget<Text>(percent()).data, '0%');
     });
 
     test('비율은 반올림한 정수다', () {
@@ -744,7 +703,7 @@ void main() {
               '',
       ];
       expect(texts.any((t) => t.startsWith('가회원')), isTrue);
-      expect(texts.any((t) => t.contains('전송')), isTrue);
+      expect(texts.any((t) => t.contains('보냄')), isTrue);
     });
   });
 
@@ -790,11 +749,11 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('버튼은 `정렬: 우선 확인 순` 으로 시작하고 토글은 없다', (tester) async {
+    testWidgets('버튼은 `정렬: 관리 필요 우선` 으로 시작하고 토글은 없다', (tester) async {
       await openWorkbench(tester, clients: trio);
 
       expect(
-        find.descendant(of: sortButton(), matching: find.text('정렬: 우선 확인 순')),
+        find.descendant(of: sortButton(), matching: find.text('정렬: 관리 필요 우선')),
         findsOneWidget,
       );
       expect(
@@ -805,7 +764,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(AppSegmentedToggle<ReportQueueSort>), findsNothing);
-      // 기본값은 우선 확인 순 — 이행률이 가장 낮은 회원이 맨 위.
+      // 기본값은 관리 필요 우선 — 이행률이 가장 낮은 회원이 맨 위.
       expect(order(tester).first, 'c');
     });
 
@@ -819,7 +778,7 @@ void main() {
       }
       expect(find.text('이름 오름차순'), findsOneWidget);
       expect(find.text('이름 내림차순'), findsOneWidget);
-      // 체크는 지금 고른 우선 확인 순에만 선다.
+      // 체크는 지금 고른 관리 필요 우선에만 선다.
       MenuItemButton menuItem(ReportQueueSort sort) =>
           tester.widget<MenuItemButton>(item(sort));
       expect(menuItem(ReportQueueSort.priority).leadingIcon, isA<AppIcon>());
@@ -850,7 +809,7 @@ void main() {
 
       await choose(tester, ReportQueueSort.priority);
       expect(order(tester).first, 'c');
-      expect(find.text('정렬: 우선 확인 순'), findsOneWidget);
+      expect(find.text('정렬: 관리 필요 우선'), findsOneWidget);
     });
 
     testWidgets('주를 옮겨도 고른 정렬이 남는다', (tester) async {
@@ -866,16 +825,6 @@ void main() {
       await settle(tester);
 
       expect(find.text('정렬: 이름 내림차순'), findsOneWidget);
-    });
-
-    testWidgets('영어 문구', (tester) async {
-      await openWorkbench(tester, clients: trio, locale: const Locale('en'));
-
-      expect(find.text('Sort: Needs attention'), findsOneWidget);
-      await tester.tap(sortButton());
-      await settle(tester);
-      expect(find.text('Name A–Z'), findsOneWidget);
-      expect(find.text('Name Z–A'), findsOneWidget);
     });
 
     test('정렬 도메인 — 우선 확인·이름 오름·내림', () {

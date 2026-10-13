@@ -236,7 +236,7 @@ void main() {
 
     await tester.tap(_editButton);
     await tester.pumpAndSettle();
-    expect(find.text('217 kcal'), findsOneWidget, reason: '185 + 32');
+    expect(find.text('217kcal'), findsOneWidget, reason: '185 + 32');
 
     // 스크램블 에그 185 → 900. 딸기 32 와 합쳐 932 가 되어야 한다.
     await tester.enterText(
@@ -245,8 +245,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('932 kcal'), findsOneWidget);
-    expect(find.text('217 kcal'), findsNothing);
+    expect(find.text('932kcal'), findsOneWidget);
+    expect(find.text('217kcal'), findsNothing);
   });
 
   testWidgets('음식별 나트륨·당류를 고치면 끼니 합계도 따라 저장된다', (WidgetTester tester) async {

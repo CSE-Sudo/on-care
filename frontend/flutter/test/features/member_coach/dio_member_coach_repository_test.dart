@@ -157,6 +157,91 @@ void main() {
   );
 
   test(
+    'completeRoutine sends the strength amount and leaves minutes to the server (#3364)',
+    () async {
+      const String path = '/me/coach/routines/r-squat/complete';
+      const Map<String, Object?> sent = <String, Object?>{
+        'sets': 5,
+        'reps': 8,
+        'weight': 27.5,
+        'intensity': 'high',
+      };
+      when(() => dio.post<Map<String, Object?>>(path, data: sent)).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(<String, Object?>{
+          'id': 'r-squat',
+          'name': '스쿼트',
+          'minutes': 0,
+          'type': '근력',
+          'reason': '',
+          'source': 'trainer',
+          'sets': 3,
+          'reps': 10,
+          'weight': 20,
+          'completed': true,
+          'completed_minutes': 15,
+          'completed_sets': 5,
+          'completed_reps': 8,
+          'completed_weight': 27.5,
+        }, path),
+      );
+
+      final CoachRoutine completed = await repo.completeRoutine(
+        'r-squat',
+        sets: 5,
+        reps: 8,
+        weight: 27.5,
+        intensity: 'high',
+      );
+
+      // 분은 싣지 않는다 — 서버가 세트 수에서 환산한 값이 돌아온다.
+      verify(() => dio.post<Map<String, Object?>>(path, data: sent)).called(1);
+      expect(completed.completedMinutes, 15);
+      expect(completed.completedSets, 5);
+      expect(completed.completedReps, 8);
+      expect(completed.completedWeight, 27.5);
+    },
+  );
+
+  test(
+    'completeRoutine sends hold_seconds instead of reps for a hold routine (#3364)',
+    () async {
+      const String path = '/me/coach/routines/r-plank/complete';
+      const Map<String, Object?> sent = <String, Object?>{
+        'sets': 3,
+        'hold_seconds': 45,
+        'weight': 0.0,
+        'intensity': 'moderate',
+      };
+      when(() => dio.post<Map<String, Object?>>(path, data: sent)).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(<String, Object?>{
+          'id': 'r-plank',
+          'name': '플랭크',
+          'minutes': 0,
+          'type': '근력',
+          'reason': '',
+          'source': 'trainer',
+          'completed': true,
+          'completed_sets': 3,
+          'completed_hold_seconds': 45,
+        }, path),
+      );
+
+      final CoachRoutine completed = await repo.completeRoutine(
+        'r-plank',
+        sets: 3,
+        // 횟수가 함께 와도 한 세트는 한 단위로만 잰다 — 초가 이긴다.
+        reps: 10,
+        holdSeconds: 45,
+        weight: 0,
+      );
+
+      verify(() => dio.post<Map<String, Object?>>(path, data: sent)).called(1);
+      expect(completed.completedHoldSeconds, 45);
+      expect(completed.completedReps, isNull);
+    },
+  );
+
+  test(
     'completeRoutine sends duration_seconds for a seconds routine (#2221)',
     () async {
       // 45초 배정을 분으로만 보내면 `1분` 기록이 된다 — 초도 함께 싣는다.
@@ -324,9 +409,7 @@ void main() {
 
       await expectLater(
         repo.fetchChat(),
-        throwsA(
-          allOf(isA<AppError>(), isNot(isA<CoachUnassignedException>())),
-        ),
+        throwsA(allOf(isA<AppError>(), isNot(isA<CoachUnassignedException>()))),
       );
     });
 

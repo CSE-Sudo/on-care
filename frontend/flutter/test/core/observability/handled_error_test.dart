@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
@@ -65,6 +67,8 @@ void main() {
       ('이미 지워진 항목', const NotFoundError()),
       ('로그인 만료', const UnauthorizedError()),
       ('취소', const CancelledError()),
+      // 앱이 건 시간 제한 — 늦으면 물러서도록 정해 둔 자리다(#3244).
+      ('시간 제한', TimeoutException('slow')),
     ]) {
       test('$name 은 로그만 남기고 보고하지 않는다', () async {
         final _FakeReporter reporter = _FakeReporter();

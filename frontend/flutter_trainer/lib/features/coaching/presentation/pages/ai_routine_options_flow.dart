@@ -6,7 +6,7 @@ import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
-import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
+import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -67,14 +67,13 @@ enum _Step {
 /// Conversation-style AI routine builder.
 ///
 /// The assistant stays inside the AI routine tab when [embedded] is true.
-/// After generation, A/B and the existing recommendation are presented in a
-/// horizontal rail; selecting a card updates the common editor below it.
+/// After generation, plans A/B/C are presented in a horizontal rail; selecting
+/// a card updates the common editor below it. C is the next PT program in the
+/// member's recent rotation, adjusted to the latest analysis (#3282).
 class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   const AiRoutineOptionsFlow({
     required this.client,
     this.embedded = false,
-    this.recommendedExercises = const <RoutineExercise>[],
-    this.recommendedReason = '',
     this.onReviewCompleted,
     this.onManualCreate,
     this.onGenerated,
@@ -90,8 +89,6 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
 
   final TrainerClient client;
   final bool embedded;
-  final List<RoutineExercise> recommendedExercises;
-  final String recommendedReason;
 
   /// 위저드를 빠져나가는 유일한 출구 — 확정한 PT 구성과 그 PT 에 붙일
   /// 개인운동을 함께 넘긴다(#2223). `개인운동만` 모드는 위저드가 직접 보내므로
@@ -162,11 +159,11 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
 class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 조건 설정 단계의 자연어 요청. 그대로 `trainer_note` 로 나간다 (#1028).
   ///
-  /// 고객에게 함께 보낼 메모([_trainerMemo])와 **다른 칸**이다 — 하나로 묶여
-  /// 있던 동안에는 "하체 부담 적은 40분으로 만들어줘" 같은 AI 지시문이 그대로
-  /// 회원이 읽는 루틴 사유로 나갔다.
+  /// 회원에게 전할 트레이너 피드백과 **다른 칸**이다 — 하나로 묶여 있던 동안에는
+  /// "하체 부담 적은 40분으로 만들어줘" 같은 AI 지시문이 그대로 회원이 읽는 루틴
+  /// 사유로 나갔다. 피드백은 위저드가 아니라 편집기 하단에서 `일정 추가` 와 함께
+  /// 쓴다(#2374).
   final TextEditingController _prompt = TextEditingController();
-  final TextEditingController _trainerMemo = TextEditingController();
   final TextEditingController _newExerciseName = TextEditingController();
 
   /// 이 화면의 맨 위(진행 단계 표시줄) 를 가리킨다 — [_scrollToTop] 이 이
@@ -189,10 +186,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     super.initState();
     final RoutineContextSourceStore? store = _sourceStore();
     if (store != null) _sources = store.read(_sourceAccount());
-    // 글자를 칠 때는 이 화면이 다시 그려지지 않는다 — 요청·메모 칸의 변경도
+    // 글자를 칠 때는 이 화면이 다시 그려지지 않는다 — 요청 칸의 변경도
     // 자동 보관에 실리게 따로 듣는다(#2873).
     _prompt.addListener(_emitSnapshot);
-    _trainerMemo.addListener(_emitSnapshot);
     final AiRoutineWizardSnapshot? saved = widget.initialSnapshot;
     if (saved != null && !widget._attachMode) {
       _restoreSnapshot(saved);
@@ -238,7 +234,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             null,
       ]);
     _prompt.text = saved.prompt;
-    _trainerMemo.text = saved.trainerMemo;
     _minutes = saved.minutes;
     _intensity = saved.intensity;
     _minutesTouched = saved.minutesTouched;
@@ -256,7 +251,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     personalSeeded: _personalSeeded,
     options: _options,
     prompt: _prompt.text,
-    trainerMemo: _trainerMemo.text,
     minutes: _minutes,
     intensity: _intensity,
     minutesTouched: _minutesTouched,
@@ -419,7 +413,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       );
     }
     _prompt.dispose();
-    _trainerMemo.dispose();
     _newExerciseName.dispose();
     super.dispose();
   }
@@ -428,47 +421,23 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   TextStyle _text(TextStyle role, Color color) =>
       context.oncare.text(role).copyWith(color: color);
 
-  String _analysisSuggestion(AppLocalizations l) {
-    final client = widget.client;
-    final sodium = client.sodiumOverBudget
-        ? l.aiReasonSodium
-        : l.aiReasonBalanced;
-    // 보낸 적이 없으면 예전처럼 저장된 `-` 를 그대로 둔다.
-    final last = lastRoutineLabel(l, client);
-    // 목표는 저장 값(한국어)이 아니라 화면 언어로 적는다(#2467).
-    final goal = healthFocusGoalLabel(l, client.goal);
-    return '${l.aiReasonGoal(goal, last.isEmpty ? client.lastRoutine : last)} '
-        '$sodium';
-  }
-
   List<_RoutineChoice> _choicesOf(AppLocalizations l) {
     final options = _options;
     if (options == null) return const <_RoutineChoice>[];
     return <_RoutineChoice>[
       _RoutineChoice.fromPlan(options.planA),
       _RoutineChoice.fromPlan(options.planB),
-      if (widget.recommendedExercises.isNotEmpty)
-        _RoutineChoice(
-          // key 는 화면 문구가 아니라 선택 식별자다('A'/'B' 와 같은 층).
-          // 번역하면 _selectedKey 비교가 로케일마다 달라져 선택이 깨진다. (#501)
-          key: _recommendedKey,
-          label: l.aiTagExisting,
-          intensity: l.aiTagCustom,
-          exercises: widget.recommendedExercises,
-          reason: widget.recommendedReason.isEmpty
-              ? l.aiExistingBlurb
-              : widget.recommendedReason,
-        ),
+      // C안 — 지난 PT 흐름상 이번 차례(#3282). 예전 세 번째 카드(`기존 AI
+      // 추천`)는 배정된 **개인운동**이라 PT 프로그램 단계에 맞지 않았고, 생성
+      // 조건도 거치지 않았다. 개인운동은 개인운동 단계에서만 다룬다.
+      if (options.planC case final RoutinePlan c) _RoutineChoice.fromPlan(c),
     ];
   }
-
-  /// 기존 추천 후보의 선택 식별자. 'A'/'B' 와 같은 층의 값이라 번역하지 않는다.
-  static const String _recommendedKey = 'recommended';
 
   String _optionDisplayName(AppLocalizations l, String key) => switch (key) {
     'A' => l.aiOptionRecovery,
     'B' => l.aiOptionPush,
-    _ => l.aiOptionExisting,
+    _ => l.aiOptionNext,
   };
 
   Future<void> _generate() async {
@@ -741,10 +710,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       // 것은 서버의 AI 제안까지 거절하는 일이다 — 되돌릴 수 있는 범위가 달라
       // 문구도 나눈다.
       // 이름은 조사를 붙여 넘긴다 — `을(를)` 은 사람이 쓴 문장으로 읽히지
-      // 않는다. 영어 화면에는 조사를 붙이지 않는다(#2895).
+      // 않는다(#2895).
       message: personal
-          ? l.aiPersonalDismissBody(withObjectJosaFor(l, name))
-          : l.aiProgramExerciseRemoveBody(withObjectJosaFor(l, name)),
+          ? l.aiPersonalDismissBody(withObjectJosa(name))
+          : l.aiProgramExerciseRemoveBody(withObjectJosa(name)),
       confirmLabel: l.actionDelete,
       cancelLabel: l.actionCancel,
       destructive: true,
@@ -804,7 +773,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     }
     if (!mounted) return;
     ref.invalidate(routineSuggestionsProvider(widget.client.id));
-    showAppToast(context, l.aiPersonalDismissed(withTopicJosaFor(l, name)));
+    showAppToast(context, l.aiPersonalDismissed(withTopicJosa(name)));
   }
 
   RoutineExercise _exerciseOfSuggestion(RoutineSuggestion s) =>
@@ -964,8 +933,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           _generatedOptions(),
           const SizedBox(height: OnCareSpacing.sectionGap),
           _routineEditor(),
-          const SizedBox(height: OnCareSpacing.s16),
-          _trainerMemoField(),
         ],
         _Step.personal => <Widget>[_personalRoutineEditor()],
         _Step.review => <Widget>[_reviewedRoutineList()],
@@ -1292,12 +1259,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
   );
 
-  /// `08.31  무릎 불편감이 …` — 날짜와 요약을 한 줄에 둔다.
+  /// `8/31  무릎 불편감이 …` — 날짜와 요약을 한 줄에 둔다. 날짜는 트레이너 웹의
+  /// 짧은 날짜 꼴(`M/d`, 0 을 채우지 않음)이다(#3120).
   Widget _insightMemoLine(TrainerMemo memo) {
     final DateTime date = _kstDateOf(memo.createdAt);
-    final String day =
-        '${date.month.toString().padLeft(2, '0')}.'
-        '${date.day.toString().padLeft(2, '0')}';
+    final String day = '${date.month}/${date.day}';
     return Padding(
       padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
       child: Row(
@@ -1569,22 +1535,35 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             subtitle: l.aiConditionsAutoHint,
           ),
           const SizedBox(height: OnCareSpacing.s12),
-          RoutineMinutesField(
+          // 다른 시간 칸(`RoutineDurationField`)과 같은 시·분 칸이다. 서버가
+          // 분으로 받으므로 초 칸은 숨긴다.
+          AppDurationField(
             key: const ValueKey<String>('generation-minutes'),
             keyPrefix: 'generation-minutes',
-            minutes: _minutes,
+            duration: Duration(minutes: _minutes),
             label: l.routineFieldTotalMinutes,
+            labels: AppDurationWheelLabels(
+              hours: l.routineUnitHours,
+              minutes: l.routineUnitMinutes,
+              seconds: l.routineUnitSeconds,
+            ),
+            showSeconds: false,
             // 서버가 받는 범위만 받는다(#2871) — 개별 운동 시간 칸과 다르다.
-            min: kRoutineGenerateMinMinutes,
-            max: kRoutineGenerateMaxMinutes,
-            helper: l.aiGenerateMinutesHelper(
+            minSeconds: kRoutineGenerateMinMinutes * 60,
+            maxSeconds: kRoutineGenerateMaxMinutes * 60,
+            onChanged: (Duration value) => setState(() {
+              _minutes = value.inMinutes;
+              _minutesTouched = true;
+            }),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.aiGenerateMinutesHelper(
               kRoutineGenerateMinMinutes,
               kRoutineGenerateMaxMinutes,
             ),
-            onChanged: (minutes) => setState(() {
-              _minutes = minutes;
-              _minutesTouched = true;
-            }),
+            key: const ValueKey<String>('generation-minutes-helper'),
+            style: _text(OnCareTypography.caption, OnCareColors.textTertiary),
           ),
           const SizedBox(height: OnCareSpacing.s16),
           RoutineIntensityChips(
@@ -1623,39 +1602,20 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         AppSectionHeader(title: l.aiCompareCandidates, icon: AppIcons.ai),
         const SizedBox(height: OnCareSpacing.s8),
         // 기록이 적은 회원에게도 그 사실을 말한다 — 데모·실서버 같다(#2674).
-        _RecommendationStatusBanner(analysis: options.analysis),
-        const SizedBox(height: OnCareSpacing.s8),
-        Text(
-          l.aiBasisGoalCompletion(
-                healthFocusGoalLabel(l, options.analysis.goal),
-                options.analysis.avgCompletionRate,
-              ) +
-              (options.generatedBy == 'rule' ? l.aiBasisRuleBased : ''),
-          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+        // 참고한 대화 링크도 이 배너 안에 둔다 — 무엇을 근거로 만들었는지가
+        // 한 상자에 모인다.
+        // 목표·완료율·생성 방식·트레이너 요청도 배너 안 표로 모은다 — 예전에는
+        // 배너 밖 한 줄 캡션이라 근거가 두 군데로 갈렸다.
+        _RecommendationStatusBanner(
+          analysis: options.analysis,
+          generatedBy: options.generatedBy,
+          trainerRequest: _prompt.text.trim(),
+          minutes: _minutes,
+          intensity: _intensity,
+          minutesSetByTrainer: _minutesTouched,
+          intensitySetByTrainer: _intensityTouched,
+          findings: options.findings,
         ),
-        // 1단계에서 트레이너가 직접 적은 요청이 있으면 그대로 덧붙인다 —
-        // 이 화면이 "무엇을 근거로" 만들어졌는지 트레이너 자신의 조건까지
-        // 보여준다. 새 상태가 아니라 이미 있는 [_prompt] 를 그대로 읽는다.
-        if (_prompt.text.trim().isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            l.aiBasisTrainerRequest(_prompt.text.trim()),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _text(
-              OnCareTypography.caption,
-              OnCareColors.textSecondary,
-            ).copyWith(fontStyle: FontStyle.italic),
-          ),
-        ],
-        // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
-        // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다.
-        // 예전에는 AI 생성일 때만 보여, 규칙형으로 도는 데모와 AI 가 실패한
-        // 주의 실서버에서는 무엇을 보고 동작을 뺐는지 알 수 없었다(#2674).
-        if (options.analysis.recentMessages.isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s4),
-          _ChatEvidence(lines: options.analysis.recentMessages),
-        ],
         const SizedBox(height: OnCareSpacing.s12),
         // 세 안은 하나만 고르는 묶음이다 — 카드마다 선 라디오가 이 묶음을 본다.
         RadioGroup<String>(
@@ -1761,6 +1721,23 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ),
             style: _text(OnCareTypography.label, brand),
           ),
+          // C안 — 왜 이번 차례인지와 지난 PT 에서 무엇을 바꿨는지(#3282).
+          if (choice.basis.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(
+              choice.basis,
+              key: ValueKey<String>('routine-option-${choice.key}-basis'),
+              style: _text(OnCareTypography.bodySmall, OnCareColors.textSecondary),
+            ),
+          ],
+          if (choice.changes.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            for (final String change in choice.changes)
+              Text(
+                l.aiFindingAction(change),
+                style: _text(OnCareTypography.bodySmall, brand),
+              ),
+          ],
           const SizedBox(height: OnCareSpacing.s8),
           for (final exercise in choice.exercises)
             Padding(
@@ -1858,8 +1835,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 child: RoutineCategoryChips(
                   keyPrefix: 'routine-category-$_activeKeyPrefix-$index',
                   value: exercise.type,
+                  // 근력으로 바꾸면 화면이 보여 주는 3세트·10회를 값으로도
+                  // 채운다(#3247) — 0 으로 두면 저장이 세트·횟수를 빼고 보낸다.
                   onChanged: (type) => setState(() {
-                    list[index] = _asTrainerEdit(exercise.copyWith(type: type));
+                    list[index] = _asTrainerEdit(
+                      _withStrengthDefaults(exercise.copyWith(type: type)),
+                    );
                   }),
                 ),
               ),
@@ -1906,11 +1887,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               // 바뀐다(#1969). 트레이너가 직접 고른 뒤에는 덮지 않는다 —
               // 그 선택은 `_measureChosen` 이 기억한다.
               list[index] = _asTrainerEdit(
-                list[index].copyWith(
-                  name: name,
-                  isHold: _activeMeasureChosen.contains(index)
-                      ? null
-                      : isIsometricExerciseName(name),
+                _withStrengthDefaults(
+                  list[index].copyWith(
+                    name: name,
+                    isHold: _activeMeasureChosen.contains(index)
+                        ? null
+                        : isIsometricExerciseName(name),
+                  ),
                 ),
               );
             },
@@ -1929,8 +1912,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 isHold: exercise.isHold,
                 onChanged: (bool hold) => setState(() {
                   _activeMeasureChosen.add(index);
+                  // 회↔초를 바꾸면 새 칸의 기본값(10회·60초)도 값으로 채운다
+                  // (#3247).
                   list[index] = _asTrainerEdit(
-                    list[index].copyWith(isHold: hold),
+                    _withStrengthDefaults(list[index].copyWith(isHold: hold)),
                   );
                 }),
               ),
@@ -2408,38 +2393,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  Widget _trainerMemoField() {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          AppSectionHeader(title: l.schedNote),
-          const SizedBox(height: OnCareSpacing.s8),
-          AppTextField(
-            key: const ValueKey<String>('final-trainer-memo'),
-            controller: _trainerMemo,
-            label: l.aiNoteForClient,
-            hint: _analysisSuggestion(l),
-            helper: l.schedNoteVisibleToMember,
-            minLines: 2,
-            maxLines: 4,
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            l.aiNotePlaceholderHint,
-            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _reviewedRoutineList() {
     final AppLocalizations l = AppLocalizations.of(context);
     final Color brand = context.oncare.brand.primary;
     final optionName = _optionDisplayName(l, _selectedKey);
-    final memo = _trainerMemo.text.trim();
     return Column(
       key: const ValueKey<String>('reviewed-routine-list'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2449,6 +2406,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           icon: AppIcons.checkCircle,
           subtitle: l.aiEditsApplied,
         ),
+        const SizedBox(height: OnCareSpacing.s12),
+        _reviewSummary(l),
         const SizedBox(height: OnCareSpacing.s12),
         // 줄 **사이**에만 간격을 둔다 — 끝에 남는 간격은 아래 진행 줄과의
         // 거리를 다른 단계보다 벌린다(#2476).
@@ -2489,45 +2448,52 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ),
           ),
         ],
-        if (memo.isNotEmpty) const SizedBox(height: OnCareSpacing.s8),
-        if (memo.isNotEmpty)
-          AppCard(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const AppIcon(
-                  AppIcons.note,
-                  size: OnCareSize.iconMedium,
-                  // 메모다. 주의가 아니므로 빨강으로 올리지 않는다(#690).
-                  color: OnCareColors.cautionFill,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        l.schedNote,
-                        style: _text(
-                          OnCareTypography.strong(OnCareTypography.caption),
-                          OnCareColors.cautionFill,
-                        ),
-                      ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Text(
-                        memo,
-                        style: _text(
-                          OnCareTypography.bodySmall,
-                          OnCareColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      ],
+    );
+  }
+
+  /// 확정한 구성의 요약과 강도 확인 줄(#2374). AI 를 부르지 않고 지금 목록과
+  /// 회원 현황만 쓴다.
+  ///
+  /// 강도 확인은 1단계 `권장 방향`과 같은 기준이다
+  /// ([intensityConflictsWithDirection], #2373). 불편감 메모는
+  /// 1단계 `최근 7일 확인 필요` 칸이 이미 보여 주므로 여기 다시 두지 않는다.
+  Widget _reviewSummary(AppLocalizations l) {
+    final int total = _edited.fold<int>(
+      0,
+      (sum, exercise) => sum + exercise.minutes,
+    );
+    final int strength = _edited.where((e) => e.type == '근력').length;
+    final int cardio = _edited.where((e) => e.type == '유산소').length;
+    final bool warn = intensityConflictsWithDirection(
+      widget.client,
+      _intensity,
+    );
+    return AppCard(
+      key: const ValueKey<String>('reviewed-summary'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l.aiReviewSummary(total, _edited.length, strength, cardio),
+            style: _text(
+              OnCareTypography.strong(OnCareTypography.bodySmall),
+              OnCareColors.textPrimary,
             ),
           ),
-      ],
+          if (warn) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(
+              l.aiReviewIntensityWarning,
+              key: const ValueKey<String>('reviewed-intensity-warning'),
+              style: _text(
+                OnCareTypography.strong(OnCareTypography.caption),
+                OnCareColors.danger,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -2664,6 +2630,8 @@ class _RoutineChoice {
     required this.intensity,
     required this.exercises,
     required this.reason,
+    this.basis = '',
+    this.changes = const <String>[],
   });
 
   factory _RoutineChoice.fromPlan(RoutinePlan plan) {
@@ -2673,6 +2641,8 @@ class _RoutineChoice {
       intensity: plan.intensity,
       exercises: plan.exercises,
       reason: plan.rationale,
+      basis: plan.basis,
+      changes: plan.changes,
     );
   }
 
@@ -2681,6 +2651,10 @@ class _RoutineChoice {
   final String intensity;
   final List<RoutineExercise> exercises;
   final String reason;
+
+  /// C안의 차례 근거와 바꾼 점(#3282). A·B안은 비어 있다.
+  final String basis;
+  final List<String> changes;
 }
 
 /// 진행 단계 — 번호 원 세 개를 옅은 회색 선이 잇고, 원 아래에 단계 이름.
@@ -2705,6 +2679,9 @@ class _PersonalOrigin {
 /// AI quietly ignored "무릎이 아파요", the only way to notice is to see which
 /// utterances it was given. Lines arrive speaker-labelled from the server, so
 /// this widget only handles layout.
+///
+/// 줄이 많으면 후보 비교가 아래로 밀려나므로 화면에는 `참고한 대화 N줄` 링크
+/// 한 줄만 두고, 누르면 채팅처럼 말풍선 창으로 연다.
 class _ChatEvidence extends StatelessWidget {
   const _ChatEvidence({required this.lines});
 
@@ -2714,33 +2691,106 @@ class _ChatEvidence extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    // 근거 인용이라 안내 배너가 아니라 회색 카드 안 구획이다(#2468).
-    return SizedBox(
-      width: double.infinity,
-      child: AppTile(
-        tone: AppTileTone.neutral,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              l.aiChatEvidenceTitle,
-              style: tokens
-                  .text(OnCareTypography.label)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-            const SizedBox(height: OnCareSpacing.s4),
-            for (final String line in lines)
-              Padding(
-                padding: const EdgeInsets.only(top: OnCareSpacing.s2),
-                child: Text(
-                  line,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-              ),
-          ],
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: InkWell(
+        key: const ValueKey<String>('ai-chat-evidence-open'),
+        borderRadius: OnCareRadius.smAll,
+        onTap: () => showAppDialog<void>(
+          context: context,
+          builder: (BuildContext context) => _ChatEvidenceDialog(lines: lines),
         ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              AppIcon(AppIcons.chat, size: 16, color: tokens.brand.primary),
+              const SizedBox(width: OnCareSpacing.s4),
+              Text(
+                l.aiChatEvidenceLink(lines.length),
+                style: tokens
+                    .text(OnCareTypography.label)
+                    .copyWith(color: tokens.brand.primary),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 참고한 대화를 채팅처럼 보여 주는 창 — 회원은 왼쪽, 트레이너는 오른쪽.
+///
+/// 서버가 줄마다 `트레이너: ` · `회원: ` 처럼 말한 사람을 붙여 보낸다. 그
+/// 머리로 좌우를 가르고, 말풍선에는 머리를 뗀 본문만 적는다.
+class _ChatEvidenceDialog extends StatelessWidget {
+  const _ChatEvidenceDialog({required this.lines});
+
+  final List<String> lines;
+
+  static const List<String> _trainerPrefixes = <String>['트레이너', 'Trainer'];
+
+  static (bool trainer, String text) _split(String line) {
+    final int colon = line.indexOf(':');
+    if (colon <= 0) return (false, line.trim());
+    final String speaker = line.substring(0, colon).trim();
+    return (
+      _trainerPrefixes.contains(speaker),
+      line.substring(colon + 1).trim(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return AppDialog(
+      key: const ValueKey<String>('ai-chat-evidence-dialog'),
+      title: l.aiChatEvidenceTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final String line in lines)
+            Builder(
+              builder: (BuildContext context) {
+                final (bool trainer, String text) = _split(line);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+                  child: Align(
+                    alignment: trainer
+                        ? AlignmentDirectional.centerEnd
+                        : AlignmentDirectional.centerStart,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: trainer
+                              ? tokens.brand.surface
+                              : OnCareColors.surfaceInput,
+                          borderRadius: OnCareRadius.mdAll,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: OnCareSpacing.s12,
+                            vertical: OnCareSpacing.s8,
+                          ),
+                          child: Text(
+                            text,
+                            style: tokens
+                                .text(OnCareTypography.bodySmall)
+                                .copyWith(color: OnCareColors.textPrimary),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
     );
   }
@@ -2751,9 +2801,36 @@ class _ChatEvidence extends StatelessWidget {
 /// when the AI had nothing personal to go on, and a settled member sees
 /// what pattern the candidates are grounded in.
 class _RecommendationStatusBanner extends StatelessWidget {
-  const _RecommendationStatusBanner({required this.analysis});
+  const _RecommendationStatusBanner({
+    required this.analysis,
+    required this.generatedBy,
+    required this.trainerRequest,
+    required this.minutes,
+    required this.intensity,
+    required this.minutesSetByTrainer,
+    required this.intensitySetByTrainer,
+    required this.findings,
+  });
 
   final MemberAnalysis analysis;
+
+  /// 서버가 알려 준 생성 방식(`rule` 이면 규칙 기반).
+  final String generatedBy;
+
+  /// 1단계에서 트레이너가 적은 요청. 비어 있으면 줄을 그리지 않는다.
+  final String trainerRequest;
+
+  /// 이번 생성의 총 시간·강도(`low`/`moderate`/`high`). 트레이너가 건드리지
+  /// 않은 값은 서버가 기록에서 정한 값으로 채워져 있다(#776).
+  final int minutes;
+  final String intensity;
+
+  /// 각 조건을 트레이너가 직접 정했는지 — 아니면 기록 기반 자동이다.
+  final bool minutesSetByTrainer;
+  final bool intensitySetByTrainer;
+
+  /// 서버가 찾은 것과 반영 방향(#3280). 비어 있으면(옛 서버) 입력값 표만 둔다.
+  final List<RoutineFinding> findings;
 
   @override
   Widget build(BuildContext context) {
@@ -2776,6 +2853,44 @@ class _RecommendationStatusBanner extends StatelessWidget {
         ),
       ),
     };
+    final bool hasChat = analysis.recentMessages.isNotEmpty;
+    final List<(String, String)> rows = <(String, String)>[
+      (l.aiBasisGoalLabel, healthFocusGoalLabel(l, analysis.goal)),
+      // 판단 결과가 있으면 완료율·반복 운동은 그 안(`평균 완료율` · `반복한
+      // 운동`)에 근거와 함께 나온다 — 1단계 회원 현황과 세 번 겹치지 않게 뺀다.
+      if (findings.isEmpty) ...<(String, String)>[
+        (
+          l.aiBasisCompletionLabel,
+          l.aiBasisCompletionValue(analysis.avgCompletionRate),
+        ),
+        if (analysis.frequentExercises.isNotEmpty)
+          (l.aiFrequentExercisesLabel, analysis.frequentExercises.join(', ')),
+      ],
+      // 후보의 총 시간·강도를 직접 정하는 값이라 1단계와 겹쳐도 근거로 둔다.
+      (
+        l.aiBasisConditionLabel,
+        l.aiBasisConditionValue(
+          // 총 시간은 후보가 넘지 않는 **상한**이다 — A안은 일부러 더 짧게
+          // 짠다(#776). `총 30분` 이라 적으면 22분 후보가 조건을 어긴 듯 읽힌다.
+          l.aiBasisConditionMax(minutes, switch (intensity) {
+            'low' => l.intensityLight,
+            'high' => l.intensityHigh,
+            _ => l.intensityModerate,
+          }),
+          switch ((minutesSetByTrainer, intensitySetByTrainer)) {
+            (true, true) => l.aiBasisConditionByTrainer,
+            (false, false) => l.aiBasisConditionAuto,
+            _ => l.aiBasisConditionMixed,
+          },
+        ),
+      ),
+      (
+        l.aiBasisMethodLabel,
+        generatedBy == 'rule' ? l.aiBasisMethodRule : l.aiBasisMethodAi,
+      ),
+      if (trainerRequest.isNotEmpty)
+        (l.aiBasisRequestLabel, l.aiBasisRequestValue(trainerRequest)),
+    ];
     // AI 가 이번 후보를 무엇에 기대 만들었는지 알리는 안내다 — 회색 상자로
     // 두면 입력 칸처럼 읽혔다(#2468).
     return SizedBox(
@@ -2783,15 +2898,110 @@ class _RecommendationStatusBanner extends StatelessWidget {
       child: AppBanner(
         title: title,
         message: body,
-        child: analysis.frequentExercises.isEmpty
-            ? null
-            : Text(
-                '${l.aiFrequentExercisesLabel}: '
-                '${analysis.frequentExercises.join(', ')}',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // 찾은 것 → 반영 방향(#3280). 분석 박스가 회원 현황을 되풀이하지
+            // 않고 **이번 판단**을 말하는 자리다.
+            if (findings.isNotEmpty) ...<Widget>[
+              Text(
+                l.aiFindingsTitle,
                 style: tokens
-                    .text(OnCareTypography.strong(OnCareTypography.caption))
-                    .copyWith(color: OnCareColors.textPrimary),
+                    .text(OnCareTypography.label)
+                    .copyWith(color: OnCareColors.textSecondary),
               ),
+              const SizedBox(height: OnCareSpacing.s4),
+              for (final RoutineFinding f in findings)
+                Padding(
+                  key: ValueKey<String>('ai-finding-${f.kind}'),
+                  padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text.rich(
+                        TextSpan(
+                          children: <InlineSpan>[
+                            TextSpan(
+                              text: f.finding,
+                              style: tokens
+                                  .text(
+                                    OnCareTypography.strong(
+                                      OnCareTypography.bodySmall,
+                                    ),
+                                  )
+                                  .copyWith(color: OnCareColors.textPrimary),
+                            ),
+                            TextSpan(
+                              text: l.aiFindingSource(f.source),
+                              style: tokens
+                                  .text(OnCareTypography.bodySmall)
+                                  .copyWith(color: OnCareColors.textTertiary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        l.aiFindingAction(f.action),
+                        style: tokens
+                            .text(OnCareTypography.bodySmall)
+                            .copyWith(color: tokens.brand.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: OnCareSpacing.s4),
+            ],
+            // 라벨 칸은 가장 긴 라벨에 맞춘다 — 숫자 너비를 박지 않는다.
+            Table(
+              columnWidths: const <int, TableColumnWidth>{
+                0: IntrinsicColumnWidth(),
+                1: FlexColumnWidth(),
+              },
+              children: <TableRow>[
+                for (final (String label, String value) in rows)
+                  TableRow(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          end: OnCareSpacing.s12,
+                          bottom: OnCareSpacing.s2,
+                        ),
+                        child: Text(
+                          label,
+                          style: tokens
+                              .text(OnCareTypography.bodySmall)
+                              .copyWith(color: OnCareColors.textSecondary),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: OnCareSpacing.s2,
+                        ),
+                        child: Text(
+                          value,
+                          style: tokens
+                              .text(
+                                OnCareTypography.strong(
+                                  OnCareTypography.bodySmall,
+                                ),
+                              )
+                              .copyWith(color: OnCareColors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
+            // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다
+            // (#2674).
+            if (hasChat) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s4),
+              _ChatEvidence(lines: analysis.recentMessages),
+            ],
+          ],
+        ),
       ),
     );
   }

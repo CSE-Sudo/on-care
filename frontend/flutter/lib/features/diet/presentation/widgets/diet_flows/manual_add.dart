@@ -69,6 +69,8 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
     final DateTime today = _todayKst();
     final DateTime? picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       // 지난 식사는 얼마든지 적을 수 있지만, 앞날의 식사는 아직 먹지 않았다.
       firstDate: DateTime(today.year - 1),

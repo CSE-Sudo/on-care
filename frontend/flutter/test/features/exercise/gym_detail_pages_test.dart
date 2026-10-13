@@ -172,7 +172,7 @@ void main() {
     );
 
     expect(find.text('트레이너 상세'), findsOneWidget);
-    expect(find.text('트레이너 상담 요청하기'), findsNothing);
+    expect(find.text('트레이너 상담 신청'), findsNothing);
   });
 
   testWidgets('connected gym detail hides the consultation request action', (
@@ -185,7 +185,7 @@ void main() {
     );
 
     expect(find.text('헬스장 상세'), findsOneWidget);
-    expect(find.text('헬스장 상담 요청하기'), findsNothing);
+    expect(find.text('상담 신청'), findsNothing);
   });
 
   // 트레이너를 고르는 자리와 눌러 들어간 트레이너 상세·채팅이 같은 얼굴이다

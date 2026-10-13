@@ -15,7 +15,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 from app.models.models import User
 from app.services.contact_format import clean_email, normalize_email
@@ -162,6 +162,7 @@ def test_social_login_links_existing_account_ignoring_case(client, db_session):
             provider="google",
             provider_user_id=f"g-{uuid4().hex[:10]}",
             email=email.upper(),
+            email_verified=True,
         ),
     )
     assert linked.id == member_id
@@ -178,6 +179,7 @@ def test_social_login_new_account_stores_lowercase(client, db_session):
             provider="kakao",
             provider_user_id=f"k-{uuid4().hex[:10]}",
             email=email.upper(),
+            email_verified=True,
         ),
     )
     assert user.email == email

@@ -44,6 +44,11 @@ class UserMe(BaseModel):
     #: 배포돼 브라우저 저장소를 같이 쓴다. 앱이 세션을 되살릴 때 이 값으로 자기
     #: 계정인지 한 번 더 확인한다. 트레이너 토큰은 이 API 에서 이미 403 이다.
     role: str = "member"
+    #: `email` 이 소셜 가입의 대체 이메일인가(#3338, `services/placeholder_email.py`).
+    #: 참이면 앱은 주소를 보여 주지 않고 "이메일 미등록" 으로 안내한다.
+    email_is_placeholder: bool = False
+    #: 대체 이메일을 만든 가입 수단(`kakao`·`google`). 대체 이메일이 아니면 null.
+    email_placeholder_provider: Optional[str] = None
     #: 필수 가입 동의(약관·개인정보·건강정보·만 14세) 중 지금 버전에 동의하지
     #: 않은 항목이 있는가(#2819). 참이면 앱이 다른 화면보다 먼저 동의 화면을
     #: 띄운다 — 동의 절차가 생기기 전에 가입한 계정, 소셜 첫 가입, 문서 버전이
@@ -51,6 +56,10 @@ class UserMe(BaseModel):
     consent_required: bool = False
     #: 아직 동의하지 않은 필수 항목(`terms`·`privacy`·`health`·`age14`).
     consent_pending: list[str] = Field(default_factory=list)
+    #: 확인할 비밀번호가 있는 계정인가(#3340). 프로필(`ProfileView`)의 같은 이름
+    #: 칸과 같은 값이다. 동의가 남은 회원은 프로필을 읽지 못하므로(403), 탈퇴
+    #: 확인창이 본인 확인을 비밀번호로 받을지 소셜 재로그인으로 받을지를 여기서 안다.
+    has_password: bool = True
 
 
 class ConsentSubmit(BaseModel):
@@ -66,10 +75,30 @@ class ConsentStatus(BaseModel):
     consent_pending: list[str] = Field(default_factory=list)
 
 
+class OptionalConsentState(BaseModel):
+    """선택 동의 한 항목의 상태 — `GET`·`PUT`·`DELETE /users/me/consents/{kind}`. (#3136)
+
+    `agreed` 는 **지금 버전**에 철회하지 않은 동의가 있는가다. 약관이 바뀌어 옛
+    버전에만 동의한 계정은 `false` 이고, 앱은 다음 이용 때 다시 묻는다.
+    `version`·`agreed_at`·`revoked_at` 은 가장 최근 기록의 값이다(없으면 null).
+    """
+
+    kind: str
+    agreed: bool
+    current_version: str
+    version: Optional[str] = None
+    agreed_at: Optional[datetime] = None
+    revoked_at: Optional[datetime] = None
+
+
 # ---- GET /users/me/health ----
 class HealthProfileBrief(BaseModel):
     name: str
     email: str
+    #: `email` 이 소셜 가입의 대체 이메일인가와 그 가입 수단(#3338). MY 계정 카드가
+    #: 주소 대신 가입 수단과 "이메일 미등록" 을 보여 준다.
+    email_is_placeholder: bool = False
+    email_placeholder_provider: Optional[str] = None
     #: 회원 ID(`User.id`).
     #:
     #: MY 탭은 이 값을 더 이상 보여주지 않는다 (#1634) — 트레이너와의 연결은
@@ -151,8 +180,14 @@ class LoginToken(Token):
     role: str = "member"
 
 
+#: 무인증 경로가 받는 토큰 칸의 길이 상한(#3238). 우리 refresh JWT 는 수백 자, provider
+#: 토큰(카카오 access_token·구글 id_token)도 2KB 를 넘지 않는다 — 본인 확인 칸
+#: (`ReauthFields.social_token`)과 같은 값이다.
+TOKEN_MAX_LENGTH = 4096
+
+
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(max_length=TOKEN_MAX_LENGTH)
 
 
 class PasswordChanged(Token):
@@ -229,6 +264,49 @@ class PasswordResetDone(BaseModel):
     status: str = "reset"
 
 
+class FindEmailRequest(BaseModel):
+    """아이디(가입 이메일) 찾기 요청(`POST /auth/find-email`, #3337).
+
+    전화번호는 가입과 같은 규칙으로 정규화한다(`normalize_phone`) — 저장된 값과
+    같은 표기여야 맞는다. 가입과 달리 **빈 번호는 받지 않는다**: 번호를 넣지 않은
+    계정이 이름만으로 걸린다.
+    """
+
+    name: str = Field(min_length=1, max_length=100)
+    phone: str = Field(min_length=1, max_length=40)
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, value: str) -> str:
+        name = value.strip()
+        if not name:
+            raise ValueError("이름을 입력해 주세요.")
+        return name
+
+    @field_validator("phone")
+    @classmethod
+    def _normalize_phone(cls, value: str) -> str:
+        phone = normalize_phone(value)
+        if not phone:
+            raise ValueError("전화번호를 010-0000-0000 형식으로 입력해 주세요.")
+        return phone
+
+
+class FoundEmailAccount(BaseModel):
+    """찾은 계정 하나. **전체 이메일은 싣지 않는다.**"""
+
+    #: 가려진 이메일(`ab***@example.com`). 소셜 로그인 전용 계정이면 `null`.
+    masked_email: Optional[str] = None
+    #: 연결된 소셜 가입 수단(`kakao`·`google`). 없으면 빈 목록.
+    providers: list[str] = Field(default_factory=list)
+
+
+class FindEmailResult(BaseModel):
+    """아이디 찾기 응답. 찾지 못해도 같은 200 에 빈 목록이다."""
+
+    accounts: list[FoundEmailAccount] = Field(default_factory=list)
+
+
 class SignupEmailCodeRequest(BaseModel):
     """가입 이메일 인증 코드 요청(`POST /auth/register/email-code`, #3038).
 
@@ -238,6 +316,23 @@ class SignupEmailCodeRequest(BaseModel):
 
     email: str
     purpose: Literal["member_signup", "trainer_signup"]
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _check_email(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_email(value)
+        return value
+
+
+class EmailChangeCodeRequest(BaseModel):
+    """로그인 이메일 변경 인증 코드 요청(`POST /users/me/email/code`, #3230).
+
+    바꿀 **새** 주소다. 가입과 같은 규칙으로 검사·정규화한다 — 코드는 정규화한 주소에
+    묶이므로 `PUT /users/me` 의 `email` 과 같은 값이어야 맞는다.
+    """
+
+    email: str
 
     @field_validator("email", mode="before")
     @classmethod
@@ -257,8 +352,24 @@ class SignupEmailCodeSent(BaseModel):
 
 
 class SocialLoginRequest(BaseModel):
-    # provider 가 준 토큰 (kakao/naver=access_token, google=id_token)
-    token: str
+    # provider 가 준 토큰 (kakao=access_token, google=id_token)
+    token: str = Field(max_length=TOKEN_MAX_LENGTH)
+
+
+class KakaoCodeExchangeRequest(BaseModel):
+    """카카오 웹 로그인 창이 돌려준 인가 코드 (#330).
+
+    `redirect_uri` 는 로그인 창을 열 때 쓴 값과 **글자 그대로** 같아야 카카오가 교환해 준다.
+    """
+
+    code: str = Field(min_length=1, max_length=2048)
+    redirect_uri: str = Field(min_length=1, max_length=2048)
+
+
+class KakaoCodeExchangeResponse(BaseModel):
+    """교환한 카카오 access_token. 앱은 이 값을 `POST /auth/social/kakao` 의 `token` 으로 쓴다."""
+
+    access_token: str
 
 
 class UserRegister(BaseModel):
@@ -280,9 +391,10 @@ class UserRegister(BaseModel):
     #: 가입 시점에 프로필을 채우기 위해 받는다 (#1634). 예전에는 MY 탭 프로필
     #: 편집에서만 넣을 수 있어 가입 직후에는 연락처가 비어 있었다.
     #:
-    #: 회원 앱 가입 화면은 필수로 받지만 스키마에서는 선택이다 — 트레이너 가입
-    #: (`TrainerRegister`)은 이 값을 쓰지 않고, 없어도 회원은 MY 탭에서 언제든
-    #: 넣을 수 있다.
+    #: 두 앱 가입 화면은 필수로 받지만 스키마에서는 선택이다 — 번호 칸이 없던 옛
+    #: 빌드의 가입도 받고, 비어 있어도 MY 에서 언제든 넣을 수 있다. 회원은
+    #: `HealthProfile.phone`, 트레이너(`TrainerRegister`)는 `TrainerProfile.phone` 에
+    #: 담긴다. 아이디(가입 이메일) 찾기가 이 값을 쓴다.
     #:
     #: 들어온 표기가 무엇이든 `010-0000-0000` 하나로 정리해 저장한다(#1780).
     phone: str = ""
@@ -348,6 +460,9 @@ class TrainerRegister(UserRegister):
 
     필수 동의 항목은 회원과 다르다(#2819) — 트레이너는 자기 건강정보를 기록하지
     않으므로 건강정보 처리 동의가 없다.
+
+    전화번호(`phone`)는 회원과 같이 받아 트레이너 프로필에 담는다. 전에는 받지 않아
+    가입 직후 번호가 비어 있었고, 번호로 가입 이메일을 찾을 수 없었다.
     """
 
     REQUIRED_CONSENTS_ROLE: ClassVar[str] = "trainer"
@@ -360,6 +475,10 @@ class ProfileView(BaseModel):
     id: str
     name: str
     email: str
+    #: `email` 이 소셜 가입의 대체 이메일인가와 그 가입 수단(#3338). 참이면 프로필
+    #: 편집의 이메일 칸을 비운 채로 연다 — 실제 주소로 바꾸면 false·null 이 된다.
+    email_is_placeholder: bool = False
+    email_placeholder_provider: Optional[str] = None
     phone: str = ""
     birth_date: str = ""
     gender: str = ""
@@ -401,6 +520,18 @@ class ProfileView(BaseModel):
     #: (`POST /users/me/password` 와 같은 규약). 그 밖의 응답에서는 null 이다.
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
+
+
+def _reject_explicit_null(model: BaseModel, fields: frozenset[str]) -> None:
+    """`fields` 중 명시적으로 null 을 보낸 칸이 있으면 `ValueError`(→ 422). (#3243)
+
+    핸들러가 보낸 칸을 그대로 프로필에 반영하므로, NOT NULL 칸의 null 은 커밋에서
+    `IntegrityError`(500)가 됐다. 칸을 빼고 보내면 '변경 없음' 이다(`PartialUpdate` 와
+    같은 규약). 목표 숫자처럼 null 이 '해제' 인 칸은 넣지 않는다.
+    """
+    for field in sorted(model.model_fields_set & fields):
+        if getattr(model, field) is None:
+            raise ValueError(f"{field}에는 null을 사용할 수 없습니다.")
 
 
 class HealthGoalsUpdate(BaseModel):
@@ -448,6 +579,15 @@ class HealthGoalsUpdate(BaseModel):
         건강상태·주의사항은 트레이너 경로와 같은 상한이다(#2619).
         """
         return check_conditions_notes(normalize_conditions(value))
+
+    #: `conditions` 만 NOT NULL 이다 — 비우려면 빈 문자열을 보낸다. 목표 숫자의 null 은
+    #: '해제' 로 그대로 받는다.
+    _NOT_NULL: ClassVar[frozenset[str]] = frozenset({"conditions"})
+
+    @model_validator(mode="after")
+    def _reject_null_for_not_null_columns(self) -> "HealthGoalsUpdate":
+        _reject_explicit_null(self, self._NOT_NULL)
+        return self
 
 
 class OnboardingRequest(BaseModel):
@@ -509,6 +649,15 @@ class OnboardingRequest(BaseModel):
             return clean_birth_date(value)
         return value
 
+    #: 프로필의 NOT NULL 칸(#3243). `name` 의 null 은 지금처럼 '변경 없음' 으로 둔다 —
+    #: 핸들러가 이름 칸만 따로 걸러 낸다.
+    _NOT_NULL: ClassVar[frozenset[str]] = frozenset({"birth_date", "gender", "conditions"})
+
+    @model_validator(mode="after")
+    def _reject_null_for_not_null_columns(self) -> "OnboardingRequest":
+        _reject_explicit_null(self, self._NOT_NULL)
+        return self
+
 
 class ReauthFields(BaseModel):
     """민감한 계정 변경 전 본인 확인 값(#3039, `app/services/reauth.py`).
@@ -547,6 +696,9 @@ class AccountDeletionPreview(BaseModel):
     active_coupons: int = Field(ge=0)
     #: 시작 전인 PT 예약 수. 탈퇴하면 취소되고 자리가 풀린다.
     upcoming_reservations: int = Field(ge=0)
+    #: 트레이너가 잡아 둔 시작 전 일정 수(회원 예약으로 생긴 것 제외). 탈퇴하면
+    #: 취소된다(#3341). 이 칸이 없던 서버 응답과 섞여도 읽히게 기본값을 둔다.
+    upcoming_sessions: int = Field(default=0, ge=0)
     #: 아직 답을 받지 않은 상담 요청 수. 탈퇴하면 취소되고 트레이너에게 알린다.
     pending_consultations: int = Field(ge=0)
 
@@ -559,7 +711,14 @@ class ProfileUpdate(PartialUpdate):
     """
 
     nullable_fields: ClassVar[frozenset[str]] = frozenset(
-        {"height_cm", "weight_kg", "current_password", "social_provider", "social_token"}
+        {
+            "height_cm",
+            "weight_kg",
+            "current_password",
+            "social_provider",
+            "social_token",
+            "email_code",
+        }
     )
 
     #: 가입과 같은 기준으로 본다(#1887) — 비울 수 없고, 컬럼에 들어가는
@@ -592,6 +751,10 @@ class ProfileUpdate(PartialUpdate):
     current_password: Optional[str] = Field(default=None, max_length=256)
     social_provider: Optional[str] = Field(default=None, max_length=20)
     social_token: Optional[str] = Field(default=None, max_length=4096)
+    #: 로그인 이메일을 **실제로** 바꿀 때 새 주소로 받은 6자리 코드(#3230,
+    #: `POST /users/me/email/code`). 새 주소의 주인인지 확인한 뒤에만 바꾼다. 저장할
+    #: 항목이 아니다.
+    email_code: Optional[str] = Field(default=None, max_length=16)
 
     # 가입(`UserRegister`)과 같은 함수를 부른다. 두 경로가 다른 기준을 쓰면
     # 한쪽이 정리한 값을 다른 쪽이 되돌린다.

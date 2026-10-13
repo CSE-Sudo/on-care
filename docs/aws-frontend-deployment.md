@@ -320,6 +320,16 @@ aws cloudfront get-distribution-config --id <DISTRIBUTION_ID> \
 
 수동 실행(`Run workflow`)은 배포할 `main` 커밋 SHA 를 받아 같은 확인을 거칩니다. 결과(확인한 CI, 백엔드 커밋, 선후 상태)는 실행의 Step Summary 에 남습니다.
 
+**옛 커밋 재배포 가드**(#3254) — 취소된 `main` E2E CI 를 나중에 Re-run 하면 그 완료가 옛 커밋 배포를 부릅니다. 그래서 `build-and-deploy` 는 빌드 전에 지금 서비스 중인 릴리스를 읽어([`deploy_freshness.sh`](../.github/scripts/deploy_freshness.sh)) 대상과 비교합니다. 서비스 중인 릴리스는 CloudFront origin path(`/releases/<SHA>`)에서 읽습니다 — 그 릴리스의 `version.txt` 와 같은 커밋이고, 운영 도메인이 정해지기 전에도 배포 ID 만으로 읽을 수 있습니다. `gate` 는 운영 AWS 역할을 받을 수 없어(Environment 형식 OIDC) 이 확인은 Environment 승인 뒤에 돕니다.
+
+| 운영 릴리스와 비교 | 자동 실행(`workflow_run`) | 수동 실행 |
+| --- | --- | --- |
+| 대상이 더 새 커밋(`newer`) | 배포 | 배포 |
+| 같은 커밋(`same`)·대상이 조상(`older`) | **건너뜀**(실패 아님) — 이유가 Step Summary 에 남음 | 배포(일부러 되돌리는 경우) |
+| 읽지 못함(`unknown` — 첫 배포·origin path 가 릴리스 경로가 아님·조회 실패, `not-found`, `diverged`) | 경고만 남기고 배포 | 배포 |
+
+E2E CI·Backend CI 의 `main` 실행 그룹은 커밋별로 나누지 않습니다(가운데 커밋의 대기 실행은 여전히 취소됩니다). 가드가 생겨 취소된 실행을 다시 돌려도 운영이 뒤로 가지 않습니다.
+
 > `commit_sha` 는 백엔드가 빌드 인자 `GIT_SHA` 로 받아 `/v1/version` 에 싣는 값입니다(백엔드 기동 검증 이슈 #3029). 그 변경이 운영 백엔드에 올라가기 전에는 상태가 `unknown` 이라 자동 배포가 멈춥니다.
 
 ## 9. 응답 보안 헤더 (#3017)

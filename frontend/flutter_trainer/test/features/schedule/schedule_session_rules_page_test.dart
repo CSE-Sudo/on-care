@@ -16,8 +16,8 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_w
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
 
-const String _deleteReason = '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없습니다.';
-const String _saveReason = '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';
+const String _deleteReason = '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없어요.';
+const String _saveReason = '완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있어요.';
 
 /// 서버처럼 사유를 담아 거절하는 저장소.
 class _RejectingScheduleRepository extends DriftScheduleRepository {
@@ -208,7 +208,7 @@ void main() {
       await settle(tester);
 
       expect(find.text(_deleteReason), findsOneWidget);
-      expect(find.text('일정 삭제에 실패했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('일정을 삭제하지 못했어요. 다시 시도해 주세요'), findsNothing);
     });
 
     testWidgets('메모 저장 거절도 사유를 보인다', (tester) async {

@@ -41,10 +41,10 @@ MAX_ATTEMPTS = 2
 #: 출력 토큰 상한(#3032). `{"sentence": "…"}` 한 줄과 사고 예산이 들어가는 값.
 LLM_MAX_OUTPUT_TOKENS = 512
 
-#: 카드의 두 문장 한도. 한국어는 한 문장 반(#1574), 영어는 같은 폭에 드는 길이다.
-CARD_MAX = {"ko": 45, "en": 90}
+#: 카드의 두 문장 한도 — 한 문장 반이다(#1574).
+CARD_MAX = 45
 #: 규칙 한 줄이 아무리 길어도 AI 문장에 남겨 둘 최소 길이.
-MIN_SENTENCE = {"ko": 16, "en": 32}
+MIN_SENTENCE = 16
 #: 허용하는 작은 횟수의 상한("주 3회", "달걀 2개").
 SMALL_COUNT_MAX = 7
 
@@ -67,12 +67,9 @@ class LLMTruncatedError(ValueError):
     """출력 상한에 걸려 JSON 이 끊겼다 — 규칙 문장으로 내린다(#3032)."""
 
 
-def sentence_limit(lang: str, analysis_text: str) -> int:
-    """규칙 한 줄 뒤에 남는 길이. 영어는 앱이 문장을 다시 그려 서버가 정확히 모르므로
-    고정 폭을 쓴다."""
-    if lang == "en":
-        return CARD_MAX["en"] - 40
-    return max(MIN_SENTENCE["ko"], CARD_MAX["ko"] - len(plain(analysis_text)) - 1)
+def sentence_limit(analysis_text: str) -> int:
+    """규칙 한 줄 뒤에 남는 길이."""
+    return max(MIN_SENTENCE, CARD_MAX - len(plain(analysis_text)) - 1)
 
 
 def has_measure(text: str) -> bool:
@@ -127,7 +124,6 @@ def valid(text: str, limit: int) -> bool:
 
 def build_prompt(
     *,
-    lang: str,
     limit: int,
     finding: str,
     records: list[str],
@@ -135,14 +131,13 @@ def build_prompt(
     goal: str,
     task: str = "다음 할 일 한 문장",
 ) -> tuple[str, str]:
-    language = "영어(English)" if lang == "en" else "한국어"
     system = (
         "너는 PT(개인 트레이닝)를 받는 회원의 식단을 돕는 영양 코치다. 규칙이 찾아낸 "
         f"[분석] 한 가지를 보고, 그 뒤에 붙일 **{task}**을 쓴다.\n"
         "규칙:\n"
         "1. [기록]에서 원인이 된 메뉴를 짚거나, 바꿔 먹을 구체적인 음식을 권한다"
         "(예: 짬뽕 국물은 반만, 건더기 위주로요 / 요거트나 삶은 달걀이라도 드세요).\n"
-        f"2. 한 문장, {language}, 공백 포함 {limit}자 이내. 존댓말(해요체).\n"
+        f"2. 한 문장, 한국어, 공백 포함 {limit}자 이내. 존댓말(해요체).\n"
         "3. **수치를 쓰지 않는다.** mg·kcal·g·% 같은 양은 이미 [분석]이 말했다. "
         "'주 3회', '달걀 2개' 같은 작은 횟수만 쓸 수 있다.\n"
         "4. 메뉴·음식 이름은 **로 감쌀 수 있다(두 곳까지).\n"
@@ -189,7 +184,6 @@ def _call_llm(system: str, user: str) -> str:
 
 def generate(
     *,
-    lang: str,
     analysis_text: str,
     finding: str,
     records: list[str],
@@ -199,9 +193,9 @@ def generate(
     task: str = "다음 할 일 한 문장",
 ) -> str | None:
     """AI 한 문장. 실패·검사 탈락이면 None."""
-    limit = sentence_limit(lang, analysis_text)
+    limit = sentence_limit(analysis_text)
     system, user = build_prompt(
-        lang=lang, limit=limit, finding=finding, records=records, notes=notes, goal=goal,
+        limit=limit, finding=finding, records=records, notes=notes, goal=goal,
         task=task,
     )
     for _ in range(MAX_ATTEMPTS):

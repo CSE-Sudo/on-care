@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/errors/app_error.dart';
@@ -29,11 +30,6 @@ final Uint8List _jpegBytes = Uint8List.fromList(<int>[
 ]);
 
 MealPhoto get _photo => MealPhoto.fromBytes(_jpegBytes)!;
-
-/// 영어 화면의 `사진 찍기` 버튼 문구.
-final String _enTakePhoto = lookupAppLocalizations(
-  const Locale('en'),
-).dietTakePhoto;
 
 class _FixedPicker implements MealPhotoPicker {
   @override
@@ -95,8 +91,8 @@ class _RejectingDietRepository extends _FailingDietRepository {
 Future<ProviderContainer> _openResultSheet(
   WidgetTester tester,
   _FailingDietRepository repository, {
-  Locale locale = const Locale('ko'),
   bool inDemoSession = false,
+  DateTime? date,
 }) async {
   final ProviderContainer container = ProviderContainer(
     overrides: <Override>[
@@ -118,14 +114,14 @@ Future<ProviderContainer> _openResultSheet(
       container: container,
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (BuildContext context) => Scaffold(
             body: Center(
               child: ElevatedButton(
-                onPressed: () => showDietAddSheet(context),
+                onPressed: () => showDietAddSheet(context, date: date),
                 child: const Text('open'),
               ),
             ),
@@ -136,9 +132,7 @@ Future<ProviderContainer> _openResultSheet(
   );
   await tester.tap(find.text('open'));
   await tester.pumpAndSettle();
-  await tester.tap(
-    find.text(locale.languageCode == 'ko' ? '사진 찍기' : _enTakePhoto),
-  );
+  await tester.tap(find.text('사진 찍기'));
   await tester.pumpAndSettle();
   return container;
 }
@@ -216,7 +210,7 @@ void main() {
     final _FailingDietRepository repo = _FailingDietRepository(501);
     await _openResultSheet(tester, repo);
 
-    expect(find.textContaining('사진 분석을 사용할 수 없어요'), findsOneWidget);
+    expect(find.textContaining('사진 분석을 쓸 수 없어요'), findsOneWidget);
     expect(_actionLabel(tester), '닫기');
   });
 
@@ -274,6 +268,26 @@ void main() {
     expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
     expect(find.byKey(const Key('dietAnalysisFailureAction')), findsNothing);
     expect(repo.attempts, 1);
+  });
+
+  testWidgets('어제를 보며 분석이 실패해 직접 추가하면 그 화면도 어제로 열린다 (#3244)', (
+    WidgetTester tester,
+  ) async {
+    final DateTime yesterday = DateTime(2026, 8, 19);
+    await _openResultSheet(
+      tester,
+      _RejectingDietRepository(DietAnalysisFailure.noFood),
+      date: yesterday,
+    );
+
+    await tester.tap(find.byKey(const Key('dietAnalysisFailureSecondary')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('meal-create-date'))).data,
+      DateFormat.yMMMd('ko').format(yesterday),
+    );
   });
 
   testWidgets('오늘 분석을 다 쓰면 직접 추가가 주 버튼이고 다시 시도는 없다', (
@@ -400,20 +414,6 @@ void main() {
 
     expect(find.text('데이터 공유 동의가 필요합니다.'), findsOneWidget);
     expect(_actionLabel(tester), '닫기');
-  });
-
-  testWidgets('영어 화면에는 403 의 한국어 사유가 새지 않는다', (WidgetTester tester) async {
-    final _FailingDietRepository repo = _FailingDietRepository(
-      403,
-      body: <String, Object?>{'detail': '데이터 공유 동의가 필요합니다.'},
-    );
-    await _openResultSheet(tester, repo, locale: const Locale('en'));
-
-    expect(find.text('데이터 공유 동의가 필요합니다.'), findsNothing);
-    expect(
-      find.text(lookupAppLocalizations(const Locale('en')).errorForbidden),
-      findsOneWidget,
-    );
   });
 
   testWidgets('429 는 잠시 뒤 다시 시도로 안내하고 재시도를 제공한다', (WidgetTester tester) async {

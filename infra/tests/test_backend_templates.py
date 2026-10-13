@@ -121,6 +121,16 @@ def test_mail_settings_are_all_or_nothing() -> None:
         assert env[name] == "HasMail", name
 
 
+def test_kakao_web_login_settings_are_optional() -> None:
+    # 웹 카카오 로그인(#330): client_id 는 비밀이 아닌 파라미터, 시크릿은 켤 때만 비밀에서 읽는다.
+    assert _conditional("Environment")["KAKAO_LOGIN_REST_API_KEY"] == "HasKakaoLoginRestApiKey"
+    assert _conditional("Secrets")["KAKAO_CLIENT_SECRET"] == "HasKakaoClientSecret"
+    assert "KAKAO_CLIENT_SECRET" not in _container_env()
+    params = SERVICE["Parameters"]
+    assert params["KakaoClientSecretEnabled"]["Default"] == "false"
+    assert params["KakaoLoginRestApiKey"]["Default"] == ""
+
+
 def test_attachments_go_to_the_environment_bucket() -> None:
     env = _container_env()
     assert env["ATTACHMENT_STORAGE"] == "s3"

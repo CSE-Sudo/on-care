@@ -172,11 +172,11 @@ void main() {
     expect(open.width, closeTo(booked.width, 0.1));
   });
 
-  testWidgets('빈 예약 시간 제목은 트레이너 이름을 그대로 쓴다', (WidgetTester tester) async {
+  testWidgets('예약 가능 시간 제목은 트레이너 이름을 그대로 쓴다', (WidgetTester tester) async {
     final AppLocalizations l = await pumpTab(tester);
 
     expect(find.text(l.exTrainerAvailability(_trainer.name)), findsOneWidget);
-    expect(find.text('김트레이너 빈 예약 시간'), findsOneWidget);
+    expect(find.text('김트레이너 예약 가능 시간'), findsOneWidget);
     // AI 표식 대신 예약 성격에 맞는 아이콘이 붙는다.
     expect(find.byIcon(AppIcons.eventAvailable), findsOneWidget);
   });
@@ -256,7 +256,7 @@ void main() {
     expect(find.text('추천 헬스장'), findsNothing);
     expect(find.text('추천 트레이너'), findsNothing);
     // 트레이너와 채팅 버튼도 없다 (#1132) — 헤더의 채팅 버튼이 그 자리를 맡는다.
-    expect(find.text('트레이너와 채팅'), findsNothing);
+    expect(find.text('트레이너에게 메시지'), findsNothing);
   });
 
   testWidgets('연결된 헬스장에서는 상담 자리를 내주지 않는다 (#1136)', (WidgetTester tester) async {

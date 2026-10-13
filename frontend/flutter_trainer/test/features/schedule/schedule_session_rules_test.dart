@@ -90,6 +90,33 @@ void main() {
     });
   });
 
+  // 다가오는 세션의 기준 — 대시보드 배너(#2865)와 같은 끝나는 시각(#3261).
+  group('sessionHasEnded (#3261)', () {
+    // 길이는 [_json] 의 50분이다.
+    ScheduleSession at(String date, String time) =>
+        scheduleSessionFromJson(_json(date: date, time: time));
+
+    test('시작했어도 끝나는 시각 전이면 끝나지 않았다', () {
+      expect(sessionHasEnded(at(_today, '12:30'), _now), isFalse);
+      expect(sessionHasEnded(at(_today, '20:00'), _now), isFalse);
+    });
+
+    test('끝나는 시각 정각부터 끝난 것이다', () {
+      expect(sessionHasEnded(at(_today, '12:10'), _now), isTrue);
+      expect(sessionHasEnded(at(_today, '09:00'), _now), isTrue);
+    });
+
+    test('지난 날은 끝났고, 앞날은 끝나지 않았다', () {
+      expect(sessionHasEnded(at('2026-09-30', '23:30'), _now), isTrue);
+      expect(sessionHasEnded(at('2026-10-02', '00:00'), _now), isFalse);
+    });
+
+    test('시각 형식이 깨진 오늘 세션은 끝난 것으로 본다', () {
+      expect(sessionHasEnded(at(_today, '저녁'), _now), isTrue);
+      expect(sessionHasEnded(at('2026-10-02', ''), _now), isFalse);
+    });
+  });
+
   group('is_reservation 읽기 (#2756)', () {
     test('예약 일정 표시를 읽는다', () {
       expect(
@@ -155,7 +182,7 @@ void main() {
 
     test('마무리된 세션 거절(409)은 서버 사유를 담은 ServerError 다', () async {
       const path = '/trainer/schedule/sched-1';
-      const reason = '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';
+      const reason = '완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있어요.';
       when(
         () => dio.put<Map<String, dynamic>>(path, data: any(named: 'data')),
       ).thenThrow(_error(path, 409, <String, dynamic>{'detail': reason}));
@@ -172,7 +199,7 @@ void main() {
 
     test('예약 일정 삭제 거절(409)도 사유를 잃지 않는다 (#2756)', () async {
       const path = '/trainer/schedule/sched-1';
-      const reason = '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없습니다.';
+      const reason = '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없어요.';
       when(
         () => dio.delete<Map<String, dynamic>>(path),
       ).thenThrow(_error(path, 409, <String, dynamic>{'detail': reason}));
@@ -238,7 +265,7 @@ void main() {
         _error(path, 409, <String, dynamic>{
           'detail': <String, dynamic>{
             'code': scheduleOverlapCode,
-            'message': '같은 시간에 이미 다른 일정이 있습니다.',
+            'message': '같은 시간에 이미 다른 일정이 있어요.',
             'conflicts': <dynamic>[_json(id: 'other', date: '2026-10-08')],
           },
         }),

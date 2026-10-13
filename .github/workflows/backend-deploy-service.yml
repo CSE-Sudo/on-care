@@ -62,7 +62,8 @@ jobs:
             exit 1
           fi
 
-      # 템플릿과 스크립트는 배포하는 커밋의 것을 쓴다.
+      # 템플릿과 스크립트는 배포하는 커밋의 것을 쓴다. 옛 커밋을 수동 배포할 때는 그 사이 스크립트의
+      # 인자·종료 코드 약속이 바뀌지 않았는지 본다(backend/docs/DEPLOY.md 2절).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.sha }}

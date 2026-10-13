@@ -13,6 +13,17 @@ const double _leadingSize = 40;
 /// 목표·메시지 줄의 라벨 칸 폭.
 const double _detailLabelWidth = 72;
 
+bool _present(String? value) => value != null && value.trim().isNotEmpty;
+
+/// 상담 카드·완료 화면에 적는 트레이너 이름. 이름이 없으면(트레이너가 탈퇴해
+/// 대상이 지워진 요청) 빈칸 대신 대체 문구를 준다(#3360).
+String consultationTrainerName(
+  AppLocalizations l,
+  ConsultationRequest request,
+) => _present(request.trainerName)
+    ? request.trainerName!
+    : l.exConsultTrainerNameMissing;
+
 /// 상담 요청 한 건의 카드 표시. 운동 탭 요약(`gym_tab.dart`)과 "내 상담 요청"
 /// 전체 내역 화면이 같은 모양을 쓴다 — 두 화면이 각자 그리면 상태 배지·거절
 /// 사유 문구가 조용히 갈라진다(#948).
@@ -30,9 +41,14 @@ class ConsultationRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final String targetName = request.trainerName ?? '';
-    final String targetType =
-        request.trainerGymName ?? request.trainerName ?? '';
+    // 트레이너가 탈퇴하면 서버가 이름을 비워 준다 — 빈칸 대신 문구를 적는다(#3360).
+    final String targetName = consultationTrainerName(l, request);
+    // 소속을 모르면 이름을 한 번 더 적던 줄이다 — 이름도 없으면 종류 문구를 적는다.
+    final String targetType = _present(request.trainerGymName)
+        ? request.trainerGymName!
+        : _present(request.trainerName)
+        ? request.trainerName!
+        : l.exTrainerConsultType;
     final (String status, AppTagTone statusTone) = switch (request.status) {
       ConsultationStatus.pending => (
         l.exConsultPendingStatus,

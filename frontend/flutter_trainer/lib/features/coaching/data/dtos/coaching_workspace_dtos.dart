@@ -55,6 +55,7 @@ Map<String, Object?> coachingWorkspaceToJson(CoachingWorkspaceDraft draft) =>
           routineExerciseStateToJson(e),
       ],
       if (draft.wizard != null) 'wizard': wizardSnapshotToJson(draft.wizard!),
+      if (draft.scheduleNote.isNotEmpty) 'schedule_note': draft.scheduleNote,
     };
 
 /// 저장된 초안 → [CoachingWorkspaceDraft]. 읽을 수 없는 판이거나 회원 초안이
@@ -84,6 +85,7 @@ CoachingWorkspaceDraft? coachingWorkspaceFromDraft(
         ws['routine_only_start'] as String? ?? '',
       ),
       personalRoutines: _exercises(ws['personal_routines']),
+      scheduleNote: ws['schedule_note'] as String? ?? '',
       wizard: switch (ws['wizard']) {
         final Map<Object?, Object?> map => wizardSnapshotFromJson(
           map.cast<String, Object?>(),
@@ -114,7 +116,6 @@ Map<String, Object?> wizardSnapshotToJson(
   'personal_seeded': s.personalSeeded,
   if (s.options != null) 'options': routineOptionsToJson(s.options!),
   'prompt': s.prompt,
-  'trainer_memo': s.trainerMemo,
   'minutes': s.minutes,
   'intensity': s.intensity,
   'minutes_touched': s.minutesTouched,
@@ -138,7 +139,6 @@ AiRoutineWizardSnapshot wizardSnapshotFromJson(Map<String, Object?> json) {
         ? routineOptionsFromJson(options.cast<String, Object?>())
         : null,
     prompt: json['prompt'] as String? ?? '',
-    trainerMemo: json['trainer_memo'] as String? ?? '',
     minutes: _int(json['minutes'], fallback: 30),
     intensity: json['intensity'] as String? ?? 'moderate',
     minutesTouched: json['minutes_touched'] == true,

@@ -11,8 +11,10 @@
 
 - **조건** 최근 [WINDOW_DAYS]일(KST, 오늘 포함) 중 식단 사진을 남긴 날이
   [REQUIRED_DAYS]일 이상이고, 담당 트레이너가 연결돼 있다.
-  - 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 있는 행)만 센다. 손으로 적은
-    끼니는 세지 않는다 — 식판이 돕는 것이 사진 분석이다.
+  - 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 [PHOTO_ENGINES] 인 행)만 센다.
+    손으로 적은 끼니(`manual`, #2151)는 세지 않는다 — 식판이 돕는 것이 사진 분석이고,
+    지난 날짜로 직접 적어서 채울 수 있으면 실물 보상이 사진 없이 나간다(#3240).
+    엔진이 비었거나 모르는 값이면 세지 않는다(허용 목록).
   - 개발용 고정 식단 인식기(`stub`)로 저장된 끼니도 세지 않는다 — 사진을 보지 않고
     늘 같은 음식을 돌려주므로 사진 기록이 아니다(#2812).
   - 하루에 여러 끼를 찍어도 하루다. 하루에 몰아 찍어서는 채울 수 없다.
@@ -48,9 +50,13 @@ from app.core import clock
 from app.models.models import DietEntry, PointsCoupon
 from app.schemas.diet_tray_api import DietTrayOut
 from app.services import points_coupon_service, points_service
-from app.services.recognizer.factory import STUB_ENGINE
 
 ITEM_ID = points_coupon_service.DIET_TRAY.id
+
+#: 사진 기록일로 세는 `diet_entries.engine` 값. 실제 사진을 보는 인식기
+#: (`recognizer.factory` 의 `gemini`·`litellm`)와 데모 시드 끼니(`seed`, 서버만 만든다)다.
+#: 스텁(`stub`, #2812)·손 기록(`manual`)·빈 값은 빠진다. 인식기를 더하면 여기도 더한다.
+PHOTO_ENGINES = frozenset({"gemini", "litellm", "seed"})
 
 #: 사진 기록일을 세는 구간(오늘 포함)과 필요한 날 수. 4주 중 20일 — 주 5일꼴이다.
 WINDOW_DAYS = 28
@@ -103,8 +109,7 @@ def photo_days(db: Session, member_id: str, today: date | None = None) -> int:
     return db.scalar(
         select(func.count(func.distinct(DietEntry.date))).where(
             DietEntry.user_id == member_id,
-            DietEntry.engine != "",
-            DietEntry.engine != STUB_ENGINE,
+            DietEntry.engine.in_(sorted(PHOTO_ENGINES)),
             DietEntry.date >= first.isoformat(),
             DietEntry.date <= last.isoformat(),
         )

@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session

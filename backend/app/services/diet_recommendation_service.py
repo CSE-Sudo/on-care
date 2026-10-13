@@ -26,13 +26,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock, metrics
-from app.core.locale import current_locale
 from app.data import meal_catalog
 from app.data.meal_catalog import CATALOG, DEFAULT_ORDER, RECOMMENDATION_COUNT, MealItem
 from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet_api import DietRecommendationItem, DietRecommendationsResponse
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
-from app.services import ai_call_quota, goal_defaults, health_focus
+from app.services import ai_call_quota, diet_coach_inputs, goal_defaults, health_focus
 from app.services.ai_log import log_ai_fallback
 from app.services.coach.llm_base import is_truncated, output_cap
 
@@ -57,8 +56,11 @@ DEFAULT_CALORIE_LIMIT = goal_defaults.DAILY_CALORIES
 
 #: 한도의 몇 %를 넘으면 "과다" 신호로 볼지. 1.0 은 경계에서 신호가 깜빡이므로 여유를 둔다.
 _HIGH_RATIO = 0.9
-#: 한도의 몇 % 미만이면 "부족" 신호로 볼지.
+#: 한도의 몇 % 미만이면 "부족" 신호로 볼지(칼로리).
 _LOW_RATIO = 0.6
+#: 단백질 부족 신호의 비율 — 실효 목표 기준이다. 회원 코칭 문턱은
+#: `diet_coach_inputs` 한 곳에 있다(#3270).
+_PROTEIN_LOW_RATIO = diet_coach_inputs.COACH_PROTEIN_LOW_RATIO
 
 #: LLM 응답을 기다리는 최대 시간(초). 홈 화면은 기본 카드를 먼저 그리므로 응답이
 #: 늦어도 화면이 비지는 않지만, 요청 스레드를 오래 잡아두지 않도록 끊는다.
@@ -150,9 +152,9 @@ class NutritionContext:
             return None
         parts = [f"최근 {self.days_with_data}일 평균 나트륨 {self.avg_sodium_mg:,}mg"]
         if "sodium_high" in self.signals:
-            parts.append(f"권장 {self.sodium_limit_mg:,}mg 초과")
+            parts.append(f"목표 {self.sodium_limit_mg:,}mg 초과")
         if "sugar_high" in self.signals:
-            parts.append(f"당류 {self.avg_sugar_g:.0f}g(권장 {self.sugar_limit_g}g 초과)")
+            parts.append(f"당류 {self.avg_sugar_g:.0f}g(목표 {self.sugar_limit_g}g 초과)")
         if "protein_low" in self.signals:
             parts.append("단백질 부족")
         return " · ".join(parts)
@@ -200,7 +202,10 @@ def build_context(db: Session, user_id: str, today: date | None = None) -> Nutri
     sodium_limit = (profile.daily_sodium_mg if profile else None) or DEFAULT_SODIUM_LIMIT_MG
     sugar_limit = (profile.daily_sugar_g if profile else None) or DEFAULT_SUGAR_LIMIT_G
     calorie_limit = (profile.daily_calories if profile else None) or DEFAULT_CALORIE_LIMIT
-    protein_goal = (profile.daily_protein_g if profile else None) or 0
+    # 단백질은 실효 목표로 본다 — 개인 목표 → 체중 × 1.2g → 60g(#3270). 예전에는
+    # 개인 목표가 있을 때만 봐, 목표 칸을 비워 둔 회원(대부분)은 단백질이 아무리
+    # 모자라도 추천 순서가 바뀌지 않았다. 식단 조언과 같은 분모다.
+    protein_goal = diet_coach_inputs.effective_protein_g(profile)
 
     signals: list[str] = []
     if n:
@@ -212,7 +217,7 @@ def build_context(db: Session, user_id: str, today: date | None = None) -> Nutri
             signals.append("calorie_high")
         elif avg_cal and avg_cal <= calorie_limit * _LOW_RATIO:
             signals.append("calorie_low")
-        if protein_goal and avg_protein <= protein_goal * _LOW_RATIO:
+        if avg_protein <= protein_goal * _PROTEIN_LOW_RATIO:
             signals.append("protein_low")
 
     return NutritionContext(
@@ -260,9 +265,8 @@ def _response(
 ) -> DietRecommendationsResponse:
     """응답 조립 — 근거를 문장과 수치 양쪽으로 싣는다.
 
-    `basis` 는 서버가 조립한 한국어 문장이라 영어 로케일에 그대로 못 쓴다. 그래서
-    앱이 직접 문구를 만들 수 있도록 수치도 함께 준다(요리명·이유를 key 로 주고받는
-    것과 같은 이유).
+    `basis` 는 서버가 조립한 문장이다. 앱이 직접 문구를 만들 수 있도록 수치도
+    함께 준다(요리명·이유를 key 로 주고받는 것과 같은 이유).
     """
     return DietRecommendationsResponse(
         items=items,
@@ -273,16 +277,6 @@ def _response(
         avg_sodium_mg=ctx.avg_sodium_mg,
         sodium_limit_mg=ctx.sodium_limit_mg,
     )
-
-
-#: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2722).
-#: 한국어 프롬프트는 그대로 두고 reason_text 를 쓰는 언어만 바꾼다. 영어는 같은
-#: 뜻을 쓰는 데 글자가 더 들어 길이 한도를 넉넉히 준다.
-_ENGLISH_REASON_RULE = (
-    "\nOutput language: the member is using the app in English. Write every "
-    "reason_text in natural English (one short sentence, at most 40 characters), "
-    "ignoring the Korean length rule above. Keep the JSON keys and values of key as-is."
-)
 
 
 def _build_prompt(ctx: NutritionContext) -> tuple[str, str]:
@@ -307,9 +301,6 @@ def _build_prompt(ctx: NutritionContext) -> tuple[str, str]:
         "4. 의학적 진단·치료를 단정하지 마라. 식단 제안에 그친다.\n"
         'JSON 만 출력한다: {"items":[{"key":"...","reason_text":"..."}]}'
     )
-    # 요청 스레드에서 읽는다 — LLM 호출은 워커 스레드라 요청 언어가 보이지 않는다.
-    if current_locale() == "en":
-        system += _ENGLISH_REASON_RULE
     user = (
         f"[카탈로그]\n{catalog_lines}\n\n"
         f"[최근 {ctx.days_with_data}일 평균 섭취]\n"
@@ -435,11 +426,9 @@ def build_recommendations(
 
     # use_llm 을 키에 넣지 않으면 규칙 응답이 LLM 요청에 재사용된다(디버깅·비용 절감용
     # 호출 한 번이 그 사용자의 추천을 TTL 동안 규칙 결과로 고정해 버린다).
-    # 언어도 키에 넣는다 — LLM 이 쓴 reason_text 는 요청 언어로 쓰여, 넣지 않으면
-    # 한국어 응답이 TTL 동안 영어 화면에 재사용된다(#2722).
     cache_key = (
         f"{user_id}:{effective_today.isoformat()}:"
-        f"{ctx.fingerprint()}:llm={use_llm}:lang={current_locale()}"
+        f"{ctx.fingerprint()}:llm={use_llm}"
     )
     hit = _cache.get(cache_key)
     if hit and hit[0] > time.monotonic():

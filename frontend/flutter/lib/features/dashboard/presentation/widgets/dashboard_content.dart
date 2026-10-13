@@ -764,8 +764,8 @@ _RecMeal _trainerPickCard(AppLocalizations l, TrainerMealPick pick) => _RecMeal(
 /// 서버 카탈로그 key → 화면 표시(사진·이모지·문구).
 ///
 /// 추천 API 는 무엇을 어떤 순서로 보여줄지(`key`)만 정하고, 실제 그리기는 여기서
-/// 한다. 사진은 앱 번들 에셋이고 문구는 로케일별 ARB 라, 서버가 문자열을 만들면
-/// 영어 화면에 한국어가 섞이고 사진 없는 요리가 나오기 때문이다.
+/// 한다. 사진은 앱 번들 에셋이고 문구는 ARB 라, 서버가 문자열을 만들면
+/// 사진 없는 요리가 나오기 때문이다.
 /// key 값은 백엔드 `app/data/meal_catalog.py` 와 일치해야 한다.
 ///
 /// 사진이 빠졌을 때의 바탕은 요리마다 색을 고르지 않고 안쪽 타일 색 하나로 둔다 —
@@ -826,8 +826,8 @@ String? _reasonTextFor(AppLocalizations l, String reasonKey) =>
 /// 개인화 근거 한 줄 — 예: "최근 3일 평균 나트륨 2,400mg · 권장 초과".
 ///
 /// 서버가 준 `basis` 문자열을 쓰지 않고 수치로 다시 만든다. `basis` 는 서버가 조립한
-/// 한국어라 영어 로케일에 그대로 쓰면 문구가 섞인다(요리명·이유를 key 로 주고받는
-/// 것과 같은 이유).
+/// 문장이라 화면 문구와 어긋날 수 있다(요리명·이유를 key 로 주고받는 것과 같은
+/// 이유).
 ///
 /// 개인화되지 않았거나 근거 데이터가 없으면 null — 목업/데모 모드와 신규 가입자가
 /// 이 경로라, 화면에 아무것도 추가되지 않는다.
@@ -1076,8 +1076,8 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         key: textKey,
-        // 영어 태그는 길어서 두 줄이 되고, 그만큼 설명이 눌려 사라진다 — 한
-        // 줄로 못 박는다. (#1004)
+        // 태그가 길면 두 줄이 되고, 그만큼 설명이 눌려 사라진다 — 한 줄로
+        // 못 박는다. (#1004)
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: context.oncare
@@ -1128,7 +1128,7 @@ class _RecMealCard extends StatelessWidget {
                   _iconHeader(context),
                 // 누가 고른 추천인지 사진 위에 얹는다 — 카드가 좁아 아래 글자
                 // 자리를 더 쓰면 이름이나 이유가 밀린다. (#1056)
-                // 끝쪽도 묶어 두어야 긴 영어 배지가 카드 밖으로 나가지 않고
+                // 끝쪽도 묶어 두어야 긴 배지가 카드 밖으로 나가지 않고
                 // 말줄임된다. 배지 자체는 글자 폭만큼만 차지한다.
                 PositionedDirectional(
                   start: OnCareSpacing.s4,

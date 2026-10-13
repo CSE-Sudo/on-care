@@ -155,7 +155,7 @@ void main() {
       final ProviderContainer c = start(withProbe: false);
       await flush();
       await c.read(releaseUpdateProvider.notifier).check();
-      c.read(releaseUpdateProvider.notifier).reload();
+      await c.read(releaseUpdateProvider.notifier).reload();
       expect(showing(c), isFalse);
     });
 
@@ -228,7 +228,7 @@ void main() {
     test('새로고침은 브라우저에 맡긴다', () async {
       final ProviderContainer c = start();
       await flush();
-      c.read(releaseUpdateProvider.notifier).reload();
+      await c.read(releaseUpdateProvider.notifier).reload();
       expect(probe.reloadCount, 1);
     });
 
@@ -243,6 +243,151 @@ void main() {
       expect(probe.fetchCount, 1);
       expect(ticks.hasListener, isFalse);
       expect(probe.visible.hasListener, isFalse);
+    });
+
+    group('새로고침(#3204)', () {
+      test('누르는 즉시 배너를 내리고, 받으러 간 배포를 남긴 뒤 새로고침한다', () async {
+        probe.latest = kNextSha;
+        final ProviderContainer c = start();
+        await flush();
+        expect(showing(c), isTrue);
+
+        final Future<void> pending = c
+            .read(releaseUpdateProvider.notifier)
+            .reload();
+        // 브라우저가 진입 파일을 받는 동안에도 배너는 이미 내려가 있다.
+        expect(showing(c), isFalse);
+        expect(c.read(releaseUpdateProvider).dismissedSha, kNextSha);
+        await pending;
+        expect(probe.reloadCount, 1);
+        expect(probe.reloadedShaAtReload, <String?>[kNextSha]);
+        expect(probe.reloadedSha, kNextSha);
+      });
+
+      test('새로고침이 늦는 동안 확인이 와도 같은 배포는 다시 띄우지 않는다', () async {
+        probe.latest = kNextSha;
+        final ProviderContainer c = start();
+        await flush();
+        await c.read(releaseUpdateProvider.notifier).reload();
+
+        ticks.add(null);
+        probe.visible.add(null);
+        await flush();
+        expect(showing(c), isFalse);
+      });
+
+      test('새 번들이 받으러 간 배포면 기록을 지우고 안내하지 않는다', () async {
+        probe
+          ..latest = kNextSha
+          ..reloadedSha = kNextSha;
+        final ProviderContainer c = start(sha: kNextSha);
+        await flush();
+        expect(probe.reloadedSha, isNull);
+        expect(showing(c), isFalse);
+        expect(c.read(releaseUpdateProvider).dismissedSha, isNull);
+      });
+
+      test('기록은 공백·대소문자가 달라도 같은 배포로 본다', () async {
+        probe
+          ..latest = kNextSha
+          ..reloadedSha = ' ${kNextSha.toUpperCase()}\n';
+        start(sha: kNextSha);
+        await flush();
+        expect(probe.reloadedSha, isNull);
+      });
+
+      test('새로고침해도 옛 번들이면 같은 배포 안내를 되풀이하지 않는다', () async {
+        probe
+          ..latest = kNextSha
+          ..reloadedSha = kNextSha;
+        final ProviderContainer c = start();
+        await flush();
+        expect(probe.fetchCount, 1);
+        expect(showing(c), isFalse);
+        expect(c.read(releaseUpdateProvider).latestSha, kNextSha);
+        expect(c.read(releaseUpdateProvider).dismissedSha, kNextSha);
+        // 기록은 남는다 — 이 탭에서 다시 새로고침해도 같은 배포로는 안내하지 않는다.
+        expect(probe.reloadedSha, kNextSha);
+        // 스스로 다시 새로고침하지 않는다.
+        expect(probe.reloadCount, 0);
+
+        ticks.add(null);
+        probe.visible.add(null);
+        await flush();
+        expect(showing(c), isFalse);
+      });
+
+      test('옛 번들에 머문 뒤에도 더 새 배포는 다시 안내한다', () async {
+        probe
+          ..latest = kNextSha
+          ..reloadedSha = kNextSha;
+        final ProviderContainer c = start();
+        await flush();
+        expect(showing(c), isFalse);
+
+        probe.latest = kLaterSha;
+        ticks.add(null);
+        await flush();
+        expect(showing(c), isTrue);
+        expect(c.read(releaseUpdateProvider).latestSha, kLaterSha);
+      });
+
+      test('새로고침 한 바퀴: 옛 번들이 다시 떠도 배너가 돌아오지 않는다', () async {
+        probe.latest = kNextSha;
+        final ProviderContainer first = start();
+        await flush();
+        expect(showing(first), isTrue);
+        await first.read(releaseUpdateProvider.notifier).reload();
+
+        // 브라우저가 옛 번들을 다시 실었다 — 같은 탭 저장소, 같은 내장 SHA.
+        final ProviderContainer second = start();
+        await flush();
+        expect(showing(second), isFalse);
+        expect(probe.reloadCount, 1);
+      });
+
+      test('기록이 SHA 가 아니면 무시하고 평소처럼 안내한다', () async {
+        probe
+          ..latest = kNextSha
+          ..reloadedSha = 'not-a-sha';
+        final ProviderContainer c = start();
+        await flush();
+        expect(showing(c), isTrue);
+      });
+
+      test('탭 저장소를 못 써도 안내와 새로고침은 그대로 한다', () async {
+        probe
+          ..latest = kNextSha
+          ..storageError = StateError('storage blocked');
+        final ProviderContainer c = start();
+        await flush();
+        expect(showing(c), isTrue);
+
+        await c.read(releaseUpdateProvider.notifier).reload();
+        expect(showing(c), isFalse);
+        expect(probe.reloadCount, 1);
+      });
+
+      test('새로고침이 실패해도 오류를 내지 않고 배너는 내려간 채다', () async {
+        probe
+          ..latest = kNextSha
+          ..reloadError = StateError('blocked');
+        final ProviderContainer c = start();
+        await flush();
+        await c.read(releaseUpdateProvider.notifier).reload();
+        expect(showing(c), isFalse);
+        expect(probe.reloadCount, 1);
+      });
+
+      test('안내할 배포가 없으면 기록 없이 새로고침만 한다', () async {
+        probe.latest = kCurrentSha;
+        final ProviderContainer c = start();
+        await flush();
+        await c.read(releaseUpdateProvider.notifier).reload();
+        expect(probe.reloadCount, 1);
+        expect(probe.reloadedSha, isNull);
+        expect(c.read(releaseUpdateProvider).dismissedSha, isNull);
+      });
     });
   });
 }

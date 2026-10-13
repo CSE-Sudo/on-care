@@ -44,3 +44,16 @@ ProgramDirection programDirectionFor(TrainerClient client) {
   if (sodium) return ProgramDirection.moreCardio;
   return ProgramDirection.keep;
 }
+
+/// 확정한 구성의 강도가 회원 현황과 어긋나는가 — 프로그램 검토 단계의 강도
+/// 확인 줄이 쓴다. (#2374)
+///
+/// 최근 완료율이 낮은데([programDirectionFor] 가 강도를 낮추라는 회원) 강도를
+/// `high` 로 골랐을 때다. 1단계 `권장 방향` 과 같은 판단을 써서, 두 단계가 같은
+/// 회원에게 다른 말을 하지 않는다.
+bool intensityConflictsWithDirection(TrainerClient client, String intensity) {
+  if (intensity != 'high') return false;
+  final ProgramDirection direction = programDirectionFor(client);
+  return direction == ProgramDirection.lowerIntensity ||
+      direction == ProgramDirection.lowerIntensityMoreCardio;
+}

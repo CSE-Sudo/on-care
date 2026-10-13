@@ -76,11 +76,12 @@ class RequestBodySizeLimitMiddleware:
     Content-Length 없이 큰 본문을 보내면 413 이 나지 않는데, 그 경우엔 애초에
     앱 메모리에 적재되지도 않으므로 막으려던 문제가 아니다.
 
-    전역이 아니라 경로 목록을 받는 이유: 이 상한은 **업로드**를 겨냥한 값이다.
-    모든 요청에 걸면 대량 텍스트를 본문으로 받는 JSON 엔드포인트(`/coach-docs`
-    의 문서 적재 등)까지 같은 상한에 묶여, 의도치 않게 기능을 자른다. 업로드
-    엔드포인트가 늘어나면 `rules` 에 경로를 추가한다 — 파일을 받는 라우트가 이
-    표에 없으면 `tests/test_upload_body_limit_guard.py` 가 실패한다.
+    상한 하나가 아니라 경로 목록을 받는 이유: 업로드 경로는 파일 크기에 맞춘 큰 상한이
+    필요하고, 나머지는 작은 기본 상한이면 된다. 앱은 표 맨 끝에 모든 경로(`/`)의
+    기본 상한을 둔다(#3238) — 대량 텍스트를 본문으로 받는 경로(관리자 문서 적재)만
+    그 앞에 따로 연다. 업로드 엔드포인트가 늘어나면 `rules` 에 경로를 추가한다 —
+    파일을 받는 라우트가 업로드 상한 없이 기본 상한에만 걸리면 정상 사진이 413 을
+    맞는다(`tests/test_upload_body_limit_guard.py`).
 
     경로마다 상한이 다르다(식단 사진·채팅 사진·리포트 PDF·AI 코치 채팅 JSON). 한
     인스턴스가 경로→상한 표(`rules`)를 받아 **처음 맞는 규칙 하나**를 적용한다.
@@ -169,7 +170,7 @@ class RequestBodySizeLimitMiddleware:
     def _detail(rule: BodyLimitRule) -> str:
         """413 문구 — 규칙 문구가 없으면 업로드 기본 문구(최대 N MB)."""
         limit_mb = rule.max_bytes / (1024 * 1024)
-        return rule.detail or f"업로드 용량이 너무 큽니다(최대 {limit_mb:.0f}MB)."
+        return rule.detail or f"업로드 용량이 너무 커요(최대 {limit_mb:.0f}MB)."
 
     @classmethod
     async def _reject(cls, send: Send, rule: BodyLimitRule) -> None:

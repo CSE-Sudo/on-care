@@ -71,9 +71,9 @@ void main() {
   test('buildWeeklyReport — 데모 회원의 이번 주 PT 는 0회가 아니다', () async {
     final DriftScheduleRepository schedule = DriftScheduleRepository(db);
     for (final TrainerClient client in clients) {
-      final List<ScheduleSession> sessions = await schedule
-          .watchClientSessions((id: client.id, name: client.name))
-          .first;
+      final List<ScheduleSession> sessions = await schedule.watchClientSessions(
+        (id: client.id, name: client.name),
+      ).first;
       final WeeklyReport report = buildWeeklyReport(
         client: client,
         sessions: sessions,
@@ -91,9 +91,9 @@ void main() {
       // 김민수의 수업 날은 공유 픽스처가 정한다 — 비워 둔 날이 겹친 주는 0회다.
       // 그의 수업 날은 주간 PT 시드 시험이 픽스처와 맞춰 본다(#2694).
       if (client.id == 'seed-client-1') continue;
-      final List<ScheduleSession> sessions = await schedule
-          .watchClientSessions((id: client.id, name: client.name))
-          .first;
+      final List<ScheduleSession> sessions = await schedule.watchClientSessions(
+        (id: client.id, name: client.name),
+      ).first;
       for (int back = 1; back < demoReportHistoryWeeks; back++) {
         final WeeklyReport report = buildWeeklyReport(
           client: client,
@@ -105,16 +105,21 @@ void main() {
           expect(report.sessionsBooked, 0, reason: '${client.id} · $back주 전');
           continue;
         }
+        // 2주 전 배준혁(9)은 아침 PT 를 당일 취소하고 보강해 그 주만 한 건
+        // 더 잡혀 있다(#3304).
+        final bool sameDayCancel =
+            back == seedSameDayCancelWeeksAgo && client.id == 'seed-client-9';
         expect(
           report.sessionsBooked,
-          inInclusiveRange(1, 2),
+          inInclusiveRange(1, sameDayCancel ? 3 : 2),
           reason: '${client.id} · $back주 전',
         );
         // 3주 전의 배준혁(9) 노쇼·강서연(6) 회원 취소 한 건씩은 진행되지
         // 않은 수업이다(#2669). 나머지 지난 주 수업은 모두 끝난 수업이다.
         final bool missedOne =
-            back == seedPastMissWeeksAgo &&
-            (client.id == 'seed-client-9' || client.id == 'seed-client-6');
+            sameDayCancel ||
+            (back == seedPastMissWeeksAgo &&
+                (client.id == 'seed-client-9' || client.id == 'seed-client-6'));
         expect(
           report.sessionsDone,
           report.sessionsBooked - (missedOne ? 1 : 0),
@@ -163,18 +168,18 @@ void main() {
       DriftChatRepository(db),
       db,
     );
-    final int before = (await reports
-        .watch(client: client, weekStart: weekAgo(1))
-        .first).sessionsBooked;
+    final int before =
+        (await reports.watch(client: client, weekStart: weekAgo(1)).first)
+            .sessionsBooked;
 
     final List<ScheduleSession> lastWeek = await scheduleWeek(client.id, 1);
     await (db.delete(
       db.trainerScheduleEntries,
     )..where((t) => t.id.equals(lastWeek.first.id))).go();
 
-    final int after = (await reports
-        .watch(client: client, weekStart: weekAgo(1))
-        .first).sessionsBooked;
+    final int after =
+        (await reports.watch(client: client, weekStart: weekAgo(1)).first)
+            .sessionsBooked;
     expect(after, before - 1);
   });
 

@@ -119,22 +119,21 @@ def test_history_label_keeps_seconds():
 
 
 @pytest.mark.parametrize(
-    ("seconds", "ko", "en"),
+    ("seconds", "ko"),
     [
-        (45, "45초", "45 sec"),
-        (60, "1분", "1 min"),
-        (1800, "30분", "30 min"),
-        (3600, "1시간", "1 hr"),
-        (5415, "1시간 30분 15초", "1 hr 30 min 15 sec"),
-        (3605, "1시간 5초", "1 hr 5 sec"),
-        (0, "0분", "0 min"),
-        (-5, "0분", "0 min"),
+        (45, "45초"),
+        (60, "1분"),
+        (1800, "30분"),
+        (3600, "1시간"),
+        (5415, "1시간 30분 15초"),
+        (3605, "1시간 5초"),
+        (0, "0분"),
+        (-5, "0분"),
     ],
 )
-def test_format_duration_drops_zero_units(seconds, ko, en):
+def test_format_duration_drops_zero_units(seconds, ko):
     """0 인 단위는 뺀다 — 회원 앱 `formatDurationParts` 와 같은 규칙. (#2546)"""
     assert format_duration(seconds) == ko
-    assert format_duration(seconds, "en") == en
 
 
 def _routine(exercises: list[dict], minutes: int) -> TrainerRoutine:
@@ -153,11 +152,8 @@ def test_program_notification_adds_seconds_before_folding():
         "코어", sessions=3, seconds=sum(_program_row_seconds(r) for r in rows), multi=True
     )
     assert (args["seconds"], args["minutes"]) == (135, 2)
-    assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args, "ko") == (
+    assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args) == (
         "새 PT 프로그램이 왔어요", "코어 · 세션 3개 · 2분 15초",
-    )
-    assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args, "en") == (
-        "New PT program", "코어 · 3 sessions · 2 min 15 sec",
     )
 
 
@@ -187,7 +183,7 @@ def test_personal_row_seconds_reads_the_row_itself():
         multi=True,
         routine_only=True,
     )
-    assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args, "ko") == (
+    assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args) == (
         "새 개인운동이 왔어요", "개인운동 2개 · 9분 45초",
     )
 

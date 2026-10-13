@@ -1,13 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/client_factory.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 지난 주(2026-08-03 월요일) 리포트. 지난 주라 아직 오지 않은 날이 없어,
 /// 문장이 오늘 날짜에 따라 달라지지 않는다.
@@ -195,7 +193,7 @@ void main() {
         _ko,
         _week(sugar: const <double>[70, 70, 70, 70, 20, 20, 20]),
       );
-      expect(message, contains('당류는 하루 평균 49g이었고, 기준(50g)을 넘긴 날이 4일'));
+      expect(message, contains('당류는 하루 평균 49g이었고, 목표(50g)를 넘긴 날이 4일'));
       expect(message, contains('단 음료와 디저트는 하루 한 번까지만'));
     });
 
@@ -293,13 +291,4 @@ void main() {
     });
   });
 
-  group('reportMessage — 영어', () {
-    test('칼로리를 넘긴 주를 영어로도 같은 판정으로 적는다', () {
-      final message = reportMessage(_en, _overWeek());
-      expect(message, contains('36% above your 2,000kcal target'));
-      expect(message, contains('There was no PT this week.'));
-      expect(message, isNot(contains('Great work')));
-      expect(message, isNot(contains('은 ')));
-    });
-  });
 }

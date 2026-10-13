@@ -10,6 +10,8 @@ import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
 import 'package:oncare/features/my_health/data/repositories/trainer_sync_repository.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
@@ -61,6 +63,10 @@ void main() {
             const MockMyHealthRepository(),
           ),
           trainerSyncRepositoryProvider.overrideWithValue(sync),
+          // 코드를 띄운 시트는 연결됐는지 담당 상태를 묻는다(#3342).
+          memberCoachRepositoryProvider.overrideWithValue(
+            MockMemberCoachRepository(),
+          ),
           benefitsRepositoryProvider.overrideWithValue(
             FakeBenefitsRepository(pet: pet),
           ),
@@ -80,7 +86,7 @@ void main() {
   testWidgets('프로필 카드가 트레이너 동기화 진입점을 보여준다', (tester) async {
     await pumpMyTab(tester);
 
-    expect(find.text('트레이너와 데이터 동기화'), findsOneWidget);
+    expect(find.text('트레이너 연결 코드'), findsOneWidget);
     // 누르기 전에는 코드를 받지 않는다 — 발급이 곧 동의라서다.
     expect(sync.issued, 0);
   });
@@ -89,29 +95,27 @@ void main() {
     await pumpMyTab(tester);
 
     expect(find.byIcon(AppIcons.sync), findsNothing);
-    expect(find.text('6자리 코드로 담당 트레이너와 연결해요'), findsOneWidget);
+    expect(find.text('담당 트레이너와 연결해 기록을 공유하는 6자리 코드예요'), findsOneWidget);
     // 아이콘 칸이 빠졌으니 제목이 프로필 아바타와 같은 왼쪽 선에서 시작한다.
     // 아래 헬스장 카드의 담당 트레이너도 성씨 프로필이라(#2599) 맨 위
     // 프로필 카드의 것을 짚는다.
     expect(
-      tester.getTopLeft(find.text('트레이너와 데이터 동기화')).dx,
+      tester.getTopLeft(find.text('트레이너 연결 코드')).dx,
       tester.getTopLeft(find.byType(AppAvatar).first).dx,
     );
     // 행에 남는 아이콘은 오른쪽 화살표 하나뿐이다.
     final Finder row = find
-        .ancestor(of: find.text('트레이너와 데이터 동기화'), matching: find.byType(Row))
+        .ancestor(of: find.text('트레이너 연결 코드'), matching: find.byType(Row))
         .first;
     final Finder icons = find.descendant(of: row, matching: find.byType(Icon));
     expect(icons, findsOneWidget);
     expect(tester.widget<Icon>(icons).icon, AppIcons.chevronRight);
   });
 
-  testWidgets('코드 시트는 목적·기간·거부권을 말하고, 자세히를 펼쳐 볼 수 있다 (#2826)', (
-    tester,
-  ) async {
+  testWidgets('코드 시트는 목적·기간·거부권을 말하고, 자세히를 펼쳐 볼 수 있다 (#2826)', (tester) async {
     await pumpMyTab(tester);
 
-    await tester.tap(find.text('트레이너와 데이터 동기화'));
+    await tester.tap(find.text('트레이너 연결 코드'));
     await tester.pumpAndSettle();
 
     final Finder body = find.textContaining('이 코드를 입력한 트레이너가 담당이 되면');
@@ -146,12 +150,10 @@ void main() {
     expect(sync.issued, 0);
   });
 
-  testWidgets('공유 범위를 먼저 보여 주고, 동의해야 코드를 발급한다 (#2584)', (
-    tester,
-  ) async {
+  testWidgets('공유 범위를 먼저 보여 주고, 동의해야 코드를 발급한다 (#2584)', (tester) async {
     await pumpMyTab(tester);
 
-    await tester.tap(find.text('트레이너와 데이터 동기화'));
+    await tester.tap(find.text('트레이너 연결 코드'));
     await tester.pumpAndSettle();
 
     // 여는 것만으로는 발급하지 않는다 — 무엇에 동의하는지 읽기 전에 동의가
@@ -167,7 +169,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sync.issued, 1);
-    expect(find.byKey(const ValueKey<String>('trainer-sync-agree')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('trainer-sync-agree')),
+      findsNothing,
+    );
     // 한 자리씩 상자에 담긴다 — 마주 앉아 불러 주는 값이라 글자가 갈려야 한다.
     final String shown = <String>[
       for (int i = 0; i < 6; i++)
@@ -208,7 +213,7 @@ void main() {
 
   testWidgets('동의하지 않고 닫으면 발급도 취소도 없다 (#2584)', (tester) async {
     await pumpMyTab(tester);
-    await tester.tap(find.text('트레이너와 데이터 동기화'));
+    await tester.tap(find.text('트레이너 연결 코드'));
     await tester.pumpAndSettle();
 
     await tester.tapAt(const Offset(195, 40));
@@ -220,7 +225,7 @@ void main() {
 
   testWidgets('시트를 닫으면 코드를 버린다', (tester) async {
     await pumpMyTab(tester);
-    await tester.tap(find.text('트레이너와 데이터 동기화'));
+    await tester.tap(find.text('트레이너 연결 코드'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey<String>('trainer-sync-agree')));
     await tester.pumpAndSettle();
@@ -238,7 +243,7 @@ void main() {
   ) async {
     Future<(double, double)> measure() async => (
       tester.getSize(find.byKey(const Key('profileNameLine'))).height,
-      tester.getTopLeft(find.text('트레이너와 데이터 동기화')).dy,
+      tester.getTopLeft(find.text('트레이너 연결 코드')).dy,
     );
 
     await pumpMyTab(

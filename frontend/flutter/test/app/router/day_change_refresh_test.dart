@@ -1,12 +1,16 @@
-/// 날짜(KST)가 바뀐 계기에만 기록 그래프·보호권·주간 챌린지·프로필 펫을 비운다. (#2852, #3098)
+/// 날짜(KST)가 바뀐 계기에만 기록 그래프·보호권·주간 챌린지·프로필 펫·AI 조언·코칭 시트를
+/// 비운다. (#2852, #3098, #3351)
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/router/day_change_refresh.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 
 void main() {
@@ -20,12 +24,17 @@ void main() {
 
   DayChangeRefresher refresher() => DayChangeRefresher(today: () => today);
 
-  test('대상은 기록 그래프·보호권·주간 챌린지·프로필 펫이다', () {
+  test('대상은 기록 그래프·보호권·주간 챌린지·프로필 펫·AI 맞춤 조언·코칭 시트다', () {
     expect(kDayChangeRefreshTargets, <ProviderOrFamily>[
       activityCalendarProvider,
       myStreakShieldsProvider,
       weeklyChallengeProvider,
       profilePetProvider,
+      // 다음 날 복귀해도 조언만 어제 것으로 남지 않게(#3244).
+      dietAdviceProvider,
+      exerciseAdviceProvider,
+      // 자정을 넘겨도 어제의 인사말과 "오늘" 카드가 남지 않게(#3351).
+      aiCoachStateProvider,
     ]);
   });
 

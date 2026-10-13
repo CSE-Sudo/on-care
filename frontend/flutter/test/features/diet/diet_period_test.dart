@@ -108,7 +108,7 @@ Future<void> _showWeekOf(WidgetTester tester, DateTime target) async {
     target.isBefore(week);
     week = week.subtract(const Duration(days: 7))
   ) {
-    await tester.tap(find.byTooltip('지난 주'));
+    await tester.tap(find.byTooltip('지난주'));
     await tester.pumpAndSettle();
   }
 }
@@ -282,9 +282,7 @@ void main() {
       expect(find.text(l.dietMealLog), findsOneWidget);
     });
 
-    // 로케일도 축이다. 영어 라벨이 더 길어 같은 폭에서 먼저 넘친다 — 날짜
-    // 스트립이 딱 그래서 영어에서만 넘치고 있었다(#743).
-    for (final String locale in <String>['ko', 'en']) {
+    for (final String locale in <String>['ko']) {
       testWidgets('$locale · 좁은 화면·큰 글자 배율에서 먼저 접히는 것은 날짜다 (#687 리뷰)', (
         WidgetTester tester,
       ) async {

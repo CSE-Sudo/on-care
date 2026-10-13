@@ -12,25 +12,23 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final RegExp fixedVersion = RegExp(r'\b\d+\.\d+\.\d+\b');
 
-  for (final String locale in <String>['ko', 'en']) {
-    group('app_$locale.arb', () {
-      final Map<String, dynamic> arb =
-          jsonDecode(File('lib/l10n/app_$locale.arb').readAsStringSync())
-              as Map<String, dynamic>;
+  group('app_ko.arb', () {
+    final Map<String, dynamic> arb =
+        jsonDecode(File('lib/l10n/app_ko.arb').readAsStringSync())
+            as Map<String, dynamic>;
 
-      test('버전 문구는 자리표시를 쓴다', () {
-        expect(arb['myAppVersion'], contains('{version}'));
-        expect(arb['myAppName'], isNotEmpty);
-        expect(arb['updateRequiredVersions'], contains('{current}'));
-        expect(arb['updateRequiredVersions'], contains('{min}'));
-      });
+    test('버전 문구는 자리표시를 쓴다', () {
+      expect(arb['myAppVersion'], contains('{version}'));
+      expect(arb['myAppName'], isNotEmpty);
+      expect(arb['updateRequiredVersions'], contains('{current}'));
+      expect(arb['updateRequiredVersions'], contains('{min}'));
+    });
 
-      test('어느 문구에도 고정 버전 숫자가 없다', () {
-        arb.forEach((String key, dynamic value) {
-          if (key.startsWith('@') || value is! String) return;
-          expect(fixedVersion.hasMatch(value), isFalse, reason: '$key: $value');
-        });
+    test('어느 문구에도 고정 버전 숫자가 없다', () {
+      arb.forEach((String key, dynamic value) {
+        if (key.startsWith('@') || value is! String) return;
+        expect(fixedVersion.hasMatch(value), isFalse, reason: '$key: $value');
       });
     });
-  }
+  });
 }

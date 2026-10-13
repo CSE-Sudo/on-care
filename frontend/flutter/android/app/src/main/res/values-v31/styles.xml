@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 이상 실행 화면(#3153). 이 버전부터 시스템 스플래시가 windowBackground 대신
+         windowSplashScreen* 를 쓰므로 바탕색과 가운데 아이콘을 여기서 정한다. 정하지 않으면
+         런처 아이콘을 가운데 둔 기본 화면이 뜬다.
+         앱은 라이트 전용이라(#1604) values-night-v31 도 같은 값이다 — 밤 모드 한정자가 API
+         한정자보다 앞서므로 밤 모드 기기는 values-v31 이 아니라 그 폴더를 읽는다. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/launch_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/launch_icon_android12</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+</resources>

@@ -65,7 +65,7 @@ EXERCISE_CATALOG: list[dict] = [
     {"name": "걷기", "type": _CARDIO, "met": 3.5, "aliases": ["산책", "워킹", "walking"]},
     {"name": "빠르게 걷기", "type": _CARDIO, "met": 5.0, "aliases": ["파워워킹", "속보"]},
     {"name": "트레드밀 걷기", "type": _CARDIO, "met": 4.3, "aliases": ["워킹머신", "런닝머신 걷기"]},
-    {"name": "달리기", "type": _CARDIO, "met": 8.3, "aliases": ["러닝", "running", "구보"]},
+    {"name": "달리기", "type": _CARDIO, "met": 8.3, "aliases": ["러닝", "런닝", "running", "구보"]},
     {"name": "조깅", "type": _CARDIO, "met": 7.0, "aliases": ["가볍게 뛰기"]},
     {"name": "러닝머신", "type": _CARDIO, "met": 8.3, "aliases": ["런닝머신", "트레드밀", "treadmill"]},
     {"name": "계단 오르기", "type": _CARDIO, "met": 8.8, "aliases": ["계단운동", "스텝밀", "천국의 계단"]},
@@ -83,7 +83,7 @@ EXERCISE_CATALOG: list[dict] = [
     {"name": "줌바", "type": _CARDIO, "met": 6.5, "aliases": ["zumba", "댄스운동"]},
     {"name": "버피", "type": _CARDIO, "met": 8.0, "aliases": ["버피테스트", "burpee"]},
     {"name": "서킷 트레이닝", "type": _CARDIO, "met": 8.0, "aliases": ["써킷", "크로스핏", "circuit"]},
-    {"name": "인터벌 러닝", "type": _CARDIO, "met": 9.8, "aliases": ["인터벌", "hiit", "고강도 인터벌"]},
+    {"name": "인터벌 러닝", "type": _CARDIO, "met": 9.8, "aliases": ["인터벌 런닝", "인터벌", "hiit", "고강도 인터벌"]},
     # --- 근력 ---
     {"name": "웨이트 트레이닝", "type": _STRENGTH, "met": 5.0, "aliases": ["웨이트", "헬스", "근력운동", "머신운동"]},
     {"name": "스쿼트", "type": _STRENGTH, "met": 5.0, "aliases": ["squat", "바벨스쿼트", "고블릿스쿼트"]},

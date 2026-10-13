@@ -93,6 +93,7 @@ class _FakeSession:
         self.deleted = {"x"} if pending == "deleted" else set()
         self._in_tx = in_tx
         self.commits = 0
+        self.info: dict = {}
 
     def in_transaction(self) -> bool:
         return self._in_tx
@@ -132,6 +133,121 @@ def test_release_is_a_no_op_without_a_transaction():
     db = _FakeSession(in_tx=False)
     assert release_connection(db) is True
     assert db.commits == 0
+
+
+def test_release_leaves_a_marked_write_alone():
+    """대기 변경이 비어 있어도 이번 트랜잭션에 쓴 표시가 있으면 커밋하지 않는다(#3253)."""
+    from app.db.session import _WROTE_KEY, release_connection
+
+    db = _FakeSession()
+    db.info[_WROTE_KEY] = True
+    assert release_connection(db) is False
+    assert db.commits == 0
+
+
+# ---------- 연결 반납 규칙: 실제 세션(SQLite 메모리, #3253) ----------
+
+
+@pytest.fixture
+def sqlite_session():
+    """이벤트 표시를 실제 `Session` 으로 확인한다. 앱 모델(pgvector)과 무관한 표 하나."""
+    from sqlalchemy import Integer, String, create_engine
+    from sqlalchemy.orm import DeclarativeBase, Session, mapped_column
+
+    class _Base(DeclarativeBase):
+        pass
+
+    class _Row(_Base):
+        __tablename__ = "release_probe"
+        # 이 파일은 `from __future__ import annotations` 라 지역 클래스의 `Mapped[...]`
+        # 주석을 풀지 못한다 — 주석 없이 열을 적는다.
+        id = mapped_column(Integer, primary_key=True)
+        name = mapped_column(String)
+
+    engine = create_engine("sqlite://")
+    _Base.metadata.create_all(engine)
+    with Session(engine) as db:
+        yield db, _Row
+    engine.dispose()
+
+
+def test_release_does_not_commit_a_flushed_write(sqlite_session):
+    from app.db.session import release_connection
+
+    db, Row = sqlite_session
+    db.add(Row(id=1, name="a"))
+    db.flush()
+    assert not (db.new or db.dirty or db.deleted)
+
+    assert release_connection(db) is False
+    assert db.in_transaction()
+    db.rollback()
+    assert db.scalar(select(Row).where(Row.id == 1)) is None
+
+
+def test_release_does_not_commit_an_executed_delete(sqlite_session):
+    """flush 를 거치지 않는 `db.execute(delete(...))` 도 쓰기다."""
+    from sqlalchemy import delete
+
+    from app.db.session import release_connection
+
+    db, Row = sqlite_session
+    db.add(Row(id=1, name="a"))
+    db.commit()
+
+    db.execute(delete(Row).where(Row.id == 1))
+    assert release_connection(db) is False
+    db.rollback()
+    assert db.scalar(select(Row).where(Row.id == 1)) is not None
+
+
+def test_release_ends_a_real_read_only_transaction(sqlite_session):
+    from app.db.session import release_connection
+
+    db, Row = sqlite_session
+    db.execute(select(Row))
+    assert db.in_transaction()
+    assert release_connection(db) is True
+    assert not db.in_transaction()
+
+
+def test_release_works_again_after_the_write_is_committed(sqlite_session):
+    """커밋하면 쓰기 표시가 지워져, 그 뒤 읽기만 한 트랜잭션은 다시 반납한다."""
+    from app.db.session import release_connection
+
+    db, Row = sqlite_session
+    db.add(Row(id=1, name="a"))
+    db.flush()
+    assert release_connection(db) is False
+    db.commit()
+
+    db.execute(select(Row))
+    assert release_connection(db) is True
+    assert not db.in_transaction()
+
+
+def test_release_works_again_after_a_rollback(sqlite_session):
+    from app.db.session import release_connection
+
+    db, Row = sqlite_session
+    db.add(Row(id=1, name="a"))
+    db.flush()
+    db.rollback()
+
+    db.execute(select(Row))
+    assert release_connection(db) is True
+
+
+def test_a_savepoint_end_keeps_the_outer_write_mark(sqlite_session):
+    """세이브포인트가 끝나도 바깥 트랜잭션의 쓰기는 남아 있다."""
+    from app.db.session import release_connection
+
+    db, Row = sqlite_session
+    db.add(Row(id=1, name="a"))
+    db.flush()
+    with db.begin_nested():
+        db.execute(select(Row))
+    assert release_connection(db) is False
 
 
 # ---------- DB: 실행 상한 ----------

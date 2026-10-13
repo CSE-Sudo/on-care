@@ -262,6 +262,25 @@ def refund(db: Session, user_id: str, source_type: str, source_id: str) -> int:
     return amount
 
 
+def cancel_spend(db: Session, user_id: str, source_type: str, source_id: str) -> int:
+    """[source_id] 로 방금 잡아 둔 사용을 없던 일로 한다. 되돌린 포인트(0 이상). (#3240)
+
+    [refund] 가 이미 받은 것의 값을 돌려주는 짝이라면, 이것은 **받은 것이 없는**
+    사용을 지운다 — 내역에 사용·반환 두 줄이 남지 않는다. AI 코치 대화는 보내기 전에
+    포인트를 먼저 잡아 두고(동시 전송이 잔액을 넘지 않게), AI 가 답하지 못하면
+    여기로 거둔다. 반환이 이미 있으면 건드리지 않는다. 커밋하지 않는다.
+    """
+    profile = _locked_profile(db, user_id)
+    spent = _row(db, user_id, SPEND, source_type, source_id)
+    if spent is None or _row(db, user_id, REFUND, source_type, source_id) is not None:
+        return 0
+    amount = -spent.delta
+    db.delete(spent)
+    profile.activity_points = (profile.activity_points or 0) + max(amount, 0)
+    db.flush()
+    return max(amount, 0)
+
+
 def credit(
     db: Session,
     user_id: str,

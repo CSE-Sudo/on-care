@@ -22,7 +22,7 @@ import 'package:oncare_trainer/shared/utils/focus_change_label.dart';
 TrainerNotification _notice(Map<String, Object?> overrides) =>
     TrainerNotification.fromJson(<String, Object?>{
       'id': 'n1',
-      'title': '회원 건강 목표 변경',
+      'title': '회원 건강 목표가 바뀌었어요',
       'body': '지수 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활',
       'category': 'health_goal',
       'read': false,
@@ -36,7 +36,6 @@ void main() {
 
   setUpAll(() async {
     await initializeDateFormatting('ko');
-    await initializeDateFormatting('en');
   });
 
   group('알림', () {
@@ -54,7 +53,7 @@ void main() {
 
     test('주의사항 알림은 신체·목표 창의 건강 목표 탭까지 연다 (#2619)', () {
       final TrainerNotification notice = _notice(<String, Object?>{
-        'title': '회원 주의사항 변경',
+        'title': '회원 주의사항이 바뀌었어요',
         'body': '지수 회원이 건강상태·주의사항을 바꿨어요',
         'template': 'trainer_health_notes',
         'args': <String, Object?>{'member_name': '지수', 'with_focus': false},
@@ -88,7 +87,7 @@ void main() {
 
     test('회원 이름 변경 알림도 그 회원 상세로 간다 (#2065)', () {
       final TrainerNotification notice = _notice(<String, Object?>{
-        'title': '회원 이름 변경',
+        'title': '회원 이름이 바뀌었어요',
         'body': '지수 회원이 이름을 바꿨어요: 이수진',
         'category': 'member_name',
         'subject_id': 'user-jisu',
@@ -134,7 +133,6 @@ void main() {
 
     test('마지막 변경일은 브라우저 시간대가 아니라 KST 날짜로 보인다', () {
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
       // UTC 9월 16일 15:30 = KST 9월 17일 00:30. 미국 서부 브라우저라면
       // `toLocal()` 이 9월 16일 아침으로 읽었다.
       final MemberHealthProfile lateNight =
@@ -147,10 +145,6 @@ void main() {
       expect(
         focusLastChangedLabel(ko, lateNight, locale: 'ko'),
         '마지막 변경: 회원 · 9월 17일',
-      );
-      expect(
-        focusLastChangedLabel(en, lateNight, locale: 'en'),
-        'Last changed by Member · Sep 17',
       );
 
       // KST 오전 8시 59분(UTC 전날 23:59)도 KST 날짜다.
@@ -169,7 +163,6 @@ void main() {
 
     test('누가 언제 바꿨는지 한 줄로 말하고, 바꾼 적이 없으면 그리지 않는다', () {
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
       final MemberHealthProfile byMember = MemberHealthProfile(
         memberId: 'user-jisu',
         memberName: '지수',
@@ -180,10 +173,6 @@ void main() {
       expect(
         focusLastChangedLabel(ko, byMember, locale: 'ko'),
         '마지막 변경: 회원 · 9월 16일',
-      );
-      expect(
-        focusLastChangedLabel(en, byMember, locale: 'en'),
-        'Last changed by Member · Sep 16',
       );
       expect(
         focusLastChangedLabel(

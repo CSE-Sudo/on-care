@@ -70,6 +70,10 @@ extension _LocalApiNotifications on LocalApiInterceptor {
           // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
           // 고른다. 시드 밖의 알림은 키가 없다(#1812).
           'message_key': ?kDemoAlertKeyBySeedId[r.id],
+          // 리포트 알림이 가리키는 리포트 — 서버 `NotificationOut.report` 와 같은
+          // 모양이다(#3344). 데모의 리포트 알림은 시드 한 건이고, 데모 대화의
+          // 리포트 안내를 가리킨다. 나머지는 서버처럼 null 이다.
+          'report': _demoSeedReport(r.id),
         },
     ];
     return _ok(options, list);
@@ -94,6 +98,8 @@ extension _LocalApiNotifications on LocalApiInterceptor {
   Future<Response<Object?>> _notificationsUnreadCount(
     RequestOptions options,
   ) async {
+    // 알림함을 열지 않아도 결과 알림이 생겨 배지가 켜진다 — 서버와 같다(#3362).
+    await _settleChallenges();
     final unread = await (_db.select(
       _db.notificationItems,
     )..where((t) => t.read.equals(false))).get();
@@ -107,7 +113,7 @@ extension _LocalApiNotifications on LocalApiInterceptor {
     final int n =
         await (_db.update(_db.notificationItems)..where((t) => t.id.equals(id)))
             .write(const NotificationItemsCompanion(read: Value(true)));
-    if (n == 0) return _notFound(options, '알림을 찾을 수 없습니다.');
+    if (n == 0) return _notFound(options, '알림을 찾을 수 없어요.');
     return _ok(options, <String, Object?>{'id': id, 'read': true});
   }
 
@@ -120,6 +126,21 @@ extension _LocalApiNotifications on LocalApiInterceptor {
               ..where((t) => t.read.equals(false)))
             .write(const NotificationItemsCompanion(read: Value(true)));
     return _ok(options, <String, Object?>{'marked_read': n});
+  }
+
+  /// 담당 트레이너 대화를 읽음 처리한다(#3343).
+  ///
+  /// 서버 `mark_thread_read` 의 회원 분기와 같다 — 대화를 읽으면 안 읽은 메시지·
+  /// 리포트 알림도 함께 읽음이 되고, 다른 갈래는 그대로다. 데모의 대화는 목업 코치
+  /// 저장소가 들고 있어 메시지 읽음은 거기서 하고, 여기는 알림만 맡는다. 그래서
+  /// 읽은 메시지 수(`marked_read`)는 늘 0 이다.
+  Future<Response<Object?>> _coachChatRead(RequestOptions options) async {
+    await (_db.update(_db.notificationItems)..where(
+          (t) =>
+              t.category.isIn(_coachChatAlertCategories) & t.read.equals(false),
+        ))
+        .write(const NotificationItemsCompanion(read: Value(true)));
+    return _ok(options, <String, Object?>{'marked_read': 0});
   }
 
   /// 시드 밖 알림의 상대 시각 — 서버 `notification_service.time_ago` 와 같다.
@@ -142,11 +163,29 @@ extension _LocalApiNotifications on LocalApiInterceptor {
   }
 }
 
+/// 담당 트레이너 대화로 도착하는 알림 갈래 — 서버 `MEMBER_COACH_CHAT`·
+/// `MEMBER_COACH_REPORT`. 대화를 읽으면 함께 읽음이 된다(#3343).
+const List<String> _coachChatAlertCategories = <String>[
+  'coach_chat',
+  'coach_report',
+];
+
 Map<String, Object?>? _demoSeedAction(String id) {
   final ({String label, String target})? a = kDemoAlertActionBySeedId[id];
   if (a == null) return null;
   return <String, Object?>{'label': a.label, 'target': a.target};
 }
+
+/// 데모 시드의 리포트 알림(`seed-noti-7`)이 가리키는 리포트. (#3344)
+///
+/// 목적지 값은 서버처럼 대화(`coach_chat`) 그대로 두고 이 값만 더한다.
+Map<String, Object?>? _demoSeedReport(String id) =>
+    kDemoAlertKeyBySeedId[id] == kDemoAlertReport
+    ? <String, Object?>{
+        'week_start': wireDate(MockMemberCoachRepository.demoReportWeekStart),
+        'message_id': MockMemberCoachRepository.demoReportMessageId,
+      }
+    : null;
 
 /// 목업 알림의 행동 유도 — 서버 `_ACTION_BY_CATEGORY` 중 목업이 만드는 것만.
 ///
@@ -162,7 +201,7 @@ Map<String, Object?>? _demoActionFor(String category) => switch (category) {
     'target': 'dashboard',
   },
   'coach_chat' => const <String, Object?>{
-    'label': '대화 보기',
+    'label': '메시지 보기',
     'target': 'coach_chat',
   },
   'coach_report' => const <String, Object?>{
@@ -175,7 +214,7 @@ Map<String, Object?>? _demoActionFor(String category) => switch (category) {
     'label': '일정 보기',
     'target': 'exercise',
   },
-  // PT 수업 완료·피드백 — 운동 탭의 PT 기록(#3027).
+  // PT 완료·피드백 — 운동 탭의 PT 기록(#3027).
   'pt_done' => const <String, Object?>{
     'label': 'PT 기록 보기',
     'target': 'exercise',

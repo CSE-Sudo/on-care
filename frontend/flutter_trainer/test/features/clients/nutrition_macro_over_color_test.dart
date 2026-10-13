@@ -134,7 +134,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('/ 1,600 kcal'), findsOneWidget);
+    expect(find.textContaining('/ 1,600kcal'), findsOneWidget);
     expect(barColor(tester, '탄수화물'), OnCareColors.danger);
     expect(barColor(tester, '지방'), OnCareColors.danger);
     // 비어 있는 칸(단백질)은 식단 분석과 같은 실효 목표 — 체중도 없으면 60g(#2898).

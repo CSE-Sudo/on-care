@@ -14,4 +14,11 @@ void main() {
     expect(formatNumber(1830.24), '1,830.2');
     expect(formatNumber(17.8), '17.8');
   });
+
+  test('반올림해 정수가 되면 소수점을 적지 않는다 (#3250)', () {
+    // 회원 앱 `#,##0.#` 는 17.96 을 `18` 로 적는다.
+    expect(formatNumber(17.96), '18');
+    expect(formatNumber(1999.97), '2,000');
+    expect(formatNumber(-0.04), '0');
+  });
 }

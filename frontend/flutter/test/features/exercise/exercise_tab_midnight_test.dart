@@ -33,9 +33,13 @@ const ExerciseWeek _week = ExerciseWeek(
   aiCoachMessage: '꾸준히 운동해 보세요.',
 );
 
-Future<void Function(DateTime)> _pump(WidgetTester tester) async {
-  // 2026-08-19(수) 23:50 KST 에 연다.
-  DateTime now = DateTime(2026, 8, 19, 23, 50);
+Future<void Function(DateTime)> _pump(
+  WidgetTester tester, {
+  DateTime? openedAt,
+  Future<ExerciseWeek> Function()? fetchWeek,
+}) async {
+  // 기본은 2026-08-19(수) 23:50 KST 에 연다.
+  DateTime now = openedAt ?? DateTime(2026, 8, 19, 23, 50);
   debugNowKstOverride = () => now;
   addTearDown(() => debugNowKstOverride = null);
   await tester.binding.setSurfaceSize(const Size(800, 1800));
@@ -59,7 +63,9 @@ Future<void Function(DateTime)> _pump(WidgetTester tester) async {
             ),
           ),
         ),
-        exerciseWeekProvider.overrideWith((ref) async => _week),
+        exerciseWeekProvider.overrideWith(
+          (ref) => fetchWeek?.call() ?? Future<ExerciseWeek>.value(_week),
+        ),
         memberCoachRepositoryProvider.overrideWithValue(
           MockMemberCoachRepository(),
         ),
@@ -111,5 +117,54 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_todayLoadCard, findsNothing);
+  });
+
+  testWidgets('일요일에서 월요일로 넘기면 지난주 월요일 기록을 오늘로 그리지 않는다 (#3244)', (
+    WidgetTester tester,
+  ) async {
+    // 지난주 자료에는 월요일(8/17) 기록이 있다. 새 주(8/24~)는 아직 비었다.
+    const ExerciseSession lastMonday = ExerciseSession(
+      id: 'own-last-monday',
+      dayLabel: '월',
+      type: ExerciseType.cardio,
+      minutes: 30,
+      calories: 200,
+      name: '지난주 러닝',
+    );
+    int fetches = 0;
+    await _pump(
+      tester,
+      // 2026-08-23(일) 23:50.
+      openedAt: DateTime(2026, 8, 23, 23, 50),
+      fetchWeek: () async => fetches++ == 0
+          ? const ExerciseWeek(
+              sessions: <ExerciseSession>[lastMonday],
+              dailyMinutes: <double>[30, 0, 0, 0, 0, 0, 0],
+              dailyCalories: <double>[200, 0, 0, 0, 0, 0, 0],
+              cardioMinutes: <double>[30, 0, 0, 0, 0, 0, 0],
+              strengthMinutes: <double>[0, 0, 0, 0, 0, 0, 0],
+              stretchingMinutes: <double>[0, 0, 0, 0, 0, 0, 0],
+              dayLabels: <String>['월', '화', '수', '목', '금', '토', '일'],
+              totalMinutes: 30,
+              totalCalories: 200,
+              streakDays: 1,
+              aiCoachMessage: '',
+            )
+          : _week,
+    );
+    expect(fetches, 1);
+
+    // 자정을 넘긴 뒤 자료를 다시 읽지 않고 화면만 다시 그린다 — 달력의 날을
+    // 누르는 것처럼.
+    debugNowKstOverride = () => DateTime(2026, 8, 24, 0, 10);
+    await tester.tap(find.text('23').first);
+    await tester.pumpAndSettle();
+
+    expect(fetches, 2, reason: '주가 바뀌었으니 새 주를 받는다');
+    expect(
+      find.byKey(const ValueKey<String>('exercise-own-record-own-last-monday')),
+      findsNothing,
+    );
+    expect(_todayLoadCard, findsOneWidget);
   });
 }

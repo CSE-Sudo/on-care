@@ -5,19 +5,20 @@
 /// 본인 확인(현재 비밀번호, 소셜로만 가입했으면 소셜 재로그인)이다(#3039).
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/mock_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -26,7 +27,6 @@ import '../../helpers/pump_app.dart';
 
 /// 문구 기대값은 로케일을 명시해 읽는다.
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 탈퇴 호출을 기록하는 페이크.
 class _FakeAccountRepository implements TrainerAccountRepository {
@@ -41,6 +41,9 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   int deleteCalls = 0;
   List<String> lastReasons = const <String>[];
   TrainerReauth? lastReauth;
+
+  /// 채워 두면 탈퇴 요청이 이것이 끝날 때까지 서버에 머문다(#3245).
+  Completer<void>? gate;
 
   @override
   bool get supportsPasswordChange => true;
@@ -59,6 +62,7 @@ class _FakeAccountRepository implements TrainerAccountRepository {
     deleteCalls++;
     lastReauth = reauth;
     lastReasons = reasons;
+    await gate?.future;
     final Object? e = error;
     if (e != null) {
       error = null;
@@ -73,7 +77,7 @@ class _SocialOnlyAuthRepository extends MockTrainerAuthRepository {
 
   @override
   Future<TrainerProfile> fetchProfile(String accessToken) async =>
-      seedTrainerProfileFor(DemoLanguage.ko).copyWith(hasPassword: false);
+      seedTrainerProfile.copyWith(hasPassword: false);
 }
 
 /// 탈퇴는 설정이 아니라 그 아래 고객 지원 화면에 있다(#2227) — 약관·개인정보
@@ -83,7 +87,6 @@ Future<(_FakeAccountRepository, ProviderContainer)> _pumpSettings(
   bool supportsDeletion = true,
   Object? error,
   bool socialOnly = false,
-  Locale locale = const Locale('ko'),
 }) async {
   final repo = _FakeAccountRepository(
     supportsDeletion: supportsDeletion,
@@ -93,7 +96,6 @@ Future<(_FakeAccountRepository, ProviderContainer)> _pumpSettings(
     tester,
     token: 'demo-token',
     at: '${AppRoutes.my}?t=support',
-    locale: locale,
     extraOverrides: <Override>[
       trainerAccountRepositoryProvider.overrideWithValue(repo),
       if (socialOnly)
@@ -277,21 +279,6 @@ void main() {
     expect(find.text(_ko.myDeleteTitle), findsOneWidget);
   });
 
-  testWidgets('영어 화면은 영어 안내·영어 오류를 쓴다', (tester) async {
-    await _pumpSettings(
-      tester,
-      locale: const Locale('en'),
-      error: const ReauthRejected(ReauthFailure.invalidPassword),
-    );
-
-    await _tapDelete(tester);
-    expect(find.text(_en.myDeleteReauthPrompt), findsOneWidget);
-
-    await _enterPassword(tester, 'wrong-pw-1');
-    await _tap(tester, 'delete-account-submit');
-    expect(find.text(_en.myDeleteReauthWrongPassword), findsOneWidget);
-  });
-
   testWidgets('회원 앱처럼 사유를 고르면 탈퇴하기 전에 그 답을 보여 준다', (tester) async {
     await _pumpSettings(tester);
 
@@ -342,6 +329,49 @@ void main() {
     // 다음에 로그인하는 사람이 탈퇴 화면으로 이어 가지 않는다.
     expect(AppRoutes.resumeTarget(location), isNull);
     expect(Uri.parse(location).queryParameters, isEmpty);
+  });
+
+  testWidgets('탈퇴 요청이 도는 동안에는 바깥·Esc 로 창이 닫히지 않는다 (#3245)', (tester) async {
+    final (repo, _) = await _pumpSettings(tester);
+
+    await _tapDelete(tester);
+    await _enterPassword(tester, 'current-pw-1');
+    repo.gate = Completer<void>();
+    await tester.tap(_submit);
+    await tester.pump();
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(find.text(_ko.myDeleteTitle), findsOneWidget);
+
+    repo.gate!.complete();
+    await settle(tester);
+
+    expect(repo.deleteCalls, 1);
+    expect(Uri.parse(currentLocation(tester)).path, AppRoutes.signIn);
+  });
+
+  testWidgets('요청 중 창이 다른 길로 닫혀도 탈퇴가 끝나면 로그아웃한다 (#3245)', (tester) async {
+    final (repo, _) = await _pumpSettings(tester);
+
+    await _tapDelete(tester);
+    await _enterPassword(tester, 'current-pw-1');
+    repo.gate = Completer<void>();
+    await tester.tap(_submit);
+    await tester.pump();
+
+    // 창만 걷어 낸다 — 결과 없이 닫히면 부른 쪽은 아무 값도 받지 못한다.
+    Navigator.of(tester.element(find.byType(AppDialog))).pop();
+    await settle(tester);
+    expect(find.text(_ko.myDeleteTitle), findsNothing);
+
+    repo.gate!.complete();
+    await settle(tester);
+
+    expect(repo.deleteCalls, 1);
+    expect(Uri.parse(currentLocation(tester)).path, AppRoutes.signIn);
   });
 
   // --- 소셜로만 가입한 계정 (#3039) -----------------------------------------

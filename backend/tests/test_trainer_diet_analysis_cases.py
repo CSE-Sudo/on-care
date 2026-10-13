@@ -29,7 +29,14 @@ def test_server_matches_the_shared_cases(case):
 
 def test_the_shared_file_is_up_to_date():
     """사례 목록과 문장이 스크립트와 같다 — 규칙을 바꾸고 파일을 다시 만들지 않으면 깨진다."""
-    assert _CASES == json.loads(json.dumps(gen.build(), ensure_ascii=False))
+    # 서버는 영어 문장을 만들지 않는다(#3404). 공유 파일에 남은 `en` 은 견주지 않는다.
+    shared = {
+        **_CASES,
+        "renderings": [
+            {k: v for k, v in row.items() if k != "en"} for row in _CASES["renderings"]
+        ],
+    }
+    assert shared == json.loads(json.dumps(gen.build(), ensure_ascii=False))
 
 
 def test_cases_cover_every_key():

@@ -153,9 +153,6 @@ void main() {
               ),
             ),
             coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
-            sentReportNoticesProvider.overrideWith(
-              (ref) async => const <SentReportNotice>[],
-            ),
           ],
           child: MaterialApp(
             theme: AppTheme.light(),
@@ -177,7 +174,7 @@ void main() {
         find.byKey(const ValueKey<String>('coach-chat-unassigned')),
         findsOneWidget,
       );
-      expect(find.text('담당이 해제되어 더 이상 대화를 보낼 수 없어요'), findsOneWidget);
+      expect(find.text('담당이 해제되어 더 이상 메시지를 보낼 수 없어요'), findsOneWidget);
       // 일반 불러오기 실패 문구와는 다르다.
       expect(find.text('대화를 불러오지 못했어요'), findsNothing);
 
@@ -192,14 +189,6 @@ void main() {
 
       // 대화방은 담당 코치를 보지 않는다 — 다시 읽은 것은 해제 신호 덕분이다.
       expect(repo.coachLoads, greaterThanOrEqualTo(1));
-    });
-
-    testWidgets('영어 안내도 해제를 말한다', (WidgetTester tester) async {
-      await pumpChat(tester, locale: const Locale('en'));
-
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-      expect(find.text(en.coachChatUnassigned), findsOneWidget);
-      expect(en.coachChatUnassigned, isNot(en.coachChatLoadFailed));
     });
   });
 
@@ -223,20 +212,33 @@ void main() {
       );
     });
 
-    test('해제된 뒤 받은 리포트 목록은 오류가 아니라 빈 목록이다', () async {
+    // 받은 리포트는 대화가 아니라 회원에게 남는 기록이다(#3348). 해제되면
+    // 대화는 닫히지만 목록은 그대로 서고, 리포트 알림이 데려올 자리도 남는다.
+    test('해제된 뒤에도 받은 리포트 목록은 그대로다', () async {
       final MockGymRepository gym = MockGymRepository();
+      final MockMemberCoachRepository coach = MockMemberCoachRepository(
+        linked: () => gym.hasTrainer,
+      );
       final ProviderContainer container = ProviderContainer(
         overrides: <Override>[
-          memberCoachRepositoryProvider.overrideWithValue(
-            MockMemberCoachRepository(linked: () => gym.hasTrainer),
-          ),
+          memberCoachRepositoryProvider.overrideWithValue(coach),
         ],
       );
       addTearDown(container.dispose);
+      final List<ReceivedReport> before =
+          (await coach.fetchReceivedReports()).reports;
+      expect(before, isNotEmpty);
+
       await gym.disconnectMyTrainer();
 
-      container.listen(sentReportNoticesProvider, (_, _) {});
-      expect(await container.read(sentReportNoticesProvider.future), isEmpty);
+      container.listen(receivedReportsProvider, (_, _) {});
+      final ReceivedReportsState after = await container.read(
+        receivedReportsProvider.future,
+      );
+      expect(
+        after.reports.map((ReceivedReport r) => r.weekStart).toList(),
+        before.map((ReceivedReport r) => r.weekStart).toList(),
+      );
     });
   });
 }

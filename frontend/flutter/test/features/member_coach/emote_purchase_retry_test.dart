@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
@@ -31,6 +32,9 @@ class _ServerLikeEmotes implements EmoteRepository {
   EmoteUnlockFailure? rejectWith;
   int spent = 0;
 
+  /// 있으면 구매가 이것이 끝날 때까지 기다린다 — 사는 중인 창을 본다.
+  Completer<void>? gate;
+
   EmoteState get _state => EmoteState(
     cost: 50,
     days: 7,
@@ -52,6 +56,7 @@ class _ServerLikeEmotes implements EmoteRepository {
     required String clientRequestId,
   }) async {
     keys.add(clientRequestId);
+    await gate?.future;
     final EmoteUnlockFailure? reject = rejectWith;
     if (reject != null) throw EmoteUnlockRejected(reject);
     if (seenKeys.contains(clientRequestId)) return _state;
@@ -128,7 +133,48 @@ Future<void> _buy(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// 시스템 뒤로 가기. 시트의 바깥 누름도 같은 `maybePop` 을 탄다.
+Future<void> _systemBack(WidgetTester tester) async {
+  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+    'flutter/navigation',
+    const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute')),
+    (_) {},
+  );
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
 void main() {
+  // 닫히면 산 결과·실패 안내를 보여 줄 자리가 사라진다(#3245).
+  testWidgets('사는 동안에는 뒤로 가기로 창이 닫히지 않는다', (WidgetTester tester) async {
+    final _ServerLikeEmotes emotes = _ServerLikeEmotes()
+      ..gate = Completer<void>();
+    final AppLocalizations l = await _pump(tester, emotes, _Harness());
+
+    await tester.tap(find.byKey(const Key('emote-$_emote')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('emoteBuyConfirm')));
+    // 확인창이 닫히고 구매가 시작된 뒤의 화면까지 그린다.
+    await tester.pump();
+    await tester.pump();
+    await _systemBack(tester);
+    expect(find.byKey(const Key('emoteSheet')), findsOneWidget);
+
+    emotes.gate!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text(l.emoteBought), findsOneWidget);
+    expect(emotes.spent, 1);
+  });
+
+  testWidgets('사는 중이 아니면 뒤로 가기로 창이 닫힌다', (WidgetTester tester) async {
+    await _pump(tester, _ServerLikeEmotes(), _Harness());
+
+    await _systemBack(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('emoteSheet')), findsNothing);
+  });
+
   testWidgets('응답을 못 받았어도 서버가 샀으면 성공으로 안내하고 한 번만 차감한다', (
     WidgetTester tester,
   ) async {

@@ -279,7 +279,7 @@ def test_api_rejects_an_oversized_body_with_413(client, member, llm_calls):
 
     assert r.status_code == 413, r.text
     assert r.json() == {
-        "detail": "요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요."
+        "detail": "요청이 너무 커요. 질문과 대화 기록을 줄여 다시 보내 주세요."
     }
     assert llm_calls == []
 

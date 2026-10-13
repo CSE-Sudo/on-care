@@ -31,6 +31,17 @@ import 'package:oncare_trainer/shared/services/client_repository.dart'
 /// keeps each implementation honest instead of forcing one to guess.
 typedef ScheduleClientKey = ({String id, String name});
 
+/// 기존 회차의 피드백 뒤에 `일정 추가` 로 쓴 피드백을 줄을 바꿔 붙인다(#2374).
+///
+/// 서버(`_append_feedback`)와 같은 규칙이다. 트레이너가 스케줄 탭에서 먼저 적어
+/// 둔 글을 말없이 지우지 않고, 새 글이 비어 있으면 기존 글을 그대로 둔다.
+String appendFeedback(String existing, String addition) {
+  final String added = addition.trim();
+  if (added.isEmpty) return existing;
+  final String before = existing.trim();
+  return before.isEmpty ? added : '$before\n$added';
+}
+
 /// The trainer's timeline: reads, booking CRUD, and session completion.
 ///
 /// Two implementations sit behind this, selected by
@@ -149,6 +160,9 @@ abstract interface class ScheduleRepository {
   /// [personalRoutines] 는 그 PT 사이에 회원이 혼자 할 개인운동이다(#2223).
   /// 같은 명령으로 그 일정에 붙기만 하고 회원에게는 가지 않는다 — 보내는 것은
   /// PT 완료 때다(#2224).
+  ///
+  /// [note] 는 이 PT 의 트레이너 피드백이다(#2374). 새 일정엔 그대로 담고,
+  /// 붙인 회차엔 기존 피드백 뒤에 줄을 바꿔 이어 붙인다 — [appendFeedback].
   Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
@@ -159,6 +173,7 @@ abstract interface class ScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines,
+    String note,
   });
 
   /// Removes a session from the timeline.
@@ -355,9 +370,13 @@ class DriftScheduleRepository implements ScheduleRepository {
   /// 예전에는 모든 PT 가 같은 두 개(저강도 걷기·코어 스트레칭)였다. 회원마다
   /// 목록이 다르고, 같은 회원이라도 일정마다 시작 자리를 달리해 PT 마다 다른
   /// 조합이 붙는다. 자리는 일정 id 로 정해 다시 읽어도 같다.
+  ///
+  /// 이미 보낸 PT 에는 붙이지 않는다(#2616) — 실서버 시드는 아직 보내지 않은
+  /// PT 에만 개인운동을 깔아, 지난 PT 는 개인운동 없이 보낸 것으로 선다.
   Future<List<RoutineExercise>> _seedSessionRoutines(
     TrainerScheduleRow row,
   ) async {
+    if (row.programSent) return const <RoutineExercise>[];
     final String? clientId = row.clientId;
     if (clientId == null) return _demoPersonalRoutines;
     final pool =
@@ -938,6 +957,7 @@ class DriftScheduleRepository implements ScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) {
     final table = _db.trainerScheduleEntries;
     return _db.transaction(() async {
@@ -995,11 +1015,17 @@ class DriftScheduleRepository implements ScheduleRepository {
         await (_db.update(
           table,
         )..where((t) => t.id.equals(existing!.id))).write(
-          TrainerScheduleEntriesCompanion(programJson: Value(encodedProgram)),
+          TrainerScheduleEntriesCompanion(
+            programJson: Value(encodedProgram),
+            note: Value(appendFeedback(existing.note, note)),
+          ),
         );
         // 서버와 같은 규칙 — 다시 붙이면 개인운동도 **새것으로 갈린다**(#2224).
-        // 쌓아 두면 두 번 짠 트레이너가 두 배를 보내게 된다.
-        await _rememberPersonalRoutines(existing.id, personalRoutines);
+        // 쌓아 두면 두 번 짠 트레이너가 두 배를 보내게 된다. 개인운동 없이
+        // 다시 붙이면 붙어 있던 것은 그대로 둔다(#2280, #2616).
+        if (personalRoutines.isNotEmpty) {
+          await _rememberPersonalRoutines(existing.id, personalRoutines);
+        }
         return true;
       }
 
@@ -1018,6 +1044,7 @@ class DriftScheduleRepository implements ScheduleRepository {
               durationMinutes: Value(durationMinutes),
               status: ScheduleStatus.upcoming,
               programJson: Value(encodedProgram),
+              note: Value(note.trim()),
             ),
           );
       // 트레이너가 방금 짠 개인운동이 그대로 이 PT 에 붙는다(#2224) — 실
@@ -1067,12 +1094,23 @@ class DriftScheduleRepository implements ScheduleRepository {
     if ((jsonDecode(session.programJson) as List<Object?>).isEmpty) {
       throw StateError('session has no program: $id');
     }
+    // 시드 개인운동을 단 PT 는 보내기 전에 그 목록을 기억에 남긴다(#2616) —
+    // 보낸 PT 에는 시드를 붙이지 않으므로, 남기지 않으면 함께 보낸 개인운동이
+    // 보내자마자 상세에서 사라진다.
+    SessionRoutineState? state = await _routineStore.readSession(id);
+    if (state?.items == null && !(state?.dismissed ?? false)) {
+      state = (state ?? const SessionRoutineState()).copyWith(
+        items: List<RoutineExercise>.unmodifiable(
+          await _seedSessionRoutines(session),
+        ),
+      );
+      await _routineStore.writeSession(id, state);
+    }
     await (_db.update(table)..where((t) => t.id.equals(id))).write(
       const TrainerScheduleEntriesCompanion(programSent: Value(true)),
     );
     // 개인운동은 PT 프로그램과 함께 나간다(#2224) — 전송 이력에도 `PT 와 함께`
     // 로 남는다(#2668). 보내지 않기로 정리한 것은 싣지 않는다.
-    final SessionRoutineState? state = await _routineStore.readSession(id);
     await _recordDelivery(
       session,
       DeliveryKinds.ptWithRoutine,
@@ -1607,14 +1645,13 @@ bool isDemoReservationScheduleId(String id) =>
 // 데모 저장소가 서버와 같은 사유로 거절할 때 쓰는 문구 — 서버 `trainer.schedule`
 // 의 ScheduleConflict 문구와 같다. 화면은 한국어일 때 이 사유를 그대로 보인다.
 const String demoFinishedEditRejected =
-    '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';
-const String demoSentProgramEditRejected = '이미 보낸 프로그램은 수정할 수 없습니다.';
-const String demoReservationEditRejected =
-    '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없습니다.';
+    '완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있어요.';
+const String demoSentProgramEditRejected = '이미 보낸 프로그램은 수정할 수 없어요.';
+const String demoReservationEditRejected = '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없어요.';
 const String demoReservationDeleteRejected =
-    '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없습니다.';
+    '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없어요.';
 const String demoReservationReopenRejected =
-    '예약으로 생성된 일정은 일반 일정 화면에서 되돌릴 수 없습니다.';
+    '예약으로 생성된 일정은 일반 일정 화면에서 되돌릴 수 없어요.';
 
 /// 데모 상담 일정의 `상담 요청 내용`(#2584).
 ///

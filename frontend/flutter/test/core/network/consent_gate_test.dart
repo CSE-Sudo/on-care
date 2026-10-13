@@ -135,7 +135,7 @@ void main() {
       expect(isConsentRequiredResponse(res(422, _consentRequired)), isFalse);
       expect(
         isConsentRequiredResponse(
-          res(403, <String, Object?>{'detail': '회원 전용 API 입니다.'}),
+          res(403, <String, Object?>{'detail': '회원 전용 API예요.'}),
         ),
         isFalse,
       );
@@ -196,7 +196,7 @@ void main() {
         <String, (int, Object?)>{
           'GET /diet/today': (
             403,
-            <String, Object?>{'detail': '회원 전용 API 입니다.'},
+            <String, Object?>{'detail': '회원 전용 API예요.'},
           ),
         },
       );

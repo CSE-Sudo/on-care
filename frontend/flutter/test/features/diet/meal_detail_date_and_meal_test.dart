@@ -399,7 +399,7 @@ void main() {
         () => repo.fetchToday(),
       ))!.entries.firstWhere((DietEntry e) => e.id == 'mock-breakfast');
       expect(saved.mealType, MealType.snack);
-      expect(find.text('식단이 저장되었어요'), findsOneWidget);
+      expect(find.text('식단을 저장했어요'), findsOneWidget);
       expect(find.textContaining('옮겼어요'), findsNothing);
     });
   });

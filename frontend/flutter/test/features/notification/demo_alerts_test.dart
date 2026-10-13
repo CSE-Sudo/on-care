@@ -54,9 +54,9 @@ void main() {
     final expected = <String, (AlertCategory, AlertTarget)>{
       '새 개인운동이 왔어요': (AlertCategory.routine, AlertTarget.exercise),
       // 서버 시드와 같은 갈래다(#2084·#2085).
-      '이번 주 리포트가 등록됐어요': (AlertCategory.coachReport, AlertTarget.coachChat),
-      'PT 수업 완료': (AlertCategory.ptDone, AlertTarget.exercise),
-      '트레이너 피드백 도착': (AlertCategory.coachChat, AlertTarget.coachChat),
+      '주간 리포트가 도착했어요': (AlertCategory.coachReport, AlertTarget.coachChat),
+      '12회차 PT를 마쳤어요': (AlertCategory.ptDone, AlertTarget.exercise),
+      '트레이너 피드백이 도착했어요': (AlertCategory.coachChat, AlertTarget.coachChat),
       '이번 주 운동 목표까지 조금 남았어요': (AlertCategory.reminder, AlertTarget.exercise),
       '식단 기록을 꾸준히 이어가고 있어요': (AlertCategory.achievement, AlertTarget.dashboard),
     };
@@ -109,10 +109,10 @@ void main() {
   });
 
   test('점검 공지만 목적지가 없다', () {
-    expect(byTitle('서비스 점검 안내').action, isNull);
+    expect(byTitle('서비스 점검이 예정돼 있어요').action, isNull);
     expect(
       demoAlerts.where((AlertItem a) => a.action == null).map((a) => a.title),
-      <String>['서비스 점검 안내'],
+      <String>['서비스 점검이 예정돼 있어요'],
     );
   });
 
@@ -170,7 +170,7 @@ void main() {
 
     test('PT 완료 알림은 오늘 PT 날과 같다', () {
       expect(today.isPt, isTrue);
-      expect(byTitle('PT 수업 완료').body, contains('오늘'));
+      expect(byTitle('12회차 PT를 마쳤어요').body, contains('오늘'));
     });
 
     test('연속 기록 알림은 요일과 상관없이 보름 넘게 끊기지 않은 기록과 같다', () {

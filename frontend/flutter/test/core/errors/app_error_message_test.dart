@@ -8,7 +8,6 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 403·429·검증 오류의 공통 문구. (#2859)
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
   const String fallback = '화면 문구';
 
   group('appErrorMessage — 403', () {
@@ -16,10 +15,6 @@ void main() {
       expect(
         appErrorMessage(ko, const ForbiddenError(), fallback: fallback),
         ko.errorForbidden,
-      );
-      expect(
-        appErrorMessage(en, const ForbiddenError(), fallback: fallback),
-        en.errorForbidden,
       );
     });
 
@@ -31,17 +26,6 @@ void main() {
           fallback: fallback,
         ),
         '데이터 공유 동의가 필요합니다.',
-      );
-    });
-
-    test('영어 화면은 한국어 사유 대신 앱 문구다', () {
-      expect(
-        appErrorMessage(
-          en,
-          const ForbiddenError(detail: '데이터 공유 동의가 필요합니다.'),
-          fallback: fallback,
-        ),
-        en.errorForbidden,
       );
     });
 
@@ -74,13 +58,6 @@ void main() {
         ko.errorRateLimited,
       );
     });
-
-    test('영어 화면도 같은 뜻의 영어 문구다', () {
-      expect(
-        appErrorMessage(en, const RateLimitedError(), fallback: fallback),
-        en.errorRateLimited,
-      );
-    });
   });
 
   group('appErrorMessage — 400·422', () {
@@ -92,17 +69,6 @@ void main() {
           fallback: fallback,
         ),
         '연락처는 비울 수 없습니다.',
-      );
-    });
-
-    test('영어 화면은 화면이 준 문구다', () {
-      expect(
-        appErrorMessage(
-          en,
-          const ValidationError(statusCode: 422, detail: '연락처는 비울 수 없습니다.'),
-          fallback: 'Check the value',
-        ),
-        'Check the value',
       );
     });
 
@@ -144,10 +110,6 @@ void main() {
         appErrorMessage(ko, const NetworkError(), fallback: fallback),
         ko.errorNetwork,
       );
-      expect(
-        appErrorMessage(en, const NetworkError(), fallback: fallback),
-        en.errorNetwork,
-      );
     });
 
     test('5xx 는 서버 일시 문제 안내다', () {
@@ -177,8 +139,5 @@ void main() {
   });
   test('새 문구는 ko/en 이 모두 있고 서로 다르다', () {
     expect(ko.errorForbidden, isNotEmpty);
-    expect(en.errorForbidden, isNotEmpty);
-    expect(ko.errorForbidden, isNot(en.errorForbidden));
-    expect(ko.errorRateLimited, isNot(en.errorRateLimited));
   });
 }

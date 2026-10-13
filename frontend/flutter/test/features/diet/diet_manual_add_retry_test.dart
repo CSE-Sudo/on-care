@@ -114,7 +114,7 @@ void main() {
     await _openManualAdd(tester, repository);
 
     await _save(tester);
-    expect(find.text('저장에 실패했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('저장하지 못했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
     expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
 
     await _save(tester);

@@ -12,7 +12,6 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.locale import Locale, current_locale
 from app.core.week import monday_of
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, HealthProfile,
@@ -62,20 +61,30 @@ def week_start_of(day: date) -> date:
 
 
 def build_weekly_report(
-    db: Session, trainer_id: str, member_id: str, week_start: date
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    week_start: date,
+    *,
+    member_scope: bool = False,
 ) -> WeeklyReportOut:
     """담당 고객 한 명의 한 주.
 
     O2O 코칭에서 회원이 재등록하는 이유는 "좋아졌다"를 볼 수 있을 때다. 여기서
     쓰는 값은 전부 두 앱이 이미 공유하는 데이터(식단·운동기록·스케줄)이며 새로
     수집하는 것이 없다.
+
+    [member_scope] 는 회원 본인이 자기 주를 읽는 자리다(#3347). 켜면 PT 횟수·
+    요일 이행률·개인운동 수를 [trainer_id] 로 거르지 않고 그 주에 그 회원에게
+    걸려 있던 것 전부로 센다 — 담당이 바뀌거나 끊긴 뒤에도 지난 주의 값이
+    그대로다. 트레이너 화면은 켜지 않는다(자기 담당 기간의 것만 본다).
     """
     monday = week_start_of(week_start)
     sunday = monday + timedelta(days=6)
     monday_str, sunday_str = monday.isoformat(), sunday.isoformat()
 
     member = db.get(User, member_id)
-    member_name = member.name if member else "고객"
+    member_name = member.name if member else "회원"
 
     # 취소·노쇼는 세지 않는다(#871). `sessions_booked` 는 "이번 주에 잡혀 있던
     # 수업" 이고 리포트는 그 분모로 이행을 읽는다 — 진행되지 않은 약속을 분모에
@@ -83,9 +92,10 @@ def build_weekly_report(
     # 자체에 패널티를 주는 지표는 이번 범위가 아니라 별도 정책이다.
     # 상담도 세지 않는다(#2741) — 리포트가 말하는 것은 **PT** 횟수다. 상담이 있던
     # 주는 PT 가 1회 더 나오고 이행률 분모도 그만큼 커졌다.
+    owner = () if member_scope else (TrainerSchedule.trainer_id == trainer_id,)
     sessions = db.scalars(
         select(TrainerSchedule).where(
-            TrainerSchedule.trainer_id == trainer_id,
+            *owner,
             TrainerSchedule.member_id == member_id,
             TrainerSchedule.date >= monday_str,
             TrainerSchedule.date <= sunday_str,
@@ -97,7 +107,9 @@ def build_weekly_report(
     done = sum(1 for s in sessions if s.status == SCHEDULE_DONE)
 
     # 요일 이행률은 로스터와 같은 계산이다(#2513) — 걸린 개인운동과 잡힌 PT.
-    week = week_completion_by_member(db, trainer_id, [member_id], monday)[member_id]
+    week = week_completion_by_member(
+        db, trainer_id, [member_id], monday, member_scope=member_scope
+    )[member_id]
     # 요일 칸은 회원의 실제 운동 기록에서 만든다(#1288). 기록이 (그 주 월요일,
     # 요일) 로 저장되므로 월요일 하나로 한 주가 그대로 걸린다.
     exercise_rows = db.scalars(
@@ -110,7 +122,9 @@ def build_weekly_report(
         # 열 때 칸 안의 줄 순서가 바뀐다.
         .order_by(ExerciseSession.completed_at, ExerciseSession.id)
     ).all()
-    assigned, assigned_done = _assigned_week_counts(db, trainer_id, member_id, monday)
+    assigned, assigned_done = _assigned_week_counts(
+        db, trainer_id, member_id, monday, member_scope=member_scope
+    )
     days = _week_days(list(exercise_rows), week, assigned, assigned_done)
     recorded = [d for d in week if d is not None]
     # 걸린 것이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이
@@ -286,7 +300,7 @@ def build_report_queue(db: Session, trainer_id: str, week: date) -> ReportQueueO
     return ReportQueueOut(week_start=monday_str, items=items)
 
 
-def report_message(report: WeeklyReportOut, locale: Locale | None = None) -> str:
+def report_message(report: WeeklyReportOut) -> str:
     """회원 채팅 스레드에 그대로 들어갈 본문.
 
     별도 리포트 함이 아니라 이미 읽고 있는 대화에 도착하도록 평문으로 쓴다 —
@@ -298,26 +312,14 @@ def report_message(report: WeeklyReportOut, locale: Locale | None = None) -> str
     손보지 않고 그대로 보내도 사람이 쓴 것으로 읽혀야 한다.
 
     기록이 없는 항목은 문장을 아예 뺀다 — '이행률 0%'는 거짓말이다.
-
-    [locale] 은 초안을 쓰는 트레이너 화면의 언어다(#2298). 생략하면 지금 요청의
-    언어이고, 헤더가 없으면 지금까지처럼 한국어다. 영어 문장은 트레이너 웹의
-    `reportBody*` 문구와 같은 말투로 쓴다 — 서버 초안과 화면 초안이 다른 사람이
-    쓴 글처럼 읽히면 안 된다.
     """
-    if (locale or current_locale()) == "en":
-        return _report_message_en(report)
-    return _report_message_ko(report)
-
-
-def _report_message_ko(report: WeeklyReportOut) -> str:
-    """한국어 본문. 헤더가 없는 요청과 한국어 화면이 받는 지금까지의 문장이다."""
     start = date.fromisoformat(report.week_start)
     end = date.fromisoformat(report.week_end)
     good = (
         (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
         and report.sodium_over_days <= 2
     )
-    period = f"{start.month}월 {start.day}일 – {end.month}월 {end.day}일"
+    period = f"{start.month}월 {start.day}일 ~ {end.month}월 {end.day}일"
 
     paragraphs: list[str] = [
         # 첫 줄에 무슨 메시지인지가 있어야 한다 — 회원의 대화방에는 다른
@@ -336,13 +338,13 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
             line = f"운동은 평균 {report.completion_avg}%로 꾸준히 해 주셨어요."
         else:
-            line = f"운동 이행률은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
+            line = f"운동 완료율은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
         workout.append(line)
     skipped = _skipped_names(report)
     if skipped:
         workout.append(
             f"다만 {_topic(', '.join(skipped))} 건너뛰셨더라고요. 컨디션 때문이었다면 "
-            "다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요."
+            "다음 PT 때 말씀해 주세요. 대체 운동으로 바꿔 둘게요."
         )
     if workout:
         paragraphs.append(" ".join(workout))
@@ -382,83 +384,7 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         paragraphs.append(
             "정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!"
             if good
-            else "다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요."
-        )
-    return "\n\n".join(paragraphs)
-
-
-def _plural_days(n: int) -> str:
-    """영어 날 수(`1 day`·`3 days`)."""
-    return f"{n} day" if n == 1 else f"{n} days"
-
-
-def _report_message_en(report: WeeklyReportOut) -> str:
-    """영어 본문. 한국어 본문과 같은 문단·같은 판정이고 문장만 영어다."""
-    start = date.fromisoformat(report.week_start)
-    end = date.fromisoformat(report.week_end)
-    good = (
-        (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
-        and report.sodium_over_days <= 2
-    )
-    # 트레이너 웹 `dateMonthDay`·`dateRange` 와 같은 모양(`8/10 – 8/16`).
-    period = f"{start.month}/{start.day} – {end.month}/{end.day}"
-
-    paragraphs: list[str] = [
-        f"Hi {report.member_name}, here's your weekly report for {period}."
-    ]
-
-    workout: list[str] = []
-    if report.completion_avg is not None:
-        if report.completion_avg >= client_signals.COMPLETION_GOOD_PERCENT:
-            line = f"You kept up well — {report.completion_avg}% of your workouts done."
-        elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
-            line = f"You stayed steady — {report.completion_avg}% of your workouts done."
-        else:
-            line = (
-                f"Workout completion came in at {report.completion_avg}%. "
-                "Sounds like a busy week."
-            )
-        workout.append(line)
-    skipped = _skipped_names(report)
-    if skipped:
-        workout.append(
-            f"One thing — {', '.join(skipped)} got skipped. If that was down to how "
-            "you were feeling, tell me at our next PT and I'll swap in an "
-            "alternative."
-        )
-    if workout:
-        paragraphs.append(" ".join(workout))
-
-    diet: list[str] = []
-    sodium_limit = sodium_limit_mg(report.sodium_target)
-    if report.sodium_avg is not None:
-        diet.append(
-            f"Sodium averaged {report.sodium_avg:,}mg a day, and went over the "
-            f"{sodium_limit:,}mg target on {_plural_days(report.sodium_over_days)}. "
-            "Leaving half the broth behind saves 400–500mg a day."
-            if report.sodium_over_days > 0
-            else f"Sodium averaged {report.sodium_avg:,}mg a day — comfortably "
-            f"inside the {sodium_limit:,}mg target."
-        )
-    recorded = [v for v in report.calories_week if v > 0]
-    if recorded:
-        diet.append(
-            f"Calories averaged {round(sum(recorded) / len(recorded)):,}kcal a day."
-        )
-    if diet:
-        paragraphs.append(" ".join(diet))
-
-    if len(paragraphs) == 1:
-        paragraphs.append(
-            "There's nothing logged for this week, so nothing to sum up. "
-            "Let's plan next week's start together."
-        )
-    else:
-        paragraphs.append(
-            "Great work — let's keep this pace next week!"
-            if good
-            else "Let's focus on just these things next week. "
-            "I'll adjust your program and send it over."
+            else "다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요."
         )
     return "\n\n".join(paragraphs)
 
@@ -656,14 +582,15 @@ def list_report_sends(db: Session, trainer_id: str, week: date) -> ReportSendsOu
     어느 길로 보냈든 여기서 한 번에 보인다. 앱이 들고 있던 기록은 새로고침하면
     사라져, 이미 보낸 회원이 미전송으로 돌아가 같은 리포트가 두 번 나갔다.
 
-    담당이 살아 있는 회원만 싣는다 — 해제된 회원의 기록은 다른 트레이너 화면
-    에서 읽을 이유가 없고, 실으면 해제 사실이 응답으로 드러난다(#2281).
+    담당이 살아 있고 데이터 공유 동의가 유효한 회원만 싣는다 — 해제된 회원의
+    기록은 다른 트레이너 화면에서 읽을 이유가 없고, 실으면 해제 사실이 응답으로
+    드러난다(#2281). 동의를 철회한 회원도 다른 집계(#2868)와 같은 경계로 뺀다(#3239).
     한 회원에게 여러 번 보냈으면 **가장 최근 것** 하나로 접고 횟수를 함께 준다.
     """
     week_iso = week_start_of(week).isoformat()
     active_members = select(TrainerClient.member_id).where(
         TrainerClient.trainer_id == trainer_id,
-        TrainerClient.active.is_(True),
+        data_consent_service.open_link_clause(),
     )
     rows = db.scalars(
         _report_sends_query(trainer_id).where(
@@ -794,12 +721,12 @@ def save_report_goals(
         if not text:
             continue
         if len(text) > _MAX_REPORT_GOAL_LENGTH:
-            raise HTTPException(status_code=422, detail="목표가 너무 깁니다.")
+            raise HTTPException(status_code=422, detail="목표가 너무 길어요.")
         # 같은 목표가 두 줄로 서면 다음 주 ③ 이 같은 판정을 두 번 적는다.
         if text not in cleaned:
             cleaned.append(text)
     if len(cleaned) > _MAX_REPORT_GOALS:
-        raise HTTPException(status_code=422, detail="목표가 너무 많습니다.")
+        raise HTTPException(status_code=422, detail="목표가 너무 많아요.")
 
     now = datetime.now(timezone.utc)
     row = db.scalar(

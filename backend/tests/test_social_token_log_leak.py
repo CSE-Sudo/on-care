@@ -41,7 +41,7 @@ from tests.social_provider_fakes import (
 )
 
 PROVIDER_NAMES = sorted(PROVIDERS)
-#: API 로 로그인이 열린 provider(네이버는 코드 교환 전까지 501, #3035).
+#: API 로 로그인이 열린 provider(네이버·애플은 제공하지 않아 400, #3218).
 API_PROVIDER_NAMES = sorted(OPEN_PROVIDERS)
 HTTP_CLIENT_LOGGERS = ("httpx", "httpcore")
 
@@ -221,7 +221,7 @@ def test_google_success_still_parses_identity(monkeypatch):
     assert identity.email == "g@oncare.com"
 
 
-@pytest.mark.parametrize("provider", ["kakao", "naver"])
+@pytest.mark.parametrize("provider", ["kakao"])
 def test_header_providers_keep_token_out_of_url(monkeypatch, provider):
     seen = respond_json(monkeypatch, PROVIDERS[provider].valid_body("uid"))
     _verify(provider)
@@ -399,14 +399,17 @@ def test_api_google_login_sends_post_without_token_in_url(client, real_logging, 
     assert parse_qs(req.content.decode()) == {"id_token": [SECRET_TOKEN]}
 
 
-def test_api_naver_login_is_closed_without_calling_naver(client, real_logging, monkeypatch):
-    """네이버는 501 로 닫혀 있고(#3035), 앱이 보낸 토큰을 네이버로 보내지도 남기지도 않는다."""
+@pytest.mark.parametrize("provider", ["naver", "apple"])
+def test_api_dropped_provider_is_rejected_without_calling_out(
+    client, real_logging, monkeypatch, provider
+):
+    """네이버·애플은 제공하지 않는다(#3218) — 400 이고, 앱이 보낸 토큰을 어디로도 보내지도 남기지도 않는다."""
     out = real_logging("DEBUG")
-    seen = respond_json(monkeypatch, PROVIDERS["naver"].valid_body("naver-3035"))
+    seen = respond_json(monkeypatch, PROVIDERS["kakao"].valid_body("dropped-3218"))
 
-    r = _login(client, "naver")
+    r = _login(client, provider)
 
-    assert r.status_code == 501, r.text
+    assert r.status_code == 400, r.text
     assert seen == []
     _assert_clean(out.getvalue())
     assert SECRET_TOKEN not in r.text

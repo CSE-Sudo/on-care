@@ -44,6 +44,12 @@ class _FailingGymRepository implements GymRepository {
   Future<List<Gym>> fetchNearby() async => const <Gym>[];
 
   @override
+  Future<Gym?> fetchGym(String gymId) async => null;
+
+  @override
+  Future<List<Gym>> searchGyms(String query) async => const <Gym>[];
+
+  @override
   Future<List<TrainerSlot>> fetchSlots(String trainerId) async =>
       const <TrainerSlot>[];
 
@@ -160,27 +166,12 @@ void main() {
     );
   });
 
-  testWidgets('영어 로케일에서 섹션 액션이 영어로 표시된다', (WidgetTester tester) async {
-    await pumpMyTab(tester, locale: const Locale('en'));
-    await tester.scrollUntilVisible(
-      gymCard(),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-
-    expect(find.text('My Gym & Trainer'), findsOneWidget);
-    // 카드의 동작은 상세로 가는 길이다 — 삭제는 그 화면 하단에 있다. (#1057)
-    expect(find.byTooltip('Gym details'), findsOneWidget);
-    expect(find.byTooltip('Trainer details'), findsOneWidget);
-    expect(find.text('내 헬스장 · 트레이너'), findsNothing);
-  });
-
   testWidgets('헬스장 연결 조회 실패 시 재시도 상태를 표시한다', (WidgetTester tester) async {
     await pumpMyTab(tester, gymRepository: const _FailingGymRepository());
 
     expect(find.text('헬스장 연결 정보를 불러오지 못했어요.'), findsOneWidget);
     expect(find.text('다시 시도'), findsOneWidget);
-    expect(find.text('아직 등록된 헬스장이 없어요'), findsNothing);
+    expect(find.text('아직 연결한 헬스장이 없어요'), findsNothing);
   });
 
   testWidgets('카드의 동작은 삭제가 아니라 상세로 가는 길이다 (#1057)', (
@@ -196,8 +187,8 @@ void main() {
     // 카드에서 가장 누르기 쉬운 자리가 되돌릴 수 없는 삭제였다.
     expect(find.byTooltip('헬스장 상세 보기'), findsOneWidget);
     expect(find.byTooltip('트레이너 상세 보기'), findsOneWidget);
-    expect(find.byTooltip('헬스장 연결 삭제'), findsNothing);
-    expect(find.byTooltip('트레이너 연결 삭제'), findsNothing);
+    expect(find.byTooltip('헬스장 연결 해제'), findsNothing);
+    expect(find.byTooltip('트레이너 연결 해제'), findsNothing);
     expect(find.byIcon(AppIcons.delete), findsNothing);
 
     // 연결은 그대로다 — 이 화면에서는 아무것도 지우지 않는다.

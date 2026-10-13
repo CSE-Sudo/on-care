@@ -356,7 +356,7 @@ def test_diet_sentence_failure_and_rejection_logs_have_no_model_text(monkeypatch
     from app.services import diet_ai_sentence as svc
 
     kwargs = dict(
-        lang="ko", analysis_text="오늘 나트륨이 많아요.", finding="나트륨 초과",
+        analysis_text="오늘 나트륨이 많아요.", finding="나트륨 초과",
         records=["김치찌개"], notes=[], goal="체중 감량", metric="test_sentence",
     )
 
@@ -422,7 +422,7 @@ def test_long_headline_falls_back_to_the_rule_summary(monkeypatch, caplog, over)
     from app.services import trainer_report_summary_service as svc
 
     report = _report()
-    evidence = svc._evidence(report, "ko")
+    evidence = svc._evidence(report)
     assert evidence, "전제: 근거가 있어야 모델을 부른다"
     headline = (LEAK + "가" * svc.HEADLINE_MAX)[: svc.HEADLINE_MAX + (1 if over else 0)]
     monkeypatch.setattr(
@@ -431,13 +431,13 @@ def test_long_headline_falls_back_to_the_rule_summary(monkeypatch, caplog, over)
     monkeypatch.setattr(
         svc,
         "_call_llm",
-        lambda prompt, locale="ko", **_kw: SimpleNamespace(
+        lambda prompt, **_kw: SimpleNamespace(
             text=json.dumps({"headline": headline, "points": evidence[:1]})
         ),
     )
 
     with caplog.at_level(logging.DEBUG):
-        out = svc.generate_summary(None, "t-1", "m", report.week_start, locale="ko")
+        out = svc.generate_summary(None, "t-1", "m", report.week_start)
 
     if over:
         assert out.generated_by == "rule"
@@ -454,7 +454,7 @@ def test_non_object_summary_is_a_contract_violation(text):
 
     report = _report()
     with pytest.raises(ValueError):
-        svc._decode(text, report, svc._evidence(report, "ko"), "ko")
+        svc._decode(text, report, svc._evidence(report))
 
 
 # ── 엔드포인트 (DB 필요) ─────────────────────────────────────────────────

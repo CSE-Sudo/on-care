@@ -51,6 +51,8 @@ class ProgramEditorWorkspace extends StatefulWidget {
     this.saving = false,
     this.sending = false,
     this.sent = false,
+    this.feedback = '',
+    this.onFeedbackChanged,
   });
 
   final String clientGoal;
@@ -112,6 +114,14 @@ class ProgramEditorWorkspace extends StatefulWidget {
   /// 못 보내는지 알 수 없다.
   final bool sent;
 
+  /// 이 PT 의 트레이너 피드백 처음 값(#2374) — `일정 추가` 가 일정의 `note` 로
+  /// 함께 보낸다. 회원에게는 PT 를 마친 뒤에 보인다(#2515). 값은 호출부가
+  /// 회원별로 들고 있어, 편집기가 새로 서도(위저드 재반영·`이어서 쓰기`) 남는다.
+  final String feedback;
+
+  /// 피드백 칸을 고쳤다 — 호출부가 값을 적어 두고 자동 보관에 싣는다(#2873).
+  final ValueChanged<String>? onFeedbackChanged;
+
   @override
   State<ProgramEditorWorkspace> createState() => _ProgramEditorWorkspaceState();
 }
@@ -129,6 +139,9 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
   final TextEditingController _programName = TextEditingController();
   String? _addingToSession;
   final TextEditingController _exerciseName = TextEditingController();
+  late final TextEditingController _feedback = TextEditingController(
+    text: widget.feedback,
+  );
   String _newExerciseType = _kDefaultExerciseType;
 
   /// 세션을 만들 때 고른 유형. **서버에 저장하지 않는다**(#2222) — 유형은
@@ -166,6 +179,11 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
 
   int _minutes(TimeOfDay value) => value.hour * 60 + value.minute;
 
+  static String _hhmm(BuildContext context, TimeOfDay value) =>
+      MaterialLocalizations.of(
+        context,
+      ).formatTimeOfDay(value, alwaysUse24HourFormat: true);
+
   /// 고른 등록 날짜가 이미 지났는가 — 화면을 연 채 자정을 넘긴 경우다(#1582).
   /// 누르는 순간의 재검증은 호출부가 한 번 더 한다.
   bool get _registerDateIsPast => widget.registerDate.isBefore(_todayDate());
@@ -178,12 +196,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
     final saved = widget.initialDraft;
     if (saved != null) {
       _draft = saved;
-      _nextId =
-          saved.sessions.fold<int>(
-            0,
-            (count, session) => count + session.exercises.length,
-          ) +
-          2;
+      // 운동 수가 아니라 이미 쓴 번호 다음부터다(#3247).
+      _nextId = saved.nextFreeId;
     } else {
       // AI 루틴을 생성하기 전에는 임의의 추천 내용으로 채우지 않는다 — 프로그램
       // 정보 박스는 빈 상태로 시작하고, 이후 "템플릿에 반영"(AI 루틴 생성
@@ -207,6 +221,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
   void dispose() {
     _programName.dispose();
     _exerciseName.dispose();
+    _feedback.dispose();
     super.dispose();
   }
 
@@ -624,6 +639,24 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           // `일정 추가`(예전 `보내기`)가 확인창을 거쳐 실제로 배정+PT
           // 등록까지 한다. 실제 전송·등록 API 호출은 전부 호출부(`onSend`)
           // 가 한다 — 여기는 트리거와 등록일·시각 값만 쥔다.
+          //
+          // 그 위의 피드백 칸은 이 PT 의 트레이너 피드백이다(#2374) — 스케줄
+          // 탭 `트레이너 피드백` 과 같은 칸에 담기고, PT 를 마친 뒤 회원 앱에
+          // 보인다. 스케줄의 PT 입력칸과 같은 이름·안내·상한을 쓴다.
+          AppTextField(
+            key: const ValueKey<String>('program-schedule-feedback'),
+            controller: _feedback,
+            label: l.schedNote,
+            hint: l.schedNoteHint,
+            helper: l.schedNoteVisibleToMember,
+            minLines: 2,
+            maxLines: 4,
+            maxLength: AppTextLimits.entry,
+            showCounter: true,
+            enabled: !widget.sending,
+            onChanged: widget.onFeedbackChanged,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
           Wrap(
             alignment: WrapAlignment.end,
             crossAxisAlignment: WrapCrossAlignment.end,
@@ -641,9 +674,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                 compact: true,
                 key: const ValueKey<String>('program-register-time'),
                 icon: AppIcons.clock,
+                // 24시간제 — 예약 슬롯 창(`10:00 – 11:00`)과 같은 표기(#3120).
                 value:
-                    '${widget.registerStartTime.format(context)} – '
-                    '${widget.registerEndTime.format(context)}',
+                    '${_hhmm(context, widget.registerStartTime)} – '
+                    '${_hhmm(context, widget.registerEndTime)}',
                 onTap: () => unawaited(_pickRegisterTimeRange(context)),
               ),
               Tooltip(
@@ -731,6 +765,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           : widget.registerDate,
       firstDate: today,
       lastDate: today.add(const Duration(days: 365)),
+      // 오늘 테두리는 기기 시각이 아니라 서울의 오늘이다(#3250).
+      currentDate: today,
     );
     if (picked == null) return;
     widget.onRegisterDateChanged(
@@ -1265,7 +1301,7 @@ class _SessionEditorState extends State<_SessionEditor> {
               Expanded(child: _buildSessionName()),
               if (_editingName)
                 AppIconButton(
-                  tooltip: l.actionClose,
+                  tooltip: l.actionDone,
                   onPressed: () => setState(() => _editingName = false),
                   icon: AppIcons.check,
                   color: context.oncare.brand.primary,
@@ -1321,7 +1357,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                     key: ValueKey<String>(
                       'session-actions-${widget.session.id}',
                     ),
-                    tooltip: l.actionEdit,
+                    tooltip: l.actionMore,
                     icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
@@ -1624,7 +1660,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
               if (_editing)
                 AppIconButton(
                   key: ValueKey<String>('exercise-edit-${exercise.id}'),
-                  tooltip: l.actionClose,
+                  tooltip: l.actionDone,
                   onPressed: () => setState(() => _editing = false),
                   icon: AppIcons.check,
                   color: context.oncare.brand.primary,
@@ -1666,7 +1702,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   ],
                   triggerBuilder: (context, toggle) => AppIconButton(
                     key: ValueKey<String>('exercise-edit-${exercise.id}'),
-                    tooltip: l.actionEdit,
+                    tooltip: l.actionMore,
                     icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
@@ -1700,6 +1736,21 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                       widget.onChanged(exercise.copyWith(type: value)),
                 ),
                 const SizedBox(height: OnCareSpacing.s8),
+                // 한 세트를 회로 잴지 초로 잴지 — 위저드와 같은 칩이다(#3247).
+                // 없던 동안에는 버티는 운동도 횟수 칸만 보여, 화면의 `10회`
+                // 를 고쳐도 실제로는 고칠 수 없는 초가 나갔다.
+                if (exercise.isStrength) ...<Widget>[
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: RoutineMeasureToggle(
+                      keyPrefix: '${exercise.id}-measure',
+                      isHold: exercise.isHold,
+                      onChanged: (bool hold) =>
+                          widget.onChanged(exercise.copyWith(isHold: hold)),
+                    ),
+                  ),
+                  const SizedBox(height: OnCareSpacing.s8),
+                ],
                 if (exercise.isStrength)
                   Row(
                     children: <Widget>[
@@ -1714,13 +1765,24 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       Expanded(
-                        child: RoutineRepsField(
-                          keyPrefix: '${exercise.id}-reps',
-                          reps: exercise.reps,
-                          compact: true,
-                          onChanged: (value) =>
-                              widget.onChanged(exercise.copyWith(reps: value)),
-                        ),
+                        // 버티는 운동은 `횟수` 자리를 `버티는 시간` 이 대신한다.
+                        child: exercise.isHold
+                            ? RoutineHoldSecondsField(
+                                keyPrefix: '${exercise.id}-hold',
+                                holdSeconds: exercise.holdSeconds,
+                                compact: true,
+                                onChanged: (value) => widget.onChanged(
+                                  exercise.copyWith(holdSeconds: value),
+                                ),
+                              )
+                            : RoutineRepsField(
+                                keyPrefix: '${exercise.id}-reps',
+                                reps: exercise.reps,
+                                compact: true,
+                                onChanged: (value) => widget.onChanged(
+                                  exercise.copyWith(reps: value),
+                                ),
+                              ),
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       Expanded(
@@ -1822,11 +1884,11 @@ class _ExerciseSummary extends StatelessWidget {
   }
 }
 
-/// 운동 한 줄의 지표 요약 — 근력은 세트·횟수·중량, 그 외 유형은 시간. 유형마다
-/// 재는 단위가 다르다는 규칙은 회원 앱·서버와도 같다 (#1276).
+/// 운동 한 줄의 지표 요약 — 근력은 세트·횟수(버티는 운동이면 초)·중량, 그 외
+/// 유형은 시간. 유형마다 재는 단위가 다르다는 규칙은 회원 앱·서버와도 같다
+/// (#1276). 버티는 운동에 횟수를 적으면 나가는 값(초)과 화면이 달라진다(#3247).
 ///
-/// 단위는 ARB 가 로케일마다 정한다 (#2304). 예전에는 `korean ?` 분기로 두 언어만
-/// 코드에 박혀 있었고, 영어는 `1 sets` 처럼 단수를 가리지 못했다.
+/// 단위는 ARB 가 정한다 (#2304).
 List<String> programExerciseMetrics(
   AppLocalizations l,
   ProgramExerciseDraft exercise,
@@ -1834,7 +1896,9 @@ List<String> programExerciseMetrics(
   final metrics = <String>[];
   if (exercise.isStrength) {
     metrics.add(l.progSetsValue(exercise.sets));
-    if (exercise.reps > 0) {
+    if (exercise.isHold) {
+      metrics.add(l.progHoldValue(exercise.holdSeconds));
+    } else if (exercise.reps > 0) {
       metrics.add(l.progRepsValue(exercise.reps));
     }
     // 맨몸 운동(0kg)은 중량을 적지 않는다(#2533).

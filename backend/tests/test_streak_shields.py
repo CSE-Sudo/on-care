@@ -572,3 +572,37 @@ def test_trainer_week_ignores_protected_day(client, db_session, thursday):
         if trainer is not None:
             db_session.delete(trainer)
             db_session.commit()
+
+
+def test_record_streak_reads_days_in_a_fixed_number_of_queries(client, db_session):
+    """#3242: 연속이 길어도 조회 수는 고정이다 — 하루씩 묻지 않고 범위를 한 번에 읽는다."""
+    from datetime import date, timedelta
+
+    from sqlalchemy import event
+
+    from app.services import record_activity
+
+    member_id, _ = _new_member(client, db_session)
+    today = date(2026, 3, 20)
+    # 오늘은 비우고 어제부터 20일, 21일 전은 보호, 22일 전에 다시 기록, 23일 전은 빈 날.
+    for back in [*range(1, 21), 22]:
+        _add_diet(db_session, member_id, (today - timedelta(days=back)).isoformat())
+    protected = {(today - timedelta(days=21)).isoformat()}
+
+    selects: list[str] = []
+
+    def count(conn, cursor, statement, parameters, context, executemany):
+        if statement.lstrip().upper().startswith("SELECT"):
+            selects.append(statement)
+
+    engine = db_session.get_bind()
+    event.listen(engine, "before_cursor_execute", count)
+    try:
+        days = record_activity.record_streak_days(
+            db_session, member_id, today=today, protected=protected
+        )
+    finally:
+        event.remove(engine, "before_cursor_execute", count)
+
+    assert days == 22
+    assert len(selects) <= 2  # 식단 범위 한 번 + 운동 범위 한 번

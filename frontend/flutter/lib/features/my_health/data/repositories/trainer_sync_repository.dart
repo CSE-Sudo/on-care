@@ -1,7 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:oncare/core/network/dio_client.dart';
 
 /// 트레이너에게 불러 주는 6자리 동기화 코드. (#1634)
 ///
@@ -27,7 +24,9 @@ class PairingCode {
 /// 동기화 코드 발급·취소.
 ///
 /// 목업 모드에서도 같은 구현을 쓴다 — [LocalApiInterceptor] 가 같은 경로를
-/// 받아 준다. 저장소를 둘로 나누면 데모와 실서비스의 흐름이 갈린다.
+/// 받아 준다. 저장소를 둘로 나누면 데모와 실서비스의 흐름이 갈린다. 데모에는
+/// 코드를 입력해 줄 트레이너가 없어, 그 한 가지만 `DemoTrainerSyncRepository`
+/// 가 이 구현 위에 얹는다(#3342).
 class TrainerSyncRepository {
   const TrainerSyncRepository(this._dio);
 
@@ -41,7 +40,7 @@ class TrainerSyncRepository {
   Future<PairingCode> issue() async {
     final res = await _dio.post<Map<String, Object?>>('/users/me/pairing-code');
     final data = res.data;
-    if (data == null) throw StateError('동기화 코드 응답이 비어 있습니다.');
+    if (data == null) throw StateError('연결 코드 응답이 비어 있습니다.');
     return PairingCode.fromJson(data);
   }
 
@@ -51,8 +50,3 @@ class TrainerSyncRepository {
     await _dio.delete<void>('/users/me/pairing-code');
   }
 }
-
-final trainerSyncRepositoryProvider = Provider<TrainerSyncRepository>(
-  (ref) => TrainerSyncRepository(ref.watch(dioProvider)),
-  name: 'trainerSyncRepository',
-);

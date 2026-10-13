@@ -11,10 +11,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 챌린지 아이콘 — 사용처 카드·내 혜택·운동 현황이 같은 것을 쓴다.
 const IconData kChallengeIcon = AppIcons.challenge;
 
-/// `9.14~9.20`.
-String challengeWeekRange(Challenge challenge) =>
-    '${challenge.weekStart.month}.${challenge.weekStart.day}~'
-    '${challenge.weekEnd.month}.${challenge.weekEnd.day}';
+/// `9. 14. ~ 9. 20.` / `9/14 – 9/20`. 기간 카드와 같은 공용 표기(#3120).
+String challengeWeekRange(String locale, Challenge challenge) =>
+    periodRangeText(locale, challenge.weekStart, challenge.weekEnd);
 
 /// 참가 카드에 적는 막힌 이유. 참가할 수 있거나 이미 참가했으면 null.
 String? challengeBlockLabel(AppLocalizations l, WeeklyChallenge state) {
@@ -33,12 +32,17 @@ String? challengeBlockLabel(AppLocalizations l, WeeklyChallenge state) {
 /// 사용처 화면의 주간 운동 챌린지 카드. (#1789)
 ///
 /// 참가 전에는 건 포인트·목표·보상과 `참가` 버튼을, 참가했으면 이번 주 진행을
-/// 보여 준다. 참가할 수 없으면 버튼을 막고 이유를 버튼 왼쪽에 적는다.
+/// 보여 준다. 참가할 수 없으면 버튼을 막고 이유를 버튼 왼쪽에 적는다. 지난주 결과가
+/// 유예 중이면 설명 아래에 집계 중이라고 한 줄 적는다(#3362).
+///
+/// 맨 아래에는 목표 횟수가 어디서 오는지(MY 건강 목표의 주간 운동 횟수)를 적고,
+/// 지난 결과 목록으로 가는 길을 둔다(#3361).
 class WeeklyChallengeCard extends StatelessWidget {
   const WeeklyChallengeCard({
     super.key,
     required this.state,
     required this.onJoin,
+    this.onViewHistory,
     this.busy = false,
   });
 
@@ -46,6 +50,9 @@ class WeeklyChallengeCard extends StatelessWidget {
 
   /// null 이면 버튼이 막힌다(참가 불가이거나 다른 요청이 진행 중).
   final VoidCallback? onJoin;
+
+  /// `지난 결과` 를 눌렀다. null 이면 그 버튼을 세우지 않는다.
+  final VoidCallback? onViewHistory;
 
   /// 참가 요청이 나가 있다.
   final bool busy;
@@ -111,6 +118,18 @@ class WeeklyChallengeCard extends StatelessWidget {
                             .copyWith(color: OnCareColors.textTertiary),
                       ),
                     ],
+                    if (state.settlingChallenge != null) ...<Widget>[
+                      const SizedBox(height: OnCareSpacing.s4),
+                      Text(
+                        keepWords(l.challengeSettling),
+                        key: const Key('weeklyChallengeSettling'),
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(OnCareTypography.caption),
+                            )
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -147,6 +166,33 @@ class WeeklyChallengeCard extends StatelessWidget {
                 ),
               ],
             ),
+          const SizedBox(height: OnCareSpacing.s8),
+          const AppDivider(),
+          const SizedBox(height: OnCareSpacing.s8),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  keepWords(l.challengeGoalSource),
+                  key: const Key('weeklyChallengeGoalSource'),
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+              ),
+              if (onViewHistory != null) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                AppButton(
+                  key: const Key('weeklyChallengeHistory'),
+                  label: l.challengeHistoryAction,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  trailingIcon: AppIcons.chevronRight,
+                  onPressed: onViewHistory,
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );
@@ -260,7 +306,10 @@ class ExerciseChallengeProgress extends ConsumerWidget {
                 child: ChallengeProgressView(
                   challenge: challenge,
                   title: l.challengeShortWithRange(
-                    challengeWeekRange(challenge),
+                    challengeWeekRange(
+                      Localizations.localeOf(context).toString(),
+                      challenge,
+                    ),
                   ),
                   showHint: false,
                 ),

@@ -32,7 +32,7 @@ const AlertItem _chatAlert = AlertItem(
   body: '오늘 운동 어땠어요?',
   timeAgo: '방금',
   category: AlertCategory.coachChat,
-  action: AlertAction(label: '대화 보기', target: AlertTarget.coachChat),
+  action: AlertAction(label: '메시지 보기', target: AlertTarget.coachChat),
 );
 
 const AlertItem _otherAlert = AlertItem(
@@ -41,7 +41,7 @@ const AlertItem _otherAlert = AlertItem(
   body: '내일 봬요',
   timeAgo: '방금',
   category: AlertCategory.coachChat,
-  action: AlertAction(label: '대화 보기', target: AlertTarget.coachChat),
+  action: AlertAction(label: '메시지 보기', target: AlertTarget.coachChat),
 );
 
 class _Repo implements NotificationRepository {

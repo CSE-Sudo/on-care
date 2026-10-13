@@ -78,7 +78,7 @@ def test_report_message_omits_figures_without_data():
     )
     text = report_message(report)
     assert "주간 리포트" in text
-    assert "이행률" not in text
+    assert "완료율" not in text
     assert "나트륨" not in text
 
 
@@ -108,20 +108,19 @@ def test_report_message_speaks_in_three_completion_bands():
     from app.schemas.trainer_api import WeeklyReportOut
     from app.services.trainer.reports import report_message
 
-    def message(completion: int, locale: str = "ko") -> str:
+    def message(completion: int) -> str:
         return report_message(WeeklyReportOut(
             member_id="m", member_name="김민수",
             week_start="2026-08-03", week_end="2026-08-09",
             sessions_booked=0, sessions_done=0,
             completion_avg=completion, sodium_over_days=0,
             sodium_avg=None, message="",
-        ), locale=locale)
+        ))
 
     assert "운동은 평균 80%로 잘 따라오셨어요." in message(80)
     assert "운동은 평균 75%로 꾸준히 해 주셨어요." in message(75)
     assert "운동은 평균 60%로 꾸준히 해 주셨어요." in message(60)
-    assert "운동 이행률은 평균 59%였어요." in message(59)
-    assert "You stayed steady — 70% of your workouts done." in message(70, "en")
+    assert "운동 완료율은 평균 59%였어요." in message(59)
 
 
 def test_summary_praises_and_warns_only_outside_the_middle_band():
@@ -142,7 +141,7 @@ def test_summary_praises_and_warns_only_outside_the_middle_band():
             sessions_booked=0, sessions_done=0,
             completion_avg=completion, sodium_over_days=0,
             sodium_avg=None, message="",
-        ), "ko")]
+        ))]
 
     assert "completion" in kinds(59)
     assert "completion" not in kinds(60)
@@ -604,9 +603,21 @@ def test_settings_defaults_come_from_the_server(client):
     assert r.status_code == 200, r.text
     body = r.json()
     assert set(body) == {
-        "notify_new_message", "notify_session_reminder", "reminder_lead_minutes",
+        "notify_new_message",
+        "notify_consultation",
+        "notify_reservation",
+        "notify_member_updates",
+        "notify_session_reminder",
+        "reminder_lead_minutes",
     }
-    assert body["notify_new_message"] is True
+    # 종류별 수신 설정(#2420)도 기본은 켬 — 기존 트레이너는 지금처럼 모두 받는다.
+    for key in (
+        "notify_new_message",
+        "notify_consultation",
+        "notify_reservation",
+        "notify_member_updates",
+    ):
+        assert body[key] is True, key
     assert body["notify_session_reminder"] is True
     assert body["reminder_lead_minutes"] == 30
 
@@ -632,6 +643,32 @@ def test_settings_update_persists_and_is_partial(client):
         client.put("/v1/trainer/me/settings", json=before, headers=_auth(token))
 
 
+def test_settings_kind_switches_persist_one_by_one(client):
+    """종류별 스위치는 서로 따로 저장된다(#2420)."""
+    token = _trainer_token(client)
+    before = client.get("/v1/trainer/me/settings", headers=_auth(token)).json()
+    kinds = ("notify_consultation", "notify_reservation", "notify_member_updates")
+    try:
+        client.put(
+            "/v1/trainer/me/settings",
+            json={key: True for key in kinds},
+            headers=_auth(token),
+        )
+        for key in kinds:
+            r = client.put(
+                "/v1/trainer/me/settings", json={key: False}, headers=_auth(token)
+            )
+            assert r.status_code == 200, r.text
+            # 다시 읽어도 그 칸만 꺼져 있다.
+            again = client.get("/v1/trainer/me/settings", headers=_auth(token)).json()
+            assert {k: again[k] for k in kinds} == {k: k != key for k in kinds}
+            client.put(
+                "/v1/trainer/me/settings", json={key: True}, headers=_auth(token)
+            )
+    finally:
+        client.put("/v1/trainer/me/settings", json=before, headers=_auth(token))
+
+
 def test_settings_reject_a_lead_time_outside_the_options(client):
     token = _trainer_token(client)
     r = client.put(
@@ -651,6 +688,9 @@ def test_settings_reject_an_explicit_null(client):
     token = _trainer_token(client)
     for payload in (
         {"notify_new_message": None},
+        {"notify_consultation": None},
+        {"notify_reservation": None},
+        {"notify_member_updates": None},
         {"notify_session_reminder": None},
         {"reminder_lead_minutes": None},
     ):
@@ -915,7 +955,7 @@ def test_summary_evidence_quotes_only_screen_figures():
 
     lines = svc._evidence(_report())
 
-    assert "운동 이행률 평균 87%" in lines
+    assert "운동 완료율 평균 87%" in lines
     # 수치는 화면과 같은 서식으로 적는다 — 그래프가 `2,288mg` 이라고 적는 값을
     # 요약만 `2288mg` 이라고 쓰면 트레이너는 다른 값으로 읽는다(#1177).
     assert any("나트륨 평균 2,288mg" in line for line in lines)
@@ -934,7 +974,7 @@ def test_summary_headline_does_not_call_an_over_week_on_target():
     assert "목표 범위 안" not in summary.headline
     assert "나트륨 목표 초과 3일" in summary.headline
     # 잘한 쪽도 함께 말한다 — 챙길 것만 남으면 보낼 만한 글이 못 된다.
-    assert "운동 이행률 81%" in summary.headline
+    assert "운동 완료율 81%" in summary.headline
 
 
 def test_summary_falls_back_when_model_invents_evidence():
@@ -1097,7 +1137,7 @@ def test_many_watchpoints_are_not_silently_dropped():
     assert len(out.points) == svc.MAX_POINTS
     assert out.points[-1].startswith("외 ")
     # 가장 위험한 항목이 먼저 남는다.
-    assert "운동 이행률" in out.points[0]
+    assert "운동 완료율" in out.points[0]
     assert "목표 범위 안" not in out.headline
 
 

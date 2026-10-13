@@ -15,12 +15,11 @@ from collections.abc import Collection, Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import func, select, tuple_
+from sqlalchemy import delete, func, select, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import Locale, current_locale
 from app.models.models import (
     MemberNotificationSetting,
     Notification,
@@ -83,29 +82,22 @@ _CATEGORY: dict[str, str] = {
 }
 
 
-def time_ago(
-    dt: datetime, locale: Locale | None = None, *, now: datetime | None = None
-) -> str:
-    """알림 목록의 상대 시각 문구. 회원·트레이너 알림함이 함께 쓴다. (#503)
-
-    [locale] 이 없으면 요청 언어를 따른다(#2302). 한국어는 예전 문구 그대로다.
-    """
-    locale = locale or current_locale()
+def time_ago(dt: datetime, *, now: datetime | None = None) -> str:
+    """알림 목록의 상대 시각 문구. 회원·트레이너 알림함이 함께 쓴다. (#503)"""
     now = now or datetime.now(timezone.utc)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     sec = (now - dt).total_seconds()
-    ko = locale == "ko"
     if sec < 60:
-        return "방금 전" if ko else "just now"
+        return "방금 전"
     if sec < 3600:
         n = int(sec // 60)
-        return f"{n}분 전" if ko else f"{n} min ago"
+        return f"{n}분 전"
     if sec < 86400:
         n = int(sec // 3600)
-        return f"{n}시간 전" if ko else f"{n} {'hour' if n == 1 else 'hours'} ago"
+        return f"{n}시간 전"
     n = int(sec // 86400)
-    return f"{n}일 전" if ko else f"{n} {'day' if n == 1 else 'days'} ago"
+    return f"{n}일 전"
 
 
 def get_settings(db: Session, member_id: str) -> dict[str, bool]:
@@ -196,7 +188,7 @@ def texts(
     """알림 행의 문장 칸(`title`·`body`·`template`·`template_args`). (#2302)
 
     틀을 주면 한국어 문장을 틀로 만든다 — 저장되는 `title`·`body` 는 틀이 생기기
-    전과 같은 문장이고, 틀과 인자는 읽는 쪽이 자기 언어로 다시 조립하는 데 쓴다
+    전과 같은 문장이고, 틀과 인자는 읽는 쪽(앱)이 문장을 직접 조립하는 데 쓴다
     (`notification_templates`). [body] 는 틀의 본문이 사람이 쓴 글일 때 그 글이다.
 
     틀 없이 문장만 주는 호출부도 그대로 받는다 — 문장이 곧 저장값인 알림이다.
@@ -376,14 +368,32 @@ TRAINER_INVITE_ACCEPTED_KIND = "invite_accepted"
 TRAINER_INVITE_REJECTED_KIND = "invite_rejected"
 #: 담당 회원이 주간 피드백(컨디션·강도·통증)을 냈다 → 그 회원 메모 창 '피드백' 탭
 #: (`subject_id`·`target_date`=주 시작, #3026). 같은 주의 안 읽은 알림이 있으면 새로
-#: 만들지 않고 그 행을 고쳐 쓴다(`trainer.weekly_feedback`). 수신 설정 스위치는
-#: 아직 없다 — 종류별 설정은 #2420 몫이다.
+#: 만들지 않고 그 행을 고쳐 쓴다(`trainer.weekly_feedback`). 수신 설정은 담당 회원
+#: 소식(`notify_member_updates`)을 따른다(#2420).
 TRAINER_WEEKLY_FEEDBACK_KIND = "weekly_feedback"
 
-#: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
-#: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.
+#: 종류별 트레이너 수신 설정 컬럼(#2420). 트레이너 웹 설정 › 알림의 네 스위치와
+#: 같은 묶음이다. 여기 없는 종류는 항상 보낸다 — 새 종류를 더하면 어느 스위치를
+#: 따를지 함께 정한다.
+#:
+#: * 상담 요청: 상담 신청·철회와 트레이너가 보낸 담당 요청의 수락·거절. 둘 다
+#:   새 회원과 이어지는 과정이고, 설정 화면 문구도 "상담을 신청하거나 담당 요청에
+#:   답하면" 이다.
+#: * 담당 회원 소식: 이미 담당인 회원에게 생긴 일(목표·이름 변경, 떠남, 주간 피드백).
+#:
+#: 사이드바·대시보드의 안 읽은 수는 이 설정과 상관없다 — 끄면 알림함에 새 줄이
+#: 생기지 않을 뿐이다.
 _TRAINER_SETTING_COLUMN: dict[str, str] = {
     TRAINER_MESSAGE_KIND: "notify_new_message",
+    TRAINER_CONSULTATION_KIND: "notify_consultation",
+    TRAINER_CONSULT_WITHDRAWN_KIND: "notify_consultation",
+    TRAINER_INVITE_ACCEPTED_KIND: "notify_consultation",
+    TRAINER_INVITE_REJECTED_KIND: "notify_consultation",
+    TRAINER_RESERVATION_KIND: "notify_reservation",
+    TRAINER_HEALTH_GOAL_KIND: "notify_member_updates",
+    TRAINER_MEMBER_NAME_KIND: "notify_member_updates",
+    TRAINER_MEMBER_LEFT_KIND: "notify_member_updates",
+    TRAINER_WEEKLY_FEEDBACK_KIND: "notify_member_updates",
 }
 
 
@@ -540,16 +550,31 @@ def expired_notifications(
     그대로 출력한다).
     """
     query = select(Notification).where(
-        Notification.read.is_(True),
-        Notification.created_at < retention_cutoff(days, now=now),
+        *_expired_conditions(days=days, now=now, user_id=user_id, exclude_ids=exclude_ids)
     )
-    if user_id is not None:
-        query = query.where(Notification.user_id == user_id)
-    if exclude_ids:
-        query = query.where(Notification.id.not_in(sorted(exclude_ids)))
     return list(
         db.scalars(query.order_by(Notification.created_at, Notification.id)).all()
     )
+
+
+def _expired_conditions(
+    *,
+    days: int,
+    now: datetime | None,
+    user_id: str | None,
+    exclude_ids: Collection[str],
+) -> list:
+    """정리 대상의 조건. 미리 보기([expired_notifications])와 삭제([purge_expired])가
+    같은 조건을 쓰게 한 곳에 둔다."""
+    conditions = [
+        Notification.read.is_(True),
+        Notification.created_at < retention_cutoff(days, now=now),
+    ]
+    if user_id is not None:
+        conditions.append(Notification.user_id == user_id)
+    if exclude_ids:
+        conditions.append(Notification.id.not_in(sorted(exclude_ids)))
+    return conditions
 
 
 def purge_expired(
@@ -560,11 +585,20 @@ def purge_expired(
     user_id: str | None = None,
     exclude_ids: Collection[str] = (),
 ) -> int:
-    """[expired_notifications] 가 고른 것을 지우고 건수를 돌려준다."""
-    rows = expired_notifications(
-        db, days=days, now=now, user_id=user_id, exclude_ids=exclude_ids
+    """[expired_notifications] 와 같은 조건의 알림을 지우고 건수를 돌려준다.
+
+    한 번의 `DELETE` 로 지운다(#3242). 대상을 ORM 으로 모두 읽어 한 건씩 지우면
+    90일 치 읽은 알림이 쌓인 서버에서 정리 한 번이 행 수만큼 왕복한다. 알림을
+    가리키는 다른 표는 없어 ORM 의 연쇄 삭제가 할 일도 없다.
+    """
+    result = db.execute(
+        delete(Notification)
+        .where(
+            *_expired_conditions(
+                days=days, now=now, user_id=user_id, exclude_ids=exclude_ids
+            )
+        )
+        .execution_options(synchronize_session=False)
     )
-    for row in rows:
-        db.delete(row)
     db.commit()
-    return len(rows)
+    return result.rowcount or 0

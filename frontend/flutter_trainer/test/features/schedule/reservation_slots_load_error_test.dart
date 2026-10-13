@@ -5,7 +5,6 @@
 /// 재시도를 함께 보인다.
 library;
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,15 +62,12 @@ void main() {
   late _FlakySlotRepository repo;
 
   Future<void> openSheet(
-    WidgetTester tester, {
-    Locale locale = const Locale('ko'),
-  }) async {
+    WidgetTester tester) async {
     repo = _FlakySlotRepository();
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
       at: AppRoutes.schedule,
-      locale: locale,
       extraOverrides: <Override>[
         reservationSlotRepositoryProvider.overrideWithValue(repo),
       ],
@@ -87,13 +83,13 @@ void main() {
       find.byKey(const ValueKey<String>('slot-load-error')),
       findsOneWidget,
     );
-    expect(find.text('예약 슬롯을 불러오지 못했어요'), findsOneWidget);
+    expect(find.text('예약 가능 시간을 불러오지 못했어요'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('slot-load-retry')),
       findsOneWidget,
     );
     // 빈 상태와 헷갈리지 않는다.
-    expect(find.text('열린 예약 슬롯이 없습니다.'), findsNothing);
+    expect(find.text('열린 예약 가능 시간이 없어요.'), findsNothing);
   });
 
   testWidgets('다시 시도하면 목록을 새로 읽는다', (tester) async {
@@ -109,12 +105,7 @@ void main() {
 
     expect(repo.listCalls, greaterThan(before));
     expect(find.byKey(const ValueKey<String>('slot-load-error')), findsNothing);
-    expect(find.text('열린 예약 슬롯이 없습니다.'), findsOneWidget);
+    expect(find.text('열린 예약 가능 시간이 없어요.'), findsOneWidget);
   });
 
-  testWidgets('영어 화면은 영어 문구다', (tester) async {
-    await openSheet(tester, locale: const Locale('en'));
-
-    expect(find.text("Couldn't load reservation slots"), findsOneWidget);
-  });
 }

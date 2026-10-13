@@ -28,7 +28,7 @@ TrainerNotification _notice(
 }) => TrainerNotification(
   id: id,
   title: title,
-  body: '이지수 회원 · 10월 02일 10:00',
+  body: '이지수 회원 · 10월 2일 10:00',
   kind: kind,
   read: read,
   createdAt: DateTime.utc(2026, 9, 27, 10),
@@ -103,15 +103,12 @@ class _FakeRepo implements TrainerNotificationRepository {
 
 Future<_FakeRepo> _pumpInbox(
   WidgetTester tester,
-  List<TrainerNotification> rows, {
-  Locale locale = const Locale('ko'),
-}) async {
+  List<TrainerNotification> rows) async {
   final _FakeRepo repo = _FakeRepo(rows);
   await pumpTrainerApp(
     tester,
     token: 'demo-token',
     at: AppRoutes.notifications,
-    locale: locale,
     extraOverrides: <Override>[
       trainerNotificationRepositoryProvider.overrideWithValue(repo),
     ],
@@ -360,93 +357,89 @@ void main() {
   });
 
   group('알림함에서 누르기', () {
-    for (final Locale locale in const <Locale>[Locale('ko'), Locale('en')]) {
-      testWidgets('예약 알림은 그 수업 날짜의 스케줄을 연다 '
-          '(${locale.languageCode})', (tester) async {
-        await withWideSurface(tester, () async {
-          final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
-            _notice(
-              TrainerNotificationKind.reservation,
-              id: 'noti-res',
-              subjectId: 'seed-client-1',
-              targetDate: '2026-10-02',
-              title: '새 예약이 들어왔어요',
-            ),
-          ], locale: locale);
+    testWidgets('예약 알림은 그 수업 날짜의 스케줄을 연다', (tester) async {
+      await withWideSurface(tester, () async {
+        final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
+          _notice(
+            TrainerNotificationKind.reservation,
+            id: 'noti-res',
+            subjectId: 'seed-client-1',
+            targetDate: '2026-10-02',
+            title: '새 예약이 들어왔어요',
+          ),
+        ]);
 
-          await _tap(tester, 'noti-res');
+        await _tap(tester, 'noti-res');
 
-          expect(repo.readCalls, <String>['noti-res']);
-          expect(currentLocation(tester), '/schedule?d=2026-10-02');
-          final SchedulePage page = tester.widget<SchedulePage>(
-            find.byType(SchedulePage),
-          );
-          expect(page.date, '2026-10-02');
-        });
+        expect(repo.readCalls, <String>['noti-res']);
+        expect(currentLocation(tester), '/schedule?d=2026-10-02');
+        final SchedulePage page = tester.widget<SchedulePage>(
+          find.byType(SchedulePage),
+        );
+        expect(page.date, '2026-10-02');
       });
+    });
 
-      testWidgets('상담 알림은 상담 요청함을 연다 (${locale.languageCode})', (tester) async {
-        await withWideSurface(tester, () async {
-          final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
-            _notice(
-              TrainerNotificationKind.consultation,
-              id: 'noti-consult',
-              subjectId: 'seed-client-1',
-              targetDate: '2026-10-03',
-              title: '새 상담 요청이 도착했어요',
-            ),
-          ], locale: locale);
+    testWidgets('상담 알림은 상담 요청함을 연다', (tester) async {
+      await withWideSurface(tester, () async {
+        final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
+          _notice(
+            TrainerNotificationKind.consultation,
+            id: 'noti-consult',
+            subjectId: 'seed-client-1',
+            targetDate: '2026-10-03',
+            title: '새 상담 요청이 도착했어요',
+          ),
+        ]);
 
-          await _tap(tester, 'noti-consult');
+        await _tap(tester, 'noti-consult');
 
-          expect(repo.readCalls, <String>['noti-consult']);
-          expect(Uri.parse(currentLocation(tester)).path, AppRoutes.schedule);
-          expect(
-            find.byKey(const ValueKey<String>('consultations-dialog')),
-            findsOneWidget,
-          );
-        });
+        expect(repo.readCalls, <String>['noti-consult']);
+        expect(Uri.parse(currentLocation(tester)).path, AppRoutes.schedule);
+        expect(
+          find.byKey(const ValueKey<String>('consultations-dialog')),
+          findsOneWidget,
+        );
       });
+    });
 
-      testWidgets('담당 요청 수락 알림은 그 회원 상세를 연다 '
-          '(${locale.languageCode})', (tester) async {
-        await withWideSurface(tester, () async {
-          final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
-            _notice(
-              TrainerNotificationKind.inviteAccepted,
-              id: 'noti-accept',
-              subjectId: 'seed-client-1',
-              title: '담당 요청이 수락되었어요',
-            ),
-          ], locale: locale);
+    testWidgets('담당 요청 수락 알림은 그 회원 상세를 연다', (tester) async {
+      await withWideSurface(tester, () async {
+        final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
+          _notice(
+            TrainerNotificationKind.inviteAccepted,
+            id: 'noti-accept',
+            subjectId: 'seed-client-1',
+            title: '담당 요청이 수락됐어요',
+          ),
+        ]);
 
-          await _tap(tester, 'noti-accept');
+        await _tap(tester, 'noti-accept');
 
-          expect(repo.readCalls, <String>['noti-accept']);
-          expect(currentLocation(tester), '/clients/seed-client-1/diet');
-        });
+        expect(repo.readCalls, <String>['noti-accept']);
+        expect(currentLocation(tester), '/clients/seed-client-1/diet');
       });
+    });
 
-      testWidgets('담당 요청 거절 알림은 고객 목록을 연다 (${locale.languageCode})', (
-        tester,
-      ) async {
-        await withWideSurface(tester, () async {
-          final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
-            _notice(
-              TrainerNotificationKind.inviteRejected,
-              id: 'noti-reject',
-              subjectId: 'user-stranger',
-              title: '담당 요청이 거절되었어요',
-            ),
-          ], locale: locale);
+    testWidgets('담당 요청 거절 알림은 고객 목록을 연다', (
+      tester,
+    ) async {
+      await withWideSurface(tester, () async {
+        final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
+          _notice(
+            TrainerNotificationKind.inviteRejected,
+            id: 'noti-reject',
+            subjectId: 'user-stranger',
+            title: '담당 요청이 거절됐어요',
+          ),
+        ]);
 
-          await _tap(tester, 'noti-reject');
+        await _tap(tester, 'noti-reject');
 
-          expect(repo.readCalls, <String>['noti-reject']);
-          expect(Uri.parse(currentLocation(tester)).path, AppRoutes.clients);
-        });
+        expect(repo.readCalls, <String>['noti-reject']);
+        expect(Uri.parse(currentLocation(tester)).path, AppRoutes.clients);
       });
-    }
+    });
 
     testWidgets('날짜가 없는 옛 예약 알림은 오늘 스케줄을 연다', (tester) async {
       await withWideSurface(tester, () async {
@@ -486,17 +479,17 @@ void main() {
             TrainerNotificationKind.inviteAccepted,
             id: 'noti-a',
             subjectId: 'seed-client-1',
-            title: '담당 요청이 수락되었어요',
+            title: '담당 요청이 수락됐어요',
           ),
           _notice(
             TrainerNotificationKind.inviteRejected,
             id: 'noti-r',
-            title: '담당 요청이 거절되었어요',
+            title: '담당 요청이 거절됐어요',
           ),
         ]);
 
-        expect(find.text('담당 요청이 수락되었어요'), findsOneWidget);
-        expect(find.text('담당 요청이 거절되었어요'), findsOneWidget);
+        expect(find.text('담당 요청이 수락됐어요'), findsOneWidget);
+        expect(find.text('담당 요청이 거절됐어요'), findsOneWidget);
         expect(find.byIcon(AppIcons.inviteAccepted), findsOneWidget);
         expect(find.byIcon(AppIcons.personOff), findsOneWidget);
         expect(tester.takeException(), isNull);

@@ -14,7 +14,7 @@ import pytest
 
 from app.core.week import monday_of
 from app.services import contact_format, period_window
-from app.services.exercise_service import monday_of_str
+from app.services.exercise_service import monday_of_str, weekday_label_of
 from app.services.weekly_challenge_service import week_monday
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -76,3 +76,25 @@ def test_app_email_limit_matches_server() -> None:
     found = re.search(r"static const int emailMaxLength = (\d+);", rules)
     assert found is not None
     assert int(found.group(1)) == contact_format.EMAIL_MAX_LENGTH
+
+
+# ---------- 깨진 날짜는 조용히 대체하지 않는다(#3256) ----------
+
+
+def test_weekday_label_of_returns_the_day_label() -> None:
+    assert weekday_label_of("2026-09-28") == "월"
+    assert weekday_label_of("2026-10-04") == "일"
+
+
+@pytest.mark.parametrize("bad", ["", "2026-13-01", "2026-02-30", "not-a-date", None])
+def test_monday_of_str_rejects_a_broken_day(bad) -> None:
+    """예전에는 이번 주 월요일로 떨어져 엉뚱한 주를 읽었다."""
+    with pytest.raises(ValueError):
+        monday_of_str(bad)
+
+
+@pytest.mark.parametrize("bad", ["", "2026-13-01", "2026-02-30", "not-a-date", None])
+def test_weekday_label_of_rejects_a_broken_day(bad) -> None:
+    """예전에는 오늘 요일로 떨어져 엉뚱한 날의 기록을 골랐다."""
+    with pytest.raises(ValueError):
+        weekday_label_of(bad)

@@ -112,14 +112,15 @@ DateTime? _date(Object? raw) {
 
 /// 데모의 날짜별 개인운동 — 실서버와 같은 규칙을 시드에서 만든다.
 ///
-/// - 배정은 데모 배정 저장소([DemoRoutineStore]) 그대로다. 씨앗 배정은 서버
+/// - 배정은 데모 배정 저장소([DemoRoutineStore]) 그대로다. AI 씨앗 배정은 서버
 ///   시드처럼 4주 전부터 걸린 기한 없는 배정이고, 데모에서 보낸 `개인운동만`
-///   은 시작일부터 7일이다.
+///   은 시작일부터 7일이다. 회원마다 지난 주들에 받은 한 벌(`seed_rings.dart`)은
+///   내린 기록으로 들어 있다.
 /// - 김민수(공유 픽스처)는 그날 한 운동 중 이름이 같은 것을 완료로 잇는다 —
 ///   백엔드 시드(`_seed_from_fixture`)와 같은 규칙이다. PT 날과 오늘은 잇지
 ///   않는다.
 /// - 다른 회원은 그날 이행률(`ClientDailyMetrics.completion`)만큼 배정 순서대로
-///   완료로 둔다. 기록이 하나도 없는 회원은 아직 시작하지 않은 것으로 본다.
+///   완료로 둔다. 기록이 없는 날은 걸린 것을 안 한 것으로 둔다.
 class MockRoutineDaysRepository implements RoutineDaysRepository {
   /// Creates the demo repository over [_db].
   MockRoutineDaysRepository(this._db);
@@ -167,7 +168,8 @@ class MockRoutineDaysRepository implements RoutineDaysRepository {
         )..where((t) => t.clientId.equals(memberId))).get())
           row.date: row.completion,
       };
-      if (!completion.values.any((int c) => c > 0)) return RoutineDays.empty;
+      // 기록이 하나도 없는 회원(임도현)도 걸린 것은 그린다 — 오늘 보낸
+      // 개인운동이 오늘 칸에 `오늘 아직` 으로 선다. 실서버와 같다(#3003).
       rule = _RateDone(memberId, completion);
     }
 
@@ -189,7 +191,15 @@ class MockRoutineDaysRepository implements RoutineDaysRepository {
         RoutineDay(
           date: day,
           items: day == today
-              ? _todayItems(on, doneToday, day)
+              ? _todayItems(
+                  on,
+                  doneToday,
+                  day,
+                  ended: <RoutineDayRoutine>[
+                    for (final RoutineDayRoutine r in routines)
+                      if (r.endedOn == today && r.activeFrom.isBefore(today)) r,
+                  ],
+                )
               : rule.items(on, day, today),
         ),
       );
@@ -214,17 +224,23 @@ extension on MockRoutineDaysRepository {
 
 /// 오늘 칸 — 운동 행 하나가 개인운동 하나의 체크다. 같은 이름의 개인운동이
 /// 둘 걸려 있으면 배정 순서대로 하나만 한 것이 된다.
+///
+/// [ended] 는 오늘 내려간 배정(새 개인운동에 밀린 것)이다. 그 전에 이미 체크한
+/// 것만 오늘 칸에 남긴다 — 실서버 `keep_done_on_end_day` 와 같다(#2508). 운동
+/// 행은 지금 걸린 것부터 잇는다.
 List<RoutineDayItem> _todayItems(
   List<RoutineDayRoutine> on,
   Set<String> rowNames,
-  DateTime day,
-) {
+  DateTime day, {
+  List<RoutineDayRoutine> ended = const <RoutineDayRoutine>[],
+}) {
   final List<String> rows = <String>[...rowNames];
-  final List<RoutineDayRoutine> ordered = <RoutineDayRoutine>[...on]
-    ..sort(
-      (RoutineDayRoutine a, RoutineDayRoutine b) =>
-          a.sortOrder.compareTo(b.sortOrder),
-    );
+  int bySort(RoutineDayRoutine a, RoutineDayRoutine b) =>
+      a.sortOrder.compareTo(b.sortOrder);
+  final List<RoutineDayRoutine> ordered = <RoutineDayRoutine>[
+    ...(<RoutineDayRoutine>[...on]..sort(bySort)),
+    ...(<RoutineDayRoutine>[...ended]..sort(bySort)),
+  ];
   final Set<String> done = <String>{};
   for (final RoutineDayRoutine r in ordered) {
     final int at = rows.indexWhere(
@@ -235,7 +251,11 @@ List<RoutineDayItem> _todayItems(
     done.add(r.id);
   }
   return <RoutineDayItem>[
-    for (final RoutineDayRoutine r in on)
+    for (final RoutineDayRoutine r in <RoutineDayRoutine>[
+      ...on,
+      for (final RoutineDayRoutine e in ended)
+        if (done.contains(e.id)) e,
+    ])
       RoutineDayItem(
         routineId: r.id,
         status: done.contains(r.id)
@@ -424,6 +444,10 @@ class _FixtureDone implements _DoneRule {
 
 /// 다른 회원 — 그날 이행률만큼 배정 순서대로 완료.
 ///
+/// 같이 보낸 묶음마다 따로 센다 — 실서버 시드는 한 벌 안에서 이행률만큼 체크를
+/// 남기므로(`seed_roster._seed_completion_days`), 그날 걸린 다른 배정과 합쳐 세면
+/// 링 완료율이 실서버와 어긋난다(#2508).
+///
 /// 회원마다 정해진 요일에는 마지막 완료를 다음 날 체크한 것으로 둔다 — 데모에서도
 /// `다음 날 이후 체크` 칸이 보여야 한다. 날짜와 회원 id 로만 정해 새로고침해도
 /// 같다.
@@ -439,28 +463,42 @@ class _RateDone implements _DoneRule {
     DateTime day,
     DateTime today,
   ) {
-    final List<RoutineDayRoutine> ordered = <RoutineDayRoutine>[...on]
-      ..sort(
+    final Map<String, List<RoutineDayRoutine>> groups =
+        <String, List<RoutineDayRoutine>>{};
+    for (final RoutineDayRoutine r in on) {
+      (groups['${r.personal}|${ymd(r.activeFrom)}|${r.endedOn}'] ??=
+              <RoutineDayRoutine>[])
+          .add(r);
+    }
+    final int rate = _completion[ymd(day)] ?? 0;
+    final bool isToday = day == today;
+    final Map<String, RoutineDayStatus> status = <String, RoutineDayStatus>{};
+    for (final List<RoutineDayRoutine> group in groups.values) {
+      group.sort(
         (RoutineDayRoutine a, RoutineDayRoutine b) =>
             a.sortOrder.compareTo(b.sortOrder),
       );
-    final int rate = _completion[ymd(day)] ?? 0;
-    final int done = (ordered.length * rate / 100).round();
-    final bool isToday = day == today;
-    final bool lateDay =
-        !isToday && done > 0 && (day.day + _memberId.length) % 4 == 0;
+      final int done = (group.length * rate / 100).round();
+      final bool lateDay =
+          !isToday && done > 0 && (day.day + _memberId.length) % 4 == 0;
+      for (final (int i, RoutineDayRoutine r) in group.indexed) {
+        status[r.id] = i < done
+            ? (lateDay && i == done - 1
+                  ? RoutineDayStatus.late
+                  : RoutineDayStatus.done)
+            : isToday
+            ? RoutineDayStatus.pending
+            : RoutineDayStatus.missed;
+      }
+    }
     return <RoutineDayItem>[
-      for (final (int i, RoutineDayRoutine r) in ordered.indexed)
+      for (final RoutineDayRoutine r in on)
         RoutineDayItem(
           routineId: r.id,
-          status: i < done
-              ? (lateDay && i == done - 1
-                    ? RoutineDayStatus.late
-                    : RoutineDayStatus.done)
-              : isToday
-              ? RoutineDayStatus.pending
-              : RoutineDayStatus.missed,
-          sessionId: i < done ? 'demo-session-${r.id}-${ymd(day)}' : null,
+          status: status[r.id]!,
+          sessionId: status[r.id]!.completed
+              ? 'demo-session-${r.id}-${ymd(day)}'
+              : null,
         ),
     ];
   }

@@ -1,3 +1,5 @@
+import 'dart:ui' show Locale;
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_core/network/accept_language_interceptor.dart';
@@ -5,9 +7,9 @@ import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
 import 'package:oncare_trainer/core/network/client_platform.dart';
+import 'package:oncare_trainer/core/network/consent_gate.dart';
 import 'package:oncare_trainer/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// App-wide `Dio` instance, wired with language + auth + logging interceptors from
 /// the current [AppConfig]. Feature data sources read this provider
@@ -34,13 +36,15 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  // 화면 언어는 요청마다 읽는다 — 언어를 바꿔도 Dio 를 다시 만들지 않는다(#2297).
+  // 브라우저가 제 언어를 `Accept-Language` 로 붙이지 않게 한국어로 고정한다.
   // 실행 중 만료된 토큰은 갱신 뒤 원 요청을 한 번 다시 보낸다(#1546).
   dio.interceptors
+    ..add(AcceptLanguageInterceptor(() => const Locale('ko')))
+    ..add(authInterceptorFor(ref, retryClient: dio))
+    // 필수 동의가 남은 트레이너는 서버가 403 으로 막는다 — 동의 화면으로 보낸다(#3155).
     ..add(
-      AcceptLanguageInterceptor(() => ref.read(trainerResolvedLocaleProvider)),
-    )
-    ..add(authInterceptorFor(ref, retryClient: dio));
+      ConsentRequiredInterceptor(() => ref.read(consentGateBridgeProvider)),
+    );
   // 담당이 해제된 회원의 404 를 로스터 재검증으로 잇는다(#2281).
   dio.interceptors.add(
     ClientAccessInterceptor(ref.watch(clientAccessLostProvider).report),

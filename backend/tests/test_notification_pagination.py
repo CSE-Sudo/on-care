@@ -267,3 +267,32 @@ def test_purge_removes_exactly_what_was_selected(client, db_session, member):
         Notification.user_id == member["id"]
     ).all()
     assert [row.id for row in left] == [kept.id]
+
+
+def test_purge_deletes_in_one_statement(client, db_session, member):
+    """#3242: 대상을 한 건씩 읽어 지우지 않고 `DELETE` 한 번으로 지운다."""
+    from sqlalchemy import event
+
+    now = _BASE + timedelta(days=notification_service.READ_RETENTION_DAYS + 1)
+    _seed(db_session, member["id"], 5, read=True)
+
+    deletes: list[str] = []
+
+    def count(conn, cursor, statement, parameters, context, executemany):
+        if statement.lstrip().upper().startswith("DELETE"):
+            deletes.append(statement)
+
+    engine = db_session.get_bind()
+    event.listen(engine, "before_cursor_execute", count)
+    try:
+        removed = notification_service.purge_expired(
+            db_session, now=now, user_id=member["id"]
+        )
+    finally:
+        event.remove(engine, "before_cursor_execute", count)
+
+    assert removed == 5
+    assert len(deletes) == 1
+    assert db_session.query(Notification).filter(
+        Notification.user_id == member["id"]
+    ).count() == 0

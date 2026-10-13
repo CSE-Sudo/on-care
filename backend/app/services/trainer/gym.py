@@ -1,6 +1,8 @@
 """트레이너 도메인 — 소속 헬스장. (#452)"""
 from __future__ import annotations
 
+import json
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,7 +10,7 @@ from app.models.models import (
     GymProfile, Place, TrainerProfile, User,
 )
 from app.schemas.trainer_api import (
-    TrainerMe,
+    TrainerGymProfileOut, TrainerMe,
 )
 from app.services.trainer.profile import (
     build_trainer_me,
@@ -60,7 +62,7 @@ def set_trainer_gym(
     _apply_gym_texts(profile, place, db.get(GymProfile, place.id))
     db.commit()
     db.refresh(profile)
-    return build_trainer_me(trainer, profile)
+    return build_trainer_me(db, trainer, profile)
 
 
 def clear_trainer_gym(db: Session, trainer: User, profile: TrainerProfile) -> TrainerMe:
@@ -73,4 +75,79 @@ def clear_trainer_gym(db: Session, trainer: User, profile: TrainerProfile) -> Tr
     _apply_gym_texts(profile, None, None)
     db.commit()
     db.refresh(profile)
-    return build_trainer_me(trainer, profile)
+    return build_trainer_me(db, trainer, profile)
+
+
+# ---- 소속 헬스장 부가 정보 (#2700) ----
+
+
+class NoGymAffiliation(Exception):
+    """소속 헬스장이 없어 고칠 헬스장 정보가 없다(라우터 409)."""
+
+
+def _affiliated_place(db: Session, profile: TrainerProfile) -> Place:
+    place = db.get(Place, profile.gym_id) if profile.gym_id else None
+    if place is None or place.category != "fitness":
+        raise NoGymAffiliation
+    return place
+
+
+def _gym_profile_out(place: Place, gym: GymProfile | None) -> TrainerGymProfileOut:
+    # 회원 응답(`gym_service.gym_tags`)과 같은 규칙으로 읽는다 — 깨진 JSON 은 빈 목록.
+    from app.services.gym_service import gym_tags
+
+    return TrainerGymProfileOut(
+        gym_id=place.id,
+        name=place.name,
+        weekday_hours=gym.weekday_hours if gym else "",
+        weekend_hours=gym.weekend_hours if gym else "",
+        phone=gym.phone if gym else "",
+        tags=gym_tags(gym),
+    )
+
+
+def get_trainer_gym_profile(
+    db: Session, profile: TrainerProfile
+) -> TrainerGymProfileOut:
+    """소속 헬스장의 부가 정보. 소속이 없으면 `NoGymAffiliation`."""
+    place = _affiliated_place(db, profile)
+    return _gym_profile_out(place, db.get(GymProfile, place.id))
+
+
+def update_trainer_gym_profile(
+    db: Session, profile: TrainerProfile, fields: dict
+) -> TrainerGymProfileOut:
+    """소속 헬스장의 영업시간·전화·태그를 고친다. 평점은 건드리지 않는다.
+
+    **소속 트레이너 누구나** 고칠 수 있다 — 헬스장에 대표 트레이너 개념이 없다.
+    마지막에 저장한 값이 남는다.
+
+    카카오에서 발견해 등록한 헬스장은 `gym_profiles` 행이 없을 수 있어 없으면
+    만든다. 소속을 정할 때 영업시간·전화가 `trainer_profiles` 로 복사되므로
+    (`_apply_gym_texts`), 같은 헬스장 소속 트레이너 **모두**의 복사본을 같은
+    트랜잭션에서 맞춘다 — 고친 사람만 맞추면 동료의 회원 코치 카드에 옛 값이 남는다.
+    """
+    place = _affiliated_place(db, profile)
+    gym = db.get(GymProfile, place.id)
+    if gym is None:
+        gym = GymProfile(
+            place_id=place.id, rating=None, weekday_hours="", weekend_hours="",
+            phone="", tags_json="[]", is_partner=False,
+        )
+        db.add(gym)
+
+    for key in ("weekday_hours", "weekend_hours", "phone"):
+        if key in fields:
+            setattr(gym, key, fields[key])
+    if "tags" in fields:
+        gym.tags_json = json.dumps(fields["tags"], ensure_ascii=False)
+    db.flush()
+
+    colleagues = db.scalars(
+        select(TrainerProfile).where(TrainerProfile.gym_id == place.id)
+    ).all()
+    for colleague in colleagues:
+        _apply_gym_texts(colleague, place, gym)
+    db.commit()
+    db.refresh(gym)
+    return _gym_profile_out(place, gym)

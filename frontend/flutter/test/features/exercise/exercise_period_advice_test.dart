@@ -114,6 +114,9 @@ class _AdviceRepository implements ExerciseRepository {
   );
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) async => throw UnimplementedError();
 
   @override
@@ -135,28 +138,28 @@ class _AdviceRepository implements ExerciseRepository {
 
 Widget _app(ExerciseRepository repo, {Locale locale = const Locale('ko')}) =>
     ProviderScope(
-  overrides: <Override>[
-    appConfigProvider.overrideWithValue(
-      const AppConfig(
-        environment: Environment.dev,
-        apiBaseUrl: 'https://example.test',
-        useMockApi: true,
+      overrides: <Override>[
+        appConfigProvider.overrideWithValue(
+          const AppConfig(
+            environment: Environment.dev,
+            apiBaseUrl: 'https://example.test',
+            useMockApi: true,
+          ),
+        ),
+        exerciseRepositoryProvider.overrideWithValue(repo),
+        accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
+        memberCoachRepositoryProvider.overrideWithValue(
+          MockMemberCoachRepository() as MemberCoachRepository,
+        ),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const ExercisePage(),
       ),
-    ),
-    exerciseRepositoryProvider.overrideWithValue(repo),
-    accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
-    memberCoachRepositoryProvider.overrideWithValue(
-      MockMemberCoachRepository() as MemberCoachRepository,
-    ),
-  ],
-  child: MaterialApp(
-    theme: AppTheme.light(),
-    locale: locale,
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: const ExercisePage(),
-  ),
-);
+    );
 
 /// 조언 카드가 지금 보여 주는 글자 전부.
 String _adviceText(WidgetTester tester) => tester
@@ -244,25 +247,6 @@ void main() {
         .dy;
     // 위쪽은 "무엇을 해야 하나", 아래쪽은 "내가 무엇을 했나" 다.
     expect(ownRecords, greaterThan(coaching));
-  });
-
-  testWidgets('문장 키가 오면 앱 언어로 그린다 — 영어 앱에서 영어 조언', (
-    WidgetTester tester,
-  ) async {
-    // 서버는 한국어 문장과 함께 키·값을 준다(#2210). 영어 앱은 키로 영어 문장을
-    // 그리고, 운동 이름은 트레이너가 적은 그대로 들어간다.
-    const ExerciseAdvice keyed = ExerciseAdvice(
-      message: '오늘은 스쿼트부터 시작해 보세요.',
-      key: 'routine_today_start',
-      params: <String, Object>{'next': '스쿼트'},
-    );
-    await _pump(
-      tester,
-      _AdviceRepository(keyed: keyed),
-      locale: const Locale('en'),
-    );
-    expect(_adviceText(tester), contains('Start today with 스쿼트.'));
-    expect(_adviceText(tester), isNot(contains('시작해 보세요')));
   });
 
   testWidgets('한국어 앱은 같은 키로 서버와 같은 문장을 그린다', (WidgetTester tester) async {

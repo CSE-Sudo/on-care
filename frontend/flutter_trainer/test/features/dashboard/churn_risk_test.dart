@@ -120,6 +120,62 @@ void main() {
         isFalse,
       );
     });
+
+    // `최근 7일` 은 오늘을 포함한 날짜 7개다 — 오늘(9/24)·어제 … 6일 전(9/18).
+    // 예전 `difference(...).inDays <= 7` 은 7일 전(9/17)까지 날짜 8개를
+    // 셌다(#3268).
+    test('6일 전 날짜는 최근 7일에 든다 — 경계 안쪽', () {
+      expect(
+        hasRecentTrainerFeedback(<ScheduleSession>[
+          _session(date: '2026-09-18'),
+        ], now: _now),
+        isTrue,
+      );
+    });
+
+    test('7일 전 날짜는 최근 7일에 들지 않는다 — 경계 바깥 (#3268)', () {
+      expect(
+        hasRecentTrainerFeedback(<ScheduleSession>[
+          _session(date: '2026-09-17'),
+        ], now: _now),
+        isFalse,
+      );
+    });
+
+    test('오늘 남긴 메모는 시각과 상관없이 든다', () {
+      expect(
+        hasRecentTrainerFeedback(<ScheduleSession>[
+          _session(date: '2026-09-24'),
+        ], now: DateTime(2026, 9, 24, 0, 5)),
+        isTrue,
+      );
+    });
+
+    test('자정 직전에도 경계는 날짜로만 정해진다', () {
+      // 시각을 남긴 채 `.inDays` 로 자르면 같은 날짜가 시각에 따라 들고 난다.
+      final DateTime lateNight = DateTime(2026, 9, 24, 23, 59);
+      expect(
+        hasRecentTrainerFeedback(<ScheduleSession>[
+          _session(date: '2026-09-18'),
+        ], now: lateNight),
+        isTrue,
+      );
+      expect(
+        hasRecentTrainerFeedback(<ScheduleSession>[
+          _session(date: '2026-09-17'),
+        ], now: lateNight),
+        isFalse,
+      );
+    });
+
+    test('아직 오지 않은 날짜는 세지 않는다 (#3268)', () {
+      expect(
+        hasRecentTrainerFeedback(<ScheduleSession>[
+          _session(date: '2026-09-25'),
+        ], now: _now),
+        isFalse,
+      );
+    });
   });
 
   group('groupSessionsByClient', () {

@@ -83,7 +83,7 @@ def clean_email(value: str) -> str:
     if not email:
         raise InvalidEmail("이메일을 입력해 주세요.")
     if len(email) > EMAIL_MAX_LENGTH:
-        raise InvalidEmail("이메일이 너무 깁니다.")
+        raise InvalidEmail("이메일이 너무 길어요.")
     local, _, _domain = email.partition("@")
     # 점으로 시작·끝나거나 점이 이어진 로컬 부분은 정규식으로 적으면 읽기
     # 어려워 따로 본다. 앱도 같은 자리에서 같은 방식으로 본다.
@@ -93,15 +93,15 @@ def clean_email(value: str) -> str:
         or local.endswith(".")
         or ".." in email
     ):
-        raise InvalidEmail("이메일 형식이 올바르지 않습니다.")
+        raise InvalidEmail("이메일 형식이 올바르지 않아요.")
     return email
 
 
 def normalize_phone(value: str) -> str:
     """저장할 전화번호 표기. 빈 값은 빈 값 그대로 둔다.
 
-    빈 값을 통과시키는 것은 전화번호가 선택이기 때문이다 — 트레이너 가입은 이
-    값을 쓰지 않고, 회원도 MY 탭에서 나중에 넣을 수 있다.
+    빈 값을 통과시키는 것은 전화번호가 스키마에서 선택이기 때문이다 — 번호 칸이
+    없던 옛 빌드의 가입도 받고, 회원·트레이너 모두 MY 에서 나중에 넣을 수 있다.
 
     하이픈 위치는 세지 않으므로 `01012345678` 처럼 붙여 보내도 받는다. 표기에
     대해서만 앱보다 느슨한 쪽이라, 앱을 통과한 값이 서버에서 막히지 않는다.

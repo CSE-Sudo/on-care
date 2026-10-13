@@ -2,9 +2,9 @@ import 'package:intl/intl.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
-/// `식단 분석` 문장 → 화면 언어의 문장. (#2379)
+/// `식단 분석` 문장 → 화면 문장. (#2379)
 ///
-/// 서버 `diet_trainer_analysis` 의 한국어·영어 틀과 **같은 문장**이어야 한다 — 공유
+/// 서버 `diet_trainer_analysis` 의 한국어 틀과 **같은 문장**이어야 한다 — 공유
 /// 사례 파일의 `renderings` 로 테스트가 본다. 모르는 키면 null 이다(서버가 먼저 새
 /// 키를 내보낸 경우) — 카드는 그 문장만 빼고 그린다.
 String? clientDietSentenceText(AppLocalizations l, ClientDietSentence s) {
@@ -142,7 +142,8 @@ String clientDietAnalysisText(AppLocalizations l, ClientDietAnalysis a) => a
     .whereType<String>()
     .join(' ');
 
-/// `4,286mg` · `70g` · `2,600kcal` — 서버 틀과 같은 모양(천 단위 쉼표, 단위를 붙인다).
+/// `4,286mg` · `70g` · `2,600kcal` — 서버 틀과 같은 모양(천 단위 쉼표). 단위는
+/// 숫자에 붙여 쓴다.
 String formatDietAmount(int value, String nutrient) {
   final String unit = switch (nutrient) {
     'sodium' => 'mg',

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!--
+  카카오 웹 로그인 콜백(#330). 카카오 로그인 팝업이 인가 코드를 붙여 이 페이지로 돌아온다.
+  카카오 콘솔 Redirect URI 에 `<앱 주소>/kakao_login_callback.html` 로 등록한다
+  (설정은 docs/social_login_setup.md). Flutter 를 띄우지 않는 정적 페이지다 —
+  js/kakao_login_callback.js 가 코드를 같은 출처의 앱 창에 넘기고 이 창을 닫는다.
+  인라인 스크립트는 두지 않는다(앱과 같은 CSP).
+-->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <!-- 인가 코드가 주소에 있는 동안 다른 곳으로 새지 않게 한다. -->
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>On-Care</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      color: #4b5563;
+      background: #ffffff;
+      text-align: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <p id="kakao-login-status">로그인을 마무리하고 있어요.</p>
+  <script src="js/kakao_login_callback.js"></script>
+</body>
+</html>

@@ -13,7 +13,6 @@ from datetime import date, timedelta
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
 
 from app.core import clock
 from app.models.models import ExerciseSession

@@ -92,16 +92,6 @@ void main() {
     expect(find.text(l.authSessionExpired), findsNothing);
   });
 
-  testWidgets('영어 화면은 영어 원인 문구다', (WidgetTester tester) async {
-    final AppLocalizations l = await _pump(
-      tester,
-      _FailingDietRepository(const NetworkError()),
-      locale: const Locale('en'),
-    );
-
-    expect(find.text(l.errorNetwork), findsWidgets);
-  });
-
   testWidgets('다시 시도는 지금처럼 다시 받는다', (WidgetTester tester) async {
     final _FailingDietRepository repo = _FailingDietRepository(
       const NetworkError(),

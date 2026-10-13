@@ -10,6 +10,7 @@ import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_p
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_consent_page.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_find_email_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_password_reset_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_up_page.dart';
@@ -75,7 +76,10 @@ String? sessionRedirect(
       SessionStatus.demo || SessionStatus.authenticated => AppRoutes.dashboard,
     };
   }
-  final onAuthRoute = path == AppRoutes.signIn || path == AppRoutes.signUp;
+  final onAuthRoute =
+      path == AppRoutes.signIn ||
+      path == AppRoutes.signUp ||
+      path == AppRoutes.findEmail;
   switch (status) {
     case SessionStatus.unknown:
     case SessionStatus.signedOut:
@@ -93,10 +97,10 @@ String? sessionRedirect(
       if (onAuthRoute) {
         return AppRoutes.resumeTarget(location) ??
             // 막 가입한 트레이너는 소속 헬스장이 없다 — 소속이 없으면 회원이
-            // 찾을 수 없으므로 헬스장 찾기가 있는 프로필 수정으로 보낸다(#2543).
+            // 찾을 수 없으므로 헬스장을 찾아 고르는 화면으로 보낸다(#2543).
             // 가입 화면 자체에서는 찾을 수 없다: 검색이 트레이너 토큰을 요구한다.
             (path == AppRoutes.signUp
-                ? AppRoutes.mySection('edit')
+                ? AppRoutes.mySection('gym')
                 : AppRoutes.dashboard);
       }
       // The platform boot location on a non-web launch is `/`, which
@@ -336,6 +340,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.consent,
         builder: (context, state) => const TrainerConsentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.findEmail,
+        builder: (context, state) => const TrainerFindEmailPage(),
       ),
       GoRoute(
         path: AppRoutes.passwordReset,

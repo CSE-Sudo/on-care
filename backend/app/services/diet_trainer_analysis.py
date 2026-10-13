@@ -37,8 +37,9 @@ PERIOD_ALL = "all"
 
 #: 오늘 칼로리를 "넘쳤다" 로 볼 배수 — 회원 앱 오늘 조언과 같다.
 CALORIE_OVER_RATIO = 1.1
-#: 오늘 단백질을 "모자라다" 로 말할 최소 부족분(g) — 회원 앱과 같다.
-PROTEIN_GAP_G = 10
+#: 오늘 단백질을 "모자라다" 로 말할 최소 부족분(g) — 회원 앱 오늘 조언과 같은 값을
+#: 한 곳(`diet_coach_inputs`)에서 읽는다(#3270).
+PROTEIN_GAP_G = inputs.COACH_PROTEIN_GAP_G
 #: 최근 4주 평균 단백질이 목표의 이 비율보다 낮으면 "꾸준히 부족" 이다.
 PROTEIN_CHRONIC_RATIO = 0.8
 #: 이 시각이 지났는데 그 끼니가 없으면 "기록이 아직 없다" 고 말한다(회원 앱과 같다).
@@ -67,14 +68,14 @@ _UNIT = {"sodium": "mg", "sugar": "g", "calorie": "kcal", "protein": "g"}
 _SCOPE_KO = {"this": "이번 주", "last": "지난주"}
 _WEEKDAY_KO = ("월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일")
 
-#: 한국어 틀. 트레이너 웹 한국어 ARB(`clientDietAnalysis…`)가 같은 틀을 옮겨 적는다.
+#: 문장 틀. 트레이너 웹 ARB(`clientDietAnalysis…`)가 같은 틀을 옮겨 적는다.
 _KO: dict[str, str] = {
     "tr_today_empty": "오늘 식단 기록이 아직 없어요.",
     "tr_today_over": "{slot_ko}에 먹은 {food}({food_value}) 때문에 오늘 {nutrient_subj} "
                      "{value}까지 올라 목표 {target}의 {ratio}배가 됐어요.",
     "tr_today_over_meal": "{slot_ko} 식사({food_value}) 때문에 오늘 {nutrient_subj} "
                           "{value}까지 올라 목표 {target}의 {ratio}배가 됐어요.",
-    "tr_today_protein_short": "단백질은 {value}으로 목표보다 {gap} 모자라요.",
+    "tr_today_protein_short": "단백질은 {value}으로 목표보다 {gap} 부족해요.",
     "tr_today_protein_chronic": "단백질은 {value}으로 목표보다 {gap} 모자라고, 최근 4주 "
                                 "평균도 하루 {avg}이라 꾸준히 부족한 편이에요.",
     "tr_today_missing": "{slot_ko} 기록이 아직 없어요.",
@@ -88,81 +89,28 @@ _KO: dict[str, str] = {
     "tr_week_protein_short": "{scope_ko} 기록한 {logged}일 중 {days}일 단백질이 목표의 "
                              "80%에 못 미쳤어요.",
     "tr_week_good": "{scope_ko} 기록한 {days}일 모두 목표 안에서 드셨어요.",
-    "tr_week_breakfast_snack_food": "아침 대신 먹은 것은 {food} {count}번이 가장 많았어요.",
+    "tr_week_breakfast_snack_food": "아침 대신 먹은 것은 {food} {count}회가 가장 많았어요.",
     "tr_week_protein_avg": "모자란 날은 하루 평균 {value} 정도였어요.",
     "tr_week_good_avg": "하루 평균 {kcal}, 단백질 {protein}을 드셨어요.",
     "tr_week_vs_last_more": "지난주({prev_logged}일 중 {prev_days}일)보다 늘었어요.",
     "tr_week_vs_last_less": "지난주({prev_logged}일 중 {prev_days}일)보다 줄었어요.",
     "tr_week_vs_last_same": "지난주({prev_logged}일 중 {prev_days}일)와 비슷해요.",
     "tr_all_few": "최근 4주 기록이 {days}일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
-    "tr_all_slot_sodium": "최근 4주 동안 {slot_ko} 나트륨이 {days}번 목표의 절반을 넘었어요.",
-    "tr_all_carb_heavy": "최근 4주 섭취 열량 중 탄수화물이 {pct}%로 높은 편이에요.",
-    "tr_all_protein_light": "최근 4주 섭취 열량 중 단백질이 {pct}%로 낮은 편이에요.",
+    "tr_all_slot_sodium": "최근 4주 동안 {slot_ko} 나트륨이 {days}회 목표의 절반을 넘었어요.",
+    "tr_all_carb_heavy": "최근 4주 섭취 칼로리 중 탄수화물이 {pct}%로 높은 편이에요.",
+    "tr_all_protein_light": "최근 4주 섭취 칼로리 중 단백질이 {pct}%로 낮은 편이에요.",
     "tr_all_protein_trend_up": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 "
                                "{after}일로 늘었어요.",
     "tr_all_protein_trend_down": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 "
                                  "{after}일로 줄었어요.",
-    "tr_all_frequent": "최근 4주 동안 {slot_ko} 메뉴로 {food} {count}번이 가장 많았어요.",
+    "tr_all_frequent": "최근 4주 동안 {slot_ko} 메뉴로 {food} {count}회가 가장 많았어요.",
     "tr_all_repeated": "최근 4주 음식 기록에서 {food1}·{food2} 비중이 높아요.",
     "tr_all_good": "최근 4주 동안 {days}일 기록했고, 흐름이 고른 편이에요.",
-    "tr_foods_one": "{food1} {count1}번이 대부분이에요.",
-    "tr_foods_two": "{food1} {count1}번, {food2} {count2}번이 대부분이에요.",
+    "tr_foods_one": "{food1} {count1}회가 대부분이에요.",
+    "tr_foods_two": "{food1} {count1}회, {food2} {count2}회가 대부분이에요.",
 }
 
-#: 영어 틀 — `Accept-Language: en` 인 트레이너의 `message`. 트레이너 웹 영어 ARB 가
-#: 같은 틀을 옮겨 적는다.
-_EN: dict[str, str] = {
-    "tr_today_empty": "No meals logged today yet.",
-    "tr_today_over": "{food} at {slot_en} ({food_value}) pushed today's {nutrient_en} to "
-                     "{value}, {ratio}x the {target} goal.",
-    "tr_today_over_meal": "{slot_cap} ({food_value}) pushed today's {nutrient_en} to "
-                          "{value}, {ratio}x the {target} goal.",
-    "tr_today_protein_short": "Protein is at {value}, {gap} short of the goal.",
-    "tr_today_protein_chronic": "Protein is at {value}, {gap} short of the goal, and the "
-                                "4-week average of {avg} a day stays low.",
-    "tr_today_missing": "No {slot_en} logged yet.",
-    "tr_today_good": "{kcal} today, evenly within the goals.",
-    "tr_week_empty": "No meals logged this week yet.",
-    "tr_week_skip_breakfast": "Skipped breakfast on {days} of {logged} logged days {scope_en}.",
-    "tr_week_skip_breakfast_snack": "Skipped breakfast on {days} of {logged} logged days "
-                                    "{scope_en}, snacking instead on {snack_days}.",
-    "tr_week_over": "{nutrient_cap} went over the goal on {days} of {logged} logged days "
-                    "{scope_en}.",
-    "tr_week_cause": "The biggest was {food} at {weekday_en} {slot_en} ({food_value}).",
-    "tr_week_protein_short": "Protein fell below 80% of the goal on {days} of {logged} "
-                             "logged days {scope_en}.",
-    "tr_week_good": "All {days} logged days {scope_en} stayed within the goals.",
-    "tr_week_breakfast_snack_food": "{food} replaced breakfast most often ({count} times).",
-    "tr_week_protein_avg": "Those days averaged {value} a day.",
-    "tr_week_good_avg": "Averaged {kcal} and {protein} protein a day.",
-    "tr_week_vs_last_more": "Up from last week ({prev_days} of {prev_logged} days).",
-    "tr_week_vs_last_less": "Down from last week ({prev_days} of {prev_logged} days).",
-    "tr_week_vs_last_same": "About the same as last week ({prev_days} of {prev_logged} days).",
-    "tr_all_few": "Only {days} days logged in the last 4 weeks. The trend shows after 7.",
-    "tr_all_slot_sodium": "In the last 4 weeks, {slot_en} sodium went over half the goal "
-                          "{days} times.",
-    "tr_all_carb_heavy": "Carbs made up {pct}% of calories in the last 4 weeks.",
-    "tr_all_protein_light": "Protein made up only {pct}% of calories in the last 4 weeks.",
-    "tr_all_protein_trend_up": "Days meeting the protein goal rose from {before} in the "
-                               "prior 2 weeks to {after} in the last 2 weeks.",
-    "tr_all_protein_trend_down": "Days meeting the protein goal fell from {before} in the "
-                                 "prior 2 weeks to {after} in the last 2 weeks.",
-    "tr_all_frequent": "{food} was the most common {slot_en} in the last 4 weeks "
-                       "({count} times).",
-    "tr_all_repeated": "{food1} and {food2} make up much of the last 4 weeks' log.",
-    "tr_all_good": "{days} days logged in the last 4 weeks, with an even trend.",
-    "tr_foods_one": "Mostly {food1} ({count1} times).",
-    "tr_foods_two": "Mostly {food1} ({count1} times) and {food2} ({count2} times).",
-}
-_SLOT_EN = {
-    "breakfast": "breakfast", "lunch": "lunch", "dinner": "dinner",
-    "snack": "snack", "lateNight": "late-night snack",
-}
-_NUTRIENT_EN = {"sodium": "sodium", "sugar": "sugar", "calorie": "calories", "protein": "protein"}
-_SCOPE_EN = {"this": "this week", "last": "last week"}
-_WEEKDAY_EN = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-
-#: 모든 키. 트레이너 웹 번역 테스트가 이 목록을 빠짐없이 그리는지 본다.
+#: 모든 키. 트레이너 웹 테스트가 이 목록을 빠짐없이 그리는지 본다.
 KEYS: tuple[str, ...] = tuple(_KO)
 
 
@@ -173,13 +121,7 @@ class Sentence:
 
     @property
     def text(self) -> str:
-        return self.text_in("ko")
-
-    def text_in(self, locale: str) -> str:
-        fields = _ko_fields(self.params)
-        if locale == "en":
-            return _EN[self.key].format(**fields)
-        return _KO[self.key].format(**fields)
+        return _KO[self.key].format(**_ko_fields(self.params))
 
 
 @dataclass(frozen=True)
@@ -192,18 +134,16 @@ class Analysis:
 
     @property
     def message(self) -> str:
-        return self.message_in("ko")
-
-    def message_in(self, locale: str) -> str:
-        return " ".join(s.text_in(locale) for s in self.sentences)
+        return " ".join(s.text for s in self.sentences)
 
 
 def _fmt(value: int, nutrient: str) -> str:
+    """`4,286mg` — 천 단위를 끊고 단위를 붙여 쓴다(#3120)."""
     return f"{value:,}{_UNIT[nutrient]}"
 
 
 def _ko_fields(params: dict[str, str | int]) -> dict[str, str | int]:
-    """값 → 한국어 틀에 넣을 말. 수치는 단위를 붙이고 천 단위를 끊는다."""
+    """값 → 틀에 넣을 말. 수치는 천 단위를 끊고 단위를 단다."""
     out: dict[str, str | int] = dict(params)
     nutrient = str(params.get("nutrient", ""))
     for k in ("value", "target", "food_value"):
@@ -211,19 +151,13 @@ def _ko_fields(params: dict[str, str | int]) -> dict[str, str | int]:
             out[k] = _fmt(int(params[k]), nutrient)
     if "slot" in params:
         out["slot_ko"] = _SLOT_KO.get(str(params["slot"]), "간식")
-        out["slot_en"] = _SLOT_EN.get(str(params["slot"]), "snack")
-        out["slot_cap"] = str(out["slot_en"]).capitalize()
     if nutrient:
         out["nutrient_ko"] = _NUTRIENT_KO.get(nutrient, nutrient)
         out["nutrient_subj"] = _NUTRIENT_SUBJ.get(nutrient, nutrient)
-        out["nutrient_en"] = _NUTRIENT_EN.get(nutrient, nutrient)
-        out["nutrient_cap"] = out["nutrient_en"].capitalize()
     if "scope" in params:
         out["scope_ko"] = _SCOPE_KO.get(str(params["scope"]), "이번 주")
-        out["scope_en"] = _SCOPE_EN.get(str(params["scope"]), "this week")
     if "weekday" in params:
         out["weekday_ko"] = _WEEKDAY_KO[int(params["weekday"])]
-        out["weekday_en"] = _WEEKDAY_EN[int(params["weekday"])]
     if "kcal" in params:
         out["kcal"] = _fmt(int(params["kcal"]), "calorie")
     for k in ("gap", "avg", "protein"):

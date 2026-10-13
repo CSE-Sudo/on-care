@@ -4,7 +4,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/week_range_nav.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 리포트의 주 이동 — `‹  9월 28일 – 10월 4일  [오늘]  ›`.
+/// 리포트의 주 이동 — `‹  9월 28일 ~ 10월 4일  [오늘]  ›`.
 ///
 /// 스케줄 탭과 같은 [WeekRangeNav] 다 — `오늘` 은 두 화살표 **안쪽**, 날짜
 /// 오른쪽의 고정 자리에 앉는다. 날짜 길이나 버튼 표시 여부와 무관하게
@@ -25,7 +25,7 @@ class ReportWeekNav extends StatelessWidget {
     required this.onThisWeek,
   });
 
-  /// 보고 있는 주(`9월 28일 – 10월 4일`).
+  /// 보고 있는 주(`9월 28일 ~ 10월 4일`).
   final String rangeLabel;
 
   final VoidCallback onPrev;

@@ -26,7 +26,10 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
     final DateTime now = nowKst();
     // 서버가 받아 준 날짜다(#2849). 앱이 보낸 날짜로 서버가 저장했으므로 같은
     // 날에 둔다 — 오늘로 두면 지난 날짜 화면에 끼니가 보이지 않는다.
-    final String day = date ?? _todayDateString();
+    final String day = date ?? wireDate(now);
+    // 시각도 서버가 정한 값을 쓴다(#3354). 지난 날짜의 끼니는 적은 시각이
+    // 아니라 끼니의 기본 시각이라, 제 시계로 다시 만들면 서버와 어긋난다.
+    final Object? serverTimeLabel = body['time_label'];
 
     // 서버가 준 id 를 그대로 쓴다 — 이어지는 수정·삭제가 같은 행을 가리킨다.
     // 같은 응답이 두 번 들어와도(재시도) 덮어쓰기라 중복 행이 생기지 않는다.
@@ -37,8 +40,9 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
             id: id,
             date: day,
             mealType: mealType,
-            timeLabel:
-                '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+            timeLabel: serverTimeLabel is String
+                ? serverTimeLabel
+                : _recordTimeLabel(day, mealType, now),
             foodsJson: jsonEncode(foods),
             totalCalories: (analysis['total_calories'] as num?)?.toInt() ?? 0,
             sodiumMg: Value(
@@ -72,7 +76,7 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
         _analyzeRequestFields(options);
     // 다섯 값 밖의 끼니는 저장하지 않는다 — 실서버와 같은 422(#2882).
     if (!_mealTypes.contains(mealType)) {
-      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+      return _unprocessable(options, 'meal_type 이 올바르지 않아요.');
     }
     final Uint8List? photoBytes = _requestPhotoBytes(options);
 
@@ -134,7 +138,7 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
         data: <String, Object?>{
           'detail': <String, Object?>{
             'code': 'no_food_detected',
-            'message': '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 입력해 주세요.',
+            'message': '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 추가해 주세요.',
           },
         },
       );
@@ -185,35 +189,21 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
     const int totalCal = 395;
     const int totalNa = 185;
     const double totalSugar = 29.5;
-    // 영어 화면이면 실서버처럼 영어 표시 이름과 영어 식단평을 싣는다(#2850).
-    // `name` 은 영양표 매칭용이라 한국어 그대로다 — 실서버 스텁과 같다.
-    final bool english = _prefersEnglish(options);
-    if (english) {
-      for (final Map<String, Object?> food in foods) {
-        food['display_name'] = _demoFoodDisplayNamesEn[food['name']];
-      }
-    }
-    final String coach = english
-        ? 'Sodium is low at 185mg, so this is an easy meal on that front. '
-              'Sugar is a little over half of your daily target (50g), and '
-              'half of that comes from the frozen yogurt itself. Keep the '
-              'toppings mostly fruit and nuts like you did here.'
-        : '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
-              '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
+    const String coach =
+        '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
+        '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
 
     // 지난 날짜 화면에서 연 추가는 그 날짜로 남긴다(#2849). 실서버와 같은
     // 규칙으로 걸러 낸다 — 데모에서만 통과하면 실연동에서 처음 실패한다.
     if (date != null) {
-      final String? error = _analyzeDateError(date);
+      final String? error = _entryDateError(date);
       if (error != null) return _unprocessable(options, error);
     }
-    final String day = date ?? _todayDateString();
-
     final now = nowKst();
+    final String day = date ?? wireDate(now);
     final id = 'diet-${now.microsecondsSinceEpoch}';
     // 행에 넣는 값과 응답에 싣는 값이 갈리지 않게 한 번만 만든다.
-    final String timeLabel =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final String timeLabel = _recordTimeLabel(day, mealType, now);
     await _db
         .into(_db.dietEntries)
         .insert(
@@ -228,7 +218,7 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
             sugarG: const Value(totalSugar),
             // 인식 결과의 코멘트를 행에 남긴다 — 목록으로 돌아갔을 때도 끼니
             // 카드에 그대로 보인다.
-            aiComment: Value(coach),
+            aiComment: const Value(coach),
             // 방금 찍은/고른 그 사진을 함께 남긴다. 인식 결과는 데모라 무엇을
             // 찍든 같지만, 카드에 보이는 사진까지 남의 것이면 자기가 방금
             // 올린 끼니라는 게 화면에서 사라진다.
@@ -360,27 +350,6 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
     );
     return (food: contained.first, exact: false);
   }
-}
-
-/// 데모 인식 음식의 영어 표시 이름(#2850). 실서버 스텁(`recognizer/stub.py`
-/// `_EN_DISPLAY_NAMES`)과 같은 값이다.
-const Map<String, String> _demoFoodDisplayNamesEn = <String, String>{
-  '요거트 아이스크림': 'Frozen yogurt',
-  '과일 토핑': 'Fruit topping',
-  '그래놀라 토핑': 'Granola topping',
-};
-
-/// 사진 분석의 기록 날짜 검사(#2849). 실서버(`analyze_record_date`)와 같은
-/// 규칙이다 — 형식이 맞고, 오늘보다 뒤가 아니며, 작년 1월 1일보다 앞서지
-/// 않는다(앱의 날짜 고르기 범위와 같다).
-String? _analyzeDateError(String date) {
-  final String? error = _entryDateError(date);
-  if (error != null) return error;
-  final DateTime parsed = DateTime.parse(date);
-  if (parsed.isBefore(DateTime(nowKst().year - 1))) {
-    return 'date 는 작년 1월 1일보다 앞설 수 없습니다.';
-  }
-  return null;
 }
 
 /// 데모 영양표 한 줄 — **1인분 기준**이다. (#1896)

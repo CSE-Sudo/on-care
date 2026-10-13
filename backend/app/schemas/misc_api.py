@@ -16,10 +16,24 @@ class NotificationAction(BaseModel):
     알림에 목적지(`action_target`, #2690·#3028)가 있으면 그 값, 없으면 카테고리에서
     파생한다. PT 일정(`member_schedule`)은 운동 탭(`exercise`)이다(#3028).
     """
-    label: str         # "기록하러 가기" / "Log now" — 요청 언어(#2302)
+    label: str         # "기록하러 가기"
     # 프론트 라우트 힌트: dashboard|coach_chat|exercise|diet|my_benefits|points_shop|
     # health_goals|consultations (`notification_service.MEMBER_ACTION_TARGETS`)
     target: str
+
+
+class NotificationReport(BaseModel):
+    """리포트 알림이 가리키는 리포트(#3344).
+
+    `action.target` 은 `coach_chat` 그대로 두고 이 칸을 **더한다**. 목적지 값을 새로
+    만들면 이미 배포된 앱이 모르는 값이라 눌러도 아무 데도 가지 않는다 — 옛 앱은
+    이 칸을 읽지 않고 지금처럼 대화로 가고, 새 앱만 그 주 리포트를 바로 연다.
+    """
+
+    #: 리포트가 다루는 주의 월요일(`YYYY-MM-DD`).
+    week_start: str
+    #: 리포트가 실려 온 대화 메시지. 첨부(PDF)가 여기 달려 있다.
+    message_id: str | None = None
 
 
 class NotificationOut(BaseModel):
@@ -33,9 +47,12 @@ class NotificationOut(BaseModel):
     action: NotificationAction | None = None
     invite_id: str | None = None
     #: 문장 틀 코드와 인자(#2302). 틀이 생기기 전의 알림은 둘 다 없다. `title`·
-    #: `body` 는 이미 요청 언어로 조립돼 있어, 앱이 직접 조립할 때만 쓴다.
+    #: `body` 는 이미 조립돼 있어, 앱이 직접 조립할 때만 쓴다.
     template: str | None = None
     args: dict[str, Any] | None = None
+    #: 리포트 알림(`coach_report`)이 가리키는 리포트(#3344). 다른 갈래와, 이 칸이
+    #: 생기기 전에 쌓인 리포트 알림은 `null` 이다 — 앱은 그때 `action` 만 따른다.
+    report: NotificationReport | None = None
 
 
 # ---- 장소 ----
@@ -47,6 +64,9 @@ class PlaceOut(BaseModel):
     distance_meters: int
     lat: Optional[float]
     lng: Optional[float]
+    #: 전화번호. 모르면 null — 가입한 트레이너가 없는 헬스장은 회원이 문의할 길이
+    #: 이 번호뿐이다(#3357).
+    phone: Optional[str] = None
 
 
 # ---- AI 코치 ----
@@ -131,10 +151,21 @@ class ChatReply(BaseModel):
     balance_after: int | None = None
     #: 보낸 뒤의 오늘 한도 — 입력칸 위 줄을 다시 읽지 않고 바꾼다.
     quota: AiChatQuotaOut | None = None
+    #: 저장된 두 줄의 식별자와 저장 시각(#3352) — 앱이 방금 보낸 말과 저장된 대화를
+    #: 본문·기기 시각으로 추측하지 않고 이 값으로 맞춘다. `GET /ai-coach/messages` 의
+    #: `id`·`created_at` 과 같은 값이다.
+    user_message_id: str | None = None
+    user_created_at: datetime | None = None
+    reply_message_id: str | None = None
+    reply_created_at: datetime | None = None
+    #: 이 대화를 만든 전송의 멱등키. 키 없이 보냈으면 null.
+    client_request_id: str | None = None
 
 
 class ChatMessageOut(BaseModel):
     """저장된 대화 한 줄. sources 는 그 답변의 근거 문서 제목."""
+    #: 메시지 식별자(#3352). 감지 기록의 `message_id` 와 같은 값이다.
+    id: str | None = None
     role: str                      # user | coach
     content: str
     sources: list[str] = []
@@ -144,6 +175,9 @@ class ChatMessageOut(BaseModel):
     #: 코치 답변에 쓴 포인트(#2145). 무료였으면 0 — 답변 아래 차감 표시가 읽는다.
     points_spent: int = 0
     balance_after: int | None = None
+    #: 이 줄을 만든 전송의 멱등키(#3352). 한 번의 전송이 남긴 질문과 답이 같은 값을
+    #: 갖는다. 키 없이 보냈거나 이 값을 남기기 전의 줄은 null.
+    client_request_id: str | None = None
 
 
 class ChatHistory(BaseModel):

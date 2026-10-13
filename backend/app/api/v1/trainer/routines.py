@@ -123,7 +123,7 @@ def trainer_assign_routine(
     # type/source/길이·범위는 RoutineAssignRequest(Field/Literal)가 이미 422 로 거른다.
     # 공백만 있는 이름은 trim 후 400.
     if not payload.name.strip():
-        raise HTTPException(status_code=400, detail="루틴 이름이 필요합니다.")
+        raise HTTPException(status_code=400, detail="개인운동 이름이 필요해요.")
     return trainer_routines_service.assign_routine(
         db, trainer.id, member_id,
         name=payload.name.strip(), minutes=payload.minutes,
@@ -159,10 +159,10 @@ def trainer_assign_program(
     _require_client(db, trainer.id, member_id)
     name = payload.name.strip()
     if not name:
-        raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
+        raise HTTPException(status_code=400, detail="프로그램 이름이 필요해요.")
     if not any(session.exercises for session in payload.sessions):
         # 운동이 하나도 없는 프로그램을 배정하면 회원에게 빈 루틴만 간다.
-        raise HTTPException(status_code=400, detail="운동이 하나 이상 필요합니다.")
+        raise HTTPException(status_code=400, detail="운동이 하나 이상 필요해요.")
     return trainer_routines_service.assign_program(
         db, trainer.id, member_id,
         name=name,
@@ -195,9 +195,9 @@ def trainer_update_routine(
     fields = payload.model_dump(exclude_unset=True)
     if not fields:
         # 빈 PUT 을 성공으로 처리하면 클라이언트가 저장됐다고 오해한다.
-        raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
+        raise HTTPException(status_code=400, detail="수정할 항목이 없어요.")
     if "name" in fields and not fields["name"].strip():
-        raise HTTPException(status_code=400, detail="루틴 이름이 필요합니다.")
+        raise HTTPException(status_code=400, detail="개인운동 이름이 필요해요.")
     if "name" in fields:
         fields["name"] = fields["name"].strip()
     try:

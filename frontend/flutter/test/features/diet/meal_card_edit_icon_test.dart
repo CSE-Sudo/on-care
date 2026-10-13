@@ -84,7 +84,7 @@ void main() {
     );
   });
 
-  testWidgets('화살표는 `식사 수정`으로 안내된다', (WidgetTester tester) async {
+  testWidgets('화살표는 `식단 수정`으로 안내된다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
     final Icon icon = tester.widget<Icon>(
@@ -95,7 +95,7 @@ void main() {
           )
           .first,
     );
-    expect(icon.semanticLabel, '식사 수정');
+    expect(icon.semanticLabel, '식단 수정');
     expect(
       find.descendant(of: _anyMealCard, matching: find.byType(Tooltip)),
       findsWidgets,

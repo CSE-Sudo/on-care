@@ -1,0 +1,48 @@
+# 두 앱(frontend/flutter, frontend/flutter_trainer)과 같은 규칙이다. 패키지
+# 코드는 양쪽 앱에 그대로 들어가므로 스타일이 갈라지면 옮길 때마다 진단이 뜬다.
+# custom_lint(riverpod_lint) 는 이 패키지가 riverpod 을 쓰지 않아 넣지 않는다.
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    todo: ignore
+  exclude:
+    - "build/**"
+
+linter:
+  rules:
+    # --- Style ---
+    prefer_single_quotes: true
+    prefer_const_constructors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_final_locals: true
+    prefer_final_in_for_each: true
+    sort_child_properties_last: true
+    avoid_redundant_argument_values: true
+    use_super_parameters: true
+
+    # --- Correctness ---
+    always_declare_return_types: true
+    avoid_dynamic_calls: true
+    avoid_empty_else: true
+    avoid_returning_null_for_void: true
+    cancel_subscriptions: true
+    close_sinks: true
+    test_types_in_equals: true
+    throw_in_finally: true
+    unnecessary_statements: true
+
+    # --- Imports ---
+    directives_ordering: true
+    avoid_relative_lib_imports: true
+    always_use_package_imports: true
+
+    public_member_api_docs: false
+    avoid_classes_with_only_static_members: false

@@ -73,7 +73,7 @@ def trainer_create_program_draft(
     """
     name = payload.name.strip()
     if not name:
-        raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
+        raise HTTPException(status_code=400, detail="프로그램 이름이 필요해요.")
     if payload.member_id is not None:
         _require_client(db, trainer.id, payload.member_id)
     return trainer_programs_service.create_program_draft(
@@ -117,12 +117,12 @@ def trainer_update_program_draft(
     """저장된 초안 수정(부분). `sessions` 는 통째로 교체된다."""
     fields = payload.model_dump(exclude_unset=True)
     if not fields:
-        raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
+        raise HTTPException(status_code=400, detail="수정할 항목이 없어요.")
     for text_field in ("name", "goal", "period"):
         if text_field in fields:
             fields[text_field] = fields[text_field].strip()
     if "name" in fields and not fields["name"]:
-        raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
+        raise HTTPException(status_code=400, detail="프로그램 이름이 필요해요.")
     try:
         return trainer_programs_service.update_program_draft(
             db, trainer.id, draft_id, fields

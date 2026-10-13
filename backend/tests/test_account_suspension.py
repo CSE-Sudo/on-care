@@ -44,7 +44,7 @@ from tests.test_trainer_no_approval import (  # noqa: F401 — 자동 정리 픽
 
 
 @pytest.fixture(autouse=True)
-def _cleanup_records(_cleanup, db_session):
+def _cleanup_records(_cleanup, db_session):  # noqa: F811 — 가져온 픽스처를 인자로 받는다
     """사용자를 지우기 전에 이 파일이 만든 일정·채팅을 지운다."""
     yield
     db_session.rollback()

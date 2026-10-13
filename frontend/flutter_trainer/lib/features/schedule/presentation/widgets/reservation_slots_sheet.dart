@@ -86,6 +86,8 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     final today = nowKst();
     final picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       firstDate: DateTime(today.year, today.month, today.day),
       lastDate: DateTime(today.year + 1, today.month, today.day),
@@ -242,7 +244,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final slots = ref.watch(reservationSlotsProvider);
-    return Column(
+    final Widget sheet = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -371,9 +373,14 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
         ),
       ],
     );
+    // 자리 열기·닫기 중에는 배경·뒤로 가기·닫기 X 로 닫히지 않는다(#3245) — 닫히면
+    // 겹침 목록과 실패 안내를 보여 줄 자리가 사라진다. 기다리는 동안이 아니면
+    // 지금처럼 닫힌다. 틀(AppDialog)은 스케줄 화면이 짓지만 PopScope 는 같은
+    // 경로에 걸린다.
+    return PopScope(canPop: !_saving, child: sheet);
   }
 
-  /// 날짜 묶음 머리 — `오늘 · 9월 23일 (화)` 처럼 스케줄 머리와 같은 표기다.
+  /// 날짜 묶음 머리 — `오늘 · 9/23 (화)` 처럼 스케줄 머리와 같은 표기다.
   Widget _dayHeader(
     OnCareTokens tokens,
     AppLocalizations l,
@@ -457,10 +464,11 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
               ],
-              // 아직 아무도 잡지 않은 자리만 지울 수 있다 — 수정 대신
-              // 삭제다(#1394).
+              // 아직 아무도 잡지 않은 자리만 닫을 수 있다(#1394). 닫은 자리는
+              // 지워지지 않고 `예약 닫힘` 으로 남는다 — 휴지통이 아니라 닫힌
+              // 일정 아이콘이다(#3329).
               AppIconButton(
-                icon: AppIcons.delete,
+                icon: AppIcons.eventBusy,
                 tooltip: l.slotCloseAction,
                 color: OnCareColors.textTertiary,
                 onPressed: _saving ? null : () => _close(slot),

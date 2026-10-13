@@ -108,10 +108,7 @@ void main() {
   testWidgets('직전 주만 보여 준다고 말한다', (tester) async {
     await _pump(tester);
 
-    expect(
-      _texts(tester).any((String t) => t.contains('직전 주에 보낸 답만')),
-      isTrue,
-    );
+    expect(_texts(tester).any((String t) => t.contains('직전 주에 보낸 답만')), isTrue);
   });
 
   testWidgets('아프지 않았으면 없음이라고 적는다', (tester) async {
@@ -268,53 +265,6 @@ void main() {
     await tester.pump();
 
     expect(taps, 1);
-  });
-
-  testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    expect(find.text('Weekly feedback you sent'), findsOneWidget);
-    expect(find.text('Condition'), findsOneWidget);
-    expect(find.text('Intensity'), findsOneWidget);
-    expect(find.text('Pain'), findsOneWidget);
-    expect(find.text('Send again'), findsOneWidget);
-    expect(_answer(tester, 'condition').text, '😩 Worn out');
-  });
-
-  testWidgets('영어에서는 통증도 영어 날짜로 적는다', (tester) async {
-    await _pump(tester, locale: 'en', feedback: _feedback(painArea: 'knee'));
-
-    expect(_answer(tester, 'pain').text, 'knee (9/17)');
-  });
-
-  testWidgets('영어에서 안 낸 주의 안내도 번역되어 있다', (tester) async {
-    await _pump(
-      tester,
-      locale: 'en',
-      feedback: MemberWeeklyFeedback.empty(_week),
-    );
-
-    expect(find.text("You haven't sent last week's feedback"), findsOneWidget);
-    expect(find.text('Send feedback now'), findsOneWidget);
-  });
-
-  testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
-    await _pump(
-      tester,
-      locale: 'en',
-      // 회원이 적은 한 줄과 아픈 곳은 회원의 말이라 번역하지 않는다 — 그
-      // 말까지 훑지 않도록 비워 둔다.
-      feedback: _feedback(painArea: 'knee', note: ''),
-    );
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    for (final String t in _texts(tester)) {
-      expect(
-        hangul.hasMatch(t),
-        isFalse,
-        reason: '영어 화면에 번역되지 않은 글이 있다: $t',
-      );
-    }
   });
 
   testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {

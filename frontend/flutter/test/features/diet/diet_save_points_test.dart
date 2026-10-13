@@ -151,7 +151,7 @@ void main() {
   ) async {
     await saveMeal(tester, const PointsAward(awarded: 50, balance: 1290));
 
-    expect(find.text('식단이 저장되었어요'), findsOneWidget);
+    expect(find.text('식단을 저장했어요'), findsOneWidget);
     expect(
       find.descendant(of: _badge, matching: find.text('+50P')),
       findsOneWidget,
@@ -165,7 +165,7 @@ void main() {
   testWidgets('하루 한도를 넘어 0 이면 표시 없이 저장 알림만 뜬다', (WidgetTester tester) async {
     await saveMeal(tester, const PointsAward(awarded: 0, balance: 1390));
 
-    expect(find.text('식단이 저장되었어요'), findsOneWidget);
+    expect(find.text('식단을 저장했어요'), findsOneWidget);
     expect(_badge, findsNothing);
 
     await dismissToast(tester);

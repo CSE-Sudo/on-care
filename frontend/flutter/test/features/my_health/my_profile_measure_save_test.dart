@@ -35,6 +35,7 @@ class _RecordingAccountRepository extends MockAccountRepository {
   Future<UserProfile> updateProfile({
     String? name,
     String? email,
+    String? emailCode,
     String? phone,
     String? birthDate,
     String? gender,
@@ -50,6 +51,7 @@ class _RecordingAccountRepository extends MockAccountRepository {
     return super.updateProfile(
       name: name,
       email: email,
+      emailCode: emailCode,
       phone: phone,
       birthDate: birthDate,
       gender: gender,

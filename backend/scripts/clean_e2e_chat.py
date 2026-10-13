@@ -10,6 +10,9 @@
 
 혼자 쓰는 로컬 데모 DB 를 전제로 한다(`docs/local_fullstack.md`). 삭제 건수를 출력하니
 예상 밖이면 눈에 띈다.
+
+마커는 **글자 그대로** 찾는다(#3251). `LIKE` 에 그대로 넣으면 `--marker %`·`_` 가
+와일드카드가 되어 그 DB 의 채팅 전체와 채팅 RAG 문서가 지워진다.
 """
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ import argparse
 import sys
 
 from sqlalchemy import delete, select
+from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.models.models import ChatMessage, CoachDocument
@@ -25,14 +29,45 @@ from app.models.models import ChatMessage, CoachDocument
 CHAT_DOC_SOURCES = ("chat",)
 
 
-def main() -> int:
+def purge(db: Session, marker: str) -> tuple[int, int]:
+    """마커가 **글자 그대로** 든 채팅과 그 소유자의 채팅 문서를 지운다. (채팅, 문서) 건수.
+
+    `contains(autoescape=True)` 는 마커의 `%`·`_`(와 이스케이프 문자)를 이스케이프해
+    와일드카드로 읽지 않는다. 빈 마커는 전체와 같아 받지 않는다.
+    """
+    if not marker:
+        raise ValueError("marker 가 비어 있습니다.")
+    # 문서는 메시지 본문을 그대로 담고 있지 않을 수 있어, 지울 메시지의 소유자만
+    # 추려 그 사용자의 채팅 문서 중 마커가 든 것을 지운다.
+    has_marker = ChatMessage.body.contains(marker, autoescape=True)
+    owners = set(db.scalars(select(ChatMessage.member_id).where(has_marker)).all())
+
+    chats = db.execute(delete(ChatMessage).where(has_marker)).rowcount or 0
+
+    docs = 0
+    if owners:
+        docs = (
+            db.execute(
+                delete(CoachDocument).where(
+                    CoachDocument.user_id.in_(owners),
+                    CoachDocument.source.in_(CHAT_DOC_SOURCES),
+                    CoachDocument.content.contains(marker, autoescape=True),
+                )
+            ).rowcount
+            or 0
+        )
+    db.commit()
+    return chats, docs
+
+
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--marker",
         required=True,
         help="이번 실행이 메시지 본문에 심어 둔 고유 문자열",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     marker = args.marker.strip()
     if not marker:
         print("marker 가 비어 있습니다 — 전체 삭제를 막기 위해 중단합니다.", file=sys.stderr)
@@ -40,36 +75,7 @@ def main() -> int:
 
     db = SessionLocal()
     try:
-        # 문서는 메시지 본문을 그대로 담고 있지 않을 수 있어, 지울 메시지의 소유자만
-        # 추려 그 사용자의 채팅 문서 중 마커가 든 것을 지운다.
-        owners = set(
-            db.scalars(
-                select(ChatMessage.member_id).where(
-                    ChatMessage.body.like(f"%{marker}%")
-                )
-            ).all()
-        )
-
-        chats = (
-            db.execute(
-                delete(ChatMessage).where(ChatMessage.body.like(f"%{marker}%"))
-            ).rowcount
-            or 0
-        )
-
-        docs = 0
-        if owners:
-            docs = (
-                db.execute(
-                    delete(CoachDocument).where(
-                        CoachDocument.user_id.in_(owners),
-                        CoachDocument.source.in_(CHAT_DOC_SOURCES),
-                        CoachDocument.content.like(f"%{marker}%"),
-                    )
-                ).rowcount
-                or 0
-            )
-        db.commit()
+        chats, docs = purge(db, marker)
     finally:
         db.close()
 

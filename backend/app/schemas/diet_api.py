@@ -13,9 +13,8 @@ from datetime import date as _date
 from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
-from app.core import clock
 from app.schemas.points_api import PointsOut
-from app.schemas.record_dates import not_after_today
+from app.schemas.record_dates import not_after_today, not_before_floor
 
 #: 계약 날짜 표기. `2026-08-01` 만 받는다.
 _YMD = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -23,6 +22,21 @@ _YMD = re.compile(r"\d{4}-\d{2}-\d{2}")
 from app.schemas.partial_update import PartialUpdate
 
 from app.schemas.diet import DietAnalysis, RecognizedFood
+from app.services.recognizer.parse import AMOUNT_G_MAX, NAME_MAX
+
+#: 회원이 보내는 음식 한 줄·한 끼니의 상한(#3243). 저장 칸(`Integer`)을 넘는 값이
+#: 500 이 되지 않게 하는 선이고, 앱이 보낼 수 있는 값은 모두 받는다 — 공공 DB 가장
+#: 진한 값(기름 921kcal·소금 9,900mg / 100g)에 인식 양 상한(5,000g)을 곱한 값보다
+#: 크게 둔다. 손대지 않은 음식을 그대로 되돌려 보내도 걸리지 않아야 한다.
+#: 상한은 입력 모델에만 둔다 — `RecognizedFood` 는 저장된 기록을 다시 읽는 데도
+#: 쓰여 거기 두면 옛 기록이 읽히지 않는다(`schemas/diet.py`).
+FOOD_CALORIES_MAX = 50_000
+FOOD_SODIUM_MG_MAX = 500_000
+#: 한 끼니 음식 수 상한. 사진 한 장은 20개까지라(`recognizer/parse.FOODS_MAX`) 여유를 둔다.
+FOODS_MAX = 50
+#: 끼니 합계 상한 — 음식 한 줄 상한 × 음식 수. 이 안이면 `Integer` 를 넘지 않는다.
+ENTRY_CALORIES_MAX = FOOD_CALORIES_MAX * FOODS_MAX
+ENTRY_SODIUM_MG_MAX = FOOD_SODIUM_MG_MAX * FOODS_MAX
 
 
 class Macros(BaseModel):
@@ -108,7 +122,16 @@ class EditedFood(RecognizedFood):
     **빠지면 `member` 다.** 인식기 쪽 기본값 `estimate` 를 물려받으면, 이 필드를
     보내지 않던 앱이 저장할 때마다 손대지 않은 음식까지 "인식기 추정" 이 됐다.
     수정 경로로 들어온 숫자를 인식기 추정이라 부르는 것은 사실이 아니다.
+
+    이름 길이·열량·나트륨에는 상한이 있다(#3243, [FOOD_CALORIES_MAX]).
     """
+    name: str = Field(..., max_length=NAME_MAX, description="음식 이름(한국어)")
+    calories: int | None = Field(
+        None, ge=0, le=FOOD_CALORIES_MAX, description="칼로리 kcal"
+    )
+    sodium_mg: int | None = Field(
+        None, ge=0, le=FOOD_SODIUM_MG_MAX, description="나트륨 mg"
+    )
     source: FoodSource = "member"
 
 
@@ -117,6 +140,10 @@ def _past_or_today(value: str | None) -> str | None:
 
     먹지 않은 식사를 기록할 수는 없다. 앞날을 허용하면 오늘까지를 세는
     평균·연속 기록이 미래 값을 함께 세어 화면마다 다른 수를 말한다.
+
+    **작년 1월 1일보다 앞선 날도 받지 않는다**(#3354) — 앱의 날짜 고르기 범위와
+    같다. 사진 분석·직접 입력·수정이 이 한 규칙을 쓴다. 사진 분석에만 하한이 있을
+    때는 오늘로 분석한 끼니를 수정으로 아주 옛 날짜에 옮길 수 있었다.
     """
     if value is None:
         return None
@@ -124,29 +151,26 @@ def _past_or_today(value: str | None) -> str | None:
     # 표기뿐이라 형태부터 걸러 낸다 — 두 표기가 섞이면 화면과 로그에서
     # 같은 날짜가 다른 문자열로 남는다.
     if not _YMD.fullmatch(value):
-        raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.")
+        raise ValueError("date 는 YYYY-MM-DD 형식이어야 해요.")
     try:
         parsed = _date.fromisoformat(value)
     except ValueError as e:
-        raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.") from e
-    return not_after_today(parsed).isoformat()
+        raise ValueError("date 는 YYYY-MM-DD 형식이어야 해요.") from e
+    return not_before_floor(not_after_today(parsed)).isoformat()
 
 
 def analyze_record_date(value: str | None) -> _date | None:
     """사진 분석의 기록 날짜(`POST /diet/analyze` 의 선택 `date`, #2849).
 
-    직접 기록·수정과 같은 규칙(형식·앞날 금지)에 더해 **작년 1월 1일보다 앞선
-    날은 받지 않는다** — 앱의 날짜 고르기 범위와 같다. 사진 분석은 포인트를
-    적립하므로 아주 오래된 날로 기록을 몰아넣는 길을 열어 두지 않는다.
+    직접 기록·수정과 같은 규칙이다(형식·앞날 금지·작년 1월 1일 하한,
+    [_past_or_today]). 사진 분석은 포인트를 적립하므로 아주 오래된 날로 기록을
+    몰아넣는 길을 열어 두지 않는다.
     빠지면 None 이고, 그때 저장하는 날(KST 오늘)로 남긴다.
     """
     checked = _past_or_today(value)
     if checked is None:
         return None
-    parsed = _date.fromisoformat(checked)
-    if parsed < _date(clock.today().year - 1, 1, 1):
-        raise ValueError("date 는 작년 1월 1일보다 앞설 수 없습니다.")
-    return parsed
+    return _date.fromisoformat(checked)
 
 
 class DietEntryUpdate(PartialUpdate):
@@ -168,12 +192,12 @@ class DietEntryUpdate(PartialUpdate):
     #: 빈 목록은 받지 않는다. 음식이 하나도 없는 끼니는 수정이 아니라 삭제이고
     #: (앱도 그때 삭제할지 묻는다), 실수로 빈 배열이 오면 그 기록의 영양이
     #: 소리 없이 0 이 된다.
-    foods: list[EditedFood] | None = Field(None, min_length=1)
-    total_calories: int | None = Field(None, ge=0)
+    foods: list[EditedFood] | None = Field(None, min_length=1, max_length=FOODS_MAX)
+    total_calories: int | None = Field(None, ge=0, le=ENTRY_CALORIES_MAX)
     carbs_g: float | None = Field(None, ge=0, allow_inf_nan=False)
     protein_g: float | None = Field(None, ge=0, allow_inf_nan=False)
     fat_g: float | None = Field(None, ge=0, allow_inf_nan=False)
-    sodium_mg: int | None = Field(None, ge=0)
+    sodium_mg: int | None = Field(None, ge=0, le=ENTRY_SODIUM_MG_MAX)
     sugar_g: float | None = Field(None, ge=0, allow_inf_nan=False)
 
     @field_validator("date")
@@ -196,11 +220,12 @@ class DietEntryCreate(BaseModel):
     합계는 받지 않는다. 음식 목록에서 서버가 낸다 — 수정(`foods` 가 온 PUT)과
     같은 규칙이라, 한 기록 안에서 합계와 내역이 갈릴 틈을 처음부터 두지 않는다.
     """
-    #: 기록 날짜(`YYYY-MM-DD`). 빠지면 저장하는 날(KST)이다. 앞날은 받지 않는다.
+    #: 기록 날짜(`YYYY-MM-DD`). 빠지면 저장하는 날(KST)이다. 앞날과 작년 1월 1일
+    #: 이전은 받지 않는다.
     date: str | None = None
     meal_type: MealTypeLiteral
     #: 음식이 하나도 없는 끼니는 기록이 아니다.
-    foods: list[EditedFood] = Field(..., min_length=1)
+    foods: list[EditedFood] = Field(..., min_length=1, max_length=FOODS_MAX)
     #: 재시도 중복 저장 방지 키(선택). 사진 분석과 같은 컬럼·같은 제약을 쓴다.
     idempotency_key: str | None = Field(None, min_length=1, max_length=64)
 
@@ -225,8 +250,9 @@ class FoodNutritionRequest(BaseModel):
     둘 다 없으면 찾은 셈 치지 않는다 — 확정할 수 없는 숫자를 "공공 DB 근거" 로
     내주지 않는 것이 보정(`nutrition/enrich`)과 같은 원칙이다.
     """
-    name: str
-    amount_g: float | None = Field(None, gt=0, allow_inf_nan=False)
+    name: str = Field(..., max_length=NAME_MAX)
+    #: 사진 분석과 같은 양 상한이다(#3243). 넘는 양으로 낸 제안값은 저장 상한에 걸린다.
+    amount_g: float | None = Field(None, gt=0, le=AMOUNT_G_MAX, allow_inf_nan=False)
 
 
 class FoodNutritionOut(BaseModel):
@@ -267,18 +293,18 @@ class DietAdviceResponse(BaseModel):
     #: 앱이 그대로 보여 준다.
     message: str
     #: 규칙 한 줄 (#2251). 굵게 보일 곳은 `**` 로 감싼다. [analysis_key] 가 있으면
-    #: 앱이 그 키와 값으로 자기 언어의 문장을 그리고, 모르는 키면 이 문장을 쓴다.
+    #: 앱이 그 키와 값으로 자기 문장을 그리고, 모르는 키면 이 문장을 쓴다.
     analysis: str = ""
     analysis_key: str | None = None
     analysis_params: dict[str, int | str] = Field(default_factory=dict)
-    #: 다음 할 일 한 문장. 키가 없으면 AI 가 요청 언어(`lang`)로 만든 문장이다.
+    #: 다음 할 일 한 문장. 키가 없으면 AI 가 만든 문장이다.
     action: str = ""
     action_key: str | None = None
     action_params: dict[str, int | str] = Field(default_factory=dict)
     #: 다음 할 일의 출처 — `plan`(4주 추천 메뉴 리스트)·`rules`·`llm`. 문장이 없으면 null.
     action_source: str | None = None
-    #: 트레이너 웹 `식단 분석` 의 서술형 문장들(#2379). 앱이 키·값으로 자기 언어의
-    #: 문장을 그린다. 회원 경로는 비어 있다.
+    #: 트레이너 웹 `식단 분석` 의 서술형 문장들(#2379). 앱이 키·값으로 문장을
+    #: 직접 그릴 수 있다. 회원 경로는 비어 있다.
     sentences: list[DietAdviceSentence] = Field(default_factory=list)
 
 
@@ -373,7 +399,7 @@ class DietRecommendationItem(BaseModel):
     문자열(요리명·태그)을 내려주지 않는 게 핵심이다. 앱이 `key` 로 번들 이미지와
     로케일 문구를 찾아 그리므로, 서버는 "무엇을 어떤 순서로"만 정한다.
     `reason_text` 는 LLM 이 쓴 개인화 문구이며 없을 수 있다(그때 앱은 `reason_key`
-    의 l10n 기본 문구를 쓴다) — 영어 로케일에서 한국어가 새는 걸 막는 장치다.
+    의 l10n 기본 문구를 쓴다).
     """
     key: str
     reason_key: str
@@ -393,8 +419,7 @@ class DietRecommendationsResponse(BaseModel):
     personalized: bool = False
     source: Literal["llm", "rules", "fallback"] = "rules"
 
-    # 근거를 앱이 직접 문장으로 만들 수 있도록 수치도 함께 준다. `basis` 는 서버가
-    # 조립한 한국어 문장이라 영어 로케일에 그대로 쓸 수 없다(요리명·이유를 key 로
+    # 근거를 앱이 직접 문장으로 만들 수 있도록 수치도 함께 준다(요리명·이유를 key 로
     # 주고받는 것과 같은 이유). 화면 문구는 앱이 l10n 으로 만든다.
     days_with_data: int = 0
     avg_sodium_mg: int = 0

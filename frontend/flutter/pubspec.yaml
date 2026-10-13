@@ -26,7 +26,7 @@ dependencies:
 
   # --- Networking ---
   # 요청 로깅은 core/network/interceptors/api_logging_interceptor.dart 가 한다.
-  dio: ^5.7.0
+  dio: ^5.11.1
   # NOTE: `retrofit` + `retrofit_generator` are reintroduced in Stage 4
   # when real API clients land. The 9.7.0 generator is currently
   # incompatible with retrofit 4.9.2 (switch on Parser is non-exhaustive
@@ -60,13 +60,16 @@ dependencies:
   # 주간 리포트 결과지(#2652). 트레이너 웹과 같은 계산·같은 한 장을 쓴다.
   oncare_report:
     path: ../../shared/oncare_report
+  # 카카오·구글 로그인(#330). 트레이너 웹과 같은 연동을 쓴다.
+  oncare_social_login:
+    path: ../../shared/oncare_social_login
 
   # --- Local persistence ---
   drift: ^2.20.3
   drift_flutter: ^0.2.4
   sqlite3_flutter_libs: ^0.5.24
   flutter_secure_storage: ^9.2.2
-  shared_preferences: ^2.3.2
+  shared_preferences: ^2.5.6
 
   # --- UI ---
   # 회원앱 아이콘은 Material Symbols Rounded 한 세트에서만 고른다(#1803). 목록은
@@ -78,28 +81,28 @@ dependencies:
 
   # --- i18n / utilities ---
   intl: any
-  logger: ^2.4.0
+  logger: ^2.8.0
 
   # --- Maps ---
   # 지도는 카카오맵으로 통일(#329) — 백엔드 장소 검색이 카카오 Local 이라 베이스맵도
   # 같은 출처로 맞춘다. 카카오는 Flutter 용 지도 SDK 가 없어 web 은 JS SDK 를
   # HtmlElementView 로 직접 삽입하므로 pub 의존성이 필요 없다.
-  url_launcher: ^6.3.1
+  url_launcher: ^6.3.3
   # 인증된 API로 받은 리포트 PDF binary를 앱 안에서 미리보기한다(#778).
-  printing: ^5.14.2
+  printing: ^5.15.1
   # 첨부가 없는 리포트는 회원 기록으로 문서를 만들어 같은 미리보기로 연다(#1600).
   # printing 이 전이 의존성으로 끌고 오지만, 직접 import 하므로 명시한다.
-  pdf: ^3.11.3
-  image_picker: ^1.2.3
+  pdf: ^3.13.1
+  image_picker: ^1.2.4
   geolocator: ^14.0.2
   sentry_flutter: ^8.14.2
   # 빌드 버전을 읽는다 — 고객 지원 버전 줄(#3047)·최소 지원 버전 확인(#3045).
   # 트레이너 웹과 같은 버전을 쓴다.
   package_info_plus: ^9.0.1
 
-  # NOTE: Social-login SDKs (sign_in_with_apple / google_sign_in /
-  # kakao_flutter_sdk_user / flutter_naver_login) are added in Stage 4
-  # when the auth feature is implemented — they require native setup
+  # NOTE: Social-login SDKs (google_sign_in / kakao_flutter_sdk_user) are
+  # added in Stage 4 when the auth feature is implemented (Naver and Apple
+  # sign-in are not offered, #3218) — they require native setup
   # (Info.plist / AndroidManifest / SDK keys) and are not just pub adds.
 
 dev_dependencies:
@@ -130,8 +133,12 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-    # 데모 대화에서 트레이너가 보낸 첨부 PDF (#2663).
+    # >>> demo-assets — 데모 전용 자산(#3157). 데모 대화 첨부 PDF(#2663)와 데모 시드
+    # 끼니 사진. 운영 빌드는 `python3 frontend/tool/strip_demo_assets.py` 가 이 표시
+    # 사이를 지운 뒤 빌드한다 — 데모·개발·테스트는 지금처럼 그대로 싣는다.
     - assets/demo/
+    - assets/demo/images/
+    # <<< demo-assets
     # Pretendard 글꼴 라이선스 전문 — 기동 때 라이선스 목록에 넣는다(#3150).
     # OFL 은 글꼴을 함께 배포할 때 라이선스 고지를 요구한다.
     - assets/fonts/Pretendard-OFL.txt

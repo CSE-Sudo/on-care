@@ -72,9 +72,8 @@ class _HomeState extends ConsumerState<_Home> {
 }
 
 Future<(ProviderContainer, TokenBackend)> _pump(
-  WidgetTester tester, {
-  required Locale locale,
-}) async {
+  WidgetTester tester,
+) async {
   FlutterSecureStorage.setMockInitialValues(<String, String>{
     'access_token': 'access-0',
     'refresh_token': 'refresh-0',
@@ -137,7 +136,7 @@ Future<(ProviderContainer, TokenBackend)> _pump(
       container: container,
       child: MaterialApp.router(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: router,
@@ -164,37 +163,29 @@ Future<void> _drainToast(WidgetTester tester) async {
 }
 
 void main() {
-  for (final (Locale locale, String message) in <(Locale, String)>[
-    (const Locale('ko'), '로그인이 만료되었어요. 다시 로그인해 주세요.'),
-    (const Locale('en'), 'Your session has expired. Please sign in again.'),
-  ]) {
-    testWidgets('갱신이 거부되면 로그인 화면으로 가고 안내한다 (${locale.languageCode})', (
-      WidgetTester tester,
-    ) async {
-      final (ProviderContainer container, TokenBackend backend) = await _pump(
-        tester,
-        locale: locale,
-      );
-      backend
-        ..expireAccessTokens()
-        ..refreshMode = RefreshMode.reject401;
+  const String message = '로그인이 만료됐어요. 다시 로그인해 주세요.';
+  testWidgets('갱신이 거부되면 로그인 화면으로 가고 안내한다', (WidgetTester tester) async {
+    final (ProviderContainer container, TokenBackend backend) = await _pump(
+      tester,
+    );
+    backend
+      ..expireAccessTokens()
+      ..refreshMode = RefreshMode.reject401;
 
-      await tester.tap(find.byKey(_loadButton));
-      await _settle(tester);
+    await tester.tap(find.byKey(_loadButton));
+    await _settle(tester);
 
-      expect(find.byType(TrainerSignInPage), findsOneWidget);
-      expect(find.byType(_Home), findsNothing);
-      expect(find.text(message), findsOneWidget);
-      // 안내는 한 번만 — 다시 들어와도 또 뜨지 않는다.
-      expect(container.read(sessionExpiredNoticeProvider), isFalse);
-      await _drainToast(tester);
-    });
-  }
+    expect(find.byType(TrainerSignInPage), findsOneWidget);
+    expect(find.byType(_Home), findsNothing);
+    expect(find.text(message), findsOneWidget);
+    // 안내는 한 번만 — 다시 들어와도 또 뜨지 않는다.
+    expect(container.read(sessionExpiredNoticeProvider), isFalse);
+    await _drainToast(tester);
+  });
 
   testWidgets('갱신이 성공하면 화면을 떠나지 않고 결과를 받는다', (WidgetTester tester) async {
     final (ProviderContainer container, TokenBackend backend) = await _pump(
       tester,
-      locale: const Locale('ko'),
     );
     backend.expireAccessTokens();
 
@@ -213,7 +204,6 @@ void main() {
   testWidgets('망이 끊겨 갱신 못 하면 화면에 남고 조회만 실패한다', (WidgetTester tester) async {
     final (ProviderContainer container, TokenBackend backend) = await _pump(
       tester,
-      locale: const Locale('ko'),
     );
     backend
       ..expireAccessTokens()
@@ -224,7 +214,7 @@ void main() {
 
     expect(find.byType(_Home), findsOneWidget);
     expect(find.text('실패'), findsOneWidget);
-    expect(find.text('로그인이 만료되었어요. 다시 로그인해 주세요.'), findsNothing);
+    expect(find.text('로그인이 만료됐어요. 다시 로그인해 주세요.'), findsNothing);
     expect(
       container.read(sessionControllerProvider).status,
       SessionStatus.authenticated,
@@ -234,7 +224,6 @@ void main() {
   testWidgets('직접 로그아웃한 로그인 화면에는 만료 안내가 없다', (WidgetTester tester) async {
     final (ProviderContainer container, _) = await _pump(
       tester,
-      locale: const Locale('ko'),
     );
 
     await tester.runAsync(
@@ -243,6 +232,6 @@ void main() {
     await _settle(tester);
 
     expect(find.byType(TrainerSignInPage), findsOneWidget);
-    expect(find.text('로그인이 만료되었어요. 다시 로그인해 주세요.'), findsNothing);
+    expect(find.text('로그인이 만료됐어요. 다시 로그인해 주세요.'), findsNothing);
   });
 }

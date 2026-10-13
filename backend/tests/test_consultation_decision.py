@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.clock import SEOUL
+from app.core.config import get_settings
 from app.core.security import hash_password
 from app.models.models import (
     ConsultationRequest,
@@ -699,7 +700,7 @@ def test_accept_notifies_the_member(client, db_session):
     alerts = client.get("/v1/notifications", headers=_auth(member_token))
     assert alerts.status_code == 200, alerts.text
     accepted = [
-        a for a in alerts.json() if a["title"] == "상담 요청이 수락되었어요"
+        a for a in alerts.json() if a["title"] == "상담 요청이 승인됐어요"
     ]
     assert accepted
     # 수락은 담당 연결이 아니다 — "담당으로 연결" 로 읽히면 안 된다(#2584).
@@ -738,8 +739,8 @@ def test_accept_is_allowed_for_a_member_coached_elsewhere(client, db_session):
     수락은 연결이 아니므로 막을 이유가 없다. 담당을 옮기는 결정은 코드 연결이
     막거나 받는다(회원당 활성 담당 1명).
 
-    연결된 회원은 다른 트레이너에게 새로 신청하지 못하므로(#2611), 신청을 먼저
-    내 두고 그 사이 다른 트레이너와 코드로 연결된 경우를 본다.
+    신청을 먼저 내 두고 그 사이 다른 트레이너와 코드로 연결된 경우를 본다. 연결된
+    뒤에 낸 신청은 `test_accepting_a_linked_members_request_keeps_the_coach` 가 본다.
     """
     first_trainer, first_token = _trainer(client, db_session)
     second_trainer, second_token = _trainer(client, db_session)
@@ -895,11 +896,21 @@ def _consultation_payload(trainer_id: str) -> dict:
     }
 
 
-def test_linked_member_cannot_request_another_trainer(client, db_session):
-    """담당이 있는 회원은 다른 트레이너에게 상담을 낼 수 없다. (#2611)
+def _active_coach_ids(db_session, member_id: str) -> list[str]:
+    db_session.expire_all()
+    return [
+        row.trainer_id
+        for row in db_session.query(TrainerClient)
+        .filter(TrainerClient.member_id == member_id, TrainerClient.active.is_(True))
+        .all()
+    ]
 
-    같은 헬스장 동료든 다른 헬스장 트레이너든 같다. 대기 중복 409 와 섞이지 않게
-    `detail.code` 를 싣고, 요청 행을 남기지 않는다.
+
+def test_linked_member_can_request_another_trainer(client, db_session):
+    """담당이 있는 회원도 다른 트레이너에게 상담을 낼 수 있다. (#3358)
+
+    같은 헬스장 동료든 다른 헬스장 트레이너든 같다. 신청만으로는 담당이 바뀌지
+    않는다.
     """
     gym = _gym(db_session)
     coach, coach_token = _trainer(client, db_session, gym=gym)
@@ -909,33 +920,137 @@ def test_linked_member_cannot_request_another_trainer(client, db_session):
     _pair_by_code(client, member_token, coach_token)
 
     for target in (colleague, elsewhere):
-        payload = _consultation_payload(target.id)
         response = client.post(
-            "/v1/consultations", headers=_auth(member_token), json=payload
+            "/v1/consultations",
+            headers=_auth(member_token),
+            json=_consultation_payload(target.id),
         )
 
-        assert response.status_code == 409, response.text
-        assert response.json()["detail"]["code"] == "linked_to_other_trainer"
+        assert response.status_code == 201, response.text
+        body = response.json()
+        assert body["status"] == "pending"
+        assert body["trainer_id"] == target.id
+    assert _active_coach_ids(db_session, member_id) == [coach.id]
     db_session.expire_all()
     assert (
         db_session.query(ConsultationRequest)
-        .filter(ConsultationRequest.member_id == member_id)
+        .filter(
+            ConsultationRequest.member_id == member_id,
+            ConsultationRequest.status == "pending",
+        )
+        .count()
+        == 2
+    )
+
+
+def test_accepting_a_linked_members_request_keeps_the_coach(client, db_session):
+    """담당이 있는 채로 낸 상담이 수락돼도 담당은 그대로다. (#3358)
+
+    담당은 연결 요청 수락이나 연결 코드로만 바뀐다(#2584).
+    """
+    coach, coach_token = _trainer(client, db_session)
+    other, other_token = _trainer(client, db_session)
+    member_id, member_token = _member(client)
+    _pair_by_code(client, member_token, coach_token)
+    consultation_id = _request_consultation(
+        client, member_token, trainer_id=other.id
+    )
+
+    body = _accept(client, other_token, consultation_id)
+
+    assert body["status"] == "accepted"
+    assert _active_coach_ids(db_session, member_id) == [coach.id]
+
+
+def test_linked_member_can_still_request_own_coach(client, db_session):
+    """담당에게 내는 재상담은 그대로 된다. (#2585)"""
+    coach, coach_token = _trainer(client, db_session)
+    member_id, member_token = _member(client)
+    _pair_by_code(client, member_token, coach_token)
+
+    _request_consultation(client, member_token, trainer_id=coach.id)
+
+    assert _active_coach_ids(db_session, member_id) == [coach.id]
+
+
+def test_linked_member_duplicate_pending_is_still_conflict(client, db_session):
+    """담당이 있어도 같은 트레이너에게 대기 중인 요청은 한 건이다. (#3358)
+
+    담당 여부 검사가 빠져도 대기 중복 409 는 문자열 detail 그대로다 — 앱이 이걸
+    "이미 신청함" 으로 읽는다.
+    """
+    _, coach_token = _trainer(client, db_session)
+    other, _ = _trainer(client, db_session)
+    _, member_token = _member(client)
+    _pair_by_code(client, member_token, coach_token)
+    _request_consultation(client, member_token, trainer_id=other.id)
+
+    again = client.post(
+        "/v1/consultations",
+        headers=_auth(member_token),
+        json=_consultation_payload(other.id),
+    )
+
+    assert again.status_code == 409, again.text
+    assert isinstance(again.json()["detail"], str)
+
+
+def test_linked_member_is_bound_by_the_pending_cap(client, db_session, monkeypatch):
+    """담당이 있는 회원에게도 동시 대기 상한이 그대로 적용된다. (#3358, #1628)"""
+    settings = get_settings()
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)
+    monkeypatch.setattr(settings, "consultation_max_pending", 1)
+    monkeypatch.setattr(settings, "consultation_create_per_day", 100)
+    _, coach_token = _trainer(client, db_session)
+    first, _ = _trainer(client, db_session)
+    second, _ = _trainer(client, db_session)
+    member_id, member_token = _member(client)
+    _pair_by_code(client, member_token, coach_token)
+    _request_consultation(client, member_token, trainer_id=first.id)
+
+    blocked = client.post(
+        "/v1/consultations",
+        headers=_auth(member_token),
+        json=_consultation_payload(second.id),
+    )
+
+    assert blocked.status_code == 409, blocked.text
+    detail = blocked.json()["detail"]
+    assert detail["code"] == "too_many_pending"
+    assert detail["limit"] == 1
+    db_session.expire_all()
+    assert (
+        db_session.query(ConsultationRequest)
+        .filter(
+            ConsultationRequest.member_id == member_id,
+            ConsultationRequest.trainer_id == second.id,
+        )
         .count()
         == 0
     )
 
 
-def test_member_can_request_another_trainer_after_disconnecting(client, db_session):
-    """담당 연결을 해제하면 다른 트레이너에게 다시 상담을 낼 수 있다. (#2611)"""
+def test_linked_member_is_bound_by_the_daily_limit(client, db_session, monkeypatch):
+    """담당이 있는 회원에게도 24시간 신청 한도가 그대로 적용된다. (#3358, #1628)"""
+    settings = get_settings()
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)
+    monkeypatch.setattr(settings, "consultation_max_pending", 100)
+    monkeypatch.setattr(settings, "consultation_create_per_day", 1)
     _, coach_token = _trainer(client, db_session)
-    other, _ = _trainer(client, db_session)
+    first, _ = _trainer(client, db_session)
+    second, _ = _trainer(client, db_session)
     _, member_token = _member(client)
     _pair_by_code(client, member_token, coach_token)
+    _request_consultation(client, member_token, trainer_id=first.id)
 
-    disconnected = client.delete("/v1/me/coach/trainer", headers=_auth(member_token))
-    assert disconnected.status_code == 204, disconnected.text
+    blocked = client.post(
+        "/v1/consultations",
+        headers=_auth(member_token),
+        json=_consultation_payload(second.id),
+    )
 
-    _request_consultation(client, member_token, trainer_id=other.id)
+    assert blocked.status_code == 429, blocked.text
+    assert blocked.json()["detail"]["code"] == "consultation_rate_limited"
 
 
 def test_accept_foreign_request_is_not_found(client, db_session):
@@ -984,7 +1099,7 @@ def test_reject_records_the_reason_and_creates_no_link(client, db_session):
         == 0
     )
     alerts = client.get("/v1/notifications", headers=_auth(member_token)).json()
-    rejected = [a for a in alerts if a["title"] == "상담 요청이 반려되었어요"]
+    rejected = [a for a in alerts if a["title"] == "상담 요청이 거절됐어요"]
     assert rejected and rejected[0]["body"] == "이번 달은 정원이 찼어요"
     # 사유를 보여 주는 곳이 내 상담 요청이다(#2067).
     assert rejected[0]["action"]["target"] == "consultations"
@@ -1152,3 +1267,53 @@ def test_code_pairing_keeps_goals_the_member_already_picked(client, db_session):
         assert _member_profile(client, member_token)["conditions"] == "근력 향상"
     finally:
         _clear_member_profile(db_session, member_id)
+
+
+def _accept_response(client, trainer_token: str, consultation_id: str):
+    return client.post(
+        f"/v1/trainer/consultations/{consultation_id}/accept",
+        headers=_auth(trainer_token),
+        json={},
+    )
+
+
+def test_accept_refuses_a_request_past_its_hold_window(client, db_session):
+    """오래 열어 둔 인박스에서 누른 만료 요청은 수락하지 않고 만료로 내린다. (#3241)"""
+    trainer, trainer_token = _trainer(client, db_session)
+    _, member_token = _member(client)
+    consultation_id = _request_consultation(
+        client, member_token, trainer_id=trainer.id
+    )
+    row = db_session.get(ConsultationRequest, consultation_id)
+    row.created_at = datetime.now(timezone.utc) - timedelta(hours=25)
+    db_session.commit()
+
+    response = _accept_response(client, trainer_token, consultation_id)
+
+    assert response.status_code == 409, response.text
+    db_session.expire_all()
+    assert db_session.get(ConsultationRequest, consultation_id).status == "expired"
+    assert db_session.scalars(
+        select(TrainerSchedule).where(
+            TrainerSchedule.consultation_id == consultation_id
+        )
+    ).all() == []
+
+
+def test_accept_refuses_a_slot_that_is_about_to_start(client, db_session):
+    """자리 시작 2시간 전을 지난 요청은 수락해도 상담 일정을 만들지 않는다. (#3241)"""
+    trainer, trainer_token = _trainer(client, db_session)
+    _, member_token = _member(client)
+    consultation_id = _request_consultation(
+        client, member_token, trainer_id=trainer.id
+    )
+    row = db_session.get(ConsultationRequest, consultation_id)
+    slot = db_session.get(TrainerReservationSlot, row.slot_id)
+    slot.starts_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    db_session.commit()
+
+    response = _accept_response(client, trainer_token, consultation_id)
+
+    assert response.status_code == 409, response.text
+    db_session.expire_all()
+    assert db_session.get(ConsultationRequest, consultation_id).status == "expired"

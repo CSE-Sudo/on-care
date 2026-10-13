@@ -4,7 +4,7 @@
 무관한 키와 값으로도 나간다 — 앱이 자기 번역(ARB)으로 그린다. 운동 조언
 (`exercise_advice`, #2210)과 같은 방식이다.
 
-AI 가 만든 문장은 키가 없다. 요청 언어로 받은 문장을 그대로 싣는다.
+AI 가 만든 문장은 키가 없다. 받은 문장을 그대로 싣는다.
 
 한국어 문장(`message`)은 두 문장을 이어 계속 함께 나간다. 키를 모르는 옛 앱이 그것을
 읽는다. 그 문장은 아래 틀(`_KO`) 하나에서만 만든다 — 앱의 한국어 ARB 가 같은 틀을
@@ -30,7 +30,7 @@ _KO: dict[str, str] = {
     # 오늘 — 규칙 한 줄 (#2251)
     "today_empty": "오늘 식단 기록이 아직 없어요.",
     "today_missing_meal": "적지 않은 끼니가 있나요?",
-    "today_sodium_over": "나트륨 **{sodium_mg:,}mg**, 권장량 초과예요.",
+    "today_sodium_over": "나트륨 **{sodium_mg:,}mg**, 목표 초과예요.",
     "today_calorie_over": "오늘 **{kcal:,}kcal**, 목표 초과예요.",
     "today_protein_left": "단백질 **{protein_g}g** 더 필요해요.",
     "today_balanced": "오늘 **{kcal:,}kcal**, 균형이 좋아요.",
@@ -93,7 +93,7 @@ class Line:
 
     key: str | None
     params: dict[str, str | int] = field(default_factory=dict)
-    #: 키가 없을 때의 문장(AI 가 요청 언어로 만든 것).
+    #: 키가 없을 때의 문장(AI 가 만든 것).
     raw: str = ""
 
     @property

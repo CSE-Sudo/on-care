@@ -68,11 +68,16 @@ class HandledErrorReporter {
   }
 
   /// 화면이 이미 정상 흐름으로 처리하는 실패인가 — 보고하지 않는다.
+  ///
+  /// 앱이 스스로 건 시간 제한(`Future.timeout`)의 [TimeoutException] 도 같다
+  /// (#3244). 늦으면 일반 문구로 물러서도록 정해 둔 자리라 결함이 아니다 — 망이
+  /// 느린 회원마다 보고가 쌓여 진짜 오류를 가렸다.
   static bool isExpectedFailure(Object error) => switch (error) {
     NetworkError() ||
     NotFoundError() ||
     UnauthorizedError() ||
-    CancelledError() => true,
+    CancelledError() ||
+    TimeoutException() => true,
     _ => false,
   };
 }

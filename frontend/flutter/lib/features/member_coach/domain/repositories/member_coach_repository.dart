@@ -26,6 +26,65 @@ class CoachUnassignedException implements Exception {
   String toString() => 'CoachUnassignedException';
 }
 
+/// 서버가 트레이너에게 보내는 일(글·이모티콘·사진·주간 피드백)을 **분명히**
+/// 거절한 이유. (#3346)
+///
+/// 망 오류·시간 초과·서버 장애는 여기 없다 — 그건 다시 보내면 되는 실패라
+/// 그 밖의 오류로 남는다.
+enum CoachSendFailure {
+  /// 담당이 해제됐다(404). 받는 사람이 없어 다시 보내도 같다.
+  unassigned,
+
+  /// 이모티콘 이용권이 없거나 끝났다(402). 다시 사야 보낼 수 있다.
+  emoteLocked,
+
+  /// 같은 전송 키에 다른 내용이 이미 있다(409). 그 키로는 다시 보낼 수 없다.
+  conflict,
+
+  /// 사진이 서버 한도보다 크다(413).
+  photoTooLarge,
+
+  /// 서버가 읽지 못하는 사진 형식이다(415).
+  photoUnsupported,
+
+  /// 보낸 값이 거절됐다(400·422) — 없는 이모티콘, 빈 글, 받지 않는 주 등.
+  invalid,
+}
+
+/// 서버가 전송을 거절했다. 같은 내용으로 다시 보내도 결과가 같다. (#3346)
+///
+/// 화면은 [reason] 으로 문구를 고르고, 이 오류에는 다시 보내기를 권하지 않는다.
+class CoachSendRejected implements Exception {
+  const CoachSendRejected(this.reason);
+
+  final CoachSendFailure reason;
+
+  /// 응답 상태에서 거절 이유를 읽는다. 거절이 아니면(망 오류, 5xx, 권한 등)
+  /// null 이다 — 그때는 일반 실패로 다룬다.
+  ///
+  /// 본문 `detail` 은 사람이 읽는 한국어 문장이라 가르는 데 쓰지 않는다. 전송
+  /// 경로의 상태 코드는 원인마다 하나씩이다(`member_coach.py`).
+  static CoachSendRejected? fromStatus(int? status) {
+    final CoachSendFailure? reason = switch (status) {
+      404 => CoachSendFailure.unassigned,
+      402 => CoachSendFailure.emoteLocked,
+      409 => CoachSendFailure.conflict,
+      413 => CoachSendFailure.photoTooLarge,
+      415 => CoachSendFailure.photoUnsupported,
+      400 || 422 => CoachSendFailure.invalid,
+      _ => null,
+    };
+    return reason == null ? null : CoachSendRejected(reason);
+  }
+
+  /// [error] 가 전송 거절이면 그 이유, 아니면 null.
+  static CoachSendFailure? reasonOf(Object error) =>
+      error is CoachSendRejected ? error.reason : null;
+
+  @override
+  String toString() => 'CoachSendRejected($reason)';
+}
+
 abstract interface class MemberCoachRepository {
   /// The assigned coach, or `null` when the member has none yet (404).
   Future<MemberCoach?> fetchCoach();
@@ -42,6 +101,12 @@ abstract interface class MemberCoachRepository {
   /// 넘긴다(#2506). 아직 오지 않은 날은 오류다.
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day);
 
+  /// 아직 시작하지 않은 개인운동 한 묶음, 없으면 null. (#3106)
+  ///
+  /// 미래 시작일로 받은 `개인운동만` 은 시작일까지 [fetchRoutines] 에 없다.
+  /// 둘 이상이면 가장 최근에 보낸 것이다.
+  Future<UpcomingRoutines?> fetchUpcomingRoutines();
+
   /// [day](없으면 오늘)의 운동 기록으로 완료한다 — 배정 하나당 하루 한 번. (#2161)
   ///
   /// 지난 날짜는 그날 걸려 있던 배정만 된다(#2506) — 빠뜨린 체크를 나중에
@@ -49,11 +114,20 @@ abstract interface class MemberCoachRepository {
   ///
   /// [durationSeconds] 는 같은 시간을 초로 적은 값이다(#2221). 초로 배정된
   /// 운동(`45초`)을 [minutes] 로만 보내면 `1분` 기록이 된다. 근력처럼 초가 없는
-  /// 배정은 null 로 두고 [minutes] 만 보낸다.
+  /// 배정은 null 로 둔다.
+  ///
+  /// 근력 배정은 회원이 실제로 한 [sets]·[reps](버티는 운동이면 [holdSeconds])·
+  /// [weight] 를 싣는다(#3364) — 비운 값은 배정 값이 남는다. [minutes] 를 비우면
+  /// 근력은 세트 수에서, 나머지는 초·배정 시간에서 채워진다. 앱이 분을 지어내
+  /// 보내지 않는다.
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   });
@@ -85,6 +159,15 @@ abstract interface class MemberCoachRepository {
   /// 커서 없이 부르기만 해서 51번째 이전 메시지는 위로 올려도 나오지 않았다.
   Future<List<CoachMessage>> fetchChat({CoachMessage? before});
 
+  /// 받은 주간 리포트 목록(최신 주 → 오래된 주) — `GET /me/coach/reports`.
+  /// (#3348)
+  ///
+  /// 대화를 읽지 않는다. 그래서 대화 길이와 무관하게 한 번에 서고, **담당
+  /// 트레이너가 없어도**(해제·교체·보낸 트레이너 탈퇴) 받은 것은 그대로 준다 —
+  /// [CoachUnassignedException] 을 던지지 않는다. [before] 는 앞 쪽의
+  /// [ReceivedReportsPage.nextBefore] 다.
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before});
+
   /// Watches the chat while its screen is active. Real API implementations
   /// poll the shared thread; demo implementations emit their in-memory state.
   Stream<List<CoachMessage>> watchChat();
@@ -92,6 +175,9 @@ abstract interface class MemberCoachRepository {
   /// Sends a message to the coach. No-ops on blank text.
   /// 글 또는 이모티콘 하나를 보낸다. [emoteId] 를 주면 이모티콘 메시지다(#2020) —
   /// 이용권이 없으면 서버가 막는다.
+  ///
+  /// 서버가 분명히 거절하면 [CoachSendRejected], 망 오류 등은 그 밖의 오류다
+  /// (#3346). [sendPhoto]·[saveWeeklyFeedback] 도 같다.
   Future<void> sendMessage(String text, {String? emoteId});
 
   /// 담당 트레이너에게 사진 한 장을 보낸다 — `POST /me/coach/chat/image`. (#1665)

@@ -103,6 +103,11 @@ void main() {
       expect(find.byKey(const Key('dietAddSheet')), findsNothing);
       expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
       expect(find.text('식단 직접 추가'), findsOneWidget);
+      // 직접 추가한 끼니는 포인트를 받지 않는다 — 적는 자리에서 밝힌다(#3367).
+      expect(
+        find.text('음식 이름을 적으면 영양 정보를 찾아 채워요. 포인트는 사진으로 기록한 끼니에만 쌓여요'),
+        findsOneWidget,
+      );
       // 빈 음식 줄 하나로 연다.
       expect(_field('diet-food-name-1'), findsOneWidget);
       expect(_field('diet-food-name-2'), findsNothing);
@@ -136,6 +141,31 @@ void main() {
       expect(created.foods.single.calories, 420);
       expect(find.byKey(const Key('mealCreatePage')), findsNothing);
       expect(saved, <bool>[true]);
+    });
+
+    testWidgets('소수 칸은 소수점을 하나만 받는다 (#3244)', (WidgetTester tester) async {
+      await _openAddSheet(tester, FakeDietRepository());
+      await tester.tap(find.byKey(const Key('dietManualAddButton')));
+      await tester.pumpAndSettle();
+      String carbs() => tester
+          .widget<EditableText>(
+            find.descendant(
+              of: _field('diet-food-carbs-1'),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .controller
+          .text;
+
+      await tester.ensureVisible(_field('diet-food-carbs-1'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_field('diet-food-carbs-1'), '12.5');
+      await tester.pump();
+      expect(carbs(), '12.5');
+      // 점이 둘 이상인 값은 숫자로 읽히지 않아 0g 으로 저장됐다 — 받지 않는다.
+      await tester.enterText(_field('diet-food-carbs-1'), '1.2.3');
+      await tester.pump();
+      expect(carbs(), '12.5');
     });
 
     testWidgets('이름 적힌 음식이 없으면 저장하지 않고 이유를 보인다', (WidgetTester tester) async {

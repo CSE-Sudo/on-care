@@ -15,6 +15,9 @@ dependencies:
     sdk: flutter
   # 두 앱과 같은 범위.
   dio: ^5.7.0
+  # 웹 탭 저장소·복제 탭 판정(`storage/browser_session_storage_web.dart`, #3271).
+  # 조건부 import 로 웹 빌드에서만 쓴다. 두 앱과 같은 범위.
+  web: ^1.1.0
 
 dev_dependencies:
   flutter_test:

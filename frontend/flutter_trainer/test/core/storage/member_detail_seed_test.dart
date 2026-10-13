@@ -4,14 +4,11 @@
 /// 김민수(`seed-client-1`)는 공유 픽스처가 정하므로 여기서는 나머지 회원을 본다.
 library;
 
-import 'dart:ui' show Locale;
-
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/storage/seed_menu_plans.dart';
 import 'package:oncare_trainer/core/storage/seed_trainer_notes.dart';
@@ -245,39 +242,32 @@ void main() {
 
     test('김민수는 공유 리스트, 다른 회원은 회원마다 다른 리스트다', () {
       expect(
-        names(demoMenuPlanFor('seed-client-1', 'ko')),
+        names(demoMenuPlanFor('seed-client-1')),
         names(kDemoMenuPlan['ko']!),
       );
       final Set<String> plans = <String>{
         for (var n = 2; n <= 15; n++)
-          names(demoMenuPlanFor('seed-client-$n', 'ko')).join('|'),
+          names(demoMenuPlanFor('seed-client-$n')).join('|'),
       };
       expect(plans, hasLength(14));
     });
 
-    test('칸의 끼니·추천 이유는 공유 리스트와 같고, 영어 이름은 한국어와 다르다', () {
-      final List<DemoPlanMenu> ko = demoMenuPlanFor('seed-client-4', 'ko');
-      final List<DemoPlanMenu> en = demoMenuPlanFor('seed-client-4', 'en');
+    test('칸의 끼니·추천 이유는 공유 리스트와 같다', () {
+      final List<DemoPlanMenu> ko = demoMenuPlanFor('seed-client-4');
       final List<DemoPlanMenu> base = kDemoMenuPlan['ko']!;
       expect(ko, hasLength(base.length));
       for (var i = 0; i < base.length; i++) {
         expect(ko[i].slot, base[i].slot);
         expect(ko[i].tag, base[i].tag);
-        expect(en[i].tag, base[i].tag);
-        expect(en[i].name, isNot(ko[i].name));
         expect(ko[i].name.length, lessThanOrEqualTo(12));
-        expect(en[i].name.length, lessThanOrEqualTo(28));
       }
     });
 
     test('AI 식단 추천 후보가 그 회원의 리스트에서 나오고, 근거 일수가 하루를 넘는다', () async {
-      final r = await repo.fetchDietRecommendations(
-        'seed-client-6',
-        locale: const Locale('ko'),
-      );
+      final r = await repo.fetchDietRecommendations('seed-client-6');
       expect(r.basisDays, greaterThan(7));
       final Set<String> plan = names(
-        demoMenuPlanFor('seed-client-6', 'ko'),
+        demoMenuPlanFor('seed-client-6'),
       ).toSet();
       for (final c in r.candidates) {
         expect(plan, contains(c.name));
@@ -343,19 +333,6 @@ void main() {
       ).fetch('seed-client-8');
       expect(memos.map((TrainerMemo m) => m.id), contains('memo-seed-x'));
       expect(memos.length, 2);
-    });
-
-    test('영어 데모는 영어로 심는다', () async {
-      await seedDemoTrainerNotes(
-        prefs,
-        language: DemoLanguage.en,
-        clock: kMidWeekKst,
-      );
-      final List<FollowUpTask> pending = await _pendingFollowUps(prefs);
-      expect(pending, isNotEmpty);
-      for (final FollowUpTask t in pending) {
-        expect(RegExp('[가-힣]').hasMatch(t.title), isFalse, reason: t.title);
-      }
     });
   });
 }

@@ -47,7 +47,8 @@ class DemoTaskHistory {
     // 오늘과 앞날은 지어내지 않는다 — 오늘 할 일 카드가 실제 상태를 말하는데
     // 그래프만 다른 숫자를 말하면 두 카드가 어긋난다.
     if (!day.isBefore(today)) return null;
-    final int daysAgo = today.difference(day).inDays;
+    // 달력으로 센다(#3250) — 서머타임 전환을 끼면 `inDays` 가 하루 모자란다.
+    final int daysAgo = calendarDaysBetween(day, today);
     if (daysAgo > windowDays) return null;
     final String? first = firstSavedDate;
     if (first != null && ymd(day).compareTo(first) >= 0) return null;

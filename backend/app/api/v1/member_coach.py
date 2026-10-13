@@ -19,19 +19,25 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequireMember
 from app.api.v1 import chat_attachments
 from app.core import clock
+from app.core.pagination import MAX_PAGE
 from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
+from app.schemas.record_dates import parse_ymd
 from app.schemas.text_limits import TEXT_LONG_MAX
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
-    MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
-    MemberWeeklyFeedbackSaveRequest, RoutineCompleteOut, RoutineOut,
-    ScheduleSessionOut, WeeklyReportOut,
+    MemberCoachOut, MemberInviteAcceptRequest, MemberReceivedReportsOut,
+    MemberWeeklyFeedbackOut,
+    MemberWeeklyFeedbackSaveRequest, MemberWeeklyReportOut, RoutineCompleteOut,
+    RoutineOut, ScheduleSessionOut, UpcomingRoutinesOut,
 )
 from app.services import (
     emote_service,
     member_departure,
+    received_reports,
+    report_snapshot_service,
     trainer_client_invite_service,
+    weekly_report_access,
 )
 from app.services.trainer import chat as trainer_chat_service
 from app.services.trainer import _common as trainer_common_service
@@ -46,7 +52,7 @@ router = APIRouter(tags=["member-coach"])
 def _my_trainer_or_404(db: Session, member_id: str) -> str:
     trainer_id = trainer_common_service.get_member_trainer_id(db, member_id)
     if trainer_id is None:
-        raise HTTPException(status_code=404, detail="담당 트레이너가 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 트레이너가 없어요.")
     return trainer_id
 
 
@@ -58,7 +64,7 @@ def my_coach(
     """내 담당 트레이너 요약."""
     coach = trainer_member_mirror_service.build_member_coach(db, current_user.id)
     if coach is None:
-        raise HTTPException(status_code=404, detail="담당 트레이너가 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 트레이너가 없어요.")
     return coach
 
 
@@ -125,6 +131,23 @@ def my_routines(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+@router.get(
+    "/me/coach/routines/upcoming", response_model=UpcomingRoutinesOut | None
+)
+def my_upcoming_routines(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> UpcomingRoutinesOut | None:
+    """아직 시작하지 않은 개인운동 한 묶음 — 없으면 `null`. (#3106)
+
+    미래 시작일로 받은 `개인운동만` 은 시작일 전까지 그날 목록에 없다. 회원 앱은
+    이 값으로 오늘 목록 아래에 `8/22(토)부터 · …` 한 줄을 둔다. 체크는 시작일부터다.
+    """
+    return trainer_member_mirror_service.build_member_upcoming_routines(
+        db, current_user.id
+    )
+
+
 @router.post(
     "/me/coach/routines/{routine_id}/complete",
     response_model=RoutineCompleteOut,
@@ -164,9 +187,14 @@ def complete_my_routine(
             duration_seconds=payload.duration_seconds,
             sets=payload.sets,
             reps=payload.reps,
+            # 버틴 시간도 서비스까지 넘긴다 — 스키마만 받고 여기서 빠지면
+            # 회원이 적은 초가 버려지고 배정 값이 남는다. (#3364)
+            hold_seconds=payload.hold_seconds,
             weight=payload.weight,
             intensity=payload.intensity,
             day=day,
+            # 지난 날짜는 그날 걸려 있던 지난 담당의 배정도 된다(#3347).
+            any_owner=True,
         )
     except trainer_common_service.RoutineDayInFuture as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -194,11 +222,15 @@ def uncomplete_my_routine(
     체크를 잘못 눌렀을 때 되돌릴 방법이 없으면, 하지 않은 운동이 주간 시간·
     칼로리에 그대로 남는다. 배정 자체는 지우지 않는다 — 지우는 것은 `수행`이지
     `할 일`이 아니다.
+
+    지난 담당이 보낸 배정의 완료도 되돌릴 수 있다(#3347) — 소유는 지금의 담당이
+    아니라 회원으로 본다. 그 기록은 운동 기록 수정·삭제로는 지울 수 없어
+    (`_reject_if_derived`) 여기가 유일한 길이다.
     """
     trainer_id = trainer_common_service.get_member_trainer_id(db, member.id)
     try:
         return trainer_routines_service.uncomplete_assigned_routine(
-            db, trainer_id, member.id, routine_id, day=day
+            db, trainer_id, member.id, routine_id, day=day, any_owner=True
         )
     except trainer_common_service.RoutineDayInFuture as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -250,7 +282,7 @@ def my_chat(
         try:
             before_dt = datetime.fromisoformat(before)
         except ValueError as e:
-            raise HTTPException(status_code=422, detail="before 는 ISO datetime 이어야 합니다.") from e
+            raise HTTPException(status_code=422, detail="before 는 ISO datetime 이어야 해요.") from e
     return trainer_chat_service.build_chat_thread(
         db, trainer_id, current_user.id,
         limit=limit, before=before_dt, before_id=before_id, viewer="member",
@@ -290,7 +322,7 @@ def send_to_coach(
         # 본문은 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽는다.
         text = text or "(이모티콘)"
     if not text:
-        raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없습니다.")
+        raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없어요.")
     try:
         return trainer_chat_service.send_message(
             db,
@@ -435,17 +467,27 @@ def _feedback_week(week_start: str | None) -> date:
     기본값이 **지난 주**인 까닭: 이 답은 끝난 한 주를 돌아보며 적는 것이고,
     트레이너는 주 초에 그 주의 리포트를 쓴다. 기본을 이번 주로 두면 아직
     절반도 지나지 않은 주에 `한 주 컨디션` 을 묻게 된다.
+
+    **아직 오지 않은 주는 받지 않는다(#3243).** 지나지 않은 한 주를 돌아볼 수는
+    없고, 미래 주에 저장된 답은 그 주가 와도 이미 낸 것으로 보여 다시 묻지 않는다.
+    이번 주는 받는다 — 주말에 그 주를 정리해 보내는 회원이 있다. 리포트 주차
+    (`_my_report_week`)와 같은 규칙이다.
     """
-    if week_start:
-        try:
-            day = date.fromisoformat(week_start)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
-            ) from exc
-    else:
-        day = trainer_reports_service.week_start_of(clock.today()) - timedelta(days=7)
-    return trainer_reports_service.week_start_of(day)
+    this_week = trainer_reports_service.week_start_of(clock.today())
+    if not week_start:
+        return this_week - timedelta(days=7)
+    try:
+        day = parse_ymd(week_start)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 해요."
+        ) from exc
+    week = trainer_reports_service.week_start_of(day)
+    if week > this_week:
+        raise HTTPException(
+            status_code=422, detail="아직 오지 않은 주에는 피드백을 남길 수 없어요."
+        )
+    return week
 
 
 @router.get("/me/coach/weekly-feedback", response_model=MemberWeeklyFeedbackOut)
@@ -495,8 +537,18 @@ def save_my_weekly_feedback(
 # 트레이너 웹 결과지와 **같은 계산**으로 회원 앱이 자기 주를 그리게 한다. 트레이너
 # 화면이 쓰는 `build_weekly_report` 를 그대로 부르되, 트레이너가 손보기 전의 자동
 # 초안(`message`)은 비워 보낸다 — 회원에게 가는 글은 트레이너가 보낸 것만이다.
-# 담당 트레이너가 없어도 읽을 수 있다(포인트로 교환한 리포트, #2022). 그때는 잡힌
-# PT 가 없으므로 수업 칸이 0 이다.
+# 담당 트레이너가 없어도 읽을 수 있다(포인트로 교환한 리포트, #2022).
+#
+# **받았거나 산 주만 연다**(#3366). 트레이너가 리포트를 보낸 주와 포인트로 산 주가
+# 아니면 403 이다 — 잠금이 앱 화면에만 있으면 경로를 직접 불러 사지 않은 주를
+# 읽는다. 결과지의 `4주 평균 대비` 가 읽는 직전 넉 주는 `compare_for`(여는 주)를
+# 함께 보내면 비교에 쓰는 수치만 준다.
+#
+# 받았거나 산 주는 그때 굳힌 값을 준다(#3349, `report_snapshot_service`).
+#
+# PT 횟수·이행률·개인운동 수는 **회원 기준**으로 센다(#3347) — 지금의 담당으로
+# 거르면 트레이너를 바꾸거나 담당이 끊긴 뒤 지난 주가 전부 0 이 된다. 담당이 한
+# 명뿐이던 주는 그 트레이너가 보는 값과 같다.
 
 
 def _my_report_week(week_start: str | None) -> date:
@@ -509,28 +561,105 @@ def _my_report_week(week_start: str | None) -> date:
     if not week_start:
         return today
     try:
-        day = date.fromisoformat(week_start)
+        day = parse_ymd(week_start)
     except ValueError as exc:
         raise HTTPException(
-            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
+            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 해요."
         ) from exc
     week = trainer_reports_service.week_start_of(day)
     if week > today:
         raise HTTPException(
-            status_code=422, detail="아직 오지 않은 주는 조회할 수 없습니다."
+            status_code=422, detail="아직 오지 않은 주는 조회할 수 없어요."
         )
     return week
 
 
-@router.get("/me/coach/weekly-report", response_model=WeeklyReportOut)
+@router.get("/me/coach/weekly-report", response_model=MemberWeeklyReportOut)
 def my_weekly_report(
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
     week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
-) -> WeeklyReportOut:
-    """내 한 주 리포트 — 트레이너 웹이 나를 두고 보는 것과 같은 값."""
-    trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
-    report = trainer_reports_service.build_weekly_report(
-        db, trainer_id, user.id, _my_report_week(week_start)
+    message_id: str | None = Query(
+        None, max_length=64, description="열려는 리포트 전송 메시지 id"
+    ),
+    compare_for: str | None = Query(
+        None,
+        description="YYYY-MM-DD — 이 주 결과지의 비교 칸이 읽는 직전 주로 요청한다",
+    ),
+) -> MemberWeeklyReportOut:
+    """내 한 주 리포트 — 그 주에 나에게 걸려 있던 PT·개인운동 전부로 센다.
+
+    받았거나 산 주만 연다(#3366). [compare_for] 를 주면 그 주가 열 수 있는 주이고
+    [week_start] 가 그 직전 넉 주 안일 때 비교용 수치만 돌려준다.
+
+    받았거나 산 리포트는 **그때 굳힌 값**을 준다(#3349). 열 때마다 다시 계산하면
+    보낸 뒤 고친 기록·목표가 지난 리포트를 바꾼다. [message_id] 는 같은 주를 두 번
+    받았을 때 누른 전송을 고른다. 굳힌 값이 없는 주(옛 리포트)는 지금 계산한다.
+    비교용으로 읽는 직전 주도 굳힌 값이 있으면 그 값에서 비교 수치를 뽑는다.
+    """
+    week = _my_report_week(week_start)
+    # 빈 문자열은 보내지 않은 것과 같다 — `week_start` 와 같은 규칙이다.
+    target = _my_report_week(compare_for) if compare_for else None
+    if not weekly_report_access.can_open(db, user.id, target or week):
+        raise HTTPException(status_code=403, detail="아직 받지 않은 주간 리포트예요.")
+    if target is not None and not weekly_report_access.is_comparison_week(
+        week, target
+    ):
+        raise HTTPException(
+            status_code=422, detail="비교할 수 있는 주는 직전 4주까지예요."
+        )
+    # 비교용 직전 주는 누른 전송과 무관하다 — `message_id` 를 넘기지 않는다.
+    snapshot = report_snapshot_service.member_snapshot(
+        db, user.id, week, message_id=None if target is not None else message_id
     )
-    return report.model_copy(update={"message": ""})
+    if snapshot is not None:
+        report = snapshot.report
+        taken_at = snapshot.taken_at
+    else:
+        trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
+        report = trainer_reports_service.build_weekly_report(
+            db, trainer_id, user.id, week, member_scope=True
+        )
+        taken_at = None
+    if target is not None:
+        report = weekly_report_access.comparison_only(report)
+    return MemberWeeklyReportOut(
+        **report.model_dump(exclude={"message"}), message="", snapshot_at=taken_at
+    )
+
+
+# ---- 받은 리포트 목록 (#3348) ----
+# 예전에는 목록을 주는 경로가 없어 앱이 대화를 처음부터 끝까지 읽고 리포트 안내를
+# 추려 냈다. 대화가 길수록 느렸고, 대화 조회는 지금의 담당 것만 주므로 담당이
+# 끊기거나 바뀌면 목록이 통째로 비었다. 회원 쪽 수신 기록을 읽어 한 번에 준다.
+
+#: 받은 리포트 목록 한 쪽의 주 수. 한 주에 한 줄이라 한 해 치가 한 쪽에 든다.
+_RECEIVED_REPORTS_PAGE = 52
+
+
+@router.get("/me/coach/reports", response_model=MemberReceivedReportsOut)
+def my_received_reports(
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(
+        _RECEIVED_REPORTS_PAGE, ge=1, le=MAX_PAGE, description="한 번에 가져올 주 수"
+    ),
+    before: str | None = Query(
+        None, description="YYYY-MM-DD — 이 주보다 이전 주만(앞 쪽의 next_before)"
+    ),
+) -> MemberReceivedReportsOut:
+    """내가 받은 주간 리포트, 주별로 최신 주부터.
+
+    **담당 트레이너가 없어도 200 이다.** 받은 리포트는 회원의 것이라 담당이
+    끊기거나 바뀐 뒤에도, 보낸 트레이너가 탈퇴한 뒤에도 남는다. 포인트로 산
+    리포트는 여기 싣지 않는다(`GET /me/weekly-reports`).
+    """
+    cursor: date | None = None
+    if before:
+        try:
+            cursor = parse_ymd(before)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 해요."
+            ) from exc
+    return received_reports.list_received(db, user.id, limit=limit, before=cursor)

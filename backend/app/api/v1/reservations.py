@@ -31,6 +31,10 @@ ReservationError = (
 )
 
 
+#: 다가오는 예약이 이미 있어 거절한 예약의 409 코드(#3240).
+UPCOMING_RESERVATION_CODE = "upcoming_reservation"
+
+
 def _slot_error(exc: Exception) -> HTTPException:
     if isinstance(exc, reservation_service.SlotNotFound):
         return HTTPException(status_code=404, detail=str(exc))
@@ -73,6 +77,13 @@ def create_reservation(
 ) -> ReservationOut:
     try:
         return reservation_service.reserve(db, member, payload.slot_id)
+    except reservation_service.UpcomingReservationExists as exc:
+        # 같은 409 라도 앱이 "먼저 취소하고 다시 고르라" 고 따로 안내하도록 코드를
+        # 싣는다(#3240). 일반 409(마감·같은 자리 중복)는 예전처럼 문자열이다.
+        raise HTTPException(
+            status_code=409,
+            detail={"code": UPCOMING_RESERVATION_CODE, "message": str(exc)},
+        ) from exc
     except trainer_schedule_service.ScheduleOverlap as exc:
         # 회원에게는 트레이너의 다른 일정(남의 이름·시각)을 싣지 않는다. (#2284)
         raise HTTPException(

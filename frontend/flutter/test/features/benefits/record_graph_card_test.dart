@@ -166,15 +166,15 @@ void main() {
     expect(_cellColor(tester, _yesterday), OnCareRecordColors.green.partial);
   });
 
-  testWidgets('기록 연속 N일이 보이고 범례는 없다', (tester) async {
+  testWidgets('연속 기록 N일이 보이고 범례는 없다', (tester) async {
     await pump(tester, _graph(streak: 12));
 
-    expect(find.text('기록 연속 12일'), findsOneWidget);
+    expect(find.text('연속 기록 12일'), findsOneWidget);
     expect(find.text('없음'), findsNothing);
     expect(find.text('둘 다'), findsNothing);
   });
 
-  testWidgets('기록 연속 태그도 고른 색을 따른다', (tester) async {
+  testWidgets('연속 기록 태그도 고른 색을 따른다', (tester) async {
     await pump(
       tester,
       _graph(

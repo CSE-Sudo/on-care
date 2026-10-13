@@ -6,7 +6,11 @@ import 'package:logger/logger.dart';
 
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart' show wireDate;
 
 void main() {
   late AppDatabase db;
@@ -40,8 +44,8 @@ void main() {
         NotificationItemsCompanion.insert(
           id: 'n-3',
           createdAt: now.subtract(const Duration(days: 1)),
-          title: '서비스 점검 안내',
-          body: '내일 02:00~03:00 점검 예정입니다.',
+          title: '서비스 점검이 예정돼 있어요',
+          body: '내일 02:00~03:00에 점검해요.',
           category: 'system',
           read: const Value(true),
         ),
@@ -108,7 +112,7 @@ void main() {
             id: 'seed-noti-5',
             createdAt: nowKst().subtract(const Duration(minutes: 5)),
             title: '새 개인운동이 왔어요',
-            body: '트레이너님이 걷기 위주 개인운동으로 조정해 보냈어요.',
+            body: '트레이너가 걷기 위주 개인운동으로 조정해 보냈어요.',
             category: 'routine',
           ),
         );
@@ -244,6 +248,60 @@ void main() {
     expect(target('c-routine'), 'exercise');
   });
 
+  // 데모의 리포트 알림은 데모 대화의 리포트 안내를 가리킨다 — 서버
+  // `NotificationOut.report` 와 같은 모양이다. 목적지 값은 대화 그대로다(#3344).
+  test('데모 리포트 알림만 가리키는 리포트를 싣는다', () async {
+    await db.batch((b) {
+      b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-7',
+          createdAt: nowKst().subtract(const Duration(minutes: 45)),
+          title: '주간 리포트가 도착했어요',
+          body: '트레이너가 주간 리포트를 보냈어요.',
+          category: 'coach_report',
+        ),
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-3',
+          createdAt: nowKst().subtract(const Duration(hours: 2)),
+          title: '트레이너 피드백이 도착했어요',
+          body: '마무리로 어깨 회전근개 스트레칭을 꼭 해 주세요.',
+          category: 'coach_chat',
+        ),
+      ]);
+    });
+
+    final list = (await dio.get<List<Object?>>(
+      '/notifications',
+    )).data!.cast<Map<String, Object?>>();
+    final report = list.firstWhere((e) => e['id'] == 'seed-noti-7');
+    expect(report['report'], <String, Object?>{
+      'week_start': wireDate(MockMemberCoachRepository.demoReportWeekStart),
+      'message_id': MockMemberCoachRepository.demoReportMessageId,
+    });
+    expect((report['action']! as Map<String, Object?>)['target'], 'coach_chat');
+    // 나머지는 서버처럼 키는 있고 값이 null 이다.
+    for (final String id in <String>['seed-noti-3', 'n-1', 'n-3']) {
+      final Map<String, Object?> other = list.firstWhere((e) => e['id'] == id);
+      expect(other.containsKey('report'), isTrue, reason: id);
+      expect(other['report'], isNull, reason: id);
+    }
+  });
+
+  // 알림이 가리키는 메시지가 데모 대화에 실제로 있어야 눌렀을 때 열린다(#3344).
+  test('데모 리포트 알림이 가리키는 메시지는 데모 대화의 리포트 안내다', () async {
+    final List<CoachMessage> chat = await fetchWholeCoachChat(
+      MockMemberCoachRepository(),
+    );
+    final CoachMessage message = chat.singleWhere(
+      (CoachMessage m) => m.id == MockMemberCoachRepository.demoReportMessageId,
+    );
+    expect(message.reportWeekStart, isNotNull);
+    expect(
+      wireDate(message.reportWeekStart!),
+      wireDate(MockMemberCoachRepository.demoReportWeekStart),
+    );
+  });
+
   // 데모 시드 알림은 예전 데모 목록처럼 보인다 — 시각은 정해 둔 값, 목적지는 알림별
   // 값이다. 같은 날 안에서 몇 시간이 지나도 "10분 전" 이다(#2660).
   test('데모 시드 알림은 정해 둔 시각과 알림별 목적지로 답한다', () async {
@@ -323,5 +381,105 @@ void main() {
         expect(r['n-1'], isTrue, reason: '시드가 아닌 알림은 건드리지 않는다');
       });
     }
+  });
+
+  // 대화를 읽으면 그 메시지·리포트 알림도 본 것이다 — 서버 `mark_thread_read` 의
+  // 회원 분기와 같다(#3343).
+  group('POST /me/coach/chat/read', () {
+    setUp(() async {
+      final now = nowKst();
+      await db.batch((b) {
+        b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
+          NotificationItemsCompanion.insert(
+            id: 'chat-1',
+            createdAt: now.subtract(const Duration(minutes: 3)),
+            title: '트레이너 피드백이 도착했어요',
+            body: '스트레칭을 꼭 해 주세요.',
+            category: 'coach_chat',
+          ),
+          NotificationItemsCompanion.insert(
+            id: 'chat-2',
+            createdAt: now.subtract(const Duration(minutes: 2)),
+            title: '트레이너 피드백이 도착했어요',
+            body: '물도 자주 드세요.',
+            category: 'coach_chat',
+          ),
+          NotificationItemsCompanion.insert(
+            id: 'report-1',
+            createdAt: now.subtract(const Duration(minutes: 1)),
+            title: '주간 리포트가 도착했어요',
+            body: '트레이너가 주간 리포트를 보냈어요.',
+            category: 'coach_report',
+          ),
+          NotificationItemsCompanion.insert(
+            id: 'schedule-1',
+            createdAt: now.subtract(const Duration(minutes: 4)),
+            title: 'PT 일정이 잡혔어요',
+            body: '내일 18:00',
+            category: 'member_schedule',
+          ),
+        ]);
+      });
+    });
+
+    Future<Map<String, bool>> reads() async => <String, bool>{
+      for (final r in await db.select(db.notificationItems).get()) r.id: r.read,
+    };
+
+    Future<int> unread() async =>
+        (await dio.get<Map<String, Object?>>(
+              '/notifications/unread-count',
+            )).data!['unread']!
+            as int;
+
+    test('메시지·리포트 알림을 읽음으로 바꾼다', () async {
+      final res = await dio.post<Map<String, Object?>>('/me/coach/chat/read');
+
+      expect(res.statusCode, 200);
+      // 데모의 대화 메시지는 목업 코치 저장소가 들고 있다 — 여기서 센 메시지는 없다.
+      expect(res.data, <String, Object?>{'marked_read': 0});
+      final r = await reads();
+      expect(r['chat-1'], isTrue);
+      expect(r['chat-2'], isTrue);
+      expect(r['report-1'], isTrue);
+    });
+
+    test('다른 갈래 알림은 그대로다', () async {
+      await dio.post<Object?>('/me/coach/chat/read');
+
+      final r = await reads();
+      expect(r['schedule-1'], isFalse);
+      expect(r['n-1'], isFalse);
+      expect(r['n-2'], isFalse);
+    });
+
+    test('종 표시 수가 메시지·리포트 알림만큼 줄어든다', () async {
+      expect(await unread(), 6);
+
+      await dio.post<Object?>('/me/coach/chat/read');
+
+      expect(await unread(), 3);
+    });
+
+    test('목록 응답에도 읽음으로 실린다', () async {
+      await dio.post<Object?>('/me/coach/chat/read');
+
+      final list = (await dio.get<List<Object?>>(
+        '/notifications',
+      )).data!.cast<Map<String, Object?>>();
+      final byId = <String, Object?>{
+        for (final e in list) e['id']! as String: e['read'],
+      };
+      expect(byId['chat-1'], isTrue);
+      expect(byId['report-1'], isTrue);
+      expect(byId['schedule-1'], isFalse);
+    });
+
+    test('다시 불러도 달라지지 않는다', () async {
+      await dio.post<Object?>('/me/coach/chat/read');
+      await dio.post<Object?>('/me/coach/chat/read');
+
+      expect(await unread(), 3);
+    });
   });
 }

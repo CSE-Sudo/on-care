@@ -1,9 +1,8 @@
-/// 운동 이력·로스터 라벨을 화면 언어로 그린다. (#2300)
+/// 운동 이력·로스터 라벨을 앱이 그린다. (#2300)
 ///
-/// 서버와 데모가 `9/27 (오늘)`·`5일 전`·`스쿼트 3세트 12회 40kg`·`PT 세션 ·
-/// 트레이너 지도` 를 한국어 문장으로 만들어 보내, 영어 화면에도 한국어가 나왔다.
-/// 이제 서버는 날짜·값·종류 코드를 따로 주고 문장은 앱이 ARB 로 만든다. 한국어
-/// 화면의 글자는 예전과 같아야 한다.
+/// 서버는 날짜·값·종류 코드를 따로 주고 문장은 앱이 ARB 로 만든다. 화면의
+/// 글자는 서버가 `9/27 (오늘)`·`5일 전`·`스쿼트 3세트 12회 40kg` 처럼 문장으로
+/// 보내던 때와 같아야 한다.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -14,14 +13,12 @@ import 'package:oncare_trainer/features/clients/domain/entities/routine_history_
 import 'package:oncare_trainer/features/clients/presentation/widgets/workout_view.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 import '../../helpers/client_factory.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 기준 '지금' — 2026-09-27(일) 15:00.
 final DateTime _now = DateTime(2026, 9, 27, 15);
@@ -53,16 +50,8 @@ void main() {
       expect(relativeDayLabel(_ko, _ago(30), now: _now), '30일 전');
     });
 
-    test('영어는 자연스러운 영어다', () {
-      expect(relativeDayLabel(_en, _ago(0), now: _now), 'Today');
-      expect(relativeDayLabel(_en, _ago(1), now: _now), 'Yesterday');
-      expect(relativeDayLabel(_en, _ago(2), now: _now), '2 days ago');
-      expect(relativeDayLabel(_en, _ago(15), now: _now), '15 days ago');
-    });
-
     test('미래 날짜(시계 오차)는 오늘로 접는다 — 서버와 같다', () {
       expect(relativeDayLabel(_ko, _ago(-3), now: _now), '오늘');
-      expect(relativeDayLabel(_en, _ago(-1), now: _now), 'Today');
     });
 
     test('시각은 보지 않고 달력 날짜만 본다', () {
@@ -70,7 +59,6 @@ void main() {
       final DateTime lateYesterday = DateTime(2026, 9, 26, 23, 59);
       final DateTime earlyToday = DateTime(2026, 9, 27, 0, 1);
       expect(relativeDayLabel(_ko, lateYesterday, now: earlyToday), '어제');
-      expect(relativeDayLabel(_en, earlyToday, now: _now), 'Today');
     });
 
     test('서머타임이 시작하는 날을 건너도 하루가 사라지지 않는다', () {
@@ -90,23 +78,15 @@ void main() {
       expect(historyDateLabel(_ko, DateTime(2026, 1, 5), now: _now), '1/5');
     });
 
-    test('영어는 Today·Yesterday 를 붙인다', () {
-      expect(historyDateLabel(_en, _ago(0), now: _now), '9/27 (Today)');
-      expect(historyDateLabel(_en, _ago(1), now: _now), '9/26 (Yesterday)');
-      expect(historyDateLabel(_en, _ago(6), now: _now), '9/21');
-    });
-
     test('미래는 꼬리표 없이 날짜만', () {
       expect(historyDateLabel(_ko, _ago(-1), now: _now), '9/28');
-      expect(historyDateLabel(_en, _ago(-1), now: _now), '9/28');
     });
   });
 
   group('routineHistoryDateLabel', () {
-    test('날짜가 있으면 화면 언어로 다시 만든다', () {
+    test('날짜가 있으면 다시 만든다', () {
       final RoutineHistoryEntry e = _entry(date: _ago(0));
       expect(routineHistoryDateLabel(_ko, e, now: _now), '9/27 (오늘)');
-      expect(routineHistoryDateLabel(_en, e, now: _now), '9/27 (Today)');
     });
 
     test('서버 문장은 보지 않는다 — 날짜가 이긴다', () {
@@ -114,32 +94,16 @@ void main() {
         dateLabel: '9/20 (오늘)',
         date: _ago(1),
       );
-      expect(routineHistoryDateLabel(_en, e, now: _now), '9/26 (Yesterday)');
+      expect(routineHistoryDateLabel(_ko, e, now: _now), '9/26 (어제)');
     });
 
     test('날짜가 없는 옛 서버의 기록은 받은 문장 그대로', () {
       final RoutineHistoryEntry e = _entry(dateLabel: '7/12 (오늘)');
       expect(routineHistoryDateLabel(_ko, e, now: _now), '7/12 (오늘)');
-      expect(routineHistoryDateLabel(_en, e, now: _now), '7/12 (오늘)');
     });
   });
 
   group('routineKindLabel', () {
-    test('종류 코드로 화면 언어의 이름을 고른다', () {
-      expect(
-        routineKindLabel(_en, 'PT 세션 · 트레이너 지도', kind: 'pt_session'),
-        'PT · Trainer-led',
-      );
-      expect(
-        routineKindLabel(_en, 'AI 개인운동', kind: 'ai_personal'),
-        'Personal exercise',
-      );
-      expect(
-        routineKindLabel(_en, '배정 루틴 수행', kind: 'assigned_routine'),
-        'Personal exercise',
-      );
-    });
-
     test('한국어 이름은 화면 용어를 쓴다 — 배정 루틴은 개인운동 (#3107)', () {
       expect(
         routineKindLabel(_ko, 'PT 세션 · 트레이너 지도', kind: 'pt_session'),
@@ -152,34 +116,18 @@ void main() {
       expect(routineKindLabel(_ko, 'AI 개인운동'), '개인운동');
     });
 
-    test('코드가 없는 옛 서버·데모 행은 저장된 이름에서 코드를 되짚는다', () {
-      expect(
-        routineKindLabel(_en, 'PT 세션 · 트레이너 지도'),
-        'PT · Trainer-led',
-      );
-      expect(routineKindLabel(_en, '  AI 개인운동 '), 'Personal exercise');
-      expect(routineKindLabel(_en, 'AI 루틴 · 자율 운동'), 'Personal exercise');
-      // 하루치 개인운동 카드(#2510).
-      expect(
-        routineKindLabel(_en, '개인운동', kind: 'personal_routine'),
-        'Personal exercise',
-      );
-      expect(routineKindLabel(_en, '배정 루틴 수행'), 'Personal exercise');
-    });
-
     test('트레이너가 지은 이름은 번역하지 않는다', () {
-      expect(routineKindLabel(_en, '하체 루틴 A'), '하체 루틴 A');
       expect(routineKindLabel(_ko, '하체 루틴 A'), '하체 루틴 A');
-      expect(routineKindLabel(_en, ''), '');
+      expect(routineKindLabel(_ko, ''), '');
     });
 
     test('모르는 코드는 받은 이름 그대로', () {
-      expect(routineKindLabel(_en, '새 종류', kind: 'future_kind'), '새 종류');
+      expect(routineKindLabel(_ko, '새 종류', kind: 'future_kind'), '새 종류');
     });
   });
 
   group('lastRoutineLabel', () {
-    test('날짜가 있으면 화면 언어로 만든다', () {
+    test('날짜가 있으면 날짜로 만든다', () {
       final TrainerClient dated = trainerClientFromJson(<String, Object?>{
         'id': 'user-jisu',
         'name': '이지수',
@@ -187,12 +135,11 @@ void main() {
         'last_routine_date': '2026-09-22',
       });
       expect(lastRoutineLabel(_ko, dated, now: _now), '5일 전');
-      expect(lastRoutineLabel(_en, dated, now: _now), '5 days ago');
       // 문장보다 날짜를 믿는다 — 하루가 지나면 문장은 낡는다.
-      expect(lastRoutineLabel(_en, dated, now: _ago(-1)), '6 days ago');
+      expect(lastRoutineLabel(_ko, dated, now: _ago(-1)), '6일 전');
     });
 
-    test('한국어 화면은 날짜가 없는 옛 문장을 그대로 둔다', () {
+    test('날짜가 없는 옛 문장은 그대로 둔다', () {
       for (final String raw in <String>['오늘', '어제', '5일 전', '3주 전', '금요일']) {
         expect(
           lastRoutineLabel(_ko, makeClient(lastRoutine: raw), now: _now),
@@ -201,25 +148,13 @@ void main() {
       }
     });
 
-    test('영어 화면은 아는 옛 문장을 옮긴다', () {
-      String en(String raw) =>
-          lastRoutineLabel(_en, makeClient(lastRoutine: raw), now: _now);
-      expect(en('오늘'), 'Today');
-      expect(en('어제'), 'Yesterday');
-      expect(en('5일 전'), '5 days ago');
-      expect(en('1주 전'), '1 week ago');
-      expect(en('3주 전'), '3 weeks ago');
-      expect(en('금요일'), 'Fri');
-      expect(en('월요일'), 'Mon');
-    });
-
     test('모르는 문장은 그대로, 보낸 적 없으면 빈 문자열', () {
       expect(
-        lastRoutineLabel(_en, makeClient(lastRoutine: '저강도 유산소'), now: _now),
+        lastRoutineLabel(_ko, makeClient(lastRoutine: '저강도 유산소'), now: _now),
         '저강도 유산소',
       );
       expect(
-        lastRoutineLabel(_en, makeClient(lastRoutine: '-'), now: _now),
+        lastRoutineLabel(_ko, makeClient(lastRoutine: '-'), now: _now),
         '',
       );
       expect(
@@ -267,9 +202,9 @@ void main() {
       expect(bench.weight, 62.5);
 
       final ClientExerciseItem run = ClientExerciseItem.fromLegacyLine(
-        '인터벌 런닝 25분 ✓',
+        '인터벌 러닝 25분 ✓',
       );
-      expect(run.name, '인터벌 런닝');
+      expect(run.name, '인터벌 러닝');
       expect(run.minutes, 25);
 
       final ClientExerciseItem legacyOrder = ClientExerciseItem.fromLegacyLine(
@@ -302,13 +237,8 @@ void main() {
       '스쿼트 3세트 12회 40kg',
     );
 
-    test('옛 문장에서 되돌린 값도 화면 언어의 단위로 적는다', () {
+    test('옛 문장에서 되돌린 값도 단위를 붙여 적는다', () {
       expect(clientExerciseLine(_ko, squat), '스쿼트 · 3세트 · 12회 · 40kg');
-      final String en = clientExerciseLine(_en, squat);
-      expect(en, startsWith('스쿼트 · '));
-      expect(en, isNot(contains('세트')));
-      expect(en, isNot(contains('회')));
-      expect(en, contains('40kg'));
     });
 
     test('버티는 운동은 초, 유산소는 분', () {
@@ -323,13 +253,9 @@ void main() {
         clientExerciseLine(_ko, ClientExerciseItem.fromLegacyLine('사이클 20분')),
         '사이클 · 20분',
       );
-      expect(
-        clientExerciseLine(_en, ClientExerciseItem.fromLegacyLine('사이클 20분')),
-        isNot(contains('분')),
-      );
     });
 
-    test('강도는 코드가 아니라 화면 언어의 문구로 적는다', () {
+    test('강도는 코드가 아니라 화면 문구로 적는다', () {
       const ClientExerciseItem item = ClientExerciseItem(
         name: '하체 루틴',
         type: 'strength',
@@ -339,10 +265,6 @@ void main() {
         intensity: 'moderate',
       );
       expect(clientExerciseLine(_ko, item), '하체 루틴 · 3세트 · 12회 · 40kg · 보통');
-      expect(
-        clientExerciseLine(_en, item),
-        endsWith(' · ${_en.intensityModerate}'),
-      );
       expect(
         clientExerciseLine(
           _ko,
@@ -438,10 +360,6 @@ void main() {
       expect(h.date, isNull);
       expect(h.kind, isNull);
       expect(routineHistoryDateLabel(_ko, h, now: _now), '9/27 (오늘)');
-      expect(
-        routineKindLabel(_en, h.label, kind: h.kind),
-        'PT · Trainer-led',
-      );
     });
 
     test('날짜가 아닌 `date` 는 버린다', () {
@@ -473,7 +391,6 @@ void main() {
       final TrainerClient c = parse('2026-09-26');
       expect(c.lastRoutine, '어제');
       expect(c.lastRoutineDate, DateTime(2026, 9, 26));
-      expect(lastRoutineLabel(_en, c, now: _now), 'Yesterday');
       expect(lastRoutineLabel(_ko, c, now: _now), '어제');
       expect(parse(null).lastRoutineDate, isNull);
       expect(parse('bad').lastRoutineDate, isNull);
@@ -548,10 +465,6 @@ void main() {
       expect(
         clientExerciseLine(_ko, item),
         clientExerciseLine(_ko, fromServer),
-      );
-      expect(
-        clientExerciseLine(_en, item),
-        clientExerciseLine(_en, fromServer),
       );
     });
   });

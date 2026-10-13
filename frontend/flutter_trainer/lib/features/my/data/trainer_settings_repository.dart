@@ -98,9 +98,9 @@ class DioTrainerSettingsRepository implements TrainerSettingsRepository {
 
 /// Decodes `TrainerNotificationSettings`.
 ///
-/// 상담·예약·담당 회원 소식은 서버에 칸이 생기기 전이다(#2264). 응답에 없으면
-/// `null` 로 두어 화면이 그 스위치를 막는다 — 기본값(켬)으로 채우면 끈 값이
-/// 서버에 없는데도 저장된 것처럼 보인다.
+/// 상담·예약·담당 회원 소식은 #2420 에서 서버에 칸이 생겼다. 그 전 서버처럼
+/// 응답에 없으면 `null` 로 두어 화면이 그 스위치를 막는다(#2264) — 기본값(켬)으로
+/// 채우면 끈 값이 서버에 없는데도 저장된 것처럼 보인다.
 TrainerSettings trainerSettingsFromJson(Map<String, dynamic> json) {
   return TrainerSettings(
     newMessageAlerts: json['notify_new_message'] as bool? ?? true,

@@ -15,6 +15,7 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
     show ReissuedTokens;
+import 'package:oncare/features/auth/domain/signup_email_code.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -85,6 +86,9 @@ class _RecordingRepository implements AccountRepository {
   }) => _inner.deleteAccount(reasons: reasons, reauth: reauth);
 
   @override
+  Future<bool> fetchHasPassword() => _inner.fetchHasPassword();
+
+  @override
   Future<AccountDeletionPreview> fetchDeletionPreview() =>
       _inner.fetchDeletionPreview();
 
@@ -98,6 +102,7 @@ class _RecordingRepository implements AccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
     AccountReauth? reauth,
+    String? emailCode,
     void Function(ReissuedTokens tokens)? onTokensReissued,
   }) => _inner.updateProfile(
     name: name,
@@ -108,8 +113,13 @@ class _RecordingRepository implements AccountRepository {
     heightCm: heightCm,
     weightKg: weightKg,
     reauth: reauth,
+    emailCode: emailCode,
     onTokensReissued: onTokensReissued,
   );
+
+  @override
+  Future<SignupEmailCodeSent> requestEmailChangeCode({required String email}) =>
+      _inner.requestEmailChangeCode(email: email);
 
   @override
   Future<UserProfile> updateHealthGoals({
@@ -340,19 +350,6 @@ void main() {
       expect(_stepLabel(tester), '1 / 4');
       expect(find.text('키는 50~300cm 사이로 입력해 주세요'), findsOneWidget);
       expect(find.text('체중은 20~500kg 사이로 입력해 주세요'), findsOneWidget);
-    });
-
-    testWidgets('영어 문구도 같은 범위를 말한다', (tester) async {
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-      expect(en.onboardRequiredTag, '(required)');
-      expect(
-        en.onboardHeightRange(50, 300),
-        'Height must be between 50 and 300 cm',
-      );
-      expect(
-        en.onboardWeightRange(20, 500),
-        'Weight must be between 20 and 500 kg',
-      );
     });
   });
 

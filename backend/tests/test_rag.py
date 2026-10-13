@@ -94,7 +94,15 @@ def test_personal_docs_are_isolated_between_users(client, db_session):
 
 
 def test_ai_coach_feedback_shape(client):
-    r = client.get("/v1/ai-coach/feedback")
+    # 회원 전용 경로다(#3351) — 새 회원의 토큰으로 부른다.
+    email = f"ragf-{uuid4().hex[:8]}@oncare.com"
+    client.post(
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "F"}
+    )
+    token = client.post(
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
+    ).json()["access_token"]
+    r = client.get("/v1/ai-coach/feedback", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200
     body = r.json()
     assert body["greeting"]

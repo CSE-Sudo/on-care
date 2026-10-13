@@ -59,25 +59,4 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(_details), findsNothing);
   });
-
-  testWidgets('영어에서도 같은 다섯 항목이 보인다', (tester) async {
-    await _pump(tester, const Locale('en'));
-
-    expect(find.text('Show details'), findsOneWidget);
-    await tester.tap(find.byKey(_toggle));
-    await tester.pumpAndSettle();
-
-    for (final String text in <String>[
-      'Shared with',
-      'What is shared',
-      'Purpose',
-      'How long',
-      'Your right to refuse',
-      'Coaching, consultations and writing reports',
-    ]) {
-      expect(find.text(text), findsOneWidget, reason: text);
-    }
-    expect(find.textContaining('are not deleted'), findsOneWidget);
-    expect(find.text('Hide details'), findsOneWidget);
-  });
 }

@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
 from app.core import clock
-from app.core.locale import RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE
 from app.db.session import get_db
 from app.models.models import (
@@ -117,9 +116,9 @@ def trainer_remove_client(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없어요.")
     if not link.active:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없어요.")
     trainer_client_status_service.remove_client(db, link)
 
 
@@ -137,7 +136,7 @@ def trainer_restore_client(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="회원을 찾을 수 없어요.")
     try:
         trainer_client_status_service.restore_client(db, link)
     except trainer_common_service.ClientLinkDetached as exc:
@@ -171,7 +170,7 @@ def trainer_set_client_status(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없어요.")
     try:
         return trainer_client_status_service.set_client_active(db, link, payload.active)
     except trainer_common_service.ClientLinkDetached as exc:
@@ -277,7 +276,7 @@ def trainer_client_diet(
     day = date or trainer_common_service.today_iso()
     # 형식 검증 — 잘못된 date 가 조용히 빈 목록으로 나가지 않게 422(캘린더 라우트와 일관, #278).
     if not _is_ymd(day):
-        raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 합니다.")
+        raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 해요.")
     return trainer_roster_service.build_client_diet(db, member_id, day)
 
 
@@ -372,7 +371,7 @@ def trainer_client_diet_photo(
     _require_client(db, trainer.id, member_id)
     photo = diet_photo_service.get_owned_photo(db, photo_id, member_id)
     if photo is None:
-        raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="사진을 찾을 수 없어요.")
     return Response(
         content=photo.data,
         media_type=photo.content_type,
@@ -405,7 +404,6 @@ def trainer_client_diet_advice(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    locale: RequestLocale,
     period: Annotated[
         Literal["today", "week", "all"],
         Query(description="조언이 다룰 구간 — 회원 앱 기간 토글과 같은 이름"),
@@ -425,7 +423,7 @@ def trainer_client_diet_advice(
         from_date=result.from_date,
         to_date=result.to_date,
         days_logged=result.days_logged,
-        message=result.message_in(locale),
+        message=result.message,
         sentences=[
             DietAdviceSentence(key=s.key, params=s.params) for s in result.sentences
         ],
@@ -445,11 +443,11 @@ def _diet_pick_out(pick) -> TrainerDietPick:
 
 
 def _diet_recommendations(
-    db: Session, trainer_id: str, member_id: str, locale: str
+    db: Session, trainer_id: str, member_id: str
 ) -> TrainerDietRecommendationsResponse:
     pick = diet_trainer_pick.current(db, member_id, trainer_id)
     exclude = {diet_trainer_pick.norm(pick.name)} if pick is not None else set()
-    found = diet_trainer_pick.candidates(db, member_id, lang=locale, exclude=exclude)
+    found = diet_trainer_pick.candidates(db, member_id, exclude=exclude)
     return TrainerDietRecommendationsResponse(
         needs=found.needs,
         basis_days=found.basis_days,
@@ -475,7 +473,6 @@ def trainer_client_diet_recommendations(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    locale: RequestLocale,
 ) -> TrainerDietRecommendationsResponse:
     """담당 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2378)
 
@@ -483,7 +480,7 @@ def trainer_client_diet_recommendations(
     리스트를 읽기만 하므로 후보를 넘겨 봐도 AI 를 새로 부르지 않는다.
     """
     _require_client(db, trainer.id, member_id)
-    return _diet_recommendations(db, trainer.id, member_id, locale)
+    return _diet_recommendations(db, trainer.id, member_id)
 
 
 @router.put(
@@ -495,7 +492,6 @@ def trainer_confirm_diet_recommendation(
     payload: TrainerDietPickRequest,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    locale: RequestLocale,
 ) -> TrainerDietRecommendationsResponse:
     """후보 하나를 회원에게 추천한다 — 회원 앱 홈 `추천 식단` 첫 장이 된다. (#2378)
 
@@ -505,13 +501,13 @@ def trainer_confirm_diet_recommendation(
     try:
         diet_trainer_pick.confirm(
             db, member_id, trainer.id,
-            name=payload.name, slot=payload.slot, lang=locale,
+            name=payload.name, slot=payload.slot,
         )
     except diet_trainer_pick.PickNotInPlan as exc:
         raise HTTPException(
-            status_code=422, detail="추천 후보에 없는 메뉴입니다."
+            status_code=422, detail="추천 후보에 없는 메뉴예요."
         ) from exc
-    return _diet_recommendations(db, trainer.id, member_id, locale)
+    return _diet_recommendations(db, trainer.id, member_id)
 
 
 @router.get(
@@ -539,13 +535,17 @@ def trainer_client_exercise_advice(
     start, end, days = exercise_service.period_days(db, member_id, period)
     # 추천 개인운동 기준 조언(#2162)도 회원 앱과 같은 함수로 읽는다.
     routine_days = trainer_member_mirror_service.advice_routine_days(db, member_id, period)
-    advice = exercise_service.period_advice(days, period, routine_days)
+    advice = exercise_service.period_advice(
+        days, period, routine_days,
+        # "○주 동안" 은 읽은 구간의 주 수다 — `전체` 그래프의 칸 수와 같다(#3365).
+        weeks=exercise_service.period_weeks(start, end),
+    )
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=advice.text_for(),
+        message=advice.text,
         advice_key=advice.key,
         advice_params=advice.params,
     )
@@ -579,7 +579,7 @@ def trainer_client_exercise_week(
         # 그리고도 맞다고 믿게 된다(회원 API 와 같은 422).
         if not _is_ymd(week_start):
             raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 합니다."
+                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 해요."
             )
         week_start = monday_of_str(week_start)
     rows = db.scalars(

@@ -25,6 +25,7 @@ class Place {
     required this.distanceMeters,
     required this.lat,
     required this.lng,
+    this.phone,
   });
 
   final String id;
@@ -38,6 +39,10 @@ class Place {
   final double? lat;
   final double? lng;
 
+  /// 전화번호. 서버가 모르면 null 이다(#3357). 가입한 트레이너가 없는 헬스장은
+  /// 상담을 걸 대상이 없어, 헬스장 상세가 이 번호로 전화 문의를 연다.
+  final String? phone;
+
   factory Place.fromJson(Map<String, Object?> json) => Place(
     id: json['id']! as String,
     name: json['name']! as String,
@@ -46,5 +51,14 @@ class Place {
     distanceMeters: (json['distance_meters']! as num).toInt(),
     lat: (json['lat'] as num?)?.toDouble(),
     lng: (json['lng'] as num?)?.toDouble(),
+    phone: _phoneFromWire(json['phone']),
   );
+
+  /// 빈 문자열·공백은 번호가 없는 것으로 읽는다 — 누를 수 없는 전화 줄이 서지
+  /// 않게.
+  static String? _phoneFromWire(Object? raw) {
+    if (raw is! String) return null;
+    final String phone = raw.trim();
+    return phone.isEmpty ? null : phone;
+  }
 }

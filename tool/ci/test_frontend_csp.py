@@ -37,11 +37,15 @@ NARROWED = {"connect-src"}
 # 헤더 connect-src 가 열어 둘 수 있는 출처. ${...} 는 스택 파라미터 자리다.
 ALLOWED_STATIC_CONNECT = {
     "'self'",
+    # 사진 선택기가 줄인 사진을 같은 탭의 blob: 주소에서 읽는다. 외부 출처가 아니다.
+    "blob:",
     "${ApiOrigin}",
     "${ExtraConnectSources}",
     "https://www.gstatic.com",
     "https://fonts.gstatic.com",
     "https://dapi.kakao.com",
+    # 구글 로그인 버튼(GIS)이 로그인 상태를 묻는 곳(#330).
+    "https://accounts.google.com/gsi/",
 }
 
 
@@ -117,6 +121,7 @@ class FrontendCspTest(unittest.TestCase):
         sources = self.app_csp["connect-src"]
         self.assertIn("'self'", sources)
         self.assertIn("${ApiOrigin}", sources)
+        self.assertIn("blob:", sources)
         self.assertNotIn("https:", sources)
         for source in sources:
             self.assertNotIn("localhost", source)
@@ -127,7 +132,7 @@ class FrontendCspTest(unittest.TestCase):
     def test_header_connect_src_is_within_meta(self) -> None:
         meta = self.metas[0]["connect-src"]
         for source in self.app_csp["connect-src"]:
-            if source.startswith("https://") or source.startswith("${"):
+            if source.startswith(("https://", "${")):
                 self.assertIn("https:", meta)
             else:
                 self.assertIn(source, meta)

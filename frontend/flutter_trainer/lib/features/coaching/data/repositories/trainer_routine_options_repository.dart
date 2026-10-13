@@ -9,6 +9,8 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/utils/korean_josa.dart' show josa;
+import 'package:oncare_trainer/features/coaching/data/demo_next_pt.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
@@ -16,9 +18,9 @@ import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routin
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart'
     show sodiumTargetMg;
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Generates A/B routine options for a member (the AI generation step). The
@@ -62,7 +64,7 @@ abstract interface class TrainerRoutineOptionsRepository {
 ///
 /// 서버 규칙형의 두 안전장치도 따른다(#2704, `demo_routine_rules.dart`).
 /// 건강 주의사항·최근 대화에 통증 부위가 보이면 그 부위에 부담이 큰 동작을
-/// 저충격 대안으로 바꾸고 근거 문장에 주의 문구를 붙인다. 최근 6주 기록에
+/// 저충격 대안으로 바꾸고 근거 문장에 주의 문구를 붙인다. 최근 4주 기록에
 /// 두 번 이상 반복된 운동이 있으면 그 운동으로 A/B 를 짠다(`기존 패턴 유지형`
 /// · `점진적 강화형`, #776).
 ///
@@ -71,24 +73,14 @@ abstract interface class TrainerRoutineOptionsRepository {
 ///
 /// [db] 가 없거나 모르는 회원이면(단위 테스트) 고정 스냅샷·템플릿 상태다.
 ///
-/// 실서버처럼 **생성을 요청하는 순간의 화면 언어**로 이름·사유·근거 문장을
-/// 만든다(#2301). 문장은 서버 규칙형(`routine_ai.rule_based_plans`)의 영어판과
-/// 같다. `intensity`·`type` 은 번역하지 않는 계약값이다.
+/// 이름·사유·근거 문장은 서버 규칙형(`routine_ai.rule_based_plans`)과 같다.
 class MockTrainerRoutineOptionsRepository
     implements TrainerRoutineOptionsRepository {
-  /// [languageCode] 를 생략하면 한국어다.
-  const MockTrainerRoutineOptionsRepository({
-    this.languageCode = _korean,
-    this.db,
-  });
-
-  /// 생성을 요청하는 순간의 화면 언어 코드(`ko`·`en`).
-  final String Function() languageCode;
+  /// Creates the demo repository.
+  const MockTrainerRoutineOptionsRepository({this.db});
 
   /// 데모 DB. 있으면 회원별 스냅샷을 만든다.
   final AppDatabase? db;
-
-  static String _korean() => 'ko';
 
   /// Matches the backend default used when the trainer leaves conditions
   /// blank (`trainer_routine_options_service.DEFAULT_AVAILABLE_MINUTES`).
@@ -104,13 +96,14 @@ class MockTrainerRoutineOptionsRepository
   static const int _chatMaxChars = 200;
 
   /// 반복 운동을 찾는 기간(일). 서버 `HISTORY_LOOKBACK_DAYS` 와 같다.
-  static const int _historyLookbackDays = 42;
+  static const int _historyLookbackDays = 28;
 
   /// 추천 상태 문턱 — 서버 `MIN_SESSIONS_FOR_LEARNING` 등과 같다(#776).
   static const int _minSessionsLearning = 2;
-  static const int _minSessionsPersonalized = 6;
-  static const int _minWeeksPersonalized = 3;
-  static const int _minRepeatPersonalized = 3;
+  // 기록 한 회로도 분석한다 — 서버와 같다(#3293).
+  static const int _minSessionsPersonalized = 1;
+  static const int _minWeeksPersonalized = 1;
+  static const int _minRepeatPersonalized = 1;
 
   /// 강도 선호 → 표시 강도. 서버 `_B_LABEL` 과 같다.
   static const Map<String, String> _intensityLabels = <String, String>{
@@ -134,11 +127,8 @@ class MockTrainerRoutineOptionsRepository
       throw const ValidationError();
     }
     await Future<void>.delayed(const Duration(milliseconds: 500));
-    final bool en = languageCode() == 'en';
-    String t(String ko, String english) => en ? english : ko;
     final _Snapshot? member = await _memberSnapshot(
       memberId,
-      en: en,
       // 최근 대화도 트레이너가 고르는 자료다(#2794) — 끄면 싣지 않는다.
       withChat: (sources ?? RoutineContextSource.defaults).contains(
         RoutineContextSource.recentChat,
@@ -150,14 +140,10 @@ class MockTrainerRoutineOptionsRepository
     final String goal = member?.goal ?? '혈압 관리 · 체중 감량';
     final bool sodiumOver = member?.sodiumOver ?? true;
     // 서버 규칙형과 같다 — 목표를 넘을 때만 꼬리표를 단다.
-    final String sodiumLabel = sodiumOver
-        ? t(' (목표 초과)', ' (over target)')
-        : '';
+    final String sodiumLabel = sodiumOver ? ' (목표 초과)' : '';
     final note = trainerNote.trim();
     final noteSuffix = note.isEmpty
         ? ''
-        : en
-        ? ' Trainer note applied: $note.'
         : ' 트레이너 메모 반영: $note.';
     // 트레이너가 비워 둔 조건은 서버처럼 회원 기록의 제안값, 없으면 기본값이다
     // (`trainer_routine_options_service`, #776).
@@ -171,8 +157,40 @@ class MockTrainerRoutineOptionsRepository
     final String conditions = member?.conditions ?? '';
     final List<String> cautions = cautionsIn(conditions, messages);
     final bool escalate = needsProfessionalCheck(conditions, messages);
-    final String safety = cautionSuffix(cautions, escalate, en: en);
+    final String safety = cautionSuffix(cautions, escalate);
     final List<String> frequent = member?.frequent ?? const <String>[];
+    // 판단 결과(#3280) — 서버 `build_findings` 처럼 규칙형과 같은 규칙으로 센다.
+    // 데모가 읽는 자료는 건강 주의사항과 최근 대화뿐이라 근거도 그 둘이다.
+    final List<RoutineFinding> findings = ruleFindings(
+      sources: <DemoFindingSource>[
+        (
+          '건강 프로필',
+          conditions.isEmpty ? const <String>[] : <String>[conditions],
+        ),
+        ('최근 대화', messages.reversed.toList()),
+      ],
+      frequent: member != null ? frequent : const <String>[],
+      sessionCount: member?.sessionCount ?? 0,
+      periodDays: member == null ? 0 : _historyLookbackDays,
+      sodium: sodium,
+      sodiumOver: sodiumOver,
+      completion: completion,
+    );
+    // C안 — 지난 PT 흐름상 이번 차례(#3282). 서버 규칙형 C안과 같은 규칙이고,
+    // 기록이 없으면 기본 분할 시작안이라 C안은 늘 있다.
+    final DemoNextPt next = chooseNextPt(
+      await _recentPtSessions(memberId),
+      today: nowKst(),
+    );
+    final RoutinePlan planC = rulePlanC(
+      next,
+      availableMinutes: minutes,
+      intensityPreference: intensityPref,
+      completion: completion,
+      cautions: cautions,
+      escalate: escalate,
+    );
+    findings.add(nextPtFinding(next));
     if (member != null && frequent.isNotEmpty) {
       return _patternOptions(
         member,
@@ -183,7 +201,8 @@ class MockTrainerRoutineOptionsRepository
         escalate: escalate,
         note: note,
         suffix: noteSuffix + safety,
-        en: en,
+        findings: findings,
+        planC: planC,
       );
     }
     // 서버 규칙형과 같은 갈림 — 나트륨이 목표를 넘거나 완료율이 50% 미만이면
@@ -219,7 +238,7 @@ class MockTrainerRoutineOptionsRepository
         avgCompletionRate: completion,
         latestRoutine:
             member?.latestRoutine ??
-            t('저강도 유산소 (걷기)', 'Low-intensity cardio (walk)'),
+            '저강도 유산소 (걷기)',
         note: note,
         recentMessages: member?.recentMessages ?? const <String>[],
         // 추천 상태·기록 횟수는 서버와 같은 규칙으로 센다(#2674).
@@ -232,7 +251,7 @@ class MockTrainerRoutineOptionsRepository
       ),
       planA: RoutinePlan(
         key: 'A',
-        label: t('회복·지속 중심', 'Recovery & consistency'),
+        label: '회복·지속 중심',
         totalMinutes: totalA,
         intensity: '낮음',
         exercises: _compose(
@@ -247,43 +266,30 @@ class MockTrainerRoutineOptionsRepository
               (libStretch.$1, libStretch.$2, 2),
             ],
           ], cautions),
-          en: en,
         ),
-        reason: t(
-          '짧고 지속하기 쉬운 회복 중심 프로그램',
-          'A short, easy-to-sustain recovery program',
-        ),
-        rationale: en
-            ? 'Sodium today ${sodium}mg$sodiumLabel, recent workout '
-                  'completion $completion% → focusing on consistency with '
-                  'low-strain cardio and stretching.$noteSuffix$safety'
-            : '오늘 나트륨 ${sodium}mg$sodiumLabel, 최근 운동 완료율 $completion% → '
+        reason: '짧고 지속하기 쉬운 회복 중심 프로그램',
+        rationale: '오늘 나트륨 ${sodium}mg$sodiumLabel, 최근 운동 완료율 $completion% → '
                   '부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.$noteSuffix$safety',
       ),
       planB: RoutinePlan(
         key: 'B',
-        label: t('강도·운동량 중심', 'Intensity & volume'),
+        label: '강도·운동량 중심',
         totalMinutes: totalB,
         // 트레이너가 고른 강도 선호를 그대로 옮긴다 — 서버 `_B_LABEL` 과 같다
         // (#2715). 예전 데모는 낮음이면 보통, 그 밖에는 높음으로 한 단계 올려,
         // 낮음을 고른 트레이너에게 B안이 `보통` 으로 보였다. 판단이 어려운
         // 상태(전문가 확인)에서는 강도를 올리지 않는다.
         intensity: escalate ? '보통' : _intensityLabels[intensityPref] ?? '높음',
-        exercises: _compose(totalB, planBParts, en: en),
-        reason: t(
-          '운동량과 강도를 높인 프로그램',
-          'A program with more volume and intensity',
-        ),
-        rationale: en
-            ? "Based on the goal '$goal' and a $completion% completion rate, "
-                  '${roomToStepUp ? 'there is room to step up — adding' : 'gradually adding'} '
-                  'strength and cardio to raise the workload.$noteSuffix$safety'
-            : "목표 '$goal' 기준, 완료율 $completion%로 "
+        exercises: _compose(totalB, planBParts),
+        reason: '운동량과 강도를 높인 프로그램',
+        rationale: "목표 '$goal' 기준, 완료율 $completion%로 "
                   '${roomToStepUp ? '상향 여력이 있어' : '점진적으로'} '
                   '근력·유산소를 더해 운동량을 높임.$noteSuffix$safety',
       ),
       // 지금 데모 화면 그대로 규칙형이다 — `규칙 기반 생성` 꼬리표가 남는다.
       generatedBy: 'rule',
+      findings: findings,
+      planC: planC,
     );
   }
 
@@ -292,9 +298,8 @@ class MockTrainerRoutineOptionsRepository
   /// 떠안아 합이 [total] 과 같다.
   static List<RoutineExercise> _compose(
     int total,
-    List<(String, String, int)> parts, {
-    required bool en,
-  }) {
+    List<(String, String, int)> parts,
+  ) {
     final int sum = total < parts.length ? parts.length : total;
     final int weights = parts.fold<int>(0, (int a, (String, String, int) p) {
       return a + p.$3;
@@ -303,7 +308,7 @@ class MockTrainerRoutineOptionsRepository
     return <RoutineExercise>[
       for (var i = 0; i < parts.length; i++)
         RoutineExercise(
-          name: libraryExerciseName(parts[i].$1, en: en),
+          name: parts[i].$1,
           type: parts[i].$2,
           minutes: () {
             if (i == parts.length - 1) {
@@ -333,9 +338,9 @@ class MockTrainerRoutineOptionsRepository
     required bool escalate,
     required String note,
     required String suffix,
-    required bool en,
+    required List<RoutineFinding> findings,
+    required RoutinePlan planC,
   }) {
-    String t(String ko, String english) => en ? english : ko;
     List<String> core = <String>[
       for (final String name in frequent)
         if (!avoidsFor(name, cautions)) name,
@@ -369,41 +374,31 @@ class MockTrainerRoutineOptionsRepository
       analysis: _analysis(member, note: note),
       planA: RoutinePlan(
         key: 'A',
-        label: t('기존 패턴 유지형', 'Keep current pattern'),
+        label: '기존 패턴 유지형',
         totalMinutes: totalA,
         intensity: _intensityLabels[intensityPref] ?? '보통',
-        exercises: _compose(totalA, coreParts, en: en),
-        reason: t(
-          '최근 자주 수행한 운동을 그대로 유지',
-          'Keeps the exercises done most often recently',
-        ),
-        rationale: en
-            ? 'Keeps the exercises repeated in recent records ($coreLabel) '
-                  'and fills in only what is missing.$suffix'
-            : '최근 기록에서 반복 확인된 운동($coreLabel)을 유지하고 '
+        exercises: _compose(totalA, coreParts),
+        reason: '최근 자주 수행한 운동을 그대로 유지',
+        rationale: '최근 기록에서 반복 확인된 운동($coreLabel)을 유지하고 '
                   '부족한 부분만 보완.$suffix',
       ),
       planB: RoutinePlan(
         key: 'B',
-        label: t('점진적 강화형', 'Gradual progression'),
+        label: '점진적 강화형',
         totalMinutes: minutes,
         intensity: escalate ? '보통' : _intensityLabels[intensityPref] ?? '높음',
         exercises: _compose(minutes, <(String, String, int)>[
           ...coreParts,
           (extra.$1, extra.$2, 1),
-        ], en: en),
-        reason: t(
-          '기존 핵심 운동을 유지하며 운동량을 소폭 확대',
-          'Keeps the core exercises and slightly raises the workload',
-        ),
-        rationale: en
-            ? 'Keeps the core exercises ($coreLabel) and adds '
-                  "'${libraryExerciseName(extra.$1, en: true)}' to gradually "
-                  'raise the workload.$suffix'
-            : "기존 핵심 운동($coreLabel)은 유지하고 '${extra.$1}'을(를) 더해 "
+        ]),
+        reason: '기존 핵심 운동을 유지하며 운동량을 소폭 확대',
+        rationale: '기존 핵심 운동($coreLabel)은 유지하고 '
+                  "'${extra.$1}'${josa(extra.$1, '을', '를')} 더해 "
                   '운동량을 점진적으로 늘림.$suffix',
       ),
       generatedBy: 'rule',
+      findings: findings,
+      planC: planC,
     );
   }
 
@@ -425,10 +420,58 @@ class MockTrainerRoutineOptionsRepository
         suggestedIntensity: member.suggestedIntensity,
       );
 
+  /// 최근 완료한 PT 의 프로그램, 최신 먼저 — 서버 `_recent_pt_sessions`(#3282).
+  /// DB 가 없으면 기록 없음이다.
+  Future<List<DemoPtSession>> _recentPtSessions(String memberId) async {
+    final AppDatabase? db = this.db;
+    if (db == null) return const <DemoPtSession>[];
+    final DateTime now = nowKst();
+    final String today =
+        '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    final rows =
+        await (db.select(db.trainerScheduleEntries)
+              ..where(
+                (t) =>
+                    t.clientId.equals(memberId) &
+                    t.status.equals(ScheduleStatus.done) &
+                    t.type.equals(SessionType.consultation).not() &
+                    t.date.isSmallerOrEqualValue(today) &
+                    t.programJson.equals('[]').not(),
+              )
+              ..orderBy(<OrderingTerm Function($TrainerScheduleEntriesTable)>[
+                (t) => OrderingTerm.desc(t.date),
+                (t) => OrderingTerm.desc(t.time),
+                (t) => OrderingTerm.desc(t.id),
+              ])
+              ..limit(demoNextPtLookback))
+            .get();
+    return <DemoPtSession>[
+      for (final row in rows)
+        if (DateTime.tryParse(row.date) case final DateTime day)
+          DemoPtSession(
+            day: day,
+            items: <DemoPtItem>[
+              for (final Object? raw in _decodeList(row.programJson))
+                ?demoPtItemFromJson(raw),
+            ],
+          ),
+    ];
+  }
+
+  static List<Object?> _decodeList(String json) {
+    try {
+      final Object? decoded = jsonDecode(json);
+      return decoded is List ? decoded : const <Object?>[];
+    } on FormatException {
+      return const <Object?>[];
+    }
+  }
+
   /// 이 회원의 시드 지표로 만든 스냅샷. DB 가 없거나 모르는 회원이면 `null`.
   Future<_Snapshot?> _memberSnapshot(
     String memberId, {
-    required bool en,
     required bool withChat,
   }) async {
     final AppDatabase? db = this.db;
@@ -474,8 +517,8 @@ class MockTrainerRoutineOptionsRepository
               ])
               ..limit(_chatMaxMessages))
             .get();
-    final String trainerLabel = en ? 'Trainer' : '트레이너';
-    final String memberLabel = en ? 'Member' : '회원';
+    const String trainerLabel = '트레이너';
+    const String memberLabel = '회원';
     String speaker(String sender) =>
         sender == 'trainer' ? trainerLabel : memberLabel;
     final List<String> lines = <String>[
@@ -496,7 +539,9 @@ class MockTrainerRoutineOptionsRepository
         (profile is Map ? profile['conditions'] as String? : null) ??
         client.goal;
 
-    // 최근 6주 운동 기록에서 두 번 이상 반복된 운동(서버와 같은 기간·규칙).
+    // 최근 4주 운동 기록에서 두 번 이상 반복된 운동(서버와 같은 기간·규칙).
+    // 하루치 `개인운동` 카드도 한 회로 센다 — 서버가 PT 기록에 회원 개인운동을
+    // 날짜별 한 회로 더해 보는 것과 같다(#3293).
     final DateTime since = nowKst().subtract(
       const Duration(days: _historyLookbackDays - 1),
     );
@@ -617,8 +662,6 @@ final trainerRoutineOptionsRepositoryProvider =
       ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       if (ref.watch(appConfigProvider).useMockApi) {
         return MockTrainerRoutineOptionsRepository(
-          languageCode: () =>
-              ref.read(trainerResolvedLocaleProvider).languageCode,
           db: ref.watch(appDatabaseProvider),
         );
       }

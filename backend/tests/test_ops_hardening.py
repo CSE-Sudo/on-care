@@ -111,7 +111,6 @@ def _generate_rejected(monkeypatch):
     )
     monkeypatch.setattr(ai, "_call_llm", lambda s, u: next(bad))
     return ai.generate(
-        lang="ko",
         analysis_text="이번 주 나트륨을 **3일** 넘겼어요.",
         finding="f",
         records=["월 점심: 짬뽕"],
@@ -216,7 +215,7 @@ def test_conflict_message_is_unchanged_under_the_limit(client, per_ip_relaxed):
     assert _register(client, email, 0).status_code == 201
     again = _register(client, email, 1)
     assert again.status_code == 409
-    assert again.json()["detail"] == "이미 가입된 이메일입니다."
+    assert again.json()["detail"] == "이미 가입된 이메일이에요."
 
 
 def test_email_bucket_is_off_when_rate_limit_is_disabled(client, monkeypatch):

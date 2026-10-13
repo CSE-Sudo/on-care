@@ -20,6 +20,9 @@ def build_notification_settings(
     """`GET /trainer/me/settings` 응답."""
     return TrainerNotificationSettings(
         notify_new_message=profile.notify_new_message,
+        notify_consultation=profile.notify_consultation,
+        notify_reservation=profile.notify_reservation,
+        notify_member_updates=profile.notify_member_updates,
         notify_session_reminder=profile.notify_session_reminder,
         reminder_lead_minutes=profile.reminder_lead_minutes,
     )
@@ -31,6 +34,9 @@ def update_notification_settings(
     """보낸 필드만 반영한다."""
     for column in (
         "notify_new_message",
+        "notify_consultation",
+        "notify_reservation",
+        "notify_member_updates",
         "notify_session_reminder",
         "reminder_lead_minutes",
     ):

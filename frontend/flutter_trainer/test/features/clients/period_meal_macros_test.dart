@@ -125,7 +125,7 @@ void main() {
     // 영양이 아예 없는 옛 기록은 0g 이 아니라 `기록 없음` 이라고 말한다.
     expect(
       _plain(tester, 'client-diet-macros-meal-without-macros'),
-      '탄·단·지 기록 없음 · 당류 0g',
+      '탄단지 기록 없음 · 당류 0g',
     );
   });
 

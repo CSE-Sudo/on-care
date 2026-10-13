@@ -13,6 +13,7 @@ from typing import Annotated, Any, ClassVar, Literal, TypeVar
 from pydantic import (
     BaseModel,
     BeforeValidator,
+    ConfigDict,
     Field,
     field_validator,
     model_validator,
@@ -45,6 +46,7 @@ from app.schemas.health_goal_ranges import (
     WeeklyWorkoutGoal,
 )
 from app.schemas.partial_update import PartialUpdate
+from app.schemas.record_dates import is_hhmm, parse_ymd
 from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
 from app.services.password_policy import check_new_password
@@ -54,18 +56,22 @@ from app.services import exercise_types
 
 
 def _validate_ymd(v: str) -> str:
+    """`YYYY-MM-DD` 이고 달력에 있는 날. 원문을 그대로 저장하므로 표기 하나만 받는다.
+
+    `fromisoformat` 만 쓰면 `20261005`·`2026-W40-1` 도 통과해, 문자열로 저장된 날짜의
+    범위 조회·정렬·`until < date` 비교가 어긋났다(#3243).
+    """
     try:
-        _date.fromisoformat(v)  # 2026-99-99 / 2026-02-31 등 달력상 불가능한 값 거부
+        parse_ymd(v)  # 2026-99-99 / 2026-02-31 등 달력상 불가능한 값도 거부
     except ValueError as e:
         raise ValueError("유효한 날짜(YYYY-MM-DD)가 아닙니다.") from e
     return v
 
 
 def _validate_hhmm(v: str) -> str:
-    try:
-        _datetime.strptime(v, "%H:%M")  # 25:99 / 빈 문자열 등 거부
-    except ValueError as e:
-        raise ValueError("유효한 시간(HH:MM)이 아닙니다.") from e
+    """`HH:MM`(두 자리). `strptime` 은 `9:5` 도 받아 시각 정렬이 어긋났다(#3243)."""
+    if not is_hhmm(v):  # 25:99 / 빈 문자열 / 9:5 등 거부
+        raise ValueError("유효한 시간(HH:MM)이 아닙니다.")
     return v
 
 
@@ -78,6 +84,10 @@ class TrainerGymOut(BaseModel):
     address: str
     hours: str
     phone: str
+    #: 소속 헬스장 좌표(`places.lat`·`lng`). 트레이너 웹이 헬스장 찾기 지도를 검색
+    #: 전에도 현재 소속 위치로 띄우는 데 쓴다(#3206). 소속이 없거나 좌표가 없으면 None.
+    lat: float | None = None
+    lng: float | None = None
 
 
 class TrainerMe(BaseModel):
@@ -160,9 +170,8 @@ class TrainerClientOut(BaseModel):
     fat_g: float                 # 오늘 총 지방(g)
     last_routine: str            # 마지막 루틴 전송 라벨(오늘/어제/N일 전)
     #: 마지막 루틴을 보낸 날(KST, YYYY-MM-DD). 없으면 None (#2300).
-    #: `last_routine` 은 서버가 문장으로 만든 라벨이라 화면 언어를 따라가지 못한다
-    #: — 앱은 이 날짜로 `오늘`·`N일 전` 을 로케일에 맞춰 직접 그린다. 옛 앱을 위해
-    #: `last_routine` 도 계속 보낸다.
+    #: `last_routine` 은 서버가 문장으로 만든 라벨이다 — 앱은 이 날짜로
+    #: `오늘`·`N일 전` 을 직접 그린다. 옛 앱을 위해 `last_routine` 도 계속 보낸다.
     last_routine_date: str | None = None
     #: 이번 주 일별 이행률 7개(월→일). 그날 걸린 개인운동·잡힌 PT 중 한 비율이다
     #: (#2513). 아무것도 걸리지 않은 날과 아직 오지 않은 날은 null 이다 — 0 은
@@ -319,9 +328,8 @@ RoutineHistoryKind = Literal[
 class RoutineHistoryExerciseOut(BaseModel):
     """이력의 운동 한 종목 — 문장이 아닌 값(#2300).
 
-    `exercises` 의 `스쿼트 3세트 12회 40kg` 은 단위가 한국어로 박힌 문장이라 영어
-    화면에서도 `세트`·`회` 가 그대로 나온다. 같은 내용을 값으로 나눠 보내고 단위는
-    앱이 ARB 로 붙인다. 필드 이름은 앱 `ClientExerciseItem` 과 같다.
+    `exercises` 의 `스쿼트 3세트 12회 40kg` 은 단위가 박힌 문장이다. 같은 내용을
+    값으로 나눠 보내고 단위는 앱이 ARB 로 붙인다. 필드 이름은 앱 `ClientExerciseItem` 과 같다.
     """
     name: str
     #: `cardio` | `strength` | `stretching` | `other`. 모르면 빈 문자열.
@@ -690,6 +698,12 @@ class RoutineOut(BaseModel):
     completed_minutes: int | None = None
     #: 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 비어 있다(#2221).
     completed_duration_seconds: int | None = None
+    #: 회원이 완료하며 적은 세트·횟수·버틴 시간·중량 — 근력 기록에만 있다.
+    #: 배정 값(`sets`·`reps`·`hold_seconds`·`weight`)과 다를 수 있다. (#3364)
+    completed_sets: int | None = None
+    completed_reps: int | None = None
+    completed_hold_seconds: int | None = None
+    completed_weight: float | None = None
     completed_intensity: str | None = None
     #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
     #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
@@ -712,10 +726,27 @@ class RoutineOut(BaseModel):
     trainer_message: str = ""
 
 
+class UpcomingRoutinesOut(BaseModel):
+    """GET /me/coach/routines/upcoming — 아직 시작하지 않은 개인운동 한 묶음. (#3106)
+
+    트레이너가 `개인운동만` 을 미래 시작일로 보내면(#2656) 알림은 바로 가지만, 그날
+    목록(`/me/coach/routines`)은 시작일부터 그 운동을 싣는다. 회원 앱은 이 값으로
+    오늘 목록 아래에 `8/22(토)부터 · 빠르게 걷기 · …` 한 줄을 둔다. 둘 이상이면
+    가장 최근에 보낸 것 하나다.
+    """
+
+    #: 걸리기 시작하는 날 — 이날부터 그날 목록에 들어 체크할 수 있다.
+    starts_on: _date
+    #: 트레이너가 보낸 날.
+    sent_on: _date
+    #: 묶음의 운동 이름(배정 순서).
+    names: list[str]
+
+
 class RoutineCompleteOut(RoutineOut):
     """POST /me/coach/routines/{id}/complete 응답 — 이번 완료의 포인트 적립을 더한다. (#1786)
 
-    AI 추천 루틴과 트레이너 배정 루틴 모두 `추천·배정 운동 완료` 규칙으로 적립하고
+    AI 추천 루틴과 트레이너 배정 루틴 모두 `개인운동 완료` 규칙으로 적립하고
     하루 한도 1회를 함께 쓴다. 목록 응답(`RoutineOut`)에는 붙지 않는다.
     """
 
@@ -1494,16 +1525,25 @@ class RoutineOptionExerciseOut(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     minutes: int = Field(ge=1, le=180)
     type: RoutineType
+    #: 근력의 양(#3282). C안은 지난 PT 프로그램의 세트·횟수·중량을 이어받아
+    #: 고치므로 함께 싣는다. A·B안과 옛 응답은 비어 있고, 화면이 기본값을 채운다.
+    sets: int | None = Field(default=None, ge=1, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, ge=1, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
 
 
 class RoutineOptionPlanOut(BaseModel):
-    key: Literal["A", "B"]
+    key: Literal["A", "B", "C"]
     label: str = Field(min_length=1, max_length=50)
     total_minutes: int = Field(ge=1, le=180)
     intensity: RoutineIntensityLabel
     exercises: list[RoutineOptionExerciseOut] = Field(min_length=1, max_length=12)
     reason: str = Field(min_length=1, max_length=200)
     rationale: str = Field(min_length=1, max_length=500)
+    #: C안만(#3282) — 왜 이번 차례인지. 서버 규칙이 쓴다.
+    basis: str = Field(default="", max_length=200)
+    #: C안만(#3282) — 기준 프로그램에서 바꾼 점, 한 줄씩.
+    changes: list[str] = Field(default_factory=list, max_length=8)
 
     @model_validator(mode="after")
     def _total_matches_exercises(self) -> RoutineOptionPlanOut:
@@ -1513,16 +1553,45 @@ class RoutineOptionPlanOut(BaseModel):
         return self
 
 
+#: 판단 결과 한 줄의 종류(#3280). 화면이 아이콘·순서를 고르는 계약값이다.
+RoutineFindingKind = Literal[
+    "caution", "escalation", "pattern", "sodium", "adherence", "rotation"
+]
+
+
+class RoutineFindingOut(BaseModel):
+    """서버가 이번 생성에서 찾은 것 하나와 그에 따른 반영 방향(#3280).
+
+    `routine_ai.rule_findings` 가 규칙형 생성과 같은 규칙으로 만든다.
+    """
+
+    kind: RoutineFindingKind
+    #: 찾은 것 — `"무릎 불편·통증 언급"`.
+    finding: str = Field(min_length=1, max_length=120)
+    #: 어디서 봤는지 — `"최근 대화"`, `"PT 피드백 · 10.06"`.
+    source: str = Field(min_length=1, max_length=60)
+    #: 후보에 어떻게 반영했는지 — `"무릎에 부담이 큰 동작(…)을 빼고 …"`.
+    action: str = Field(min_length=1, max_length=120)
+
+
 class RoutineOptionsOut(BaseModel):
     analysis: RoutineOptionAnalysisOut
     plan_a: RoutineOptionPlanOut
     plan_b: RoutineOptionPlanOut
     generated_by: RoutineOptionGenerator
+    #: 이번 생성의 판단 결과(#3280). 분석(`analysis`)은 판단에 **넣은** 값이고,
+    #: 이쪽은 그 값에서 **찾은** 신호와 반영 방향이다. 찾은 것이 없으면 비어 있다.
+    findings: list[RoutineFindingOut] = Field(default_factory=list, max_length=12)
+    #: 지난 PT 흐름상 이번 차례 프로그램을 최근 상태에 맞게 고친 안(#3282).
+    #: 기록이 없어도 기본 분할 시작안으로 늘 채운다 — 옛 응답만 비어 있다.
+    plan_c: RoutineOptionPlanOut | None = None
 
     @model_validator(mode="after")
     def _requires_distinct_a_and_b(self) -> RoutineOptionsOut:
         if self.plan_a.key != "A" or self.plan_b.key != "B":
             raise ValueError("plan_a/plan_b key 는 각각 A/B여야 합니다.")
+        if self.plan_c is not None and self.plan_c.key != "C":
+            raise ValueError("plan_c key 는 C여야 합니다.")
         return self
 
 
@@ -1629,6 +1698,10 @@ class ScheduleSessionOut(BaseModel):
     #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
     #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
     session_number: int | None = None
+    #: 이 수업의 트레이너 이름(#3347). 회원 응답에만 싣는다 — 회원의 PT 이력에는
+    #: 지난 담당과 마친 수업도 함께 있어, 누구와의 수업이었는지를 적는다. 트레이너
+    #: 응답은 null 이다(자기 일정이다).
+    trainer_name: str | None = None
 
 
 class DeliveryOut(BaseModel):
@@ -1847,6 +1920,10 @@ class ProgramScheduleRequest(BaseModel):
     suggestion_ids: list[_SuggestionId] = Field(
         default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
+    #: 이 PT 의 트레이너 피드백(#2374) — 일정의 `note` 에 담긴다. 회원에게는 PT 를
+    #: 완료한 뒤에 보인다(#2515). 기존 회차에 붙일 때 그 회차에 피드백이 있으면
+    #: 덮지 않고 줄을 바꿔 이어 붙인다. 비우면 일정의 피드백을 건드리지 않는다.
+    note: str = Field(default="", max_length=TEXT_ENTRY_MAX)
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
@@ -2066,6 +2143,67 @@ class TrainerKakaoGymSelect(BaseModel):
     name: str = Field(min_length=1, max_length=200)
 
 
+#: 헬스장 태그 개수·길이 상한(#2700). 회원 앱 목록 카드에 칩으로 한 줄 남짓 그려지는
+#: 값이라 길게 받을 이유가 없다.
+GYM_TAGS_MAX = 10
+GYM_TAG_MAX_LENGTH = 20
+
+
+class TrainerGymProfileOut(BaseModel):
+    """GET·PUT /trainer/me/gym/profile — 소속 헬스장의 부가 정보. (#2700)
+
+    회원 앱 헬스장 목록·상세(`GymOut`)에 그대로 나가는 값이다. 평점은 트레이너가
+    고치는 값이 아니라 싣지 않는다.
+    """
+    gym_id: str
+    name: str
+    weekday_hours: str
+    weekend_hours: str
+    phone: str
+    tags: list[str]
+
+
+class TrainerGymProfileUpdate(PartialUpdate):
+    """PUT /trainer/me/gym/profile — 소속 헬스장 부가 정보 부분 수정. (#2700)
+
+    보낸 칸만 바꾼다. 빈 문자열은 "비운다"이고, null 은 422 다(`PartialUpdate`).
+    길이 상한은 `gym_profiles` 컬럼 길이와 같다 — 넘치면 DB 가 막는다.
+
+    **평점은 받지 않는다.** 트레이너가 자기 헬스장 평점을 적게 두면 그 값은 평점이
+    아니다. 보내도 모르는 키로 버려지지 않게 422 로 막는다(`extra="forbid"`).
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    weekday_hours: str | None = Field(default=None, max_length=50)
+    weekend_hours: str | None = Field(default=None, max_length=50)
+    #: 헬스장 대표번호 — 휴대전화 규칙(`normalize_phone`)을 걸지 않는다(#1914,
+    #: `TrainerMeUpdate.gym_phone` 주석). `02-332-1720` 같은 정상 번호가 막힌다.
+    phone: str | None = Field(default=None, max_length=20)
+    tags: list[str] | None = Field(default=None, max_length=GYM_TAGS_MAX)
+
+    @field_validator("weekday_hours", "weekend_hours", "phone")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("tags")
+    @classmethod
+    def _clean_tags(cls, value: list[str] | None) -> list[str] | None:
+        """앞뒤 공백을 걷고, 빈 태그는 422, 같은 태그는 처음 것만 남긴다."""
+        if value is None:
+            return value
+        cleaned: list[str] = []
+        for raw in value:
+            tag = raw.strip()
+            if not tag:
+                raise ValueError("빈 태그는 저장할 수 없습니다.")
+            if len(tag) > GYM_TAG_MAX_LENGTH:
+                raise ValueError(f"태그는 {GYM_TAG_MAX_LENGTH}자 이하로 입력하세요.")
+            if tag not in cleaned:
+                cleaned.append(tag)
+        return cleaned
+
+
 # ---- 주간 리포트 (트레이너 → 회원) ----
 
 class WeeklyReportDayOut(BaseModel):
@@ -2143,8 +2281,20 @@ class WeeklyReportOut(BaseModel):
     message: str                 # 회원에게 전송될 본문(미리보기와 동일)
 
 
+class MemberWeeklyReportOut(WeeklyReportOut):
+    """회원이 읽는 한 주 — `GET /me/coach/weekly-report`. (#3349)
+
+    필드는 [WeeklyReportOut] 그대로이고, 값이 어느 시점의 것인지만 더한다.
+    """
+    #: 이 값을 굳힌 시각. 트레이너가 보냈거나 회원이 포인트로 산 때다. null 이면
+    #: 스냅샷이 없어 **지금** 계산한 값이다(#3349 전의 리포트, 받은 적 없는 주).
+    #: 진행 중이던 주를 굳힌 리포트는 이 시각을 기준일로 읽어야 한다 — 그때 아직
+    #: 오지 않았던 요일을 "안 한 날" 로 세면 안 된다.
+    snapshot_at: _datetime | None = None
+
+
 #: 리포트 요약 headline 의 응답 상한(#3090). 회원 이름(최대 100자)이 들어간 규칙 기반
-#: 영어 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
+#: 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
 REPORT_HEADLINE_MAX = 400
 
 
@@ -2223,6 +2373,17 @@ class MemberWeeklyFeedbackSaveRequest(BaseModel):
     pain_on: str = Field(default="", description="YYYY-MM-DD")
     #: 한 줄은 길게 받지 않는다 — 30초 안에 끝나야 매주 돌아온다.
     note: str = Field(default="", max_length=TEXT_LINE_MAX)
+
+    @field_validator("pain_on")
+    @classmethod
+    def _v_pain_on(cls, v: str) -> str:
+        """비었거나 `YYYY-MM-DD`. (#3243)
+
+        검사가 없어 `pain_area` 가 있을 때 10자를 넘는 값은 칸(`String(10)`)에서 500,
+        짧은 날짜 아닌 값은 그대로 저장돼 트레이너 화면의 `(MM.DD)` 가 깨졌다.
+        """
+        v = v.strip()
+        return _validate_ymd(v) if v else v
 
 
 class ReportGoalsOut(BaseModel):
@@ -2318,6 +2479,35 @@ class MemberReportSendsOut(BaseModel):
     """한 회원에게 나간 리포트를 최신 주부터. 보낸 적이 없으면 빈 목록이다. (#2393)"""
     member_id: str
     sends: list[MemberReportSendOut] = Field(default_factory=list)
+    #: 다음 쪽 커서 — 이 값을 `before` 로 다시 주면 더 오래된 주가 온다.
+    #: 더 없으면 null 이다.
+    next_before: str | None = None
+
+
+class MemberReceivedReportOut(BaseModel):
+    """회원이 받은 한 주 리포트 — `GET /me/coach/reports` 의 한 줄. (#3348)
+
+    한 주를 여러 번 받았으면 가장 최근 전송 하나다. 회원 쪽 수신 기록에서 읽어,
+    담당이 끊기거나 바뀌거나 보낸 트레이너가 탈퇴한 뒤에도 남는다.
+    """
+    #: 그 전송의 채팅 메시지 id. `GET /me/coach/weekly-report` 의 `message_id` 로
+    #: 보내면 그때 굳힌 값이 열린다. 대화가 지워진 뒤에도 같은 값이다.
+    id: str
+    week_start: str              # 리포트 주의 월요일 YYYY-MM-DD
+    #: 보낸 시각(ISO, UTC).
+    sent_at: str
+    #: 보낸 트레이너의 이름. 그 계정이 탈퇴했으면 null 이다.
+    trainer_name: str | None = None
+    #: 트레이너가 리포트와 함께 보낸 글 — 회원이 받은 그대로다.
+    body: str = ""
+    #: PDF 로 받았고 그 파일이 남아 있으면 그 첨부. 본문으로 받았거나, 대화가
+    #: 지워져 파일이 없으면 null 이다 — 그때 앱은 결과지를 세워 연다.
+    attachment: ChatAttachmentOut | None = None
+
+
+class MemberReceivedReportsOut(BaseModel):
+    """회원이 받은 리포트를 최신 주부터. 받은 적이 없으면 빈 목록이다. (#3348)"""
+    reports: list[MemberReceivedReportOut] = Field(default_factory=list)
     #: 다음 쪽 커서 — 이 값을 `before` 로 다시 주면 더 오래된 주가 온다.
     #: 더 없으면 null 이다.
     next_before: str | None = None
@@ -2442,8 +2632,16 @@ class TrainerTaskKeyChange(BaseModel):
 
 
 class TrainerNotificationSettings(BaseModel):
-    """트레이너 알림 수신 설정."""
+    """트레이너 알림 수신 설정.
+
+    `notify_consultation`·`notify_reservation`·`notify_member_updates` 는 종류별
+    수신 설정이다(#2420) — 어떤 알림이 어느 칸을 따르는지는
+    `notification_service._TRAINER_SETTING_COLUMN`.
+    """
     notify_new_message: bool
+    notify_consultation: bool
+    notify_reservation: bool
+    notify_member_updates: bool
     notify_session_reminder: bool
     reminder_lead_minutes: int
 
@@ -2451,9 +2649,12 @@ class TrainerNotificationSettings(BaseModel):
 class TrainerNotificationSettingsUpdate(PartialUpdate):
     """부분 수정 — 보낸 필드만 반영.
 
-    세 항목 모두 DB NOT NULL 이라 null 로 바꿀 수 있는 값이 아니다(#495).
+    모든 항목이 DB NOT NULL 이라 null 로 바꿀 수 있는 값이 아니다(#495).
     """
     notify_new_message: bool | None = None
+    notify_consultation: bool | None = None
+    notify_reservation: bool | None = None
+    notify_member_updates: bool | None = None
     notify_session_reminder: bool | None = None
     reminder_lead_minutes: int | None = None
 
@@ -2470,7 +2671,7 @@ class TrainerNotificationSettingsUpdate(PartialUpdate):
     def _reject_explicit_null(self) -> TrainerNotificationSettingsUpdate:
         """명시적 null 을 422 로 거른다.
 
-        세 컬럼 모두 DB NOT NULL 이라 null 을 그대로 반영하면 IntegrityError
+        모든 컬럼이 DB NOT NULL 이라 null 을 그대로 반영하면 IntegrityError
         500 이 난다. 누락은 '변경 없음', null 은 '잘못된 값' 으로 구분한다
         (TrainerMeUpdate · ScheduleUpdateRequest 와 같은 규약).
         """
@@ -2525,12 +2726,15 @@ class TrainerClientInviteCreate(BaseModel):
 
 
 class TrainerClientInviteOut(BaseModel):
-    """트레이너가 보고 있는 '보낸 요청' 카드."""
+    """트레이너가 보고 있는 '보낸 요청' 카드.
+
+    회원 이메일은 싣지 않는다(#3239) — 수락 전인 요청만으로 회원의 연락처가
+    트레이너에게 가면 안 된다. 연결 코드 미리보기(`PairedMemberOut`)와 같은 범위다.
+    """
 
     id: str
     member_id: str
     member_name: str
-    member_email: str
     message: str | None = None
     status: Literal["pending", "accepted", "rejected", "cancelled"]
     created_at: _datetime

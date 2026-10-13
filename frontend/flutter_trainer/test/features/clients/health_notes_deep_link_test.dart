@@ -34,6 +34,33 @@ void main() {
     expect(find.text('건강상태·주의사항'), findsOneWidget);
   });
 
+  // 회원을 오가도 상세 State 는 그대로 쓰인다 — 한 번 연 표시가 남아 다음 알림이
+  // 창을 열지 못했다(#3249).
+  testWidgets('두 번째 알림도 창을 연다 — 다른 회원이든 같은 회원이든', (tester) async {
+    await open(
+      tester,
+      AppRoutes.clientDetail('seed-client-1', openHealthNotes: true),
+    );
+    expect(tabs, findsOneWidget);
+    Navigator.of(tester.element(tabs)).pop();
+    await settle(tester);
+    expect(tabs, findsNothing);
+
+    await goTo(
+      tester,
+      AppRoutes.clientDetail('seed-client-2', openHealthNotes: true),
+    );
+    expect(tabs, findsOneWidget);
+    Navigator.of(tester.element(tabs)).pop();
+    await settle(tester);
+
+    await goTo(
+      tester,
+      AppRoutes.clientDetail('seed-client-2', openHealthNotes: true),
+    );
+    expect(tabs, findsOneWidget);
+  });
+
   testWidgets('그냥 들어온 상세는 창을 열지 않는다', (tester) async {
     await open(tester, AppRoutes.clientDetail('seed-client-1'));
 

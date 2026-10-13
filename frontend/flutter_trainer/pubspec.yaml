@@ -41,20 +41,20 @@ dependencies:
   # --- 외부 링크 ---
   # 고객 지원의 FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보낸다(#2227).
   # 회원 앱과 같은 버전을 쓴다.
-  url_launcher: ^6.3.1
+  url_launcher: ^6.3.3
 
   # --- Networking (real backend) ---
   # 사용자 앱(frontend/flutter)과 동일한 Dio 스택. USE_MOCK_API=false 일 때
   # 트레이너 API(POST /v1/auth/login, GET /v1/trainer/me, ...)를 호출한다.
-  dio: ^5.7.0
+  dio: ^5.11.1
   http_parser: ^4.0.2
 
   # 채팅에 붙일 사진을 고른다(#921). 웹에서는 파일 선택 창으로 동작한다.
-  image_picker: ^1.2.3
+  image_picker: ^1.2.4
 
   # WeeklyReport 데이터를 A4 PDF binary로 만들고, 브라우저 인쇄를 연다(#778).
-  pdf: ^3.11.3
-  printing: ^5.14.2
+  pdf: ^3.13.1
+  printing: ^5.15.1
 
   # 세션 access/refresh 토큰을 플랫폼 보안 저장소(Keychain/Keystore/웹)에
   # 보관한다. 기존 SharedPreferences 기반 SessionTokenStore 를 대체한다.
@@ -86,9 +86,15 @@ dependencies:
   # 소속 헬스장 찾기 지도(#2543). 회원 앱 헬스장 찾기와 같은 위젯이다.
   oncare_kakao_map:
     path: ../../shared/oncare_kakao_map
+  # 소속 헬스장 찾기의 "현재 위치로 찾기"(#3223). 회원 앱 헬스장 찾기와 같은
+  # 패키지·버전이다. 웹에서는 브라우저 위치 권한을 묻는다.
+  geolocator: ^14.0.2
   # 주간 리포트 결과지(#2652). 회원 앱이 여는 리포트와 한 위젯·한 계산이다.
   oncare_report:
     path: ../../shared/oncare_report
+  # 카카오·구글 로그인(#330). 회원 앱과 같은 연동을 쓴다.
+  oncare_social_login:
+    path: ../../shared/oncare_social_login
   # 트레이너웹 아이콘도 회원앱과 같은 Material Symbols Rounded 한 세트에서만
   # 고른다(#2466). 목록은 lib/app/app_icons.dart 한 곳이다. 가변 글꼴 축(채움·
   # 굵기)을 쓰므로 회원앱과 같은 버전으로 묶는다.
@@ -96,7 +102,7 @@ dependencies:
 
   # --- Local persistence ---
   # drift 시드/데모 및 기타 기능이 사용하는 앱 공용 prefs.
-  shared_preferences: ^2.3.2
+  shared_preferences: ^2.5.6
 
   # drift(SQLite) 로컬 백엔드 — 백엔드 미연결 동안 고객/스케줄 등 mock
   # 데이터를 영속 저장한다 (사용자 앱과 동일 스택, 코드는 공유하지 않음).
@@ -134,8 +140,12 @@ flutter:
 
   assets:
     - assets/images/
-    # 데모 대화에서 트레이너가 보낸 첨부 PDF (#2663).
+    # >>> demo-assets — 데모 전용 자산(#3157). 데모 대화 첨부 PDF(#2663)와 데모 시드
+    # 끼니 사진. 운영 빌드는 `python3 frontend/tool/strip_demo_assets.py` 가 이 표시
+    # 사이를 지운 뒤 빌드한다 — 데모·개발·테스트는 지금처럼 그대로 싣는다.
     - assets/demo/
+    - assets/demo/images/
+    # <<< demo-assets
     # Pretendard 글꼴 라이선스 전문 — 기동 때 라이선스 목록에 넣는다(#3150).
     # OFL 은 글꼴을 함께 배포할 때 라이선스 고지를 요구한다.
     - assets/fonts/Pretendard-OFL.txt

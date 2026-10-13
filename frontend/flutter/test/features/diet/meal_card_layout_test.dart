@@ -116,7 +116,7 @@ void main() {
       final Rect kcal = tester.getRect(
         _inCard(
           'mock-breakfast',
-          find.textContaining('217 kcal', findRichText: true),
+          find.textContaining('217kcal', findRichText: true),
         ),
       );
 
@@ -149,7 +149,7 @@ void main() {
 
       final Rect food = tester.getRect(_inCard('one', find.text('짬뽕')));
       final Rect kcal = tester.getRect(
-        _inCard('one', find.textContaining('100 kcal', findRichText: true)),
+        _inCard('one', find.textContaining('100kcal', findRichText: true)),
       );
       expect(kcal.center.dy, moreOrLessEquals(food.center.dy, epsilon: 2));
     });
@@ -238,7 +238,7 @@ void main() {
         find.ancestor(
           of: _inCard(
             'mock-breakfast',
-            find.textContaining('217 kcal', findRichText: true),
+            find.textContaining('217kcal', findRichText: true),
           ),
           matching: find.byType(AppTag),
         ),

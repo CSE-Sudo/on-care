@@ -149,7 +149,7 @@ def _owned_draft(
         )
     )
     if draft is None:
-        raise ProgramDraftNotFound("저장된 프로그램을 찾을 수 없습니다.")
+        raise ProgramDraftNotFound("저장된 프로그램을 찾을 수 없어요.")
     return draft
 
 

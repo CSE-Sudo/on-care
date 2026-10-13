@@ -45,6 +45,13 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     completedDurationSeconds: _positiveIntOrNull(
       json['completed_duration_seconds'],
     ),
+    // 회원이 실제로 한 세트·횟수·버틴 시간·중량(#3364). 근력 완료에만 온다.
+    completedSets: _positiveIntOrNull(json['completed_sets']),
+    completedReps: _positiveIntOrNull(json['completed_reps']),
+    completedHoldSeconds: _positiveIntOrNull(json['completed_hold_seconds']),
+    completedWeight: json['completed_weight'] is num
+        ? (json['completed_weight']! as num).toDouble()
+        : null,
     completedIntensity: json['completed_intensity'] as String?,
     programName: _str(json['program_name']),
     sessionName: _str(json['session_name']),
@@ -62,6 +69,24 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     weight: json['weight'] is num ? (json['weight']! as num).toDouble() : null,
     // 완료 응답(`RoutineCompleteOut`)에만 있다(#1786).
     pointsAward: PointsAward.fromJson(json['points']),
+  );
+}
+
+/// `/me/coach/routines/upcoming` (UpcomingRoutinesOut) → [UpcomingRoutines].
+/// 날짜가 깨지거나 운동이 없으면 null — 보여 줄 예정이 없다. (#3106)
+UpcomingRoutines? upcomingRoutinesFromJson(Map<String, Object?> json) {
+  final DateTime? startsOn = DateTime.tryParse(_str(json['starts_on']));
+  final Object? raw = json['names'];
+  final List<String> names = <String>[
+    if (raw is List<Object?>)
+      for (final Object? name in raw)
+        if (name is String && name.trim().isNotEmpty) name.trim(),
+  ];
+  if (startsOn == null || names.isEmpty) return null;
+  return UpcomingRoutines(
+    startsOn: startsOn,
+    sentOn: DateTime.tryParse(_str(json['sent_on'])) ?? startsOn,
+    names: names,
   );
 }
 
@@ -132,6 +157,7 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
     status: _str(json['status']),
     note: _str(json['note']),
     sessionNumber: _positiveIntOrNull(json['session_number']),
+    trainerName: _str(json['trainer_name']).trim(),
     program: rawProgram is List<Object?>
         ? rawProgram
               .map((Object? item) {
@@ -178,6 +204,47 @@ CoachMessage coachMessageFromJson(Map<String, Object?> json) {
     reportWeekStart: _reportWeekStart(json['report_week_start']),
     emoteId: json['emote_id'] is String ? json['emote_id']! as String : null,
     routineDelivery: _routineDelivery(json['routine_delivery']),
+  );
+}
+
+/// `GET /me/coach/reports` (MemberReceivedReportsOut) → [ReceivedReportsPage].
+/// (#3348)
+///
+/// 한 줄이 어긋나면 목록 전체를 포기한다 — 주나 보낸 시각을 모르는 줄을 지어내
+/// 세우면 엉뚱한 주의 리포트가 열린다.
+ReceivedReportsPage receivedReportsPageFromJson(Map<String, Object?> json) {
+  final Object? rows = json['reports'];
+  if (rows is! List) {
+    throw const FormatException('Invalid received reports.');
+  }
+  final Object? next = json['next_before'];
+  return ReceivedReportsPage(
+    reports: <ReceivedReport>[
+      for (final Object? row in rows)
+        if (row is Map<String, Object?>)
+          _receivedReport(row)
+        else
+          throw const FormatException('Invalid received report.'),
+    ],
+    nextBefore: next is String ? DateTime.tryParse(next) : null,
+  );
+}
+
+ReceivedReport _receivedReport(Map<String, Object?> json) {
+  final DateTime? week = _reportWeekStart(json['week_start']);
+  if (week == null) {
+    throw const FormatException('Invalid received report week_start.');
+  }
+  final Object? trainerName = json['trainer_name'];
+  return ReceivedReport(
+    id: _requiredString(json, 'id'),
+    weekStart: week,
+    sentAt: _requiredDateTime(json, 'sent_at'),
+    trainerName: trainerName is String && trainerName.isNotEmpty
+        ? trainerName
+        : null,
+    body: _str(json['body']),
+    attachment: _attachment(json['attachment']),
   );
 }
 

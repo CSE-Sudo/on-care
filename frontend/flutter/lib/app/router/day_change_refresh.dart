@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare_core/clock.dart';
 
@@ -16,11 +19,22 @@ import 'package:oncare_core/clock.dart';
 /// 프로필 펫(#3098)도 autoDispose 가 아니고 만료를 받을 때만 판정한다. 만료 시각에
 /// 맞춘 타이머가 주 해결책이고(`profilePetProvider`), 여기는 앱 복귀 때의 보조다 —
 /// 백그라운드에서 타이머가 늦어져도 날이 바뀌어 돌아오면 다시 읽는다.
+///
+/// 식단·운동 AI 맞춤 조언(#3244)도 "오늘" 을 두고 말한다. 복귀 목록
+/// (`memberResumeRefreshTargets`)이 홈·기록을 새 날로 바꾸는데 조언만 남아,
+/// 다음 날 돌아오면 어제 이야기를 했다. 복귀마다 비우면 같은 날에도 조언을 매번
+/// 새로 만들게 되므로, 날이 바뀐 때만 비운다.
+///
+/// 홈 코칭 시트(#3351)도 같다 — 자동 해제되지 않아 자정을 넘겨도 어제의 인사말과
+/// "오늘" 카드가 남았다. 서버도 날이 바뀌면 어제 만든 카드를 쓰지 않는다.
 final List<ProviderOrFamily> kDayChangeRefreshTargets = <ProviderOrFamily>[
   activityCalendarProvider,
   myStreakShieldsProvider,
   weeklyChallengeProvider,
   profilePetProvider,
+  dietAdviceProvider,
+  exerciseAdviceProvider,
+  aiCoachStateProvider,
 ];
 
 /// 마지막으로 갱신한 날을 기억했다가 날이 바뀐 계기(앱 복귀·MY 탭 재진입)에만

@@ -132,6 +132,8 @@ def pair(db_session):
         ("history", "exercise"),
         ("health-profile", "body"),
         ("reports/sent", "report"),
+        # 회원 주간 피드백(통증 부위·컨디션)이 실리는 모아 보기(#3239).
+        ("feedbacks", "report"),
     ],
 )
 def test_reading_a_clients_records_is_audited(

@@ -57,7 +57,7 @@ class _RestoredFromBackupStore extends SecureTokenStore {
   }
 
   @override
-  Future<void> clear() async {
+  Future<void> clear({bool forgetLegacy = false}) async {
     _access = null;
     _refresh = null;
   }

@@ -382,7 +382,7 @@ void main() {
   });
 
   group('NotificationPage — 첫 조회 실패', () {
-    testWidgets('실패 안내와 재시도만 그리고 "알림이 없습니다" 는 그리지 않는다', (
+    testWidgets('실패 안내와 재시도만 그리고 "아직 받은 알림이 없어요" 는 그리지 않는다', (
       WidgetTester tester,
     ) async {
       final repo = _ScriptedRepo(<AlertItem>[])..fetchThrows = true;
@@ -392,7 +392,7 @@ void main() {
       expect(find.byKey(_firstLoadFailed), findsOneWidget);
       expect(find.text('최신 알림을 불러오지 못했어요'), findsOneWidget);
       expect(find.byKey(_firstLoadRetry), findsOneWidget);
-      expect(find.text('알림이 없습니다'), findsNothing);
+      expect(find.text('아직 받은 알림이 없어요'), findsNothing);
       expect(find.byKey(_retryBanner), findsNothing);
     });
 
@@ -479,7 +479,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('모두 읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('모두 읽음 처리하지 못했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
       final ProviderContainer container = ProviderScope.containerOf(
         tester.element(find.byKey(const Key('notificationPage'))),
       );
@@ -496,7 +496,7 @@ void main() {
       await tester.tap(find.text('모두 읽음'));
       await tester.pumpAndSettle();
 
-      expect(find.text('모두 읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+      expect(find.text('모두 읽음 처리하지 못했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
       expect(_markAllButton(tester).onPressed, isNull);
     });
   });

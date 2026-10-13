@@ -289,7 +289,7 @@ void main() {
     expect(again.status, CouponStatus.used);
 
     await exchange('pt_renewal');
-    // PT 재등록 쿠폰도 직원 확인 뒤 회원 휴대폰에서 사용 완료를 누른다.
+    // PT 재등록 쿠폰도 직원 확인 뒤 회원 휴대폰에서 사용 처리를 누른다.
     final Coupon renewalUsed = await DioBenefitsRepository(
       strictDioOf(dio),
     ).useCoupon(idOf(await coupons(), 'pt_renewal'));

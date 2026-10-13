@@ -27,9 +27,24 @@ _CASES = _FILE["cases"]
 svc = gen.svc
 
 
+#: 서버가 더는 만들지 않는 영어 항목(#3404). 공유 파일에 남아 있어도 견주지 않는다.
+_RETIRED_TABLES = ("en_caution_parts", "en_exercise_names")
+
+
+def _without_english(file: dict) -> dict:
+    tables = {k: v for k, v in file["tables"].items() if k not in _RETIRED_TABLES}
+    cases = dict(file["cases"])
+    cases["caution_suffix"] = [
+        {k: v for k, v in case.items() if k != "en"} for case in cases["caution_suffix"]
+    ]
+    return {**file, "tables": tables, "cases": cases}
+
+
 def test_the_shared_file_is_up_to_date() -> None:
     """표와 사례가 서버와 같다 — 서버 표를 바꾸고 파일을 다시 만들지 않으면 깨진다."""
-    assert _FILE == json.loads(json.dumps(gen.build(), ensure_ascii=False))
+    assert _without_english(_FILE) == json.loads(
+        json.dumps(gen.build(), ensure_ascii=False)
+    )
 
 
 @pytest.mark.parametrize("case", _CASES["detect"])
@@ -59,14 +74,27 @@ def test_guess_type_matches_the_shared_cases(case: dict) -> None:
 
 @pytest.mark.parametrize("case", _CASES["caution_suffix"])
 def test_caution_suffix_matches_the_shared_cases(case: dict) -> None:
-    for locale in ("ko", "en"):
-        assert (
-            svc._caution_suffix(case["cautions"], case["escalate"], locale)
-            == case[locale]
-        )
+    assert svc._caution_suffix(case["cautions"], case["escalate"]) == case["ko"]
 
 
 def test_cases_touch_every_caution_part() -> None:
     """사례가 표의 모든 부위를 한 번은 찾아낸다 — 부위를 더하면 사례도 더한다."""
     found = {part for c in _CASES["detect"] for part in c["cautions"]}
     assert found == {rule["part"] for rule in _FILE["tables"]["caution_rules"]}
+
+
+def test_running_spelled_runeng_is_avoided_for_knee_caution() -> None:
+    """트레이너가 `런닝` 이라고 적어도 AI 개인운동이 달리기 계열을 뺀다(#3215)."""
+    plan_a, plan_b = svc.rule_based_plans(
+        goal="체력 향상",
+        sodium_today_mg=1500,
+        avg_completion_rate=80,
+        available_minutes=40,
+        intensity_preference="high",
+        trainer_note="",
+        frequent_exercises=["런닝 30분", "플랭크"],
+        conditions="무릎 통증으로 런닝 자제",
+    )
+    names = [item["name"] for plan in (plan_a, plan_b) for item in plan["exercises"]]
+    assert names
+    assert not any(token in name for name in names for token in ("런닝", "러닝", "달리기"))

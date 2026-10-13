@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.models import (
@@ -70,7 +71,13 @@ def save_member_weekly_feedback(
     옆에 나란히 서면 트레이너는 둘 중 무엇을 믿을지 알 수 없다.
 
     통증은 있을 때만 적는다. 아픈 곳을 비운 채 날짜만 오면 날짜도 버린다 —
-    가리키는 곳이 없는 날짜는 화면에서 읽을 수 없다.
+    가리키는 곳이 없는 날짜는 화면에서 읽을 수 없다. 남는 날짜는 **그 주 안**
+    이어야 한다(#3368) — 앱은 그 주 7일만 고르게 하지만 서버가 형식만 보면 옛 앱이나
+    직접 호출이 보낸 다른 주의 날짜가 그 주 리포트에 그대로 적힌다.
+
+    첫 저장이 겹치면 한쪽은 유니크(`uq_member_weekly_feedback_user_week`)에 걸린다.
+    그때는 먼저 들어간 행을 다시 읽어 덮어쓴다(#3368) — 같은 주에 다시 보낸 것과
+    결과가 같아야 하고, 500 으로 끝나면 회원은 저장이 됐는지 알 수 없다.
     """
     if condition not in _WEEKLY_FEEDBACK_CONDITIONS:
         raise HTTPException(status_code=422, detail="invalid condition")
@@ -78,11 +85,13 @@ def save_member_weekly_feedback(
         raise HTTPException(status_code=422, detail="invalid intensity")
     area = pain_area.strip()
     on = pain_on.strip() if area else ""
+    if on:
+        _ensure_pain_day_in_week(on, week)
     row = _member_weekly_feedback_row(db, member_id, week)
-    resubmitted = row is not None
     now = datetime.now(timezone.utc)
+    fresh: MemberWeeklyFeedback | None = None
     if row is None:
-        row = MemberWeeklyFeedback(
+        fresh = MemberWeeklyFeedback(
             id=f"mwf-{uuid.uuid4().hex[:12]}",
             user_id=member_id,
             week_start=week.isoformat(),
@@ -94,8 +103,21 @@ def save_member_weekly_feedback(
             created_at=now,
             updated_at=now,
         )
-        db.add(row)
-    else:
+        try:
+            # savepoint 안에서 바로 내보낸다 — 충돌을 커밋 때가 아니라 여기서 알아야
+            # 바깥 트랜잭션(알림 포함)을 살린 채 갱신으로 돌아설 수 있다.
+            with db.begin_nested():
+                db.add(fresh)
+                db.flush()
+            row = fresh
+        except IntegrityError:
+            row = _member_weekly_feedback_row(db, member_id, week)
+            if row is None:
+                # 유니크가 아닌 다른 제약에 걸린 것이다 — 삼키지 않는다.
+                raise
+    # 충돌로 돌아선 쪽도 고쳐 낸 답이다 — 먼저 들어간 답 위에 덮어쓴다.
+    resubmitted = row is not fresh
+    if resubmitted:
         row.condition = condition
         row.intensity = intensity
         row.pain_area = area
@@ -117,6 +139,24 @@ def save_member_weekly_feedback(
     return _member_weekly_feedback_out(row, week)
 
 
+def _ensure_pain_day_in_week(pain_on: str, week: date) -> None:
+    """통증 날짜가 [week](월요일)부터 일요일까지 안에 있어야 한다 — 아니면 422.
+
+    형식은 스키마가 먼저 본다(#3243). 여기서 다시 읽는 것은 범위를 재려면 날짜가
+    필요해서이고, 스키마를 거치지 않은 호출도 같은 422 로 끝나게 하려는 것이다.
+    """
+    try:
+        day = date.fromisoformat(pain_on)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail="pain_on 은 YYYY-MM-DD 여야 해요."
+        ) from exc
+    if not week <= day <= week + timedelta(days=6):
+        raise HTTPException(
+            status_code=422, detail="pain_on 은 그 주 안의 날짜여야 해요."
+        )
+
+
 def _notify_trainer(
     db: Session,
     *,
@@ -136,7 +176,14 @@ def _notify_trainer(
       알림함에 쌓이면 무엇이 최신인지 읽을 수 없다.
     - 이미 읽었으면 "피드백을 수정했어요" 로 한 건 더 만든다 — 트레이너가 본 답과
       달라졌다는 것을 알려야 한다.
+
+    담당 회원 소식 알림을 껐으면 고쳐 쓰지도 않는다(#2420) — 이미 받은 줄이 끈 뒤에
+    다시 맨 위로 올라오면 새 알림이 온 것과 같다.
     """
+    if not notification_service.trainer_wants(
+        db, trainer_id, notification_service.TRAINER_WEEKLY_FEEDBACK_KIND
+    ):
+        return None
     member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     week_iso = week.isoformat()
     args = {

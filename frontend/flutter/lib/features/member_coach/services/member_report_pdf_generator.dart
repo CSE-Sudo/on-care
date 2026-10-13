@@ -89,7 +89,16 @@ class MemberReportPdfGenerator {
   }) async {
     try {
       return await reportSheetPdf(
-        frame(l, sheet(inputs: inputs, feedback: feedback, today: today)),
+        // 굳힌 리포트는 굳힌 날을 오늘로 그린다(#3349) — 진행 중이던 주의 남은
+        // 요일이 기록하지 않은 날로 서지 않는다.
+        frame(
+          l,
+          sheet(
+            inputs: inputs,
+            feedback: feedback,
+            today: today ?? inputs.asOf,
+          ),
+        ),
         capture: capture,
         encode: encodeImage,
         yieldFrame: yieldFrame,
@@ -121,10 +130,10 @@ class MemberReportPdfGenerator {
     today: today,
   );
 
-  /// 화면 밖 트리를 앱 언어로 두른다. 테마는 트레이너 웹과 같은 공용 틀이다.
+  /// 화면 밖 트리를 한국어로 두른다. 테마는 트레이너 웹과 같은 공용 틀이다.
   @visibleForTesting
   static Widget frame(AppLocalizations l, Widget sheet) => reportSheetFrame(
-    locale: Locale(l.localeName),
+    locale: const Locale('ko'),
     delegates: AppLocalizations.localizationsDelegates,
     sheet: sheet,
   );
@@ -151,7 +160,7 @@ class MemberReportPdfGenerator {
     MemberReportFeedback feedback,
   ) {
     final ReportSheetLocalizations s = reportSheetLocalizationsFor(
-      Locale(l.localeName),
+      const Locale('ko'),
     );
     final ReportSheetWeek week = inputs.week;
     String bullet(String label, String value) =>

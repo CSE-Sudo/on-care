@@ -35,7 +35,6 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import 'helpers/demo_exercise.dart';
@@ -126,7 +125,6 @@ void main() {
 
   Future<void> pumpApp(
     WidgetTester tester, {
-    Locale? locale,
     MemberCoachRepository? memberCoachRepository,
     GymRepository? gymRepository,
   }) async {
@@ -180,7 +178,6 @@ void main() {
             FakeNotificationRepository(),
           ),
           sessionFeatureResetOverride(),
-          if (locale != null) localeProvider.overrideWith((ref) => locale),
         ],
         child: const OncareApp(),
       ),
@@ -244,7 +241,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     await tester.tap(find.byKey(const Key('recordAddButton')));
     await tester.pumpAndSettle();
 
@@ -283,15 +280,6 @@ void main() {
     expect(iconColorOf(AppIcons.exercise), OnCareBrand.member.primary);
   });
 
-  testWidgets('Enters the Home tab in English after demo', (tester) async {
-    await pumpApp(tester, locale: const Locale('en'));
-    // Bottom-nav labels match the React original.
-    expect(find.text('Home'), findsAtLeastNWidgets(1));
-    expect(find.text('Diet'), findsAtLeastNWidgets(1));
-    expect(find.text('Exercise'), findsAtLeastNWidgets(1));
-    expect(find.text('MY'), findsAtLeastNWidgets(1));
-  });
-
   // 운동 탭의 헬스장 영역(내 헬스장·담당 트레이너·내 예약·예약 가능 시간)은
   // autoDispose 가 아니라 처음 읽은 값이 남았다 — 트레이너가 웹에서 예약을
   // 취소해도 회원 앱은 옛 예약과 `다음 PT` 를 보였다(#2856).
@@ -299,7 +287,7 @@ void main() {
     tester,
   ) async {
     final _CountingGymRepository gyms = _CountingGymRepository();
-    await pumpApp(tester, locale: const Locale('ko'), gymRepository: gyms);
+    await pumpApp(tester, gymRepository: gyms);
 
     // 화면에 붙어 있는 것처럼 네 값을 듣는다 — 어느 하위 탭이 열려 있든
     // 셸의 갱신이 네 값을 모두 다시 읽게 하는지만 본다.
@@ -346,11 +334,7 @@ void main() {
     tester,
   ) async {
     final repository = _CountingMemberCoachRepository();
-    await pumpApp(
-      tester,
-      locale: const Locale('ko'),
-      memberCoachRepository: repository,
-    );
+    await pumpApp(tester, memberCoachRepository: repository);
     final int initialSessionLoads = repository.sessionLoads;
 
     await tester.tap(find.text('운동').last);
@@ -369,15 +353,9 @@ void main() {
     expect(repository.sessionLoads, greaterThan(beforeResume));
   });
 
-  testWidgets('담당이 해제된 채 앱으로 돌아오면 헤더가 AI 챗봇 입구로 바뀐다 (#2843)', (
-    tester,
-  ) async {
+  testWidgets('담당이 해제된 채 앱으로 돌아오면 헤더가 AI 챗봇 입구로 바뀐다 (#2843)', (tester) async {
     final repository = _CountingMemberCoachRepository();
-    await pumpApp(
-      tester,
-      locale: const Locale('ko'),
-      memberCoachRepository: repository,
-    );
+    await pumpApp(tester, memberCoachRepository: repository);
     expect(find.byKey(const Key('trainerChatHeaderButton')), findsWidgets);
     final int beforeResume = repository.coachLoads;
 
@@ -396,11 +374,7 @@ void main() {
 
   testWidgets('홈 탭에 다시 들어오면 담당 코치를 다시 확인한다 (#2843)', (tester) async {
     final repository = _CountingMemberCoachRepository();
-    await pumpApp(
-      tester,
-      locale: const Locale('ko'),
-      memberCoachRepository: repository,
-    );
+    await pumpApp(tester, memberCoachRepository: repository);
 
     await tester.tap(find.text('운동').last);
     await tester.pumpAndSettle();
@@ -422,7 +396,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
 
     final bottomSpacing = await openRecordSheetAndMeasureBottomSpacing(tester);
 
@@ -440,7 +414,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPadding);
 
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
 
     final bottomSpacing = await openRecordSheetAndMeasureBottomSpacing(tester);
 
@@ -451,7 +425,7 @@ void main() {
   testWidgets('diet add opens as a content-sized sheet with a bottom gap', (
     tester,
   ) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     await tester.tap(find.byKey(const Key('recordAddButton')));
     await tester.pumpAndSettle();
 
@@ -486,7 +460,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     await openExerciseAddSheet(tester);
 
     // 시트 하단은 저장 버튼 아래 규격 안쪽 여백(sheetPadding 20)뿐이다(#1701).
@@ -506,7 +480,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPadding);
 
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     await openExerciseAddSheet(tester);
 
     // 규격 안쪽 여백(20)에 시스템 인셋(34)만 더해진다(#1701).
@@ -524,7 +498,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     // 플로팅 버튼을 감춘 뒤(#862) 같은 시트를 여는 자리는 홈의 AI 조언 배너다.
     await tester.tap(
       find.byKey(const ValueKey<String>('home-coaching-banner')),
@@ -548,7 +522,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPadding);
 
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     // 플로팅 버튼을 감춘 뒤(#862) 같은 시트를 여는 자리는 홈의 AI 조언 배너다.
     await tester.tap(
       find.byKey(const ValueKey<String>('home-coaching-banner')),
@@ -571,7 +545,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('home-coaching-banner')),
     );
@@ -594,7 +568,7 @@ void main() {
   testWidgets('header notification opens the existing full page', (
     tester,
   ) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
 
     await tester.tap(find.byIcon(AppIcons.notifications).first);
     await tester.pumpAndSettle();
@@ -605,7 +579,7 @@ void main() {
   });
 
   testWidgets('point benefits use a full-page URL route', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     await tester.tap(find.text('MY').first);
     await tester.pumpAndSettle();
 
@@ -648,7 +622,7 @@ void main() {
   });
 
   testWidgets('MY settings use full-page URL routes', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     appRouter(tester).go(AppRoutes.mySettingsPath('support'));
     await tester.pumpAndSettle();
 
@@ -661,7 +635,7 @@ void main() {
   });
 
   testWidgets('diet detail URL restores the full-page editor', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
     appRouter(tester).go(AppRoutes.dietEntryDetailPath('mock-breakfast'));
     await tester.pumpAndSettle();
 
@@ -676,20 +650,20 @@ void main() {
   testWidgets('Tapping a bottom-nav destination switches branch', (
     tester,
   ) async {
-    await pumpApp(tester, locale: const Locale('en'));
+    await pumpApp(tester);
 
     // OncareHeader is a Material+Container (not an AppBar), so we
     // settle for `find.text(...)` finders here.
-    await tester.tap(find.text('Diet').first);
+    await tester.tap(find.text('식단').first);
     await tester.pumpAndSettle();
-    expect(find.text('Diet'), findsAtLeastNWidgets(1));
+    expect(find.text('식단'), findsAtLeastNWidgets(1));
 
     final exerciseDestination = find.byKey(
       const ValueKey<String>('nav-exercise'),
     );
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
-    expect(find.text('Exercise'), findsAtLeastNWidgets(1));
+    expect(find.text('운동'), findsAtLeastNWidgets(1));
 
     await tester.tap(find.text('MY').first);
     await tester.pumpAndSettle();
@@ -697,14 +671,14 @@ void main() {
   });
 
   testWidgets('전체 기간 운동 현황은 스크롤 막대 그래프다 (#1018)', (tester) async {
-    await pumpApp(tester, locale: const Locale('en'));
+    await pumpApp(tester);
 
     final exerciseDestination = find.byKey(
       const ValueKey<String>('nav-exercise'),
     );
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
-    final monthlyToggle = find.text('All');
+    final monthlyToggle = find.text('전체');
     await tester.ensureVisible(monthlyToggle);
     await tester.tap(monthlyToggle);
     await tester.pumpAndSettle();
@@ -713,8 +687,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Korean locale localises the bottom-nav labels', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+  testWidgets('하단 내비 라벨은 한국어다', (tester) async {
+    await pumpApp(tester);
     await tester.pumpAndSettle();
     expect(find.text('홈'), findsAtLeastNWidgets(1));
     expect(find.text('식단'), findsAtLeastNWidgets(1));
@@ -722,143 +696,49 @@ void main() {
     expect(find.text('MY'), findsAtLeastNWidgets(1));
   });
 
-  test('ARB resources expose nav strings for ko + en', () {
+  test('지원 로케일은 한국어 하나다', () {
     // sanity: 'supportedLocales' is the canonical set.
-    expect(AppLocalizations.supportedLocales, contains(const Locale('en')));
-    expect(AppLocalizations.supportedLocales, contains(const Locale('ko')));
+    expect(AppLocalizations.supportedLocales, <Locale>[const Locale('ko')]);
   });
-
-  test('English PT set count uses the correct singular and plural forms', () {
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-
-    expect(en.exSetsCount(1), '1 set');
-    expect(en.exSetsCount(2), '2 sets');
-  });
-
-  testWidgets('English locale localises the Home AI advice (리뷰 #292)', (
-    tester,
-  ) async {
-    await pumpApp(tester, locale: const Locale('en'));
-    // 회귀: 예전엔 '오늘의 AI 통합 조언' 배너가 한국어로 하드코딩돼 영어 로케일에서도
-    // 한국어로 노출됐다. 이제 ARB 를 거쳐 영어로 나오고 한국어 리터럴은 없어야 한다.
-    expect(find.text("Today's combined AI advice"), findsAtLeastNWidgets(1));
-    expect(
-      find.text(
-        keepWords(lookupAppLocalizations(const Locale('en')).homeAiAdviceBody),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('오늘의 AI 통합 조언'), findsNothing);
-    expect(find.text('나트륨 초과'), findsNothing);
-  });
-
-  test(
-    'coaching/advice strings are localised — en English, ko Korean (리뷰 #292)',
-    () {
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-      final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final RegExp hangul = RegExp('[가-힣]');
-
-      // 코드에 하드코딩돼 있던 문구들이 이제 로케일별 ARB 로 분리됐다.
-      expect(en.coachCardDietTitle, 'Great breakfast — watch lunch sodium');
-      expect(ko.coachCardDietTitle, '아침 식단 훌륭, 점심 나트륨 주의');
-      expect(en.coachCardExerciseTitle, '3 workouts this week');
-      expect(en.homeAiAdviceTitle, "Today's combined AI advice");
-      expect(ko.homeAiAdviceTitle, '오늘의 AI 통합 조언');
-
-      // 영어 리소스에 한글이 남아 있지 않아야 한다.
-      expect(hangul.hasMatch(en.coachCardDietBody), isFalse);
-      expect(hangul.hasMatch(en.coachCardExerciseBody), isFalse);
-      expect(hangul.hasMatch(en.homeAiAdviceBody), isFalse);
-    },
-  );
 
   test('운동 탭 기간 토글·도넛 라벨이 로케일을 따른다 (#297)', () {
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final RegExp hangul = RegExp('[가-힣]');
 
-    // 회귀: '이번 달'만 하드코딩돼 있어 영어 로케일에서 "Today / This week /
-    // 이번 달" 처럼 한 토글 안에 두 언어가 섞였다.
-    expect(en.exPeriodAll, 'All');
     expect(ko.exPeriodAll, '전체');
-    for (final String s in <String>[
-      en.exToday,
-      en.exThisWeek,
-      en.exPeriodAll,
-    ]) {
-      expect(hangul.hasMatch(s), isFalse);
-    }
 
     // 도넛 세그먼트도 같은 화면에서 한국어로 굳어 있었다.
-    expect(en.exTypeCardio, 'Cardio');
-    expect(en.exTypeStrength, 'Strength');
-    expect(en.exTypeFlexibility, 'Stretching');
     expect(ko.exTypeCardio, '유산소');
   });
 
   test('식단·운동 날짜별 빈 상태가 로케일을 따른다 (#297)', () {
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
 
     expect(ko.otherDateEmpty(ko.pageDietTitle), '선택한 날짜에 기록된 식단이 없어요.');
     expect(ko.otherDateEmpty(ko.pageExerciseTitle), '선택한 날짜에 기록된 운동이 없어요.');
-    expect(
-      en.otherDateEmpty(en.pageDietTitle),
-      'No Diet records for the selected date.',
-    );
-    expect(
-      en.otherDateEmpty(en.pageExerciseTitle),
-      'No Exercise records for the selected date.',
-    );
-    expect(
-      RegExp('[가-힣]').hasMatch(en.otherDateEmpty(en.pageDietTitle)),
-      isFalse,
-    );
   });
 
   test('분 단위는 기존 공용 키를 재사용한다 (#367)', () {
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
 
     // 신규 키를 만들지 않고 unitMinutes/unitMinutesValue 를 그대로 쓴다.
     expect(ko.unitMinutes, '분');
-    expect(en.unitMinutes, 'min');
     expect(ko.unitMinutesValue(8), '8분');
-    expect(en.unitMinutesValue(8), '8 min');
   });
 
   test('운동 탭 하위 위젯 문구가 로케일을 따른다 (#381)', () {
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final RegExp hangul = RegExp('[가-힣]');
 
     // 화면에서 빠진 문구의 키는 ARB 에서 지웠다(#2905) — 지금 쓰는 키만 본다.
-    // '운동 유형' 은 신규 키를 만들지 않고 기존 exExerciseType('운동 종류')으로
+    // '운동 유형' 은 신규 키를 만들지 않고 기존 exExerciseType 으로
     // 합쳤다. exercise_flows 가 같은 개념에 이미 그 키를 쓰고 있어, 두 시트가
     // 서로 다른 말을 하던 것이 정리된다.
-    expect(en.exExerciseType, 'Exercise Type');
-    expect(ko.exExerciseType, '운동 종류');
-
-    for (final String s in <String>[
-      en.exExerciseType,
-      // 재사용한 기존 키도 영문 값이 멀쩡한지 함께 본다.
-      en.exExerciseDuration,
-      en.exEnterDuration,
-      en.dietDeleteFailed,
-      en.dietSaveFailed,
-      en.exExerciseLog,
-      en.exGymTab,
-      en.exTypeOtherChip,
-    ]) {
-      expect(hangul.hasMatch(s), isFalse, reason: s);
-    }
+    expect(ko.exExerciseType, '운동 유형');
   });
 
   // ───────────────────────────── 하단 탭 재진입 임시 UI 상태 초기화 (#861) ──
 
   testWidgets('식단 탭 재진입 시 영양 요약이 오늘 기본값으로 복원된다 (#861)', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
 
     await tester.tap(find.text('식단').first);
     await tester.pumpAndSettle();
@@ -881,7 +761,7 @@ void main() {
   });
 
   testWidgets('식단 탭 재진입 후에도 실제 식단 기록은 유지된다 (#861)', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
 
     await tester.tap(find.text('식단').first);
     await tester.pumpAndSettle();
@@ -900,7 +780,7 @@ void main() {
   });
 
   testWidgets('운동 탭 재진입 시 운동 현황 기간 토글이 기본값으로 복원된다 (#861)', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
 
     final exerciseDestination = find.byKey(
       const ValueKey<String>('nav-exercise'),
@@ -926,11 +806,7 @@ void main() {
 
   testWidgets('운동 탭 재진입 후에도 저장된 운동 기록·트레이너 프로그램은 유지된다 (#861)', (tester) async {
     final repository = _CountingMemberCoachRepository();
-    await pumpApp(
-      tester,
-      locale: const Locale('ko'),
-      memberCoachRepository: repository,
-    );
+    await pumpApp(tester, memberCoachRepository: repository);
     final container = ProviderScope.containerOf(
       tester.element(find.byType(OncareApp)),
     );
@@ -962,7 +838,7 @@ void main() {
   });
 
   testWidgets('여러 번 탭을 오가도 식단 탭 재진입 정책이 일관되게 동작한다 (#861)', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
 
     for (int i = 0; i < 3; i++) {
       await tester.tap(find.text('식단').first);
@@ -980,7 +856,7 @@ void main() {
   });
 
   testWidgets('이미 보고 있는 탭을 다시 눌러도 임시 UI 상태는 초기화되지 않는다 (#861)', (tester) async {
-    await pumpApp(tester, locale: const Locale('ko'));
+    await pumpApp(tester);
 
     await tester.tap(find.text('식단').first);
     await tester.pumpAndSettle();

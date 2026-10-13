@@ -17,6 +17,7 @@ class CoachingWorkspaceDraft {
     this.personalRoutines = const <RoutineExercise>[],
     this.routineOnly = false,
     this.routineOnlyStart,
+    this.scheduleNote = '',
   });
 
   final String memberId;
@@ -38,6 +39,10 @@ class CoachingWorkspaceDraft {
 
   /// `개인운동만` 의 시작일.
   final DateTime? routineOnlyStart;
+
+  /// 편집기 하단에 쓴, 이 PT 의 트레이너 피드백(#2374). `일정 추가` 가 일정의
+  /// `note` 로 함께 보낸다.
+  final String scheduleNote;
 
   /// 되살릴 것이 있는가 — 비어 있는 초안은 묻지 않고 지운다.
   bool get hasContent =>
@@ -71,7 +76,6 @@ class AiRoutineWizardSnapshot {
     required this.personalSeeded,
     this.options,
     this.prompt = '',
-    this.trainerMemo = '',
     this.minutes = 30,
     this.intensity = 'moderate',
     this.minutesTouched = false,
@@ -103,9 +107,11 @@ class AiRoutineWizardSnapshot {
   /// 받은 A/B 후보와 분석. 받기 전이면 없다.
   final RoutineOptions? options;
 
-  /// 조건 설정의 자연어 요청과, 회원에게 함께 보낼 메모.
+  /// 조건 설정의 자연어 요청.
+  ///
+  /// 회원에게 전할 피드백은 위저드에 없다 — 편집기 하단에서 `일정 추가` 와 함께
+  /// 쓴다(#2374, [CoachingWorkspaceDraft.scheduleNote]).
   final String prompt;
-  final String trainerMemo;
 
   final int minutes;
   final String intensity;

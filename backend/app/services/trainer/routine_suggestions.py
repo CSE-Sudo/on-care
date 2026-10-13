@@ -164,9 +164,9 @@ def _pending_suggestion(
         )
     )
     if row is None:
-        raise RoutineNotFound("제안을 찾을 수 없습니다.")
+        raise RoutineNotFound("제안을 찾을 수 없어요.")
     if row.status != ROUTINE_PENDING:
-        raise RoutineAlreadyReviewed("이미 검토한 제안입니다.")
+        raise RoutineAlreadyReviewed("이미 검토한 제안이에요.")
     return row
 
 
@@ -193,7 +193,7 @@ def approve_routine_suggestion(
     row = _pending_suggestion(db, trainer_id, suggestion_id)
     # 후보가 남아 있어도 담당이 해제된 회원에게는 배정·알림을 보내지 않는다. (#2281)
     if not has_active_client_link(db, trainer_id, row.member_id):
-        raise RoutineNotFound("담당 고객을 찾을 수 없습니다.")
+        raise RoutineNotFound("담당 회원을 찾을 수 없어요.")
     if name is not None:
         row.name = name
     if type_ is not None:

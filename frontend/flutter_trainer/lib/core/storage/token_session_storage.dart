@@ -1,36 +1,13 @@
-import 'package:oncare_trainer/core/storage/browser_session_storage_stub.dart'
-    if (dart.library.js_interop) 'package:oncare_trainer/core/storage/browser_session_storage_web.dart'
-    as platform;
+import 'package:oncare_core/storage/browser_session_storage.dart';
+import 'package:oncare_core/storage/token_keys.dart';
+import 'package:oncare_core/storage/token_session_storage.dart';
 
-/// 탭(세션) 단위로만 사는 토큰 저장소(#2828).
-///
-/// 웹의 `flutter_secure_storage` 는 값을 브라우저 localStorage 에 두고, 그 값을 푸는
-/// 키도 같은 localStorage 에 둔다. 같은 출처의 스크립트면 누구든 그대로 읽을 수 있고
-/// 브라우저를 닫아도 남는다. 웹에서는 토큰을 이 저장소(sessionStorage)에만 두어,
-/// 탭을 닫으면 사라지게 한다 — 주입된 스크립트가 있더라도 훔칠 수 있는 기간이 그
-/// 탭이 열려 있는 동안으로 줄어든다. 모바일은 이 저장소를 쓰지 않는다.
-abstract interface class TokenSessionStorage {
-  String? read(String key);
-  void write(String key, String value);
-  void remove(String key);
-}
-
-/// 메모리에만 두는 구현. 브라우저 sessionStorage 를 쓸 수 없을 때(사생활 보호
-/// 모드에서 막힘 등)와 테스트에서 쓴다. 새로고침하면 다시 로그인해야 한다.
-class InMemoryTokenSessionStorage implements TokenSessionStorage {
-  final Map<String, String> _values = <String, String>{};
-
-  @override
-  String? read(String key) => _values[key];
-
-  @override
-  void write(String key, String value) => _values[key] = value;
-
-  @override
-  void remove(String key) => _values.remove(key);
-}
+// 탭(세션) 단위로만 사는 토큰 저장소(#2828). 인터페이스와 메모리 구현은 두 앱이
+// 함께 쓰는 `oncare_core` 에 있다(#3271) — 이 파일을 가져다 쓰던 곳은 그대로다.
+export 'package:oncare_core/storage/token_session_storage.dart';
 
 /// 지금 플랫폼의 탭 단위 저장소. 웹이 아니면 `null` — 그때는 영구 보안 저장소
-/// (Keychain/Keystore)를 그대로 쓴다.
+/// (Keychain/Keystore)를 그대로 쓴다. 웹은 복제한 탭이면 복사해 받은 이 앱의
+/// 토큰을 버린다(#3248, #3271) — 판정은 두 앱이 함께 쓰는 `oncare_core` 에 있다.
 TokenSessionStorage? createPlatformTokenSessionStorage() =>
-    platform.createBrowserSessionStorage();
+    createBrowserTokenSessionStorage(TokenKeyspace.trainer);

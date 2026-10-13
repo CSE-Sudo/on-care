@@ -56,7 +56,13 @@ Future<void> bootstrap() async {
   // 에러 추적(#2839). DSN 이 없거나 데모(목업)·개발 환경이면 보내지 않는 보고기가 온다.
   final ErrorReporter errorReporter = await initErrorReporter(config);
 
-  final prefs = await SharedPreferences.getInstance();
+  final prefs = await openPreferences(
+    onFallback: (Object e, StackTrace st) => logger.w(
+      'SharedPreferences 를 열지 못해 메모리 저장소로 띄운다',
+      error: e,
+      stackTrace: st,
+    ),
+  );
 
   // 앱을 지웠다 다시 깔았는가 — iOS 키체인 항목은 앱을 지워도 남아서, 재설치
   // 하고 열면 이전 계정 대시보드로 바로 들어갔다(#1944). 설치 표식은 앱과 함께
@@ -71,12 +77,13 @@ Future<void> bootstrap() async {
   // 데모 시드와 목업 혜택 장부는 데모 모드에서만 깐다(#2914). drift 를 읽는
   // 소비자(로컬 인터셉터·목업 MY 저장소)가 모두 `useMockApi` 분기 안에만 있어,
   // 실서버 빌드가 시드하면 아무도 읽지 않는 데모 행을 기기에 써 넣기만 한다.
+  //
+  // 시드 함수는 기본 인자로 물려 있어, 상수 [kDemoCodeIncluded] 로 호출 자체를
+  // 감싸야 운영 릴리스 번들에서 시드가 빠진다(#3157).
   final db = AppDatabase();
-  final DemoBenefitsStore benefits = await prepareDemoStorage(
-    config,
-    db,
-    logger,
-  );
+  final DemoBenefitsStore benefits = kDemoCodeIncluded
+      ? await prepareDemoStorage(config, db, logger)
+      : DemoBenefitsStore.memory();
 
   // 전역 오류 처리기: 기기 로그에 남기고, 보고기가 켜져 있으면 에러 추적으로도 보낸다.
   installErrorHandlers(
@@ -109,6 +116,30 @@ Future<void> bootstrap() async {
       child: const OncareApp(),
     ),
   );
+}
+
+/// 앱 설정 저장소를 연다. 열 수 없으면 이번 실행 동안만 쓰는 빈 메모리 저장소로
+/// 대신한다(#3250).
+///
+/// 저장소를 막은 브라우저(사생활 보호 모드·사이트 데이터 차단)에서는 웹의
+/// `localStorage` 에 손대는 순간 예외가 난다. 이 호출은 오류 처리기를 걸기 전에
+/// 있어 그대로 던지면 부팅이 멈추고 흰 화면만 남았다. 설정이 남지 않는 것이
+/// 켜지지 않는 것보다 낫다.
+@visibleForTesting
+Future<SharedPreferences> openPreferences({
+  Future<SharedPreferences> Function() open = SharedPreferences.getInstance,
+  void Function(Object error, StackTrace stack)? onFallback,
+}) async {
+  try {
+    return await open();
+  } catch (e, st) {
+    onFallback?.call(e, st);
+    // 공개된 메모리 저장소는 이 길 하나뿐이다 — 테스트용으로 표시돼 있지만 하는
+    // 일은 플랫폼 저장소를 빈 메모리 저장소로 바꾸는 것뿐이다.
+    // ignore: invalid_use_of_visible_for_testing_member
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    return SharedPreferences.getInstance();
+  }
 }
 
 /// 데모 모드면 로컬 DB 에 데모 시드를 깔고 목업 혜택 장부를 연다. 실서버 모드면

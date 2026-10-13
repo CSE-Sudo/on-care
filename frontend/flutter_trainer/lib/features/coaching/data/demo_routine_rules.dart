@@ -12,6 +12,8 @@
 /// 대조하므로, 서버 표를 고치고 파일을 다시 만들면 여기가 어긋난 만큼 깨진다.
 library;
 
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+
 /// 조심할 부위 · 그 부위를 가리키는 말 · 그 부위에 부담이 큰 운동 이름 조각.
 /// 서버 `_CAUTION_RULES` 와 같다(#1440). 진단하지 않는다 — 무엇을 빼야 안전한가만
 /// 안다.
@@ -20,19 +22,23 @@ const List<(String, List<String>, List<String>)> demoCautionRules =
       (
         '무릎',
         <String>['무릎', '슬개', '반월'],
-        <String>['러닝', '달리기', '점프', '스쿼트', '런지', '계단'],
+        <String>['러닝', '런닝', '달리기', '점프', '스쿼트', '런지', '계단'],
       ),
       (
         '허리',
         <String>['허리', '요추', '디스크'],
-        <String>['데드리프트', '윗몸', '점프', '러닝', '달리기'],
+        <String>['데드리프트', '윗몸', '점프', '러닝', '런닝', '달리기'],
       ),
       (
         '어깨',
         <String>['어깨', '회전근', '견관절'],
         <String>['숄더', '오버헤드', '푸시업', '벤치', '풀업'],
       ),
-      ('발목', <String>['발목', '족저'], <String>['러닝', '달리기', '점프', '줄넘기', '계단']),
+      (
+        '발목',
+        <String>['발목', '족저'],
+        <String>['러닝', '런닝', '달리기', '점프', '줄넘기', '계단'],
+      ),
     ];
 
 /// 이 말이 보이면 강도를 올리지 않고 전문가 확인을 권한다. 서버
@@ -48,25 +54,6 @@ const List<String> demoEscalationKeywords = <String>[
   '골절',
 ];
 
-/// 주의 부위 이름의 영어. 근거 문장에만 쓴다(서버 `_EN_CAUTION_PARTS`).
-const Map<String, String> demoEnCautionParts = <String, String>{
-  '무릎': 'knee',
-  '허리': 'lower back',
-  '어깨': 'shoulder',
-  '발목': 'ankle',
-};
-
-/// 라이브러리 운동 이름의 영어(서버 `_EN_EXERCISE_NAMES`). 회원 기록에 적힌
-/// 반복 운동 이름은 여기 없어 원문 그대로다.
-const Map<String, String> demoEnExerciseNames = <String, String>{
-  '저강도 걷기': 'Low-intensity walk',
-  '인터벌 러닝': 'Interval running',
-  '스쿼트': 'Squat',
-  '플랭크': 'Plank',
-  '코어 스트레칭': 'Core stretch',
-  '목·어깨 스트레칭': 'Neck & shoulder stretch',
-};
-
 /// 라이브러리 운동(한국어 이름·계약 유형). 서버 `_CARDIO_EASY` 등과 같다.
 const (String, String) libCardioEasy = ('저강도 걷기', '유산소');
 const (String, String) libCardioHard = ('인터벌 러닝', '유산소');
@@ -79,6 +66,7 @@ const List<String> demoStretchKeywords = <String>['스트레칭', '요가', '폼
 const List<String> demoCardioKeywords = <String>[
   '걷기',
   '러닝',
+  '런닝',
   '자전거',
   '유산소',
   '인터벌',
@@ -140,33 +128,126 @@ List<(String, String, int)> safeParts(
 }
 
 /// 근거 문장에 붙일 안전 메모 — 서버 `_caution_suffix`.
-String cautionSuffix(List<String> cautions, bool escalate, {required bool en}) {
+String cautionSuffix(List<String> cautions, bool escalate) {
   final StringBuffer out = StringBuffer();
   if (cautions.isNotEmpty) {
-    if (en) {
-      final String names = cautions
-          .map((String c) => demoEnCautionParts[c] ?? c)
-          .join(', ');
-      out.write(
-        ' Cautions ($names) applied: removed movements that load those areas.',
-      );
-    } else {
-      out.write(' 주의사항(${cautions.join(', ')}) 반영: 해당 부위 부담 동작을 뺐습니다.');
-    }
+    out.write(' 주의사항(${cautions.join(', ')}) 반영: 해당 부위 부담 동작을 뺐어요.');
   }
   if (escalate) {
     out.write(
-      en
-          ? ' Intensity was not raised — adjust after a professional check.'
-          : ' 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.',
+      ' 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.',
     );
   }
   return out.toString();
 }
 
-/// 라이브러리 운동 이름을 화면 언어로. 라이브러리 밖 이름은 그대로다.
-String libraryExerciseName(String name, {required bool en}) =>
-    en ? demoEnExerciseNames[name] ?? name : name;
+/// 판단 결과에 보여 줄 부위별 대표 동작 — 서버 `_CAUTION_EXAMPLES` 와 같다(#3280).
+const Map<String, String> demoCautionExamples = <String, String>{
+  '무릎': '러닝·점프·스쿼트',
+  '허리': '데드리프트·윗몸일으키기·점프',
+  '어깨': '오버헤드 프레스·푸시업·풀업',
+  '발목': '러닝·점프·줄넘기',
+};
+
+/// 판단 결과의 근거 자료 — (화면 이름, 최근 것부터의 줄) (#3280).
+typedef DemoFindingSource = (String, List<String>);
+
+final RegExp _lineDate = RegExp(r'^(\d{2}\.\d{2})');
+
+(DemoFindingSource, String, String)? _firstHit(
+  List<DemoFindingSource> sources,
+  List<String> keywords,
+) {
+  for (final DemoFindingSource source in sources) {
+    for (final String line in source.$2) {
+      for (final String keyword in keywords) {
+        if (line.contains(keyword)) return (source, line, keyword);
+      }
+    }
+  }
+  return null;
+}
+
+String _sourceLabel(DemoFindingSource source, String line) {
+  final String name = source.$1;
+  final RegExpMatch? m = _lineDate.firstMatch(line.trim());
+  return m == null ? name : '$name · ${m.group(1)}';
+}
+
+/// 서버가 찾은 것과 반영 방향 — 서버 `rule_findings` 와 같은 규칙(#3280).
+List<RoutineFinding> ruleFindings({
+  required List<DemoFindingSource> sources,
+  required List<String> frequent,
+  required int sessionCount,
+  required int periodDays,
+  required int sodium,
+  required bool sodiumOver,
+  required int completion,
+}) {
+  final List<RoutineFinding> out = <RoutineFinding>[];
+  for (final (String part, List<String> keywords, List<String> risky)
+      in demoCautionRules) {
+    final hit = _firstHit(sources, keywords);
+    if (hit == null) continue;
+    final String moves = demoCautionExamples[part] ?? risky.take(3).join('·');
+    out.add(
+      RoutineFinding(
+        kind: 'caution',
+        finding: '$part 불편·통증 언급',
+        source: _sourceLabel(hit.$1, hit.$2),
+        action: '$part에 부담이 큰 동작($moves 등)을 빼고 저충격 대안으로',
+      ),
+    );
+  }
+  final escalation = _firstHit(sources, demoEscalationKeywords);
+  if (escalation != null) {
+    out.add(
+      RoutineFinding(
+        kind: 'escalation',
+        finding: '전문가 확인이 필요한 언급(${escalation.$3})',
+        source: _sourceLabel(escalation.$1, escalation.$2),
+        action: '강도를 올리지 않음 — 전문가 확인 후 조정',
+      ),
+    );
+  }
+  const String records = '운동 기록';
+  if (frequent.isNotEmpty) {
+    final String names = frequent.join(', ');
+    out.add(
+      RoutineFinding(
+        kind: 'pattern',
+        finding: '반복한 운동: $names',
+        source: '$records · 최근 $periodDays일 $sessionCount회',
+        action: '회복안은 이 운동을 그대로 유지, 강화안은 하나를 더해 운동량 확대',
+      ),
+    );
+    return out;
+  }
+  const String easeA = '회복안 부담을 낮추고 스트레칭 비중 확대';
+  if (sodiumOver) {
+    out.add(
+      RoutineFinding(
+        kind: 'sodium',
+        finding: '오늘 나트륨 ${sodium}mg (목표 초과)',
+        source: '식단 기록 · 오늘',
+        action: easeA,
+      ),
+    );
+  }
+  out.add(
+    RoutineFinding(
+      kind: 'adherence',
+      finding: '평균 완료율 $completion%',
+      source: records,
+      action: completion < 50
+          ? easeA
+          : completion >= 60
+          ? '상향 여력이 있어 강화안에서 운동량을 높임'
+          : '강화안은 운동량을 점진적으로 높임',
+    ),
+  );
+  return out;
+}
 
 /// 반복 운동 이름으로 유형을 대략 짐작한다 — 서버 `_guess_type`.
 String guessExerciseType(String name) {
@@ -183,6 +264,8 @@ String guessExerciseType(String name) {
 /// `걷기 ✓` 가 따로 세어진다. **안 한 운동(✗)은 빈 이름**이라 반복으로 세지
 /// 않는다.
 String historyExerciseName(Object? item) {
+  // 값으로 적힌 기록은 `done: false` 가 안 한 운동이다 — 문장의 `✗` 와 같다.
+  if (item is Map && item['done'] == false) return '';
   final Object? raw = item is Map ? item['name'] : item;
   if (raw is! String || raw.contains('✗')) return '';
   return raw
@@ -239,8 +322,8 @@ List<String> frequentExercises(Iterable<List<Object?>> sessions) {
     }
     ranked[j + 1] = value;
   }
+  // 한 번만 한 운동도 넣는다 — 기록 한 회로도 분석한다(서버와 같다, #3293).
   return <String>[
-    for (final MapEntry<String, int> e in ranked)
-      if (e.value >= 2) e.key,
+    for (final MapEntry<String, int> e in ranked) e.key,
   ].take(3).toList();
 }

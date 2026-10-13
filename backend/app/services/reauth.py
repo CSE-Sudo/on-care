@@ -28,7 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.rate_limit import clear_failures, ensure_unlocked, record_failure
+from app.core.rate_limit import claim_attempt, clear_failures, ensure_unlocked
 from app.core.security import verify_password
 from app.models.models import SocialAccount, User
 from app.services import audit
@@ -51,11 +51,11 @@ REAUTH_REQUIRED_SOCIAL = {
 }
 INVALID_CURRENT_PASSWORD = {
     "code": "invalid_current_password",
-    "message": "현재 비밀번호가 일치하지 않습니다.",
+    "message": "현재 비밀번호가 일치하지 않아요.",
 }
 INVALID_REAUTH = {
     "code": "invalid_reauth",
-    "message": "소셜 계정 확인에 실패했습니다. 다시 로그인해 주세요.",
+    "message": "소셜 계정을 확인하지 못했어요. 다시 로그인해 주세요.",
 }
 
 #: 확인하는 동작. 감사 로그 `detail` 의 `action=` 이다.
@@ -106,7 +106,7 @@ def _linked(db: Session, user: User, identity: SocialIdentity) -> bool:
 def _fail(
     db: Session, user: User, *, action: str, via: str, ip: str, detail: dict
 ) -> HTTPException:
-    record_failure(fail_key(user.id), float(get_settings().login_lockout_seconds))
+    # 실패 횟수는 확인 전에 [claim_attempt] 가 이미 셌다(#3238).
     audit.record(
         db,
         event=audit.REAUTH_FAILED,
@@ -133,15 +133,19 @@ def require(
     값을 아예 보내지 않은 것(`reauth_required`)은 실패로 세지 않는다 — 옛 빌드가
     본문 없이 부른 것일 뿐 추측 시도가 아니다. 실패 기록은 [audit.record] 로 바로
     커밋하므로, 호출부는 다른 변경을 세션에 얹기 **전에** 부른다.
+
+    값을 보낸 시도는 확인 **전에** 센다(`claim_attempt`, #3238). 확인이 맞으면 지운다
+    — 틀린 뒤에 세면 확인을 기다리는 동시 요청이 모두 잠금 판정을 통과한다.
     """
     settings = get_settings()
     key = fail_key(user.id)
-    ensure_unlocked(
-        key, settings.password_change_max_failures, float(settings.login_lockout_seconds)
-    )
+    limit = settings.password_change_max_failures
+    window = float(settings.login_lockout_seconds)
+    ensure_unlocked(key, limit, window)
     if user.hashed_password:
         if not (current_password or ""):
             raise HTTPException(status_code=400, detail=REAUTH_REQUIRED)
+        claim_attempt(key, limit, window)
         if not verify_password(current_password or "", user.hashed_password):
             raise _fail(
                 db, user, action=action, via="password", ip=ip,
@@ -154,6 +158,7 @@ def require(
     token = (social_token or "").strip()
     if not (provider and token):
         raise HTTPException(status_code=400, detail=REAUTH_REQUIRED_SOCIAL)
+    claim_attempt(key, limit, window)
     identity = _verify_social(provider, token)
     if identity is None or not _linked(db, user, identity):
         raise _fail(db, user, action=action, via="social", ip=ip, detail=INVALID_REAUTH)

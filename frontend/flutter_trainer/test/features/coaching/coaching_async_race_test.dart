@@ -49,6 +49,7 @@ class _HoldingScheduleRepository extends DriftScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) {
     registerCalls++;
     return super.registerProgramSchedule(
@@ -61,6 +62,7 @@ class _HoldingScheduleRepository extends DriftScheduleRepository {
       program: program,
       sessionId: sessionId,
       personalRoutines: personalRoutines,
+      note: note,
     );
   }
 }
@@ -341,7 +343,7 @@ void main() {
 
       expect(repo.listCalls, greaterThan(listsBefore));
       expect(find.text('이미 지워진 템플릿이에요'), findsOneWidget);
-      expect(find.text('템플릿을 지우지 못했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('템플릿을 삭제하지 못했어요. 다시 시도해 주세요'), findsNothing);
       expect(
         find.byKey(ValueKey<String>('template-card-${_mine.id}')),
         findsNothing,
@@ -388,7 +390,7 @@ void main() {
       );
       repo.rows.clear(); // 다른 탭에서 지웠다.
 
-      await openMenuItem(tester, '템플릿 편집');
+      await openMenuItem(tester, '템플릿 수정');
       await tester.tap(find.byKey(const ValueKey<String>('template-save')));
       await settle(tester);
 

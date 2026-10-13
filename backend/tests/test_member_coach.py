@@ -193,6 +193,103 @@ def test_member_sessions_number_done_pt_in_order(client, db_session):
         db_session.commit()
 
 
+def test_member_sessions_hide_cancellation_reason(client, db_session):
+    """취소 사유는 트레이너만 본다 — 회원 응답에서는 비운다(#3239).
+
+    트레이너가 적은 내부 사유와 담당 해제(`담당 해제`) 모두 회원에게 가지 않는다.
+    취소 주체는 그대로 실린다. 트레이너 응답에는 사유가 남는다.
+    """
+    from datetime import datetime, timezone
+
+    from app.models import models
+    from app.services.trainer._common import DETACH_CANCEL_REASON
+
+    tag = uuid4().hex[:6]
+    day = "2031-06-03"
+    reasons = {"trainer": f"회원 무단 지각-{tag}", "other": DETACH_CANCEL_REASON}
+    ids = {key: f"sched-3239-{key}-{tag}" for key in reasons}
+    for i, (key, reason) in enumerate(reasons.items()):
+        db_session.add(models.TrainerSchedule(
+            id=ids[key], trainer_id="trainer-demo", member_id="user-jisu",
+            date=day, time=f"{7 + i:02d}:00", client_name="이지수",
+            type="1:1 PT", duration_minutes=50, status="취소",
+            note="", program_json="[]", sort_order=0,
+            cancelled_at=datetime(2031, 6, 1, tzinfo=timezone.utc),
+            cancellation_source=key, cancellation_reason=reason,
+        ))
+    db_session.commit()
+    try:
+        sessions = client.get("/v1/me/coach/sessions", headers=_h(_member_tok(client))).json()
+        mine = {s["id"]: s for s in sessions if s["id"] in ids.values()}
+        assert {sid: s["cancellation_reason"] for sid, s in mine.items()} == {
+            sid: "" for sid in ids.values()
+        }
+        assert mine[ids["trainer"]]["cancellation_source"] == "trainer"
+
+        trainer = client.get(
+            "/v1/trainer/schedule",
+            params={"date": day, "member_id": "user-jisu"},
+            headers=_h(_trainer_tok(client)),
+        ).json()
+        trainer_reasons = {
+            s["id"]: s["cancellation_reason"] for s in trainer if s["id"] in ids.values()
+        }
+        assert trainer_reasons == {ids[key]: reason for key, reason in reasons.items()}
+    finally:
+        db_session.rollback()
+        for sid in ids.values():
+            row = db_session.get(models.TrainerSchedule, sid)
+            if row is not None:
+                db_session.delete(row)
+        db_session.commit()
+
+
+def test_member_sessions_queries_do_not_grow_with_rows(client, db_session):
+    """회원 PT 목록은 예약 소유 여부를 한 번에 모은다 — 행이 늘어도 쿼리 수가 같다(#3242)."""
+    from sqlalchemy import event
+
+    from app.models import models
+    from app.services.trainer.member_mirror import build_member_sessions
+
+    def count_queries() -> int:
+        engine = db_session.get_bind()
+        seen: list[str] = []
+
+        def listener(conn, cursor, statement, params, context, executemany):
+            seen.append(statement)
+
+        db_session.expire_all()
+        event.listen(engine, "before_cursor_execute", listener)
+        try:
+            build_member_sessions(db_session, "user-jisu")
+        finally:
+            event.remove(engine, "before_cursor_execute", listener)
+        return len(seen)
+
+    tag = uuid4().hex[:6]
+    ids = [f"sched-3242-{i}-{tag}" for i in range(4)]
+    build_member_sessions(db_session, "user-jisu")
+    before = count_queries()
+    for i, sid in enumerate(ids):
+        db_session.add(models.TrainerSchedule(
+            id=sid, trainer_id="trainer-demo", member_id="user-jisu",
+            date="2031-07-01", time=f"{6 + i:02d}:00", client_name="이지수",
+            type="1:1 PT", duration_minutes=50, status="예정",
+            note="", program_json="[]", sort_order=0,
+        ))
+    db_session.commit()
+    try:
+        # 100건 상한에 걸리면 오래된 행이 밀려나 줄 수는 있어도 늘지는 않는다.
+        assert count_queries() <= before
+    finally:
+        db_session.rollback()
+        for sid in ids:
+            row = db_session.get(models.TrainerSchedule, sid)
+            if row is not None:
+                db_session.delete(row)
+        db_session.commit()
+
+
 def test_member_send_reflects_in_trainer_roster(client):
     mt = _member_tok(client)
     r = client.post(

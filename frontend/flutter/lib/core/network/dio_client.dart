@@ -14,8 +14,6 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/shared/services/locale_provider.dart';
-import 'package:oncare_core/network/accept_language_interceptor.dart';
 
 /// App-wide `Dio` instance, wired with logging/auth/local-api interceptors
 /// based on the current [AppConfig]. Feature data sources should read
@@ -42,15 +40,12 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  // 화면 언어는 가장 먼저 싣는다 — 목업 인터셉터도 같은 요청 헤더를 보게.
-  // 언어는 요청마다 읽으므로 언어가 바뀌어도 Dio 를 다시 만들지 않는다(#2297).
-  dio.interceptors.add(
-    AcceptLanguageInterceptor(() => ref.read(resolvedLocaleProvider)),
-  );
-
   // Order matters: LocalApi (drift-backed) short-circuits before auth/logging
   // fire.
-  if (config.useMockApi) {
+  //
+  // 상수 [kDemoCodeIncluded] 를 먼저 본다 — 운영 릴리스에서는 이 분기 전체가
+  // 컴파일 때 사라져 로컬 API·시드가 번들에 들어가지 않는다(#3157).
+  if (kDemoCodeIncluded && config.useMockApi) {
     // REAL_API 로 켠 기능의 경로는 목업 인터셉터가 가로채지 않고 실 네트워크로
     // 흘려보낸다 — 준비된 기능만 골라 실연동해 보여줄 수 있게(전역 USE_MOCK_API 는
     // 끄는 순간 전 기능이 함께 넘어간다).

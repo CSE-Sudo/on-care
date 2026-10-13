@@ -197,8 +197,12 @@ void main() {
       );
     }
 
-    // pubspec 이 이 디렉터리를 자산으로 싣고 있어야 빌드에 포함된다.
-    expect(File('pubspec.yaml').readAsStringSync(), contains('assets/images/'));
+    // pubspec 이 이 디렉터리를 자산으로 싣고 있어야 빌드에 포함된다. 데모 사진은
+    // 데모 전용 폴더에 있고, 운영 빌드만 이 줄을 뺀다(#3157).
+    expect(
+      File('pubspec.yaml').readAsStringSync(),
+      contains('- assets/demo/images/'),
+    );
   });
 
   test('디코딩한 주간 계열은 그대로다', () async {

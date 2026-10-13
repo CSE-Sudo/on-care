@@ -1,2 +1,8 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
+
+// 카카오·구글 로그인 URL 스킴(#330). 기본값은 아무 앱도 열지 않는 자리표시 스킴이고,
+// 실제 값은 Social.xcconfig(커밋하지 않음, Social.xcconfig.example 참고)가 덮어쓴다.
+KAKAO_URL_SCHEME = oncare-kakao-disabled
+GOOGLE_URL_SCHEME = oncare-google-disabled
+#include? "Social.xcconfig"

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/presentation/providers/delivery_status_providers.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -212,9 +214,21 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 일정을 가운데 모달로 연다 — [existing] 이 없으면 `새 일정 추가`,
   /// 있으면 `일정 수정`이다.
   Future<void> _openScheduleDialog({ScheduleSession? existing}) {
-    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
-    if (existing == null && clients.isEmpty) return Future<void>.value();
     final AppLocalizations l = AppLocalizations.of(context);
+    final roster = ref.read(clientsProvider);
+    final clients = roster.valueOrNull ?? const [];
+    if (existing == null && clients.isEmpty) {
+      // 눌러도 아무 일이 없으면 고장으로 읽힌다(#3249) — 왜 못 여는지 말한다.
+      showAppToast(
+        context,
+        roster.isLoading && !roster.hasValue
+            ? l.schedClientsLoading
+            : roster.hasError && !roster.hasValue
+            ? l.clientsLoadFailed
+            : l.schedNewNeedsClient,
+      );
+      return Future<void>.value();
+    }
     return showAppDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -306,6 +320,19 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
               .text(OnCareTypography.caption)
               .copyWith(color: OnCareColors.textTertiary),
         ),
+        // 완료한 PT 를 지우면 회원 앱의 PT 기록·운동 기록도 함께 지워진다
+        // (서버 `delete_session`). 트레이너가 자기 화면만 정리하는 줄 알고
+        // 지우지 않게 미리 알린다(#3309).
+        if (s.isDone && !s.isConsultation) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s8),
+          Text(
+            l.schedDeleteDoneRemovesMemberRecord,
+            key: const Key('schedDeleteDoneRemovesMemberRecord'),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ],
       ],
     );
     if (!ok || !mounted) return;
@@ -405,6 +432,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       return;
     }
     if (!mounted) return;
+    // 코칭 탭은 살아 있는 채로 예전 읽기를 쥐고 있다 — 버려야 돌아갔을 때
+    // `아직 안 보낸 개인운동` 과 전송 이력이 맞는다.
+    invalidateDeliveryStatus(ref);
     setState(() {
       _unsentRoutines[session.id] = const <RoutineExercise>[];
       _routinesRevision[session.id] = (_routinesRevision[session.id] ?? 0) + 1;
@@ -463,6 +493,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       return;
     }
     if (!mounted) return;
+    // 코칭 탭은 살아 있는 채로 예전 읽기를 쥐고 있다 — 버려야 돌아갔을 때
+    // `아직 안 보낸 개인운동` 과 전송 이력이 맞는다.
+    invalidateDeliveryStatus(ref);
     setState(() {
       _unsentRoutines[session.id] = const <RoutineExercise>[];
       _routinesRevision[session.id] = (_routinesRevision[session.id] ?? 0) + 1;
@@ -550,6 +583,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           );
       if (!mounted) return;
       _sendRequestIds.remove(s.id); // 다음 전송은 새 시도다.
+      invalidateDeliveryStatus(ref); // 코칭 탭의 전송 이력도 맞춘다.
       // 개인운동도 이 전송에 함께 실려 갔다(#2224). 갈래를 다시 읽지 않으면
       // 이미 보낸 것에 `아직 회원에게 가지 않았어요` 가 그대로 남는다.
       setState(() {
@@ -814,6 +848,31 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
               // 같은 패널을 시간표 아래로 쌓는다. 표현을 바꾸지 않으므로
               // 넓은 화면에서 익힌 것이 좁은 화면에서도 그대로 통한다.
               if (selected == null) return stacked;
+              // 창이 낮으면 3:2 로 나눈 두 칸이 모두 못 쓸 높이가 된다 — 시간표가
+              // 두세 시간만 보인다. 그때는 시간표에 화면 높이를 거의 다 주고,
+              // 상세는 그 아래로 이어 한 페이지로 내려 본다(#3316).
+              if (constraints.maxHeight < _stackedSplitMinHeight) {
+                return SingleChildScrollView(
+                  key: const Key('schedule-stacked-scroll'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      SizedBox(
+                        height: math.max(
+                          _stackedGridMinHeight,
+                          constraints.maxHeight - _stackedDetailPeek,
+                        ),
+                        child: stacked,
+                      ),
+                      Container(
+                        height: OnCareSize.hairline,
+                        color: OnCareColors.lineSubtle,
+                      ),
+                      _buildWeekDetail(selected, embedded: true),
+                    ],
+                  ),
+                );
+              }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -826,6 +885,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                 ],
               );
             }
+            // 패널은 좁은 창에서 먼저 줄어든다 — 380 으로 못 박으면 1024 창에서
+            // 요일 칸이 67 이 되어 회원 이름이 한 글자로 잘린다(#3316).
+            final double panelWidth = _panelWidthFor(constraints.maxWidth);
             // 머리(날짜 행 · 패널 칸 머리)를 **한 줄에** 세우고 몸(격자 · 카드)을
             // 그 아래 한 줄에 세운다 — 같은 `Row` 라 높이가 저절로 맞는다(#1008).
             //
@@ -848,28 +910,35 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                     ),
                     const SizedBox(width: OnCareSize.hairline),
                     SizedBox(
-                      width: _panelWidth,
+                      width: panelWidth,
                       child: Padding(
                         padding: const EdgeInsets.only(
                           left: OnCareSpacing.s16,
                           bottom: OnCareSpacing.s8,
                         ),
-                        child: Row(
-                          key: const ValueKey<String>(
-                            'schedule-intake-actions',
-                          ),
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: <Widget>[
-                            for (
-                              int i = 0;
-                              i < intakeActions.length;
-                              i++
-                            ) ...<Widget>[
-                              if (i > 0)
-                                const SizedBox(width: OnCareSpacing.s8),
-                              intakeActions[i],
+                        // 패널이 줄어든 폭(304~)에서 영어·큰 글자면 두 버튼이
+                        // 칸보다 길다 — 넘치지 않게 그 안에서 통째로 줄인다
+                        // (#3316).
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Row(
+                            key: const ValueKey<String>(
+                              'schedule-intake-actions',
+                            ),
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              for (
+                                int i = 0;
+                                i < intakeActions.length;
+                                i++
+                              ) ...<Widget>[
+                                if (i > 0)
+                                  const SizedBox(width: OnCareSpacing.s8),
+                                intakeActions[i],
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
@@ -892,7 +961,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                         color: OnCareColors.lineSubtle,
                       ),
                       SizedBox(
-                        width: _panelWidth,
+                        width: panelWidth,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
@@ -917,8 +986,24 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     );
   }
 
-  /// 상세 패널의 폭.
-  static const double _panelWidth = OnCareLayout.splitListWidth;
+  /// 상세 패널의 폭 — 콘텐츠 폭의 3분의 1, [_panelMinWidth]~분할 목록 폭 사이.
+  static double _panelWidthFor(double contentWidth) => (contentWidth / 3)
+      .clamp(_panelMinWidth, OnCareLayout.splitListWidth)
+      .toDouble();
+
+  /// 상세 카드가 버튼 줄을 접지 않고 서는 가장 좁은 폭.
+  static const double _panelMinWidth = 304;
+
+  /// 쌓인 배치를 위아래 두 칸으로 나눠 쓸 수 있는 가장 낮은 높이. 그 아래에서는
+  /// 한 페이지로 이어 내려 본다.
+  static const double _stackedSplitMinHeight = 520;
+
+  /// 한 페이지로 이을 때 시간표(날짜 행 포함)가 갖는 가장 낮은 높이.
+  static const double _stackedGridMinHeight = 360;
+
+  /// 한 페이지로 이을 때 시간표 아래로 비쳐 보이는 상세의 높이 — `상세 일정`
+  /// 제목이 보여야 아래에 더 있다는 것을 안다.
+  static const double _stackedDetailPeek = 64;
 
   /// 넓은 화면의 패널 머리글 — 시간표 머리와 같은 높이에서 시작한다(#1008,
   /// #2628). 선택한 일정이 없어도 자리를 말한다.
@@ -945,7 +1030,13 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       .text(OnCareTypography.titleSmall)
       .copyWith(color: OnCareColors.textPrimary);
 
-  Widget _buildWeekDetail(ScheduleSession? session, {bool withTitle = true}) {
+  /// [embedded] 면 스스로 스크롤하지 않고 내용 높이만큼 선다 — 바깥 스크롤이
+  /// 넘긴다.
+  Widget _buildWeekDetail(
+    ScheduleSession? session, {
+    bool withTitle = true,
+    bool embedded = false,
+  }) {
     final l = AppLocalizations.of(context);
     if (session == null) {
       return AppEmptyState(title: l.schedEmptyDay, icon: AppIcons.eventBusy);
@@ -962,6 +1053,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         : l.dateMonthDay(day.month, day.day);
     return ListView(
       key: const Key('week-detail'),
+      shrinkWrap: embedded,
+      physics: embedded ? const NeverScrollableScrollPhysics() : null,
       padding: const EdgeInsets.all(OnCareSpacing.s16),
       children: <Widget>[
         // 넓은 화면에서는 패널 머리글([_panelHeader])이 따로 서므로 빼둔다.

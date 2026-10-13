@@ -47,6 +47,21 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- 카카오 로그인(#330): 카카오계정 로그인을 마친 브라우저가 `kakao<앱 키>://oauth` 로
+             돌아오면 카카오 SDK 가 인가 코드를 받는다. 스킴은 빌드 변수
+             KAKAO_NATIVE_APP_KEY 로 build.gradle.kts 가 채운다(없으면 자리표시 스킴). -->
+        <activity
+            android:name="com.kakao.sdk.flutter.auth.AuthCodeHandlerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="${kakaoRedirectScheme}"
+                    android:host="oauth" />
+            </intent-filter>
+        </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

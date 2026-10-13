@@ -136,6 +136,8 @@ const Set<String> _serverNotificationKeys = <String>{
   'invite_id',
   'template',
   'args',
+  // 리포트 알림이 가리키는 리포트(#3344). 다른 알림은 값이 null 이다.
+  'report',
 };
 
 /// FastAPI `HTTPException` 의 본문.
@@ -265,7 +267,7 @@ void main() {
       ),
     );
     expect(error, isA<NotFoundError>());
-    expect(error.detail, '알림을 찾을 수 없습니다.');
+    expect(error.detail, '알림을 찾을 수 없어요.');
   });
 
   test('형식 오류 422 — 본문이 `detail` 이다', () async {

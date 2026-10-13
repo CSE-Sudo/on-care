@@ -49,15 +49,18 @@ class TokenKeyValueAccess {
   final Future<void> Function(String key) delete;
 }
 
-/// 옛 키의 토큰을 [space] 의 키로 한 번 옮긴다. 옮겼으면 `true`.
+/// 옛 키의 토큰을 [space] 의 키로 한 번 **복사한다**. 복사했으면 `true`.
 ///
 ///  * 새 접근 토큰 키에 값이 있으면 **아무것도 건드리지 않는다** — 이미 옮겼거나
 ///    새 빌드로 로그인한 것이다. 옛 키는 다른 앱의 것일 수 있다.
-///  * 옛 접근 토큰이 없으면 옮길 것이 없다. 짝 없이 남은 옛 갱신 토큰만 지운다.
-///  * 옮긴 뒤 옛 키를 지운다. 같은 값을 다른 앱이 다시 옮겨 가지 않게 한다.
-///
-/// 웹에서는 옛 키가 어느 앱 것인지 모르므로, 옮긴 토큰은 세션 복원의 역할
-/// 확인을 거쳐야 세션이 된다(두 앱 세션 컨트롤러).
+///  * 옛 접근 토큰이 없으면 옮길 것이 없다. 짝 없이 남은 옛 갱신 토큰만 지운다 —
+///    접근 토큰 없이는 어느 앱도 그것으로 세션을 되살리지 않는다.
+///  * 옛 키는 **지우지 않는다**(#3260). 웹에서는 두 앱이 한 탭 저장소를 같이 써서
+///    옛 키가 어느 앱 것인지 모른다. 먼저 열린 앱이 지우면 원래 주인 앱이 한 번
+///    로그아웃된다. 옛 키는 세션 복원의 역할 확인을 통과한 앱이 지우고, 통과하지
+///    못한 앱은 복사한 새 키만 버린다(두 앱 세션 컨트롤러). 로그아웃도 옛 키를
+///    함께 지운다 — 남겨 두면 새로 고침이 그 토큰을 다시 복사해 로그인이
+///    되살아난다.
 Future<bool> migrateLegacyTokenKeys(
   TokenKeyValueAccess store,
   TokenKeyspace space,
@@ -75,7 +78,12 @@ Future<bool> migrateLegacyTokenKeys(
   if (refresh != null && refresh.isNotEmpty) {
     await store.write(space.refreshKey, refresh);
   }
+  return true;
+}
+
+/// 이름공간 없던 옛 키를 지운다(#3260). 역할 확인을 통과한 앱과 로그아웃이
+/// 부른다.
+Future<void> deleteLegacyTokenKeys(TokenKeyValueAccess store) async {
   await store.delete(legacyAccessTokenKey);
   await store.delete(legacyRefreshTokenKey);
-  return true;
 }

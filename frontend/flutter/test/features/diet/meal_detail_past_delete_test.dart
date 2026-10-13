@@ -139,7 +139,7 @@ void main() {
     // 상세는 닫혔고 어제 목록으로 돌아왔다.
     expect(find.byKey(const Key('mealDetailPage')), findsNothing);
     expect(_pastCard, findsNothing);
-    expect(find.text('식단이 삭제되었어요'), findsOneWidget);
+    expect(find.text('식단을 삭제했어요'), findsOneWidget);
   });
 
   testWidgets('삭제 뒤 끼니가 놓였던 날을 다시 읽는다 — 영양 요약도 새 합계다', (

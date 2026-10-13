@@ -37,8 +37,7 @@ Color metricStatusColor(double v, double goal) => goal > 0 && v > goal
     ? OnCareColors.danger
     : OnCareBrand.member.statusWithinGoal;
 
-/// 월→일 요일 라벨. 홈 탭과 식단 탭이 **같은 문구**를 쓰도록 여기 둔다 — 한쪽만
-/// 하드코딩하면 영어 로케일에서 한글 요일이 그대로 남는다.
+/// 월→일 요일 라벨. 홈 탭과 식단 탭이 **같은 문구**를 쓰도록 여기 둔다.
 List<String> weekDayLabels(AppLocalizations l) => <String>[
   l.dietWeekdayMon,
   l.dietWeekdayTue,
@@ -203,7 +202,7 @@ class MetricTrendChart extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
-                      // 폭이 모자라면(영어 요일 등) 라벨만 줄여 넘치지 않게 한다.
+                      // 폭이 모자라면 라벨만 줄여 넘치지 않게 한다.
                       for (int i = 0; i < dayLabels.length; i++)
                         if (i == todayIndex)
                           // 오늘: 브랜드색 원 안에 흰 글씨.
@@ -434,7 +433,12 @@ class MetricTrendPainter extends CustomPainter {
       ),
       textDirection: ui.TextDirection.ltr,
     )..layout();
-    final double bx = (at.dx - tp.width / 2).clamp(0.0, w - tp.width);
+    // 글자가 캔버스보다 넓으면 상한이 하한보다 작아 `clamp` 가 던진다(#3250) —
+    // 그때는 왼쪽 끝에 붙인다.
+    final double bx = (at.dx - tp.width / 2).clamp(
+      0.0,
+      math.max(0.0, w - tp.width),
+    );
     double by = at.dy - tp.height - _kValueLabelGap;
     if (by < 0) by = at.dy + _kValueLabelGap;
     tp.paint(c, Offset(bx, by));

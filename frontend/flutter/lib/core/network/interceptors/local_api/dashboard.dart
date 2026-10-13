@@ -58,7 +58,6 @@ extension _LocalApiDashboard on LocalApiInterceptor {
       for (final MapEntry<String, int> source in sodiumSources.take(2))
         source.key,
     ];
-    final String lang = _requestLang(options);
 
     // 데모 시드가 큐레이션 '통합 조언'을 준비해 뒀는지. 있으면 그것을 우선
     // 노출하고, 없으면(시드 없는 테스트 DB, 회원이 기록을 바꿔 거둔 뒤 —
@@ -73,8 +72,13 @@ extension _LocalApiDashboard on LocalApiInterceptor {
       _db.exerciseSessions,
     )..where((t) => t.weekStart.equals(weekStart))).get();
     int exerciseMinutes = 0;
+    // 조언이 목표와 견주는 값 — 운동 탭의 유산소 달성률과 같은 합계다(#3350).
+    int exerciseCardioMinutes = 0;
     for (final r in exerciseRows) {
       exerciseMinutes += r.minutes;
+      if (normalizeExerciseType(r.type) == kExerciseTypeCardio) {
+        exerciseCardioMinutes += r.minutes;
+      }
     }
 
     // (혈당 row removed from the home summary per the latest design ref —
@@ -106,14 +110,14 @@ extension _LocalApiDashboard on LocalApiInterceptor {
         },
     ];
     final String? sodiumWarning = _homeSodiumWarning(
-      lang: lang,
       totalSodium: totalSodium,
       sodiumGoal: sodiumGoal,
       sourceNames: sodiumSourceNames,
     );
     final ({String key, String text}) exerciseFeedback = _homeExerciseFeedback(
-      lang: lang,
-      minutes: exerciseMinutes,
+      cardioMinutes: exerciseCardioMinutes,
+      goalMinutes: _weeklyCardioGoal(profile),
+      anyExercise: exerciseMinutes > 0,
     );
     final String adviceKey = hasSeededAdvice
         ? kDailyCombinedAdviceKey
@@ -148,11 +152,12 @@ extension _LocalApiDashboard on LocalApiInterceptor {
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
       'diet_entries': dietRows.length,
       'exercise_minutes': exerciseMinutes,
+      'exercise_cardio_minutes': exerciseCardioMinutes,
       // 주간 점수·지난 주 비교선·운동 칼로리·횟수는 서버처럼 싣지 않는다 — 홈이
       // 읽지 않는다(#2646).
       'nutrition_week': nutritionWeek,
       // 시드가 큐레이션한 통합 조언은 **키로** 내려보낸다 — 문장은 ARB 가
-      // ko·en 양쪽으로 갖고 있고 화면이 로케일에 맞게 고른다(#435).
+      // 갖고 있고 화면이 키로 고른다(#435).
       //
       // 시드 조언이 없으면 서버와 같은 순서로 고른다 — 나트륨 경고가 있으면
       // 그것, 없으면 이번 주 운동 되먹임이다. 음식 이름이 든 경고도 키와 음식
@@ -161,7 +166,7 @@ extension _LocalApiDashboard on LocalApiInterceptor {
       'ai_advice_params': <String, Object?>{
         if (adviceKey == 'sodium_over_sources') 'foods': sodiumSourceNames,
       },
-      // 키를 모르는 화면이 읽는 문장. 서버처럼 요청 언어를 따른다.
+      // 키를 모르는 화면이 읽는 문장.
       'sodium_warning': hasSeededAdvice ? null : sodiumWarning,
       'exercise_feedback': exerciseFeedback.text,
     });
@@ -181,53 +186,76 @@ extension _LocalApiDashboard on LocalApiInterceptor {
   }
 }
 
+/// 천 단위 쉼표(2100 → `2,100`). 서버 f-string `{n:,}` 과 같다.
+String _thousands(int value) => value.toString().replaceAllMapped(
+  RegExp(r'\B(?=(\d{3})+(?!\d))'),
+  (Match _) => ',',
+);
+
 /// 홈 나트륨 경고 — 서버 `dashboard._build_sodium_warning` 과 같은 문장.
-/// 목표 안이면 null. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
+/// 목표 안이면 null. 음식 이름은 회원이 적은 그대로 쓴다.
 String? _homeSodiumWarning({
-  required String lang,
   required int totalSodium,
   required int sodiumGoal,
   required List<String> sourceNames,
 }) {
   if (totalSodium <= sodiumGoal) return null;
-  final bool en = lang == 'en';
   if (sourceNames.isEmpty) {
-    return en
-        ? 'Sodium is at ${totalSodium}mg today, over your target (${sodiumGoal}mg).'
-        : '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.';
+    // 서버 `_build_sodium_warning` 과 같은 모양 — 천 단위 쉼표, 단위에 조사를
+    // 붙인다(#3120).
+    final String total = _thousands(totalSodium);
+    final String goal = _thousands(sodiumGoal);
+    return '오늘 나트륨이 ${total}mg으로 목표(${goal}mg)를 넘었어요.';
   }
-  return en
-      ? 'Sodium is high from ${sourceNames.join(' and ')}.'
-      : '${sourceNames.join('·')} 섭취로 나트륨이 높아요.';
+  return '${sourceNames.join('·')} 섭취로 나트륨이 높아요.';
 }
 
-/// 이번 주 운동 되먹임 — 서버 `dashboard._exercise_feedback` 과 같은 기준
-/// (주 150분)·같은 문장·같은 키.
+/// 회원의 주간 유산소 분 목표. 없으면 기본값 — 서버
+/// `exercise_service.weekly_cardio_goal` 과 같다(#3350).
+int _weeklyCardioGoal(Map<String, Object?> profile) {
+  final int? minutes = (profile['weekly_cardio_minutes'] as num?)?.toInt();
+  return minutes != null && minutes > 0
+      ? minutes
+      : kGoalDefaultWeeklyCardioMinutes;
+}
+
+/// 회원의 하루 나트륨 목표(mg). 없으면 기본값 — 서버
+/// `diet_service.member_sodium_limit` 과 같다(#3350).
+int _dailySodiumGoal(Map<String, Object?> profile) {
+  final int? mg = (profile['daily_sodium_mg'] as num?)?.toInt();
+  return mg != null && mg > 0 ? mg : kGoalDefaultDailySodiumMg;
+}
+
+/// 이번 주 운동 되먹임 — 서버 `dashboard._exercise_feedback` 과 같은 기준·같은
+/// 문장·같은 키.
+///
+/// 운동 탭처럼 이번 주 유산소 분([cardioMinutes])을 회원의 주간 유산소 목표
+/// ([goalMinutes])와 견준다(#3350). 예전에는 유형을 가리지 않은 합계를 주 150분
+/// 고정과 견줬다. [anyExercise] 는 유형과 무관하게 이번 주 기록이 있는지다 —
+/// 근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다. 그런 주(유산소
+/// 0분)는 유산소를 권하는 문장(`exercise_cardio_start`)이다.
 ({String key, String text}) _homeExerciseFeedback({
-  required String lang,
-  required int minutes,
+  required int cardioMinutes,
+  required int goalMinutes,
+  required bool anyExercise,
 }) {
-  final bool en = lang == 'en';
-  if (minutes >= 150) {
+  if (!anyExercise) {
+    return (key: 'exercise_start', text: '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.');
+  }
+  if (cardioMinutes <= 0) {
     return (
-      key: 'exercise_on_track',
-      text: en
-          ? 'You worked out $minutes minutes this week. You are on track!'
-          : '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!',
+      key: 'exercise_cardio_start',
+      text: '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?',
     );
   }
-  if (minutes > 0) {
+  if (cardioMinutes >= goalMinutes) {
     return (
-      key: 'exercise_more',
-      text: en
-          ? 'You worked out $minutes minutes this week. A little more to go!'
-          : '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!',
+      key: 'exercise_on_track',
+      text: '이번 주 유산소 $cardioMinutes분 운동했어요. 목표 달성 중이에요!',
     );
   }
   return (
-    key: 'exercise_start',
-    text: en
-        ? 'Start moving this week — an easy walk is a good beginning.'
-        : '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.',
+    key: 'exercise_more',
+    text: '이번 주 유산소 $cardioMinutes분 운동했어요. 조금만 더 힘내요!',
   );
 }

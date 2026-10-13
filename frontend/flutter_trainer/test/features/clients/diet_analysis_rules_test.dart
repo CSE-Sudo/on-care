@@ -115,25 +115,22 @@ void main() {
     });
   }
 
-  // 트레이너 웹 ARB 가 서버 틀과 같은 문장을 그린다 — 키마다 한국어·영어.
+  // 트레이너 웹 ARB 가 서버 틀과 같은 문장을 그린다.
   final List<Map<String, Object?>> renderings = <Map<String, Object?>>[
     for (final Object? r in file['renderings']! as List<Object?>)
       r! as Map<String, Object?>,
   ];
-  for (final String lang in <String>['ko', 'en']) {
-    final AppLocalizations l = lookupAppLocalizations(Locale(lang));
-    for (final Map<String, Object?> r in renderings) {
-      test('ARB 가 서버와 같은 문장을 그린다 — $lang ${r['key']}', () {
-        final ClientDietSentence s = ClientDietSentence.fromJson(r);
-        expect(clientDietSentenceText(l, s), r[lang]);
-      });
-    }
+  final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+  for (final Map<String, Object?> r in renderings) {
+    test('ARB 가 서버와 같은 문장을 그린다 — ${r['key']}', () {
+      final ClientDietSentence s = ClientDietSentence.fromJson(r);
+      expect(clientDietSentenceText(ko, s), r['ko']);
+    });
   }
 
   test('모르는 키는 그리지 않는다', () {
-    final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
     expect(
-      clientDietSentenceText(l, const ClientDietSentence('tr_future_key')),
+      clientDietSentenceText(ko, const ClientDietSentence('tr_future_key')),
       isNull,
     );
   });

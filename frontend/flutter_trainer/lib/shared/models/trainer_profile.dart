@@ -1,5 +1,4 @@
 import 'package:demo_fixture/demo_fixture.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 
 /// The trainer's gym / workplace details.
 class TrainerGym {
@@ -10,6 +9,8 @@ class TrainerGym {
     required this.address,
     required this.hours,
     required this.phone,
+    this.lat,
+    this.lng,
   });
 
   /// Backend `places.id` used by `PUT /trainer/me/gym`.
@@ -28,6 +29,13 @@ class TrainerGym {
 
   /// Contact phone number.
   final String phone;
+
+  /// 소속 헬스장 좌표 — 헬스장 찾기 지도를 검색 전에도 이 위치로 띄운다(#3206).
+  /// 소속이 없거나 좌표를 모르면 null.
+  final double? lat;
+  final double? lng;
+
+  bool get hasLocation => lat != null && lng != null;
 }
 
 /// A trainer account's profile.
@@ -122,6 +130,10 @@ class TrainerProfile {
 /// 데모 프로필이 소속을 가져야 '회원에게 보이지 않는다' 안내가 뜨지 않는다(#2543).
 const String kDemoTrainerGymId = 'gym-oncare-sinchon';
 
+/// 데모 소속 헬스장(온케어짐 신촌점) 좌표 — 데모 검색 결과의 같은 헬스장과 같다.
+const double kDemoTrainerGymLat = 37.5579;
+const double kDemoTrainerGymLng = 126.9368;
+
 /// The single fixed trainer profile attached on a successful (mock)
 /// login. Sourced from the On-Care Figma trainer mock (TrainerMyTab).
 const TrainerProfile seedTrainerProfile = TrainerProfile(
@@ -142,35 +154,7 @@ const TrainerProfile seedTrainerProfile = TrainerProfile(
     address: '서울 서대문구 신촌로 120',
     hours: '06:00 – 23:00',
     phone: '02-1234-5678',
+    lat: kDemoTrainerGymLat,
+    lng: kDemoTrainerGymLng,
   ),
 );
-
-/// 영어 데모의 같은 트레이너 (#2304). 이름·연락처는 그대로 두고 소개·자격·
-/// 헬스장 문구만 영어로 적는다.
-const TrainerProfile seedTrainerProfileEn = TrainerProfile(
-  name: kDemoTrainerName,
-  email: 'trainer@oncare.com',
-  phone: '010-1234-5678',
-  specialty: 'Personal trainer',
-  careerYears: 7,
-  intro:
-      'A personal trainer who works on blood pressure and weight loss '
-      'together. I use AI-recommended programs tailored to each member and '
-      'start from a safe intensity.',
-  certifications: <String>[
-    'Sports Instructor Level 2',
-    'Certified Personal Trainer (CPT)',
-    'Sports Nutritionist',
-  ],
-  gym: TrainerGym(
-    id: kDemoTrainerGymId,
-    name: 'OnCare Gym Sinchon',
-    address: '120 Sinchon-ro, Seodaemun-gu, Seoul',
-    hours: '06:00 – 23:00',
-    phone: '02-1234-5678',
-  ),
-);
-
-/// [language] 데모의 트레이너 프로필.
-TrainerProfile seedTrainerProfileFor(DemoLanguage language) =>
-    language.isEnglish ? seedTrainerProfileEn : seedTrainerProfile;

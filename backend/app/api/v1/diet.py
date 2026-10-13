@@ -6,7 +6,8 @@
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
   POST /diet/analyze             -> 사진 정리(EXIF 제거) → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
-  POST /diet/analyze?engine=yolo -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
+                                    같은 멱등키가 아직 분석 중이면 409 in_progress(#3354)
+  POST /diet/analyze?engine=gemini -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
   GET  /diet/photos/{photo_id}   -> 내 끼니 사진 원본 바이트(본인만)
   POST /diet/entries             -> 사진 없이 직접 적은 끼니 저장(포인트 없음)
   PUT/DELETE /diet/entries/{id}  -> 끼니/영양소 수정·삭제(본인 소유만, 삭제는 적립 회수)
@@ -81,23 +82,28 @@ _RATE_LIMITED = {
     "message": "사진 분석 요청이 너무 잦아요. 잠시 후 다시 시도해 주세요.",
 }
 
+#: 같은 멱등키의 분석이 아직 끝나지 않았을 때의 409 본문(#3354). AI 대화의
+#: `in_progress` 와 같은 모양이다. 횟수도 모델 호출도 쓰지 않았다 — 앱은 잠시 뒤 같은
+#: 키로 다시 물어 저장된 결과를 받는다.
+_IN_PROGRESS_CODE = "in_progress"
+
 #: 사진 분석을 쓸 수 없는 설정(운영에서 키 없음)일 때의 503 본문(#2812). 앱은 `code` 로
 #: 일반 실패와 구분해 직접 입력으로 이어 준다.
 _ANALYSIS_UNAVAILABLE = {
     "code": "analysis_unavailable",
-    "message": "사진 분석을 잠시 쓸 수 없어요. 직접 입력으로 기록할 수 있어요.",
+    "message": "사진 분석을 잠시 쓸 수 없어요. 직접 추가로 기록할 수 있어요.",
 }
 
 #: 사진에서 음식을 하나도 찾지 못했을 때의 422 본문(#2848). 끼니·포인트·사진을 남기지
 #: 않고 멱등키도 쓰지 않는다 — 앱은 다른 사진 고르기·직접 입력으로 이어 준다.
 _NO_FOOD_DETECTED = {
     "code": "no_food_detected",
-    "message": "사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 입력해 주세요.",
+    "message": "사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 추가해 주세요.",
 }
 
 #: 형식은 맞지만 픽셀을 읽을 수 없는 사진의 415 본문(#3041). 형식 판정 415 와 같은
 #: 문자열 모양이라 앱은 같은 "지원하지 않는 사진" 안내를 띄운다.
-_UNREADABLE_IMAGE = "이미지를 읽을 수 없습니다. 다른 사진을 골라 주세요."
+_UNREADABLE_IMAGE = "이미지를 읽을 수 없어요. 다른 사진을 골라 주세요."
 
 
 @router.get("/diet/days/today", response_model=DietTodayResponse)
@@ -144,10 +150,6 @@ def diet_advice(
         Literal["today", "week", "all"],
         Query(description="조언이 다룰 구간 — 화면의 기간 토글과 같은 이름"),
     ] = "today",
-    lang: Annotated[
-        Literal["ko", "en"],
-        Query(description="앱 언어 — 메뉴 이름·AI 문장을 이 언어로 준다"),
-    ] = "ko",
 ) -> DietAdviceResponse:
     """기간에 맞는 식단 조언. (#1017)
 
@@ -160,18 +162,14 @@ def diet_advice(
     조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). `오늘` 은 4주 추천 메뉴
     리스트에서 다음 식사를 고르고, `이번 주` 는 규칙이 고른 한 가지에 AI 가 원인
     메뉴나 대안을 붙인다(하루 한 번, #2253). `전체` 는 최근 4주 식습관 하나에 AI 가
-    다음 4주의 행동 목표를 붙인다(주 한 번, #2254). 트레이너웹 경로는 아직 예전 한
-    문장(`diet_service.period_coach_message`)이다.
+    다음 4주의 행동 목표를 붙인다(주 한 번, #2254). 트레이너웹 경로는
+    `diet_trainer_analysis` 의 식단 분석 문장이다(#2379).
     """
     if period == diet_period_advice.PERIOD_TODAY:
-        return _advice_response(
-            diet_period_advice.today_advice(db, current_user.id, lang=lang)
-        )
+        return _advice_response(diet_period_advice.today_advice(db, current_user.id))
     if period == diet_week_advice.PERIOD_WEEK:
-        return _advice_response(
-            diet_week_advice.week_advice(db, current_user.id, lang=lang)
-        )
-    return _advice_response(diet_all_advice.all_advice(db, current_user.id, lang=lang))
+        return _advice_response(diet_week_advice.week_advice(db, current_user.id))
+    return _advice_response(diet_all_advice.all_advice(db, current_user.id))
 
 
 def _advice_response(advice: diet_period_advice.DietAdvice) -> DietAdviceResponse:
@@ -297,12 +295,12 @@ async def diet_analyze(
     ),
     engine: str | None = Query(
         None,
-        description="엔진 강제('gemini'|'yolo'). 비교실험용 — 운영에서는 관리자만 적용된다.",
+        description="엔진 강제('gemini'|'litellm'). 비교실험용 — 운영에서는 관리자만 적용된다.",
     ),
 ) -> DietAnalyzeResponse:
     image_bytes = await image.read()
     if not image_bytes:
-        raise HTTPException(status_code=400, detail="빈 파일입니다.")
+        raise HTTPException(status_code=400, detail="빈 파일이에요.")
     # 형식은 바이트로 판정한다 — 요청 헤더의 Content-Type 은 보내는 쪽이 적어 준 값일
     # 뿐이라, 이미지가 아닌 본문이 그 말만 믿고 외부 모델 호출까지 가면 안 된다(#2827).
     try:
@@ -317,7 +315,8 @@ async def diet_analyze(
     user_id = current_user.id
     is_admin = current_user.is_admin
 
-    # 멱등키가 있고 이미 저장된 요청이면 인식·저장을 건너뛰고 기존 결과 반환(재시도 중복 방지)
+    # 멱등키가 있고 이미 저장된 요청이면 인식·저장을 건너뛰고 기존 결과 반환(재시도 중복 방지).
+    # 아직 분석 중인 같은 키는 아래 한도 예약에서 409 `in_progress` 로 가린다(#3354).
     if idempotency_key:
         replay = await run_in_threadpool(_replay_if_saved, db, user_id, idempotency_key)
         if replay is not None:
@@ -353,7 +352,7 @@ async def diet_analyze(
         raise HTTPException(status_code=415, detail=_UNREADABLE_IMAGE) from e
     del image_bytes
 
-    usage_id = await run_in_threadpool(_reserve_analysis, db, user_id)
+    usage_id = await run_in_threadpool(_reserve_analysis, db, user_id, idempotency_key)
 
     try:
         analysis = await recognizer.recognize(clean.data, clean.media_type)
@@ -375,19 +374,37 @@ async def diet_analyze(
             engine=engine or "-", user_id=user_id,
         )
         raise HTTPException(
-            status_code=502, detail="식단 인식에 실패했습니다. 잠시 후 다시 시도해 주세요."
+            status_code=502, detail="식단을 인식하지 못했어요. 잠시 후 다시 시도해 주세요."
         ) from e
 
     # 음식을 하나도 찾지 못한 사진(풍경·사람·빈 그릇)은 끼니가 아니다. 0kcal 끼니를
     # 저장하고 포인트를 주면 아무 사진으로나 적립할 수 있고, 트레이너는 굶은 날과
     # 구분하지 못한다 — 저장·적립·사진 저장 전에 거절한다(#2848).
     if not analysis.foods:
+        # 모델은 불렀으니 그 한 번은 남기되, 끼니가 없어 이 키로 돌려줄 저장분이
+        # 없다 — 줄에서 키를 떼어 다음 전송이 "분석 중" 에 걸리지 않게 한다(#3354).
+        await run_in_threadpool(diet_analysis_quota_service.settle, db, usage_id)
         raise HTTPException(status_code=422, detail=_NO_FOOD_DETECTED)
 
-    return await run_in_threadpool(
-        _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, clean.data,
-        entry_date,
-    )
+    try:
+        return await run_in_threadpool(
+            _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, clean.data,
+            entry_date,
+        )
+    except Exception:
+        # 저장하지 못했다 — 이 키로 돌려줄 끼니가 없으니 줄에서 키를 뗀다(#3354).
+        # 붙여 두면 같은 키의 다음 전송이 묵을 때까지 "분석 중" 으로만 답한다.
+        await run_in_threadpool(_settle_after_failed_save, db, usage_id)
+        raise
+
+
+def _settle_after_failed_save(db: Session, usage_id: str | None) -> None:
+    """저장이 실패한 분석의 줄을 정리한다. 동기 DB(스레드풀에서 부른다).
+
+    실패한 트랜잭션이 세션에 남아 있을 수 있어 먼저 되돌린다.
+    """
+    db.rollback()
+    diet_analysis_quota_service.settle(db, usage_id)
 
 
 def _replay_if_saved(db: Session, user_id: str, idempotency_key: str) -> DietAnalyzeResponse | None:
@@ -403,19 +420,28 @@ def _replay_if_saved(db: Session, user_id: str, idempotency_key: str) -> DietAna
     )
 
 
-def _reserve_analysis(db: Session, user_id: str) -> str | None:
+def _reserve_analysis(
+    db: Session, user_id: str, idempotency_key: str | None = None
+) -> str | None:
     """모델 호출 한 번을 한도에서 잡는다(#2827). 동기 DB(스레드풀에서 부른다).
 
     사진 한 장이 외부 비전 모델 호출 한 번이라 비용이 가장 큰 축이다. 멱등 재전송은
     앞에서 모델 없이 돌아갔으므로 여기 오지 않아 세지 않는다. 분당 한도는 사람
     단위(같은 헬스장 Wi-Fi 회원끼리 나눠 쓰지 않게), 하루 상한은 DB 에서 KST 날짜로
     센다.
+
+    같은 멱등키의 요청이 아직 모델을 기다리는 중이면 409 `in_progress` 다(#3354) —
+    앞의 저장분 조회는 끝난 요청만 알아보므로, 진행 중인 것은 여기서 가린다.
     """
     rate_limit.check_user(
         "diet-analyze", user_id, get_settings().diet_analyze_per_minute, detail=_RATE_LIMITED
     )
     try:
-        return diet_analysis_quota_service.reserve(db, user_id)
+        return diet_analysis_quota_service.reserve(db, user_id, idempotency_key)
+    except diet_analysis_quota_service.AnalysisInProgress as e:
+        raise HTTPException(
+            status_code=409, detail={"code": _IN_PROGRESS_CODE, "message": str(e)}
+        ) from e
     except diet_analysis_quota_service.DailyAnalysisLimitReached as e:
         raise HTTPException(
             status_code=429, detail={"code": "daily_limit", "message": str(e)}
@@ -514,7 +540,7 @@ def diet_photo(
     """
     photo = diet_photo_service.get_owned_photo(db, photo_id, current_user.id)
     if photo is None:
-        raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="사진을 찾을 수 없어요.")
     return Response(
         content=photo.data,
         media_type=photo.content_type,
@@ -553,7 +579,7 @@ def update_entry(
     """식단 기록의 끼니 분류/시간·영양소 수정(본인 소유만, 아니면 404)."""
     row = diet_service.get_owned_entry(db, current_user.id, entry_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없어요.")
     try:
         return diet_service.apply_entry_update(db, row, payload)
     except diet_service.NutritionInconsistentError as e:
@@ -570,7 +596,7 @@ def delete_entry(
     """식단 기록 삭제. 본인 소유 엔트리만 삭제 가능(아니면 404)."""
     row = diet_service.get_owned_entry(db, current_user.id, entry_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없어요.")
     # 이 끼니로 받은 포인트를 회수한다. 기록 삭제와 같은 트랜잭션이라 기록만
     # 사라지고 포인트가 남는 일이 없다(#1786).
     points_service.revoke(

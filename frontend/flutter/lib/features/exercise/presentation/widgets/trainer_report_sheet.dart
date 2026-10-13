@@ -117,7 +117,7 @@ class _TrainerReportSheetState extends ConsumerState<TrainerReportSheet> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final bool memoRequired = _reason?.needsMemo ?? false;
-    return AppSheet(
+    final Widget sheet = AppSheet(
       key: const Key('trainer-report-sheet'),
       title: l.exTrainerReport,
       subtitle: widget.trainer.name,
@@ -195,6 +195,9 @@ class _TrainerReportSheetState extends ConsumerState<TrainerReportSheet> {
         ],
       ),
     );
+    // 보내는 중에는 바깥 누름·뒤로 가기·끌어내리기로 닫히지 않는다(#3245) — 닫히면
+    // 접수 결과·실패 안내를 보여 줄 자리가 사라진다.
+    return PopScope(canPop: !_submitting, child: sheet);
   }
 }
 

@@ -106,3 +106,4 @@ Closes #
 * [ ] 하드코딩 값 점검
 * [ ] Merge 충돌 없음
 * [ ] 데모 시나리오 영향 확인
+* [ ] 파괴적 마이그레이션(표·칸 삭제, 이름 변경, 타입 변경, 기본값 없는 NOT NULL, 데이터 삭제·변환) 없음 — 있으면 두 번에 나눠 배포하고 파일에 `# destructive-migration: <사유>` 를 남기거나 `destructive-migration` 라벨을 붙임(`backend/docs/DEPLOY.md` "마이그레이션 운영 정책")

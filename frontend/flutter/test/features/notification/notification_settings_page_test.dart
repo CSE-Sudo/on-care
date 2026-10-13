@@ -404,8 +404,11 @@ void main() {
     testWidgets('스위치마다 실제로 끄는 알림을 한 줄로 말한다', (WidgetTester tester) async {
       await pumpIn(tester, const Locale('ko'));
 
-      expect(find.text('트레이너가 개인운동·PT 프로그램을 보내거나 PT 기록·피드백을 남기면 알려요'), findsOneWidget);
-      expect(find.text('트레이너가 대화로 보낸 메시지를 알려요'), findsOneWidget);
+      expect(
+        find.text('트레이너가 개인운동·PT 프로그램을 보내거나 PT 기록·피드백을 남기면 알려요'),
+        findsOneWidget,
+      );
+      expect(find.text('트레이너가 보낸 메시지를 알려요'), findsOneWidget);
       expect(find.text('담당 트레이너가 주간 리포트를 보내면 알려요'), findsOneWidget);
     });
 
@@ -417,7 +420,10 @@ void main() {
       );
       expect(note, findsOneWidget);
       expect(
-        find.text('PT 일정 등록·변경·취소와 담당 트레이너 연결·해제 알림은 항상 보내요'),
+        find.text(
+          'PT 일정 등록·변경·취소, 담당 트레이너 요청·연결·해제, 상담 요청 결과, '
+          '건강 목표 변경, 쿠폰 만료·취소, 주간 챌린지 결과 알림은 항상 보내요',
+        ),
         findsOneWidget,
       );
       // 안내는 스위치 목록 아래에 선다.
@@ -438,30 +444,6 @@ void main() {
           matching: find.byType(Switch),
         ),
         findsNothing,
-      );
-    });
-
-    testWidgets('영어 라벨·설명·안내', (WidgetTester tester) async {
-      await pumpIn(tester, const Locale('en'));
-
-      expect(find.text('Exercises & programs'), findsOneWidget);
-      expect(find.text('Trainer message'), findsOneWidget);
-      expect(find.text('Trainer weekly report'), findsOneWidget);
-      expect(
-        find.text('When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('When your trainer sends you a chat message'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('When your trainer sends your weekly report'),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('notificationSettingsAlwaysSent')),
-        findsOneWidget,
       );
     });
 

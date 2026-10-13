@@ -122,7 +122,7 @@ def test_every_week_line_fits_with_its_fallback_tip():
     for kind, analysis in worst.items():
         tip = copy.line("tip_breakfast" if kind == "breakfast" else svc._FOCUS_TIPS[kind])
         assert len(copy.message(analysis, tip)) <= 45, kind
-        assert ai.sentence_limit("ko", analysis.text) >= ai.MIN_SENTENCE["ko"]
+        assert ai.sentence_limit(analysis.text) >= ai.MIN_SENTENCE
     good = copy.message(copy.line("week_good", scope="last", days=7), copy.line("tip_keep"))
     assert len(good) <= 45
 
@@ -159,7 +159,7 @@ def test_ai_sentence_clean_and_length():
 def test_generate_retries_once_then_gives_up(monkeypatch):
     answers = iter(['{"sentence": "나트륨 1,800mg 이하로요"}', '{"sentence": "국물은 반만 드세요."}'])
     monkeypatch.setattr(ai, "_call_llm", lambda s, u: next(answers))
-    kw = dict(lang="ko", analysis_text="이번 주 나트륨을 **3일** 넘겼어요.", finding="f",
+    kw = dict(analysis_text="이번 주 나트륨을 **3일** 넘겼어요.", finding="f",
               records=["월 점심: 짬뽕"], notes=[], goal="", metric="t")
     assert ai.generate(**kw) == "국물은 반만 드세요."
 
@@ -174,12 +174,12 @@ def test_generate_retries_once_then_gives_up(monkeypatch):
     assert ai.generate(**kw) is None
 
 
-def test_prompt_carries_records_trainer_notes_and_language():
+def test_prompt_carries_records_and_trainer_notes():
     system, user = ai.build_prompt(
-        lang="en", limit=40, finding="이번 주 나트륨을 3일 넘겼다.",
+        limit=40, finding="이번 주 나트륨을 3일 넘겼다.",
         records=["월 점심: 짬뽕"], notes=["국물은 드시지 마세요"], goal="체중 감량",
     )
-    assert "영어(English)" in system and "40자" in system and "상충" in system
+    assert "English" not in system and "40자" in system and "상충" in system
     assert "- 월 점심: 짬뽕" in user and "트레이너: 국물은 드시지 마세요" in user
 
 
@@ -289,6 +289,25 @@ def test_week_advice_falls_back_and_retries_after_an_hour(db_session, member, mo
     retried = svc.week_advice(db_session, member.id, now=_thu() + timedelta(minutes=61))
     assert retried.action_source == "llm"
     assert fake.calls == 2
+    assert _states(db_session, member.id) == 1
+
+
+def test_week_advice_does_not_hold_the_connection_while_waiting_for_ai(
+    db_session, member, monkeypatch
+):
+    """AI 문장을 기다리는 동안 트랜잭션(연결)을 쥐지 않는다(#3242)."""
+    seen = []
+
+    def fake(system, user):
+        seen.append(db_session.in_transaction())
+        return '{"sentence": "짬뽕 국물은 반만 드세요."}'
+
+    monkeypatch.setattr(ai, "_call_llm", fake)
+    _salty_week(db_session, member.id)
+
+    advice = svc.week_advice(db_session, member.id, now=_thu())
+    assert advice.action_source == "llm"
+    assert seen == [False]
     assert _states(db_session, member.id) == 1
 
 

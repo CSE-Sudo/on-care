@@ -246,7 +246,7 @@ class FixtureDay {
   int get completion {
     if (exercises.isEmpty) return 0;
     final int done = exercises.where((FixtureExercise e) => e.done).length;
-    return (done * 100 / exercises.length).round();
+    return pyRoundForFixture(done * 100 / exercises.length);
   }
 
   /// 실제로 한 운동만. 사용자 앱의 주간 활동 그래프가 이걸 쌓는다.
@@ -486,7 +486,6 @@ class DemoFixture {
     ];
   }
 
-
   FixtureDay _dayFrom(Map<String, Object?> day, DateTime date) {
     final DateTime monday = _addDays(date, -(date.weekday - 1));
     return FixtureDay(
@@ -541,4 +540,36 @@ String _ymd(DateTime d) =>
     '${d.month.toString().padLeft(2, '0')}-'
     '${d.day.toString().padLeft(2, '0')}';
 
-double _round1(double value) => (value * 10).round() / 10;
+double _round1(double value) => pyRound1ForFixture(value);
+
+/// Python `round(x)` 와 같은 정수 반올림 — 정확히 절반이면 짝수 쪽이다(#3250).
+///
+/// 같은 픽스처를 서버(`backend/app/db/demo_fixture.py`)가 Python 으로 만든다.
+/// Dart `round()` 는 절반을 0 에서 먼 쪽으로 보내 `1 / 8 = 12.5%` 가 서버 12,
+/// 앱 13 으로 갈린다. 이 패키지는 의존성이 없어 `oncare_rules` 의 `pyRound` 와
+/// 같은 규칙을 여기 둔다.
+int pyRoundForFixture(num x) {
+  final double v = x.toDouble();
+  final double floor = v.floorToDouble();
+  final double diff = v - floor;
+  final int f = floor.toInt();
+  if (diff > 0.5) return f + 1;
+  if (diff < 0.5) return f;
+  return f.isEven ? f : f + 1;
+}
+
+/// Python `round(x, 1)` 과 같은 소수 첫째 자리 반올림(#3250).
+///
+/// Python 은 실수의 **실제 이진 값**으로 반올림한다 — `0.15` 는 실제로
+/// 0.1499… 라 0.1 이다. `(x * 10).round() / 10` 은 곱하는 순간 1.5 로 올라가
+/// 0.2 가 됐다. [double.toStringAsFixed] 가 실제 값으로 자르므로 그쪽을 쓰고,
+/// 이진수로 정확히 절반인 값(`x.25`·`x.75`)만 짝수 쪽으로 보낸다.
+double pyRound1ForFixture(double value) {
+  final double quarter = value * 4;
+  final double tenths = value * 10;
+  if (quarter == quarter.roundToDouble() &&
+      tenths - tenths.floorToDouble() == 0.5) {
+    return pyRoundForFixture(tenths) / 10;
+  }
+  return double.parse(value.toStringAsFixed(1));
+}

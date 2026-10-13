@@ -45,7 +45,13 @@ void main() {
     expect(find.text(_ko.myLegalPrivacyTitle), findsOneWidget);
     expect(find.text(_ko.myDeleteAccount), findsOneWidget);
     // 버전은 빌드 정보에서 읽는다(#2264, #3047) — 테스트가 주입한 값이 보인다.
-    expect(find.text(_ko.myAppVersion(kTestBuildVersion)), findsOneWidget);
+    // 테스트 빌드에는 빌드 번호가 없어 개발 빌드다(#3226).
+    expect(
+      find.text(
+        '${_ko.myAppVersion(kTestBuildVersion)} · ${_ko.buildInfoDevelopment}',
+      ),
+      findsOneWidget,
+    );
     // 앱 밖으로 나가는 줄은 그렇다고 미리 말해 준다.
     expect(find.text(_ko.mySupportExternalHint), findsNWidgets(2));
   });

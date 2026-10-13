@@ -6,6 +6,7 @@
 오늘 식단·이번 주 식단 추이·이번 주 운동을 모아 한 번에 반환합니다.
 세 지표의 목표는 회원 건강 목표(health_profile)이고, 목표를 정하지 않은 회원은
 일일 권장 기준치(칼로리 2000kcal, 나트륨 2000mg, 당류 50g)를 기본값으로 씁니다.
+운동 조언도 회원의 주간 유산소 목표(없으면 150분)를 기준으로 합니다(#3350).
 """
 from __future__ import annotations
 
@@ -20,7 +21,6 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.core import clock
-from app.core.locale import Locale, localized
 from app.db.session import get_db
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.dashboard_api import (
@@ -28,7 +28,7 @@ from app.schemas.dashboard_api import (
     DashboardSummary,
 )
 from app.schemas.diet_api import calculate_macros
-from app.services import goal_defaults
+from app.services import exercise_service, goal_defaults
 
 router = APIRouter(tags=["dashboard"])
 
@@ -81,66 +81,60 @@ def _build_sodium_warning(
     total_sodium_mg: int,
     source_names: list[str],
     sodium_goal_mg: int = _MAX_SODIUM_MG,
-    locale: Locale | None = None,
 ) -> str | None:
     """오늘 나트륨 경고 문장. 목표 안이면 None.
 
-    언어는 [locale], 생략하면 지금 요청의 언어다(#2299). 키를 아는 앱은 이 문장
-    대신 [_advice_key]·[_advice_params] 로 자기 문장을 그리고, 이 문장은 키를
-    모르는 옛 앱이 읽는다. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
+    키를 아는 앱은 이 문장 대신 [_advice_key]·[_advice_params] 로 자기 문장을
+    그리고, 이 문장은 키를 모르는 옛 앱이 읽는다. 음식 이름은 회원이 적은
+    그대로다.
     """
     if total_sodium_mg <= sodium_goal_mg:
         return None
     if not source_names:
-        return localized(
-            f"오늘 나트륨이 {total_sodium_mg}mg 으로 "
-            f"권장량({sodium_goal_mg}mg)을 넘었어요.",
-            f"Sodium is at {total_sodium_mg}mg today, "
-            f"over your target ({sodium_goal_mg}mg).",
-            locale,
+        return (
+            f"오늘 나트륨이 {total_sodium_mg:,}mg으로 "
+            f"목표({sodium_goal_mg:,}mg)를 넘었어요."
         )
 
     top = source_names[:_SODIUM_SOURCE_COUNT]
-    return localized(
-        f"{'·'.join(top)} 섭취로 나트륨이 높아요.",
-        f"Sodium is high from {' and '.join(top)}.",
-        locale,
-    )
+    return f"{'·'.join(top)} 섭취로 나트륨이 높아요."
 
 
 def _exercise_feedback(
-    exercise_minutes: int, locale: Locale | None = None
+    cardio_minutes: int,
+    goal_minutes: int,
+    *,
+    any_exercise: bool,
 ) -> tuple[str, str]:
-    """이번 주 운동 되먹임 — (문장, 로케일 독립 키).
+    """이번 주 운동 되먹임 — (문장, 문장 키).
 
-    분 기준(주 150분)은 앱 데모(`local_api_interceptor.dart`)와 같다. 문장은
-    요청 언어를 따른다(#2299).
+    판정은 운동 탭과 같다(#3350) — 이번 주 유산소 분([cardio_minutes])을 회원의
+    주간 유산소 목표([goal_minutes])와 견준다. 앱 데모
+    (`local_api/dashboard.dart`)도 같은 기준이다.
+
+    [any_exercise] 는 이번 주에 유형을 가리지 않고 기록이 하나라도 있는지다 —
+    근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다. 그런 주(다른
+    운동은 했는데 유산소가 0분)는 "유산소 0분 운동했어요" 대신 유산소를 권하는
+    문장(`exercise_cardio_start`)을 쓴다.
     """
-    if exercise_minutes >= 150:
+    if not any_exercise:
         return (
-            localized(
-                f"이번 주 {exercise_minutes}분 운동했어요. 목표 달성 중이에요!",
-                f"You worked out {exercise_minutes} minutes this week. You are on track!",
-                locale,
-            ),
+            "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
+            "exercise_start",
+        )
+    if cardio_minutes <= 0:
+        return (
+            "이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
+            "exercise_cardio_start",
+        )
+    if cardio_minutes >= goal_minutes:
+        return (
+            f"이번 주 유산소 {cardio_minutes}분 운동했어요. 목표 달성 중이에요!",
             "exercise_on_track",
         )
-    if exercise_minutes > 0:
-        return (
-            localized(
-                f"이번 주 {exercise_minutes}분 운동했어요. 조금만 더 힘내요!",
-                f"You worked out {exercise_minutes} minutes this week. A little more to go!",
-                locale,
-            ),
-            "exercise_more",
-        )
     return (
-        localized(
-            "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
-            "Start moving this week — an easy walk is a good beginning.",
-            locale,
-        ),
-        "exercise_start",
+        f"이번 주 유산소 {cardio_minutes}분 운동했어요. 조금만 더 힘내요!",
+        "exercise_more",
     )
 
 
@@ -150,16 +144,14 @@ def _advice_key(
     sodium_source_names: list[str],
     exercise_advice_key: str,
 ) -> str:
-    """홈 조언으로 고른 문장의 로케일 독립 식별자. (#1943)
+    """홈 조언으로 고른 문장의 식별자. (#1943)
 
     앱이 고르는 순서와 **같은 순서**로 고른다(`ai_advice_text.dart`) — 나트륨
     경고가 있으면 그것이고, 없으면 운동 되먹임이다. 순서가 갈리면 키가 가리키는
     문장과 화면이 어긋난다.
 
-    음식 이름이 든 나트륨 경고도 키를 준다(`sodium_over_sources`). 예전에는 그
-    이름이 번역 대상이 아니라며 키를 비우고 한국어 문장을 통째로 보냈는데, 그러면
-    영어 화면이 한국어 문장을 그렸다. 이름은 [_advice_params] 의 인자로 따로
-    싣고, 문장 틀은 앱 ARB 가 언어별로 갖는다.
+    음식 이름이 든 나트륨 경고도 키를 준다(`sodium_over_sources`). 이름은
+    [_advice_params] 의 인자로 따로 싣고, 문장 틀은 앱 ARB 가 갖는다.
     """
     if sodium_warning is not None:
         return "sodium_over_sources" if sodium_source_names else "sodium_over"
@@ -176,6 +168,11 @@ def _advice_params(
 
 
 def _rank_sodium_sources(foods_json_values: Iterable[str]) -> list[str]:
+    """오늘 먹은 음식을 나트륨이 많은 순으로 — 경고 문장이 앞의 몇 개를 짚는다.
+
+    이름은 저장된 이름(`name`)이다. 예전 분석이 남긴 표시 이름(`display_name`,
+    #2850)은 여기서 쓰지 않는다.
+    """
     sodium_by_food_name: dict[str, int] = {}
     for foods_json in foods_json_values:
         try:
@@ -260,7 +257,13 @@ def dashboard_summary(
         .where(ExerciseSession.week_start == week)
     ).all()
     exercise_minutes = sum(r.minutes for r in ex_rows)
-    exercise_feedback, exercise_advice_key = _exercise_feedback(exercise_minutes)
+    # 조언은 운동 탭처럼 유산소 분을 회원의 주간 유산소 목표와 견준다(#3350).
+    exercise_cardio_minutes = exercise_service.cardio_minutes(ex_rows)
+    exercise_feedback, exercise_advice_key = _exercise_feedback(
+        exercise_cardio_minutes,
+        exercise_service.weekly_cardio_goal(health_profile),
+        any_exercise=exercise_minutes > 0,
+    )
 
     advice_key = _advice_key(
         sodium_warning=sodium_warning,
@@ -272,6 +275,7 @@ def dashboard_summary(
         macros=macros,
         diet_entries=len(diet_rows),
         exercise_minutes=exercise_minutes,
+        exercise_cardio_minutes=exercise_cardio_minutes,
         nutrition_week=nutrition_week,
         sodium_warning=sodium_warning,
         exercise_feedback=exercise_feedback,

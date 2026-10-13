@@ -255,7 +255,7 @@ void main() {
     // 시트가 닫혔고, 저장을 마쳤다는 `true` 로 닫혔다.
     expect(_closedWith, isTrue);
     expect(find.byKey(const Key('diet-result-nutrition')), findsNothing);
-    expect(find.text('식단이 저장되었어요'), findsOneWidget);
+    expect(find.text('식단을 저장했어요'), findsOneWidget);
   });
 
   testWidgets('취소는 고친 값을 버리고 분석 결과 보기로 돌아간다', (WidgetTester tester) async {

@@ -15,12 +15,10 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/app_version/app_version.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_core/licenses.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 Future<void> _pumpSupport(
   WidgetTester tester, {
@@ -105,16 +103,8 @@ void main() {
     expect(page.applicationVersion, isNull);
   });
 
-  testWidgets('영어로도 열린다', (WidgetTester tester) async {
-    await _pumpSupport(tester, locale: const Locale('en'));
-
-    expect(find.text(_en.myOpenSourceLicensesTitle), findsOneWidget);
-    await _openLicenses(tester, _en.myOpenSourceLicensesTitle);
-  });
-
-  test('줄 이름이 두 언어로 있다', () {
+  test('줄 이름은 오픈소스 라이선스다', () {
     expect(_ko.myOpenSourceLicensesTitle, '오픈소스 라이선스');
-    expect(_en.myOpenSourceLicensesTitle, 'Open-source licenses');
   });
 
   test('OFL 전문이 앱에 담기도록 자산으로 등록돼 있다', () {

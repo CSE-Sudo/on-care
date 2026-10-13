@@ -69,7 +69,7 @@ void main() {
     await _pumpCoachingCard(tester);
     await _openCompletionDialog(tester);
 
-    expect(find.text('개인운동 수행 완료'), findsOneWidget);
+    expect(find.text('개인운동 완료'), findsOneWidget);
     expect(find.text('루틴 수행 완료'), findsNothing);
   });
 

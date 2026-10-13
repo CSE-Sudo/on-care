@@ -46,6 +46,11 @@ ACCOUNT_WITHDRAW = "account.withdraw"
 PASSWORD_CHANGE = "auth.password_change"
 #: 로그인 이메일 변경(#3039). `detail` 에 이메일 본문은 남기지 않는다.
 EMAIL_CHANGE = "account.email_change"
+#: 이메일 변경 전 새 주소로 인증 코드 요청(#3230). `success` 는 실제로 코드를 만들었는지
+#: (이미 다른 계정이 쓰는 주소면 false), `detail` 은 가린 새 주소다.
+EMAIL_CHANGE_CODE_REQUEST = "account.email_change_code_request"
+#: 이메일 변경 인증 코드 확인 실패(#3230). `detail` 은 가린 새 주소다.
+EMAIL_CHANGE_CODE_VERIFY = "account.email_change_code_verify"
 #: 탈퇴·이메일 변경 전 본인 확인 실패(#3039, `detail` 의 `via=`·`action=`).
 REAUTH_FAILED = "account.reauth_failed"
 #: 관리자 지정·해제(#3037). 운영자가 `scripts/grant_admin.py` 로만 한다.
