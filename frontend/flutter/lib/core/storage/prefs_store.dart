@@ -15,7 +15,6 @@ class AppPrefs {
 
   final SharedPreferences _prefs;
 
-  static const String _kLocaleCode = 'locale_code';
   static const String _kOnboardingDone = 'onboarding_done';
 
   /// 첫 홈 진입 스포트라이트 가이드를 이미 봤는지(#1857). 끝까지 봤든 건너뛰었든
@@ -28,12 +27,6 @@ class AppPrefs {
   /// 항목은 앱을 지워도 남아서, 재설치하고 열면 이전 계정 대시보드로 바로
   /// 들어갔다. 이 표식이 없는 실행은 새 설치이므로 그때 키체인을 비운다.
   static const String _kInstalled = 'installed';
-
-  String? get localeCode => _prefs.getString(_kLocaleCode);
-  Future<void> setLocaleCode(String? value) {
-    if (value == null) return _prefs.remove(_kLocaleCode);
-    return _prefs.setString(_kLocaleCode, value);
-  }
 
   bool get onboardingDone => _prefs.getBool(_kOnboardingDone) ?? false;
   Future<void> setOnboardingDone(bool value) =>
@@ -63,7 +56,7 @@ class AppPrefs {
   /// 탈퇴할 때만 불려, 가족 휴대폰·헬스장 공용 기기에서 계정만 바꿔 로그인한
   /// 새 회원은 앞 계정이 끝낸 홈 가이드를 한 번도 보지 못했다.
   ///
-  /// **언어와 설치 표식은 남긴다.** 둘 다 기기의 것이지 계정의 것이 아니다 —
+  /// **설치 표식은 남긴다.** 기기의 것이지 계정의 것이 아니다 —
   /// 설치 표식을 지우면 다음 실행이 새 설치로 보여 키체인을 또 비운다(#1944).
   Future<void> clearAccountScoped() async {
     await _prefs.remove(_kOnboardingDone);
