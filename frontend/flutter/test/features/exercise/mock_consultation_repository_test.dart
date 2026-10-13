@@ -147,6 +147,8 @@ void main() {
         (await repository.fetchMine()).single.status,
         ConsultationStatus.accepted,
       );
+      // 자리 목록은 지난 시각의 자리를 빼고 준다 — 시계를 되돌린 뒤에 본다.
+      debugNowKstOverride = null;
       expect((await _slot(gym, _slotId)).booked, isTrue);
     });
 
