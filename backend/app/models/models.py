@@ -1970,8 +1970,7 @@ class TrainerProgramTemplate(Base):
     개념이 없고 운동 목록 하나만 갖는다. 적용하면 AI 제안 **위에 덧붙는다.**
 
     지금까지 이 목록은 앱 소스의 `const` 였다. 트레이너마다 다른 것이 템플릿의
-    존재 이유인데 모두가 같은 셋을 봤고, 내용도 한국어로 고정돼 영어 화면에
-    그대로 남았다.
+    존재 이유인데 모두가 같은 셋을 봤다.
 
     `exercises_json` 은 `[{name, minutes, duration_seconds, type, sets, reps,
     hold_seconds, weight}]`(`ProgramTemplateExercise`)을 순서 그대로 담는다. 배열

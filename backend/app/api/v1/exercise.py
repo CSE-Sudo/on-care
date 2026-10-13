@@ -189,7 +189,7 @@ def exercise_advice(
         to_date=end,
         days_logged=len(days),
         message=advice.text,
-        # 앱이 자기 언어로 그릴 수 있게 문장 키와 값도 함께 준다(#2210).
+        # 앱이 문장을 직접 그릴 수 있게 문장 키와 값도 함께 준다(#2210).
         advice_key=advice.key,
         advice_params=advice.params,
     )
