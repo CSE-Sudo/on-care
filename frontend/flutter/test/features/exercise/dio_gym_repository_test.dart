@@ -259,6 +259,82 @@ void main() {
     ]);
   });
 
+  group('헬스장 단건 조회 (#3356)', () {
+    test('GET /gyms/{id} 응답이 Gym 으로 매핑된다', () async {
+      final adapter = _StubAdapter(<String, Object?>{
+        '/gyms/gym-oncare-sinchon': _gymDetailJson,
+      });
+      final Gym? gym = await DioGymRepository(
+        _dio(adapter),
+      ).fetchGym('gym-oncare-sinchon');
+
+      expect(adapter.calls, <String>['GET /gyms/gym-oncare-sinchon']);
+      expect(gym, isNotNull);
+      expect(gym!.id, 'gym-oncare-sinchon');
+      expect(gym.name, '온케어짐 신촌점');
+      expect(gym.tags, <String>['다이어트', '재활운동']);
+      expect(gym.hasCoordinates, isTrue);
+    });
+
+    test('회원 위치가 있으면 좌표를 싣는다', () async {
+      final adapter = _StubAdapter(<String, Object?>{
+        '/gyms/gym-oncare-sinchon': _gymDetailJson,
+      });
+      await DioGymRepository(
+        _dio(adapter),
+        lat: 35.1,
+        lng: 129.1,
+      ).fetchGym('gym-oncare-sinchon');
+
+      final Map<String, dynamic> q = adapter.queryOf(
+        '/gyms/gym-oncare-sinchon',
+      );
+      expect(q['lat'], 35.1);
+      expect(q['lng'], 129.1);
+    });
+
+    test('회원 위치가 없으면 좌표를 싣지 않는다 (#3044)', () async {
+      final adapter = _StubAdapter(<String, Object?>{
+        '/gyms/gym-oncare-sinchon': _gymDetailJson,
+      });
+      await DioGymRepository(_dio(adapter)).fetchGym('gym-oncare-sinchon');
+
+      final Map<String, dynamic> q = adapter.queryOf(
+        '/gyms/gym-oncare-sinchon',
+      );
+      expect(q.containsKey('lat'), isFalse);
+      expect(q.containsKey('lng'), isFalse);
+    });
+
+    test('서버에 없는 헬스장(404)은 null 이다', () async {
+      final adapter = _StubAdapter(<String, Object?>{});
+      expect(
+        await DioGymRepository(_dio(adapter)).fetchGym('12345678'),
+        isNull,
+      );
+    });
+
+    test('서버 오류는 그대로 올라간다', () async {
+      final repo = DioGymRepository(
+        Dio(BaseOptions(baseUrl: 'http://x/v1'))
+          ..httpClientAdapter = _StatusAdapter(500),
+      );
+      await expectLater(
+        repo.fetchGym('gym-oncare-sinchon'),
+        throwsA(isA<DioException>()),
+      );
+    });
+
+    test('목록 조회는 반경·상한을 싣지 않고 서버 기본값을 따른다', () async {
+      final adapter = _StubAdapter(<String, Object?>{'/gyms': _gymsJson});
+      await DioGymRepository(_dio(adapter)).fetchNearby();
+
+      final Map<String, dynamic> q = adapter.queryOf('/gyms');
+      expect(q.containsKey('radius_m'), isFalse);
+      expect(q.containsKey('limit'), isFalse);
+    });
+  });
+
   group('소속 트레이너 조회 (#2857)', () {
     test('서버에 없는 헬스장(404)은 소속 트레이너가 없는 것과 같다', () async {
       // 카카오로 찾은 헬스장은 서버 목록에 없다 — 화면이 이를 조회 실패로

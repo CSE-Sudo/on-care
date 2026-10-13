@@ -85,6 +85,9 @@ class _BatchRepository implements ExerciseRepository {
   }
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) async {}
 
   @override
@@ -164,9 +167,7 @@ String _saveLabel(WidgetTester tester) => tester
     .data!;
 
 void main() {
-  testWidgets('운동을 담아 두고 한 번에 저장하면 요청 하나로 모두 보낸다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('운동을 담아 두고 한 번에 저장하면 요청 하나로 모두 보낸다', (WidgetTester tester) async {
     final _BatchRepository repo = _BatchRepository();
     await _open(tester, repo);
 
@@ -224,9 +225,10 @@ void main() {
 
     await _tapKey(tester, _saveButton);
 
-    expect(repo.requests.single.map((ExerciseSessionDraft d) => d.name), <String>[
-      '스쿼트',
-    ]);
+    expect(
+      repo.requests.single.map((ExerciseSessionDraft d) => d.name),
+      <String>['스쿼트'],
+    );
     expect(find.text('운동이 기록됐어요'), findsOneWidget);
   });
 
@@ -250,9 +252,10 @@ void main() {
     expect(find.text('스쿼트'), findsNothing);
 
     await _tapKey(tester, _saveButton);
-    expect(repo.requests.single.map((ExerciseSessionDraft d) => d.name), <String>[
-      '런지',
-    ]);
+    expect(
+      repo.requests.single.map((ExerciseSessionDraft d) => d.name),
+      <String>['런지'],
+    );
   });
 
   testWidgets('이름 없이 담으려 하면 막힌다', (WidgetTester tester) async {

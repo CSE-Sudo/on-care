@@ -222,6 +222,42 @@ void main() {
       );
     });
 
+    test('시작 시각이 지난 상담의 409 는 ConsultationAlreadyStarted 다 (#3359)', () async {
+      // 같은 409 지만 서버가 코드로 밝힌다 — 화면의 안내가 다르다.
+      final repository = _repo(
+        _StubAdapter(
+          status: 409,
+          body: <String, Object?>{
+            'detail': <String, Object?>{
+              'code': 'consultation_started',
+              'message': '시작 시각이 지난 상담은 취소할 수 없어요.',
+            },
+          },
+        ),
+      );
+
+      await expectLater(
+        repository.cancel('consult-1'),
+        throwsA(isA<ConsultationAlreadyStarted>()),
+      );
+    });
+
+    test('모르는 코드의 409 는 ConsultationNoLongerPending 으로 남는다', () async {
+      final repository = _repo(
+        _StubAdapter(
+          status: 409,
+          body: <String, Object?>{
+            'detail': <String, Object?>{'code': 'something_else'},
+          },
+        ),
+      );
+
+      await expectLater(
+        repository.cancel('consult-1'),
+        throwsA(isA<ConsultationNoLongerPending>()),
+      );
+    });
+
     test('없는 요청의 404 는 ConsultationNotFound 다', () async {
       final repository = _repo(
         _StubAdapter(

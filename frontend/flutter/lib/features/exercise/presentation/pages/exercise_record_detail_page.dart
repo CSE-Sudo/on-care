@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,10 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds;
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 수정 칸의 조작이 멎은 뒤 소모 칼로리를 다시 받기까지의 간격 — 추가 시트와
+/// 같다. 글자 하나마다 요청을 보내지 않는다.
+const Duration _estimateDebounceDelay = Duration(milliseconds: 400);
 
 /// [date] 에 회원이 직접 적은 운동 기록을 한 화면에 연다. (#2507)
 ///
@@ -164,24 +169,12 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
       await ref.read(exerciseChangeRunnerProvider).run((
         ExerciseRepository r,
       ) async {
-        for (final ExerciseSession s in sessions) {
-          final String? id = s.id;
-          if (id == null) continue;
-          await r.updateSession(
-            id: id,
-            type: s.type,
-            name: s.name,
-            minutes: s.minutes,
-            calories: s.calories,
-            intensity: s.intensity,
-            date: chosen,
-            sets: s.sets,
-            reps: s.reps,
-            holdSeconds: s.holdSeconds,
-            durationSeconds: s.durationSeconds,
-            weight: s.weight,
-          );
-        }
+        // 한 요청으로 옮긴다 — 서버가 전부 옮기거나 전부 그대로 둔다(#3365).
+        // 기록마다 수정 요청을 보내면 중간에 실패했을 때 일부만 옮겨졌다.
+        await r.moveSessions(<String>[
+          for (final ExerciseSession s in sessions)
+            if (s.id != null) s.id!,
+        ], chosen);
       });
       if (!mounted) return;
       setState(() {
@@ -551,6 +544,21 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
 
   ExerciseSession get _s => widget.session;
 
+  /// 서버가 계산해 준 소모 칼로리와 그 값을 낸 입력([_estimateKey]). (#3365)
+  int? _estimated;
+  String? _estimatedKey;
+
+  /// 지금 계산을 요청해 둔 입력. 늦게 도착한 응답이 새 입력의 값을 덮지 않도록,
+  /// 응답을 쓸 때 이 값과 견준다.
+  String? _requestedKey;
+
+  /// 마지막으로 보여 준 값. 새 값을 받는 동안에는 이 값을 그대로 둔다 — 앱이
+  /// 따로 어림한 숫자를 잠깐 끼워 넣지 않는다.
+  int _shownCalories = 0;
+
+  /// 조작이 멎은 뒤에 부른다.
+  Timer? _estimateDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -567,6 +575,7 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
 
   @override
   void dispose() {
+    _estimateDebounce?.cancel();
     for (final TextEditingController c in <TextEditingController>[
       _name,
       _hours,
@@ -590,6 +599,11 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
 
   /// 칸을 저장된 값으로 되돌린다.
   void reset() {
+    _estimateDebounce?.cancel();
+    _estimated = null;
+    _estimatedKey = null;
+    _requestedKey = null;
+    _shownCalories = _s.calories;
     _type = _types.contains(_s.type)
         ? _s.type
         : (_s.type == ExerciseType.yoga
@@ -652,16 +666,86 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
     return null;
   }
 
-  /// 고친 값의 소모 칼로리 어림값. 서버는 저장할 때 같은 계산을 다시 한다(#1312).
+  /// 소모 칼로리를 가르는 입력 전부 — 서버 계산(`POST /exercise/calories`)이
+  /// 읽는 값이다. 하나라도 달라지면 값이 달라진다.
+  String get _estimateKey =>
+      '${_name.text.trim()}|${_type.name}|$_effectiveMinutes|${_intensity.name}';
+
+  /// 저장된 기록의 같은 입력. 칸이 이것과 같으면 저장된 칼로리가 곧 답이다.
+  String get _savedKey =>
+      '${_s.name.trim()}|${_s.type.name}|${_s.minutes}|${_s.intensity.name}';
+
+  /// 고친 값의 소모 칼로리 — **서버가 계산한 값**이다(#1312, #3365).
   ///
-  /// 종류·강도가 그대로면 저장된 값을 시간에 비례해 늘리고 줄인다 — 표의 평균으로
-  /// 새로 어림하면 시간만 조금 고쳐도 숫자가 크게 튀어, 무엇이 바뀌었는지 읽히지
-  /// 않는다. 종류·강도가 바뀌면 그 종류의 어림값이다.
-  int _caloriesFor(int minutes) {
-    if (_type == _s.type && _intensity == _s.intensity && _s.minutes > 0) {
-      return (_s.calories * minutes / _s.minutes).round();
+  /// 예전에는 앱이 따로 어림했다(저장된 값을 시간에 비례해 늘리거나 유형 평균).
+  /// 서버는 저장할 때 이름·체중으로 다시 계산하므로, 이름이나 유형을 바꾸면 저장
+  /// 직후 숫자가 달라졌다. 이제 새 기록 입력과 같은 미리보기를 받아 보인다.
+  /// 새 값을 받는 동안에는 직전에 보인 값을 그대로 둔다.
+  int get _previewCalories {
+    final String key = _estimateKey;
+    if (key == _savedKey) return _s.calories;
+    if (key == _estimatedKey) return _estimated ?? _shownCalories;
+    return _shownCalories;
+  }
+
+  /// 칸을 고친 뒤 소모 칼로리를 다시 받아 온다. 조작이 멎은 뒤에 부르고, 이미
+  /// 답을 아는 입력(저장된 값 그대로이거나 방금 받은 입력)은 묻지 않는다.
+  void _scheduleEstimate() {
+    _estimateDebounce?.cancel();
+    if (!mounted || !widget.editing) return;
+    final String key = _estimateKey;
+    if (!changed ||
+        _name.text.trim().isEmpty ||
+        _effectiveMinutes <= 0 ||
+        key == _savedKey ||
+        key == _estimatedKey) {
+      // 떠 있는 요청은 낡은 입력의 것이다 — 돌아와도 쓰지 않는다.
+      _requestedKey = null;
+      return;
     }
-    return estimateExerciseCalories(_type, minutes, intensity: _intensity);
+    // 같은 입력으로 이미 묻는 중이다.
+    if (key == _requestedKey) return;
+    _estimateDebounce = Timer(
+      _estimateDebounceDelay,
+      () => unawaited(_fetchEstimate()),
+    );
+  }
+
+  Future<void> _fetchEstimate() async {
+    if (!mounted || !widget.editing) return;
+    final String key = _estimateKey;
+    final String name = _name.text.trim();
+    final int minutes = _effectiveMinutes;
+    final ExerciseType type = _type;
+    final ExerciseIntensity intensity = _intensity;
+    if (name.isEmpty || minutes <= 0) return;
+    _requestedKey = key;
+    int calories;
+    try {
+      final ExerciseCalorieEstimate result = await ref
+          .read(exerciseRepositoryProvider)
+          .previewCalories(
+            type: type,
+            name: name,
+            minutes: minutes,
+            intensity: intensity,
+          );
+      calories = result.calories;
+    } on Object {
+      // 미리보기가 실패해도 고칠 수 있어야 한다 — 서버가 저장할 때 다시
+      // 계산한다. 추가 시트처럼 앱이 아는 유형 평균으로 채운다.
+      calories = estimateExerciseCalories(type, minutes, intensity: intensity);
+    }
+    // 그 사이 입력이 또 바뀌었으면 이 응답은 낡은 값이다.
+    if (!mounted || key != _requestedKey) return;
+    setState(() {
+      _estimated = calories;
+      _estimatedKey = key;
+      _shownCalories = calories;
+      _requestedKey = null;
+    });
+    // 화면 아래 `총 소모 칼로리` 도 새 값으로 다시 그린다.
+    widget.onChanged?.call();
   }
 
   ExerciseSessionDraft draft(DateTime date) {
@@ -670,7 +754,8 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
       type: _type,
       name: _name.text.trim(),
       minutes: minutes,
-      calories: _caloriesFor(minutes),
+      // 화면이 보여 준 값이다. 서버는 이 값을 쓰지 않고 다시 계산한다(#1312).
+      calories: _previewCalories,
       intensity: _intensity,
       date: date,
       sets: _isStrength ? _setCount : null,
@@ -698,7 +783,7 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
     // 고치지 않은 운동은 저장된 값 그대로다.
     if (!changed) return _s.calories;
     if (_effectiveMinutes <= 0) return 0;
-    return _caloriesFor(_effectiveMinutes);
+    return _previewCalories;
   }
 
   /// 칸을 채운 뒤 고쳤는가 — 고치지 않은 상자는 저장하지 않는다.
@@ -724,9 +809,11 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
     final String name = _s.name.isNotEmpty
         ? _s.name
         : exerciseTypeLabel(l, _s.type);
-    // 고친 값은 화면 아래 `총 소모 칼로리` 에도 바로 반영한다.
+    // 고친 값은 화면 아래 `총 소모 칼로리` 에도 바로 반영한다. 소모 칼로리는
+    // 서버에 다시 묻는다(#3365).
     void changed() {
       setState(() {});
+      _scheduleEstimate();
       widget.onChanged?.call();
     }
 
