@@ -885,7 +885,6 @@ void main() {
             'profile',
             'clients',
             'notifications',
-            'language',
             'account',
             'support',
           ])

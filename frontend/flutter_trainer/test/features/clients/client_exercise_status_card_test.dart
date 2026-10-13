@@ -308,7 +308,7 @@ void main() {
     );
     final Rect atToday = toggleRect();
 
-    for (final String period in <String>['This week', 'All']) {
+    for (final String period in <String>['이번 주', '전체']) {
       await tester.tap(_periodSegment(period));
       await tester.pumpAndSettle();
       expect(toggleRect(), atToday, reason: period);
@@ -646,7 +646,7 @@ void main() {
     });
   });
 
-  group('이력 제목·운동 줄은 화면 언어를 따른다 (#2300)', () {
+  group('이력 제목·운동 줄은 ARB 문구로 적는다 (#2300)', () {
     // 서버는 `date`·`kind`·값을 따로 보낸다. 옛 한국어 문장(`date_label`·
     // `label`)도 함께 오지만 화면은 그 문장을 쓰지 않는다.
     RoutineHistoryEntry ptToday() => const RoutineHistoryEntry(
