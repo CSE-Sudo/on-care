@@ -4150,6 +4150,7 @@
   "coachReportsEmpty": "No reports yet",
   "coachReportsEmptyHint": "Weekly reports from your trainer land here",
   "coachReportsLoadFailed": "Couldn't load your reports",
+  "coachReportsLoadMore": "Show earlier reports",
   "weeklyFeedbackLoadFailed": "Couldn't load the weekly feedback you sent",
   "coachReportSentOn": "Sent {month}/{day}",
   "@coachReportSentOn": {
@@ -4159,6 +4160,17 @@
       },
       "day": {
         "type": "int"
+      }
+    }
+  },
+  "coachReportSentBy": "{name} · {sentOn}",
+  "@coachReportSentBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "sentOn": {
+        "type": "String"
       }
     }
   },

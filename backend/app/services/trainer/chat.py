@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.core.locale import current_locale
 from app.models.models import (
-    ChatMessage, Notification,
+    ChatMessage, MemberReceivedReport, Notification,
     TrainerClient, TrainerSchedule,
     User,
 )
@@ -84,20 +84,26 @@ def build_chat_thread(
     ]
 
 
+def chat_attachment_out(msg: ChatMessage) -> ChatAttachmentOut | None:
+    """메시지에 딸린 파일. 없으면 None.
+
+    대화 응답과 회원의 받은 리포트 목록(#3348)이 같은 모양으로 싣는다.
+    """
+    if msg.attachment_type not in ("pdf", "image") or not msg.attachment_file_id:
+        return None
+    # 이름이 없는 첨부도 화면에는 무언가 적혀야 한다 — 종류별 기본값을 준다.
+    fallback = "weekly-report.pdf" if msg.attachment_type == "pdf" else "사진"
+    return ChatAttachmentOut(
+        type=msg.attachment_type,
+        file_name=msg.attachment_file_name or fallback,
+        file_id=msg.attachment_file_id,
+        file_size=msg.attachment_file_size or 0,
+        download_path=f"/chat/attachments/{msg.attachment_file_id}",
+    )
+
+
 def chat_message_out(msg: ChatMessage, viewer: str) -> ChatMessageOut:
-    attachment = None
-    if msg.attachment_type in ("pdf", "image") and msg.attachment_file_id:
-        # 이름이 없는 첨부도 화면에는 무언가 적혀야 한다 — 종류별 기본값을 준다.
-        fallback = (
-            "weekly-report.pdf" if msg.attachment_type == "pdf" else "사진"
-        )
-        attachment = ChatAttachmentOut(
-            type=msg.attachment_type,
-            file_name=msg.attachment_file_name or fallback,
-            file_id=msg.attachment_file_id,
-            file_size=msg.attachment_file_size or 0,
-            download_path=f"/chat/attachments/{msg.attachment_file_id}",
-        )
+    attachment = chat_attachment_out(msg)
     return ChatMessageOut(
         id=msg.id,
         sender=_sender_out(msg.sender, viewer),
@@ -282,6 +288,25 @@ def _schedule_from_chat(
     )
 
 
+def _record_received_report(db: Session, msg: ChatMessage) -> None:
+    """리포트 전송 [msg] 의 회원 쪽 수신 기록을 남긴다. (#3348)
+
+    메시지와 같은 id·같은 시각으로 적는다 — 회원 앱이 여는 `message_id` 가 대화가
+    지워진 뒤에도 같은 전송을 가리키고, 목록의 보낸 시각이 대화와 어긋나지 않는다.
+    """
+    db.add(
+        MemberReceivedReport(
+            id=msg.id,
+            member_id=msg.member_id,
+            trainer_id=msg.trainer_id,
+            week_start=msg.report_week_start or "",
+            body=msg.body,
+            report_snapshot_json=msg.report_snapshot_json,
+            created_at=msg.created_at,
+        )
+    )
+
+
 def send_message(
     db: Session, trainer_id: str, member_id: str, sender: str, text: str,
     viewer: str = "trainer", notify: str | None = None,
@@ -358,6 +383,11 @@ def send_message(
             if existing is not None:
                 return _existing_message_out(existing, text=text, viewer=viewer)
         raise
+
+    # 리포트 전송이면 회원 쪽 수신 기록을 같은 트랜잭션에 남긴다(#3348). 대화는
+    # 보낸 트레이너가 탈퇴하면 함께 사라지지만, 받은 리포트는 회원에게 남는다.
+    if sender == "trainer" and report_week_start:
+        _record_received_report(db, msg)
 
     # 전송 안내는 트레이너가 쓴 글이 아니다 — 일정 문구로 읽지 않는다.
     if sender == "trainer" and routine_delivery is None:

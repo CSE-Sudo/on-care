@@ -7,7 +7,6 @@ import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/member_report_sheet_repository.dart';
-import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -35,10 +34,10 @@ final memberReportSheetRepositoryProvider =
 
 /// 데모에서 [monday] 주 리포트를 열 수 있는가 — 서버 판정의 대역. (#3366)
 ///
-/// 서버와 같은 두 근거를 본다. **받은 주**는 데모 대화에 남은 리포트 안내
-/// ([CoachMessage.reportWeekStart])이고, **산 주**는 목업 인터셉터의 데모 원장이
-/// 답하는 `GET /me/weekly-reports` 다. 한쪽을 읽지 못하면 그쪽은 없는 것으로 본다 —
-/// 담당이 없는 회원은 대화가 없고, 산 주만으로 연다.
+/// 서버와 같은 두 근거를 본다. **받은 주**는 데모 저장소의 받은 리포트 목록
+/// ([MemberCoachRepository.fetchReceivedReports], #3348)이고, **산 주**는 목업
+/// 인터셉터의 데모 원장이 답하는 `GET /me/weekly-reports` 다. 한쪽을 읽지 못하면
+/// 그쪽은 없는 것으로 본다. 받은 주는 담당이 해제된 뒤에도 남는다.
 Future<bool> demoReportWeekOpens(
   DateTime monday, {
   required MemberCoachRepository coach,
@@ -53,13 +52,23 @@ Future<bool> demoReportWeekOpens(
     // 산 주를 읽지 못했다 — 받은 주로 넘어간다.
   }
   try {
-    final List<CoachMessage> chat = await fetchWholeCoachChat(coach);
-    return chat.any(
-      (CoachMessage m) => switch (m.reportWeekStart) {
-        final DateTime week => sameDay(week, monday),
-        null => false,
-      },
-    );
+    // 받은 리포트 목록을 쪽마다 넘겨 본다 — 그 주에 닿았거나 지나쳤으면 멈춘다.
+    DateTime? before;
+    do {
+      final ReceivedReportsPage page = await coach.fetchReceivedReports(
+        before: before,
+      );
+      if (page.reports.any(
+        (ReceivedReport r) => sameDay(r.weekStart, monday),
+      )) {
+        return true;
+      }
+      final DateTime? next = page.nextBefore;
+      // 커서가 앞으로 나가지 않는 대역을 만나도 멈춘다.
+      if (next == null || (before != null && !next.isBefore(before))) break;
+      before = next;
+    } while (before.isAfter(monday));
+    return false;
   } catch (_) {
     return false;
   }

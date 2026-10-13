@@ -8172,6 +8172,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load your reports'**
   String get coachReportsLoadFailed;
 
+  /// No description provided for @coachReportsLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show earlier reports'**
+  String get coachReportsLoadMore;
+
   /// No description provided for @weeklyFeedbackLoadFailed.
   ///
   /// In en, this message translates to:
@@ -8183,6 +8189,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sent {month}/{day}'**
   String coachReportSentOn(int month, int day);
+
+  /// No description provided for @coachReportSentBy.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {sentOn}'**
+  String coachReportSentBy(String name, String sentOn);
 
   /// No description provided for @myWeeklyFeedbackSectionTitle.
   ///

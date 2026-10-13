@@ -1,8 +1,8 @@
 /// 회원은 받았거나 산 주의 리포트만 연다. (#3366)
 ///
 /// 서버가 `GET /me/coach/weekly-report` 에서 판정하고, 받지도 사지도 않은 주는
-/// 403 이다. 여기서는 앱 쪽 두 가지를 본다 — 데모가 서버와 **같은 두 근거**(대화에
-/// 남은 리포트 안내, 포인트로 산 주)로 판정하는지, 그리고 403 을 "다시 시도" 가
+/// 403 이다. 여기서는 앱 쪽 두 가지를 본다 — 데모가 서버와 **같은 두 근거**(받은
+/// 리포트 목록, 포인트로 산 주)로 판정하는지, 그리고 403 을 "다시 시도" 가
 /// 아니라 아직 받지 않은 리포트로 안내하는지.
 library;
 
@@ -18,6 +18,7 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
 import 'package:oncare/features/member_coach/data/repositories/member_report_sheet_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
@@ -41,11 +42,20 @@ Future<WeeklyReportPurchases> Function() _bought([
 
 Future<WeeklyReportPurchases> _offline() async => throw Exception('offline');
 
-/// 대화를 읽지 못하는 저장소 — 담당이 해제된 회원.
-class _NoChatRepository extends FakeMemberCoachRepository {
+/// 받은 리포트 목록을 읽지 못하는 저장소.
+class _NoReportsRepository extends FakeMemberCoachRepository {
+  @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async =>
+      throw Exception('offline');
+}
+
+/// 대화를 읽을 수 없는 저장소 — 담당이 해제된 회원. 받은 리포트는 남는다.
+class _UnassignedRepository extends FakeMemberCoachRepository {
+  _UnassignedRepository({super.chat}) : super(coach: null);
+
   @override
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
-      throw Exception('unassigned');
+      throw const CoachUnassignedException();
 }
 
 class _StubProfile extends ProfileController {
@@ -174,10 +184,10 @@ void main() {
       expect(opens, isTrue);
     });
 
-    test('대화를 읽지 못해도 산 주는 열린다 — 담당이 없는 회원', () async {
+    test('받은 목록을 읽지 못해도 산 주는 열린다', () async {
       final bool opens = await demoReportWeekOpens(
         _lastWeek,
-        coach: _NoChatRepository(),
+        coach: _NoReportsRepository(),
         purchases: _bought(<DateTime>[_lastWeek]),
       );
 
@@ -199,15 +209,69 @@ void main() {
     test('둘 다 읽지 못하면 열리지 않는다', () async {
       final bool opens = await demoReportWeekOpens(
         _lastWeek,
-        coach: _NoChatRepository(),
+        coach: _NoReportsRepository(),
         purchases: _offline,
       );
 
       expect(opens, isFalse);
     });
 
+    // 받은 리포트는 대화가 아니라 회원에게 남는 기록이다(#3348).
+    test('담당이 해제되어 대화를 읽을 수 없어도 받은 주는 열린다', () async {
+      final bool opens = await demoReportWeekOpens(
+        _lastWeek,
+        coach: _UnassignedRepository(
+          chat: <CoachMessage>[reportNotice(_lastWeek)],
+        ),
+        purchases: _bought(),
+      );
+
+      expect(opens, isTrue);
+    });
+
+    test('받은 목록의 첫 쪽 밖에 있는 주도 찾는다', () async {
+      final FakeMemberCoachRepository coach = FakeMemberCoachRepository(
+        chat: <CoachMessage>[
+          reportNotice(_lastWeek, id: 'r1'),
+          reportNotice(_twoWeeksAgo, id: 'r2'),
+          reportNotice(_threeWeeksAgo, id: 'r3'),
+        ],
+      )..reportPageSize = 1;
+
+      expect(
+        await demoReportWeekOpens(
+          _threeWeeksAgo,
+          coach: coach,
+          purchases: _bought(),
+        ),
+        isTrue,
+      );
+      expect(coach.reportCursors, <DateTime?>[null, _lastWeek, _twoWeeksAgo]);
+    });
+
+    test('찾는 주를 지나치면 더 넘기지 않는다', () async {
+      final FakeMemberCoachRepository coach = FakeMemberCoachRepository(
+        chat: <CoachMessage>[
+          reportNotice(_lastWeek, id: 'r1'),
+          reportNotice(_threeWeeksAgo, id: 'r3'),
+          reportNotice(DateTime(2026, 8, 24), id: 'r4'),
+        ],
+      )..reportPageSize = 1;
+
+      expect(
+        await demoReportWeekOpens(
+          _twoWeeksAgo,
+          coach: coach,
+          purchases: _bought(),
+        ),
+        isFalse,
+      );
+      // 첫 쪽(지난주) 다음 쪽이 3주 전이라, 2주 전은 없다는 것이 거기서 갈린다.
+      expect(coach.reportCursors, <DateTime?>[null, _lastWeek]);
+    });
+
     test('긴 대화의 앞쪽에 있는 리포트 안내도 찾는다', () async {
-      // 한 쪽을 넘는 대화 — 첫 쪽만 읽으면 오래된 리포트가 닫힌다.
+      // 대화 길이는 목록과 무관하다 — 대화를 끝까지 읽지 않아도 선다.
       final FakeMemberCoachRepository coach = FakeMemberCoachRepository(
         chat: <CoachMessage>[
           reportNotice(
