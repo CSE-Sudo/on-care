@@ -356,17 +356,23 @@ abstract class AppLocalizations {
   /// **'You went over your sodium goal today. Try keeping the rest of your meals light.'**
   String get homeAdviceSodiumOver;
 
-  /// Home AI advice when the weekly exercise goal is met (#1943).
+  /// Home AI advice when this week's cardio minutes meet the member's weekly cardio goal (#1943, #3350).
   ///
   /// In en, this message translates to:
-  /// **'You worked out {minutes} minutes this week. You are on track!'**
+  /// **'You did {minutes} minutes of cardio this week. You are on track!'**
   String homeAdviceExerciseOnTrack(int minutes);
 
-  /// Home AI advice when there is some exercise but not enough (#1943).
+  /// Home AI advice when there is exercise this week but cardio minutes are under the weekly cardio goal (#1943, #3350).
   ///
   /// In en, this message translates to:
-  /// **'You worked out {minutes} minutes this week. A little more to go!'**
+  /// **'You did {minutes} minutes of cardio this week. A little more to go!'**
   String homeAdviceExerciseMore(int minutes);
+
+  /// Home AI advice when the member exercised this week but logged no cardio (#3350).
+  ///
+  /// In en, this message translates to:
+  /// **'No cardio logged yet this week. How about starting with an easy walk?'**
+  String get homeAdviceExerciseCardioStart;
 
   /// Home AI advice when nothing was logged this week (#1943).
   ///
@@ -1283,7 +1289,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietManualAddHint.
   ///
   /// In en, this message translates to:
-  /// **'Type a food name and we\'ll fill in the nutrition'**
+  /// **'Type a food name and we\'ll fill in the nutrition. Points are only earned for meals logged by photo'**
   String get dietManualAddHint;
 
   /// No description provided for @dietManualAddEmpty.
@@ -2276,6 +2282,12 @@ abstract class AppLocalizations {
   /// **'User'**
   String get myDefaultUserName;
 
+  /// Shown instead of the email when the account only has the internal placeholder address from a social sign-up.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider, select, kakao{Signed up with Kakao} google{Signed up with Google} other{Signed up with a social account}} · No email on file'**
+  String myEmailUnregistered(String provider);
+
   /// No description provided for @myProfileLoadFailed.
   ///
   /// In en, this message translates to:
@@ -2383,6 +2395,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t redeem. Please try again.'**
   String get myPointsExchangeFailed;
+
+  /// No description provided for @myPointsExchangeBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t redeem this right now'**
+  String get myPointsExchangeBlocked;
+
+  /// No description provided for @myPointsInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough points'**
+  String get myPointsInsufficient;
+
+  /// No description provided for @myBenefitAlreadyReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this'**
+  String get myBenefitAlreadyReceived;
 
   /// No description provided for @myPointsShortfall.
   ///
@@ -2879,7 +2909,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPointsHistoryEmptyMessage.
   ///
   /// In en, this message translates to:
-  /// **'Log meals and workouts to earn points.'**
+  /// **'Log meals by photo or log workouts to earn points.'**
   String get myPointsHistoryEmptyMessage;
 
   /// No description provided for @myPointsHistoryLoadFailed.
@@ -3092,11 +3122,29 @@ abstract class AppLocalizations {
   /// **'Couldn\'t join. Please try again.'**
   String get challengeJoinFailed;
 
+  /// No description provided for @challengeJoinAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve already joined'**
+  String get challengeJoinAlready;
+
+  /// No description provided for @challengeJoinBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t join right now'**
+  String get challengeJoinBlocked;
+
   /// No description provided for @challengeJoinClosed.
   ///
   /// In en, this message translates to:
   /// **'You can join again next Monday'**
   String get challengeJoinClosed;
+
+  /// No description provided for @challengeSettling.
+  ///
+  /// In en, this message translates to:
+  /// **'Tallying last week\'s result. Workouts you log for last week by today still count'**
+  String get challengeSettling;
 
   /// No description provided for @challengeThisWeek.
   ///
@@ -3494,6 +3542,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send the emote'**
   String get emoteSendFailed;
 
+  /// Toast when the server refuses an emote because the member's unlock ran out (402); the emote shows as locked again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That emote has expired. Buy it again to send it'**
+  String get emoteSendLocked;
+
+  /// No description provided for @emoteSendRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'That emote can\'t be sent'**
+  String get emoteSendRejected;
+
   /// No description provided for @a11yOpenEmotes.
   ///
   /// In en, this message translates to:
@@ -3535,6 +3595,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{• Your upcoming PT booking will be cancelled} other{• Your {count} upcoming PT bookings will be cancelled}}'**
   String myWithdrawCancelReservations(int count);
+
+  /// Withdrawal confirmation line, shown only when a trainer has scheduled upcoming sessions with the member (#3341).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{• The PT session your trainer scheduled will be cancelled} other{• The {count} PT sessions your trainer scheduled will be cancelled}}'**
+  String myWithdrawCancelSessions(int count);
 
   /// Withdrawal confirmation line, shown only when the member has pending consultation requests (#3006).
   ///
@@ -3788,6 +3854,12 @@ abstract class AppLocalizations {
   /// **'That email is already in use'**
   String get myProfileEmailTaken;
 
+  /// No description provided for @myProfileEmailEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address to use'**
+  String get myProfileEmailEmptyHint;
+
   /// No description provided for @myProfilePhoneRequired.
   ///
   /// In en, this message translates to:
@@ -3881,7 +3953,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifAlwaysSent.
   ///
   /// In en, this message translates to:
-  /// **'PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent'**
+  /// **'PT bookings, changes and cancellations, trainer requests, connect and disconnect notices, consultation request results, health goal changes, coupon expiry and cancellation, and weekly challenge results are always sent'**
   String get myNotifAlwaysSent;
 
   /// No description provided for @mySupportFaq.
@@ -4238,6 +4310,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the photo'**
   String get coachImageUnavailable;
 
+  /// Second line under a chat photo that failed to download; tapping the placeholder fetches it again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to load again'**
+  String get coachImageRetry;
+
   /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In en, this message translates to:
@@ -4280,6 +4358,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send your message. Please try again'**
   String get coachChatSendFailed;
 
+  /// Toast when the server rejects the message content itself (400/422); sending the same text again would fail the same way, so it does not suggest retrying (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That message can\'t be sent. Please check what you wrote'**
+  String get coachChatSendRejected;
+
   /// Tooltip of the photo button in the trainer chat input bar and title of the sheet it opens (#1665).
   ///
   /// In en, this message translates to:
@@ -4315,6 +4399,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the photo'**
   String get coachPhotoSendFailed;
+
+  /// Status under a chat photo the server refused (unsupported format etc.); only Delete is offered, not Send again (#3346).
+  ///
+  /// In en, this message translates to:
+  /// **'That photo can\'t be sent'**
+  String get coachPhotoSendRejected;
 
   /// No description provided for @coachPhotoRetry.
   ///
@@ -4535,7 +4625,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicPaidInsufficient.
   ///
   /// In en, this message translates to:
-  /// **'You need {shortfall} more. Log meals and workouts to earn points.'**
+  /// **'You need {shortfall} more. Log meals by photo or log workouts to earn points.'**
   String aicPaidInsufficient(String shortfall);
 
   /// No description provided for @aicPointsSpent.
@@ -4741,18 +4831,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consultation request pending'**
   String get exConsultPendingCta;
-
-  /// No description provided for @exConsultLinkedToOtherTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.'**
-  String get exConsultLinkedToOtherTrainer;
-
-  /// No description provided for @exConsultGoToMyTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'View my trainer'**
-  String get exConsultGoToMyTrainer;
 
   /// No description provided for @exViewConsultationRequest.
   ///
@@ -5576,6 +5654,18 @@ abstract class AppLocalizations {
   /// **'Get a new code'**
   String get trainerSyncRetry;
 
+  /// No description provided for @trainerSyncConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected with {name}'**
+  String trainerSyncConnected(String name);
+
+  /// No description provided for @trainerSyncConnectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer can now see your records and coach you.'**
+  String get trainerSyncConnectedBody;
+
   /// Sign-up: the account was created but the follow-up sign-in failed (#1926).
   ///
   /// In en, this message translates to:
@@ -5873,7 +5963,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
+  /// **'Logging earns points.\nLog a meal by photo +{diet}P (not for meals added manually), log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// No description provided for @guideSampleFoodScrambledEggs.
@@ -6502,7 +6592,7 @@ abstract class AppLocalizations {
   /// Point-earning action in the points guide.
   ///
   /// In en, this message translates to:
-  /// **'Log a meal'**
+  /// **'Log a meal by photo'**
   String get myPointsDietAdd;
 
   /// Point-earning action in the points guide: finishing a personal exercise (sent by the trainer or recommended by AI).
@@ -7062,6 +7152,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A cancelled request can\'t be restored.'**
   String get exConsultHistoryCancelBody;
+
+  /// Title of the confirm dialog when a member cancels a consultation the trainer already accepted, before it starts (#3359).
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this confirmed consultation?'**
+  String get exConsultAcceptedCancelTitle;
+
+  /// No description provided for @exConsultAcceptedCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll let the trainer know and free up the time. A cancelled consultation can\'t be restored.'**
+  String get exConsultAcceptedCancelBody;
+
+  /// Confirm button of the cancel dialog for an accepted consultation. Sits next to Keep.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel consultation'**
+  String get exConsultAcceptedCancelAction;
+
+  /// No description provided for @exConsultCancelStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'A consultation that has already started can\'t be cancelled.'**
+  String get exConsultCancelStarted;
 
   /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
   ///
@@ -7836,6 +7950,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send your weekly feedback. Please try again'**
   String get weeklyFeedbackSendFailed;
 
+  /// No description provided for @weeklyFeedbackSendUnassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer is no longer assigned, so weekly feedback can\'t be sent'**
+  String get weeklyFeedbackSendUnassigned;
+
+  /// No description provided for @weeklyFeedbackSendRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly feedback can\'t be sent for this week'**
+  String get weeklyFeedbackSendRejected;
+
   /// No description provided for @weeklyFeedbackAlreadySent.
   ///
   /// In en, this message translates to:
@@ -8040,11 +8166,65 @@ abstract class AppLocalizations {
   /// **'Find email'**
   String get findEmailAction;
 
-  /// Toast shown when the find-email button is pressed while the lookup is not available yet.
+  /// No description provided for @findEmailFoundSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Finding your email is coming soon.'**
-  String get findEmailComingSoon;
+  /// **'These accounts match the details you entered.'**
+  String get findEmailFoundSubtitle;
+
+  /// No description provided for @findEmailMaskedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Part of the email is hidden to protect your privacy.'**
+  String get findEmailMaskedNote;
+
+  /// Find-email result for an account that signs in through a social provider only. provider is findEmailProviderKakao / Google / Other.
+  ///
+  /// In en, this message translates to:
+  /// **'You signed up with {provider}'**
+  String findEmailSocialTitle(String provider);
+
+  /// No description provided for @findEmailSocialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'On the sign-in screen, sign in the same way you signed up.'**
+  String get findEmailSocialBody;
+
+  /// No description provided for @findEmailProviderKakao.
+  ///
+  /// In en, this message translates to:
+  /// **'Kakao'**
+  String get findEmailProviderKakao;
+
+  /// No description provided for @findEmailProviderGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get findEmailProviderGoogle;
+
+  /// No description provided for @findEmailProviderOther.
+  ///
+  /// In en, this message translates to:
+  /// **'a social account'**
+  String get findEmailProviderOther;
+
+  /// No description provided for @findEmailNotFoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find a matching account'**
+  String get findEmailNotFoundTitle;
+
+  /// No description provided for @findEmailNotFoundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your name and phone number again. If you didn\'t add a phone number when signing up, or changed it later, we can\'t find the account here.'**
+  String get findEmailNotFoundBody;
+
+  /// No description provided for @findEmailRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Search again'**
+  String get findEmailRetry;
 
   /// No description provided for @passwordChangeTitle.
   ///
@@ -8177,6 +8357,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter the code from the email and your new password.'**
   String get passwordResetConfirmSubtitle;
+
+  /// No description provided for @passwordResetSocialNote.
+  ///
+  /// In en, this message translates to:
+  /// **'If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.'**
+  String get passwordResetSocialNote;
 
   /// No description provided for @passwordResetCodeHint.
   ///

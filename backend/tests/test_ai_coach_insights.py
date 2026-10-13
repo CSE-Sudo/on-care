@@ -88,7 +88,7 @@ def test_history_and_insight_list_cover_the_last_30_days(client, db_session):
     )
     old = conversation.append_exchange(
         db_session, member_id, question="허리가 뻐근해요", reply="스트레칭", sources=[]
-    )
+    ).conversation
     from sqlalchemy import update
 
     from app.models.models import AiMessage

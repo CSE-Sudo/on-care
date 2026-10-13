@@ -99,7 +99,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     }
     final now = nowKst();
     final String id = 'diet-${now.microsecondsSinceEpoch}';
-    final String day = date ?? _todayDateString();
+    final String day = date ?? wireDate(now);
     await _db
         .into(_db.dietEntries)
         .insert(
@@ -107,9 +107,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
             id: id,
             date: day,
             mealType: mealType,
-            timeLabel:
-                '${now.hour.toString().padLeft(2, '0')}:'
-                '${now.minute.toString().padLeft(2, '0')}',
+            timeLabel: _recordTimeLabel(day, mealType, now),
             foodsJson: jsonEncode(foods),
             totalCalories: _sumMacro(foods, 'calories').round(),
             sodiumMg: Value(_sumMacro(foods, 'sodium_mg').round()),
@@ -506,7 +504,32 @@ String? _entryDateError(String? date) {
   if (parsed.isAfter(DateTime(now.year, now.month, now.day))) {
     return 'date 는 오늘보다 뒤일 수 없어요.';
   }
+  // 하한은 사진 분석·직접 입력·수정이 함께 쓴다(#3354) — 앱의 날짜 고르기
+  // 범위와 같다.
+  if (parsed.isBefore(DateTime(now.year - 1))) {
+    return 'date 는 작년 1월 1일보다 앞설 수 없어요.';
+  }
   return null;
+}
+
+/// 지난 날짜에 적는 끼니의 기본 시각 — 서버 `MEAL_DEFAULT_TIME_LABELS` 와 같다.
+const Map<String, String> _mealDefaultTimeLabels = <String, String>{
+  'breakfast': '08:00',
+  'lunch': '12:00',
+  'snack': '15:00',
+  'dinner': '18:00',
+  'lateNight': '22:00',
+};
+
+/// 새 끼니의 `time_label`(#3354). 실서버(`record_time_label`)와 같은 규칙이다 —
+/// 오늘 기록은 적는 시각, 지난 날짜 기록은 끼니 종류의 기본 시각. 어제 아침을
+/// 밤에 적어도 그 끼니가 밤 시각으로 남지 않는다.
+String _recordTimeLabel(String day, String mealType, DateTime now) {
+  if (day.compareTo(wireDate(now)) >= 0) {
+    return '${now.hour.toString().padLeft(2, '0')}:'
+        '${now.minute.toString().padLeft(2, '0')}';
+  }
+  return _mealDefaultTimeLabels[mealType] ?? '';
 }
 
 /// 음식 목록에서 탄·단·지 한 항목의 합. `diet_entries` 에는 탄단지 칼럼이

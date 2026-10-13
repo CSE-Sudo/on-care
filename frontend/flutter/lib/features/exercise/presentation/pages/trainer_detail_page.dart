@@ -11,7 +11,6 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
-import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -22,6 +21,22 @@ class TrainerDetailPage extends ConsumerWidget {
   const TrainerDetailPage({required this.trainerId, super.key});
 
   final String trainerId;
+
+  /// 소속 헬스장. 받아 둔 목록에서 찾고, 목록이 끝났는데 없으면 그 헬스장
+  /// 하나를 따로 읽는다 — 목록은 서버가 반경·개수로 잘라 주므로, 먼 헬스장
+  /// 소속 트레이너의 카드가 비지 않게(#3356). 따로 읽는 것이 실패해도 카드만
+  /// 비고 나머지 정보는 그대로 보인다.
+  static Gym? _affiliatedGym(
+    WidgetRef ref,
+    AsyncValue<List<Gym>> gymsAsync,
+    String gymId,
+  ) {
+    final Gym? listed = gymsAsync.valueOrNull
+        ?.where((Gym gym) => gym.id == gymId)
+        .firstOrNull;
+    if (listed != null || gymsAsync.isLoading || gymId.isEmpty) return listed;
+    return ref.watch(gymProvider(gymId)).valueOrNull;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,11 +56,7 @@ class TrainerDetailPage extends ConsumerWidget {
           trainer: trainer,
           // 소속 헬스장은 목록에서 찾는다. 아직 로딩 중이면 카드만 비고
           // 나머지 정보는 그대로 보인다.
-          gym: switch (gymsAsync) {
-            AsyncData<List<Gym>>(:final List<Gym> value) =>
-              value.where((Gym gym) => gym.id == trainer.gymId).firstOrNull,
-            _ => null,
-          },
+          gym: _affiliatedGym(ref, gymsAsync, trainer.gymId),
           // 헬스장이 아니라 이 트레이너 앞으로 낸 요청만 대기중으로 본다.
           // 헬스장이 아니라 트레이너 단위로 비교한다 — 같은 헬스장에 다른
           // 트레이너가 있어도 내 담당이 아니면 상담을 걸 수 있어야 한다.
@@ -97,10 +108,6 @@ class _TrainerDetails extends ConsumerWidget {
   /// 이미 내 담당 트레이너인가. 담당 연결 해제 버튼을 함께 보이고, 재상담도
   /// 받는다(#2585).
   bool get isMyTrainer => myTrainerId == trainer.id;
-
-  /// 담당이 따로 있는가. 그동안 상담은 담당에게만 낸다 — 이 트레이너에게는
-  /// 담당 연결을 해제한 뒤 낸다(#2611).
-  bool get isLinkedElsewhere => myTrainerId != null && !isMyTrainer;
 
   /// 담당 트레이너 연결만 끊는다 — 헬스장은 그대로다. 끊었으면 이 화면을
   /// 닫는다. 지운 대상의 상세에 남아 있으면 방금 무엇을 했는지 화면이 말해
@@ -279,7 +286,7 @@ class _TrainerDetails extends ConsumerWidget {
               ),
             ],
             // 담당 트레이너에게도 상담을 걸 수 있다 — 재상담·점검 상담이다(#2585).
-            // 담당이 따로 있으면 이 트레이너에게는 걸 수 없다(#2611).
+            // 담당이 따로 있어도 걸 수 있다 — 상담은 담당을 바꾸지 않는다(#3358).
             // 헬스장 탭의 `빈 예약 시간` 은 1:1 PT 수업 예약이라 상담을 대신하지
             // 못한다.
             const SizedBox(height: OnCareSpacing.sectionGap),
@@ -288,7 +295,7 @@ class _TrainerDetails extends ConsumerWidget {
               label: hasPending
                   ? l.exConsultPendingCta
                   : l.exTrainerConsultRequest,
-              onPressed: hasPending || isLinkedElsewhere
+              onPressed: hasPending
                   ? null
                   : () => context.push(
                       AppRoutes.consultationRequestPath(
@@ -299,10 +306,6 @@ class _TrainerDetails extends ConsumerWidget {
               size: OnCareButtonSize.large,
               fullWidth: true,
             ),
-            // 대기 중인 요청은 담당이 생기기 전에 낸 것이다 — 그때는 대기 표시가
-            // 먼저라 안내를 겹치지 않는다.
-            if (isLinkedElsewhere && !hasPending)
-              ConsultLinkedNotice(myTrainerId: myTrainerId!),
             if (isMyTrainer) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s12),
               // 목록 카드에서 삭제를 여기로 옮겼다 (#1057). 위험 동작이라 상담

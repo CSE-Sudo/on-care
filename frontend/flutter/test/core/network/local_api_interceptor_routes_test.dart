@@ -46,6 +46,8 @@ const List<String> _exactRoutes = <String>[
   'POST /auth/register',
   // 가입 이메일 인증 코드(#3038).
   'POST /auth/register/email-code',
+  // 아이디(가입 이메일) 찾기(#3337).
+  'POST /auth/find-email',
   'POST /auth/logout',
   'POST /auth/refresh',
   'POST /auth/social/kakao',

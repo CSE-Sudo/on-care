@@ -124,34 +124,45 @@ class _FixedWeekRepository implements ExerciseRepository {
 /// 바뀌어 옛 목록이 지금 담당의 것이 아닐 때) 한 운동을 잃지 않으려고 서는
 /// 자리다. 그 경우를 만든다.
 class _NoDayListCoachRepository extends MockMemberCoachRepository {
+  _NoDayListCoachRepository({this.sessions});
+
+  /// 주면 PT 일정을 이것으로 바꾼다 — 담당이 바뀐 회원의 목록을 만든다(#3347).
+  final List<CoachSession>? sessions;
+
   @override
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async =>
       const <CoachRoutine>[];
+
+  @override
+  Future<List<CoachSession>> fetchSessions() async =>
+      sessions ?? await super.fetchSessions();
 }
 
-Widget _app(ExerciseRepository repo) => ProviderScope(
-  overrides: <Override>[
-    appConfigProvider.overrideWithValue(
-      const AppConfig(
-        environment: Environment.dev,
-        apiBaseUrl: 'https://example.test',
-        useMockApi: true,
+Widget _app(ExerciseRepository repo, {List<CoachSession>? coachSessions}) =>
+    ProviderScope(
+      overrides: <Override>[
+        appConfigProvider.overrideWithValue(
+          const AppConfig(
+            environment: Environment.dev,
+            apiBaseUrl: 'https://example.test',
+            useMockApi: true,
+          ),
+        ),
+        exerciseRepositoryProvider.overrideWithValue(repo),
+        accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
+        memberCoachRepositoryProvider.overrideWithValue(
+          _NoDayListCoachRepository(sessions: coachSessions)
+              as MemberCoachRepository,
+        ),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const ExercisePage(),
       ),
-    ),
-    exerciseRepositoryProvider.overrideWithValue(repo),
-    accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
-    memberCoachRepositoryProvider.overrideWithValue(
-      _NoDayListCoachRepository() as MemberCoachRepository,
-    ),
-  ],
-  child: MaterialApp(
-    theme: AppTheme.light(),
-    locale: const Locale('ko'),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: const ExercisePage(),
-  ),
-);
+    );
 
 void main() {
   // 월요일에는 다른 평일이 모두 미래라 선택할 수 없다.
@@ -199,12 +210,15 @@ void main() {
 
   Future<AppLocalizations> pumpDay(
     WidgetTester tester,
-    List<ExerciseSession> sessions,
-  ) async {
+    List<ExerciseSession> sessions, {
+    List<CoachSession>? coachSessions,
+  }) async {
     tester.view.physicalSize = const Size(500, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(_app(_FixedWeekRepository(sessions)));
+    await tester.pumpWidget(
+      _app(_FixedWeekRepository(sessions), coachSessions: coachSessions),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('${otherDay().day}').first);
     await tester.pumpAndSettle();
@@ -456,6 +470,119 @@ void main() {
       find.byKey(const ValueKey<String>('exercise-routine-records')),
       findsOneWidget,
     );
+  });
+
+  group('그날 PT 를 함께한 트레이너 이름 (#3347)', () {
+    const Key nameTag = ValueKey<String>('exercise-pt-coach-name');
+
+    CoachSession done(DateTime date, {String trainerName = ''}) => CoachSession(
+      id: 'done-${date.day}',
+      date: date,
+      time: '18:00',
+      type: '1:1 PT',
+      durationMinutes: 50,
+      status: '완료',
+      trainerName: trainerName,
+    );
+
+    ExerciseSession pt(DateTime date) => trainerSession(
+      id: 'pt-1',
+      date: date,
+      source: ExerciseSource.trainerPt,
+      name: 'PT 세션',
+      timeLabel: '18:00',
+    );
+
+    testWidgets('지난 담당과 한 PT 는 그때의 트레이너 이름으로 남는다', (tester) async {
+      // 지금 담당은 데모 트레이너인데, 그날 수업은 다른 트레이너와 했다.
+      final DateTime target = otherDay();
+      await pumpDay(
+        tester,
+        <ExerciseSession>[pt(target)],
+        coachSessions: <CoachSession>[done(target, trainerName: '이전 코치')],
+      );
+
+      final Finder card = find.byKey(
+        const ValueKey<String>('exercise-pt-records'),
+      );
+      expect(
+        find.descendant(of: card, matching: find.byKey(nameTag)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: card, matching: find.text('이전 코치')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('다른 날의 수업 이름을 끌어오지 않는다', (tester) async {
+      final DateTime target = otherDay();
+      await pumpDay(
+        tester,
+        <ExerciseSession>[pt(target)],
+        coachSessions: <CoachSession>[done(today(), trainerName: '오늘 코치')],
+      );
+
+      expect(find.byKey(nameTag), findsNothing);
+    });
+
+    testWidgets('이름을 싣지 않는 응답이면 칩을 세우지 않는다', (tester) async {
+      final DateTime target = otherDay();
+      await pumpDay(
+        tester,
+        <ExerciseSession>[pt(target)],
+        coachSessions: <CoachSession>[done(target)],
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('exercise-pt-records')),
+        findsOneWidget,
+      );
+      expect(find.byKey(nameTag), findsNothing);
+    });
+
+    testWidgets('완료하지 않은 일정의 이름은 쓰지 않는다', (tester) async {
+      final DateTime target = otherDay();
+      await pumpDay(
+        tester,
+        <ExerciseSession>[pt(target)],
+        coachSessions: <CoachSession>[
+          CoachSession(
+            id: 'cancelled',
+            date: target,
+            time: '10:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '취소',
+            trainerName: '취소한 코치',
+          ),
+        ],
+      );
+
+      expect(find.byKey(nameTag), findsNothing);
+    });
+
+    testWidgets('개인운동 묶음에는 이름 칩이 없다', (tester) async {
+      final DateTime target = otherDay();
+      await pumpDay(
+        tester,
+        <ExerciseSession>[
+          trainerSession(
+            id: 'routine-1',
+            date: target,
+            source: ExerciseSource.assignedRoutine,
+            name: '코어 루틴',
+          ),
+        ],
+        coachSessions: <CoachSession>[done(target, trainerName: '이전 코치')],
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('exercise-routine-records')),
+        findsOneWidget,
+      );
+      expect(find.byKey(nameTag), findsNothing);
+    });
   });
 
   testWidgets('회원이 직접 적은 기록은 두 카드 어디에도 오지 않는다', (tester) async {

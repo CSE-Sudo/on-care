@@ -26,6 +26,65 @@ class CoachUnassignedException implements Exception {
   String toString() => 'CoachUnassignedException';
 }
 
+/// 서버가 트레이너에게 보내는 일(글·이모티콘·사진·주간 피드백)을 **분명히**
+/// 거절한 이유. (#3346)
+///
+/// 망 오류·시간 초과·서버 장애는 여기 없다 — 그건 다시 보내면 되는 실패라
+/// 그 밖의 오류로 남는다.
+enum CoachSendFailure {
+  /// 담당이 해제됐다(404). 받는 사람이 없어 다시 보내도 같다.
+  unassigned,
+
+  /// 이모티콘 이용권이 없거나 끝났다(402). 다시 사야 보낼 수 있다.
+  emoteLocked,
+
+  /// 같은 전송 키에 다른 내용이 이미 있다(409). 그 키로는 다시 보낼 수 없다.
+  conflict,
+
+  /// 사진이 서버 한도보다 크다(413).
+  photoTooLarge,
+
+  /// 서버가 읽지 못하는 사진 형식이다(415).
+  photoUnsupported,
+
+  /// 보낸 값이 거절됐다(400·422) — 없는 이모티콘, 빈 글, 받지 않는 주 등.
+  invalid,
+}
+
+/// 서버가 전송을 거절했다. 같은 내용으로 다시 보내도 결과가 같다. (#3346)
+///
+/// 화면은 [reason] 으로 문구를 고르고, 이 오류에는 다시 보내기를 권하지 않는다.
+class CoachSendRejected implements Exception {
+  const CoachSendRejected(this.reason);
+
+  final CoachSendFailure reason;
+
+  /// 응답 상태에서 거절 이유를 읽는다. 거절이 아니면(망 오류, 5xx, 권한 등)
+  /// null 이다 — 그때는 일반 실패로 다룬다.
+  ///
+  /// 본문 `detail` 은 사람이 읽는 한국어 문장이라 가르는 데 쓰지 않는다. 전송
+  /// 경로의 상태 코드는 원인마다 하나씩이다(`member_coach.py`).
+  static CoachSendRejected? fromStatus(int? status) {
+    final CoachSendFailure? reason = switch (status) {
+      404 => CoachSendFailure.unassigned,
+      402 => CoachSendFailure.emoteLocked,
+      409 => CoachSendFailure.conflict,
+      413 => CoachSendFailure.photoTooLarge,
+      415 => CoachSendFailure.photoUnsupported,
+      400 || 422 => CoachSendFailure.invalid,
+      _ => null,
+    };
+    return reason == null ? null : CoachSendRejected(reason);
+  }
+
+  /// [error] 가 전송 거절이면 그 이유, 아니면 null.
+  static CoachSendFailure? reasonOf(Object error) =>
+      error is CoachSendRejected ? error.reason : null;
+
+  @override
+  String toString() => 'CoachSendRejected($reason)';
+}
+
 abstract interface class MemberCoachRepository {
   /// The assigned coach, or `null` when the member has none yet (404).
   Future<MemberCoach?> fetchCoach();
@@ -98,6 +157,9 @@ abstract interface class MemberCoachRepository {
   /// Sends a message to the coach. No-ops on blank text.
   /// 글 또는 이모티콘 하나를 보낸다. [emoteId] 를 주면 이모티콘 메시지다(#2020) —
   /// 이용권이 없으면 서버가 막는다.
+  ///
+  /// 서버가 분명히 거절하면 [CoachSendRejected], 망 오류 등은 그 밖의 오류다
+  /// (#3346). [sendPhoto]·[saveWeeklyFeedback] 도 같다.
   Future<void> sendMessage(String text, {String? emoteId});
 
   /// 담당 트레이너에게 사진 한 장을 보낸다 — `POST /me/coach/chat/image`. (#1665)

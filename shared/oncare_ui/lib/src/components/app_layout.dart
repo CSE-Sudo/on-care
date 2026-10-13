@@ -433,6 +433,23 @@ class AppWebPage extends StatelessWidget {
         : OnCareLayout.webHeaderHeight;
   }
 
+  /// 부제가 쓸 수 있는 줄 수 — 머리 높이 안에 두 줄이 들면 두 줄이다(#3316).
+  ///
+  /// 한 줄로 못 박았던 때에는 좁은 창에서 설명이 `…` 로 잘렸다. 기본 배율에서는
+  /// 제목 한 줄과 부제 두 줄이 88 안에 든다. 글자 배율이 커 두 줄이 들지 않으면
+  /// 예전처럼 한 줄이다 — 머리를 더 키우지 않는다.
+  int _subtitleMaxLines(BuildContext context) {
+    final TextScaler scaler = MediaQuery.textScalerOf(context);
+    final OnCareTokens tokens = context.oncare;
+    double line(TextStyle style) =>
+        scaler.scale(style.fontSize!) * (style.height ?? 1);
+    final double twoLines =
+        line(tokens.text(OnCareTypography.titleLarge)) +
+        line(tokens.text(OnCareTypography.bodySmall)) * 2 +
+        OnCareSpacing.s8 * 2;
+    return twoLines <= _headerHeight(context) ? 2 : 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -457,7 +474,7 @@ class AppWebPage extends StatelessWidget {
         if (subtitle != null)
           Text(
             subtitle!,
-            maxLines: 1,
+            maxLines: _subtitleMaxLines(context),
             overflow: TextOverflow.ellipsis,
             style: tokens
                 .text(OnCareTypography.bodySmall)
@@ -605,6 +622,14 @@ class _WebHeaderLayoutDelegate extends MultiChildLayoutDelegate {
       }
     }
 
+    // 오른쪽에 아무것도 없으면(좁은 셸 — 알림 종이 상단바로 올라간 화면)
+    // 가운데 자리가 머리 오른쪽 끝까지 간다. 대칭으로 비우면 그 안에서 오른쪽에
+    // 붙는 검색 아이콘이 제목 폭만큼 안쪽에 떠 있었다(#3316).
+    if (endSize.width == 0) {
+      centerLeft = startSize.width + _gap;
+      centerWidth = (size.width - centerLeft).clamp(0.0, size.width);
+    }
+
     layoutChild(
       _WebHeaderSlot.center,
       BoxConstraints.tightFor(width: centerWidth, height: size.height),
@@ -618,7 +643,12 @@ class _WebHeaderLayoutDelegate extends MultiChildLayoutDelegate {
 }
 
 /// 분할 레이아웃 — 목록 380 + 간격 16 + 상세. 좁으면 목록·상세 중 하나만 보인다.
-class AppSplitView extends StatelessWidget {
+///
+/// 창 폭이 기준을 넘나들어도 목록·상세의 상태(스크롤, 고른 기간, 입력 중인 글)는
+/// 그대로다(#3316). 좁은 배치와 넓은 배치가 서로 다른 트리라, 자리만 옮겨 주지
+/// 않으면 경계를 지나는 순간 두 쪽 모두 새로 만들어졌다. 좁을 때 가려진 쪽도
+/// 살려 둔다 — 상세를 보고 돌아온 목록이 보던 자리에 있다.
+class AppSplitView extends StatefulWidget {
   const AppSplitView({
     super.key,
     required this.list,
@@ -633,11 +663,31 @@ class AppSplitView extends StatelessWidget {
   final bool showDetailWhenNarrow;
 
   @override
+  State<AppSplitView> createState() => _AppSplitViewState();
+}
+
+class _AppSplitViewState extends State<AppSplitView> {
+  final GlobalKey _listKey = GlobalKey(debugLabel: 'AppSplitView.list');
+  final GlobalKey _detailKey = GlobalKey(debugLabel: 'AppSplitView.detail');
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
+        final Widget list = KeyedSubtree(key: _listKey, child: widget.list);
+        final Widget detail = KeyedSubtree(
+          key: _detailKey,
+          child: widget.detail,
+        );
         if (constraints.maxWidth < OnCareLayout.splitBreakpoint) {
-          return showDetailWhenNarrow ? detail : list;
+          final bool showDetail = widget.showDetailWhenNarrow;
+          return Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              Offstage(offstage: showDetail, child: list),
+              Offstage(offstage: !showDetail, child: detail),
+            ],
+          );
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,

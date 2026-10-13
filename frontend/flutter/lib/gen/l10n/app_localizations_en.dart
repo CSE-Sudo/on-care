@@ -158,13 +158,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String homeAdviceExerciseOnTrack(int minutes) {
-    return 'You worked out $minutes minutes this week. You are on track!';
+    return 'You did $minutes minutes of cardio this week. You are on track!';
   }
 
   @override
   String homeAdviceExerciseMore(int minutes) {
-    return 'You worked out $minutes minutes this week. A little more to go!';
+    return 'You did $minutes minutes of cardio this week. A little more to go!';
   }
+
+  @override
+  String get homeAdviceExerciseCardioStart =>
+      'No cardio logged yet this week. How about starting with an easy walk?';
 
   @override
   String get homeAdviceExerciseStart =>
@@ -687,7 +691,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietManualAddHint =>
-      'Type a food name and we\'ll fill in the nutrition';
+      'Type a food name and we\'ll fill in the nutrition. Points are only earned for meals logged by photo';
 
   @override
   String get dietManualAddEmpty => 'Add at least one food';
@@ -1272,6 +1276,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDefaultUserName => 'User';
 
   @override
+  String myEmailUnregistered(String provider) {
+    String _temp0 = intl.Intl.selectLogic(provider, {
+      'kakao': 'Signed up with Kakao',
+      'google': 'Signed up with Google',
+      'other': 'Signed up with a social account',
+    });
+    return '$_temp0 · No email on file';
+  }
+
+  @override
   String get myProfileLoadFailed => 'Couldn\'t load your profile';
 
   @override
@@ -1339,6 +1353,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myPointsExchangeFailed => 'Couldn\'t redeem. Please try again.';
+
+  @override
+  String get myPointsExchangeBlocked => 'You can\'t redeem this right now';
+
+  @override
+  String get myPointsInsufficient => 'Not enough points';
+
+  @override
+  String get myBenefitAlreadyReceived => 'You already have this';
 
   @override
   String myPointsShortfall(String points) {
@@ -1659,7 +1682,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myPointsHistoryEmptyMessage =>
-      'Log meals and workouts to earn points.';
+      'Log meals by photo or log workouts to earn points.';
 
   @override
   String get myPointsHistoryLoadFailed => 'Couldn\'t load your points history';
@@ -1786,7 +1809,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get challengeJoinFailed => 'Couldn\'t join. Please try again.';
 
   @override
+  String get challengeJoinAlready => 'You\'ve already joined';
+
+  @override
+  String get challengeJoinBlocked => 'You can\'t join right now';
+
+  @override
   String get challengeJoinClosed => 'You can join again next Monday';
+
+  @override
+  String get challengeSettling =>
+      'Tallying last week\'s result. Workouts you log for last week by today still count';
 
   @override
   String get challengeThisWeek => 'This week';
@@ -2025,6 +2058,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emoteSendFailed => 'Couldn\'t send the emote';
 
   @override
+  String get emoteSendLocked =>
+      'That emote has expired. Buy it again to send it';
+
+  @override
+  String get emoteSendRejected => 'That emote can\'t be sent';
+
+  @override
   String get a11yOpenEmotes => 'Emotes';
 
   @override
@@ -2064,6 +2104,18 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '• Your $count upcoming PT bookings will be cancelled',
       one: '• Your upcoming PT booking will be cancelled',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myWithdrawCancelSessions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '• The $count PT sessions your trainer scheduled will be cancelled',
+      one: '• The PT session your trainer scheduled will be cancelled',
     );
     return '$_temp0';
   }
@@ -2220,6 +2272,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myProfileEmailTaken => 'That email is already in use';
 
   @override
+  String get myProfileEmailEmptyHint => 'Email address to use';
+
+  @override
   String get myProfilePhoneRequired => 'Your phone number can\'t be left empty';
 
   @override
@@ -2268,7 +2323,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifAlwaysSent =>
-      'PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent';
+      'PT bookings, changes and cancellations, trainer requests, connect and disconnect notices, consultation request results, health goal changes, coupon expiry and cancellation, and weekly challenge results are always sent';
 
   @override
   String get mySupportFaq => 'FAQ';
@@ -2475,6 +2530,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
+  String get coachImageRetry => 'Tap to load again';
+
+  @override
   String get coachChatSubtitle => 'Your trainer';
 
   @override
@@ -2501,6 +2559,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send your message. Please try again';
 
   @override
+  String get coachChatSendRejected =>
+      'That message can\'t be sent. Please check what you wrote';
+
+  @override
   String get coachPhotoAttach => 'Send a photo';
 
   @override
@@ -2518,6 +2580,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachPhotoSendFailed => 'Couldn\'t send the photo';
+
+  @override
+  String get coachPhotoSendRejected => 'That photo can\'t be sent';
 
   @override
   String get coachPhotoRetry => 'Send again';
@@ -2666,7 +2731,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicPaidInsufficient(String shortfall) {
-    return 'You need $shortfall more. Log meals and workouts to earn points.';
+    return 'You need $shortfall more. Log meals by photo or log workouts to earn points.';
   }
 
   @override
@@ -2784,13 +2849,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultPendingCta => 'Consultation request pending';
-
-  @override
-  String get exConsultLinkedToOtherTrainer =>
-      'You\'re connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.';
-
-  @override
-  String get exConsultGoToMyTrainer => 'View my trainer';
 
   @override
   String get exViewConsultationRequest => 'View consultation request';
@@ -3270,6 +3328,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainerSyncRetry => 'Get a new code';
 
   @override
+  String trainerSyncConnected(String name) {
+    return 'You\'re connected with $name';
+  }
+
+  @override
+  String get trainerSyncConnectedBody =>
+      'Your trainer can now see your records and coach you.';
+
+  @override
   String get signUpCreatedSignInNeeded =>
       'Your account was created. Please sign in.';
 
@@ -3435,7 +3502,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout yourself +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
+    return 'Logging earns points.\nLog a meal by photo +${diet}P (not for meals added manually), log a workout yourself +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
   }
 
   @override
@@ -3796,7 +3863,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsGuideTitle => 'How to earn points';
 
   @override
-  String get myPointsDietAdd => 'Log a meal';
+  String get myPointsDietAdd => 'Log a meal by photo';
 
   @override
   String get myPointsRoutineComplete => 'Finish a personal exercise';
@@ -4135,6 +4202,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
+
+  @override
+  String get exConsultAcceptedCancelTitle =>
+      'Cancel this confirmed consultation?';
+
+  @override
+  String get exConsultAcceptedCancelBody =>
+      'We\'ll let the trainer know and free up the time. A cancelled consultation can\'t be restored.';
+
+  @override
+  String get exConsultAcceptedCancelAction => 'Cancel consultation';
+
+  @override
+  String get exConsultCancelStarted =>
+      'A consultation that has already started can\'t be cancelled.';
 
   @override
   String pointsRewardBadge(int points) {
@@ -4938,6 +5020,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send your weekly feedback. Please try again';
 
   @override
+  String get weeklyFeedbackSendUnassigned =>
+      'Your trainer is no longer assigned, so weekly feedback can\'t be sent';
+
+  @override
+  String get weeklyFeedbackSendRejected =>
+      'Weekly feedback can\'t be sent for this week';
+
+  @override
   String get weeklyFeedbackAlreadySent =>
       'You already answered this week. Sending again replaces it.';
 
@@ -5052,7 +5142,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findEmailAction => 'Find email';
 
   @override
-  String get findEmailComingSoon => 'Finding your email is coming soon.';
+  String get findEmailFoundSubtitle =>
+      'These accounts match the details you entered.';
+
+  @override
+  String get findEmailMaskedNote =>
+      'Part of the email is hidden to protect your privacy.';
+
+  @override
+  String findEmailSocialTitle(String provider) {
+    return 'You signed up with $provider';
+  }
+
+  @override
+  String get findEmailSocialBody =>
+      'On the sign-in screen, sign in the same way you signed up.';
+
+  @override
+  String get findEmailProviderKakao => 'Kakao';
+
+  @override
+  String get findEmailProviderGoogle => 'Google';
+
+  @override
+  String get findEmailProviderOther => 'a social account';
+
+  @override
+  String get findEmailNotFoundTitle => 'We couldn\'t find a matching account';
+
+  @override
+  String get findEmailNotFoundBody =>
+      'Check your name and phone number again. If you didn\'t add a phone number when signing up, or changed it later, we can\'t find the account here.';
+
+  @override
+  String get findEmailRetry => 'Search again';
 
   @override
   String get passwordChangeTitle => 'Change password';
@@ -5130,6 +5253,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passwordResetConfirmSubtitle =>
       'Enter the code from the email and your new password.';
+
+  @override
+  String get passwordResetSocialNote =>
+      'If you signed up with a social account such as Kakao or Google, no email will arrive. Sign in the way you signed up.';
 
   @override
   String get passwordResetCodeHint => '16-character reset code';
