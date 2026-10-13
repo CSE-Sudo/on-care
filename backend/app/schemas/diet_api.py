@@ -13,9 +13,8 @@ from datetime import date as _date
 from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
-from app.core import clock
 from app.schemas.points_api import PointsOut
-from app.schemas.record_dates import not_after_today
+from app.schemas.record_dates import not_after_today, not_before_floor
 
 #: 계약 날짜 표기. `2026-08-01` 만 받는다.
 _YMD = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -141,6 +140,10 @@ def _past_or_today(value: str | None) -> str | None:
 
     먹지 않은 식사를 기록할 수는 없다. 앞날을 허용하면 오늘까지를 세는
     평균·연속 기록이 미래 값을 함께 세어 화면마다 다른 수를 말한다.
+
+    **작년 1월 1일보다 앞선 날도 받지 않는다**(#3354) — 앱의 날짜 고르기 범위와
+    같다. 사진 분석·직접 입력·수정이 이 한 규칙을 쓴다. 사진 분석에만 하한이 있을
+    때는 오늘로 분석한 끼니를 수정으로 아주 옛 날짜에 옮길 수 있었다.
     """
     if value is None:
         return None
@@ -153,24 +156,21 @@ def _past_or_today(value: str | None) -> str | None:
         parsed = _date.fromisoformat(value)
     except ValueError as e:
         raise ValueError("date 는 YYYY-MM-DD 형식이어야 해요.") from e
-    return not_after_today(parsed).isoformat()
+    return not_before_floor(not_after_today(parsed)).isoformat()
 
 
 def analyze_record_date(value: str | None) -> _date | None:
     """사진 분석의 기록 날짜(`POST /diet/analyze` 의 선택 `date`, #2849).
 
-    직접 기록·수정과 같은 규칙(형식·앞날 금지)에 더해 **작년 1월 1일보다 앞선
-    날은 받지 않는다** — 앱의 날짜 고르기 범위와 같다. 사진 분석은 포인트를
-    적립하므로 아주 오래된 날로 기록을 몰아넣는 길을 열어 두지 않는다.
+    직접 기록·수정과 같은 규칙이다(형식·앞날 금지·작년 1월 1일 하한,
+    [_past_or_today]). 사진 분석은 포인트를 적립하므로 아주 오래된 날로 기록을
+    몰아넣는 길을 열어 두지 않는다.
     빠지면 None 이고, 그때 저장하는 날(KST 오늘)로 남긴다.
     """
     checked = _past_or_today(value)
     if checked is None:
         return None
-    parsed = _date.fromisoformat(checked)
-    if parsed < _date(clock.today().year - 1, 1, 1):
-        raise ValueError("date 는 작년 1월 1일보다 앞설 수 없어요.")
-    return parsed
+    return _date.fromisoformat(checked)
 
 
 class DietEntryUpdate(PartialUpdate):
@@ -220,7 +220,8 @@ class DietEntryCreate(BaseModel):
     합계는 받지 않는다. 음식 목록에서 서버가 낸다 — 수정(`foods` 가 온 PUT)과
     같은 규칙이라, 한 기록 안에서 합계와 내역이 갈릴 틈을 처음부터 두지 않는다.
     """
-    #: 기록 날짜(`YYYY-MM-DD`). 빠지면 저장하는 날(KST)이다. 앞날은 받지 않는다.
+    #: 기록 날짜(`YYYY-MM-DD`). 빠지면 저장하는 날(KST)이다. 앞날과 작년 1월 1일
+    #: 이전은 받지 않는다.
     date: str | None = None
     meal_type: MealTypeLiteral
     #: 음식이 하나도 없는 끼니는 기록이 아니다.

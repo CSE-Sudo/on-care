@@ -8,6 +8,7 @@ import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/core/config/app_config.dart'
     show kDemoCodeIncluded;
 import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -153,7 +154,11 @@ class AppSidebar extends ConsumerWidget {
                   : null,
               expanded: expanded,
               selected: profileSelected,
-              onTap: () {
+              onTap: () async {
+                // 수정 화면에서 제 프로필을 눌러도 떠나는 것이다(#3336).
+                if (!await leaveGuards.confirmLeave() || !context.mounted) {
+                  return;
+                }
                 context.go(AppRoutes.my);
                 onNavigate?.call();
               },

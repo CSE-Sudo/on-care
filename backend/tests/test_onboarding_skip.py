@@ -98,3 +98,105 @@ def test_finishing_after_skip_marks_onboarded(client):
 
 def test_skip_requires_login(client):
     assert client.post("/v1/users/me/onboarding/skip").status_code == 401
+
+
+# ---- 건너뛴 뒤 다시 연 첫 설정 (#3339) ----
+#
+# 건너뛴 회원은 MY 에서 목표를 정한 뒤에도 첫 설정을 다시 열 수 있다. 앱은 바꾼
+# 칸만 보내므로, 보내지 않은 칸이 그대로 남아야 그 목표가 지켜진다.
+
+
+def _skip_then_set_goals(client, token: str) -> None:
+    skipped = client.post("/v1/users/me/onboarding/skip", headers=_auth(token))
+    assert skipped.status_code == 200, skipped.text
+    saved = client.put(
+        "/v1/users/me/health-goals",
+        headers=_auth(token),
+        json={
+            "conditions": "재활, 왼쪽 무릎 수술 이력",
+            "daily_calories": 1800,
+            "daily_sodium_mg": 1900,
+            "weekly_cardio_minutes": 90,
+        },
+    )
+    assert saved.status_code == 200, saved.text
+
+
+def test_resumed_onboarding_keeps_fields_it_does_not_send(client):
+    token = _register_and_login(client)
+    _skip_then_set_goals(client, token)
+
+    r = client.post(
+        "/v1/users/me/onboarding",
+        headers=_auth(token),
+        json={"height_cm": 160, "daily_sodium_mg": 1500},
+    )
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["onboarded"] is True
+    assert body["height_cm"] == 160
+    assert body["daily_sodium_mg"] == 1500
+    # 보내지 않은 칸은 MY 에서 정한 값 그대로다.
+    assert body["daily_calories"] == 1800
+    assert body["weekly_cardio_minutes"] == 90
+    assert body["conditions"] == "재활, 왼쪽 무릎 수술 이력"
+
+
+def test_resumed_onboarding_with_empty_body_only_marks_onboarded(client):
+    token = _register_and_login(client)
+    _skip_then_set_goals(client, token)
+    before = client.get("/v1/users/me/profile", headers=_auth(token)).json()
+
+    r = client.post("/v1/users/me/onboarding", headers=_auth(token), json={})
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["onboarded"] is True
+    for key in (
+        "conditions",
+        "daily_calories",
+        "daily_sodium_mg",
+        "weekly_cardio_minutes",
+        "birth_date",
+        "gender",
+        "height_cm",
+        "weight_kg",
+    ):
+        assert body[key] == before[key], key
+
+
+def test_resumed_onboarding_without_conditions_does_not_stamp_changes(client):
+    token = _register_and_login(client)
+    _skip_then_set_goals(client, token)
+    before = client.get("/v1/users/me/profile", headers=_auth(token)).json()
+
+    r = client.post(
+        "/v1/users/me/onboarding",
+        headers=_auth(token),
+        json={"daily_calories": 2000},
+    )
+
+    # 목표 칩·주의사항을 보내지 않은 저장은 `마지막 변경` 을 다시 찍지 않는다.
+    body = r.json()
+    assert body["focus_changed_at"] == before["focus_changed_at"]
+    assert body["notes_changed_at"] == before["notes_changed_at"]
+
+
+def test_resumed_onboarding_keeps_notes_when_only_focus_changes(client):
+    token = _register_and_login(client)
+    _skip_then_set_goals(client, token)
+    before = client.get("/v1/users/me/profile", headers=_auth(token)).json()
+
+    # 앱은 바꾼 칩만 지금 값 위에 얹어, 주의사항 글을 그대로 실어 보낸다.
+    r = client.post(
+        "/v1/users/me/onboarding",
+        headers=_auth(token),
+        json={"conditions": "근력 향상, 재활, 왼쪽 무릎 수술 이력"},
+    )
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["conditions"] == "근력 향상, 재활, 왼쪽 무릎 수술 이력"
+    # 주의사항은 달라지지 않았으니 그쪽 기록은 그대로다.
+    assert body["notes_changed_at"] == before["notes_changed_at"]

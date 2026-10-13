@@ -44,6 +44,11 @@ class UserMe(BaseModel):
     #: 배포돼 브라우저 저장소를 같이 쓴다. 앱이 세션을 되살릴 때 이 값으로 자기
     #: 계정인지 한 번 더 확인한다. 트레이너 토큰은 이 API 에서 이미 403 이다.
     role: str = "member"
+    #: `email` 이 소셜 가입의 대체 이메일인가(#3338, `services/placeholder_email.py`).
+    #: 참이면 앱은 주소를 보여 주지 않고 "이메일 미등록" 으로 안내한다.
+    email_is_placeholder: bool = False
+    #: 대체 이메일을 만든 가입 수단(`kakao`·`google`). 대체 이메일이 아니면 null.
+    email_placeholder_provider: Optional[str] = None
     #: 필수 가입 동의(약관·개인정보·건강정보·만 14세) 중 지금 버전에 동의하지
     #: 않은 항목이 있는가(#2819). 참이면 앱이 다른 화면보다 먼저 동의 화면을
     #: 띄운다 — 동의 절차가 생기기 전에 가입한 계정, 소셜 첫 가입, 문서 버전이
@@ -51,6 +56,10 @@ class UserMe(BaseModel):
     consent_required: bool = False
     #: 아직 동의하지 않은 필수 항목(`terms`·`privacy`·`health`·`age14`).
     consent_pending: list[str] = Field(default_factory=list)
+    #: 확인할 비밀번호가 있는 계정인가(#3340). 프로필(`ProfileView`)의 같은 이름
+    #: 칸과 같은 값이다. 동의가 남은 회원은 프로필을 읽지 못하므로(403), 탈퇴
+    #: 확인창이 본인 확인을 비밀번호로 받을지 소셜 재로그인으로 받을지를 여기서 안다.
+    has_password: bool = True
 
 
 class ConsentSubmit(BaseModel):
@@ -86,6 +95,10 @@ class OptionalConsentState(BaseModel):
 class HealthProfileBrief(BaseModel):
     name: str
     email: str
+    #: `email` 이 소셜 가입의 대체 이메일인가와 그 가입 수단(#3338). MY 계정 카드가
+    #: 주소 대신 가입 수단과 "이메일 미등록" 을 보여 준다.
+    email_is_placeholder: bool = False
+    email_placeholder_provider: Optional[str] = None
     #: 회원 ID(`User.id`).
     #:
     #: MY 탭은 이 값을 더 이상 보여주지 않는다 (#1634) — 트레이너와의 연결은
@@ -462,6 +475,10 @@ class ProfileView(BaseModel):
     id: str
     name: str
     email: str
+    #: `email` 이 소셜 가입의 대체 이메일인가와 그 가입 수단(#3338). 참이면 프로필
+    #: 편집의 이메일 칸을 비운 채로 연다 — 실제 주소로 바꾸면 false·null 이 된다.
+    email_is_placeholder: bool = False
+    email_placeholder_provider: Optional[str] = None
     phone: str = ""
     birth_date: str = ""
     gender: str = ""

@@ -32,6 +32,7 @@ const List<String> _exactRoutes = <String>[
   'GET /exercise/weeks',
   'GET /exercise/advice',
   'POST /exercise/sessions',
+  'POST /exercise/sessions/move',
   'POST /exercise/calories',
   'GET /notifications',
   'GET /notifications/unread-count',

@@ -35,6 +35,7 @@ MEMBER_WRITE_ROUTES: list[tuple[str, str]] = [
     ("DELETE", "/v1/diet/entries/{entry_id}"),
     ("POST", "/v1/exercise/calories"),
     ("POST", "/v1/exercise/sessions"),
+    ("POST", "/v1/exercise/sessions/move"),
     ("PUT", "/v1/exercise/sessions/{session_id}"),
     ("DELETE", "/v1/exercise/sessions/{session_id}"),
     ("POST", "/v1/notifications/read-all"),

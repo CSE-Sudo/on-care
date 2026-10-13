@@ -281,6 +281,12 @@ class MockGymRepository implements GymRepository {
   }
 
   @override
+  Future<Gym?> fetchGym(String gymId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    return _gyms.where((Gym gym) => gym.id == gymId).firstOrNull;
+  }
+
+  @override
   Future<void> disconnectMyGym() async {
     await Future<void>.delayed(const Duration(milliseconds: 60));
     // 헬스장을 떠나면 그곳 소속 트레이너 연결도 함께 사라진다. 락커 쿠폰은

@@ -2717,6 +2717,14 @@ class AiMessage(Base):
     insight_dismissed: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
+    #: 이 줄을 만든 전송의 멱등키. 한 번의 전송이 남긴 질문과 답이 같은 값을 갖는다. (#3352)
+    #:
+    #: 사용 기록(`ai_chat_usages`)은 AI 가 답했을 때만 남으므로, 대체 답으로 끝난
+    #: 전송은 재전송을 알아볼 근거가 여기뿐이다. 앱도 방금 보낸 말과 저장된 대화를
+    #: 이 값으로 맞춘다. 키 없이 보냈거나 이 칸이 생기기 전의 줄은 NULL 이다.
+    client_request_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -2895,6 +2903,10 @@ class DietAnalysisUsage(Base):
     끼니를 지우고 다시 찍으면 끼니 수로는 하루 상한이 다시 열린다. 같은 멱등키의
     재전송은 모델을 부르지 않으므로 줄이 생기지 않는다. 모델 호출이 실패하면 그 줄을
     지운다 — 회원 탓이 아닌 실패로 하루 상한을 깎지 않는다.
+
+    멱등키와 함께 온 요청의 줄은 `id` 가 회원·키에서 정해진다(`dau-k-…`, #3354). 그
+    줄이 있으면 같은 키가 분석 중이거나 이미 끼니로 저장된 것이라, 진행 중에 겹친
+    재전송이 줄을 하나 더 만들지 못한다(`diet_analysis_quota_service.reserve`).
     """
 
     __tablename__ = "diet_analysis_usages"
@@ -2936,6 +2948,45 @@ class AiCallUsage(Base):
     )
     calls: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0", default=0
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CoachFeedbackState(Base):
+    """회원별 코칭 시트 피드백의 캐시와 하루 생성 횟수. (#3351)
+
+    회원 한 명에 한 행이다. `GET /ai-coach/feedback` 은 호출 한 번에 모델을 최대 두 번
+    부르므로, 만든 카드(`payload_json`)를 잠깐 들고 있다가 같은 날·같은 언어의 다음
+    요청에 그대로 돌려준다. 식단·운동 기록이 바뀌면 카드를 버리고 `revision` 을 올린다
+    — 그 사이에 만들던 응답이 옛 기록으로 캐시를 채우지 못하게 하는 표시다.
+
+    `generations` 는 `kst_date` 하루에 카드를 새로 만든 횟수다. 상한을 넘으면 모델을
+    부르지 않고 규칙 기반 카드로 답한다. 표에 두는 까닭은 태스크가 여럿이어도
+    (`infra/backend-service.yml`) 캐시와 상한이 하나여야 하기 때문이다.
+    """
+
+    __tablename__ = "coach_feedback_states"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    #: 횟수와 카드가 속한 KST 날짜 `YYYY-MM-DD`. 날이 바뀌면 둘 다 새로 시작한다.
+    kst_date: Mapped[str] = mapped_column(String(10))
+    generations: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    #: 기록이 바뀔 때마다 오른다. 카드를 저장할 때 만들기 시작한 값과 같아야 한다.
+    revision: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    #: 카드를 만든 요청 언어(`ko`·`en`). 다른 언어의 요청에는 쓰지 않는다.
+    locale: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    #: 식단·운동 카드 목록(JSON). 비어 있으면 버려진 상태다. 인사말은 담지 않는다.
+    payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    generated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

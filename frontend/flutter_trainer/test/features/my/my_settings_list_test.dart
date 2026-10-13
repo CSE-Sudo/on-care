@@ -256,6 +256,62 @@ void main() {
       expect(find.text('010-9999-8888'), findsNothing);
     });
 
+    testWidgets('저장하고 나가기를 고르면 저장한 뒤 돌아간다 (#3336)', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.mySection('edit'),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('profile-phone')),
+        '010-9999-8888',
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('my-back')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey<String>('my-unsaved-save')));
+      await settle(tester);
+
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+      // 저장된 값이라 프로필에 그대로 보인다.
+      expect(find.text('010-9999-8888'), findsOneWidget);
+    });
+
+    testWidgets('고치다 사이드바의 다른 탭을 눌러도 저장할지 묻는다 (#3336)', (tester) async {
+      tester.view
+        ..physicalSize = const Size(1600, 1000)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.mySection('edit'),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('profile-phone')),
+        '010-9999-8888',
+      );
+      await tester.tap(find.text(_ko.navClients).first);
+      await settle(tester);
+
+      // 계속 수정하면 탭이 바뀌지 않는다.
+      expect(find.text(_ko.myDiscardTitle), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey<String>('my-unsaved-stay')));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('edit'));
+      expect(find.text('010-9999-8888'), findsOneWidget);
+
+      // 저장 안 함이면 그 탭으로 간다.
+      await tester.tap(find.text(_ko.navClients).first);
+      await settle(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('my-unsaved-discard')),
+      );
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.clients);
+    });
+
     testWidgets('고친 것이 없으면 묻지 않고 돌아간다', (tester) async {
       await pumpTrainerApp(
         tester,
