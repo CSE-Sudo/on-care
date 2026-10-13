@@ -104,8 +104,12 @@ def test_preflight_still_allows_the_header(client):
 
 @pytest.mark.parametrize("language", LANGUAGES)
 def test_unauthenticated_error_is_the_same_whatever_the_header(client, language):
-    """오류 본문도 헤더를 따라 바뀌지 않는다."""
-    plain = client.get("/v1/notifications")
-    r = client.get("/v1/notifications", headers=_headers(language))
+    """오류 본문도 헤더를 따라 바뀌지 않는다.
+
+    토큰이 없으면 데모 폴백이 켜진 환경에서는 200 이라, 읽히지 않는 토큰으로 401 을 낸다.
+    """
+    broken = {"Authorization": "Bearer not-a-token"}
+    plain = client.get("/v1/notifications", headers=broken)
+    r = client.get("/v1/notifications", headers={**broken, **_headers(language)})
     assert r.status_code == plain.status_code == 401
     assert r.json() == plain.json()

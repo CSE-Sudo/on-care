@@ -602,7 +602,7 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
         "버피 45초",
     ]
     assert entry["date"] == clock.today().isoformat()
-    assert entry["date_label"].endswith(" (Today)")
+    assert entry["date_label"].endswith(" (오늘)")
     items = [
         {k: v for k, v in item.items() if v not in (None, 0, "", True)}
         for item in entry["exercise_items"]
