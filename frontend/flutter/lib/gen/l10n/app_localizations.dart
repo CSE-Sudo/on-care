@@ -4964,6 +4964,12 @@ abstract class AppLocalizations {
   /// **'The trainer cancelled this consultation. Try requesting another time.'**
   String get exConsultCancelledByTrainerBody;
 
+  /// No description provided for @exConsultTrainerNameMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer unavailable'**
+  String get exConsultTrainerNameMissing;
+
   /// No description provided for @exExerciseGoal.
   ///
   /// In en, this message translates to:

@@ -2785,6 +2785,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '트레이너가 상담 일정을 취소했어요. 다른 시간으로 다시 신청해 보세요.';
 
   @override
+  String get exConsultTrainerNameMissing => '트레이너 정보 없음';
+
+  @override
   String get exExerciseGoal => '운동 목표';
 
   @override

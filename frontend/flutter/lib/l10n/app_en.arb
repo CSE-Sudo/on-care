@@ -2058,6 +2058,7 @@
   "exConsultExpired": "Expired",
   "exConsultExpiredBody": "The trainer did not respond in time. Try requesting another time.",
   "exConsultCancelledByTrainerBody": "The trainer cancelled this consultation. Try requesting another time.",
+  "exConsultTrainerNameMissing": "Trainer unavailable",
   "exExerciseGoal": "Exercise goal",
   "exGoalHealth": "Health management",
   "exOptionOther": "Other",
