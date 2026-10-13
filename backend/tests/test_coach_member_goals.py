@@ -305,7 +305,7 @@ def test_exercise_suggestion_strength_only_week_invites_cardio(
 
     assert suggestion.title == "유산소를 더해봐요"
     assert suggestion.body == _exercise_feedback(
-        0, 150, any_exercise=True, locale="ko"
+        0, 150, any_exercise=True
     )[0]
     assert "0분" not in suggestion.body
 
@@ -326,28 +326,20 @@ def test_exercise_suggestion_strength_only_week_invites_cardio(
     ],
 )
 def test_exercise_feedback_judges_cardio_against_the_goal(cardio, goal, any_exercise, key):
-    for lang in ("ko", "en"):
-        assert _exercise_feedback(
-            cardio, goal, any_exercise=any_exercise, locale=lang
-        )[1] == key
+    assert _exercise_feedback(cardio, goal, any_exercise=any_exercise)[1] == key
 
 
 def test_exercise_feedback_strength_only_week_invites_cardio():
     """근력만 한 주 — "유산소 0분 운동했어요" 가 아니라 유산소를 권한다."""
-    ko = _exercise_feedback(0, 150, any_exercise=True, locale="ko")
-    en = _exercise_feedback(0, 150, any_exercise=True, locale="en")
+    feedback = _exercise_feedback(0, 150, any_exercise=True)
 
-    assert ko == (
+    assert feedback == (
         "이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
         "exercise_cardio_start",
     )
-    assert en == (
-        "No cardio logged yet this week. How about starting with an easy walk?",
-        "exercise_cardio_start",
-    )
-    assert "0분" not in ko[0]
+    assert "0분" not in feedback[0]
     # 기록이 아예 없는 주는 그대로 `exercise_start` 다.
-    assert _exercise_feedback(0, 150, any_exercise=False, locale="ko")[1] == (
+    assert _exercise_feedback(0, 150, any_exercise=False)[1] == (
         "exercise_start"
     )
 

@@ -390,14 +390,17 @@ def test_feedback_on_a_finished_consultation_tells_nobody(client, db_session, pa
     assert _of(_member_inbox(client, pair), "pt_done") == []
 
 
-def test_pt_alerts_read_in_english(client, db_session, pair):
+def test_pt_alerts_are_korean_for_an_english_header(client, db_session, pair):
     sid = _past_session(db_session, pair)
     _complete(client, pair, sid)
 
+    plain = _of(_member_inbox(client, pair), "pt_done")[0]
     row = _of(_member_inbox(client, pair, "en"), "pt_done")[0]
-    assert row["title"] == "You finished PT #1 with 박코치"
-    assert row["body"] == "Saved to your workout log"
-    assert row["action"] == {"label": "View PT record", "target": "exercise"}
+    assert (row["title"], row["body"], row["action"]) == (
+        plain["title"], plain["body"], plain["action"],
+    )
+    assert any("가" <= ch <= "힣" for ch in row["title"])
+    assert row["action"]["target"] == "exercise"
 
 
 def test_pt_alert_keeps_the_template_for_the_app(client, db_session, pair):
@@ -605,12 +608,14 @@ def test_unread_count_includes_the_feedback_alert(client, db_session, pair):
     assert after["unread"] == before["unread"] + 1
 
 
-def test_weekly_feedback_reads_in_english(client, db_session, pair):
+def test_weekly_feedback_is_korean_for_an_english_header(client, db_session, pair):
     _send_feedback(client, pair, condition="great", intensity="too_easy")
 
+    plain = _of(_trainer_inbox(client, pair), "weekly_feedback")[0]
     row = _of(_trainer_inbox(client, pair, "en"), "weekly_feedback")[0]
-    assert row["title"] == "지수 sent their weekly feedback"
-    assert row["body"] == "Condition: Great · Intensity: Too easy"
+    assert (row["title"], row["body"]) == (plain["title"], plain["body"])
+    assert any("가" <= ch <= "힣" for ch in row["title"])
+    assert "Condition" not in (row["body"] or "")
 
 
 def test_saving_still_returns_the_answer(client, db_session, pair):
@@ -655,7 +660,7 @@ def test_schedule_alerts_open_the_workout_tab(client, db_session, pair):
         assert row["action"] == {"label": "일정 보기", "target": "exercise"}
 
     en = _of(_member_inbox(client, pair, "en"), notification_service.MEMBER_SCHEDULE)
-    assert {r["action"]["label"] for r in en} == {"View schedule"}
+    assert {r["action"]["label"] for r in en} == {"일정 보기"}
 
 
 def test_detaching_with_upcoming_pts_opens_the_workout_tab(client, db_session, pair):
