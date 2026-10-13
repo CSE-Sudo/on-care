@@ -3956,6 +3956,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
 
   @override
+  String get exConsultAcceptedCancelTitle => '확정된 상담을 취소할까요?';
+
+  @override
+  String get exConsultAcceptedCancelBody =>
+      '트레이너에게 취소를 알리고 잡아 둔 시간을 비워요. 취소한 상담은 다시 되돌릴 수 없어요.';
+
+  @override
+  String get exConsultAcceptedCancelAction => '상담 취소';
+
+  @override
+  String get exConsultCancelStarted => '시작 시각이 지난 상담은 취소할 수 없어요.';
+
+  @override
   String pointsRewardBadge(int points) {
     return '+${points}P';
   }

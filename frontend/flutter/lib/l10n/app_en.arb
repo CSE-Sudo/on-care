@@ -3167,6 +3167,16 @@
   "exConsultCancelStale": "This request was already handled. It now shows its latest status.",
   "exConsultHistoryLoadError": "Couldn't load your consultation requests.",
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
+  "exConsultAcceptedCancelTitle": "Cancel this confirmed consultation?",
+  "@exConsultAcceptedCancelTitle": {
+    "description": "Title of the confirm dialog when a member cancels a consultation the trainer already accepted, before it starts (#3359)."
+  },
+  "exConsultAcceptedCancelBody": "We'll let the trainer know and free up the time. A cancelled consultation can't be restored.",
+  "exConsultAcceptedCancelAction": "Cancel consultation",
+  "@exConsultAcceptedCancelAction": {
+    "description": "Confirm button of the cancel dialog for an accepted consultation. Sits next to Keep."
+  },
+  "exConsultCancelStarted": "A consultation that has already started can't be cancelled.",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",
