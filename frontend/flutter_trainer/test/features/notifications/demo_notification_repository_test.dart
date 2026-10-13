@@ -63,7 +63,7 @@ void main() {
     expect(await repo.unreadCount(), unread - 1);
 
     // 다음 날 시드가 다시 돌아도 읽은 기록은 그대로다.
-    await db.putValue('trainer_seeded_v56', '2020-01-01');
+    await db.putValue('trainer_seeded_v57', '2020-01-01');
     await seedIfEmpty(db, clock: kMidWeekKst.add(const Duration(days: 1)));
     expect(await repo.unreadCount(), unread - 1);
 
@@ -87,14 +87,11 @@ void main() {
 
   test('상대 시각은 서버와 같은 말이다', () {
     final DateTime now = DateTime.utc(2026, 9, 30, 12);
-    String ago(Duration d, {bool korean = true}) =>
-        demoTimeAgo(now.subtract(d), now: now, korean: korean);
+    String ago(Duration d) => demoTimeAgo(now.subtract(d), now: now);
 
     expect(ago(const Duration(seconds: 30)), '방금 전');
     expect(ago(const Duration(minutes: 40)), '40분 전');
     expect(ago(const Duration(hours: 2)), '2시간 전');
     expect(ago(const Duration(days: 3)), '3일 전');
-    expect(ago(const Duration(hours: 1), korean: false), '1 hour ago');
-    expect(ago(const Duration(days: 2), korean: false), '2 days ago');
   });
 }

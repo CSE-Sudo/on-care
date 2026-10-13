@@ -10,21 +10,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
 void main() {
-  for (final String code in <String>['ko', 'en']) {
-    group('[$code]', () {
-      final AppLocalizations l = lookupAppLocalizations(Locale(code));
+  final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
 
-      test('취소 버튼은 짧은 한 단어다', () {
-        expect(l.schedCancel, code == 'ko' ? '취소' : 'Cancel');
-      });
+  test('취소 버튼은 짧은 한 단어다', () {
+    expect(l.schedCancel, '취소');
+  });
 
-      test('확정 버튼과 닫기 버튼의 글씨가 다르다', () {
-        expect(l.schedCancel, isNot(l.actionClose));
-      });
+  test('확정 버튼과 닫기 버튼의 글씨가 다르다', () {
+    expect(l.schedCancel, isNot(l.actionClose));
+  });
 
-      test('노쇼 확정 버튼은 취소 버튼과 구별된다', () {
-        expect(l.schedNoShow, isNot(l.schedCancel));
-      });
-    });
-  }
+  test('노쇼 확정 버튼은 취소 버튼과 구별된다', () {
+    expect(l.schedNoShow, isNot(l.schedCancel));
+  });
 }

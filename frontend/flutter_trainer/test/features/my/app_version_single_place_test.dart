@@ -23,13 +23,11 @@ Future<void> _open(
   WidgetTester tester,
   String section, {
   BuildInfo? info,
-  Locale locale = const Locale('ko'),
 }) {
   return pumpTrainerApp(
     tester,
     token: 'demo-trainer-token',
     at: AppRoutes.mySection(section),
-    locale: locale,
     extraOverrides: <Override>[
       if (info != null) buildInfoProvider.overrideWithValue(info),
     ],
@@ -54,17 +52,6 @@ void main() {
     expect(find.textContaining('0.2.0'), findsOneWidget);
     expect(
       find.text('On-Care 트레이너 · 버전 0.2.0 (7032) · 2026년 10월 5일 14:30 KST 배포'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('영어 화면은 영어 문구와 날짜 형식이다', (tester) async {
-    await _open(tester, 'support', info: _released, locale: const Locale('en'));
-
-    expect(
-      find.text(
-        'On-Care Trainer · Version 0.2.0 (7032) · Deployed Oct 5, 2026 14:30 KST',
-      ),
       findsOneWidget,
     );
   });

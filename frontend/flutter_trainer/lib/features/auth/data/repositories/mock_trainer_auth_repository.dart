@@ -1,4 +1,3 @@
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/signup_email_code_repositories.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
@@ -11,10 +10,7 @@ import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 /// login), issues fake tokens, and returns the fixed [seedTrainerProfile]
 /// from [fetchProfile]. No network, no real validation.
 class MockTrainerAuthRepository implements TrainerAuthRepository {
-  const MockTrainerAuthRepository({this.language = DemoLanguage.ko});
-
-  /// 로그인에 붙일 데모 프로필의 언어 (#2304).
-  final DemoLanguage language;
+  const MockTrainerAuthRepository();
 
   static const _loginDelay = Duration(milliseconds: 400);
 
@@ -103,6 +99,6 @@ class MockTrainerAuthRepository implements TrainerAuthRepository {
     if (accessToken.isEmpty) {
       throw const AuthException(AuthFailure.sessionExpired);
     }
-    return seedTrainerProfileFor(language);
+    return seedTrainerProfile;
   }
 }

@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-import 'app_localizations_en.dart';
 import 'app_localizations_ko.dart';
 
 // ignore_for_file: type=lint
@@ -93,2775 +92,2766 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[
-    Locale('en'),
-    Locale('ko'),
-  ];
+  static const List<Locale> supportedLocales = <Locale>[Locale('ko')];
 
   /// Trainer app title shown in the OS task switcher and browser tab.
   ///
-  /// In en, this message translates to:
-  /// **'On-Care Trainer'**
+  /// In ko, this message translates to:
+  /// **'On-Care 트레이너'**
   String get appTitle;
 
   /// Display label for a scheduled session. The stored value stays Korean — see ScheduleStatus.
   ///
-  /// In en, this message translates to:
-  /// **'Upcoming'**
+  /// In ko, this message translates to:
+  /// **'예정'**
   String get scheduleStatusUpcoming;
 
   /// Display label for a completed session.
   ///
-  /// In en, this message translates to:
-  /// **'Done'**
+  /// In ko, this message translates to:
+  /// **'완료'**
   String get scheduleStatusDone;
 
   /// No description provided for @scheduleStatusCancelled.
   ///
-  /// In en, this message translates to:
-  /// **'Cancelled'**
+  /// In ko, this message translates to:
+  /// **'취소'**
   String get scheduleStatusCancelled;
 
   /// No description provided for @scheduleStatusNoShow.
   ///
-  /// In en, this message translates to:
-  /// **'No-show'**
+  /// In ko, this message translates to:
+  /// **'노쇼'**
   String get scheduleStatusNoShow;
 
   /// No description provided for @schedCancel.
   ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
+  /// In ko, this message translates to:
+  /// **'취소'**
   String get schedCancel;
 
   /// No description provided for @schedNoShow.
   ///
-  /// In en, this message translates to:
-  /// **'Mark no-show'**
+  /// In ko, this message translates to:
+  /// **'노쇼 처리'**
   String get schedNoShow;
 
   /// No description provided for @schedCancelTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Cancel this PT?'**
+  /// In ko, this message translates to:
+  /// **'이 PT를 취소할까요?'**
   String get schedCancelTitle;
 
   /// No description provided for @schedCancelConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'The {time} PT with {name} will be recorded as cancelled. The entry stays.'**
+  /// In ko, this message translates to:
+  /// **'{time} {name}님 PT가 취소로 기록돼요. 일정은 지워지지 않아요.'**
   String schedCancelConfirm(String time, String name);
 
   /// No description provided for @schedCancelSource.
   ///
-  /// In en, this message translates to:
-  /// **'Type'**
+  /// In ko, this message translates to:
+  /// **'처리 구분'**
   String get schedCancelSource;
 
   /// No description provided for @schedCancelByMember.
   ///
-  /// In en, this message translates to:
-  /// **'Member'**
+  /// In ko, this message translates to:
+  /// **'회원 취소'**
   String get schedCancelByMember;
 
   /// No description provided for @schedCancelByTrainer.
   ///
-  /// In en, this message translates to:
-  /// **'Trainer'**
+  /// In ko, this message translates to:
+  /// **'트레이너 취소'**
   String get schedCancelByTrainer;
 
   /// No description provided for @schedCancelByOther.
   ///
-  /// In en, this message translates to:
-  /// **'Other'**
+  /// In ko, this message translates to:
+  /// **'기타'**
   String get schedCancelByOther;
 
   /// No description provided for @schedCancelReasonHint.
   ///
-  /// In en, this message translates to:
-  /// **'Reason (optional, only you see it)'**
+  /// In ko, this message translates to:
+  /// **'사유 (선택, 트레이너만 봐요)'**
   String get schedCancelReasonHint;
 
   /// No description provided for @schedCancelFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t cancel the appointment. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'취소 처리하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get schedCancelFailed;
 
   /// No description provided for @schedNoShowTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Record as a no-show?'**
+  /// In ko, this message translates to:
+  /// **'노쇼로 기록할까요?'**
   String get schedNoShowTitle;
 
   /// No description provided for @schedNoShowConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'The {time} appointment with {name} will be recorded as a no-show.'**
+  /// In ko, this message translates to:
+  /// **'{time} {name}님이 오지 않은 것으로 기록돼요.'**
   String schedNoShowConfirm(String time, String name);
 
   /// No description provided for @schedNoShowFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t record the no-show. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'노쇼 처리하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get schedNoShowFailed;
 
   /// No description provided for @schedCancelledBy.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{source} · {date}'**
   String schedCancelledBy(String source, String date);
 
   /// No description provided for @schedDeleteMeansRemove.
   ///
-  /// In en, this message translates to:
-  /// **'Deleting erases the record. Use cancel or no-show for a PT that didn\'t happen.'**
+  /// In ko, this message translates to:
+  /// **'기록이 지워져요. 진행되지 않은 PT는 취소·노쇼로 남기세요.'**
   String get schedDeleteMeansRemove;
 
   /// No description provided for @schedDeleteMeansRemoveFinished.
   ///
-  /// In en, this message translates to:
-  /// **'Deleting erases the record. This appointment is already complete and can\'t be undone.'**
+  /// In ko, this message translates to:
+  /// **'기록이 지워져요. 이미 완료한 일정이라 되돌릴 수 없어요.'**
   String get schedDeleteMeansRemoveFinished;
 
   /// No description provided for @schedDeleteDoneRemovesMemberRecord.
   ///
-  /// In en, this message translates to:
-  /// **'It also disappears from the member\'s PT log and exercise records in the member app. Personal exercises already sent stay as they are.'**
+  /// In ko, this message translates to:
+  /// **'회원 앱의 PT 기록과 운동 기록에서도 함께 사라져요. 이미 보낸 개인운동은 그대로 남아요.'**
   String get schedDeleteDoneRemovesMemberRecord;
 
   /// Display label for an empty slot in the trainer's day.
   ///
-  /// In en, this message translates to:
-  /// **'Open'**
+  /// In ko, this message translates to:
+  /// **'공백'**
   String get scheduleStatusGap;
 
   /// Display label for a personal training session.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'1:1 PT'**
   String get sessionTypePersonalTraining;
 
   /// Display label for a consultation session.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation'**
+  /// In ko, this message translates to:
+  /// **'상담'**
   String get sessionTypeConsultation;
 
   /// No description provided for @navDashboard.
   ///
-  /// In en, this message translates to:
-  /// **'Dashboard'**
+  /// In ko, this message translates to:
+  /// **'대시보드'**
   String get navDashboard;
 
   /// No description provided for @navClients.
   ///
-  /// In en, this message translates to:
-  /// **'Members'**
+  /// In ko, this message translates to:
+  /// **'회원'**
   String get navClients;
 
   /// No description provided for @navSchedule.
   ///
-  /// In en, this message translates to:
-  /// **'Schedule'**
+  /// In ko, this message translates to:
+  /// **'스케줄'**
   String get navSchedule;
 
   /// No description provided for @navCoaching.
   ///
-  /// In en, this message translates to:
-  /// **'Programs'**
+  /// In ko, this message translates to:
+  /// **'프로그램'**
   String get navCoaching;
 
   /// No description provided for @navReports.
   ///
-  /// In en, this message translates to:
-  /// **'Reports'**
+  /// In ko, this message translates to:
+  /// **'리포트'**
   String get navReports;
 
   /// No description provided for @navConsultations.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation requests'**
+  /// In ko, this message translates to:
+  /// **'상담 요청'**
   String get navConsultations;
 
   /// No description provided for @actionSave.
   ///
-  /// In en, this message translates to:
-  /// **'Save'**
+  /// In ko, this message translates to:
+  /// **'저장'**
   String get actionSave;
 
   /// No description provided for @actionSaved.
   ///
-  /// In en, this message translates to:
-  /// **'Saved'**
+  /// In ko, this message translates to:
+  /// **'저장됨'**
   String get actionSaved;
 
   /// No description provided for @actionCancel.
   ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
+  /// In ko, this message translates to:
+  /// **'취소'**
   String get actionCancel;
 
   /// No description provided for @actionEdit.
   ///
-  /// In en, this message translates to:
-  /// **'Edit'**
+  /// In ko, this message translates to:
+  /// **'수정'**
   String get actionEdit;
 
   /// No description provided for @actionDelete.
   ///
-  /// In en, this message translates to:
-  /// **'Delete'**
+  /// In ko, this message translates to:
+  /// **'삭제'**
   String get actionDelete;
 
   /// No description provided for @actionClose.
   ///
-  /// In en, this message translates to:
-  /// **'Close'**
+  /// In ko, this message translates to:
+  /// **'닫기'**
   String get actionClose;
 
   /// No description provided for @actionDone.
   ///
-  /// In en, this message translates to:
-  /// **'Done'**
+  /// In ko, this message translates to:
+  /// **'완료'**
   String get actionDone;
 
   /// No description provided for @actionMore.
   ///
-  /// In en, this message translates to:
-  /// **'More'**
+  /// In ko, this message translates to:
+  /// **'더보기'**
   String get actionMore;
 
   /// No description provided for @actionRetry.
   ///
-  /// In en, this message translates to:
-  /// **'Retry'**
+  /// In ko, this message translates to:
+  /// **'다시 시도'**
   String get actionRetry;
 
   /// No description provided for @actionChange.
   ///
-  /// In en, this message translates to:
-  /// **'Change'**
+  /// In ko, this message translates to:
+  /// **'변경'**
   String get actionChange;
 
   /// No description provided for @actionAdd.
   ///
-  /// In en, this message translates to:
-  /// **'Add'**
+  /// In ko, this message translates to:
+  /// **'추가'**
   String get actionAdd;
 
   /// No description provided for @actionSend.
   ///
-  /// In en, this message translates to:
-  /// **'Send'**
+  /// In ko, this message translates to:
+  /// **'보내기'**
   String get actionSend;
 
   /// No description provided for @actionReset.
   ///
-  /// In en, this message translates to:
-  /// **'Reset'**
+  /// In ko, this message translates to:
+  /// **'초기화'**
   String get actionReset;
 
   /// Heading of the 404 page shown for a URL that matches no screen.
   ///
-  /// In en, this message translates to:
-  /// **'Page not found'**
+  /// In ko, this message translates to:
+  /// **'페이지를 찾을 수 없어요'**
   String get notFoundTitle;
 
   /// No description provided for @notFoundMessage.
   ///
-  /// In en, this message translates to:
-  /// **'The link may be broken, or the page may no longer exist. Please check the address and try again.'**
+  /// In ko, this message translates to:
+  /// **'주소가 잘못됐거나 더 이상 없는 페이지예요. 주소를 다시 확인해 주세요.'**
   String get notFoundMessage;
 
   /// Primary button on the 404 page for a signed-in trainer.
   ///
-  /// In en, this message translates to:
-  /// **'Go to dashboard'**
+  /// In ko, this message translates to:
+  /// **'대시보드로 가기'**
   String get notFoundGoDashboard;
 
   /// Primary button on the 404 page when no one is signed in.
   ///
-  /// In en, this message translates to:
-  /// **'Go to sign in'**
+  /// In ko, this message translates to:
+  /// **'로그인하러 가기'**
   String get notFoundGoSignIn;
 
   /// Heading of the startup screen shown instead of the app when a release build was made with development or demo settings.
   ///
-  /// In en, this message translates to:
-  /// **'This build is misconfigured'**
+  /// In ko, this message translates to:
+  /// **'이 빌드는 잘못 구성됐어요'**
   String get misconfiguredBuildTitle;
 
   /// No description provided for @misconfiguredBuildMessage.
   ///
-  /// In en, this message translates to:
-  /// **'This build was made with settings that can\'t be used for real users, so the app didn\'t open. Please share the details below with whoever released it.'**
+  /// In ko, this message translates to:
+  /// **'실제 사용자에게 쓸 수 없는 설정으로 빌드되어 앱을 열지 않았어요. 배포 담당자에게 아래 내용을 알려 주세요.'**
   String get misconfiguredBuildMessage;
 
   /// No description provided for @misconfiguredBuildDetailsTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Build settings to fix'**
+  /// In ko, this message translates to:
+  /// **'고쳐야 할 빌드 설정'**
   String get misconfiguredBuildDetailsTitle;
 
   /// No description provided for @misconfiguredBuildDevEnvironment.
   ///
-  /// In en, this message translates to:
-  /// **'ENV is not prod or staging'**
+  /// In ko, this message translates to:
+  /// **'ENV 가 prod 또는 staging 이 아니에요'**
   String get misconfiguredBuildDevEnvironment;
 
   /// No description provided for @misconfiguredBuildMockWithoutDemo.
   ///
-  /// In en, this message translates to:
-  /// **'It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)'**
+  /// In ko, this message translates to:
+  /// **'데모 빌드 표시 없이 데모 데이터를 쓰고 있어요 (USE_MOCK_API, DEMO_BUILD)'**
   String get misconfiguredBuildMockWithoutDemo;
 
   /// No description provided for @misconfiguredBuildPlaceholderApiUrl.
   ///
-  /// In en, this message translates to:
-  /// **'The API address is an example or local address (API_BASE_URL)'**
+  /// In ko, this message translates to:
+  /// **'API 주소가 예시·로컬 주소예요 (API_BASE_URL)'**
   String get misconfiguredBuildPlaceholderApiUrl;
 
   /// No description provided for @misconfiguredBuildInsecureApiUrl.
   ///
-  /// In en, this message translates to:
-  /// **'The API address does not start with https:// (API_BASE_URL)'**
+  /// In ko, this message translates to:
+  /// **'API 주소가 https:// 로 시작하지 않아요 (API_BASE_URL)'**
   String get misconfiguredBuildInsecureApiUrl;
 
   /// Startup guard item: a release build without DEMO_BUILD turned on the sign-in screen's demo entry button. Keep the define names in parentheses as-is.
   ///
-  /// In en, this message translates to:
-  /// **'The demo entry is shown on the sign-in screen without the demo build flag (SHOW_DEMO_ENTRY, DEMO_BUILD)'**
+  /// In ko, this message translates to:
+  /// **'데모 빌드 표시 없이 로그인 화면에 데모 진입이 켜져 있어요 (SHOW_DEMO_ENTRY, DEMO_BUILD)'**
   String get misconfiguredBuildDemoEntry;
 
   /// Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'.
   ///
-  /// In en, this message translates to:
-  /// **'Trainer'**
+  /// In ko, this message translates to:
+  /// **'트레이너'**
   String get appWordmarkTrainer;
 
   /// Single-character avatar shown when the trainer has no name yet. Keep it one character.
   ///
-  /// In en, this message translates to:
-  /// **'T'**
+  /// In ko, this message translates to:
+  /// **'트'**
   String get appAvatarFallback;
 
   /// Tooltip on the collapsed sidebar's profile avatar.
   ///
-  /// In en, this message translates to:
-  /// **'{name} · My page'**
+  /// In ko, this message translates to:
+  /// **'{name} · 내 정보'**
   String sidebarMyTooltip(String name);
 
   /// No description provided for @authTagline.
   ///
-  /// In en, this message translates to:
-  /// **'See your members\' meals and workouts in one place — and coach them'**
+  /// In ko, this message translates to:
+  /// **'회원의 식단·운동 기록을 한눈에 보고 코칭하는 트레이너 전용 공간'**
   String get authTagline;
 
   /// No description provided for @authEmailHint.
   ///
-  /// In en, this message translates to:
-  /// **'Email'**
+  /// In ko, this message translates to:
+  /// **'이메일'**
   String get authEmailHint;
 
   /// No description provided for @authPasswordHint.
   ///
-  /// In en, this message translates to:
-  /// **'Password'**
+  /// In ko, this message translates to:
+  /// **'비밀번호'**
   String get authPasswordHint;
 
   /// No description provided for @authSignInAction.
   ///
-  /// In en, this message translates to:
-  /// **'Sign in'**
+  /// In ko, this message translates to:
+  /// **'로그인'**
   String get authSignInAction;
 
   /// No description provided for @authNoAccountQuestion.
   ///
-  /// In en, this message translates to:
-  /// **'Don\'t have an account?'**
+  /// In ko, this message translates to:
+  /// **'계정이 없으신가요?'**
   String get authNoAccountQuestion;
 
   /// No description provided for @authSignUpAction.
   ///
-  /// In en, this message translates to:
-  /// **'Sign up'**
+  /// In ko, this message translates to:
+  /// **'회원가입'**
   String get authSignUpAction;
 
   /// No description provided for @authDemoAction.
   ///
-  /// In en, this message translates to:
-  /// **'Explore the demo without signing in'**
+  /// In ko, this message translates to:
+  /// **'로그인 없이 데모 둘러보기'**
   String get authDemoAction;
 
   /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///
-  /// In en, this message translates to:
-  /// **'Sign in with a social account'**
+  /// In ko, this message translates to:
+  /// **'SNS 계정으로 로그인'**
   String get authSocialDivider;
 
   /// No description provided for @authKakaoAction.
   ///
-  /// In en, this message translates to:
-  /// **'Continue with Kakao'**
+  /// In ko, this message translates to:
+  /// **'카카오로 시작하기'**
   String get authKakaoAction;
 
   /// No description provided for @authGoogleAction.
   ///
-  /// In en, this message translates to:
-  /// **'Continue with Google'**
+  /// In ko, this message translates to:
+  /// **'구글로 시작하기'**
   String get authGoogleAction;
 
   /// No description provided for @authSignUpSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Create an On-Care account and start managing members'**
+  /// In ko, this message translates to:
+  /// **'On-Care 계정을 만들어 회원 관리를 시작하세요'**
   String get authSignUpSubtitle;
 
   /// No description provided for @authName.
   ///
-  /// In en, this message translates to:
-  /// **'Name'**
+  /// In ko, this message translates to:
+  /// **'이름'**
   String get authName;
 
   /// No description provided for @signUpPasswordHint.
   ///
-  /// In en, this message translates to:
-  /// **'Password (8+ characters, letters and numbers)'**
+  /// In ko, this message translates to:
+  /// **'비밀번호 (영문·숫자 포함 8자 이상)'**
   String get signUpPasswordHint;
 
   /// No description provided for @authPasswordConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Confirm password'**
+  /// In ko, this message translates to:
+  /// **'비밀번호 확인'**
   String get authPasswordConfirm;
 
   /// No description provided for @authSignUpAndStart.
   ///
-  /// In en, this message translates to:
-  /// **'Sign up and start'**
+  /// In ko, this message translates to:
+  /// **'가입하고 시작하기'**
   String get authSignUpAndStart;
 
   /// No description provided for @consentAll.
   ///
-  /// In en, this message translates to:
-  /// **'Agree to all'**
+  /// In ko, this message translates to:
+  /// **'전체 동의'**
   String get consentAll;
 
   /// No description provided for @consentRequiredTag.
   ///
-  /// In en, this message translates to:
-  /// **'[Required]'**
+  /// In ko, this message translates to:
+  /// **'[필수]'**
   String get consentRequiredTag;
 
   /// No description provided for @consentOptionalTag.
   ///
-  /// In en, this message translates to:
-  /// **'[Optional]'**
+  /// In ko, this message translates to:
+  /// **'[선택]'**
   String get consentOptionalTag;
 
   /// No description provided for @consentView.
   ///
-  /// In en, this message translates to:
-  /// **'View'**
+  /// In ko, this message translates to:
+  /// **'보기'**
   String get consentView;
 
   /// No description provided for @consentTerms.
   ///
-  /// In en, this message translates to:
-  /// **'Terms of Service'**
+  /// In ko, this message translates to:
+  /// **'이용약관 동의'**
   String get consentTerms;
 
   /// No description provided for @consentPrivacy.
   ///
-  /// In en, this message translates to:
-  /// **'Collection and use of personal information'**
+  /// In ko, this message translates to:
+  /// **'개인정보 수집·이용 동의'**
   String get consentPrivacy;
 
   /// No description provided for @consentAge14.
   ///
-  /// In en, this message translates to:
-  /// **'I am 14 years of age or older'**
+  /// In ko, this message translates to:
+  /// **'만 14세 이상이에요'**
   String get consentAge14;
 
   /// No description provided for @consentAge14Detail.
   ///
-  /// In en, this message translates to:
-  /// **'You must be 14 or older to sign up.'**
+  /// In ko, this message translates to:
+  /// **'만 14세 미만은 가입할 수 없어요.'**
   String get consentAge14Detail;
 
   /// No description provided for @consentRequiredHint.
   ///
-  /// In en, this message translates to:
-  /// **'Agree to all required items to continue.'**
+  /// In ko, this message translates to:
+  /// **'필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.'**
   String get consentRequiredHint;
 
   /// No description provided for @consentPageTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Agreements'**
+  /// In ko, this message translates to:
+  /// **'서비스 이용 동의'**
   String get consentPageTitle;
 
   /// No description provided for @consentPageSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Please review and agree to the items below to keep using On-Care.'**
+  /// In ko, this message translates to:
+  /// **'계속 이용하려면 아래 항목을 확인하고 동의해 주세요.'**
   String get consentPageSubtitle;
 
   /// No description provided for @consentPageAction.
   ///
-  /// In en, this message translates to:
-  /// **'Agree and continue'**
+  /// In ko, this message translates to:
+  /// **'동의하고 계속하기'**
   String get consentPageAction;
 
   /// No description provided for @consentPageFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save your agreement. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get consentPageFailed;
 
   /// No description provided for @authHasAccount.
   ///
-  /// In en, this message translates to:
-  /// **'Already have an account?'**
+  /// In ko, this message translates to:
+  /// **'이미 계정이 있으신가요?'**
   String get authHasAccount;
 
   /// No description provided for @authErrEmptyCredentials.
   ///
-  /// In en, this message translates to:
-  /// **'Enter your email and password'**
+  /// In ko, this message translates to:
+  /// **'이메일과 비밀번호를 입력해 주세요'**
   String get authErrEmptyCredentials;
 
   /// No description provided for @authSocialSignInFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t sign in with your social account. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'소셜 로그인을 하지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get authSocialSignInFailed;
 
   /// No description provided for @authSocialComingSoon.
   ///
-  /// In en, this message translates to:
-  /// **'Social sign-in is coming soon. Please sign in with your email.'**
+  /// In ko, this message translates to:
+  /// **'소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.'**
   String get authSocialComingSoon;
 
   /// Shown when the browser blocks the Kakao sign-in pop-up window (#330).
   ///
-  /// In en, this message translates to:
-  /// **'The sign-in window was blocked. Allow pop-ups for this site and try again.'**
+  /// In ko, this message translates to:
+  /// **'로그인 창이 차단됐어요. 이 사이트의 팝업을 허용한 뒤 다시 시도해 주세요.'**
   String get authSocialPopupBlocked;
 
   /// No description provided for @authErrSignInFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t sign in. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'로그인하지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get authErrSignInFailed;
 
   /// No description provided for @authSessionExpired.
   ///
-  /// In en, this message translates to:
-  /// **'Your sign-in has expired. Please sign in again.'**
+  /// In ko, this message translates to:
+  /// **'로그인이 만료됐어요. 다시 로그인해 주세요.'**
   String get authSessionExpired;
 
   /// Red text under the name field on sign-up when it is empty or whitespace only (#1784).
   ///
-  /// In en, this message translates to:
-  /// **'Enter your name'**
+  /// In ko, this message translates to:
+  /// **'이름을 입력해 주세요'**
   String get authErrNameEmpty;
 
   /// Shared name-length message (#1887). Trainer sign-up sends a name too; the limit matches the users.name column.
   ///
-  /// In en, this message translates to:
-  /// **'Names can be up to 100 characters'**
+  /// In ko, this message translates to:
+  /// **'이름은 100자까지 입력할 수 있어요'**
   String get authErrNameTooLong;
 
   /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
-  /// In en, this message translates to:
-  /// **'Enter your email'**
+  /// In ko, this message translates to:
+  /// **'이메일을 입력해 주세요'**
   String get authErrEmailEmpty;
 
   /// No description provided for @authErrEmailInvalid.
   ///
-  /// In en, this message translates to:
-  /// **'Enter a valid email address'**
+  /// In ko, this message translates to:
+  /// **'이메일 형식이 올바르지 않아요'**
   String get authErrEmailInvalid;
 
   /// Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py.
   ///
-  /// In en, this message translates to:
-  /// **'Email addresses can be up to 255 characters'**
+  /// In ko, this message translates to:
+  /// **'이메일은 255자까지 입력할 수 있어요'**
   String get authErrEmailTooLong;
 
   /// No description provided for @authErrPasswordEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'Enter your password'**
+  /// In ko, this message translates to:
+  /// **'비밀번호를 입력해 주세요'**
   String get authErrPasswordEmpty;
 
   /// No description provided for @authErrPasswordWeak.
   ///
-  /// In en, this message translates to:
-  /// **'Use at least 8 characters, including letters and numbers'**
+  /// In ko, this message translates to:
+  /// **'영문과 숫자를 포함해 8자 이상 입력해 주세요'**
   String get authErrPasswordWeak;
 
   /// Password upper-limit message (#1555). Matches the server rule in password_policy.py: 64 characters and 72 UTF-8 bytes (bcrypt), so Korean letters and emoji use up the limit faster.
   ///
-  /// In en, this message translates to:
-  /// **'Passwords can be up to 64 characters, or fewer if they include Korean or emoji'**
+  /// In ko, this message translates to:
+  /// **'비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)'**
   String get authErrPasswordTooLong;
 
   /// Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive.
   ///
-  /// In en, this message translates to:
-  /// **'Enter your phone number as 010-0000-0000'**
+  /// In ko, this message translates to:
+  /// **'전화번호를 010-0000-0000 형식으로 입력해 주세요'**
   String get authErrPhoneInvalid;
 
   /// Shared birth-date message (#1887). The trainer app has no birth-date field today; kept so the shared AppInputError mapping stays exhaustive.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the date of birth as 1996-03-21'**
+  /// In ko, this message translates to:
+  /// **'생년월일을 1996-03-21 형식으로 입력해 주세요'**
   String get authErrBirthDateInvalid;
 
   /// No description provided for @authErrPasswordMismatch.
   ///
-  /// In en, this message translates to:
-  /// **'Passwords don\'t match'**
+  /// In ko, this message translates to:
+  /// **'비밀번호가 일치하지 않아요'**
   String get authErrPasswordMismatch;
 
   /// No description provided for @authErrSignUpFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t sign up. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'가입하지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get authErrSignUpFailed;
 
   /// No description provided for @dashTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Dashboard'**
+  /// In ko, this message translates to:
+  /// **'대시보드'**
   String get dashTitle;
 
   /// No description provided for @dashActivityRecommendRoutine.
   ///
-  /// In en, this message translates to:
-  /// **'Try adjusting the program setup.'**
+  /// In ko, this message translates to:
+  /// **'프로그램 구성을 조정해 보세요.'**
   String get dashActivityRecommendRoutine;
 
   /// No description provided for @dashActivityRecommendChat.
   ///
-  /// In en, this message translates to:
-  /// **'Try checking in over Messages.'**
+  /// In ko, this message translates to:
+  /// **'메시지에서 안부를 물어보세요.'**
   String get dashActivityRecommendChat;
 
   /// No description provided for @dashActivityRecommendDiet.
   ///
-  /// In en, this message translates to:
-  /// **'Try leaving feedback in Diet.'**
+  /// In ko, this message translates to:
+  /// **'식단에서 피드백을 남겨 보세요.'**
   String get dashActivityRecommendDiet;
 
   /// No description provided for @dashActivityTabProgram.
   ///
-  /// In en, this message translates to:
-  /// **'Program'**
+  /// In ko, this message translates to:
+  /// **'프로그램'**
   String get dashActivityTabProgram;
 
   /// No description provided for @dashActivityTabChat.
   ///
-  /// In en, this message translates to:
-  /// **'Messages'**
+  /// In ko, this message translates to:
+  /// **'메시지'**
   String get dashActivityTabChat;
 
   /// No description provided for @dashActivityTabClient.
   ///
-  /// In en, this message translates to:
-  /// **'Member'**
+  /// In ko, this message translates to:
+  /// **'회원'**
   String get dashActivityTabClient;
 
   /// No description provided for @dashLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the dashboard'**
+  /// In ko, this message translates to:
+  /// **'대시보드를 불러오지 못했어요'**
   String get dashLoadFailed;
 
   /// Unit after a booking count. Korean uses the counter 건; English omits it because the tile label already says what is being counted. Intentionally empty.
   ///
-  /// In en, this message translates to:
-  /// **''**
+  /// In ko, this message translates to:
+  /// **'건'**
   String get dashUnitCount;
 
   /// Unit after a person count. Korean uses the counter 명; English omits it. Intentionally empty.
   ///
-  /// In en, this message translates to:
-  /// **''**
+  /// In ko, this message translates to:
+  /// **'명'**
   String get dashUnitPeople;
 
   /// No description provided for @dashMyClients.
   ///
-  /// In en, this message translates to:
-  /// **'My members'**
+  /// In ko, this message translates to:
+  /// **'담당 회원'**
   String get dashMyClients;
 
   /// No description provided for @dashDormantClients.
   ///
-  /// In en, this message translates to:
-  /// **'{count} dormant'**
+  /// In ko, this message translates to:
+  /// **'휴면 {count}명'**
   String dashDormantClients(int count);
 
   /// No description provided for @dashAllActive.
   ///
-  /// In en, this message translates to:
-  /// **'All active'**
+  /// In ko, this message translates to:
+  /// **'전원 활성'**
   String get dashAllActive;
 
   /// No description provided for @dashNeedsReply.
   ///
-  /// In en, this message translates to:
-  /// **'Awaiting reply'**
+  /// In ko, this message translates to:
+  /// **'답장 필요'**
   String get dashNeedsReply;
 
   /// No description provided for @dashWaitingClients.
   ///
-  /// In en, this message translates to:
-  /// **'{count} waiting'**
+  /// In ko, this message translates to:
+  /// **'회원 {count}명 대기 중'**
   String dashWaitingClients(int count);
 
   /// No description provided for @dashAllReplied.
   ///
-  /// In en, this message translates to:
-  /// **'All replied'**
+  /// In ko, this message translates to:
+  /// **'모두 답장했어요'**
   String get dashAllReplied;
 
   /// No description provided for @dashAttentionClients.
   ///
-  /// In en, this message translates to:
-  /// **'Needs attention'**
+  /// In ko, this message translates to:
+  /// **'관리 필요'**
   String get dashAttentionClients;
 
   /// No description provided for @dashNoIssues.
   ///
-  /// In en, this message translates to:
-  /// **'No issues'**
+  /// In ko, this message translates to:
+  /// **'이상 없음'**
   String get dashNoIssues;
 
   /// No description provided for @dashCheckPtSignals.
   ///
-  /// In en, this message translates to:
-  /// **'Check PT signals'**
+  /// In ko, this message translates to:
+  /// **'관리 신호 확인'**
   String get dashCheckPtSignals;
 
   /// No description provided for @dashMessages.
   ///
-  /// In en, this message translates to:
-  /// **'Messages'**
+  /// In ko, this message translates to:
+  /// **'메시지'**
   String get dashMessages;
 
   /// No description provided for @dashChurnRisk.
   ///
-  /// In en, this message translates to:
-  /// **'Churn risk'**
+  /// In ko, this message translates to:
+  /// **'이탈 위험'**
   String get dashChurnRisk;
 
   /// No description provided for @dashChurnRiskNone.
   ///
-  /// In en, this message translates to:
-  /// **'No churn risk'**
+  /// In ko, this message translates to:
+  /// **'이탈 위험 없음'**
   String get dashChurnRiskNone;
 
   /// No description provided for @dashChurnRiskCheck.
   ///
-  /// In en, this message translates to:
-  /// **'Review churn signals'**
+  /// In ko, this message translates to:
+  /// **'이탈 신호 확인'**
   String get dashChurnRiskCheck;
 
   /// No description provided for @dashChurnRiskTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Members at churn risk'**
+  /// In ko, this message translates to:
+  /// **'이탈 위험 회원'**
   String get dashChurnRiskTitle;
 
   /// No description provided for @dashChurnRiskEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No members are at churn risk right now.'**
+  /// In ko, this message translates to:
+  /// **'지금은 이탈 위험 신호가 없어요.'**
   String get dashChurnRiskEmpty;
 
   /// No description provided for @dashChurnRiskLoading.
   ///
-  /// In en, this message translates to:
-  /// **'Checking recent workouts'**
+  /// In ko, this message translates to:
+  /// **'최근 운동 기록 확인 중'**
   String get dashChurnRiskLoading;
 
   /// No description provided for @dashChurnRiskUnavailable.
   ///
-  /// In en, this message translates to:
-  /// **'Unavailable · Tap to retry'**
+  /// In ko, this message translates to:
+  /// **'확인할 수 없음 · 눌러서 다시 시도'**
   String get dashChurnRiskUnavailable;
 
   /// No description provided for @dashActivityFeedbackLoading.
   ///
-  /// In en, this message translates to:
-  /// **'Checking recent workouts.'**
+  /// In ko, this message translates to:
+  /// **'최근 운동 기록을 확인하고 있어요.'**
   String get dashActivityFeedbackLoading;
 
   /// No description provided for @dashActivityFeedbackUnavailable.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load recent workouts, so activity feedback is unavailable. Tap the churn risk card to retry.'**
+  /// In ko, this message translates to:
+  /// **'최근 운동 기록을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.'**
   String get dashActivityFeedbackUnavailable;
 
   /// No description provided for @dashActivityDifficultyTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Behind exercise goal / missed personal exercises'**
+  /// In ko, this message translates to:
+  /// **'운동 목표 미달·개인운동 미수행'**
   String get dashActivityDifficultyTitle;
 
   /// No description provided for @dashActivityDifficultyDesc.
   ///
-  /// In en, this message translates to:
-  /// **'{names} are behind this week\'s exercise goal or skipped their personal exercises. Lower the difficulty before the next PT and check recent feedback.'**
+  /// In ko, this message translates to:
+  /// **'{names} 회원이 이번 주 운동 목표에 못 미치거나 개인운동을 하지 않았어요. 다음 PT 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.'**
   String dashActivityDifficultyDesc(String names);
 
   /// No description provided for @dashActivityInactiveTitle.
   ///
-  /// In en, this message translates to:
-  /// **'No logs'**
+  /// In ko, this message translates to:
+  /// **'기록 끊김'**
   String get dashActivityInactiveTitle;
 
   /// No description provided for @dashActivityInactiveDesc.
   ///
-  /// In en, this message translates to:
-  /// **'{names} haven\'t logged meals or workouts for a few days. Reach out before it turns into churn.'**
+  /// In ko, this message translates to:
+  /// **'{names} 회원이 며칠째 식단·운동 기록이 없어요. 이탈로 이어지기 전에 먼저 연락해서 재참여를 유도해 보세요.'**
   String dashActivityInactiveDesc(String names);
 
   /// No description provided for @dashActivityDietFeedbackTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Diet feedback pending'**
+  /// In ko, this message translates to:
+  /// **'식단 피드백 미완료'**
   String get dashActivityDietFeedbackTitle;
 
   /// No description provided for @dashActivityDietFeedbackDesc.
   ///
-  /// In en, this message translates to:
-  /// **'{names} are off their calorie goal or low on protein but haven\'t gotten trainer feedback in 7 days. Leave diet feedback so they know it was seen.'**
+  /// In ko, this message translates to:
+  /// **'{names} 회원이 칼로리 목표를 벗어났거나 단백질이 부족한데 최근 7일간 피드백을 받지 못했어요. 식단 피드백을 남겨 확인했다는 걸 알려 주세요.'**
   String dashActivityDietFeedbackDesc(String names);
 
   /// No description provided for @dashActivityMoreClients.
   ///
-  /// In en, this message translates to:
-  /// **'{shown} and {count} more'**
+  /// In ko, this message translates to:
+  /// **'{shown} 외 {count}명'**
   String dashActivityMoreClients(String shown, int count);
 
   /// No description provided for @dashAiSummaryTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Activity feedback'**
+  /// In ko, this message translates to:
+  /// **'활동 피드백'**
   String get dashAiSummaryTitle;
 
   /// No description provided for @dashAiNoClients.
   ///
-  /// In en, this message translates to:
-  /// **'No members yet. Once you add one, I\'ll gather their diet and workout data and point out what to coach.'**
+  /// In ko, this message translates to:
+  /// **'아직 담당 회원이 없어요. 회원을 등록하면 식단·운동 데이터를 모아 코칭 포인트를 짚어 드릴게요.'**
   String get dashAiNoClients;
 
   /// No description provided for @dashTodaySchedule.
   ///
-  /// In en, this message translates to:
-  /// **'Today\'s schedule'**
+  /// In ko, this message translates to:
+  /// **'오늘의 일정'**
   String get dashTodaySchedule;
 
   /// No description provided for @dashSeeAll.
   ///
-  /// In en, this message translates to:
-  /// **'See all'**
+  /// In ko, this message translates to:
+  /// **'전체 보기'**
   String get dashSeeAll;
 
   /// No description provided for @dashScheduleLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the schedule'**
+  /// In ko, this message translates to:
+  /// **'일정을 불러오지 못했어요'**
   String get dashScheduleLoadFailed;
 
   /// No description provided for @dashNoScheduleToday.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing scheduled today'**
+  /// In ko, this message translates to:
+  /// **'오늘 등록된 일정이 없어요'**
   String get dashNoScheduleToday;
 
   /// No description provided for @dashScheduleNowLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Now {time}'**
+  /// In ko, this message translates to:
+  /// **'지금 {time}'**
   String dashScheduleNowLabel(String time);
 
   /// No description provided for @dashScheduleNextSession.
   ///
-  /// In en, this message translates to:
-  /// **'Next: {time} · {name}'**
+  /// In ko, this message translates to:
+  /// **'다음 일정 {time} · {name}'**
   String dashScheduleNextSession(String time, String name);
 
   /// No description provided for @dashScheduleMinutesLeft.
   ///
-  /// In en, this message translates to:
-  /// **'in {minutes} min'**
+  /// In ko, this message translates to:
+  /// **'{minutes}분 뒤'**
   String dashScheduleMinutesLeft(int minutes);
 
   /// Dashboard banner when today's session has started but not yet ended (#2865).
   ///
-  /// In en, this message translates to:
-  /// **'In progress: {time} · {name}'**
+  /// In ko, this message translates to:
+  /// **'진행 중 {time} · {name}'**
   String dashScheduleInProgress(String time, String name);
 
   /// Minutes until the in-progress session ends (#2865).
   ///
-  /// In en, this message translates to:
-  /// **'{minutes} min left'**
+  /// In ko, this message translates to:
+  /// **'{minutes}분 남음'**
   String dashScheduleMinutesToEnd(int minutes);
 
   /// No description provided for @dashPreparePt.
   ///
-  /// In en, this message translates to:
-  /// **'Prepare PT'**
+  /// In ko, this message translates to:
+  /// **'PT 준비하기'**
   String get dashPreparePt;
 
   /// No description provided for @dashLeaveMemo.
   ///
-  /// In en, this message translates to:
-  /// **'Leave a memo'**
+  /// In ko, this message translates to:
+  /// **'메모 남기기'**
   String get dashLeaveMemo;
 
   /// No description provided for @dashLeaveFeedback.
   ///
-  /// In en, this message translates to:
-  /// **'Leave feedback'**
+  /// In ko, this message translates to:
+  /// **'피드백 남기기'**
   String get dashLeaveFeedback;
 
   /// No description provided for @dashSessionSent.
   ///
-  /// In en, this message translates to:
-  /// **'Sent'**
+  /// In ko, this message translates to:
+  /// **'보냄'**
   String get dashSessionSent;
 
   /// No description provided for @dashSessionPrepared.
   ///
-  /// In en, this message translates to:
-  /// **'Prepared'**
+  /// In ko, this message translates to:
+  /// **'준비됨'**
   String get dashSessionPrepared;
 
   /// No description provided for @dashSessionNoteWritten.
   ///
-  /// In en, this message translates to:
-  /// **'Written'**
+  /// In ko, this message translates to:
+  /// **'작성 완료'**
   String get dashSessionNoteWritten;
 
   /// No description provided for @dashSessionSentNo.
   ///
-  /// In en, this message translates to:
-  /// **'Not sent'**
+  /// In ko, this message translates to:
+  /// **'안 보냄'**
   String get dashSessionSentNo;
 
   /// No description provided for @dashSessionPreparedNo.
   ///
-  /// In en, this message translates to:
-  /// **'Not prepared'**
+  /// In ko, this message translates to:
+  /// **'준비 안됨'**
   String get dashSessionPreparedNo;
 
   /// No description provided for @dashSessionNoteNotWritten.
   ///
-  /// In en, this message translates to:
-  /// **'No memo'**
+  /// In ko, this message translates to:
+  /// **'메모 없음'**
   String get dashSessionNoteNotWritten;
 
   /// No description provided for @weekdayMon.
   ///
-  /// In en, this message translates to:
-  /// **'Mon'**
+  /// In ko, this message translates to:
+  /// **'월'**
   String get weekdayMon;
 
   /// No description provided for @weekdayTue.
   ///
-  /// In en, this message translates to:
-  /// **'Tue'**
+  /// In ko, this message translates to:
+  /// **'화'**
   String get weekdayTue;
 
   /// No description provided for @weekdayWed.
   ///
-  /// In en, this message translates to:
-  /// **'Wed'**
+  /// In ko, this message translates to:
+  /// **'수'**
   String get weekdayWed;
 
   /// No description provided for @weekdayThu.
   ///
-  /// In en, this message translates to:
-  /// **'Thu'**
+  /// In ko, this message translates to:
+  /// **'목'**
   String get weekdayThu;
 
   /// No description provided for @weekdayFri.
   ///
-  /// In en, this message translates to:
-  /// **'Fri'**
+  /// In ko, this message translates to:
+  /// **'금'**
   String get weekdayFri;
 
   /// No description provided for @weekdaySat.
   ///
-  /// In en, this message translates to:
-  /// **'Sat'**
+  /// In ko, this message translates to:
+  /// **'토'**
   String get weekdaySat;
 
   /// No description provided for @weekdaySun.
   ///
-  /// In en, this message translates to:
-  /// **'Sun'**
+  /// In ko, this message translates to:
+  /// **'일'**
   String get weekdaySun;
 
   /// No description provided for @clientsLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load member data'**
+  /// In ko, this message translates to:
+  /// **'회원 정보를 불러오지 못했어요'**
   String get clientsLoadFailed;
 
   /// No description provided for @clientsNew.
   ///
-  /// In en, this message translates to:
-  /// **'Connect member'**
+  /// In ko, this message translates to:
+  /// **'회원 연결'**
   String get clientsNew;
 
   /// No description provided for @clientsTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Member management'**
+  /// In ko, this message translates to:
+  /// **'회원 관리'**
   String get clientsTitle;
 
   /// No description provided for @clientsManagementAttention.
   ///
-  /// In en, this message translates to:
-  /// **'Needs attention'**
+  /// In ko, this message translates to:
+  /// **'관리 필요'**
   String get clientsManagementAttention;
 
   /// No description provided for @clientsFiltersClearAll.
   ///
-  /// In en, this message translates to:
-  /// **'Clear all'**
+  /// In ko, this message translates to:
+  /// **'전체 초기화'**
   String get clientsFiltersClearAll;
 
   /// No description provided for @clientsSortLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Sort'**
+  /// In ko, this message translates to:
+  /// **'정렬'**
   String get clientsSortLabel;
 
   /// No description provided for @clientsSortPriority.
   ///
-  /// In en, this message translates to:
-  /// **'Needs attention first'**
+  /// In ko, this message translates to:
+  /// **'관리 필요 우선'**
   String get clientsSortPriority;
 
   /// No description provided for @clientsSortName.
   ///
-  /// In en, this message translates to:
-  /// **'Name A–Z'**
+  /// In ko, this message translates to:
+  /// **'이름 오름차순'**
   String get clientsSortName;
 
   /// No description provided for @clientsSortNameDescending.
   ///
-  /// In en, this message translates to:
-  /// **'Name Z–A'**
+  /// In ko, this message translates to:
+  /// **'이름 내림차순'**
   String get clientsSortNameDescending;
 
   /// No description provided for @clientsSortRecentMessage.
   ///
-  /// In en, this message translates to:
-  /// **'Recent messages'**
+  /// In ko, this message translates to:
+  /// **'최근 메시지순'**
   String get clientsSortRecentMessage;
 
   /// No description provided for @clientsFilterLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Filters'**
+  /// In ko, this message translates to:
+  /// **'필터'**
   String get clientsFilterLabel;
 
   /// No description provided for @clientsPickHint.
   ///
-  /// In en, this message translates to:
-  /// **'Pick a member on the left to open\ntheir chat, meals and workouts here'**
+  /// In ko, this message translates to:
+  /// **'왼쪽에서 회원을 선택하면\n대화·식단·운동 기록이 여기에 열려요'**
   String get clientsPickHint;
 
   /// No description provided for @clientsEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No members yet'**
+  /// In ko, this message translates to:
+  /// **'아직 담당 회원이 없어요'**
   String get clientsEmpty;
 
   /// No description provided for @clientsEmptyConnectHint.
   ///
-  /// In en, this message translates to:
-  /// **'Connect members with their connection code or by sending a coaching request. Consultation requests from members also appear in your inbox.'**
+  /// In ko, this message translates to:
+  /// **'연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청에도 표시돼요.'**
   String get clientsEmptyConnectHint;
 
   /// No description provided for @clientsEmptyForFilter.
   ///
-  /// In en, this message translates to:
-  /// **'No members match {filter}'**
+  /// In ko, this message translates to:
+  /// **'{filter}에 해당하는 회원이 없어요'**
   String clientsEmptyForFilter(String filter);
 
   /// No description provided for @clientsEmptyForManagement.
   ///
-  /// In en, this message translates to:
-  /// **'No members match these filters'**
+  /// In ko, this message translates to:
+  /// **'조건에 맞는 회원이 없어요'**
   String get clientsEmptyForManagement;
 
   /// No description provided for @clientsMemberCount.
   ///
-  /// In en, this message translates to:
-  /// **'{total} members'**
+  /// In ko, this message translates to:
+  /// **'{total}명'**
   String clientsMemberCount(int total);
 
   /// Roster subtitle while a dashboard preset or management filter narrows the list.
   ///
-  /// In en, this message translates to:
-  /// **'{shown} of {total} members'**
+  /// In ko, this message translates to:
+  /// **'{total}명 중 {shown}명'**
   String clientsMemberCountFiltered(int shown, int total);
 
   /// No description provided for @clientWeeklyRoutineAdherence.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly completion rate'**
+  /// In ko, this message translates to:
+  /// **'주간 완료율'**
   String get clientWeeklyRoutineAdherence;
 
   /// No description provided for @clientRoutineAdherenceUnmeasured.
   ///
-  /// In en, this message translates to:
-  /// **'Not measured'**
+  /// In ko, this message translates to:
+  /// **'미집계'**
   String get clientRoutineAdherenceUnmeasured;
 
   /// No description provided for @clientsSignalDiscomfort.
   ///
-  /// In en, this message translates to:
-  /// **'Pain'**
+  /// In ko, this message translates to:
+  /// **'통증·불편'**
   String get clientsSignalDiscomfort;
 
   /// No description provided for @clientsSignalRecordGap.
   ///
-  /// In en, this message translates to:
-  /// **'No logs'**
+  /// In ko, this message translates to:
+  /// **'기록 끊김'**
   String get clientsSignalRecordGap;
 
   /// No description provided for @clientsSignalRecordGapDays.
   ///
-  /// In en, this message translates to:
-  /// **'No logs {days}d'**
+  /// In ko, this message translates to:
+  /// **'{days}일째 기록 없음'**
   String clientsSignalRecordGapDays(int days);
 
   /// No description provided for @clientsSignalRecordGapLong.
   ///
-  /// In en, this message translates to:
-  /// **'No logs 30d+'**
+  /// In ko, this message translates to:
+  /// **'30일 넘게 기록 없음'**
   String get clientsSignalRecordGapLong;
 
   /// No description provided for @clientsSignalNoShow.
   ///
-  /// In en, this message translates to:
-  /// **'No-shows/cancels'**
+  /// In ko, this message translates to:
+  /// **'노쇼·취소 반복'**
   String get clientsSignalNoShow;
 
   /// No description provided for @clientsSignalNoShowCount.
   ///
-  /// In en, this message translates to:
-  /// **'{count} no-shows/cancels'**
+  /// In ko, this message translates to:
+  /// **'노쇼·취소 {count}회'**
   String clientsSignalNoShowCount(int count);
 
   /// No description provided for @clientsSignalRoutineMissed.
   ///
-  /// In en, this message translates to:
-  /// **'Missed exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동 미수행'**
   String get clientsSignalRoutineMissed;
 
   /// No description provided for @clientsSignalExerciseGoalLow.
   ///
-  /// In en, this message translates to:
-  /// **'Low exercise'**
+  /// In ko, this message translates to:
+  /// **'운동 목표 미달'**
   String get clientsSignalExerciseGoalLow;
 
   /// No description provided for @clientsSignalExerciseGoalLowPercent.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise {percent}%'**
+  /// In ko, this message translates to:
+  /// **'운동 목표 {percent}%'**
   String clientsSignalExerciseGoalLowPercent(int percent);
 
   /// No description provided for @clientsSignalCalorieOff.
   ///
-  /// In en, this message translates to:
-  /// **'Off calorie goal'**
+  /// In ko, this message translates to:
+  /// **'칼로리 목표 이탈'**
   String get clientsSignalCalorieOff;
 
   /// No description provided for @clientsSignalCalorieOver.
   ///
-  /// In en, this message translates to:
-  /// **'Calories over'**
+  /// In ko, this message translates to:
+  /// **'칼로리 초과'**
   String get clientsSignalCalorieOver;
 
   /// No description provided for @clientsSignalCalorieUnder.
   ///
-  /// In en, this message translates to:
-  /// **'Calories under'**
+  /// In ko, this message translates to:
+  /// **'칼로리 부족'**
   String get clientsSignalCalorieUnder;
 
   /// No description provided for @clientsSignalProteinLow.
   ///
-  /// In en, this message translates to:
-  /// **'Low protein'**
+  /// In ko, this message translates to:
+  /// **'단백질 부족'**
   String get clientsSignalProteinLow;
 
   /// No description provided for @clientsSignalCalorieOverPercent.
   ///
-  /// In en, this message translates to:
-  /// **'Calories {percent}% over'**
+  /// In ko, this message translates to:
+  /// **'칼로리 {percent}% 초과'**
   String clientsSignalCalorieOverPercent(int percent);
 
   /// No description provided for @clientsSignalCalorieUnderPercent.
   ///
-  /// In en, this message translates to:
-  /// **'Calories {percent}% under'**
+  /// In ko, this message translates to:
+  /// **'칼로리 {percent}% 부족'**
   String clientsSignalCalorieUnderPercent(int percent);
 
   /// No description provided for @clientsSignalProteinPercent.
   ///
-  /// In en, this message translates to:
-  /// **'Protein {percent}% of goal'**
+  /// In ko, this message translates to:
+  /// **'단백질 목표의 {percent}%'**
   String clientsSignalProteinPercent(int percent);
 
   /// No description provided for @clientsSignalRoutineMissedDays.
   ///
-  /// In en, this message translates to:
-  /// **'Missed exercise {days}d'**
+  /// In ko, this message translates to:
+  /// **'개인운동 {days}일 미수행'**
   String clientsSignalRoutineMissedDays(int days);
 
   /// No description provided for @clientsSignalUnanswered.
   ///
-  /// In en, this message translates to:
-  /// **'Awaiting reply'**
+  /// In ko, this message translates to:
+  /// **'답장 대기'**
   String get clientsSignalUnanswered;
 
   /// No description provided for @clientsAttentionClear.
   ///
-  /// In en, this message translates to:
-  /// **'Clear attention filter'**
+  /// In ko, this message translates to:
+  /// **'관리 필요 보기 해제'**
   String get clientsAttentionClear;
 
   /// No description provided for @memberHealthLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the member profile. Please try again'**
+  /// In ko, this message translates to:
+  /// **'회원 정보를 불러오지 못했어요. 다시 시도해 주세요'**
   String get memberHealthLoadFailed;
 
   /// No description provided for @memberHealthSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the member profile. Please try again'**
+  /// In ko, this message translates to:
+  /// **'회원 정보를 저장하지 못했어요. 다시 시도해 주세요'**
   String get memberHealthSaveFailed;
 
   /// No description provided for @memberHealthSaving.
   ///
-  /// In en, this message translates to:
-  /// **'Saving…'**
+  /// In ko, this message translates to:
+  /// **'저장 중…'**
   String get memberHealthSaving;
 
   /// No description provided for @memberHealthGender.
   ///
-  /// In en, this message translates to:
-  /// **'Gender'**
+  /// In ko, this message translates to:
+  /// **'성별'**
   String get memberHealthGender;
 
   /// No description provided for @memberHealthGenderUnset.
   ///
-  /// In en, this message translates to:
-  /// **'Not set'**
+  /// In ko, this message translates to:
+  /// **'미설정'**
   String get memberHealthGenderUnset;
 
   /// No description provided for @memberHealthGenderMale.
   ///
-  /// In en, this message translates to:
-  /// **'Male'**
+  /// In ko, this message translates to:
+  /// **'남성'**
   String get memberHealthGenderMale;
 
   /// No description provided for @memberHealthGenderFemale.
   ///
-  /// In en, this message translates to:
-  /// **'Female'**
+  /// In ko, this message translates to:
+  /// **'여성'**
   String get memberHealthGenderFemale;
 
   /// No description provided for @memberHealthGenderOther.
   ///
-  /// In en, this message translates to:
-  /// **'Other'**
+  /// In ko, this message translates to:
+  /// **'기타'**
   String get memberHealthGenderOther;
 
   /// No description provided for @memberHealthHeight.
   ///
-  /// In en, this message translates to:
-  /// **'Height (cm)'**
+  /// In ko, this message translates to:
+  /// **'키 (cm)'**
   String get memberHealthHeight;
 
   /// No description provided for @memberHealthWeight.
   ///
-  /// In en, this message translates to:
-  /// **'Weight (kg)'**
+  /// In ko, this message translates to:
+  /// **'체중 (kg)'**
   String get memberHealthWeight;
 
   /// No description provided for @memberHealthFocus.
   ///
-  /// In en, this message translates to:
-  /// **'Health goals (up to 2)'**
+  /// In ko, this message translates to:
+  /// **'건강 목표 (최대 2개)'**
   String get memberHealthFocus;
 
   /// Member profile dialog: who last changed the member's goal chips and when (#1832).
   ///
-  /// In en, this message translates to:
-  /// **'Last changed by {who} · {date}'**
+  /// In ko, this message translates to:
+  /// **'마지막 변경: {who} · {date}'**
   String memberHealthFocusLastChanged(String who, String date);
 
   /// No description provided for @memberHealthFocusChangedByTrainer.
   ///
-  /// In en, this message translates to:
-  /// **'Trainer'**
+  /// In ko, this message translates to:
+  /// **'트레이너'**
   String get memberHealthFocusChangedByTrainer;
 
   /// No description provided for @memberHealthFocusChangedByMember.
   ///
-  /// In en, this message translates to:
-  /// **'Member'**
+  /// In ko, this message translates to:
+  /// **'회원'**
   String get memberHealthFocusChangedByMember;
 
   /// No description provided for @healthFocusWeightLoss.
   ///
-  /// In en, this message translates to:
-  /// **'Weight loss'**
+  /// In ko, this message translates to:
+  /// **'체중 감량'**
   String get healthFocusWeightLoss;
 
   /// No description provided for @healthFocusStrength.
   ///
-  /// In en, this message translates to:
-  /// **'Build strength'**
+  /// In ko, this message translates to:
+  /// **'근력 향상'**
   String get healthFocusStrength;
 
   /// No description provided for @healthFocusFitness.
   ///
-  /// In en, this message translates to:
-  /// **'Improve fitness'**
+  /// In ko, this message translates to:
+  /// **'체력 강화'**
   String get healthFocusFitness;
 
   /// No description provided for @healthFocusPosture.
   ///
-  /// In en, this message translates to:
-  /// **'Posture correction'**
+  /// In ko, this message translates to:
+  /// **'자세 교정'**
   String get healthFocusPosture;
 
   /// No description provided for @healthFocusRehab.
   ///
-  /// In en, this message translates to:
-  /// **'Rehab'**
+  /// In ko, this message translates to:
+  /// **'재활'**
   String get healthFocusRehab;
 
   /// No description provided for @healthFocusEating.
   ///
-  /// In en, this message translates to:
-  /// **'Better eating habits'**
+  /// In ko, this message translates to:
+  /// **'식습관 개선'**
   String get healthFocusEating;
 
   /// No description provided for @healthFocusExerciseHabit.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise habit'**
+  /// In ko, this message translates to:
+  /// **'운동 습관'**
   String get healthFocusExerciseHabit;
 
   /// No description provided for @healthFocusBloodPressure.
   ///
-  /// In en, this message translates to:
-  /// **'Blood pressure care'**
+  /// In ko, this message translates to:
+  /// **'혈압 관리'**
   String get healthFocusBloodPressure;
 
   /// No description provided for @memberHealthConditions.
   ///
-  /// In en, this message translates to:
-  /// **'Conditions and cautions'**
+  /// In ko, this message translates to:
+  /// **'건강상태·주의사항'**
   String get memberHealthConditions;
 
   /// No description provided for @memberHealthConditionsShared.
   ///
-  /// In en, this message translates to:
-  /// **'The member sees this too · Used for recommendations'**
+  /// In ko, this message translates to:
+  /// **'회원에게도 보여요 · 추천할 때 참고해요'**
   String get memberHealthConditionsShared;
 
   /// No description provided for @memberHealthConditionsPrivateHint.
   ///
-  /// In en, this message translates to:
-  /// **'Keep trainer-only notes in Memo.'**
+  /// In ko, this message translates to:
+  /// **'트레이너만 볼 내용은 메모에 남겨 주세요.'**
   String get memberHealthConditionsPrivateHint;
 
   /// No description provided for @memberHealthDietGoal.
   ///
-  /// In en, this message translates to:
-  /// **'Diet goals'**
+  /// In ko, this message translates to:
+  /// **'식단 목표'**
   String get memberHealthDietGoal;
 
   /// No description provided for @memberHealthExerciseGoal.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise goals'**
+  /// In ko, this message translates to:
+  /// **'운동 목표'**
   String get memberHealthExerciseGoal;
 
   /// No description provided for @memberHealthGoalCalories.
   ///
-  /// In en, this message translates to:
-  /// **'Daily calorie goal (kcal)'**
+  /// In ko, this message translates to:
+  /// **'하루 칼로리 목표 (kcal)'**
   String get memberHealthGoalCalories;
 
   /// No description provided for @memberHealthGoalSodium.
   ///
-  /// In en, this message translates to:
-  /// **'Daily sodium goal (mg)'**
+  /// In ko, this message translates to:
+  /// **'하루 나트륨 목표 (mg)'**
   String get memberHealthGoalSodium;
 
   /// No description provided for @memberHealthGoalSugar.
   ///
-  /// In en, this message translates to:
-  /// **'Daily sugar goal (g)'**
+  /// In ko, this message translates to:
+  /// **'하루 당류 목표 (g)'**
   String get memberHealthGoalSugar;
 
   /// No description provided for @memberHealthGoalCarbs.
   ///
-  /// In en, this message translates to:
-  /// **'Daily carbs goal (g)'**
+  /// In ko, this message translates to:
+  /// **'하루 탄수화물 목표 (g)'**
   String get memberHealthGoalCarbs;
 
   /// No description provided for @memberHealthGoalProtein.
   ///
-  /// In en, this message translates to:
-  /// **'Daily protein goal (g)'**
+  /// In ko, this message translates to:
+  /// **'하루 단백질 목표 (g)'**
   String get memberHealthGoalProtein;
 
   /// No description provided for @memberHealthGoalFat.
   ///
-  /// In en, this message translates to:
-  /// **'Daily fat goal (g)'**
+  /// In ko, this message translates to:
+  /// **'하루 지방 목표 (g)'**
   String get memberHealthGoalFat;
 
   /// No description provided for @memberHealthGoalBurnDaily.
   ///
-  /// In en, this message translates to:
-  /// **'Daily calories burned (kcal)'**
+  /// In ko, this message translates to:
+  /// **'하루 소모 칼로리 (kcal)'**
   String get memberHealthGoalBurnDaily;
 
   /// No description provided for @memberHealthGoalCardioWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly cardio (min)'**
+  /// In ko, this message translates to:
+  /// **'주간 유산소 (분)'**
   String get memberHealthGoalCardioWeekly;
 
   /// No description provided for @memberHealthGoalStrengthWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly strength (sets)'**
+  /// In ko, this message translates to:
+  /// **'주간 근력 (세트)'**
   String get memberHealthGoalStrengthWeekly;
 
   /// No description provided for @memberHealthGoalFlexibilityWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly stretching (min)'**
+  /// In ko, this message translates to:
+  /// **'주간 스트레칭 (분)'**
   String get memberHealthGoalFlexibilityWeekly;
 
   /// No description provided for @memberHealthRange.
   ///
-  /// In en, this message translates to:
-  /// **'Enter a value between {min} and {max}.'**
+  /// In ko, this message translates to:
+  /// **'{min}~{max} 범위로 입력해 주세요.'**
   String memberHealthRange(String min, String max);
 
   /// No description provided for @clientInviteTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Connect member'**
+  /// In ko, this message translates to:
+  /// **'회원 연결'**
   String get clientInviteTitle;
 
   /// No description provided for @clientInviteIntro.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the 6-digit connection code from the member\'s MY tab to connect right away.'**
+  /// In ko, this message translates to:
+  /// **'회원 앱 MY 탭의 6자리 연결 코드를 입력하면 바로 연결돼요.'**
   String get clientInviteIntro;
 
   /// No description provided for @clientInviteIntroImmediate.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the 6-digit connection code from the member\'s MY tab to connect right away.'**
+  /// In ko, this message translates to:
+  /// **'회원 앱 MY 탭의 6자리 연결 코드를 입력하면 바로 연결돼요.'**
   String get clientInviteIntroImmediate;
 
   /// No description provided for @clientConnectCodeLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Connection code'**
+  /// In ko, this message translates to:
+  /// **'연결 코드'**
   String get clientConnectCodeLabel;
 
   /// No description provided for @clientConnectCodeRequired.
   ///
-  /// In en, this message translates to:
-  /// **'Enter all six digits'**
+  /// In ko, this message translates to:
+  /// **'6자리를 모두 입력해 주세요'**
   String get clientConnectCodeRequired;
 
   /// No description provided for @clientConnectCodeInvalid.
   ///
-  /// In en, this message translates to:
-  /// **'That code is wrong or expired. Ask the member for a new one'**
+  /// In ko, this message translates to:
+  /// **'코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요'**
   String get clientConnectCodeInvalid;
 
   /// No description provided for @clientConnectAlreadyManaged.
   ///
-  /// In en, this message translates to:
-  /// **'You already manage this member. Find them in your member list'**
+  /// In ko, this message translates to:
+  /// **'이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'**
   String get clientConnectAlreadyManaged;
 
   /// No description provided for @clientInviteConnectAction.
   ///
-  /// In en, this message translates to:
-  /// **'Connect'**
+  /// In ko, this message translates to:
+  /// **'연결'**
   String get clientInviteConnectAction;
 
   /// No description provided for @clientInviteConnected.
   ///
-  /// In en, this message translates to:
-  /// **'Connected with {name}'**
+  /// In ko, this message translates to:
+  /// **'{name}님과 연결했어요'**
   String clientInviteConnected(String name);
 
   /// No description provided for @clientInviteFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send the request. Please try again'**
+  /// In ko, this message translates to:
+  /// **'요청을 보내지 못했어요. 다시 시도해 주세요'**
   String get clientInviteFailed;
 
   /// No description provided for @clientInvitePendingTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Waiting for an answer'**
+  /// In ko, this message translates to:
+  /// **'답을 기다리는 요청'**
   String get clientInvitePendingTitle;
 
   /// No description provided for @clientInvitePendingEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No requests are waiting'**
+  /// In ko, this message translates to:
+  /// **'기다리는 요청이 없어요'**
   String get clientInvitePendingEmpty;
 
   /// No description provided for @clientInviteCancelAction.
   ///
-  /// In en, this message translates to:
-  /// **'Withdraw'**
+  /// In ko, this message translates to:
+  /// **'요청 거두기'**
   String get clientInviteCancelAction;
 
   /// No description provided for @clientInviteCancelled.
   ///
-  /// In en, this message translates to:
-  /// **'Request withdrawn'**
+  /// In ko, this message translates to:
+  /// **'요청을 거뒀어요'**
   String get clientInviteCancelled;
 
   /// No description provided for @clientInviteCancelFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t withdraw the request. Please try again'**
+  /// In ko, this message translates to:
+  /// **'요청을 거두지 못했어요. 다시 시도해 주세요'**
   String get clientInviteCancelFailed;
 
   /// No description provided for @clientInviteConfirmPrompt.
   ///
-  /// In en, this message translates to:
-  /// **'Is this the right member?'**
+  /// In ko, this message translates to:
+  /// **'이 회원이 맞나요?'**
   String get clientInviteConfirmPrompt;
 
   /// No description provided for @coachTemplateNew.
   ///
-  /// In en, this message translates to:
-  /// **'New template'**
+  /// In ko, this message translates to:
+  /// **'새 템플릿'**
   String get coachTemplateNew;
 
   /// No description provided for @coachTemplateEdit.
   ///
-  /// In en, this message translates to:
-  /// **'Edit template'**
+  /// In ko, this message translates to:
+  /// **'템플릿 수정'**
   String get coachTemplateEdit;
 
   /// No description provided for @coachTemplateDelete.
   ///
-  /// In en, this message translates to:
-  /// **'Delete'**
+  /// In ko, this message translates to:
+  /// **'삭제'**
   String get coachTemplateDelete;
 
   /// No description provided for @coachTemplateNameLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Template name'**
+  /// In ko, this message translates to:
+  /// **'템플릿 이름'**
   String get coachTemplateNameLabel;
 
   /// No description provided for @coachTemplateGoalLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Goal (e.g. blood pressure · beginner)'**
+  /// In ko, this message translates to:
+  /// **'목표 (예: 혈압 관리 · 초급)'**
   String get coachTemplateGoalLabel;
 
   /// No description provided for @coachTemplateExerciseName.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise'**
+  /// In ko, this message translates to:
+  /// **'운동 이름'**
   String get coachTemplateExerciseName;
 
   /// No description provided for @coachTemplateAddExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Add exercise'**
+  /// In ko, this message translates to:
+  /// **'운동 추가'**
   String get coachTemplateAddExercise;
 
   /// No description provided for @coachTemplateSave.
   ///
-  /// In en, this message translates to:
-  /// **'Save'**
+  /// In ko, this message translates to:
+  /// **'저장'**
   String get coachTemplateSave;
 
   /// No description provided for @coachTemplateNameRequired.
   ///
-  /// In en, this message translates to:
-  /// **'Enter a template name'**
+  /// In ko, this message translates to:
+  /// **'템플릿 이름을 입력해 주세요'**
   String get coachTemplateNameRequired;
 
   /// No description provided for @coachTemplateExerciseRequired.
   ///
-  /// In en, this message translates to:
-  /// **'Add at least one exercise'**
+  /// In ko, this message translates to:
+  /// **'운동을 하나 이상 넣어 주세요'**
   String get coachTemplateExerciseRequired;
 
   /// No description provided for @coachTemplateExerciseNameRequired.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the exercise name'**
+  /// In ko, this message translates to:
+  /// **'운동 이름을 적어 주세요'**
   String get coachTemplateExerciseNameRequired;
 
   /// No description provided for @coachTemplateSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the template. Please try again'**
+  /// In ko, this message translates to:
+  /// **'템플릿을 저장하지 못했어요. 다시 시도해 주세요'**
   String get coachTemplateSaveFailed;
 
   /// No description provided for @coachTemplateDeleteFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t delete the template. Please try again'**
+  /// In ko, this message translates to:
+  /// **'템플릿을 삭제하지 못했어요. 다시 시도해 주세요'**
   String get coachTemplateDeleteFailed;
 
   /// No description provided for @coachTemplateAlreadyDeleted.
   ///
-  /// In en, this message translates to:
-  /// **'This template was already deleted'**
+  /// In ko, this message translates to:
+  /// **'이미 지워진 템플릿이에요'**
   String get coachTemplateAlreadyDeleted;
 
   /// No description provided for @coachTemplateDeleteConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Delete the {name} template?'**
+  /// In ko, this message translates to:
+  /// **'{name} 템플릿을 삭제할까요?'**
   String coachTemplateDeleteConfirm(String name);
 
   /// No description provided for @coachTemplateLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load templates'**
+  /// In ko, this message translates to:
+  /// **'템플릿을 불러오지 못했어요'**
   String get coachTemplateLoadFailed;
 
   /// No description provided for @chatEmoteLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Emote'**
+  /// In ko, this message translates to:
+  /// **'이모티콘'**
   String get chatEmoteLabel;
 
   /// No description provided for @chatAttachImage.
   ///
-  /// In en, this message translates to:
-  /// **'Attach a photo'**
+  /// In ko, this message translates to:
+  /// **'사진 첨부'**
   String get chatAttachImage;
 
   /// No description provided for @chatImageUnavailable.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the photo'**
+  /// In ko, this message translates to:
+  /// **'사진을 불러오지 못했어요'**
   String get chatImageUnavailable;
 
   /// No description provided for @chatImageSendFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send the photo. Please try again'**
+  /// In ko, this message translates to:
+  /// **'사진을 보내지 못했어요. 다시 시도해 주세요'**
   String get chatImageSendFailed;
 
   /// No description provided for @chatImageAlreadySent.
   ///
-  /// In en, this message translates to:
-  /// **'An earlier send of this photo already went through. Please check the conversation.'**
+  /// In ko, this message translates to:
+  /// **'앞서 보낸 사진이 이미 전송돼 있어요. 대화를 확인해 주세요'**
   String get chatImageAlreadySent;
 
   /// No description provided for @clientTabDiet.
   ///
-  /// In en, this message translates to:
-  /// **'Diet'**
+  /// In ko, this message translates to:
+  /// **'식단'**
   String get clientTabDiet;
 
   /// No description provided for @clientTabWorkout.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise'**
+  /// In ko, this message translates to:
+  /// **'운동'**
   String get clientTabWorkout;
 
   /// No description provided for @clientNotFound.
   ///
-  /// In en, this message translates to:
-  /// **'Member not found'**
+  /// In ko, this message translates to:
+  /// **'회원을 찾을 수 없어요'**
   String get clientNotFound;
 
   /// No description provided for @clientBackToList.
   ///
-  /// In en, this message translates to:
-  /// **'Back to members'**
+  /// In ko, this message translates to:
+  /// **'회원 목록으로'**
   String get clientBackToList;
 
   /// No description provided for @clientList.
   ///
-  /// In en, this message translates to:
-  /// **'Member list'**
+  /// In ko, this message translates to:
+  /// **'회원 목록'**
   String get clientList;
 
   /// No description provided for @metricCalories.
   ///
-  /// In en, this message translates to:
-  /// **'Calories'**
+  /// In ko, this message translates to:
+  /// **'칼로리'**
   String get metricCalories;
 
   /// No description provided for @metricSodium.
   ///
-  /// In en, this message translates to:
-  /// **'Sodium'**
+  /// In ko, this message translates to:
+  /// **'나트륨'**
   String get metricSodium;
 
   /// No description provided for @metricSugar.
   ///
-  /// In en, this message translates to:
-  /// **'Sugar'**
+  /// In ko, this message translates to:
+  /// **'당류'**
   String get metricSugar;
 
   /// No description provided for @clientDietMacrosMissing.
   ///
-  /// In en, this message translates to:
-  /// **'No carbs/protein/fat recorded'**
+  /// In ko, this message translates to:
+  /// **'탄단지 기록 없음'**
   String get clientDietMacrosMissing;
 
   /// No description provided for @clientDietDayTotal.
   ///
-  /// In en, this message translates to:
-  /// **'Day total'**
+  /// In ko, this message translates to:
+  /// **'하루 합계'**
   String get clientDietDayTotal;
 
   /// Shown under the day total when the expanded day's meals fail to load (#2892)
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load this day\'s meals'**
+  /// In ko, this message translates to:
+  /// **'끼니 기록을 불러오지 못했어요'**
   String get clientDietDayMealsFailed;
 
   /// 트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
   ///
-  /// In en, this message translates to:
-  /// **'Total {calories} kcal'**
+  /// In ko, this message translates to:
+  /// **'총 {calories}kcal'**
   String clientDietTotalCalories(String calories);
 
   /// 끼니 카드 탄단지 범례 한 칸 — 이름과 그 끼니 칼로리에서 차지하는 비중(%). g 은 오른쪽 세부 줄에 있다. (#2333)
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{name} {percent}%'**
   String clientDietMacroShare(String name, int percent);
 
   /// No description provided for @metricCarbs.
   ///
-  /// In en, this message translates to:
-  /// **'Carbs'**
+  /// In ko, this message translates to:
+  /// **'탄수화물'**
   String get metricCarbs;
 
   /// No description provided for @metricProtein.
   ///
-  /// In en, this message translates to:
-  /// **'Protein'**
+  /// In ko, this message translates to:
+  /// **'단백질'**
   String get metricProtein;
 
   /// No description provided for @metricFat.
   ///
-  /// In en, this message translates to:
-  /// **'Fat'**
+  /// In ko, this message translates to:
+  /// **'지방'**
   String get metricFat;
 
   /// No description provided for @clientDormant.
   ///
-  /// In en, this message translates to:
-  /// **'Dormant'**
+  /// In ko, this message translates to:
+  /// **'휴면'**
   String get clientDormant;
 
   /// No description provided for @clientDormantActivate.
   ///
-  /// In en, this message translates to:
-  /// **'Tap to mark active'**
+  /// In ko, this message translates to:
+  /// **'눌러서 활성으로 전환'**
   String get clientDormantActivate;
 
   /// No description provided for @clientSignalLess.
   ///
-  /// In en, this message translates to:
-  /// **'Show less'**
+  /// In ko, this message translates to:
+  /// **'접기'**
   String get clientSignalLess;
 
   /// No description provided for @clientSignalMore.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'+{count}'**
   String clientSignalMore(int count);
 
   /// No description provided for @clientStatusChangeFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t change the status. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get clientStatusChangeFailed;
 
   /// No description provided for @chatTooLong.
   ///
-  /// In en, this message translates to:
-  /// **'Message is too long (1000 characters max)'**
+  /// In ko, this message translates to:
+  /// **'메시지가 너무 길어요 (최대 1000자)'**
   String get chatTooLong;
 
   /// No description provided for @chatSendFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send the message. Please try again'**
+  /// In ko, this message translates to:
+  /// **'메시지를 보내지 못했어요. 다시 시도해 주세요'**
   String get chatSendFailed;
-
-  /// No description provided for @chatPdfOpenFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t open the PDF. Please try again'**
-  String get chatPdfOpenFailed;
-
-  /// No description provided for @chatReportRegistered.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly report sent'**
-  String get chatReportRegistered;
-
-  /// No description provided for @chatReportOpenInReports.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to Reports'**
-  String get chatReportOpenInReports;
 
   /// No description provided for @chatLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the conversation'**
+  /// In ko, this message translates to:
+  /// **'대화를 불러오지 못했어요'**
   String get chatLoadFailed;
 
   /// 회원 메시지 맨 위 — 서버가 주는 최신 50건 앞의 메시지를 한 쪽 더 받는 버튼(#2749). 위로 끝까지 스크롤해도 같은 일이 일어난다.
   ///
-  /// In en, this message translates to:
-  /// **'Load earlier messages'**
+  /// In ko, this message translates to:
+  /// **'이전 메시지 더 보기'**
   String get chatLoadOlder;
 
   /// 이전 메시지 한 쪽을 받지 못했을 때 같은 자리의 버튼. 누르면 다시 받는다(#2749).
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load earlier messages · Retry'**
+  /// In ko, this message translates to:
+  /// **'이전 메시지를 불러오지 못했어요 · 다시 시도'**
   String get chatLoadOlderFailed;
+
+  /// No description provided for @chatPdfOpenFailed.
+  ///
+  /// In ko, this message translates to:
+  /// **'PDF를 열지 못했어요. 다시 시도해 주세요'**
+  String get chatPdfOpenFailed;
+
+  /// No description provided for @chatReportRegistered.
+  ///
+  /// In ko, this message translates to:
+  /// **'주간 리포트를 보냈어요'**
+  String get chatReportRegistered;
+
+  /// No description provided for @chatReportOpenInReports.
+  ///
+  /// In ko, this message translates to:
+  /// **'리포트 탭으로 가기'**
+  String get chatReportOpenInReports;
 
   /// No description provided for @chatRoutineDelivered.
   ///
-  /// In en, this message translates to:
-  /// **'Workout sent'**
+  /// In ko, this message translates to:
+  /// **'운동을 보냈어요'**
   String get chatRoutineDelivered;
 
   /// No description provided for @chatRoutineDeliveredPt.
   ///
-  /// In en, this message translates to:
-  /// **'PT program and personal exercises sent'**
+  /// In ko, this message translates to:
+  /// **'PT 프로그램과 개인운동을 보냈어요'**
   String get chatRoutineDeliveredPt;
 
   /// No description provided for @chatRoutineDeliveredPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercises sent'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 보냈어요'**
   String get chatRoutineDeliveredPersonal;
 
   /// No description provided for @chatRoutineDeliveredAfterCancel.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercises sent in place of the cancelled PT'**
+  /// In ko, this message translates to:
+  /// **'취소된 PT 대신 개인운동을 보냈어요'**
   String get chatRoutineDeliveredAfterCancel;
 
   /// No description provided for @chatRoutineDeliveredProgram.
   ///
-  /// In en, this message translates to:
-  /// **'PT program sent'**
+  /// In ko, this message translates to:
+  /// **'PT 프로그램을 보냈어요'**
   String get chatRoutineDeliveredProgram;
 
   /// No description provided for @chatRoutineDeliveredMore.
   ///
-  /// In en, this message translates to:
-  /// **'{names} and {count} more'**
+  /// In ko, this message translates to:
+  /// **'{names} 외 {count}개'**
   String chatRoutineDeliveredMore(String names, int count);
 
   /// No description provided for @chatInputHint.
   ///
-  /// In en, this message translates to:
-  /// **'Type a message...'**
+  /// In ko, this message translates to:
+  /// **'메시지 입력...'**
   String get chatInputHint;
 
   /// No description provided for @chatInsightDiscomfortTitle.
   ///
-  /// In en, this message translates to:
-  /// **'{part} discomfort detected'**
+  /// In ko, this message translates to:
+  /// **'{part} 불편 표현 감지'**
   String chatInsightDiscomfortTitle(String part);
 
   /// No description provided for @chatInsightBodyPartGeneral.
   ///
-  /// In en, this message translates to:
-  /// **'Physical'**
+  /// In ko, this message translates to:
+  /// **'신체'**
   String get chatInsightBodyPartGeneral;
 
   /// No description provided for @chatInsightBodyPartKnee.
   ///
-  /// In en, this message translates to:
-  /// **'Knee'**
+  /// In ko, this message translates to:
+  /// **'무릎'**
   String get chatInsightBodyPartKnee;
 
   /// No description provided for @chatInsightBodyPartBack.
   ///
-  /// In en, this message translates to:
-  /// **'Back'**
+  /// In ko, this message translates to:
+  /// **'허리'**
   String get chatInsightBodyPartBack;
 
   /// No description provided for @chatInsightBodyPartAnkle.
   ///
-  /// In en, this message translates to:
-  /// **'Ankle'**
+  /// In ko, this message translates to:
+  /// **'발목'**
   String get chatInsightBodyPartAnkle;
 
   /// No description provided for @chatInsightBodyPartShoulder.
   ///
-  /// In en, this message translates to:
-  /// **'Shoulder'**
+  /// In ko, this message translates to:
+  /// **'어깨'**
   String get chatInsightBodyPartShoulder;
 
   /// No description provided for @chatInsightBodyPartWrist.
   ///
-  /// In en, this message translates to:
-  /// **'Wrist'**
+  /// In ko, this message translates to:
+  /// **'손목'**
   String get chatInsightBodyPartWrist;
 
   /// No description provided for @chatInsightBodyPartNeck.
   ///
-  /// In en, this message translates to:
-  /// **'Neck'**
+  /// In ko, this message translates to:
+  /// **'목'**
   String get chatInsightBodyPartNeck;
 
   /// No description provided for @chatInsightNegativeTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Negative feedback detected'**
+  /// In ko, this message translates to:
+  /// **'부정적 피드백 감지'**
   String get chatInsightNegativeTitle;
 
   /// No description provided for @chatInsightDiscomfortDescription.
   ///
-  /// In en, this message translates to:
-  /// **'AI detected a report of discomfort. Check the symptoms and consider adjusting the next workout\'s intensity.'**
+  /// In ko, this message translates to:
+  /// **'AI가 불편감 호소를 감지했어요. 증상을 확인하고 다음 운동 강도를 조절해 보세요.'**
   String get chatInsightDiscomfortDescription;
 
   /// No description provided for @chatInsightNegativeDescription.
   ///
-  /// In en, this message translates to:
-  /// **'AI detected workout strain or difficulty completing the plan. Check the cause and consider adjusting the program.'**
+  /// In ko, this message translates to:
+  /// **'AI가 운동 부담 또는 수행 어려움을 감지했어요. 원인을 확인하고 프로그램 조정을 고려해 보세요.'**
   String get chatInsightNegativeDescription;
 
   /// No description provided for @chatInsightAddMemo.
   ///
-  /// In en, this message translates to:
-  /// **'Add to memo'**
+  /// In ko, this message translates to:
+  /// **'메모에 추가'**
   String get chatInsightAddMemo;
 
   /// No description provided for @chatInsightMemoAdded.
   ///
-  /// In en, this message translates to:
-  /// **'Added to memo'**
+  /// In ko, this message translates to:
+  /// **'메모 추가됨'**
   String get chatInsightMemoAdded;
 
   /// No description provided for @chatInsightMemoSummaryDiscomfort.
   ///
-  /// In en, this message translates to:
-  /// **'{part} discomfort detected'**
+  /// In ko, this message translates to:
+  /// **'{part} 불편 감지'**
   String chatInsightMemoSummaryDiscomfort(String part);
 
   /// No description provided for @chatInsightMemoSummaryNegative.
   ///
-  /// In en, this message translates to:
-  /// **'Workout strain detected'**
+  /// In ko, this message translates to:
+  /// **'운동 부담 감지'**
   String get chatInsightMemoSummaryNegative;
 
   /// No description provided for @chatInsightMemoSaved.
   ///
-  /// In en, this message translates to:
-  /// **'The AI insight was added to your memos.'**
+  /// In ko, this message translates to:
+  /// **'AI 감지 내용을 메모에 추가했어요.'**
   String get chatInsightMemoSaved;
 
   /// No description provided for @chatInsightMemoSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t add the memo. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'메모에 추가하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get chatInsightMemoSaveFailed;
 
   /// No description provided for @consultTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation requests'**
+  /// In ko, this message translates to:
+  /// **'상담 요청'**
   String get consultTitle;
 
   /// No description provided for @consultFilterAll.
   ///
-  /// In en, this message translates to:
-  /// **'All'**
+  /// In ko, this message translates to:
+  /// **'전체'**
   String get consultFilterAll;
 
   /// No description provided for @consultFilterPendingCount.
   ///
-  /// In en, this message translates to:
-  /// **'Pending {count}'**
+  /// In ko, this message translates to:
+  /// **'대기 {count}'**
   String consultFilterPendingCount(int count);
 
   /// No description provided for @consultLoadMore.
   ///
-  /// In en, this message translates to:
-  /// **'Load earlier requests'**
+  /// In ko, this message translates to:
+  /// **'지난 요청 더 보기'**
   String get consultLoadMore;
 
   /// No description provided for @consultLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load consultation requests'**
+  /// In ko, this message translates to:
+  /// **'상담 요청을 불러오지 못했어요'**
   String get consultLoadFailed;
 
   /// No description provided for @consultRetryLater.
   ///
-  /// In en, this message translates to:
-  /// **'Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'잠시 후 다시 시도해 주세요'**
   String get consultRetryLater;
 
   /// No description provided for @consultEmptyPending.
   ///
-  /// In en, this message translates to:
-  /// **'No pending consultation requests'**
+  /// In ko, this message translates to:
+  /// **'대기 중인 상담 요청이 없어요'**
   String get consultEmptyPending;
 
   /// No description provided for @consultEmptyHistory.
   ///
-  /// In en, this message translates to:
-  /// **'No consultation history'**
+  /// In ko, this message translates to:
+  /// **'상담 요청 이력이 없어요'**
   String get consultEmptyHistory;
 
   /// No description provided for @consultEmptyHint.
   ///
-  /// In en, this message translates to:
-  /// **'Requests appear here when a member asks for a consultation with your gym or with you'**
+  /// In ko, this message translates to:
+  /// **'회원이 나를 지정해 상담을 신청하면 여기에 표시돼요'**
   String get consultEmptyHint;
 
   /// No description provided for @consultActionFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t process the request'**
+  /// In ko, this message translates to:
+  /// **'상담을 처리하지 못했어요'**
   String get consultActionFailed;
 
   /// No description provided for @consultApproved.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s request was approved. Add an appointment from the Schedule tab.'**
+  /// In ko, this message translates to:
+  /// **'{name}님의 상담 요청을 승인했어요. 스케줄 탭에서 일정을 추가해 주세요.'**
   String consultApproved(String name);
 
   /// No description provided for @consultScheduleCreated.
   ///
-  /// In en, this message translates to:
-  /// **'Added a consultation appointment for {name}'**
+  /// In ko, this message translates to:
+  /// **'{name}님의 상담 일정을 등록했어요'**
   String consultScheduleCreated(String name);
 
   /// No description provided for @consultRejected.
   ///
-  /// In en, this message translates to:
-  /// **'Request declined'**
+  /// In ko, this message translates to:
+  /// **'상담 요청을 거절했어요'**
   String get consultRejected;
 
   /// No description provided for @consultDecisionNote.
   ///
-  /// In en, this message translates to:
-  /// **'Reason'**
+  /// In ko, this message translates to:
+  /// **'거절 사유'**
   String get consultDecisionNote;
 
   /// No description provided for @consultExerciseGoal.
   ///
-  /// In en, this message translates to:
-  /// **'Training goal'**
+  /// In ko, this message translates to:
+  /// **'운동 목표'**
   String get consultExerciseGoal;
 
   /// No description provided for @consultChosenSlot.
   ///
-  /// In en, this message translates to:
-  /// **'Chosen time'**
+  /// In ko, this message translates to:
+  /// **'고른 시간'**
   String get consultChosenSlot;
 
   /// No description provided for @consultSlotDuration.
   ///
-  /// In en, this message translates to:
-  /// **'{minutes} min'**
+  /// In ko, this message translates to:
+  /// **'{minutes}분'**
   String consultSlotDuration(int minutes);
 
   /// No description provided for @consultStatusCancelled.
   ///
-  /// In en, this message translates to:
-  /// **'Cancelled'**
+  /// In ko, this message translates to:
+  /// **'취소됨'**
   String get consultStatusCancelled;
 
   /// No description provided for @consultStatusCancelledByTrainer.
   ///
-  /// In en, this message translates to:
-  /// **'Withdrawn (appointment cancelled)'**
+  /// In ko, this message translates to:
+  /// **'일정 취소로 철회'**
   String get consultStatusCancelledByTrainer;
 
   /// No description provided for @consultStatusExpired.
   ///
-  /// In en, this message translates to:
-  /// **'Expired'**
+  /// In ko, this message translates to:
+  /// **'만료됨'**
   String get consultStatusExpired;
 
   /// No description provided for @consultPreferredTime.
   ///
-  /// In en, this message translates to:
-  /// **'Preferred time'**
+  /// In ko, this message translates to:
+  /// **'희망 일시'**
   String get consultPreferredTime;
 
   /// No description provided for @consultMessage.
   ///
-  /// In en, this message translates to:
-  /// **'Message'**
+  /// In ko, this message translates to:
+  /// **'문의 내용'**
   String get consultMessage;
 
   /// No description provided for @schedConsultRequest.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation request'**
+  /// In ko, this message translates to:
+  /// **'상담 요청 내용'**
   String get schedConsultRequest;
 
   /// No description provided for @consultReject.
   ///
-  /// In en, this message translates to:
-  /// **'Decline'**
+  /// In ko, this message translates to:
+  /// **'거절'**
   String get consultReject;
 
   /// No description provided for @consultApprove.
   ///
-  /// In en, this message translates to:
-  /// **'Approve'**
+  /// In ko, this message translates to:
+  /// **'승인'**
   String get consultApprove;
 
   /// No description provided for @consultRejectTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Decline request'**
+  /// In ko, this message translates to:
+  /// **'상담 요청 거절'**
   String get consultRejectTitle;
 
   /// No description provided for @consultRejectNotice.
   ///
-  /// In en, this message translates to:
-  /// **'The reason you write is sent to the member as a notification.'**
+  /// In ko, this message translates to:
+  /// **'입력한 사유는 회원에게 알림으로 전달돼요.'**
   String get consultRejectNotice;
 
   /// No description provided for @consultRejectHint.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. I have another appointment at your requested time.'**
+  /// In ko, this message translates to:
+  /// **'예) 요청하신 시간에 다른 일정이 있어요.'**
   String get consultRejectHint;
 
   /// No description provided for @consultStatusPending.
   ///
-  /// In en, this message translates to:
-  /// **'Pending'**
+  /// In ko, this message translates to:
+  /// **'대기 중'**
   String get consultStatusPending;
 
   /// No description provided for @consultStatusAccepted.
   ///
-  /// In en, this message translates to:
-  /// **'Approved'**
+  /// In ko, this message translates to:
+  /// **'승인됨'**
   String get consultStatusAccepted;
 
   /// No description provided for @workoutRecords.
   ///
-  /// In en, this message translates to:
-  /// **'Workout log'**
+  /// In ko, this message translates to:
+  /// **'운동 기록'**
   String get workoutRecords;
 
   /// No description provided for @workoutRecordsShowMore.
   ///
-  /// In en, this message translates to:
-  /// **'Show more'**
+  /// In ko, this message translates to:
+  /// **'더 보기'**
   String get workoutRecordsShowMore;
 
   /// No description provided for @workoutRecordsShowLess.
   ///
-  /// In en, this message translates to:
-  /// **'Show less'**
+  /// In ko, this message translates to:
+  /// **'접기'**
   String get workoutRecordsShowLess;
 
   /// No description provided for @workoutLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the workout log'**
+  /// In ko, this message translates to:
+  /// **'운동 기록을 불러오지 못했어요'**
   String get workoutLoadFailed;
 
   /// No description provided for @workoutEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No workouts logged yet'**
+  /// In ko, this message translates to:
+  /// **'아직 운동 기록이 없어요'**
   String get workoutEmpty;
 
   /// No description provided for @routinesLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load programs'**
+  /// In ko, this message translates to:
+  /// **'프로그램을 불러오지 못했어요'**
   String get routinesLoadFailed;
 
   /// No description provided for @minutesShort.
   ///
-  /// In en, this message translates to:
-  /// **'{minutes} min'**
+  /// In ko, this message translates to:
+  /// **'{minutes}분'**
   String minutesShort(int minutes);
 
   /// Hours part of an exercise duration, e.g. `1 hr 30 min` (#2221).
   ///
-  /// In en, this message translates to:
-  /// **'{hours} hr'**
+  /// In ko, this message translates to:
+  /// **'{hours}시간'**
   String hoursShort(int hours);
 
   /// Seconds part of an exercise duration, e.g. `45 sec` (#2221).
   ///
-  /// In en, this message translates to:
-  /// **'{seconds} sec'**
+  /// In ko, this message translates to:
+  /// **'{seconds}초'**
   String secondsShort(int seconds);
 
   /// No description provided for @labelToday.
   ///
-  /// In en, this message translates to:
-  /// **'Today'**
+  /// In ko, this message translates to:
+  /// **'오늘'**
   String get labelToday;
 
   /// No description provided for @sessionTypeAndDuration.
   ///
-  /// In en, this message translates to:
-  /// **'{type} · {minutes} min'**
+  /// In ko, this message translates to:
+  /// **'{type} · {minutes}분'**
   String sessionTypeAndDuration(String type, int minutes);
 
   /// No description provided for @legendDone.
   ///
-  /// In en, this message translates to:
-  /// **'Done'**
+  /// In ko, this message translates to:
+  /// **'완료'**
   String get legendDone;
 
   /// No description provided for @clientFeedback.
   ///
-  /// In en, this message translates to:
-  /// **'Member feedback'**
+  /// In ko, this message translates to:
+  /// **'회원 피드백'**
   String get clientFeedback;
 
   /// Workout history kind for a completed PT session (server kind code pt_session).
   ///
-  /// In en, this message translates to:
-  /// **'PT · Trainer-led'**
+  /// In ko, this message translates to:
+  /// **'PT · 트레이너 지도'**
   String get workoutKindPtSession;
 
   /// Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine).
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동 수행'**
   String get workoutKindAssignedRoutine;
 
   /// No description provided for @dietLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load meals'**
+  /// In ko, this message translates to:
+  /// **'식단을 불러오지 못했어요'**
   String get dietLoadFailed;
 
   /// No description provided for @dietEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No meals logged yet'**
+  /// In ko, this message translates to:
+  /// **'아직 기록된 식단이 없어요'**
   String get dietEmpty;
 
   /// No description provided for @dietDayEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No record'**
+  /// In ko, this message translates to:
+  /// **'기록 없음'**
   String get dietDayEmpty;
 
   /// No description provided for @clientNutritionSummary.
   ///
-  /// In en, this message translates to:
-  /// **'Nutrition summary'**
+  /// In ko, this message translates to:
+  /// **'영양 요약'**
   String get clientNutritionSummary;
 
   /// No description provided for @dietCalorieIntake.
   ///
-  /// In en, this message translates to:
-  /// **'Calories eaten today'**
+  /// In ko, this message translates to:
+  /// **'오늘 섭취 칼로리'**
   String get dietCalorieIntake;
 
   /// No description provided for @dietAchieveRate.
   ///
-  /// In en, this message translates to:
-  /// **'Progress'**
+  /// In ko, this message translates to:
+  /// **'달성률'**
   String get dietAchieveRate;
 
   /// No description provided for @consultStatusRejected.
   ///
-  /// In en, this message translates to:
-  /// **'Declined'**
+  /// In ko, this message translates to:
+  /// **'거절됨'**
   String get consultStatusRejected;
 
   /// No description provided for @dateToday.
   ///
-  /// In en, this message translates to:
-  /// **'Today'**
+  /// In ko, this message translates to:
+  /// **'오늘'**
   String get dateToday;
 
   /// No description provided for @dateTomorrow.
   ///
-  /// In en, this message translates to:
-  /// **'Tomorrow'**
+  /// In ko, this message translates to:
+  /// **'내일'**
   String get dateTomorrow;
 
   /// No description provided for @dateYesterday.
   ///
-  /// In en, this message translates to:
-  /// **'Yesterday'**
+  /// In ko, this message translates to:
+  /// **'어제'**
   String get dateYesterday;
 
   /// Relative day label, used for two or more days ago (e.g. when the last routine was sent).
   ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  /// In ko, this message translates to:
+  /// **'{count}일 전'**
   String dateDaysAgo(int count);
-
-  /// No description provided for @dateWeeksAgo.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 week ago} other{{count} weeks ago}}'**
-  String dateWeeksAgo(int count);
 
   /// Short date on a workout history card.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{month}/{day}'**
   String historyDate(int month, int day);
 
   /// Workout history date with Today/Yesterday, e.g. 9/27 (Today).
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{date} ({relative})'**
   String historyDateRelative(String date, String relative);
 
   /// No description provided for @dateMonthDayWeekday.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{month}/{day} ({weekday})'**
   String dateMonthDayWeekday(int month, int day, String weekday);
 
   /// No description provided for @datePrefixed.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{prefix} · {date}'**
   String datePrefixed(String prefix, String date);
 
   /// No description provided for @dateMonthDay.
   ///
-  /// In en, this message translates to:
-  /// **'{month}/{day}'**
+  /// In ko, this message translates to:
+  /// **'{month}월 {day}일'**
   String dateMonthDay(int month, int day);
 
   /// No description provided for @dateRange.
   ///
-  /// In en, this message translates to:
-  /// **'{start} – {end}'**
+  /// In ko, this message translates to:
+  /// **'{start} ~ {end}'**
   String dateRange(String start, String end);
 
   /// No description provided for @reportsTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Reports'**
+  /// In ko, this message translates to:
+  /// **'리포트'**
   String get reportsTitle;
 
   /// No description provided for @reportsSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Review the week\'s changes and share them with your member'**
+  /// In ko, this message translates to:
+  /// **'주간 변화를 확인하고 회원에게 전달하세요'**
   String get reportsSubtitle;
 
   /// No description provided for @reportsLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load reports'**
+  /// In ko, this message translates to:
+  /// **'리포트를 불러오지 못했어요'**
   String get reportsLoadFailed;
 
   /// No description provided for @reportsNoClients.
   ///
-  /// In en, this message translates to:
-  /// **'No members yet, so there\'s nothing to report on'**
+  /// In ko, this message translates to:
+  /// **'담당 회원이 없어 리포트를 만들 수 없어요'**
   String get reportsNoClients;
 
   /// No description provided for @reportsWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly report'**
+  /// In ko, this message translates to:
+  /// **'주간 리포트'**
   String get reportsWeekly;
 
   /// No description provided for @reportsSendFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send the report. Please try again'**
+  /// In ko, this message translates to:
+  /// **'리포트를 보내지 못했어요. 다시 시도해 주세요'**
   String get reportsSendFailed;
 
   /// No description provided for @reportsSendStaleTitle.
   ///
-  /// In en, this message translates to:
-  /// **'The member\'s records changed in the meantime'**
+  /// In ko, this message translates to:
+  /// **'그사이 회원 기록이 바뀌었어요'**
   String get reportsSendStaleTitle;
 
   /// No description provided for @reportsSendStaleBody.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it'**
+  /// In ko, this message translates to:
+  /// **'아직 보내지 않았어요. 새 수치로 다시 만든 리포트를 확인한 뒤 보내 주세요'**
   String get reportsSendStaleBody;
 
   /// No description provided for @reportsSendFeedbackFailedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the member\'s feedback'**
+  /// In ko, this message translates to:
+  /// **'회원 피드백을 불러오지 못했어요'**
   String get reportsSendFeedbackFailedTitle;
 
   /// Notice on the send step when the member feedback request failed; sending is blocked (#3246).
   ///
-  /// In en, this message translates to:
-  /// **'Sending now would show the member as not having answered. Reload it, then send'**
+  /// In ko, this message translates to:
+  /// **'이대로 보내면 답한 회원도 미응답으로 실려요. 다시 불러온 뒤 보내 주세요'**
   String get reportsSendFeedbackFailedBody;
 
   /// Toast when the server says this report send was already processed (409, #2773).
   ///
-  /// In en, this message translates to:
-  /// **'This report was already sent. Send history has been refreshed'**
+  /// In ko, this message translates to:
+  /// **'이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요'**
   String get reportsSendAlreadyDone;
 
   /// No description provided for @reportsSent.
   ///
-  /// In en, this message translates to:
-  /// **'Report sent to {name}'**
+  /// In ko, this message translates to:
+  /// **'{name}님에게 리포트를 보냈어요'**
   String reportsSent(String name);
 
   /// No description provided for @reportsGoToChat.
   ///
-  /// In en, this message translates to:
-  /// **'Go to messages'**
+  /// In ko, this message translates to:
+  /// **'메시지로 가기'**
   String get reportsGoToChat;
 
   /// No description provided for @reportsScheduleWarning.
   ///
-  /// In en, this message translates to:
-  /// **'This week\'s schedule didn\'t load, so PT counts may be missing'**
+  /// In ko, this message translates to:
+  /// **'이번 주 일정을 불러오지 못해 PT 횟수가 비어 있을 수 있어요'**
   String get reportsScheduleWarning;
 
   /// No description provided for @unitTimes.
   ///
-  /// In en, this message translates to:
-  /// **''**
+  /// In ko, this message translates to:
+  /// **'회'**
   String get unitTimes;
 
   /// No description provided for @unitMinutes.
   ///
-  /// In en, this message translates to:
-  /// **'min'**
+  /// In ko, this message translates to:
+  /// **'분'**
   String get unitMinutes;
 
   /// No description provided for @clientPeriodToday.
   ///
-  /// In en, this message translates to:
-  /// **'Today'**
+  /// In ko, this message translates to:
+  /// **'오늘'**
   String get clientPeriodToday;
 
   /// No description provided for @clientPeriodWeek.
   ///
-  /// In en, this message translates to:
-  /// **'This week'**
+  /// In ko, this message translates to:
+  /// **'이번 주'**
   String get clientPeriodWeek;
 
   /// No description provided for @clientPeriodMonth.
   ///
-  /// In en, this message translates to:
-  /// **'All'**
+  /// In ko, this message translates to:
+  /// **'전체'**
   String get clientPeriodMonth;
 
   /// No description provided for @clientPeriodAverage.
   ///
-  /// In en, this message translates to:
-  /// **'Daily average'**
+  /// In ko, this message translates to:
+  /// **'하루 평균'**
   String get clientPeriodAverage;
 
   /// No description provided for @clientPeriodGoal.
   ///
-  /// In en, this message translates to:
-  /// **'Goal'**
+  /// In ko, this message translates to:
+  /// **'목표'**
   String get clientPeriodGoal;
 
   /// No description provided for @exBurnTodayTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Burned today'**
+  /// In ko, this message translates to:
+  /// **'오늘 소모'**
   String get exBurnTodayTitle;
 
   /// No description provided for @exBurnWeekTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Burned this week'**
+  /// In ko, this message translates to:
+  /// **'이번 주 소모'**
   String get exBurnWeekTitle;
 
   /// No description provided for @exBurnAllTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Average burned'**
+  /// In ko, this message translates to:
+  /// **'평균 소모'**
   String get exBurnAllTitle;
 
   /// No description provided for @exWeekOfMonthLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Burned in week {week}, {month}/'**
+  /// In ko, this message translates to:
+  /// **'{month}월 {week}주차 소모'**
   String exWeekOfMonthLabel(int month, int week);
 
   /// No description provided for @exStreakCheer.
   ///
-  /// In en, this message translates to:
-  /// **'{days, plural, =1{1 day in a row!} other{{days} days in a row!}}'**
+  /// In ko, this message translates to:
+  /// **'{days}일 연속 운동 중이에요!'**
   String exStreakCheer(int days);
 
   /// No description provided for @exStreakStart.
   ///
-  /// In en, this message translates to:
-  /// **'No streak yet'**
+  /// In ko, this message translates to:
+  /// **'아직 연속 운동이 없어요'**
   String get exStreakStart;
 
   /// No description provided for @exTypeOther.
   ///
-  /// In en, this message translates to:
-  /// **'Other'**
+  /// In ko, this message translates to:
+  /// **'기타'**
   String get exTypeOther;
 
   /// No description provided for @clientPeriodEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing was logged in this period'**
+  /// In ko, this message translates to:
+  /// **'이 기간에 기록이 없어요'**
   String get clientPeriodEmpty;
 
   /// No description provided for @unitKcal.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'kcal'**
   String get unitKcal;
 
   /// No description provided for @clientTrendTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Activity'**
+  /// In ko, this message translates to:
+  /// **'운동 현황'**
   String get clientTrendTitle;
 
   /// No description provided for @clientTrendLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the workout trend. Please try again'**
+  /// In ko, this message translates to:
+  /// **'운동 추이를 불러오지 못했어요. 다시 시도해 주세요'**
   String get clientTrendLoadFailed;
 
   /// No description provided for @clientTrendTodayEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No workout logged today'**
+  /// In ko, this message translates to:
+  /// **'오늘 기록된 운동이 없어요'**
   String get clientTrendTodayEmpty;
 
   /// No description provided for @clientTrendWorkoutMinutes.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise time'**
+  /// In ko, this message translates to:
+  /// **'운동 시간'**
   String get clientTrendWorkoutMinutes;
 
   /// No description provided for @clientTrendCaloriesBurned.
   ///
-  /// In en, this message translates to:
-  /// **'Calories burned'**
+  /// In ko, this message translates to:
+  /// **'소모 칼로리'**
   String get clientTrendCaloriesBurned;
 
   /// No description provided for @reportsPickClient.
   ///
-  /// In en, this message translates to:
-  /// **'Pick a member'**
+  /// In ko, this message translates to:
+  /// **'회원 선택'**
   String get reportsPickClient;
 
   /// No description provided for @reportsClientWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s weekly report'**
+  /// In ko, this message translates to:
+  /// **'{name}님 주간 리포트'**
   String reportsClientWeekly(String name);
 
   /// No description provided for @reportsCompletionByDay.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly workout completion rate'**
+  /// In ko, this message translates to:
+  /// **'주간 운동 완료율'**
   String get reportsCompletionByDay;
 
   /// No description provided for @reportsNoWorkoutsThisWeek.
   ///
-  /// In en, this message translates to:
-  /// **'No workouts logged this week'**
+  /// In ko, this message translates to:
+  /// **'이번 주 운동 기록이 없어요'**
   String get reportsNoWorkoutsThisWeek;
 
   /// No description provided for @chartNoRecord.
   ///
-  /// In en, this message translates to:
-  /// **'No record'**
+  /// In ko, this message translates to:
+  /// **'기록 없음'**
   String get chartNoRecord;
 
   /// No description provided for @chartNotYet.
   ///
-  /// In en, this message translates to:
-  /// **'Not yet'**
+  /// In ko, this message translates to:
+  /// **'아직 오지 않은 날'**
   String get chartNotYet;
 
   /// No description provided for @chartOverGoal.
   ///
-  /// In en, this message translates to:
-  /// **'{amount} {unit} over goal'**
+  /// In ko, this message translates to:
+  /// **'목표 초과 +{amount} {unit}'**
   String chartOverGoal(String amount, String unit);
 
   /// No description provided for @reportsSendNeedsFeedback.
   ///
-  /// In en, this message translates to:
-  /// **'Write feedback first to send it.'**
+  /// In ko, this message translates to:
+  /// **'피드백을 입력하면 전송할 수 있어요'**
   String get reportsSendNeedsFeedback;
 
   /// No description provided for @reportBodyGreeting.
   ///
-  /// In en, this message translates to:
-  /// **'{name}, here\'s your weekly report for {range}.'**
+  /// In ko, this message translates to:
+  /// **'{name}님, {range} 주간 리포트 정리해서 보내 드려요.'**
   String reportBodyGreeting(String name, String range);
 
   /// No description provided for @reportBodyCompletionGood.
   ///
-  /// In en, this message translates to:
-  /// **'You kept up well — {avg}% of your workouts done.'**
+  /// In ko, this message translates to:
+  /// **'운동은 평균 {avg}%로 잘 따라오셨어요.'**
   String reportBodyCompletionGood(int avg);
 
   /// No description provided for @reportBodyCompletionSteady.
   ///
-  /// In en, this message translates to:
-  /// **'You stayed steady — {avg}% of your workouts done.'**
+  /// In ko, this message translates to:
+  /// **'운동은 평균 {avg}%로 꾸준히 해 주셨어요.'**
   String reportBodyCompletionSteady(int avg);
 
   /// No description provided for @reportBodyCompletionLow.
   ///
-  /// In en, this message translates to:
-  /// **'Workout completion rate came in at {avg}%. Sounds like a busy one.'**
+  /// In ko, this message translates to:
+  /// **'운동 완료율은 평균 {avg}%였어요. 많이 바쁘셨나 봐요.'**
   String reportBodyCompletionLow(int avg);
 
   /// No description provided for @reportBodySilentDays.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing was logged on {days}. If those days are always packed, I\'ll swap in a short 15-minute version.'**
+  /// In ko, this message translates to:
+  /// **'{days}에는 기록이 하나도 없었어요. 그 요일이 늘 바쁘시면 15분짜리 짧은 프로그램으로 바꿔 둘게요.'**
   String reportBodySilentDays(String days);
 
   /// No description provided for @reportBodySteadyDays.
   ///
-  /// In en, this message translates to:
-  /// **'Keeping it going all the way through {days} was the best part of this week.'**
+  /// In ko, this message translates to:
+  /// **'{days}요일까지 한 번도 끊기지 않은 게 이번 주에서 가장 좋았어요.'**
   String reportBodySteadyDays(String days);
 
   /// No description provided for @reportBodySkipped.
   ///
-  /// In en, this message translates to:
-  /// **'One thing — {names} got skipped. If that was a condition thing, tell me at our next PT and I\'ll swap in an alternative.'**
+  /// In ko, this message translates to:
+  /// **'다만 {names} 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 주세요. 대체 운동으로 바꿔 둘게요.'**
   String reportBodySkipped(String names);
 
   /// No description provided for @reportBodySodiumOver.
   ///
-  /// In en, this message translates to:
-  /// **'Sodium averaged {avg} mg a day, and went over the {target} mg goal on {days} days. Leaving half the broth behind saves 400–500 mg a day.'**
+  /// In ko, this message translates to:
+  /// **'나트륨은 하루 평균 {avg}mg이었고, 목표({target}mg)를 넘긴 날이 {days}일이었어요. 국물을 절반만 남기셔도 하루 400~500mg은 줄어요.'**
   String reportBodySodiumOver(String avg, String target, int days);
 
   /// No description provided for @reportBodySodiumOk.
   ///
-  /// In en, this message translates to:
-  /// **'Sodium averaged {avg} mg a day — comfortably inside the {target} mg goal.'**
+  /// In ko, this message translates to:
+  /// **'나트륨은 하루 평균 {avg}mg으로 목표({target}mg) 안에서 잘 지키고 계세요.'**
   String reportBodySodiumOk(String avg, String target);
 
   /// No description provided for @reportBodyPraise.
   ///
-  /// In en, this message translates to:
-  /// **'Great work — let\'s keep this pace next week!'**
+  /// In ko, this message translates to:
+  /// **'정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!'**
   String get reportBodyPraise;
 
   /// No description provided for @reportBodyEncourage.
   ///
-  /// In en, this message translates to:
-  /// **'Take those one at a time and you\'ll see it come together. I\'ll adjust your program and send it over.'**
+  /// In ko, this message translates to:
+  /// **'위 내용만 하나씩 같이 챙겨 가면 충분히 좋아질 거예요. 프로그램은 제가 조정해서 올려둘게요.'**
   String get reportBodyEncourage;
 
   /// No description provided for @reportBodyNoRecords.
   ///
-  /// In en, this message translates to:
-  /// **'There\'s nothing logged for this week, so nothing to sum up. Let\'s plan next week\'s start together.'**
+  /// In ko, this message translates to:
+  /// **'이 주에는 남은 기록이 없어서 정리해 드릴 내용이 없네요. 다음 주 시작을 같이 잡아 봐요.'**
   String get reportBodyNoRecords;
 
   /// No description provided for @reportBodySessionsAll.
   ///
-  /// In en, this message translates to:
-  /// **'For PT, you made all {booked} that were booked.'**
+  /// In ko, this message translates to:
+  /// **'PT는 예약된 {booked}회를 모두 진행했어요.'**
   String reportBodySessionsAll(int booked);
 
   /// No description provided for @reportBodySessionsSome.
   ///
-  /// In en, this message translates to:
-  /// **'For PT, you made {done} of the {booked} that were booked.'**
+  /// In ko, this message translates to:
+  /// **'PT는 예약된 {booked}회 중 {done}회 진행했어요.'**
   String reportBodySessionsSome(int booked, int done);
 
   /// No description provided for @reportBodySessionsNone.
   ///
-  /// In en, this message translates to:
-  /// **'There was no PT this week.'**
+  /// In ko, this message translates to:
+  /// **'이 주에는 진행한 PT가 없었어요.'**
   String get reportBodySessionsNone;
 
   /// No description provided for @reportBodyExerciseCount.
   ///
-  /// In en, this message translates to:
-  /// **'You finished {done} of the {total} assigned exercises.'**
+  /// In ko, this message translates to:
+  /// **'배정된 개인운동 {total}개 중 {done}개를 완료하셨어요.'**
   String reportBodyExerciseCount(int total, int done);
 
   /// No description provided for @reportBodyMealDaysAll.
   ///
-  /// In en, this message translates to:
-  /// **'You logged your meals on all {total} days.'**
+  /// In ko, this message translates to:
+  /// **'식단은 {total}일 모두 빠짐없이 기록해 주셨어요.'**
   String reportBodyMealDaysAll(int total);
 
   /// No description provided for @reportBodyMealDays.
   ///
-  /// In en, this message translates to:
-  /// **'You logged your meals on {days} of {total} days.'**
+  /// In ko, this message translates to:
+  /// **'식단은 {total}일 중 {days}일 기록해 주셨어요.'**
   String reportBodyMealDays(int total, int days);
 
   /// No description provided for @reportBodyCaloriesOver.
   ///
-  /// In en, this message translates to:
-  /// **'Calories averaged {avg} kcal a day — {pct}% above your {target} kcal goal, and over it on {days} days.'**
+  /// In ko, this message translates to:
+  /// **'칼로리는 하루 평균 {avg}kcal로 목표({target}kcal)보다 {pct}% 많았고, 목표를 넘긴 날이 {days}일이었어요.'**
   String reportBodyCaloriesOver(
     String avg,
     String target,
@@ -2871,4796 +2861,4754 @@ abstract class AppLocalizations {
 
   /// No description provided for @reportBodyCaloriesUnder.
   ///
-  /// In en, this message translates to:
-  /// **'Calories averaged {avg} kcal a day — {pct}% below your {target} kcal goal. Eating too little tends to cost muscle first.'**
+  /// In ko, this message translates to:
+  /// **'칼로리는 하루 평균 {avg}kcal로 목표({target}kcal)보다 {pct}% 적었어요. 너무 적게 드시면 근육이 먼저 빠질 수 있어요.'**
   String reportBodyCaloriesUnder(String avg, String target, String pct);
 
   /// No description provided for @reportBodyCaloriesNearOver.
   ///
-  /// In en, this message translates to:
-  /// **'Calories averaged {avg} kcal a day, close to your {target} kcal goal, but went over it on {days} days.'**
+  /// In ko, this message translates to:
+  /// **'칼로리는 하루 평균 {avg}kcal로 목표({target}kcal) 근처였지만, 목표를 넘긴 날이 {days}일 있었어요.'**
   String reportBodyCaloriesNearOver(String avg, String target, int days);
 
   /// No description provided for @reportBodyCaloriesOk.
   ///
-  /// In en, this message translates to:
-  /// **'Calories averaged {avg} kcal a day — right around your {target} kcal goal.'**
+  /// In ko, this message translates to:
+  /// **'칼로리는 하루 평균 {avg}kcal로 목표({target}kcal)에 맞게 잘 조절해 주셨어요.'**
   String reportBodyCaloriesOk(String avg, String target);
 
   /// No description provided for @reportBodySugarOver.
   ///
-  /// In en, this message translates to:
-  /// **'Sugar averaged {avg} g a day and went over the {target} g goal on {days} days.'**
+  /// In ko, this message translates to:
+  /// **'당류는 하루 평균 {avg}g이었고, 목표({target}g)를 넘긴 날이 {days}일이었어요.'**
   String reportBodySugarOver(String avg, String target, int days);
 
   /// No description provided for @reportBodySugarOk.
   ///
-  /// In en, this message translates to:
-  /// **'Sugar averaged {avg} g a day, inside the {target} g goal.'**
+  /// In ko, this message translates to:
+  /// **'당류는 하루 평균 {avg}g으로 목표({target}g) 안이었어요.'**
   String reportBodySugarOk(String avg, String target);
 
   /// No description provided for @reportBodyMemberPain.
   ///
-  /// In en, this message translates to:
-  /// **'You mentioned pain in your {area}. Let me know how it feels before our next PT — I\'ll ease off that area.'**
+  /// In ko, this message translates to:
+  /// **'{area} 아프셨다고 남겨 주셨는데, 다음 PT 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.'**
   String reportBodyMemberPain(String area);
 
   /// No description provided for @reportBodyMemberTooHard.
   ///
-  /// In en, this message translates to:
-  /// **'You said the workouts felt too hard, so I\'ll drop next week\'s intensity a notch.'**
+  /// In ko, this message translates to:
+  /// **'운동이 많이 힘들었다고 남겨 주셔서, 다음 주 강도는 한 단계 낮춰 둘게요.'**
   String get reportBodyMemberTooHard;
 
   /// No description provided for @reportBodyMemberTooEasy.
   ///
-  /// In en, this message translates to:
-  /// **'You said the workouts felt easy, so I\'ll raise next week\'s intensity a notch.'**
+  /// In ko, this message translates to:
+  /// **'운동이 쉬웠다고 남겨 주셔서, 다음 주에는 강도를 한 단계 올려 볼게요.'**
   String get reportBodyMemberTooEasy;
 
   /// No description provided for @reportBodyMemberNoted.
   ///
-  /// In en, this message translates to:
-  /// **'Thanks for your weekly feedback — I read it.'**
+  /// In ko, this message translates to:
+  /// **'보내 주신 이번 주 피드백도 잘 읽었어요.'**
   String get reportBodyMemberNoted;
 
   /// No description provided for @reportBodyNextWeek.
   ///
-  /// In en, this message translates to:
-  /// **'Here\'s the plan for next week.'**
+  /// In ko, this message translates to:
+  /// **'다음 주에는 이렇게 해 봐요.'**
   String get reportBodyNextWeek;
 
   /// No description provided for @reportTipCaloriesOver.
   ///
-  /// In en, this message translates to:
-  /// **'Cut dinner carbs to about two-thirds and switch snacks to protein.'**
+  /// In ko, this message translates to:
+  /// **'저녁 밥 양을 3분의 2로 줄이고, 간식은 단백질 위주로 바꿔 보세요.'**
   String get reportTipCaloriesOver;
 
   /// No description provided for @reportTipCaloriesUnder.
   ///
-  /// In en, this message translates to:
-  /// **'Don\'t skip meals, and add one protein snack on workout days.'**
+  /// In ko, this message translates to:
+  /// **'끼니를 거르지 말고, 운동한 날에는 단백질 간식을 하나 더 챙겨 주세요.'**
   String get reportTipCaloriesUnder;
 
   /// No description provided for @reportTipSugar.
   ///
-  /// In en, this message translates to:
-  /// **'Keep sweet drinks and desserts to once a day.'**
+  /// In ko, this message translates to:
+  /// **'단 음료와 디저트는 하루 한 번까지만 드셔 보세요.'**
   String get reportTipSugar;
 
   /// No description provided for @reportTipSodium.
   ///
-  /// In en, this message translates to:
-  /// **'Keep takeout and processed foods to twice a week.'**
+  /// In ko, this message translates to:
+  /// **'배달 음식과 가공식품은 주 2회까지로 줄여 보세요.'**
   String get reportTipSodium;
 
   /// No description provided for @reportTipWorkout.
   ///
-  /// In en, this message translates to:
-  /// **'Aim to get three workouts in first, even if each is only 20 minutes.'**
+  /// In ko, this message translates to:
+  /// **'운동은 한 번에 20분이라도 주 3회를 먼저 채우는 걸 목표로 해요.'**
   String get reportTipWorkout;
 
   /// No description provided for @reportTipMeals.
   ///
-  /// In en, this message translates to:
-  /// **'Log every meal, even with just a photo, so I can give you sharper feedback.'**
+  /// In ko, this message translates to:
+  /// **'식사는 사진 한 장이라도 매 끼니 남겨 주시면 더 정확하게 봐 드릴 수 있어요.'**
   String get reportTipMeals;
 
   /// No description provided for @reportTipSessionsNone.
   ///
-  /// In en, this message translates to:
-  /// **'Let\'s book next week\'s PT together now.'**
+  /// In ko, this message translates to:
+  /// **'다음 주 PT 일정도 이번에 같이 잡아 둘게요.'**
   String get reportTipSessionsNone;
 
   /// No description provided for @reportTipSessionsMissed.
   ///
-  /// In en, this message translates to:
-  /// **'I\'ll set up make-up slots next week for the PT we missed.'**
+  /// In ko, this message translates to:
+  /// **'빠진 PT는 다음 주에 보강 일정으로 잡아 드릴게요.'**
   String get reportTipSessionsMissed;
 
   /// No description provided for @reportTipKeep.
   ///
-  /// In en, this message translates to:
-  /// **'Keep the current routine as it is, and I\'ll raise the intensity step by step.'**
+  /// In ko, this message translates to:
+  /// **'지금 루틴은 그대로 유지하면서, 운동 강도만 조금씩 올려 볼게요.'**
   String get reportTipKeep;
 
   /// No description provided for @schedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Schedule'**
+  /// In ko, this message translates to:
+  /// **'스케줄'**
   String get schedTitle;
 
   /// No description provided for @schedDetailTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Appointment details'**
+  /// In ko, this message translates to:
+  /// **'상세 일정'**
   String get schedDetailTitle;
 
   /// No description provided for @schedDeleteTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Delete appointment'**
+  /// In ko, this message translates to:
+  /// **'일정 삭제'**
   String get schedDeleteTitle;
 
   /// No description provided for @schedDeleteConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Delete {name}\'s {time} PT appointment?'**
+  /// In ko, this message translates to:
+  /// **'{time} {name}님 PT 일정을 삭제할까요?'**
   String schedDeleteConfirm(String time, String name);
 
   /// No description provided for @schedDeleteFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t delete the appointment. Please try again'**
+  /// In ko, this message translates to:
+  /// **'일정을 삭제하지 못했어요. 다시 시도해 주세요'**
   String get schedDeleteFailed;
 
   /// No description provided for @schedCompleteTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Complete appointment'**
+  /// In ko, this message translates to:
+  /// **'일정 완료'**
   String get schedCompleteTitle;
 
   /// No description provided for @schedCompleteConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Mark {name}\'s {time} PT as complete?'**
+  /// In ko, this message translates to:
+  /// **'{time} {name}님 PT를 완료할까요?'**
   String schedCompleteConfirm(String time, String name);
 
   /// No description provided for @schedCompleteFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t mark it complete. Please try again'**
+  /// In ko, this message translates to:
+  /// **'완료 처리하지 못했어요. 다시 시도해 주세요'**
   String get schedCompleteFailed;
 
   /// No description provided for @schedGroupProgram.
   ///
-  /// In en, this message translates to:
-  /// **'PT program'**
+  /// In ko, this message translates to:
+  /// **'PT 프로그램'**
   String get schedGroupProgram;
 
   /// 담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)
   ///
-  /// In en, this message translates to:
-  /// **'Former member'**
+  /// In ko, this message translates to:
+  /// **'해제 회원'**
   String get schedDetachedMember;
 
   /// No description provided for @schedDetachedMemberHint.
   ///
-  /// In en, this message translates to:
-  /// **'Coaching has ended, so member details are hidden'**
+  /// In ko, this message translates to:
+  /// **'담당이 끝난 회원이라 회원 정보는 볼 수 없어요'**
   String get schedDetachedMemberHint;
 
   /// Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled.
   ///
-  /// In en, this message translates to:
-  /// **'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.'**
+  /// In ko, this message translates to:
+  /// **'회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.'**
   String get schedReservationLockedHint;
 
   /// No description provided for @schedEndedLockedHint.
   ///
-  /// In en, this message translates to:
-  /// **'A finished PT can only have its feedback and program edited.'**
+  /// In ko, this message translates to:
+  /// **'끝난 PT는 피드백·프로그램만 고칠 수 있어요.'**
   String get schedEndedLockedHint;
 
   /// No description provided for @schedDoneLockedHint.
   ///
-  /// In en, this message translates to:
-  /// **'A completed PT can only have its feedback and program edited. Move the date forward to reopen it as upcoming.'**
+  /// In ko, this message translates to:
+  /// **'완료한 PT는 피드백·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.'**
   String get schedDoneLockedHint;
 
   /// No description provided for @schedGroupPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동'**
   String get schedGroupPersonal;
 
   /// No description provided for @schedRoutinesGoesOnComplete.
   ///
-  /// In en, this message translates to:
-  /// **'Goes to the member together with this PT\'s program.'**
+  /// In ko, this message translates to:
+  /// **'이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.'**
   String get schedRoutinesGoesOnComplete;
 
   /// No description provided for @schedRoutinesNotSentYet.
   ///
-  /// In en, this message translates to:
-  /// **'Not sent to the member yet.'**
+  /// In ko, this message translates to:
+  /// **'아직 회원에게 가지 않았어요.'**
   String get schedRoutinesNotSentYet;
 
   /// No description provided for @schedRoutinesSendTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Send the personal exercise?'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 보낼까요?'**
   String get schedRoutinesSendTitle;
 
   /// No description provided for @schedEditRoutines.
   ///
-  /// In en, this message translates to:
-  /// **'Edit personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동 수정'**
   String get schedEditRoutines;
 
   /// No description provided for @schedEditRoutinesTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Edit personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동 수정'**
   String get schedEditRoutinesTitle;
 
   /// No description provided for @schedEditRoutinesBody.
   ///
-  /// In en, this message translates to:
-  /// **'This personal exercise goes out with the PT program. It has not been sent yet, so you can still change it freely.'**
+  /// In ko, this message translates to:
+  /// **'PT 프로그램과 함께 나갈 개인운동이에요. 아직 보내지 않아 지금은 마음껏 고칠 수 있어요.'**
   String get schedEditRoutinesBody;
 
   /// No description provided for @schedRoutinesSendBody.
   ///
-  /// In en, this message translates to:
-  /// **'This PT did not happen, but you can still send the personal exercise you composed. It shows in the member app every day for 7 days.'**
+  /// In ko, this message translates to:
+  /// **'이 PT 는 열리지 않았지만 짜 둔 개인운동은 보낼 수 있어요. 보낸 날부터 7일 동안 회원 앱에 매일 떠요.'**
   String get schedRoutinesSendBody;
 
   /// No description provided for @schedRoutinesSend.
   ///
-  /// In en, this message translates to:
-  /// **'Send personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동 보내기'**
   String get schedRoutinesSend;
 
   /// No description provided for @schedRoutinesSkip.
   ///
-  /// In en, this message translates to:
-  /// **'Don\'t send'**
+  /// In ko, this message translates to:
+  /// **'보내지 않음'**
   String get schedRoutinesSkip;
 
   /// No description provided for @schedSendProgramWithRoutines.
   ///
-  /// In en, this message translates to:
-  /// **'Send the {date} PT program and personal exercise'**
+  /// In ko, this message translates to:
+  /// **'{date} PT 프로그램 · 개인운동 보내기'**
   String schedSendProgramWithRoutines(String date);
 
   /// No description provided for @schedRoutineSent.
   ///
-  /// In en, this message translates to:
-  /// **'Sent'**
+  /// In ko, this message translates to:
+  /// **'보냄'**
   String get schedRoutineSent;
 
   /// No description provided for @schedRoutinesSent.
   ///
-  /// In en, this message translates to:
-  /// **'Sent the personal exercise to the member.'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 회원에게 보냈어요.'**
   String get schedRoutinesSent;
 
   /// No description provided for @schedRoutinesSendFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send the personal exercise. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 보내지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get schedRoutinesSendFailed;
 
   /// No description provided for @schedRoutinesSkipped.
   ///
-  /// In en, this message translates to:
-  /// **'Marked as not sent.'**
+  /// In ko, this message translates to:
+  /// **'보내지 않기로 했어요.'**
   String get schedRoutinesSkipped;
 
   /// No description provided for @schedRoutinesSkipFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t mark the personal exercise as not sent. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'보내지 않기로 처리하지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get schedRoutinesSkipFailed;
 
   /// No description provided for @schedRoutinesLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load personal exercises'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 불러오지 못했어요'**
   String get schedRoutinesLoadFailed;
 
   /// No description provided for @schedClientUnresolved.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t tell which member this appointment is for. Please pick the member.'**
+  /// In ko, this message translates to:
+  /// **'이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.'**
   String get schedClientUnresolved;
 
   /// No description provided for @schedRoutinesUpdated.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise updated.'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 고쳤어요.'**
   String get schedRoutinesUpdated;
 
   /// No description provided for @schedRoutinesUpdateFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t update the personal exercise. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 고치지 못했어요. 다시 시도해 주세요.'**
   String get schedRoutinesUpdateFailed;
 
   /// No description provided for @schedAddRoutines.
   ///
-  /// In en, this message translates to:
-  /// **'Add personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동 추가'**
   String get schedAddRoutines;
 
   /// No description provided for @schedRoutinesAdded.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise added.'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 붙였어요.'**
   String get schedRoutinesAdded;
 
   /// No description provided for @schedNoRoutines.
   ///
-  /// In en, this message translates to:
-  /// **'No personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동 없음'**
   String get schedNoRoutines;
 
   /// No description provided for @schedNoRoutinesSendTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Send without personal exercise?'**
+  /// In ko, this message translates to:
+  /// **'개인운동 없이 보낼까요?'**
   String get schedNoRoutinesSendTitle;
 
   /// No description provided for @schedNoRoutinesSendBody.
   ///
-  /// In en, this message translates to:
-  /// **'This PT has no personal exercise. Once sent, you can no longer add personal exercise to this PT.'**
+  /// In ko, this message translates to:
+  /// **'이 PT에는 개인운동이 없어요. 보낸 뒤에는 이 PT에 개인운동을 붙일 수 없어요.'**
   String get schedNoRoutinesSendBody;
 
   /// No description provided for @schedNoRoutinesSendSkip.
   ///
-  /// In en, this message translates to:
-  /// **'Send without it'**
+  /// In ko, this message translates to:
+  /// **'개인운동 없이 보내기'**
   String get schedNoRoutinesSendSkip;
 
   /// No description provided for @schedTimeRange.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{start}–{end}'**
   String schedTimeRange(String start, String end);
 
   /// No description provided for @schedEmptyWeek.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing scheduled this week.'**
+  /// In ko, this message translates to:
+  /// **'이번 주에는 일정이 없어요.'**
   String get schedEmptyWeek;
 
   /// No description provided for @schedSlots.
   ///
-  /// In en, this message translates to:
-  /// **'Booking times'**
+  /// In ko, this message translates to:
+  /// **'예약 가능 시간'**
   String get schedSlots;
 
   /// No description provided for @schedNewSession.
   ///
-  /// In en, this message translates to:
-  /// **'New appointment'**
+  /// In ko, this message translates to:
+  /// **'새 일정'**
   String get schedNewSession;
 
   /// No description provided for @schedLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the schedule'**
+  /// In ko, this message translates to:
+  /// **'스케줄을 불러오지 못했어요'**
   String get schedLoadFailed;
 
   /// No description provided for @schedEmptyDay.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing scheduled for this day.\nUse New appointment above to add one.'**
+  /// In ko, this message translates to:
+  /// **'이 날짜에는 일정이 없어요.\n위의 「새 일정」으로 추가해 보세요.'**
   String get schedEmptyDay;
 
   /// No description provided for @schedSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the appointment. Please try again'**
+  /// In ko, this message translates to:
+  /// **'일정을 저장하지 못했어요. 다시 시도해 주세요'**
   String get schedSaveFailed;
 
   /// No description provided for @schedAddTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Add an appointment'**
+  /// In ko, this message translates to:
+  /// **'새 일정 추가'**
   String get schedAddTitle;
 
   /// No description provided for @schedEditTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Edit appointment'**
+  /// In ko, this message translates to:
+  /// **'일정 수정'**
   String get schedEditTitle;
 
   /// No description provided for @schedFieldClient.
   ///
-  /// In en, this message translates to:
-  /// **'Member'**
+  /// In ko, this message translates to:
+  /// **'회원'**
   String get schedFieldClient;
 
   /// No description provided for @schedFieldType.
   ///
-  /// In en, this message translates to:
-  /// **'Type'**
+  /// In ko, this message translates to:
+  /// **'유형'**
   String get schedFieldType;
 
   /// No description provided for @schedFieldDate.
   ///
-  /// In en, this message translates to:
-  /// **'Date'**
+  /// In ko, this message translates to:
+  /// **'날짜'**
   String get schedFieldDate;
 
   /// No description provided for @schedFieldDateRange.
   ///
-  /// In en, this message translates to:
-  /// **'Start - end date'**
+  /// In ko, this message translates to:
+  /// **'시작 - 종료일'**
   String get schedFieldDateRange;
 
   /// No description provided for @schedFieldTime.
   ///
-  /// In en, this message translates to:
-  /// **'Time'**
+  /// In ko, this message translates to:
+  /// **'시간'**
   String get schedFieldTime;
 
   /// No description provided for @schedEndBeforeStart.
   ///
-  /// In en, this message translates to:
-  /// **'End time must be after the start time'**
+  /// In ko, this message translates to:
+  /// **'종료 시간은 시작 시간보다 늦어야 해요'**
   String get schedEndBeforeStart;
 
   /// No description provided for @schedReopenTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Switch back to upcoming?'**
+  /// In ko, this message translates to:
+  /// **'예정으로 바꿀까요?'**
   String get schedReopenTitle;
 
   /// No description provided for @schedReopenBody.
   ///
-  /// In en, this message translates to:
-  /// **'Moving a completed PT forward switches it back to upcoming, and the workout log it created will be removed.'**
+  /// In ko, this message translates to:
+  /// **'완료된 PT를 앞으로 옮기면 예정 상태로 되돌아가고, 그 완료가 남긴 운동 기록은 사라져요.'**
   String get schedReopenBody;
 
   /// No description provided for @schedReopenConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Switch to upcoming'**
+  /// In ko, this message translates to:
+  /// **'예정으로 바꾸기'**
   String get schedReopenConfirm;
 
   /// No description provided for @schedReopenPastBlocked.
   ///
-  /// In en, this message translates to:
-  /// **'A completed PT can only move to a future date'**
+  /// In ko, this message translates to:
+  /// **'완료된 PT는 미래 날짜로만 옮길 수 있어요'**
   String get schedReopenPastBlocked;
 
   /// No description provided for @schedTimeRangeTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Select time'**
+  /// In ko, this message translates to:
+  /// **'시간 선택'**
   String get schedTimeRangeTitle;
 
   /// No description provided for @schedTimeRangeConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Confirm'**
+  /// In ko, this message translates to:
+  /// **'확인'**
   String get schedTimeRangeConfirm;
 
   /// No description provided for @schedTimePickerTimeLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Time'**
+  /// In ko, this message translates to:
+  /// **'시각'**
   String get schedTimePickerTimeLabel;
 
   /// No description provided for @schedTimePickerEndTime.
   ///
-  /// In en, this message translates to:
-  /// **'End time'**
+  /// In ko, this message translates to:
+  /// **'종료 시간'**
   String get schedTimePickerEndTime;
 
   /// No description provided for @schedTimePickerHour.
   ///
-  /// In en, this message translates to:
-  /// **'Hour'**
+  /// In ko, this message translates to:
+  /// **'시'**
   String get schedTimePickerHour;
 
   /// No description provided for @schedTimePickerMinute.
   ///
-  /// In en, this message translates to:
-  /// **'Minute'**
+  /// In ko, this message translates to:
+  /// **'분'**
   String get schedTimePickerMinute;
 
   /// No description provided for @schedTimePickerStartHour.
   ///
-  /// In en, this message translates to:
-  /// **'Start hour'**
+  /// In ko, this message translates to:
+  /// **'시작 시'**
   String get schedTimePickerStartHour;
 
   /// No description provided for @schedTimePickerStartMinute.
   ///
-  /// In en, this message translates to:
-  /// **'Start minute'**
+  /// In ko, this message translates to:
+  /// **'시작 분'**
   String get schedTimePickerStartMinute;
 
   /// No description provided for @schedTimePickerEndHour.
   ///
-  /// In en, this message translates to:
-  /// **'End hour'**
+  /// In ko, this message translates to:
+  /// **'종료 시'**
   String get schedTimePickerEndHour;
 
   /// No description provided for @schedTimePickerEndMinute.
   ///
-  /// In en, this message translates to:
-  /// **'End minute'**
+  /// In ko, this message translates to:
+  /// **'종료 분'**
   String get schedTimePickerEndMinute;
 
   /// No description provided for @schedTimePickerPrevStep.
   ///
-  /// In en, this message translates to:
-  /// **'Previous step'**
+  /// In ko, this message translates to:
+  /// **'이전 단계'**
   String get schedTimePickerPrevStep;
 
   /// No description provided for @schedTimePickerNextStep.
   ///
-  /// In en, this message translates to:
-  /// **'Next step'**
+  /// In ko, this message translates to:
+  /// **'다음 단계'**
   String get schedTimePickerNextStep;
 
   /// No description provided for @schedTimePickerEndBeforeStart.
   ///
-  /// In en, this message translates to:
-  /// **'End time is earlier than the start time'**
+  /// In ko, this message translates to:
+  /// **'종료 시간이 시작 시간보다 빨라요'**
   String get schedTimePickerEndBeforeStart;
 
   /// No description provided for @schedClockHourSemantics.
   ///
-  /// In en, this message translates to:
-  /// **'{hour} o\'clock'**
+  /// In ko, this message translates to:
+  /// **'{hour}시'**
   String schedClockHourSemantics(String hour);
 
   /// No description provided for @schedRepeat.
   ///
-  /// In en, this message translates to:
-  /// **'Repeat'**
+  /// In ko, this message translates to:
+  /// **'반복'**
   String get schedRepeat;
 
   /// No description provided for @schedRepeatWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly'**
+  /// In ko, this message translates to:
+  /// **'매주'**
   String get schedRepeatWeekly;
 
   /// No description provided for @schedRepeatPreview.
   ///
-  /// In en, this message translates to:
-  /// **'{count} appointments · {first} – {last}'**
+  /// In ko, this message translates to:
+  /// **'총 {count}회 · {first} ~ {last}'**
   String schedRepeatPreview(int count, String first, String last);
 
   /// No description provided for @schedRepeatNeedsDays.
   ///
-  /// In en, this message translates to:
-  /// **'Pick at least one weekday.'**
+  /// In ko, this message translates to:
+  /// **'반복할 요일을 골라 주세요.'**
   String get schedRepeatNeedsDays;
 
   /// No description provided for @schedRepeatNeedsEndDate.
   ///
-  /// In en, this message translates to:
-  /// **'Pick an end date for the repeat.'**
+  /// In ko, this message translates to:
+  /// **'반복 종료일을 골라 주세요.'**
   String get schedRepeatNeedsEndDate;
 
   /// No description provided for @schedRepeatNoOccurrences.
   ///
-  /// In en, this message translates to:
-  /// **'None of the chosen days fall within the repeat period. Change the days or the end date.'**
+  /// In ko, this message translates to:
+  /// **'고른 요일이 반복 기간 안에 없어요. 요일이나 종료일을 바꿔 주세요.'**
   String get schedRepeatNoOccurrences;
 
   /// No description provided for @schedNewNeedsClient.
   ///
-  /// In en, this message translates to:
-  /// **'You have no members yet. Connect a member before adding an appointment.'**
+  /// In ko, this message translates to:
+  /// **'담당 회원이 없어 일정을 만들 수 없어요. 회원을 먼저 연결해 주세요.'**
   String get schedNewNeedsClient;
 
   /// No description provided for @schedClientsLoading.
   ///
-  /// In en, this message translates to:
-  /// **'Loading your members. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'회원 목록을 불러오는 중이에요. 잠시 후 다시 눌러 주세요.'**
   String get schedClientsLoading;
 
   /// No description provided for @schedRepeatConflictTitle.
   ///
-  /// In en, this message translates to:
-  /// **'{count} of {total} appointments clash'**
+  /// In ko, this message translates to:
+  /// **'총 {total}회 중 {count}개의 일정이 겹쳐요'**
   String schedRepeatConflictTitle(int total, int count);
 
   /// No description provided for @schedRepeatConflictRow.
   ///
-  /// In en, this message translates to:
-  /// **'{date} {time} · already booked: {name}'**
+  /// In ko, this message translates to:
+  /// **'{date} {time} · 기존 일정: {name}'**
   String schedRepeatConflictRow(String date, String time, String name);
 
   /// No description provided for @schedRepeatConflictHint.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing was created. Change the time, or clear the appointments that clash.'**
+  /// In ko, this message translates to:
+  /// **'겹치는 회차가 있어 아무 일정도 만들지 않았어요. 시간을 바꾸거나 겹치는 일정을 정리해 주세요.'**
   String get schedRepeatConflictHint;
 
   /// No description provided for @schedOverlapTitle.
   ///
-  /// In en, this message translates to:
-  /// **'This time overlaps another appointment'**
+  /// In ko, this message translates to:
+  /// **'다른 일정과 시간이 겹쳐요'**
   String get schedOverlapTitle;
 
   /// No description provided for @schedOverlapHint.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing was saved. Change the time or move the overlapping appointment, then save again.'**
+  /// In ko, this message translates to:
+  /// **'저장하지 않았어요. 시간을 바꾸거나 겹치는 일정을 옮긴 뒤 다시 저장해 주세요.'**
   String get schedOverlapHint;
 
   /// No description provided for @slotOverlapHint.
   ///
-  /// In en, this message translates to:
-  /// **'The time wasn\'t opened. Pick another time or move the overlapping appointment.'**
+  /// In ko, this message translates to:
+  /// **'자리를 열지 않았어요. 다른 시간을 고르거나 겹치는 일정을 옮겨 주세요.'**
   String get slotOverlapHint;
 
   /// No description provided for @consultOverlapHint.
   ///
-  /// In en, this message translates to:
-  /// **'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping appointment, then approve again.'**
+  /// In ko, this message translates to:
+  /// **'회원이 고른 시간에 이미 다른 일정이 있어 승인하지 않았어요. 겹치는 일정을 옮긴 뒤 다시 승인해 주세요.'**
   String get consultOverlapHint;
 
   /// No description provided for @schedNote.
   ///
-  /// In en, this message translates to:
-  /// **'Trainer feedback'**
+  /// In ko, this message translates to:
+  /// **'트레이너 피드백'**
   String get schedNote;
 
   /// No description provided for @schedEditNote.
   ///
-  /// In en, this message translates to:
-  /// **'Edit feedback'**
+  /// In ko, this message translates to:
+  /// **'피드백 수정'**
   String get schedEditNote;
 
   /// No description provided for @schedAddNote.
   ///
-  /// In en, this message translates to:
-  /// **'Add feedback'**
+  /// In ko, this message translates to:
+  /// **'피드백 추가'**
   String get schedAddNote;
 
   /// No description provided for @schedNoNote.
   ///
-  /// In en, this message translates to:
-  /// **'No memo yet'**
+  /// In ko, this message translates to:
+  /// **'아직 남긴 메모가 없어요'**
   String get schedNoNote;
 
   /// No description provided for @schedNoteOnlyHint.
   ///
-  /// In en, this message translates to:
-  /// **'A consultation is recorded as a memo, not a program.'**
+  /// In ko, this message translates to:
+  /// **'상담은 프로그램 대신 메모로 남겨요.'**
   String get schedNoteOnlyHint;
 
   /// No description provided for @schedNoteHint.
   ///
-  /// In en, this message translates to:
-  /// **'Feedback for the member. Keep notes about the member in their member memo'**
+  /// In ko, this message translates to:
+  /// **'회원에게 전할 피드백을 입력하세요. 회원 특이사항은 회원 상세 메모에 남겨 주세요'**
   String get schedNoteHint;
 
   /// No description provided for @schedNoteVisibleToMember.
   ///
-  /// In en, this message translates to:
-  /// **'Shown to the member as feedback once the PT is done'**
+  /// In ko, this message translates to:
+  /// **'PT를 마치면 회원 앱에 피드백으로 보여요'**
   String get schedNoteVisibleToMember;
 
   /// No description provided for @schedConsultNote.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation memo'**
+  /// In ko, this message translates to:
+  /// **'상담 메모'**
   String get schedConsultNote;
 
   /// No description provided for @schedEditConsultNote.
   ///
-  /// In en, this message translates to:
-  /// **'Edit memo'**
+  /// In ko, this message translates to:
+  /// **'메모 수정'**
   String get schedEditConsultNote;
 
   /// No description provided for @schedAddConsultNote.
   ///
-  /// In en, this message translates to:
-  /// **'Add memo'**
+  /// In ko, this message translates to:
+  /// **'메모 추가'**
   String get schedAddConsultNote;
 
   /// No description provided for @schedConsultNoteHint.
   ///
-  /// In en, this message translates to:
-  /// **'What you talked about in the consultation'**
+  /// In ko, this message translates to:
+  /// **'상담에서 나눈 이야기를 적어 두세요'**
   String get schedConsultNoteHint;
 
   /// No description provided for @schedConsultNotePrivate.
   ///
-  /// In en, this message translates to:
-  /// **'Only you can see this memo. It\'s hidden from the member.'**
+  /// In ko, this message translates to:
+  /// **'나만 보는 메모예요. 회원에게는 보이지 않아요.'**
   String get schedConsultNotePrivate;
 
   /// No description provided for @schedAddAction.
   ///
-  /// In en, this message translates to:
-  /// **'Add'**
+  /// In ko, this message translates to:
+  /// **'추가'**
   String get schedAddAction;
 
   /// No description provided for @schedSaveAction.
   ///
-  /// In en, this message translates to:
-  /// **'Save'**
+  /// In ko, this message translates to:
+  /// **'저장'**
   String get schedSaveAction;
 
   /// No description provided for @progInvalid.
   ///
-  /// In en, this message translates to:
-  /// **'Check the exercise name and set count'**
+  /// In ko, this message translates to:
+  /// **'운동 이름과 세트 수를 확인해 주세요'**
   String get progInvalid;
 
   /// No description provided for @progSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the program. Please try again'**
+  /// In ko, this message translates to:
+  /// **'프로그램을 저장하지 못했어요. 다시 시도해 주세요'**
   String get progSaveFailed;
 
   /// No description provided for @progEditTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Edit program'**
+  /// In ko, this message translates to:
+  /// **'프로그램 수정'**
   String get progEditTitle;
 
   /// No description provided for @progAddTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Add program'**
+  /// In ko, this message translates to:
+  /// **'프로그램 추가'**
   String get progAddTitle;
 
   /// No description provided for @progAddExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Add exercise'**
+  /// In ko, this message translates to:
+  /// **'운동 추가'**
   String get progAddExercise;
 
   /// No description provided for @progNoteHint.
   ///
-  /// In en, this message translates to:
-  /// **'Feedback for the member. Keep notes about the member in their member memo'**
+  /// In ko, this message translates to:
+  /// **'회원에게 전할 피드백을 입력하세요. 회원 특이사항은 회원 상세 메모에 남겨 주세요'**
   String get progNoteHint;
 
   /// No description provided for @progSaving.
   ///
-  /// In en, this message translates to:
-  /// **'Saving…'**
+  /// In ko, this message translates to:
+  /// **'저장 중…'**
   String get progSaving;
 
   /// No description provided for @progSaveAction.
   ///
-  /// In en, this message translates to:
-  /// **'Save'**
+  /// In ko, this message translates to:
+  /// **'저장'**
   String get progSaveAction;
 
   /// No description provided for @progSaveNoteAction.
   ///
-  /// In en, this message translates to:
-  /// **'Save'**
+  /// In ko, this message translates to:
+  /// **'저장'**
   String get progSaveNoteAction;
 
   /// No description provided for @progExerciseName.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise'**
+  /// In ko, this message translates to:
+  /// **'운동 이름'**
   String get progExerciseName;
 
   /// No description provided for @progDeleteExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Delete exercise'**
+  /// In ko, this message translates to:
+  /// **'운동 삭제'**
   String get progDeleteExercise;
 
   /// No description provided for @progSetsValue.
   ///
-  /// In en, this message translates to:
-  /// **'{sets, plural, =1{1 set} other{{sets} sets}}'**
+  /// In ko, this message translates to:
+  /// **'{sets}세트'**
   String progSetsValue(int sets);
-
-  /// No description provided for @progHoldValue.
-  ///
-  /// In en, this message translates to:
-  /// **'{seconds} sec'**
-  String progHoldValue(int seconds);
 
   /// No description provided for @progRepsValue.
   ///
-  /// In en, this message translates to:
-  /// **'{reps, plural, =1{1 rep} other{{reps} reps}}'**
+  /// In ko, this message translates to:
+  /// **'{reps}회'**
   String progRepsValue(int reps);
+
+  /// No description provided for @progHoldValue.
+  ///
+  /// In ko, this message translates to:
+  /// **'{seconds}초'**
+  String progHoldValue(int seconds);
 
   /// No description provided for @progEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No program planned yet'**
+  /// In ko, this message translates to:
+  /// **'아직 계획된 프로그램이 없어요'**
   String get progEmpty;
 
   /// No description provided for @progEmptyHint.
   ///
-  /// In en, this message translates to:
-  /// **'Build one in the AI suggestions tab, or agree on it over messages first.'**
+  /// In ko, this message translates to:
+  /// **'AI 추천 탭에서 프로그램을 만들어 보내거나, 메시지로 미리 조율해 보세요.'**
   String get progEmptyHint;
 
   /// No description provided for @schedSentTo.
   ///
-  /// In en, this message translates to:
-  /// **'Sent to {name}'**
+  /// In ko, this message translates to:
+  /// **'{name}님에게 보냄'**
   String schedSentTo(String name);
 
   /// No description provided for @schedSentProgramTo.
   ///
-  /// In en, this message translates to:
-  /// **'Send the {date} PT program'**
+  /// In ko, this message translates to:
+  /// **'{date} PT 프로그램 보내기'**
   String schedSentProgramTo(String date);
 
   /// No description provided for @slotPastTime.
   ///
-  /// In en, this message translates to:
-  /// **'Only future times can be opened for booking.'**
+  /// In ko, this message translates to:
+  /// **'현재보다 이후 시간만 예약 가능 시간으로 열 수 있어요.'**
   String get slotPastTime;
 
   /// No description provided for @slotOpened.
   ///
-  /// In en, this message translates to:
-  /// **'Booking time opened.'**
+  /// In ko, this message translates to:
+  /// **'예약 가능 시간을 열었어요.'**
   String get slotOpened;
 
   /// No description provided for @slotStartTime.
   ///
-  /// In en, this message translates to:
-  /// **'Start time'**
+  /// In ko, this message translates to:
+  /// **'시작 시간'**
   String get slotStartTime;
 
   /// No description provided for @slotCloseTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Close booking time'**
+  /// In ko, this message translates to:
+  /// **'예약 가능 시간 닫기'**
   String get slotCloseTitle;
 
   /// No description provided for @slotCloseBody.
   ///
-  /// In en, this message translates to:
-  /// **'Any existing booking stays; only new bookings stop.'**
+  /// In ko, this message translates to:
+  /// **'이미 잡힌 예약은 유지되고, 신규 예약만 멈춰요.'**
   String get slotCloseBody;
 
   /// No description provided for @slotClosed.
   ///
-  /// In en, this message translates to:
-  /// **'New bookings closed.'**
+  /// In ko, this message translates to:
+  /// **'신규 예약을 닫았어요.'**
   String get slotClosed;
 
   /// No description provided for @slotActionFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t complete the request. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get slotActionFailed;
 
   /// No description provided for @slotManageTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Manage open booking times'**
+  /// In ko, this message translates to:
+  /// **'예약 가능 시간 관리'**
   String get slotManageTitle;
 
   /// No description provided for @slotIntro.
   ///
-  /// In en, this message translates to:
-  /// **'Open times for members to book. Every upcoming open time is listed below by date.'**
+  /// In ko, this message translates to:
+  /// **'회원이 예약할 시간을 열어요. 아래에 앞으로 열린 시간이 날짜별로 모여요.'**
   String get slotIntro;
 
   /// No description provided for @slotOpenAction.
   ///
-  /// In en, this message translates to:
-  /// **'Open'**
+  /// In ko, this message translates to:
+  /// **'열기'**
   String get slotOpenAction;
 
   /// No description provided for @slotReload.
   ///
-  /// In en, this message translates to:
-  /// **'Reload'**
+  /// In ko, this message translates to:
+  /// **'다시 불러오기'**
   String get slotReload;
 
   /// No description provided for @slotLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load open booking times'**
+  /// In ko, this message translates to:
+  /// **'예약 가능 시간을 불러오지 못했어요'**
   String get slotLoadFailed;
 
   /// No description provided for @slotEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No open booking times.'**
+  /// In ko, this message translates to:
+  /// **'열린 예약 가능 시간이 없어요.'**
   String get slotEmpty;
 
   /// No description provided for @slotClosedSummary.
   ///
-  /// In en, this message translates to:
-  /// **'Closed'**
+  /// In ko, this message translates to:
+  /// **'예약 닫힘'**
   String get slotClosedSummary;
 
   /// No description provided for @slotBookedSummary.
   ///
-  /// In en, this message translates to:
-  /// **'Booked'**
+  /// In ko, this message translates to:
+  /// **'예약됨'**
   String get slotBookedSummary;
 
   /// No description provided for @slotOverlappedSummary.
   ///
-  /// In en, this message translates to:
-  /// **'Overlaps an appointment'**
+  /// In ko, this message translates to:
+  /// **'일정과 겹침'**
   String get slotOverlappedSummary;
 
   /// No description provided for @slotOverlappedHint.
   ///
-  /// In en, this message translates to:
-  /// **'Another appointment is booked at this time, so members see it as full. Close it if you will not use it.'**
+  /// In ko, this message translates to:
+  /// **'이 시간에 다른 일정이 있어 회원에게는 마감으로 보여요. 쓰지 않을 자리면 닫아 주세요.'**
   String get slotOverlappedHint;
 
   /// No description provided for @slotCloseAction.
   ///
-  /// In en, this message translates to:
-  /// **'Close bookings'**
+  /// In ko, this message translates to:
+  /// **'예약 닫기'**
   String get slotCloseAction;
 
   /// No description provided for @myCareerInvalid.
   ///
-  /// In en, this message translates to:
-  /// **'Enter years of experience between 0 and 80.'**
+  /// In ko, this message translates to:
+  /// **'경력은 0~80 사이의 연수로 입력해 주세요.'**
   String get myCareerInvalid;
 
   /// No description provided for @myProfileSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save your profile.'**
+  /// In ko, this message translates to:
+  /// **'프로필을 저장하지 못했어요.'**
   String get myProfileSaveFailed;
 
   /// No description provided for @myGymChangeFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t change your gym.'**
+  /// In ko, this message translates to:
+  /// **'소속 헬스장을 바꾸지 못했어요.'**
   String get myGymChangeFailed;
 
   /// No description provided for @myTabProfile.
   ///
-  /// In en, this message translates to:
-  /// **'My profile'**
+  /// In ko, this message translates to:
+  /// **'내 정보'**
   String get myTabProfile;
 
   /// No description provided for @myTabSettings.
   ///
-  /// In en, this message translates to:
-  /// **'Settings'**
+  /// In ko, this message translates to:
+  /// **'설정'**
   String get myTabSettings;
 
   /// No description provided for @mySaving.
   ///
-  /// In en, this message translates to:
-  /// **'Saving…'**
+  /// In ko, this message translates to:
+  /// **'저장 중…'**
   String get mySaving;
 
   /// No description provided for @myEditProfile.
   ///
-  /// In en, this message translates to:
-  /// **'Edit profile'**
+  /// In ko, this message translates to:
+  /// **'프로필 수정'**
   String get myEditProfile;
 
   /// No description provided for @mySaved.
   ///
-  /// In en, this message translates to:
-  /// **'Changes saved'**
+  /// In ko, this message translates to:
+  /// **'변경사항이 저장됐어요'**
   String get mySaved;
 
   /// No description provided for @myCertifications.
   ///
-  /// In en, this message translates to:
-  /// **'Certifications'**
+  /// In ko, this message translates to:
+  /// **'자격증 · 인증'**
   String get myCertifications;
 
   /// No description provided for @myGym.
   ///
-  /// In en, this message translates to:
-  /// **'My gym'**
+  /// In ko, this message translates to:
+  /// **'소속 헬스장'**
   String get myGym;
 
   /// No description provided for @myNotifications.
   ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
+  /// In ko, this message translates to:
+  /// **'알림'**
   String get myNotifications;
 
   /// No description provided for @myNotifNewMessage.
   ///
-  /// In en, this message translates to:
-  /// **'New message alerts'**
+  /// In ko, this message translates to:
+  /// **'새 메시지 알림'**
   String get myNotifNewMessage;
 
   /// No description provided for @myNotifNotReady.
   ///
-  /// In en, this message translates to:
-  /// **'Coming soon — always on for now'**
+  /// In ko, this message translates to:
+  /// **'곧 끌 수 있어요 — 지금은 항상 받아요'**
   String get myNotifNotReady;
 
   /// Notification settings card row shown while the saved settings are loading; switches stay disabled.
   ///
-  /// In en, this message translates to:
-  /// **'Loading notification settings…'**
+  /// In ko, this message translates to:
+  /// **'알림 설정을 불러오는 중이에요'**
   String get myNotifLoading;
 
   /// Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load notification settings. Please try again'**
+  /// In ko, this message translates to:
+  /// **'알림 설정을 불러오지 못했어요. 다시 시도해 주세요'**
   String get myNotifLoadFailed;
 
   /// No description provided for @myNotifNewMessageHint.
   ///
-  /// In en, this message translates to:
-  /// **'Messages from members'**
+  /// In ko, this message translates to:
+  /// **'회원이 보낸 메시지'**
   String get myNotifNewMessageHint;
-
-  /// No description provided for @myLanguageApp.
-  ///
-  /// In en, this message translates to:
-  /// **'Display language'**
-  String get myLanguageApp;
-
-  /// No description provided for @myLanguageHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Your choice is saved in this browser only. Other devices follow their own browser setting.'**
-  String get myLanguageHint;
-
-  /// No description provided for @myLanguageSystem.
-  ///
-  /// In en, this message translates to:
-  /// **'Match browser'**
-  String get myLanguageSystem;
-
-  /// Korean, written in Korean so it can be found from either language.
-  ///
-  /// In en, this message translates to:
-  /// **'한국어'**
-  String get myLanguageKorean;
-
-  /// English, written in English so it can be found from either language.
-  ///
-  /// In en, this message translates to:
-  /// **'English'**
-  String get myLanguageEnglish;
 
   /// No description provided for @myAccount.
   ///
-  /// In en, this message translates to:
-  /// **'Account'**
+  /// In ko, this message translates to:
+  /// **'계정'**
   String get myAccount;
 
   /// No description provided for @myChangePassword.
   ///
-  /// In en, this message translates to:
-  /// **'Change password'**
+  /// In ko, this message translates to:
+  /// **'비밀번호 변경'**
   String get myChangePassword;
 
   /// No description provided for @myChangePasswordHint.
   ///
-  /// In en, this message translates to:
-  /// **'We\'ll confirm your current password first'**
+  /// In ko, this message translates to:
+  /// **'현재 비밀번호를 확인한 뒤 교체해요'**
   String get myChangePasswordHint;
 
   /// No description provided for @myChangePasswordDemo.
   ///
-  /// In en, this message translates to:
-  /// **'Demo mode has no account, so this is unavailable'**
+  /// In ko, this message translates to:
+  /// **'데모 모드에는 계정이 없어 변경할 수 없어요'**
   String get myChangePasswordDemo;
 
   /// No description provided for @myLoginAccount.
   ///
-  /// In en, this message translates to:
-  /// **'Signed in as'**
+  /// In ko, this message translates to:
+  /// **'로그인 계정'**
   String get myLoginAccount;
 
   /// No description provided for @mySupportTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Customer support'**
+  /// In ko, this message translates to:
+  /// **'고객 지원'**
   String get mySupportTitle;
 
   /// No description provided for @mySupportFaq.
   ///
-  /// In en, this message translates to:
-  /// **'FAQ'**
+  /// In ko, this message translates to:
+  /// **'자주 묻는 질문'**
   String get mySupportFaq;
 
   /// No description provided for @mySupportInquiry.
   ///
-  /// In en, this message translates to:
-  /// **'1:1 inquiry'**
+  /// In ko, this message translates to:
+  /// **'1:1 문의'**
   String get mySupportInquiry;
 
   /// No description provided for @mySupportExternalHint.
   ///
-  /// In en, this message translates to:
-  /// **'Opens the KakaoTalk channel'**
+  /// In ko, this message translates to:
+  /// **'카카오톡 채널로 연결돼요'**
   String get mySupportExternalHint;
 
   /// No description provided for @mySupportOpenFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t open the link. Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'링크를 열지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get mySupportOpenFailed;
 
   /// No description provided for @myAppVersion.
   ///
-  /// In en, this message translates to:
-  /// **'On-Care Trainer · Version {version}'**
+  /// In ko, this message translates to:
+  /// **'On-Care 트레이너 · 버전 {version}'**
   String myAppVersion(String version);
 
   /// Shown after the app version in the version row when the build has no build number (local run or test build) (#3226).
   ///
-  /// In en, this message translates to:
-  /// **'Development build'**
+  /// In ko, this message translates to:
+  /// **'개발 빌드'**
   String get buildInfoDevelopment;
 
   /// Deploy time in the version row. The date is the build time converted to Korea Standard Time and formatted for the current locale (#3226).
   ///
-  /// In en, this message translates to:
-  /// **'Deployed {date} KST'**
+  /// In ko, this message translates to:
+  /// **'{date} KST 배포'**
   String buildInfoReleasedAt(String date);
 
   /// No description provided for @myAppName.
   ///
-  /// In en, this message translates to:
-  /// **'On-Care Trainer'**
+  /// In ko, this message translates to:
+  /// **'On-Care 트레이너'**
   String get myAppName;
 
   /// No description provided for @myLegalTermsTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Terms of Service'**
+  /// In ko, this message translates to:
+  /// **'이용약관'**
   String get myLegalTermsTitle;
 
   /// No description provided for @myLegalPrivacyTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Privacy Policy'**
+  /// In ko, this message translates to:
+  /// **'개인정보 처리방침'**
   String get myLegalPrivacyTitle;
 
   /// MY support row that opens the open-source license list (packages and the bundled Pretendard font, #3150).
   ///
-  /// In en, this message translates to:
-  /// **'Open-source licenses'**
+  /// In ko, this message translates to:
+  /// **'오픈소스 라이선스'**
   String get myOpenSourceLicensesTitle;
 
   /// No description provided for @myLegalTermsEffectiveDate.
   ///
-  /// In en, this message translates to:
-  /// **'Effective Oct 3, 2026'**
+  /// In ko, this message translates to:
+  /// **'시행일 2026. 10. 03.'**
   String get myLegalTermsEffectiveDate;
 
   /// No description provided for @myLegalPrivacyEffectiveDate.
   ///
-  /// In en, this message translates to:
-  /// **'Effective Oct 5, 2026'**
+  /// In ko, this message translates to:
+  /// **'시행일 2026. 10. 05.'**
   String get myLegalPrivacyEffectiveDate;
 
   /// No description provided for @myLegalTermsBody.
   ///
-  /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service before the amendment takes effect. Where an amendment requires consent, the Company asks again, and a trainer who does not agree may terminate the agreement.\n\n3. The Service\nThe Company provides member management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Member reports\nThere is no separate approval step: once a trainer signs up and picks their gym, they appear in the member app\'s trainer list and as a consultation target, and can link with members. Members can report a trainer for impersonation, a false profile or inappropriate messages, and a Company operator reviews the report and may restrict use under section 9.\n\n6. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n7. Redeeming member coupons\nPT renewal discount coupons that members exchange for points are used with that member\'s assigned trainer and the trainer\'s gym, which provide the discount shown on the coupon on site. A coupon is used when the trainer or gym staff have checked the coupon type and validity on the member\'s phone and the member then taps \"Mark as used\"; a used coupon cannot be restored. If the assignment ends or the trainer deletes their account, the member\'s unused PT renewal coupons are cancelled and the points are returned to the member.\n\n8. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n9. Restrictions on use\nIf a trainer breaches these terms, attracts members with a false profile or harms members, the Company may, after notice, restrict all or part of their use of the Service or suspend the account. Where it is urgent, for example to protect members, the Company restricts first and notifies right after.\n\n10. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n11. Termination\nA trainer may delete their account from the MY menu at any time. Doing so erases their profile, messages with members, assigned routines, schedule and open booking times, and ends their member assignments and upcoming bookings; the affected members are notified. The unused PT renewal coupons of their assigned members are cancelled and the points are returned to those members.\n\n12. Changes to and suspension of the Service\nThe Company may change the Service, or suspend it temporarily for unavoidable reasons such as maintenance or outages. It announces anything that affects trainers beforehand, or afterwards if advance notice was not possible.\n\n13. Dispute resolution and jurisdiction\nThe Company and trainers will negotiate in good faith to settle any dispute about the Service amicably. If a dispute is not settled and a lawsuit is filed, the court with jurisdiction under the Civil Procedure Act of Korea has jurisdiction. These terms are governed by the laws of the Republic of Korea.\n\nAddendum\nThese terms take effect on October 3, 2026.\n- October 3, 2026: added member reports, redeeming member coupons, restrictions on use, effects of termination, changes to and suspension of the Service, and dispute resolution and jurisdiction\n- October 1, 2026: first issued'**
+  /// In ko, this message translates to:
+  /// **'제1조 (목적)\n이 약관은 On-Care(이하 \"회사\")가 제공하는 트레이너 콘솔(이하 \"서비스\")의 이용과 관련하여 회사와 트레이너 회원(이하 \"트레이너\") 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.\n\n제2조 (약관의 효력 및 변경)\n① 이 약관은 서비스를 이용하는 모든 트레이너에게 효력이 발생합니다.\n② 회사는 관련 법령을 위반하지 않는 범위에서 이 약관을 변경할 수 있으며, 변경 시 적용일자와 변경 사유를 명시하여 적용일 전에 서비스 내에 공지합니다.\n③ 동의가 필요한 변경은 다시 동의를 받습니다. 트레이너는 변경된 약관에 동의하지 않으면 이용 계약을 해지할 수 있습니다.\n\n제3조 (서비스의 제공)\n회사는 담당 회원 관리, 식단·운동 기록 열람, 일정 관리, 메시지, AI 코칭 프로그램 생성, 리포트 작성 및 전송 등 트레이너의 지도 업무를 돕는 기능을 제공합니다. 서비스의 구체적인 내용은 회사의 정책에 따라 변경될 수 있습니다.\n\n제4조 (계정)\n① 트레이너 계정과 회원 계정은 분리되어 있으며, 하나의 계정으로 두 서비스를 함께 이용할 수 없습니다.\n② 트레이너는 자격증·경력 등 프로필 정보를 사실대로 입력하여야 하며, 계정 정보의 관리 책임은 트레이너에게 있습니다.\n\n제5조 (회원 신고)\n① 트레이너는 가입하고 소속 헬스장을 고르면 별도의 승인 절차 없이 회원 앱의 트레이너 목록과 상담 신청 대상에 나타나고 회원과 연결할 수 있습니다.\n② 회원은 사칭, 사실과 다른 프로필, 부적절한 메시지 등을 이유로 트레이너를 신고할 수 있으며, 회사 운영자는 신고 내용을 확인해 제9조에 따라 이용을 제한할 수 있습니다.\n\n제6조 (회원 정보 취급 의무)\n① 트레이너는 담당 관계가 성립한 회원의 식단·운동·건강 기록에 한하여 열람할 수 있습니다.\n② 열람한 정보는 상담·코칭·리포트 작성 목적으로만 이용하여야 하며, 이를 외부에 게시하거나 제3자에게 제공·유출해서는 안 됩니다.\n③ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한도 함께 종료됩니다.\n\n제7조 (회원 쿠폰의 사용 처리)\n① 회원이 포인트로 교환한 PT 재등록 할인 쿠폰은 그 회원의 담당 트레이너와 소속 헬스장에서 쓰입니다. 트레이너와 소속 헬스장은 쿠폰에 표시된 할인을 현장에서 제공합니다.\n② 쿠폰은 트레이너 또는 헬스장 직원이 회원 휴대폰의 쿠폰 화면에서 쿠폰 종류와 유효기간을 확인한 뒤, 회원이 사용 완료를 눌러 사용합니다. 사용 처리한 쿠폰은 되돌릴 수 없습니다.\n③ 담당 관계가 끝나거나 트레이너가 탈퇴하면 그 회원의 사용 전 PT 재등록 쿠폰은 취소되고 회원에게 포인트가 돌아갑니다.\n\n제8조 (금지 행위)\n트레이너는 의료 행위에 해당하는 진단·처방을 하거나, 회원의 동의 없이 회원 정보를 서비스 밖으로 옮기는 행위를 하여서는 안 됩니다.\n\n제9조 (이용 제한)\n회사는 트레이너가 이 약관을 어기거나, 사실과 다른 프로필로 회원을 모으거나, 회원에게 피해를 주면 미리 알린 뒤 서비스 이용의 일부 또는 전부를 제한하거나 계정을 정지할 수 있습니다. 회원의 피해를 막아야 하는 등 급한 경우에는 먼저 제한한 뒤 바로 알립니다.\n\n제10조 (책임의 제한)\n서비스가 제공하는 AI 코칭 결과와 통계는 지도를 돕기 위한 참고 자료입니다. 회원에게 전달하는 지도 내용에 대한 최종 판단과 책임은 트레이너에게 있으며, 회사는 법령이 허용하는 범위 내에서 그 결과에 대하여 책임을 부담하지 않습니다.\n\n제11조 (이용 계약의 해지)\n① 트레이너는 언제든지 MY 메뉴에서 탈퇴할 수 있습니다.\n② 탈퇴하면 계정과 함께 프로필, 회원과의 대화, 배정한 루틴, 일정과 예약 가능 시간이 지워지고, 담당 회원과의 연결과 예정된 예약이 함께 종료되며 해당 회원에게 그 사실이 안내됩니다.\n③ 담당 회원의 사용 전 PT 재등록 쿠폰은 취소되고 회원에게 포인트가 돌아갑니다.\n\n제12조 (서비스의 변경과 중단)\n회사는 서비스의 내용을 바꾸거나 설비 점검·장애 등 부득이한 사유로 서비스를 일시 중단할 수 있으며, 트레이너에게 영향이 있는 경우 미리 알리고, 미리 알릴 수 없었던 경우에는 사후에 알립니다.\n\n제13조 (분쟁 해결과 관할)\n① 회사와 트레이너는 서비스와 관련한 분쟁을 원만하게 해결하기 위해 성실히 협의합니다.\n② 협의로 해결되지 않아 소송이 제기되는 경우 민사소송법에 따른 관할 법원을 관할 법원으로 합니다.\n③ 이 약관과 서비스 이용에는 대한민국 법을 적용합니다.\n\n부칙\n이 약관은 2026년 10월 3일부터 시행합니다.\n- 2026년 10월 3일: 회원 신고, 회원 쿠폰의 사용 처리, 이용 제한, 이용 계약 해지의 효과, 서비스의 변경과 중단, 분쟁 해결과 관할 조항 추가\n- 2026년 10월 1일: 제정'**
   String get myLegalTermsBody;
 
   /// Privacy policy body. {contact} is the privacy officer contact, filled from LegalContact.privacyOfficerEmail in shared/oncare_core (the single definition point, #3005).
   ///
-  /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n(5) Location: the trainer web does not receive your device\'s location information.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator handle reports and manage accounts, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 5, 2026: changed the contact address of the privacy officer, and added that the trainer web does not receive location information ((5) of section 1)\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 5, 2026'**
+  /// In ko, this message translates to:
+  /// **'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 트레이너 가입: 이메일, 비밀번호(암호화하여 저장), 이름, 연락처.\n② 프로필과 자격 확인: 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보.\n③ 서비스 이용 중 남기는 정보: 회원에게 보낸 메시지와 첨부 사진, 리포트와 코칭 내용, 일정·예약 정보, 회원 메모.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·브라우저와 운영체제 종류·앱 버전.\n⑤ 위치 정보: 트레이너 웹은 기기의 위치정보를 받지 않습니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 운영자의 신고 처리와 계정 관리, 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다. 회원의 건강정보는 민감정보로서 회원의 별도 동의와 데이터 공유 동의가 있을 때만 열람할 수 있습니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 탈퇴 시까지 보유·이용하며, 탈퇴하면 8항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 정보 제공 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: AI 코칭 프로그램·루틴 후보와 리포트 요약 생성(Gemini API)\n- 주식회사 카카오: 헬스장 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 웹·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 트레이너와의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 트레이너 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필, 메시지·리포트·일정 기록 / 데이터베이스 운영 / 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / AI 기능을 쓸 때 입력한 코칭 조건과 담당 회원의 운동 기록·주간 리포트 수치 / AI 프로그램·요약 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 브라우저와 운영체제 종류·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 개인정보의 파기 절차 및 방법\n① 절차: 트레이너가 탈퇴하면 즉시 계정과 함께 프로필, 담당 회원과의 연결과 대화(첨부 사진·리포트 PDF 파일 포함), 루틴·프로그램, 일정과 예약 가능 시간, 알림을 삭제하고, 담당 회원과 예약한 회원에게 그 사실을 알립니다. 회원이 보낸 상담 요청은 회원의 기록이므로 트레이너 정보만 지운 채 남습니다. 4항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n9. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n10. 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하며, 전송 구간을 암호화합니다. 열람 기록에는 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 남기며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n11. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n12. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필 수정과 탈퇴는 MY 메뉴에서 할 수 있고, 그 밖의 요청은 13항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n13. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: {contact}\n\n14. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n15. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 서비스 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 트레이너 웹이 위치정보를 받지 않는다는 항목 추가(1항 ⑤)\n- 2026년 10월 3일: 처리 위탁·국외 이전·파기 절차·자동 수집 장치·만 14세 미만·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 5일'**
   String myLegalPrivacyBody(String contact);
 
   /// No description provided for @myPasswordChanged.
   ///
-  /// In en, this message translates to:
-  /// **'Password changed'**
+  /// In ko, this message translates to:
+  /// **'비밀번호를 바꿨어요'**
   String get myPasswordChanged;
 
   /// Career tag on the trainer profile. The value is stored as a number of years.
   ///
-  /// In en, this message translates to:
-  /// **'{years, plural, =1{1 year} other{{years} years}} of experience'**
+  /// In ko, this message translates to:
+  /// **'경력 {years}년'**
   String myCareerYears(int years);
 
   /// Career value under the 경력 label — the label already says it is career, so only the years.
   ///
-  /// In en, this message translates to:
-  /// **'{years, plural, =1{1 year} other{{years} years}}'**
+  /// In ko, this message translates to:
+  /// **'{years}년'**
   String myCareerYearsValue(int years);
 
   /// No description provided for @myFieldName.
   ///
-  /// In en, this message translates to:
-  /// **'Name (account)'**
+  /// In ko, this message translates to:
+  /// **'이름 (계정 정보)'**
   String get myFieldName;
 
   /// No description provided for @myFieldEmail.
   ///
-  /// In en, this message translates to:
-  /// **'Email (account)'**
+  /// In ko, this message translates to:
+  /// **'이메일 (계정 정보)'**
   String get myFieldEmail;
 
   /// No description provided for @myFieldPhone.
   ///
-  /// In en, this message translates to:
-  /// **'Phone'**
+  /// In ko, this message translates to:
+  /// **'연락처'**
   String get myFieldPhone;
 
   /// No description provided for @myFieldSpecialty.
   ///
-  /// In en, this message translates to:
-  /// **'Specialty'**
+  /// In ko, this message translates to:
+  /// **'전문 분야'**
   String get myFieldSpecialty;
 
   /// No description provided for @myFieldCareer.
   ///
-  /// In en, this message translates to:
-  /// **'Experience'**
+  /// In ko, this message translates to:
+  /// **'경력'**
   String get myFieldCareer;
 
   /// No description provided for @myFieldIntro.
   ///
-  /// In en, this message translates to:
-  /// **'About me'**
+  /// In ko, this message translates to:
+  /// **'소개'**
   String get myFieldIntro;
 
   /// No description provided for @myAddCertification.
   ///
-  /// In en, this message translates to:
-  /// **'Add a certification...'**
+  /// In ko, this message translates to:
+  /// **'자격증 추가...'**
   String get myAddCertification;
 
   /// No description provided for @myAdd.
   ///
-  /// In en, this message translates to:
-  /// **'Add'**
+  /// In ko, this message translates to:
+  /// **'추가'**
   String get myAdd;
 
   /// No description provided for @myStatClients.
   ///
-  /// In en, this message translates to:
-  /// **'Members'**
+  /// In ko, this message translates to:
+  /// **'담당 회원'**
   String get myStatClients;
 
   /// No description provided for @myClientManagement.
   ///
-  /// In en, this message translates to:
-  /// **'Member management'**
+  /// In ko, this message translates to:
+  /// **'회원 관리'**
   String get myClientManagement;
 
   /// No description provided for @myClientRemove.
   ///
-  /// In en, this message translates to:
-  /// **'Disconnect'**
+  /// In ko, this message translates to:
+  /// **'연결 해제'**
   String get myClientRemove;
 
   /// Confirm button of the disconnect-member dialog. Noun form per the button rule (#3117); the row tooltip keeps myClientRemove.
   ///
-  /// In en, this message translates to:
-  /// **'Disconnect'**
+  /// In ko, this message translates to:
+  /// **'해제'**
   String get myClientRemoveConfirm;
 
   /// No description provided for @myClientRemoveTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Disconnect from {name}?'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원과 연결을 해제할까요?'**
   String myClientRemoveTitle(String name);
 
   /// No description provided for @myClientRemoveBody.
   ///
-  /// In en, this message translates to:
-  /// **'After you disconnect, this member\'s schedules, programs and personal exercises, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.'**
+  /// In ko, this message translates to:
+  /// **'연결을 해제하면 이 회원의 스케줄, 프로그램·개인운동, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.'**
   String get myClientRemoveBody;
 
   /// No description provided for @myClientRemoveSuccess.
   ///
-  /// In en, this message translates to:
-  /// **'Disconnected from the member'**
+  /// In ko, this message translates to:
+  /// **'회원과 연결을 해제했어요'**
   String get myClientRemoveSuccess;
 
   /// No description provided for @myClientRemoveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t disconnect. Please try again'**
+  /// In ko, this message translates to:
+  /// **'연결을 해제하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get myClientRemoveFailed;
 
   /// No description provided for @myClientManagementEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No members assigned'**
+  /// In ko, this message translates to:
+  /// **'담당 회원이 없어요'**
   String get myClientManagementEmpty;
 
   /// No description provided for @myClientManagementSearchHint.
   ///
-  /// In en, this message translates to:
-  /// **'Search members by name'**
+  /// In ko, this message translates to:
+  /// **'이름으로 회원 검색'**
   String get myClientManagementSearchHint;
 
   /// No description provided for @myBasicInfo.
   ///
-  /// In en, this message translates to:
-  /// **'Basic info'**
+  /// In ko, this message translates to:
+  /// **'기본 정보'**
   String get myBasicInfo;
 
   /// No description provided for @myStatSessionsDone.
   ///
-  /// In en, this message translates to:
-  /// **'PT done'**
+  /// In ko, this message translates to:
+  /// **'완료 PT'**
   String get myStatSessionsDone;
 
   /// No description provided for @myStatRoutinesSent.
   ///
-  /// In en, this message translates to:
-  /// **'Programs sent'**
+  /// In ko, this message translates to:
+  /// **'프로그램 전송'**
   String get myStatRoutinesSent;
 
   /// No description provided for @myGymName.
   ///
-  /// In en, this message translates to:
-  /// **'Gym name'**
+  /// In ko, this message translates to:
+  /// **'헬스장 이름'**
   String get myGymName;
 
   /// No description provided for @myGymAddress.
   ///
-  /// In en, this message translates to:
-  /// **'Address'**
+  /// In ko, this message translates to:
+  /// **'주소'**
   String get myGymAddress;
 
   /// No description provided for @myGymHours.
   ///
-  /// In en, this message translates to:
-  /// **'Hours'**
+  /// In ko, this message translates to:
+  /// **'운영 시간'**
   String get myGymHours;
 
   /// No description provided for @myGymRequired.
   ///
-  /// In en, this message translates to:
-  /// **'Pick your gym from the search results'**
+  /// In ko, this message translates to:
+  /// **'검색 결과에서 소속 헬스장을 골라 주세요'**
   String get myGymRequired;
 
   /// No description provided for @myGymSearchLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Find your gym'**
+  /// In ko, this message translates to:
+  /// **'헬스장 찾기'**
   String get myGymSearchLabel;
 
   /// No description provided for @myGymSearchHint.
   ///
-  /// In en, this message translates to:
-  /// **'Gym name or address'**
+  /// In ko, this message translates to:
+  /// **'헬스장 이름이나 주소'**
   String get myGymSearchHint;
 
   /// No description provided for @myGymSearching.
   ///
-  /// In en, this message translates to:
-  /// **'Searching…'**
+  /// In ko, this message translates to:
+  /// **'찾는 중이에요'**
   String get myGymSearching;
 
   /// No description provided for @myGymSearchEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No gyms found. Try a different name or add the neighborhood.'**
+  /// In ko, this message translates to:
+  /// **'찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.'**
   String get myGymSearchEmpty;
 
   /// No description provided for @myGymSearchFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t search gyms. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'헬스장을 찾지 못했어요. 잠시 뒤 다시 시도해 주세요.'**
   String get myGymSearchFailed;
 
   /// No description provided for @myGymLocateAction.
   ///
-  /// In en, this message translates to:
-  /// **'Find near my location'**
+  /// In ko, this message translates to:
+  /// **'현재 위치로 찾기'**
   String get myGymLocateAction;
 
   /// No description provided for @myGymNearbyCaption.
   ///
-  /// In en, this message translates to:
-  /// **'Gyms near your current location. Your location is not saved.'**
+  /// In ko, this message translates to:
+  /// **'현재 위치에서 가까운 헬스장이에요. 위치는 저장하지 않아요.'**
   String get myGymNearbyCaption;
 
   /// No description provided for @myGymNearbyEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No gyms found within 2 km of your location. Try searching by name.'**
+  /// In ko, this message translates to:
+  /// **'현재 위치 2km 안에서 헬스장을 찾지 못했어요. 이름으로 찾아 보세요.'**
   String get myGymNearbyEmpty;
 
   /// No description provided for @myGymLocationDenied.
   ///
-  /// In en, this message translates to:
-  /// **'Allow location access to find gyms near you.'**
+  /// In ko, this message translates to:
+  /// **'위치 사용을 허용하면 주변 헬스장을 찾을 수 있어요.'**
   String get myGymLocationDenied;
 
   /// No description provided for @myGymLocationBlocked.
   ///
-  /// In en, this message translates to:
-  /// **'Allow location access in your browser site settings, then try again.'**
+  /// In ko, this message translates to:
+  /// **'브라우저 사이트 설정에서 위치 사용을 허용한 뒤 다시 눌러 주세요.'**
   String get myGymLocationBlocked;
 
   /// No description provided for @myGymLocationDisabled.
   ///
-  /// In en, this message translates to:
-  /// **'Turn on device location services, then try again.'**
+  /// In ko, this message translates to:
+  /// **'기기의 위치 서비스를 켠 뒤 다시 눌러 주세요.'**
   String get myGymLocationDisabled;
 
   /// No description provided for @myGymLocationUnavailable.
   ///
-  /// In en, this message translates to:
-  /// **'Could not get your location. Try again or search by name.'**
+  /// In ko, this message translates to:
+  /// **'현재 위치를 가져오지 못했어요. 다시 시도하거나 이름으로 찾아 보세요.'**
   String get myGymLocationUnavailable;
 
   /// No description provided for @myGymCurrent.
   ///
-  /// In en, this message translates to:
-  /// **'Current gym'**
+  /// In ko, this message translates to:
+  /// **'현재 소속'**
   String get myGymCurrent;
 
   /// No description provided for @myGymPicked.
   ///
-  /// In en, this message translates to:
-  /// **'Saving will switch you to this gym'**
+  /// In ko, this message translates to:
+  /// **'저장하면 이 헬스장으로 바뀌어요'**
   String get myGymPicked;
 
   /// No description provided for @myGymNone.
   ///
-  /// In en, this message translates to:
-  /// **'None yet'**
+  /// In ko, this message translates to:
+  /// **'아직 없어요'**
   String get myGymNone;
 
   /// No description provided for @myGymHiddenTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Members can\'t find you yet'**
+  /// In ko, this message translates to:
+  /// **'회원에게 아직 보이지 않아요'**
   String get myGymHiddenTitle;
 
   /// No description provided for @myGymHiddenBody.
   ///
-  /// In en, this message translates to:
-  /// **'Set your gym to appear in the member app\'s gym finder and consultation requests.'**
+  /// In ko, this message translates to:
+  /// **'소속 헬스장을 설정해야 회원 앱의 헬스장 찾기와 상담 신청에 나와요.'**
   String get myGymHiddenBody;
 
   /// No description provided for @myGymHiddenAction.
   ///
-  /// In en, this message translates to:
-  /// **'Set gym'**
+  /// In ko, this message translates to:
+  /// **'헬스장 설정'**
   String get myGymHiddenAction;
 
   /// No description provided for @navAdminGroup.
   ///
-  /// In en, this message translates to:
-  /// **'Admin'**
+  /// In ko, this message translates to:
+  /// **'운영'**
   String get navAdminGroup;
 
   /// No description provided for @navAdminReports.
   ///
-  /// In en, this message translates to:
-  /// **'Reports & accounts'**
+  /// In ko, this message translates to:
+  /// **'신고·계정 관리'**
   String get navAdminReports;
 
   /// No description provided for @adminReportsTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Reports & accounts'**
+  /// In ko, this message translates to:
+  /// **'신고·계정 관리'**
   String get adminReportsTitle;
 
   /// No description provided for @adminReportsSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Review members\' reports about trainers, and suspend or restore trainer accounts when needed.'**
+  /// In ko, this message translates to:
+  /// **'회원이 보낸 트레이너 신고를 확인하고, 필요하면 트레이너 계정을 정지하거나 풀어요.'**
   String get adminReportsSubtitle;
 
   /// No description provided for @adminSectionReports.
   ///
-  /// In en, this message translates to:
-  /// **'Reports'**
+  /// In ko, this message translates to:
+  /// **'신고'**
   String get adminSectionReports;
 
   /// No description provided for @adminSectionTrainers.
   ///
-  /// In en, this message translates to:
-  /// **'Trainers'**
+  /// In ko, this message translates to:
+  /// **'트레이너'**
   String get adminSectionTrainers;
 
   /// No description provided for @adminReportFilterOpen.
   ///
-  /// In en, this message translates to:
-  /// **'Open'**
+  /// In ko, this message translates to:
+  /// **'처리 전'**
   String get adminReportFilterOpen;
 
   /// No description provided for @adminReportFilterClosed.
   ///
-  /// In en, this message translates to:
-  /// **'Closed'**
+  /// In ko, this message translates to:
+  /// **'처리됨'**
   String get adminReportFilterClosed;
 
   /// No description provided for @adminReportStatusResolved.
   ///
-  /// In en, this message translates to:
-  /// **'Actioned'**
+  /// In ko, this message translates to:
+  /// **'조치함'**
   String get adminReportStatusResolved;
 
   /// No description provided for @adminReportStatusDismissed.
   ///
-  /// In en, this message translates to:
-  /// **'Dismissed'**
+  /// In ko, this message translates to:
+  /// **'넘김'**
   String get adminReportStatusDismissed;
 
   /// No description provided for @adminReasonImpersonation.
   ///
-  /// In en, this message translates to:
-  /// **'Impersonation'**
+  /// In ko, this message translates to:
+  /// **'소속·신원 사칭'**
   String get adminReasonImpersonation;
 
   /// No description provided for @adminReasonInappropriateMessage.
   ///
-  /// In en, this message translates to:
-  /// **'Inappropriate messages'**
+  /// In ko, this message translates to:
+  /// **'부적절한 메시지'**
   String get adminReasonInappropriateMessage;
 
   /// No description provided for @adminReasonOther.
   ///
-  /// In en, this message translates to:
-  /// **'Other'**
+  /// In ko, this message translates to:
+  /// **'기타'**
   String get adminReasonOther;
 
   /// No description provided for @adminFieldTarget.
   ///
-  /// In en, this message translates to:
-  /// **'Trainer'**
+  /// In ko, this message translates to:
+  /// **'대상'**
   String get adminFieldTarget;
 
   /// No description provided for @adminFieldReason.
   ///
-  /// In en, this message translates to:
-  /// **'Reason'**
+  /// In ko, this message translates to:
+  /// **'사유'**
   String get adminFieldReason;
 
   /// No description provided for @adminFieldMemo.
   ///
-  /// In en, this message translates to:
-  /// **'Details'**
+  /// In ko, this message translates to:
+  /// **'내용'**
   String get adminFieldMemo;
 
   /// No description provided for @adminFieldReportedAt.
   ///
-  /// In en, this message translates to:
-  /// **'Reported'**
+  /// In ko, this message translates to:
+  /// **'신고일'**
   String get adminFieldReportedAt;
 
   /// No description provided for @adminFieldResolvedAt.
   ///
-  /// In en, this message translates to:
-  /// **'Closed'**
+  /// In ko, this message translates to:
+  /// **'처리일'**
   String get adminFieldResolvedAt;
 
   /// No description provided for @adminFieldOpenReports.
   ///
-  /// In en, this message translates to:
-  /// **'Open reports'**
+  /// In ko, this message translates to:
+  /// **'처리 전 신고'**
   String get adminFieldOpenReports;
 
   /// No description provided for @adminOpenReportsCount.
   ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 report} other{{count} reports}}'**
+  /// In ko, this message translates to:
+  /// **'{count}건'**
   String adminOpenReportsCount(int count);
 
   /// No description provided for @adminReportsLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load reports'**
+  /// In ko, this message translates to:
+  /// **'신고 목록을 불러오지 못했어요'**
   String get adminReportsLoadFailed;
 
   /// No description provided for @adminReportsEmptyOpen.
   ///
-  /// In en, this message translates to:
-  /// **'No reports to review'**
+  /// In ko, this message translates to:
+  /// **'처리할 신고가 없어요'**
   String get adminReportsEmptyOpen;
 
   /// No description provided for @adminReportsEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No matching reports'**
+  /// In ko, this message translates to:
+  /// **'해당하는 신고가 없어요'**
   String get adminReportsEmpty;
 
   /// No description provided for @adminTrainerSearchHint.
   ///
-  /// In en, this message translates to:
-  /// **'Search by name or email'**
+  /// In ko, this message translates to:
+  /// **'이름이나 이메일로 찾기'**
   String get adminTrainerSearchHint;
 
   /// No description provided for @adminStateActive.
   ///
-  /// In en, this message translates to:
-  /// **'Active'**
+  /// In ko, this message translates to:
+  /// **'이용 중'**
   String get adminStateActive;
 
   /// No description provided for @adminResolve.
   ///
-  /// In en, this message translates to:
-  /// **'Mark actioned'**
+  /// In ko, this message translates to:
+  /// **'조치함'**
   String get adminResolve;
 
   /// No description provided for @adminDismiss.
   ///
-  /// In en, this message translates to:
-  /// **'Dismiss'**
+  /// In ko, this message translates to:
+  /// **'넘김'**
   String get adminDismiss;
 
   /// No description provided for @adminResolveTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Close the report on {name} as actioned?'**
+  /// In ko, this message translates to:
+  /// **'{name} 신고를 조치함으로 닫을까요?'**
   String adminResolveTitle(String name);
 
   /// No description provided for @adminResolveBody.
   ///
-  /// In en, this message translates to:
-  /// **'Close a report once you\'ve taken action, such as suspending the account. Closing it doesn\'t change the account.'**
+  /// In ko, this message translates to:
+  /// **'계정 정지 같은 조치를 마친 신고를 닫아요. 신고를 닫아도 계정 상태는 바뀌지 않아요.'**
   String get adminResolveBody;
 
   /// No description provided for @adminDismissTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Dismiss the report on {name}?'**
+  /// In ko, this message translates to:
+  /// **'{name} 신고를 넘길까요?'**
   String adminDismissTitle(String name);
 
   /// No description provided for @adminDismissBody.
   ///
-  /// In en, this message translates to:
-  /// **'Close a report that needs no action. The account doesn\'t change.'**
+  /// In ko, this message translates to:
+  /// **'조치가 필요 없는 신고를 닫아요. 계정 상태는 바뀌지 않아요.'**
   String get adminDismissBody;
 
   /// No description provided for @adminReportResolved.
   ///
-  /// In en, this message translates to:
-  /// **'Report closed as actioned'**
+  /// In ko, this message translates to:
+  /// **'신고를 조치함으로 닫았어요'**
   String get adminReportResolved;
 
   /// No description provided for @adminReportDismissed.
   ///
-  /// In en, this message translates to:
-  /// **'Report dismissed'**
+  /// In ko, this message translates to:
+  /// **'신고를 넘겼어요'**
   String get adminReportDismissed;
 
   /// No description provided for @adminRefresh.
   ///
-  /// In en, this message translates to:
-  /// **'Refresh'**
+  /// In ko, this message translates to:
+  /// **'새로고침'**
   String get adminRefresh;
 
   /// No description provided for @adminFilterAll.
   ///
-  /// In en, this message translates to:
-  /// **'All'**
+  /// In ko, this message translates to:
+  /// **'전체'**
   String get adminFilterAll;
 
   /// No description provided for @adminStatusSuspended.
   ///
-  /// In en, this message translates to:
-  /// **'Suspended'**
+  /// In ko, this message translates to:
+  /// **'정지됨'**
   String get adminStatusSuspended;
 
   /// No description provided for @adminTrainersLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load trainers'**
+  /// In ko, this message translates to:
+  /// **'트레이너 목록을 불러오지 못했어요'**
   String get adminTrainersLoadFailed;
 
   /// No description provided for @adminActionRetryLater.
   ///
-  /// In en, this message translates to:
-  /// **'Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'잠시 뒤 다시 시도해 주세요.'**
   String get adminActionRetryLater;
 
   /// No description provided for @adminTrainersEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No trainers here'**
+  /// In ko, this message translates to:
+  /// **'해당하는 트레이너가 없어요'**
   String get adminTrainersEmpty;
 
   /// No description provided for @adminTrainerUnnamed.
   ///
-  /// In en, this message translates to:
-  /// **'Unnamed trainer'**
+  /// In ko, this message translates to:
+  /// **'이름 없는 트레이너'**
   String get adminTrainerUnnamed;
 
   /// No description provided for @adminFieldEmail.
   ///
-  /// In en, this message translates to:
-  /// **'Email'**
+  /// In ko, this message translates to:
+  /// **'이메일'**
   String get adminFieldEmail;
 
   /// No description provided for @adminFieldGym.
   ///
-  /// In en, this message translates to:
-  /// **'Gym'**
+  /// In ko, this message translates to:
+  /// **'소속'**
   String get adminFieldGym;
 
   /// No description provided for @adminFieldSignedUp.
   ///
-  /// In en, this message translates to:
-  /// **'Signed up'**
+  /// In ko, this message translates to:
+  /// **'가입일'**
   String get adminFieldSignedUp;
 
   /// No description provided for @adminGymNone.
   ///
-  /// In en, this message translates to:
-  /// **'No gym yet'**
+  /// In ko, this message translates to:
+  /// **'소속 헬스장이 없어요'**
   String get adminGymNone;
 
   /// No description provided for @adminSuspend.
   ///
-  /// In en, this message translates to:
-  /// **'Suspend account'**
+  /// In ko, this message translates to:
+  /// **'계정 정지'**
   String get adminSuspend;
 
   /// No description provided for @adminUnsuspend.
   ///
-  /// In en, this message translates to:
-  /// **'Lift suspension'**
+  /// In ko, this message translates to:
+  /// **'정지 해제'**
   String get adminUnsuspend;
 
   /// No description provided for @adminSuspendTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Suspend {name}\'s account?'**
+  /// In ko, this message translates to:
+  /// **'{name} 계정을 정지할까요?'**
   String adminSuspendTitle(String name);
 
   /// No description provided for @adminSuspendBody.
   ///
-  /// In en, this message translates to:
-  /// **'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT appointments are cancelled. Lifting the suspension does not restore those connections.'**
+  /// In ko, this message translates to:
+  /// **'정지하면 바로 로그아웃되고 다시 로그인할 수 없어요. 담당 회원 연결은 모두 해제되어 회원에게 알림이 가고, 시작 전 PT 일정은 취소돼요. 정지를 풀어도 연결은 돌아오지 않아요.'**
   String get adminSuspendBody;
 
   /// No description provided for @adminUnsuspendTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Lift {name}\'s suspension?'**
+  /// In ko, this message translates to:
+  /// **'{name} 계정 정지를 풀까요?'**
   String adminUnsuspendTitle(String name);
 
   /// No description provided for @adminUnsuspendBody.
   ///
-  /// In en, this message translates to:
-  /// **'They can sign in again. Ended member connections only come back when the member agrees again.'**
+  /// In ko, this message translates to:
+  /// **'다시 로그인할 수 있어요. 해제된 담당 회원 연결은 회원이 다시 동의해야 이어져요.'**
   String get adminUnsuspendBody;
 
   /// No description provided for @adminSuspended.
   ///
-  /// In en, this message translates to:
-  /// **'Suspended {name}\'s account'**
+  /// In ko, this message translates to:
+  /// **'{name} 계정을 정지했어요'**
   String adminSuspended(String name);
 
   /// No description provided for @adminSuspendedReleased.
   ///
-  /// In en, this message translates to:
-  /// **'Suspended {name}\'s account and ended {count} member connections'**
+  /// In ko, this message translates to:
+  /// **'{name} 계정을 정지하고 담당 회원 {count}명의 연결을 해제했어요'**
   String adminSuspendedReleased(String name, int count);
 
   /// No description provided for @adminUnsuspended.
   ///
-  /// In en, this message translates to:
-  /// **'Lifted {name}\'s suspension'**
+  /// In ko, this message translates to:
+  /// **'{name} 계정 정지를 풀었어요'**
   String adminUnsuspended(String name);
 
   /// No description provided for @adminActionFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t complete that. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.'**
   String get adminActionFailed;
 
   /// No description provided for @myGymEditHint.
   ///
-  /// In en, this message translates to:
-  /// **'Search by name and pick your gym. Members find you through this gym.'**
+  /// In ko, this message translates to:
+  /// **'이름으로 찾아 소속 헬스장을 골라 주세요. 회원은 이 헬스장으로 트레이너님을 찾아요.'**
   String get myGymEditHint;
 
   /// No description provided for @mySignOut.
   ///
-  /// In en, this message translates to:
-  /// **'Sign out'**
+  /// In ko, this message translates to:
+  /// **'로그아웃'**
   String get mySignOut;
 
   /// No description provided for @myPwCurrentRequired.
   ///
-  /// In en, this message translates to:
-  /// **'Enter your current password'**
+  /// In ko, this message translates to:
+  /// **'현재 비밀번호를 입력해 주세요'**
   String get myPwCurrentRequired;
 
   /// No description provided for @myPwMismatch.
   ///
-  /// In en, this message translates to:
-  /// **'The new passwords don\'t match'**
+  /// In ko, this message translates to:
+  /// **'새 비밀번호가 서로 달라요'**
   String get myPwMismatch;
 
   /// No description provided for @myPwChangeFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t change your password'**
+  /// In ko, this message translates to:
+  /// **'비밀번호를 바꾸지 못했어요'**
   String get myPwChangeFailed;
 
   /// No description provided for @myPwChangeRetry.
   ///
-  /// In en, this message translates to:
-  /// **'That didn\'t work. Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'바꾸지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get myPwChangeRetry;
 
   /// No description provided for @myPwCurrent.
   ///
-  /// In en, this message translates to:
-  /// **'Current password'**
+  /// In ko, this message translates to:
+  /// **'현재 비밀번호'**
   String get myPwCurrent;
 
   /// No description provided for @myPwNew.
   ///
-  /// In en, this message translates to:
-  /// **'New password ({min}+ characters, letters and numbers)'**
+  /// In ko, this message translates to:
+  /// **'새 비밀번호 (영문·숫자 포함 {min}자 이상)'**
   String myPwNew(int min);
 
   /// No description provided for @myPwConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Confirm new password'**
+  /// In ko, this message translates to:
+  /// **'새 비밀번호 확인'**
   String get myPwConfirm;
 
   /// No description provided for @myPwChanging.
   ///
-  /// In en, this message translates to:
-  /// **'Changing…'**
+  /// In ko, this message translates to:
+  /// **'변경 중…'**
   String get myPwChanging;
 
   /// No description provided for @mySettingsSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save your settings. Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get mySettingsSaveFailed;
 
   /// No description provided for @myProfileSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'How members see you, and this month\'s activity'**
+  /// In ko, this message translates to:
+  /// **'담당 회원에게 보이는 내 소개와 이번 달 활동이에요'**
   String get myProfileSubtitle;
 
   /// No description provided for @myClientsSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Tidy up your member connections'**
+  /// In ko, this message translates to:
+  /// **'담당 회원 연결을 정리해요'**
   String get myClientsSubtitle;
-
-  /// No description provided for @myLanguageSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose the console language'**
-  String get myLanguageSubtitle;
 
   /// No description provided for @myAccountSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Manage your sign-in account and password'**
+  /// In ko, this message translates to:
+  /// **'로그인 계정과 비밀번호를 관리해요'**
   String get myAccountSubtitle;
 
   /// No description provided for @mySupportSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Ask a question or read our policies'**
+  /// In ko, this message translates to:
+  /// **'궁금한 점을 묻거나 약관을 확인해요'**
   String get mySupportSubtitle;
 
   /// No description provided for @myWithdrawSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Please check once before you delete your account'**
+  /// In ko, this message translates to:
+  /// **'탈퇴하기 전에 한 번만 확인해 주세요'**
   String get myWithdrawSubtitle;
 
   /// No description provided for @myPageTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Profile & settings'**
+  /// In ko, this message translates to:
+  /// **'내 정보 · 설정'**
   String get myPageTitle;
 
   /// No description provided for @myProfileTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Profile'**
+  /// In ko, this message translates to:
+  /// **'프로필'**
   String get myProfileTitle;
 
   /// No description provided for @myEmail.
   ///
-  /// In en, this message translates to:
-  /// **'Email'**
+  /// In ko, this message translates to:
+  /// **'이메일'**
   String get myEmail;
 
   /// No description provided for @myBasicInfoHint.
   ///
-  /// In en, this message translates to:
-  /// **'Members see this on your trainer profile'**
+  /// In ko, this message translates to:
+  /// **'담당 회원이 트레이너 소개에서 보는 정보예요'**
   String get myBasicInfoHint;
 
   /// No description provided for @myNotificationsHint.
   ///
-  /// In en, this message translates to:
-  /// **'Choose which alerts you get'**
+  /// In ko, this message translates to:
+  /// **'어떤 알림을 받을지 골라요'**
   String get myNotificationsHint;
 
   /// No description provided for @myAccountInfo.
   ///
-  /// In en, this message translates to:
-  /// **'Account'**
+  /// In ko, this message translates to:
+  /// **'계정 정보'**
   String get myAccountInfo;
 
   /// No description provided for @myAccountInfoHint.
   ///
-  /// In en, this message translates to:
-  /// **'To change your name or email, contact support.'**
+  /// In ko, this message translates to:
+  /// **'이름·이메일을 바꾸려면 고객 지원으로 문의해 주세요.'**
   String get myAccountInfoHint;
 
   /// No description provided for @mySecurity.
   ///
-  /// In en, this message translates to:
-  /// **'Security'**
+  /// In ko, this message translates to:
+  /// **'보안'**
   String get mySecurity;
 
   /// No description provided for @myDiscardTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Save your changes?'**
+  /// In ko, this message translates to:
+  /// **'변경사항을 저장할까요?'**
   String get myDiscardTitle;
 
   /// No description provided for @myDiscardBody.
   ///
-  /// In en, this message translates to:
-  /// **'If you leave without saving, your changes will be lost.'**
+  /// In ko, this message translates to:
+  /// **'저장하지 않고 나가면 고친 내용이 사라져요.'**
   String get myDiscardBody;
 
   /// No description provided for @myKeepEditing.
   ///
-  /// In en, this message translates to:
-  /// **'Keep editing'**
+  /// In ko, this message translates to:
+  /// **'계속 수정'**
   String get myKeepEditing;
 
   /// No description provided for @myDiscardAction.
   ///
-  /// In en, this message translates to:
-  /// **'Don\'t save'**
+  /// In ko, this message translates to:
+  /// **'저장 안 함'**
   String get myDiscardAction;
 
   /// No description provided for @mySaveAndLeave.
   ///
-  /// In en, this message translates to:
-  /// **'Save and leave'**
+  /// In ko, this message translates to:
+  /// **'저장하고 나가기'**
   String get mySaveAndLeave;
 
   /// No description provided for @mySignOutConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Sign out of this browser?'**
+  /// In ko, this message translates to:
+  /// **'이 브라우저에서 로그아웃할까요?'**
   String get mySignOutConfirm;
 
   /// No description provided for @myThisMonth.
   ///
-  /// In en, this message translates to:
-  /// **'This month'**
+  /// In ko, this message translates to:
+  /// **'이번 달'**
   String get myThisMonth;
 
   /// No description provided for @myIntroEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No introduction yet. Add one in Edit profile — members see it.'**
+  /// In ko, this message translates to:
+  /// **'아직 소개가 없어요. 프로필 수정에서 회원에게 보일 소개를 적어 주세요.'**
   String get myIntroEmpty;
 
   /// No description provided for @myCertsEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No certifications yet'**
+  /// In ko, this message translates to:
+  /// **'등록한 자격증이 없어요'**
   String get myCertsEmpty;
 
   /// No description provided for @myGymEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No gym yet. Pick yours in Set gym.'**
+  /// In ko, this message translates to:
+  /// **'소속 헬스장이 아직 없어요. 헬스장 설정에서 골라 주세요.'**
   String get myGymEmpty;
 
   /// No description provided for @myEditVisibleBody.
   ///
-  /// In en, this message translates to:
-  /// **'Your specialty, career, introduction and certifications appear on your trainer profile in the member app.'**
+  /// In ko, this message translates to:
+  /// **'전문 분야·경력·소개·자격증은 회원 앱의 트레이너 소개에 그대로 나와요.'**
   String get myEditVisibleBody;
 
   /// No description provided for @myClientManagementNoteTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Disconnecting keeps member records'**
+  /// In ko, this message translates to:
+  /// **'연결을 해제해도 회원 기록은 남아요'**
   String get myClientManagementNoteTitle;
 
   /// No description provided for @myClientManagementNote.
   ///
-  /// In en, this message translates to:
-  /// **'Their records stay in the member app. To coach them again, enter the connection code they give you under Connect member on the Members tab.'**
+  /// In ko, this message translates to:
+  /// **'회원 앱의 기록은 남아요. 다시 담당하려면 회원 탭의 회원 연결에서 회원에게 받은 연결 코드를 입력해 주세요.'**
   String get myClientManagementNote;
 
   /// No description provided for @myNotifConsultation.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation requests'**
+  /// In ko, this message translates to:
+  /// **'상담 요청'**
   String get myNotifConsultation;
 
   /// No description provided for @myNotifConsultationHint.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation requests and cancellations, replies to your coaching requests'**
+  /// In ko, this message translates to:
+  /// **'상담 신청·취소, 담당 요청 수락·거절'**
   String get myNotifConsultationHint;
 
   /// No description provided for @myNotifReservation.
   ///
-  /// In en, this message translates to:
-  /// **'Bookings'**
+  /// In ko, this message translates to:
+  /// **'예약'**
   String get myNotifReservation;
 
   /// No description provided for @myNotifReservationHint.
   ///
-  /// In en, this message translates to:
-  /// **'Bookings and cancellations'**
+  /// In ko, this message translates to:
+  /// **'예약 신청·취소'**
   String get myNotifReservationHint;
 
   /// No description provided for @myNotifMemberUpdates.
   ///
-  /// In en, this message translates to:
-  /// **'Member updates'**
+  /// In ko, this message translates to:
+  /// **'담당 회원 소식'**
   String get myNotifMemberUpdates;
 
   /// No description provided for @myNotifMemberUpdatesHint.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly feedback, goal or name changes, disconnections'**
+  /// In ko, this message translates to:
+  /// **'주간 피드백, 목표·이름 변경, 연결 해제'**
   String get myNotifMemberUpdatesHint;
 
   /// No description provided for @myNotifKindsTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Notifications to receive'**
+  /// In ko, this message translates to:
+  /// **'받을 알림'**
   String get myNotifKindsTitle;
 
   /// No description provided for @myNotifDesktopTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Desktop alerts'**
+  /// In ko, this message translates to:
+  /// **'데스크톱 알림'**
   String get myNotifDesktopTitle;
 
   /// No description provided for @myNotifDesktopHint.
   ///
-  /// In en, this message translates to:
-  /// **'Keep the console tab open and new notifications pop up in the corner of your screen while you use other tabs or apps. The unread count in the tab title shows either way.'**
+  /// In ko, this message translates to:
+  /// **'콘솔 탭을 열어 두면 다른 탭이나 프로그램을 쓰는 중에도 새 알림이 화면 구석에 떠요. 탭 제목의 안 읽은 수는 이 설정과 상관없이 보여요.'**
   String get myNotifDesktopHint;
 
   /// No description provided for @myNotifDesktopSwitch.
   ///
-  /// In en, this message translates to:
-  /// **'Get alerts in this browser'**
+  /// In ko, this message translates to:
+  /// **'이 브라우저에서 알림 받기'**
   String get myNotifDesktopSwitch;
 
   /// No description provided for @myNotifDesktopGranted.
   ///
-  /// In en, this message translates to:
-  /// **'New notifications pop up when you\'re not looking at this tab'**
+  /// In ko, this message translates to:
+  /// **'이 탭을 보고 있지 않을 때 새 알림을 띄워요'**
   String get myNotifDesktopGranted;
 
   /// No description provided for @myNotifDesktopNotAsked.
   ///
-  /// In en, this message translates to:
-  /// **'Your browser will ask for permission when you turn this on'**
+  /// In ko, this message translates to:
+  /// **'켜면 브라우저가 알림을 허용할지 물어요'**
   String get myNotifDesktopNotAsked;
 
   /// No description provided for @myNotifDesktopDenied.
   ///
-  /// In en, this message translates to:
-  /// **'Notifications are blocked in this browser. Set Notifications to \'Allow\' from the icon at the left of the address bar, then reload'**
+  /// In ko, this message translates to:
+  /// **'브라우저에서 알림이 차단돼 있어요. 주소창 왼쪽 아이콘 › 알림을 \'허용\'으로 바꾼 뒤 새로 고쳐 주세요'**
   String get myNotifDesktopDenied;
 
   /// No description provided for @myNotifDesktopUnsupported.
   ///
-  /// In en, this message translates to:
-  /// **'Not available in this browser. Turn it on in Chrome, Edge or Whale on a computer'**
+  /// In ko, this message translates to:
+  /// **'이 브라우저에서는 쓸 수 없어요. 컴퓨터의 Chrome·Edge·Whale 에서 켤 수 있어요'**
   String get myNotifDesktopUnsupported;
 
   /// No description provided for @myNotifDesktopOsHint.
   ///
-  /// In en, this message translates to:
-  /// **'If alerts don\'t appear, allow notifications for this browser in your computer\'s settings (Mac: System Settings › Notifications). You may need to restart the browser afterwards.'**
+  /// In ko, this message translates to:
+  /// **'알림이 보이지 않으면 컴퓨터 설정에서 이 브라우저의 알림을 켜 주세요(Mac: 시스템 설정 › 알림). 바꾼 뒤에는 브라우저를 다시 켜야 할 수 있어요.'**
   String get myNotifDesktopOsHint;
 
   /// No description provided for @myNotifDesktopTest.
   ///
-  /// In en, this message translates to:
-  /// **'Test alert'**
+  /// In ko, this message translates to:
+  /// **'시험 알림'**
   String get myNotifDesktopTest;
 
   /// No description provided for @myNotifDesktopTestTitle.
   ///
-  /// In en, this message translates to:
-  /// **'On-Care Trainer alerts are on'**
+  /// In ko, this message translates to:
+  /// **'On-Care 트레이너 알림이 켜졌어요'**
   String get myNotifDesktopTestTitle;
 
   /// No description provided for @myNotifDesktopTestBody.
   ///
-  /// In en, this message translates to:
-  /// **'New notifications will look like this'**
+  /// In ko, this message translates to:
+  /// **'새 알림이 오면 이렇게 떠요'**
   String get myNotifDesktopTestBody;
 
   /// No description provided for @desktopAlertMessageBody.
   ///
-  /// In en, this message translates to:
-  /// **'You have a new message'**
+  /// In ko, this message translates to:
+  /// **'새 메시지가 왔어요'**
   String get desktopAlertMessageBody;
 
   /// No description provided for @desktopAlertSummaryTitle.
   ///
-  /// In en, this message translates to:
-  /// **'{count} new notifications'**
+  /// In ko, this message translates to:
+  /// **'새 알림 {count}건'**
   String desktopAlertSummaryTitle(int count);
 
   /// No description provided for @desktopAlertSummaryBody.
   ///
-  /// In en, this message translates to:
-  /// **'Open your inbox to see them'**
+  /// In ko, this message translates to:
+  /// **'알림함에서 확인해 보세요'**
   String get desktopAlertSummaryBody;
 
   /// No description provided for @routineTypeCardio.
   ///
-  /// In en, this message translates to:
-  /// **'Cardio'**
+  /// In ko, this message translates to:
+  /// **'유산소'**
   String get routineTypeCardio;
 
   /// No description provided for @routineTypeStrength.
   ///
-  /// In en, this message translates to:
-  /// **'Strength'**
+  /// In ko, this message translates to:
+  /// **'근력'**
   String get routineTypeStrength;
 
   /// No description provided for @routineTypeStretching.
   ///
-  /// In en, this message translates to:
-  /// **'Stretching'**
+  /// In ko, this message translates to:
+  /// **'스트레칭'**
   String get routineTypeStretching;
 
   /// No description provided for @routineTypeFlexibility.
   ///
-  /// In en, this message translates to:
-  /// **'Stretching'**
+  /// In ko, this message translates to:
+  /// **'스트레칭'**
   String get routineTypeFlexibility;
 
   /// No description provided for @routineTypeOther.
   ///
-  /// In en, this message translates to:
-  /// **'Other'**
+  /// In ko, this message translates to:
+  /// **'기타'**
   String get routineTypeOther;
 
   /// No description provided for @routineFieldType.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise type'**
+  /// In ko, this message translates to:
+  /// **'운동 유형'**
   String get routineFieldType;
 
   /// No description provided for @routineFieldMinutes.
   ///
-  /// In en, this message translates to:
-  /// **'Duration'**
+  /// In ko, this message translates to:
+  /// **'운동 시간'**
   String get routineFieldMinutes;
 
   /// No description provided for @routineFieldTotalMinutes.
   ///
-  /// In en, this message translates to:
-  /// **'Total workout time'**
+  /// In ko, this message translates to:
+  /// **'총 운동 시간'**
   String get routineFieldTotalMinutes;
 
   /// No description provided for @routineFieldIntensity.
   ///
-  /// In en, this message translates to:
-  /// **'Intensity'**
+  /// In ko, this message translates to:
+  /// **'운동 강도'**
   String get routineFieldIntensity;
 
   /// No description provided for @routineFieldDate.
   ///
-  /// In en, this message translates to:
-  /// **'Date'**
+  /// In ko, this message translates to:
+  /// **'날짜'**
   String get routineFieldDate;
 
   /// No description provided for @routineFieldExerciseName.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise name'**
+  /// In ko, this message translates to:
+  /// **'운동 이름'**
   String get routineFieldExerciseName;
 
   /// No description provided for @routineFieldExerciseNameHint.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. Squat, Treadmill'**
+  /// In ko, this message translates to:
+  /// **'예) 스쿼트, 러닝머신'**
   String get routineFieldExerciseNameHint;
 
   /// No description provided for @routineFieldExerciseNameHintCardio.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. Treadmill, Indoor cycling'**
+  /// In ko, this message translates to:
+  /// **'예) 러닝머신, 실내 자전거'**
   String get routineFieldExerciseNameHintCardio;
 
   /// No description provided for @routineFieldExerciseNameHintStrength.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. Squat, Bench press'**
+  /// In ko, this message translates to:
+  /// **'예) 스쿼트, 벤치프레스'**
   String get routineFieldExerciseNameHintStrength;
 
   /// No description provided for @routineFieldExerciseNameHintFlexibility.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. Full-body stretch, Yoga'**
+  /// In ko, this message translates to:
+  /// **'예) 전신 스트레칭, 요가'**
   String get routineFieldExerciseNameHintFlexibility;
 
   /// No description provided for @routineFieldExerciseNameHintOther.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. Rehab exercise, Sports activity'**
+  /// In ko, this message translates to:
+  /// **'예) 재활 운동, 스포츠 활동'**
   String get routineFieldExerciseNameHintOther;
 
   /// Label of the one-line benefit field on a personal routine row. Left empty, the auto-filled benefit (shown as the placeholder) is sent (#2570).
   ///
-  /// In en, this message translates to:
-  /// **'Benefit shown to member'**
+  /// In ko, this message translates to:
+  /// **'회원에게 보일 효과'**
   String get routineFieldEffect;
 
   /// No description provided for @routineFieldEffectHint.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. Protect right shoulder'**
+  /// In ko, this message translates to:
+  /// **'예) 오른쪽 어깨 보호'**
   String get routineFieldEffectHint;
 
   /// No description provided for @routineFieldSets.
   ///
-  /// In en, this message translates to:
-  /// **'Sets'**
+  /// In ko, this message translates to:
+  /// **'세트 수'**
   String get routineFieldSets;
 
   /// No description provided for @routineFieldReps.
   ///
-  /// In en, this message translates to:
-  /// **'Reps'**
+  /// In ko, this message translates to:
+  /// **'횟수'**
   String get routineFieldReps;
 
   /// No description provided for @routineFieldHold.
   ///
-  /// In en, this message translates to:
-  /// **'Hold time'**
+  /// In ko, this message translates to:
+  /// **'버티는 시간'**
   String get routineFieldHold;
 
   /// No description provided for @routineFieldMeasure.
   ///
-  /// In en, this message translates to:
-  /// **'Measured in'**
+  /// In ko, this message translates to:
+  /// **'재는 방법'**
   String get routineFieldMeasure;
 
   /// No description provided for @routineFieldWeight.
   ///
-  /// In en, this message translates to:
-  /// **'Weight'**
+  /// In ko, this message translates to:
+  /// **'중량'**
   String get routineFieldWeight;
 
   /// No description provided for @routineFieldCalories.
   ///
-  /// In en, this message translates to:
-  /// **'Estimated calories'**
+  /// In ko, this message translates to:
+  /// **'예상 소모 칼로리'**
   String get routineFieldCalories;
 
-  /// No description provided for @routineCaloriesNeedName.
+  /// 이름을 적기 전에는 확정된 소모 칼로리를 띄우지 않는다 (#1312)
   ///
-  /// In en, this message translates to:
-  /// **'Enter an exercise name'**
+  /// In ko, this message translates to:
+  /// **'운동 이름을 적어 주세요'**
   String get routineCaloriesNeedName;
 
-  /// No description provided for @routineCaloriesRoughEstimate.
+  /// 트레이너 폼은 수행할 회원의 체중을 모르므로 늘 어림값이다 (#1312)
   ///
-  /// In en, this message translates to:
-  /// **'A rough average for this exercise type · the saved record will also use the member\'s weight'**
+  /// In ko, this message translates to:
+  /// **'운동 유형 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록돼요'**
   String get routineCaloriesRoughEstimate;
 
   /// No description provided for @routineUnitHours.
   ///
-  /// In en, this message translates to:
-  /// **'hr'**
+  /// In ko, this message translates to:
+  /// **'시간'**
   String get routineUnitHours;
 
   /// No description provided for @routineUnitMinutes.
   ///
-  /// In en, this message translates to:
-  /// **'min'**
+  /// In ko, this message translates to:
+  /// **'분'**
   String get routineUnitMinutes;
 
   /// No description provided for @routineUnitSets.
   ///
-  /// In en, this message translates to:
-  /// **'sets'**
+  /// In ko, this message translates to:
+  /// **'세트'**
   String get routineUnitSets;
 
   /// No description provided for @routineUnitReps.
   ///
-  /// In en, this message translates to:
-  /// **'reps'**
+  /// In ko, this message translates to:
+  /// **'회'**
   String get routineUnitReps;
 
   /// No description provided for @routineUnitSeconds.
   ///
-  /// In en, this message translates to:
-  /// **'sec'**
+  /// In ko, this message translates to:
+  /// **'초'**
   String get routineUnitSeconds;
 
   /// No description provided for @routineUnitKg.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'kg'**
   String get routineUnitKg;
 
   /// No description provided for @routineKcalValue.
   ///
-  /// In en, this message translates to:
-  /// **'{count} kcal'**
+  /// In ko, this message translates to:
+  /// **'{count}kcal'**
   String routineKcalValue(int count);
 
   /// No description provided for @intensityLight.
   ///
-  /// In en, this message translates to:
-  /// **'Light'**
+  /// In ko, this message translates to:
+  /// **'가벼움'**
   String get intensityLight;
 
   /// No description provided for @intensityModerate.
   ///
-  /// In en, this message translates to:
-  /// **'Moderate'**
+  /// In ko, this message translates to:
+  /// **'보통'**
   String get intensityModerate;
 
   /// No description provided for @intensityHigh.
   ///
-  /// In en, this message translates to:
-  /// **'High'**
+  /// In ko, this message translates to:
+  /// **'높음'**
   String get intensityHigh;
 
   /// No description provided for @coachTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Programs'**
+  /// In ko, this message translates to:
+  /// **'프로그램'**
   String get coachTitle;
 
   /// No description provided for @coachSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Create, assign, and manage exercise programs for each member'**
+  /// In ko, this message translates to:
+  /// **'회원별 운동 프로그램을 만들고 배정·관리하세요'**
   String get coachSubtitle;
 
   /// No description provided for @coachSendFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send. Please try again'**
+  /// In ko, this message translates to:
+  /// **'보내지 못했어요. 다시 시도해 주세요'**
   String get coachSendFailed;
 
   /// No description provided for @coachSwitchClientTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Switch to another member?'**
+  /// In ko, this message translates to:
+  /// **'다른 회원으로 바꿀까요?'**
   String get coachSwitchClientTitle;
 
   /// No description provided for @coachSwitchClientBody.
   ///
-  /// In en, this message translates to:
-  /// **'You have unsent work. Switching members discards the program and personal exercises you are building.'**
+  /// In ko, this message translates to:
+  /// **'아직 보내지 않은 작성 내용이 있어요. 회원을 바꾸면 지금 짠 프로그램과 개인운동이 사라져요.'**
   String get coachSwitchClientBody;
 
   /// No description provided for @coachSwitchClientConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Switch'**
+  /// In ko, this message translates to:
+  /// **'바꾸기'**
   String get coachSwitchClientConfirm;
 
   /// No description provided for @coachDraftResumeTitle.
   ///
-  /// In en, this message translates to:
-  /// **'You have saved work'**
+  /// In ko, this message translates to:
+  /// **'저장해 둔 작성 내용이 있어요'**
   String get coachDraftResumeTitle;
 
   /// Body of the coaching screen's resume prompt for an autosaved draft.
   ///
-  /// In en, this message translates to:
-  /// **'The program you were building for {name} was saved automatically. Continue where you left off?'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원에게 짜던 프로그램이 자동으로 저장되어 있어요. 이어서 쓸까요?'**
   String coachDraftResumeBody(String name);
 
   /// No description provided for @coachDraftResume.
   ///
-  /// In en, this message translates to:
-  /// **'Continue'**
+  /// In ko, this message translates to:
+  /// **'이어서 쓰기'**
   String get coachDraftResume;
 
   /// No description provided for @coachDraftDiscard.
   ///
-  /// In en, this message translates to:
-  /// **'Discard'**
+  /// In ko, this message translates to:
+  /// **'버리기'**
   String get coachDraftDiscard;
 
   /// No description provided for @personalRoutineTargetLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load PT appointments'**
+  /// In ko, this message translates to:
+  /// **'PT 일정을 불러오지 못했어요'**
   String get personalRoutineTargetLoadFailed;
 
   /// No description provided for @personalRoutineStartPast.
   ///
-  /// In en, this message translates to:
-  /// **'The start date has passed, so it\'s now set to today. Check it and send again'**
+  /// In ko, this message translates to:
+  /// **'시작일이 지나 오늘로 바꿨어요. 확인하고 다시 보내 주세요'**
   String get personalRoutineStartPast;
 
   /// No description provided for @schedRoutinesReadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t check the attached personal exercises. Please try again'**
+  /// In ko, this message translates to:
+  /// **'붙어 있는 개인운동을 확인하지 못했어요. 다시 시도해 주세요'**
   String get schedRoutinesReadFailed;
 
   /// No description provided for @coachNoClients.
   ///
-  /// In en, this message translates to:
-  /// **'No members yet'**
+  /// In ko, this message translates to:
+  /// **'등록된 회원이 없어요'**
   String get coachNoClients;
 
   /// No description provided for @coachTrainerAdded.
   ///
-  /// In en, this message translates to:
-  /// **'Added by trainer'**
+  /// In ko, this message translates to:
+  /// **'트레이너 추가'**
   String get coachTrainerAdded;
 
   /// No description provided for @coachTemplateAdded.
   ///
-  /// In en, this message translates to:
-  /// **'Added from {name} template'**
+  /// In ko, this message translates to:
+  /// **'{name} 템플릿 추가'**
   String coachTemplateAdded(String name);
 
   /// No description provided for @coachRegisteredOn.
   ///
-  /// In en, this message translates to:
-  /// **'Added to the {date} schedule'**
+  /// In ko, this message translates to:
+  /// **'{date} 일정에 추가했어요'**
   String coachRegisteredOn(String date);
 
   /// No description provided for @coachRegisteredAttachedExisting.
   ///
-  /// In en, this message translates to:
-  /// **'There was already a PT planned on {date}, so the program was only attached to it — the time range you picked wasn\'t applied'**
+  /// In ko, this message translates to:
+  /// **'{date}에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요'**
   String coachRegisteredAttachedExisting(String date);
 
   /// No description provided for @coachGoToSchedule.
   ///
-  /// In en, this message translates to:
-  /// **'Go to schedule'**
+  /// In ko, this message translates to:
+  /// **'스케줄로 가기'**
   String get coachGoToSchedule;
 
   /// No description provided for @labelTomorrow.
   ///
-  /// In en, this message translates to:
-  /// **'Tomorrow'**
+  /// In ko, this message translates to:
+  /// **'내일'**
   String get labelTomorrow;
 
   /// No description provided for @coachTemplates.
   ///
-  /// In en, this message translates to:
-  /// **'Program templates'**
+  /// In ko, this message translates to:
+  /// **'프로그램 템플릿'**
   String get coachTemplates;
 
   /// No description provided for @coachMemberRecords.
   ///
-  /// In en, this message translates to:
-  /// **'Member records'**
+  /// In ko, this message translates to:
+  /// **'회원 기록'**
   String get coachMemberRecords;
 
   /// No description provided for @coachSentHistory.
   ///
-  /// In en, this message translates to:
-  /// **'Sent history'**
+  /// In ko, this message translates to:
+  /// **'전송 이력'**
   String get coachSentHistory;
 
   /// No description provided for @coachLastDelivery.
   ///
-  /// In en, this message translates to:
-  /// **'Last send'**
+  /// In ko, this message translates to:
+  /// **'직전 전송'**
   String get coachLastDelivery;
 
   /// No description provided for @coachDeliveryPtWithRoutine.
   ///
-  /// In en, this message translates to:
-  /// **'PT · personal'**
+  /// In ko, this message translates to:
+  /// **'PT · 개인운동'**
   String get coachDeliveryPtWithRoutine;
 
   /// No description provided for @coachDeliveryRoutineOnly.
   ///
-  /// In en, this message translates to:
-  /// **'Personal only'**
+  /// In ko, this message translates to:
+  /// **'개인운동만'**
   String get coachDeliveryRoutineOnly;
 
   /// No description provided for @coachDeliveryCancelledRoutineOnly.
   ///
-  /// In en, this message translates to:
-  /// **'PT cancelled · personal only'**
+  /// In ko, this message translates to:
+  /// **'PT 취소 · 개인운동만'**
   String get coachDeliveryCancelledRoutineOnly;
 
   /// No description provided for @coachDeliveryOn.
   ///
-  /// In en, this message translates to:
-  /// **'Sent {date}'**
+  /// In ko, this message translates to:
+  /// **'{date} 보냄'**
   String coachDeliveryOn(String date);
 
   /// No description provided for @coachUnsentRoutines.
   ///
-  /// In en, this message translates to:
-  /// **'{count} personal exercise(s) not sent yet'**
+  /// In ko, this message translates to:
+  /// **'아직 보내지 않은 개인운동 {count}개'**
   String coachUnsentRoutines(int count);
 
   /// No description provided for @coachUnsentRoutinesBody.
   ///
-  /// In en, this message translates to:
-  /// **'The PT has ended but this has not reached the member yet. Open that PT in the schedule to send it.'**
+  /// In ko, this message translates to:
+  /// **'PT 가 끝났는데 아직 회원에게 가지 않았어요. 스케줄에서 그 일정을 열어 보낼 수 있어요.'**
   String get coachUnsentRoutinesBody;
 
   /// No description provided for @coachSendUnsentRoutines.
   ///
-  /// In en, this message translates to:
-  /// **'Open in schedule'**
+  /// In ko, this message translates to:
+  /// **'스케줄에서 보내기'**
   String get coachSendUnsentRoutines;
 
   /// No description provided for @coachDeliveryProgramSection.
   ///
-  /// In en, this message translates to:
-  /// **'Program'**
+  /// In ko, this message translates to:
+  /// **'프로그램'**
   String get coachDeliveryProgramSection;
 
   /// No description provided for @coachDeliveryRoutineSection.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercises'**
+  /// In ko, this message translates to:
+  /// **'개인운동'**
   String get coachDeliveryRoutineSection;
 
   /// No description provided for @coachDeliveryNothing.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing sent'**
+  /// In ko, this message translates to:
+  /// **'보낸 것 없음'**
   String get coachDeliveryNothing;
 
   /// No description provided for @coachHistoryFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load history'**
+  /// In ko, this message translates to:
+  /// **'이력을 불러오지 못했어요'**
   String get coachHistoryFailed;
 
   /// No description provided for @coachHistoryEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'You haven\'t sent any programs yet'**
+  /// In ko, this message translates to:
+  /// **'아직 보낸 프로그램이 없어요'**
   String get coachHistoryEmpty;
 
   /// No description provided for @aiOptionRecovery.
   ///
-  /// In en, this message translates to:
-  /// **'Recovery'**
+  /// In ko, this message translates to:
+  /// **'회복안'**
   String get aiOptionRecovery;
 
   /// No description provided for @aiOptionPush.
   ///
-  /// In en, this message translates to:
-  /// **'Push'**
+  /// In ko, this message translates to:
+  /// **'강화안'**
   String get aiOptionPush;
 
   /// No description provided for @aiGenerateFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t generate with AI. Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get aiGenerateFailed;
 
   /// No description provided for @aiGenerateInvalidConditions.
   ///
-  /// In en, this message translates to:
-  /// **'Check the generation conditions. Total time must be between {min} and {max} minutes'**
+  /// In ko, this message translates to:
+  /// **'생성 조건을 확인해 주세요. 총 운동 시간은 {min}~{max}분 사이여야 해요'**
   String aiGenerateInvalidConditions(int min, int max);
 
   /// No description provided for @aiGenerateMinutesHelper.
   ///
-  /// In en, this message translates to:
-  /// **'Enter between {min} and {max} minutes'**
+  /// In ko, this message translates to:
+  /// **'{min}~{max}분 사이로 입력해 주세요'**
   String aiGenerateMinutesHelper(int min, int max);
 
-  /// No description provided for @aiGenerateRateLimited.
+  /// 429 when the trainer taps 생성 repeatedly. Not a failure — it works again shortly (#582).
   ///
-  /// In en, this message translates to:
-  /// **'Too many generation requests. Please try again shortly'**
+  /// In ko, this message translates to:
+  /// **'AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요'**
   String get aiGenerateRateLimited;
 
-  /// No description provided for @aiGenerateDailyLimit.
+  /// 429 daily_limit — the trainer used today's AI calls (coach, routine options, report summary). Opens again at KST midnight (#3032).
   ///
-  /// In en, this message translates to:
-  /// **'You\'ve used today\'s AI limit. Please try again tomorrow'**
+  /// In ko, this message translates to:
+  /// **'오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요'**
   String get aiGenerateDailyLimit;
 
   /// No description provided for @aiExerciseNameRequired.
   ///
-  /// In en, this message translates to:
-  /// **'Enter an exercise name'**
+  /// In ko, this message translates to:
+  /// **'운동 이름을 입력해 주세요'**
   String get aiExerciseNameRequired;
 
   /// No description provided for @aiKeepOneExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Keep at least one exercise'**
+  /// In ko, this message translates to:
+  /// **'운동을 하나 이상 남겨 주세요'**
   String get aiKeepOneExercise;
-
-  /// Routine name sent when the trainer leaves the name blank (#2301).
-  ///
-  /// In en, this message translates to:
-  /// **'AI custom suggestion'**
-  String get aiCustomRoutineName;
 
   /// No description provided for @aiAnalysing.
   ///
-  /// In en, this message translates to:
-  /// **'AI is analyzing…'**
+  /// In ko, this message translates to:
+  /// **'AI가 분석 중…'**
   String get aiAnalysing;
 
   /// No description provided for @aiGenerateCandidates.
   ///
-  /// In en, this message translates to:
-  /// **'Generate candidates'**
+  /// In ko, this message translates to:
+  /// **'맞춤 추천안 후보 생성'**
   String get aiGenerateCandidates;
 
   /// No description provided for @aiReviewDone.
   ///
-  /// In en, this message translates to:
-  /// **'Finish review'**
+  /// In ko, this message translates to:
+  /// **'검토 완료'**
   String get aiReviewDone;
 
   /// No description provided for @aiRoutineFor.
   ///
-  /// In en, this message translates to:
-  /// **'AI suggestion · {name}'**
+  /// In ko, this message translates to:
+  /// **'AI 추천안 · {name}'**
   String aiRoutineFor(String name);
 
   /// No description provided for @aiAnalysedData.
   ///
-  /// In en, this message translates to:
-  /// **'Member status'**
+  /// In ko, this message translates to:
+  /// **'회원 현황'**
   String get aiAnalysedData;
 
   /// No description provided for @aiGoal.
   ///
-  /// In en, this message translates to:
-  /// **'Goal'**
+  /// In ko, this message translates to:
+  /// **'목표'**
   String get aiGoal;
 
   /// No description provided for @aiOverTarget.
   ///
-  /// In en, this message translates to:
-  /// **' · over goal'**
+  /// In ko, this message translates to:
+  /// **' · 목표 초과'**
   String get aiOverTarget;
 
   /// No description provided for @aiRecentCompletion.
   ///
-  /// In en, this message translates to:
-  /// **'Recent completion rate'**
+  /// In ko, this message translates to:
+  /// **'최근 완료율'**
   String get aiRecentCompletion;
 
   /// No description provided for @aiNoCompletionData.
   ///
-  /// In en, this message translates to:
-  /// **'No activity logged this week'**
+  /// In ko, this message translates to:
+  /// **'이번 주 기록 없음'**
   String get aiNoCompletionData;
 
   /// No description provided for @aiCompletionLow.
   ///
-  /// In en, this message translates to:
-  /// **' · needs attention'**
+  /// In ko, this message translates to:
+  /// **' · 관리 필요'**
   String get aiCompletionLow;
 
   /// No description provided for @aiDietSignal.
   ///
-  /// In en, this message translates to:
-  /// **'Diet warning'**
+  /// In ko, this message translates to:
+  /// **'식단 주의'**
   String get aiDietSignal;
 
   /// No description provided for @aiSodiumOverDaysSuffix.
   ///
-  /// In en, this message translates to:
-  /// **' · over goal on {days} of the last 7 days'**
+  /// In ko, this message translates to:
+  /// **' · 최근 7일 중 {days}일 초과'**
   String aiSodiumOverDaysSuffix(int days);
 
   /// No description provided for @aiSugarAlsoOver.
   ///
-  /// In en, this message translates to:
-  /// **' · sugar also over'**
+  /// In ko, this message translates to:
+  /// **' · 당류도 초과'**
   String get aiSugarAlsoOver;
 
   /// No description provided for @aiDirectionLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Direction'**
+  /// In ko, this message translates to:
+  /// **'권장 방향'**
   String get aiDirectionLabel;
 
   /// No description provided for @aiDirectionLower.
   ///
-  /// In en, this message translates to:
-  /// **'Lower intensity — recent completion rate is low'**
+  /// In ko, this message translates to:
+  /// **'강도 낮춤 — 최근 완료율이 낮아요'**
   String get aiDirectionLower;
 
   /// No description provided for @aiDirectionCardio.
   ///
-  /// In en, this message translates to:
-  /// **'More cardio — sodium is often over goal'**
+  /// In ko, this message translates to:
+  /// **'유산소 비중 확대 — 나트륨 초과가 잦아요'**
   String get aiDirectionCardio;
 
   /// No description provided for @aiDirectionLowerAndCardio.
   ///
-  /// In en, this message translates to:
-  /// **'Lower intensity · more cardio'**
+  /// In ko, this message translates to:
+  /// **'강도 낮춤 · 유산소 비중 확대'**
   String get aiDirectionLowerAndCardio;
 
   /// No description provided for @aiDirectionKeep.
   ///
-  /// In en, this message translates to:
-  /// **'Keep current intensity'**
+  /// In ko, this message translates to:
+  /// **'현재 강도 유지'**
   String get aiDirectionKeep;
 
   /// No description provided for @aiDirectionNoData.
   ///
-  /// In en, this message translates to:
-  /// **'Not enough records yet'**
+  /// In ko, this message translates to:
+  /// **'기록이 쌓이면 판단해요'**
   String get aiDirectionNoData;
 
   /// No description provided for @aiBasisGoalLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Goal'**
+  /// In ko, this message translates to:
+  /// **'목표'**
   String get aiBasisGoalLabel;
 
   /// No description provided for @aiBasisCompletionLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Avg. completion'**
+  /// In ko, this message translates to:
+  /// **'평균 완료율'**
   String get aiBasisCompletionLabel;
 
   /// No description provided for @aiBasisCompletionValue.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{rate}%'**
   String aiBasisCompletionValue(int rate);
 
   /// No description provided for @aiBasisMethodLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Generated by'**
+  /// In ko, this message translates to:
+  /// **'생성 방식'**
   String get aiBasisMethodLabel;
 
   /// No description provided for @aiBasisMethodRule.
   ///
-  /// In en, this message translates to:
-  /// **'Rules'**
+  /// In ko, this message translates to:
+  /// **'규칙 기반'**
   String get aiBasisMethodRule;
 
   /// No description provided for @aiBasisMethodAi.
   ///
-  /// In en, this message translates to:
-  /// **'AI'**
+  /// In ko, this message translates to:
+  /// **'AI 생성'**
   String get aiBasisMethodAi;
 
   /// No description provided for @aiBasisRequestLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Your request'**
+  /// In ko, this message translates to:
+  /// **'트레이너 요청'**
   String get aiBasisRequestLabel;
 
   /// No description provided for @aiBasisRequestValue.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'\"{request}\"'**
   String aiBasisRequestValue(String request);
 
   /// No description provided for @aiBasisConditionLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Conditions'**
+  /// In ko, this message translates to:
+  /// **'생성 조건'**
   String get aiBasisConditionLabel;
 
   /// No description provided for @aiBasisConditionMax.
   ///
-  /// In en, this message translates to:
-  /// **'Up to {total} min · {intensity}'**
+  /// In ko, this message translates to:
+  /// **'최대 {total}분 · 강도 {intensity}'**
   String aiBasisConditionMax(int total, String intensity);
 
   /// No description provided for @aiBasisConditionValue.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{conditions} ({source})'**
   String aiBasisConditionValue(String conditions, String source);
 
   /// No description provided for @aiBasisConditionByTrainer.
   ///
-  /// In en, this message translates to:
-  /// **'set by you'**
+  /// In ko, this message translates to:
+  /// **'트레이너 지정'**
   String get aiBasisConditionByTrainer;
 
   /// No description provided for @aiBasisConditionAuto.
   ///
-  /// In en, this message translates to:
-  /// **'auto from history'**
+  /// In ko, this message translates to:
+  /// **'기록 기반 자동'**
   String get aiBasisConditionAuto;
 
   /// No description provided for @aiBasisConditionMixed.
   ///
-  /// In en, this message translates to:
-  /// **'partly set by you'**
+  /// In ko, this message translates to:
+  /// **'일부 지정'**
   String get aiBasisConditionMixed;
 
   /// No description provided for @aiFindingsTitle.
   ///
-  /// In en, this message translates to:
-  /// **'What this analysis found'**
+  /// In ko, this message translates to:
+  /// **'이번 분석에서 찾은 것'**
   String get aiFindingsTitle;
 
   /// No description provided for @aiFindingSource.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **' · {source}'**
   String aiFindingSource(String source);
 
   /// No description provided for @aiFindingAction.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'→ {action}'**
   String aiFindingAction(String action);
 
   /// No description provided for @aiOptionNext.
   ///
-  /// In en, this message translates to:
-  /// **'Follow-up'**
+  /// In ko, this message translates to:
+  /// **'연계안'**
   String get aiOptionNext;
 
   /// No description provided for @aiChatEvidenceTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Recent conversation used'**
+  /// In ko, this message translates to:
+  /// **'참고한 최근 대화'**
   String get aiChatEvidenceTitle;
 
   /// No description provided for @aiChatEvidenceLink.
   ///
-  /// In en, this message translates to:
-  /// **'{count} conversation lines used'**
+  /// In ko, this message translates to:
+  /// **'참고한 대화 {count}줄'**
   String aiChatEvidenceLink(int count);
 
   /// No description provided for @aiEditOption.
   ///
-  /// In en, this message translates to:
-  /// **'Edit {option}'**
+  /// In ko, this message translates to:
+  /// **'{option} 수정'**
   String aiEditOption(String option);
 
   /// No description provided for @aiEditBlurb.
   ///
-  /// In en, this message translates to:
-  /// **'Edit names, durations and structure just like the existing suggestion.'**
+  /// In ko, this message translates to:
+  /// **'기존 AI 추천과 같은 방식으로 운동 이름·시간·구성을 수정할 수 있어요.'**
   String get aiEditBlurb;
 
   /// No description provided for @aiAddExerciseManually.
   ///
-  /// In en, this message translates to:
-  /// **'Add exercise manually'**
+  /// In ko, this message translates to:
+  /// **'운동 직접 추가하기'**
   String get aiAddExerciseManually;
 
   /// No description provided for @aiExerciseNameExample.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. leg press, 3 sets'**
+  /// In ko, this message translates to:
+  /// **'예: 레그프레스 3세트'**
   String get aiExerciseNameExample;
 
   /// No description provided for @aiRegister.
   ///
-  /// In en, this message translates to:
-  /// **'Add'**
+  /// In ko, this message translates to:
+  /// **'추가'**
   String get aiRegister;
 
   /// No description provided for @aiReviewedSuggestion.
   ///
-  /// In en, this message translates to:
-  /// **'Confirmed plan · {option}'**
+  /// In ko, this message translates to:
+  /// **'확정한 구성 · {option}'**
   String aiReviewedSuggestion(String option);
 
   /// No description provided for @aiReviewSummary.
   ///
-  /// In en, this message translates to:
-  /// **'{total} min total · {count} exercises · {strength} strength · {cardio} cardio'**
+  /// In ko, this message translates to:
+  /// **'총 {total}분 · {count}종목 · 근력 {strength} · 유산소 {cardio}'**
   String aiReviewSummary(int total, int count, int strength, int cardio);
 
   /// No description provided for @aiReviewIntensityWarning.
   ///
-  /// In en, this message translates to:
-  /// **'Recent completion is low but intensity is set to high. Check whether to lower it.'**
+  /// In ko, this message translates to:
+  /// **'최근 완료율이 낮은데 강도가 높음이에요. 강도를 낮출지 확인해 주세요'**
   String get aiReviewIntensityWarning;
 
   /// No description provided for @aiEditsApplied.
   ///
-  /// In en, this message translates to:
-  /// **'Your choice and edits are now in the final suggestion list.'**
+  /// In ko, this message translates to:
+  /// **'선택하고 수정한 내용이 최종 추천 목록에 반영됐어요.'**
   String get aiEditsApplied;
 
   /// No description provided for @aiApplyToTemplate.
   ///
-  /// In en, this message translates to:
-  /// **'Apply to program'**
+  /// In ko, this message translates to:
+  /// **'프로그램에 반영'**
   String get aiApplyToTemplate;
 
   /// No description provided for @aiAppliedToTemplate.
   ///
-  /// In en, this message translates to:
-  /// **'The AI suggestion was applied to the program.'**
+  /// In ko, this message translates to:
+  /// **'AI 추천안이 프로그램에 반영됐어요.'**
   String get aiAppliedToTemplate;
 
   /// No description provided for @aiStepConditions.
   ///
-  /// In en, this message translates to:
-  /// **'Set up'**
+  /// In ko, this message translates to:
+  /// **'조건 설정'**
   String get aiStepConditions;
 
   /// No description provided for @aiStepReview.
   ///
-  /// In en, this message translates to:
-  /// **'Program selection'**
+  /// In ko, this message translates to:
+  /// **'프로그램 선택'**
   String get aiStepReview;
 
   /// No description provided for @aiStepDone.
   ///
-  /// In en, this message translates to:
-  /// **'Program review'**
+  /// In ko, this message translates to:
+  /// **'프로그램 검토'**
   String get aiStepDone;
 
   /// No description provided for @aiSkipPtProgram.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise only'**
+  /// In ko, this message translates to:
+  /// **'개인운동만 짜기'**
   String get aiSkipPtProgram;
 
   /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
   ///
-  /// In en, this message translates to:
-  /// **'Recent PT feedback'**
+  /// In ko, this message translates to:
+  /// **'최근 PT 피드백 반영'**
   String get routineEvidenceRecentPtFeedback;
 
   /// Evidence chip; server code strength_heavy (#2301).
   ///
-  /// In en, this message translates to:
-  /// **'Mostly strength lately'**
+  /// In ko, this message translates to:
+  /// **'최근 근력 운동 비중 높음'**
   String get routineEvidenceStrengthHeavy;
 
   /// Evidence chip; server code blood_pressure_goal (#2301).
   ///
-  /// In en, this message translates to:
-  /// **'Blood pressure goal'**
+  /// In ko, this message translates to:
+  /// **'혈압 관리 목표'**
   String get routineEvidenceBloodPressureGoal;
 
   /// Evidence chip; server code low_cardio (#2301).
   ///
-  /// In en, this message translates to:
-  /// **'Little cardio lately'**
+  /// In ko, this message translates to:
+  /// **'최근 유산소 비중 낮음'**
   String get routineEvidenceLowCardio;
 
   /// Evidence chip; server code recent_record (#2301).
   ///
-  /// In en, this message translates to:
-  /// **'Recent workout log'**
+  /// In ko, this message translates to:
+  /// **'최근 운동 기록 반영'**
   String get routineEvidenceRecentRecord;
 
   /// Intensity of an AI A/B plan whose contract value is 낮음 (#2301).
   ///
-  /// In en, this message translates to:
-  /// **'Light'**
+  /// In ko, this message translates to:
+  /// **'가벼움'**
   String get aiPlanIntensityLow;
 
   /// No description provided for @aiPersonalStepFull.
   ///
-  /// In en, this message translates to:
-  /// **'You can set up to {count} personal exercises at once.'**
+  /// In ko, this message translates to:
+  /// **'개인운동은 한 번에 {count}개까지 정할 수 있어요.'**
   String aiPersonalStepFull(int count);
 
   /// No description provided for @aiPersonalEditDone.
   ///
-  /// In en, this message translates to:
-  /// **'Done editing'**
+  /// In ko, this message translates to:
+  /// **'수정 완료'**
   String get aiPersonalEditDone;
 
   /// No description provided for @aiPersonalStepBadge.
   ///
-  /// In en, this message translates to:
-  /// **'{count} AI suggested'**
+  /// In ko, this message translates to:
+  /// **'AI 제안 {count}'**
   String aiPersonalStepBadge(int count);
 
   /// No description provided for @aiPersonalStepIntro.
   ///
-  /// In en, this message translates to:
-  /// **'Based on recent PT feedback and workout history, here is personal exercise for {name}. Only what stays here goes to the member.'**
+  /// In ko, this message translates to:
+  /// **'최근 PT 피드백과 운동 기록을 바탕으로 {name}님에게 도움이 될 개인운동을 준비했어요. 여기 남긴 것만 회원에게 가요.'**
   String aiPersonalStepIntro(String name);
 
   /// No description provided for @aiPersonalStepLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the AI personal-exercise suggestions'**
+  /// In ko, this message translates to:
+  /// **'AI 개인운동 제안을 불러오지 못했어요'**
   String get aiPersonalStepLoadFailed;
 
   /// No description provided for @aiPersonalStepNoSuggestion.
   ///
-  /// In en, this message translates to:
-  /// **'No AI suggestion today. Add one below.'**
+  /// In ko, this message translates to:
+  /// **'오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.'**
   String get aiPersonalStepNoSuggestion;
 
   /// No description provided for @aiProgramExerciseRemoveBody.
   ///
-  /// In en, this message translates to:
-  /// **'Removes {name} from this program.'**
+  /// In ko, this message translates to:
+  /// **'{name} 이번 프로그램 구성에서 빼요.'**
   String aiProgramExerciseRemoveBody(String name);
 
   /// No description provided for @aiPersonalDismissTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Drop this exercise?'**
+  /// In ko, this message translates to:
+  /// **'이 운동을 뺄까요?'**
   String get aiPersonalDismissTitle;
 
   /// No description provided for @aiPersonalDismissBody.
   ///
-  /// In en, this message translates to:
-  /// **'{name} will be dropped from this personal exercise. An AI suggestion will not come back.'**
+  /// In ko, this message translates to:
+  /// **'{name} 이번 개인운동에서 빼요. AI 제안이면 다시 올라오지 않아요.'**
   String aiPersonalDismissBody(String name);
 
   /// No description provided for @aiPersonalDismissTooltip.
   ///
-  /// In en, this message translates to:
-  /// **'Drop this suggestion'**
+  /// In ko, this message translates to:
+  /// **'이 제안 빼기'**
   String get aiPersonalDismissTooltip;
 
   /// No description provided for @aiPersonalDismissed.
   ///
-  /// In en, this message translates to:
-  /// **'{name} will not be recommended'**
+  /// In ko, this message translates to:
+  /// **'{name} 추천하지 않아요'**
   String aiPersonalDismissed(String name);
 
   /// No description provided for @aiPersonalDismissFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t complete that. Please try again shortly.'**
+  /// In ko, this message translates to:
+  /// **'처리하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get aiPersonalDismissFailed;
 
   /// No description provided for @aiStepSkipped.
   ///
-  /// In en, this message translates to:
-  /// **'Skipped'**
+  /// In ko, this message translates to:
+  /// **'건너뜀'**
   String get aiStepSkipped;
 
   /// No description provided for @aiStepPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동'**
   String get aiStepPersonal;
 
   /// No description provided for @aiStepPrev.
   ///
-  /// In en, this message translates to:
-  /// **'Back'**
+  /// In ko, this message translates to:
+  /// **'이전'**
   String get aiStepPrev;
 
   /// No description provided for @aiStepNext.
   ///
-  /// In en, this message translates to:
-  /// **'Next'**
+  /// In ko, this message translates to:
+  /// **'다음'**
   String get aiStepNext;
 
   /// No description provided for @aiPersonalStepTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise between PT'**
+  /// In ko, this message translates to:
+  /// **'PT 사이에 할 개인운동'**
   String get aiPersonalStepTitle;
 
   /// No description provided for @aiPersonalStepTitleRoutineOnly.
   ///
-  /// In en, this message translates to:
-  /// **'This week\'s personal exercise'**
+  /// In ko, this message translates to:
+  /// **'이번 주 개인운동'**
   String get aiPersonalStepTitleRoutineOnly;
 
   /// No description provided for @aiPersonalStepBlurb.
   ///
-  /// In en, this message translates to:
-  /// **'Attached to this PT and sent to the member when you complete it. Pick at least one.'**
+  /// In ko, this message translates to:
+  /// **'이 PT에 붙여 두었다가 PT를 완료할 때 회원에게 보내요. 최소 한 개를 정해 주세요.'**
   String get aiPersonalStepBlurb;
 
   /// No description provided for @aiPersonalStepBlurbRoutineOnly.
   ///
-  /// In en, this message translates to:
-  /// **'What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.'**
+  /// In ko, this message translates to:
+  /// **'회원이 혼자 할 운동이에요. 시작일에 PT가 있으면 그 PT에 붙고, 없으면 바로 한 주 동안 보내요. 최소 한 개를 정해 주세요.'**
   String get aiPersonalStepBlurbRoutineOnly;
 
   /// No description provided for @aiPersonalStepEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No personal exercise yet. Add one below.'**
+  /// In ko, this message translates to:
+  /// **'아직 정한 개인운동이 없어요. 아래에서 직접 더해 주세요.'**
   String get aiPersonalStepEmpty;
 
   /// No description provided for @aiKeepOnePersonalRoutine.
   ///
-  /// In en, this message translates to:
-  /// **'Keep at least one personal exercise.'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 최소 한 개는 정해 주세요.'**
   String get aiKeepOnePersonalRoutine;
 
   /// No description provided for @aiRoutineOnlyStartDate.
   ///
-  /// In en, this message translates to:
-  /// **'Start date'**
+  /// In ko, this message translates to:
+  /// **'시작일'**
   String get aiRoutineOnlyStartDate;
 
   /// No description provided for @aiRoutineOnlyWeeklyHint.
   ///
-  /// In en, this message translates to:
-  /// **'Appears in the member app every day for 7 days, {start} to {end}. Send next week\'s set again then.'**
+  /// In ko, this message translates to:
+  /// **'{start}부터 {end}까지 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.'**
   String aiRoutineOnlyWeeklyHint(String start, String end);
 
   /// No description provided for @aiRoutineOnlySend.
   ///
-  /// In en, this message translates to:
-  /// **'Send to member'**
+  /// In ko, this message translates to:
+  /// **'회원에게 보내기'**
   String get aiRoutineOnlySend;
 
   /// No description provided for @aiRoutineOnlySentLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Sent'**
+  /// In ko, this message translates to:
+  /// **'보냈어요'**
   String get aiRoutineOnlySentLabel;
 
   /// No description provided for @aiRoutineOnlySent.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise sent to the member.'**
+  /// In ko, this message translates to:
+  /// **'개인운동을 회원에게 보냈어요.'**
   String get aiRoutineOnlySent;
 
   /// No description provided for @aiRoutineOnlyProgramName.
   ///
-  /// In en, this message translates to:
-  /// **'This week\'s personal exercise'**
+  /// In ko, this message translates to:
+  /// **'이번 주 개인운동'**
   String get aiRoutineOnlyProgramName;
 
   /// Program name stored when a trainer sends personal exercises only. No time span — the list stays up 7 days from the send date, not the calendar week (#2581).
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동'**
   String get aiRoutineOnlyDeliveryName;
 
   /// No description provided for @progPersonalRoutinesWhen.
   ///
-  /// In en, this message translates to:
-  /// **'Goes to the member when you complete this PT.'**
+  /// In ko, this message translates to:
+  /// **'이 PT를 완료할 때 회원에게 함께 가요.'**
   String get progPersonalRoutinesWhen;
 
   /// No description provided for @progNoRoutinesRegisterTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Add to schedule without personal exercise?'**
+  /// In ko, this message translates to:
+  /// **'개인운동 없이 일정을 추가할까요?'**
   String get progNoRoutinesRegisterTitle;
 
   /// No description provided for @progNoRoutinesRegisterBody.
   ///
-  /// In en, this message translates to:
-  /// **'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the appointment details in Schedule before sending the PT program.'**
+  /// In ko, this message translates to:
+  /// **'PT마다 개인운동을 최소 한 개 붙여 주세요. 지금 붙이지 않으면 PT 프로그램을 보내기 전에 스케줄의 일정 상세에서 붙일 수 있어요.'**
   String get progNoRoutinesRegisterBody;
 
   /// No description provided for @progNoRoutinesRegisterSkip.
   ///
-  /// In en, this message translates to:
-  /// **'Add without it'**
+  /// In ko, this message translates to:
+  /// **'개인운동 없이 추가'**
   String get progNoRoutinesRegisterSkip;
 
   /// No description provided for @progPersonalRoutinesEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No personal exercise yet. Add at least one for each PT.'**
+  /// In ko, this message translates to:
+  /// **'아직 개인운동이 없어요. PT마다 최소 한 개를 붙여 주세요.'**
   String get progPersonalRoutinesEmpty;
 
   /// No description provided for @aiAttachTargetPt.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise for the PT you are putting together.'**
+  /// In ko, this message translates to:
+  /// **'지금 짜는 PT에 붙일 개인운동이에요.'**
   String get aiAttachTargetPt;
 
   /// No description provided for @aiAttachRoutines.
   ///
-  /// In en, this message translates to:
-  /// **'Apply to PT'**
+  /// In ko, this message translates to:
+  /// **'PT에 반영'**
   String get aiAttachRoutines;
 
   /// No description provided for @aiAttachedLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Applied'**
+  /// In ko, this message translates to:
+  /// **'반영했어요'**
   String get aiAttachedLabel;
 
   /// No description provided for @aiRoutineTargetPt.
   ///
-  /// In en, this message translates to:
-  /// **'Attach to the {date} {time} PT'**
+  /// In ko, this message translates to:
+  /// **'{date} {time} PT에 붙이기'**
   String aiRoutineTargetPt(String date, String time);
 
   /// No description provided for @aiRoutineOnlyAttachHint.
   ///
-  /// In en, this message translates to:
-  /// **'Attaches to the {date} {time} PT. It reaches the member when you send that PT from Schedule.'**
+  /// In ko, this message translates to:
+  /// **'{date} {time} PT에 붙어요. 회원에게는 스케줄에서 이 PT를 보낼 때 함께 가요.'**
   String aiRoutineOnlyAttachHint(String date, String time);
 
   /// No description provided for @aiReplaceRoutinesTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise already attached'**
+  /// In ko, this message translates to:
+  /// **'이미 개인운동이 있어요'**
   String get aiReplaceRoutinesTitle;
 
   /// No description provided for @aiReplaceRoutinesBody.
   ///
-  /// In en, this message translates to:
-  /// **'This PT already has {count} personal exercise(s) ({names}). Replace them with the new ones?'**
+  /// In ko, this message translates to:
+  /// **'이 PT에 개인운동 {count}개({names})가 붙어 있어요. 새로 짠 것으로 교체할까요?'**
   String aiReplaceRoutinesBody(int count, String names);
 
   /// No description provided for @aiReplaceRoutinesConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Replace'**
+  /// In ko, this message translates to:
+  /// **'교체'**
   String get aiReplaceRoutinesConfirm;
 
   /// No description provided for @programRoutineOnlyConfirmBody.
   ///
-  /// In en, this message translates to:
-  /// **'Sends personal exercise to {client}. Appears daily from {start} to {end}.'**
+  /// In ko, this message translates to:
+  /// **'{client}님에게 개인운동을 보내요. {start}부터 {end}까지 회원 앱에 매일 떠요.'**
   String programRoutineOnlyConfirmBody(String client, String start, String end);
 
   /// No description provided for @progPersonalRoutinesTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise for this PT'**
+  /// In ko, this message translates to:
+  /// **'이 PT에 붙일 개인운동'**
   String get progPersonalRoutinesTitle;
 
   /// No description provided for @aiStepperLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Custom suggestion progress'**
+  /// In ko, this message translates to:
+  /// **'맞춤 추천안 생성 진행 단계'**
   String get aiStepperLabel;
 
   /// No description provided for @coachTemplateSummaryWithGoal.
   ///
-  /// In en, this message translates to:
-  /// **'{goal} · {count} exercises · {duration}'**
+  /// In ko, this message translates to:
+  /// **'{goal} · {count}개 · {duration}'**
   String coachTemplateSummaryWithGoal(String goal, int count, String duration);
 
   /// No description provided for @aiInsightMemoTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Needs attention (last 7 days)'**
+  /// In ko, this message translates to:
+  /// **'최근 7일 확인 필요'**
   String get aiInsightMemoTitle;
 
   /// No description provided for @aiInsightMemoEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No insights detected in the last 7 days'**
+  /// In ko, this message translates to:
+  /// **'최근 7일간 감지된 메모가 없어요'**
   String get aiInsightMemoEmpty;
 
   /// No description provided for @aiInsightMemoFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the detected memos'**
+  /// In ko, this message translates to:
+  /// **'감지 메모를 불러오지 못했어요'**
   String get aiInsightMemoFailed;
 
   /// No description provided for @aiRecentRoutineMore.
   ///
-  /// In en, this message translates to:
-  /// **'{name} and {count} more'**
+  /// In ko, this message translates to:
+  /// **'{name} 외 {count}개'**
   String aiRecentRoutineMore(String name, int count);
 
   /// No description provided for @aiNoRecentRoutine.
   ///
-  /// In en, this message translates to:
-  /// **'No record'**
+  /// In ko, this message translates to:
+  /// **'기록 없음'**
   String get aiNoRecentRoutine;
 
   /// No description provided for @aiRecentRoutine.
   ///
-  /// In en, this message translates to:
-  /// **'Recent activity'**
+  /// In ko, this message translates to:
+  /// **'최근 운동'**
   String get aiRecentRoutine;
 
   /// No description provided for @aiGenerateConditions.
   ///
-  /// In en, this message translates to:
-  /// **'Conditions'**
+  /// In ko, this message translates to:
+  /// **'생성 조건'**
   String get aiGenerateConditions;
 
   /// No description provided for @aiCompareCandidates.
   ///
-  /// In en, this message translates to:
-  /// **'Compare the candidates'**
+  /// In ko, this message translates to:
+  /// **'맞춤 추천안 후보를 비교해 보세요'**
   String get aiCompareCandidates;
 
   /// No description provided for @aiConditionsAutoHint.
   ///
-  /// In en, this message translates to:
-  /// **'Leave blank to auto-fill from recent history or goals.'**
+  /// In ko, this message translates to:
+  /// **'비워두면 최근 기록이나 목표를 기준으로 자동 설정돼요.'**
   String get aiConditionsAutoHint;
 
   /// No description provided for @aiPromptTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Tell the AI what program you want'**
+  /// In ko, this message translates to:
+  /// **'AI에게 원하는 프로그램을 말해 주세요'**
   String get aiPromptTitle;
 
   /// No description provided for @aiPromptLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Your request'**
+  /// In ko, this message translates to:
+  /// **'요청 내용'**
   String get aiPromptLabel;
 
   /// No description provided for @aiPromptHint.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. Build a 40-minute program that goes easy on the legs and leans on cardio'**
+  /// In ko, this message translates to:
+  /// **'예: 하체 부담 적고 유산소 비중 높은 40분 프로그램 만들어줘'**
   String get aiPromptHint;
 
   /// No description provided for @aiPromptBlurb.
   ///
-  /// In en, this message translates to:
-  /// **'Your request goes to the AI with the member\'s data (up to 500 characters). Write the trainer feedback in the next step.'**
+  /// In ko, this message translates to:
+  /// **'요청은 회원 데이터와 함께 AI에 전달돼요(최대 500자). 트레이너 피드백은 다음 단계에서 작성해요.'**
   String get aiPromptBlurb;
 
   /// No description provided for @aiSourcesTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Sources for the AI'**
+  /// In ko, this message translates to:
+  /// **'AI가 참고할 자료'**
   String get aiSourcesTitle;
 
   /// No description provided for @aiSourcesBlurb.
   ///
-  /// In en, this message translates to:
-  /// **'Only the checked sources are sent to the AI with the member\'s data. Your choice is kept for next time.'**
+  /// In ko, this message translates to:
+  /// **'고른 자료만 회원 데이터와 함께 AI에 전달돼요. 선택은 다음에도 그대로 남아요.'**
   String get aiSourcesBlurb;
 
   /// No description provided for @aiSourcePtFeedback.
   ///
-  /// In en, this message translates to:
-  /// **'Recent PT feedback'**
+  /// In ko, this message translates to:
+  /// **'최근 PT 피드백'**
   String get aiSourcePtFeedback;
 
   /// No description provided for @aiSourceConsultMemo.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation memos'**
+  /// In ko, this message translates to:
+  /// **'상담 메모'**
   String get aiSourceConsultMemo;
 
   /// No description provided for @aiSourceTrainerMemo.
   ///
-  /// In en, this message translates to:
-  /// **'Member memos (written by you)'**
+  /// In ko, this message translates to:
+  /// **'회원 메모(직접 작성)'**
   String get aiSourceTrainerMemo;
 
   /// No description provided for @aiSourceChatInsight.
   ///
-  /// In en, this message translates to:
-  /// **'Chat-detected memos'**
+  /// In ko, this message translates to:
+  /// **'채팅 감지 메모'**
   String get aiSourceChatInsight;
 
   /// Source the AI may read — the raw recent chat with the member (last 14 days, up to 10, #2794)
   ///
-  /// In en, this message translates to:
-  /// **'Recent chat'**
+  /// In ko, this message translates to:
+  /// **'최근 대화'**
   String get aiSourceRecentChat;
 
   /// No description provided for @aiSourceWeeklyFeedback.
   ///
-  /// In en, this message translates to:
-  /// **'Member weekly feedback'**
+  /// In ko, this message translates to:
+  /// **'회원 주간 피드백'**
   String get aiSourceWeeklyFeedback;
 
   /// No description provided for @aiSourceRangeDays.
   ///
-  /// In en, this message translates to:
-  /// **'Last {days} days · up to {count}'**
+  /// In ko, this message translates to:
+  /// **'최근 {days}일 · 최대 {count}건'**
   String aiSourceRangeDays(int days, int count);
 
   /// No description provided for @aiSourceRangeWeeks.
   ///
-  /// In en, this message translates to:
-  /// **'This week · last week'**
+  /// In ko, this message translates to:
+  /// **'이번 주 · 지난주'**
   String get aiSourceRangeWeeks;
 
   /// No description provided for @aiGenerateGoalBased.
   ///
-  /// In en, this message translates to:
-  /// **'Generate goal-based suggestion'**
+  /// In ko, this message translates to:
+  /// **'목표 기반 추천안 생성'**
   String get aiGenerateGoalBased;
 
   /// No description provided for @aiStatusTemplateTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Goal-based starter suggestion'**
+  /// In ko, this message translates to:
+  /// **'목표 기반 기본 추천'**
   String get aiStatusTemplateTitle;
 
   /// No description provided for @aiStatusTemplateBody.
   ///
-  /// In en, this message translates to:
-  /// **'Not enough workout history yet to personalize — this starts from a goal-based default.'**
+  /// In ko, this message translates to:
+  /// **'아직 개인화하기엔 운동 기록이 부족해 목표를 기준으로 추천했어요.'**
   String get aiStatusTemplateBody;
 
   /// No description provided for @aiStatusLearningTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Personalizing (learning)'**
+  /// In ko, this message translates to:
+  /// **'개인화 학습 중'**
   String get aiStatusLearningTitle;
 
   /// No description provided for @aiStatusLearningBody.
   ///
-  /// In en, this message translates to:
-  /// **'Recent workouts were used, but there isn\'t a clear repeated pattern yet.'**
+  /// In ko, this message translates to:
+  /// **'최근 운동을 참고했지만 아직 반복 패턴이라 부르기엔 일러요.'**
   String get aiStatusLearningBody;
 
   /// No description provided for @aiStatusPersonalizedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Personalized from recent patterns'**
+  /// In ko, this message translates to:
+  /// **'최근 패턴 분석 완료'**
   String get aiStatusPersonalizedTitle;
 
   /// No description provided for @aiStatusPersonalizedBody.
   ///
-  /// In en, this message translates to:
-  /// **'Based on {count} workout records over the last {days} days.'**
+  /// In ko, this message translates to:
+  /// **'최근 {days}일 · {count}회 기록을 기준으로 분석했어요.'**
   String aiStatusPersonalizedBody(int count, int days);
 
   /// No description provided for @aiFrequentExercisesLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Frequently done'**
+  /// In ko, this message translates to:
+  /// **'자주 한 운동'**
   String get aiFrequentExercisesLabel;
 
   /// No description provided for @goalWeightLoss.
   ///
-  /// In en, this message translates to:
-  /// **'Weight loss'**
+  /// In ko, this message translates to:
+  /// **'체중 감량'**
   String get goalWeightLoss;
 
   /// No description provided for @goalHealth.
   ///
-  /// In en, this message translates to:
-  /// **'General health'**
+  /// In ko, this message translates to:
+  /// **'건강 관리'**
   String get goalHealth;
 
   /// No description provided for @goalOther.
   ///
-  /// In en, this message translates to:
-  /// **'Other'**
+  /// In ko, this message translates to:
+  /// **'기타'**
   String get goalOther;
 
   /// No description provided for @slotAm.
   ///
-  /// In en, this message translates to:
-  /// **'AM'**
+  /// In ko, this message translates to:
+  /// **'오전'**
   String get slotAm;
 
   /// No description provided for @slotPm.
   ///
-  /// In en, this message translates to:
-  /// **'PM'**
+  /// In ko, this message translates to:
+  /// **'오후'**
   String get slotPm;
 
   /// No description provided for @slotFlexible.
   ///
-  /// In en, this message translates to:
-  /// **'Flexible'**
+  /// In ko, this message translates to:
+  /// **'조율 가능'**
   String get slotFlexible;
 
   /// No description provided for @unknownMember.
   ///
-  /// In en, this message translates to:
-  /// **'Unknown member'**
+  /// In ko, this message translates to:
+  /// **'알 수 없는 회원'**
   String get unknownMember;
 
   /// No description provided for @filterAll.
   ///
-  /// In en, this message translates to:
-  /// **'All'**
+  /// In ko, this message translates to:
+  /// **'전체'**
   String get filterAll;
 
   /// No description provided for @authErrInvalidCredentials.
   ///
-  /// In en, this message translates to:
-  /// **'That email or password isn\'t right.'**
+  /// In ko, this message translates to:
+  /// **'이메일 또는 비밀번호가 올바르지 않아요.'**
   String get authErrInvalidCredentials;
 
   /// No description provided for @authErrEmailTaken.
   ///
-  /// In en, this message translates to:
-  /// **'That email is already registered.'**
+  /// In ko, this message translates to:
+  /// **'이미 가입된 이메일이에요.'**
   String get authErrEmailTaken;
 
   /// No description provided for @authErrSessionExpired.
   ///
-  /// In en, this message translates to:
-  /// **'Your sign-in expired. Please sign in again.'**
+  /// In ko, this message translates to:
+  /// **'로그인이 만료됐어요. 다시 로그인해 주세요.'**
   String get authErrSessionExpired;
 
   /// No description provided for @authErrNoSocialToken.
   ///
-  /// In en, this message translates to:
-  /// **'No social sign-in token'**
+  /// In ko, this message translates to:
+  /// **'소셜 로그인 토큰이 없어요'**
   String get authErrNoSocialToken;
 
   /// No description provided for @authErrNetwork.
   ///
-  /// In en, this message translates to:
-  /// **'Please check your network connection.'**
+  /// In ko, this message translates to:
+  /// **'네트워크 연결을 확인해 주세요.'**
   String get authErrNetwork;
 
   /// No description provided for @authErrGeneric.
   ///
-  /// In en, this message translates to:
-  /// **'Something went wrong signing in. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'로그인 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.'**
   String get authErrGeneric;
 
   /// No description provided for @authErrEmptyResponse.
   ///
-  /// In en, this message translates to:
-  /// **'The response was empty.'**
+  /// In ko, this message translates to:
+  /// **'응답이 비어 있어요.'**
   String get authErrEmptyResponse;
 
   /// No description provided for @slotFutureOnly.
   ///
-  /// In en, this message translates to:
-  /// **'Only future times can be opened for booking.'**
+  /// In ko, this message translates to:
+  /// **'지금보다 이후 시간만 예약 가능 시간으로 열 수 있어요.'**
   String get slotFutureOnly;
 
   /// No description provided for @slotNotFound.
   ///
-  /// In en, this message translates to:
-  /// **'Open booking time not found.'**
+  /// In ko, this message translates to:
+  /// **'예약 가능 시간을 찾을 수 없어요.'**
   String get slotNotFound;
 
   /// No description provided for @slotTypeLockedByBooking.
   ///
-  /// In en, this message translates to:
-  /// **'Can\'t change the type of a time that\'s already booked.'**
+  /// In ko, this message translates to:
+  /// **'이미 예약된 자리의 종류는 바꿀 수 없어요.'**
   String get slotTypeLockedByBooking;
 
   /// No description provided for @authErrNotTrainer.
   ///
-  /// In en, this message translates to:
-  /// **'Please sign in with a trainer account.'**
+  /// In ko, this message translates to:
+  /// **'트레이너 계정으로 로그인해 주세요.'**
   String get authErrNotTrainer;
 
   /// Error toast on trainer sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551).
   ///
-  /// In en, this message translates to:
-  /// **'An account already uses this email. Please sign in the way you first signed up.'**
+  /// In ko, this message translates to:
+  /// **'이 이메일로 가입한 계정이 있어요. 처음 가입한 방법으로 로그인해 주세요.'**
   String get authErrSocialEmailInUse;
 
   /// No description provided for @authErrTooManyAttempts.
   ///
-  /// In en, this message translates to:
-  /// **'Too many attempts. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'시도가 너무 많아 잠시 막혔어요. 잠시 후 다시 시도해 주세요.'**
   String get authErrTooManyAttempts;
 
   /// No description provided for @authErrTooManyAttemptsMinutes.
   ///
-  /// In en, this message translates to:
-  /// **'Too many attempts. Please try again in {minutes} min.'**
+  /// In ko, this message translates to:
+  /// **'시도가 너무 많아 잠시 막혔어요. {minutes}분 뒤에 다시 시도해 주세요.'**
   String authErrTooManyAttemptsMinutes(int minutes);
 
   /// No description provided for @authErrSignedUpSignInFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Your account was created. Please sign in.'**
+  /// In ko, this message translates to:
+  /// **'가입은 완료됐어요. 로그인해 주세요.'**
   String get authErrSignedUpSignInFailed;
 
   /// No description provided for @aiTotalAndIntensity.
   ///
-  /// In en, this message translates to:
-  /// **'{total} min total · {intensity}'**
+  /// In ko, this message translates to:
+  /// **'총 {total}분 · 강도 {intensity}'**
   String aiTotalAndIntensity(int total, String intensity);
 
   /// No description provided for @aiBulletExercise.
   ///
-  /// In en, this message translates to:
-  /// **'· {name} · {minutes} min '**
+  /// In ko, this message translates to:
+  /// **'· {name} · {minutes}분 '**
   String aiBulletExercise(String name, int minutes);
 
   /// Login screen wordmark with the spaced hyphen used in the visual design.
   ///
-  /// In en, this message translates to:
-  /// **'On - Care Trainer'**
+  /// In ko, this message translates to:
+  /// **'On - Care 트레이너'**
   String get appTitleSpaced;
 
   /// No description provided for @navNotifications.
   ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
+  /// In ko, this message translates to:
+  /// **'알림'**
   String get navNotifications;
 
   /// No description provided for @notifTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
+  /// In ko, this message translates to:
+  /// **'알림'**
   String get notifTitle;
 
   /// No description provided for @notifSeeAll.
   ///
-  /// In en, this message translates to:
-  /// **'See all'**
+  /// In ko, this message translates to:
+  /// **'전체 보기'**
   String get notifSeeAll;
 
   /// No description provided for @notifGroupAll.
   ///
-  /// In en, this message translates to:
-  /// **'All'**
+  /// In ko, this message translates to:
+  /// **'전체'**
   String get notifGroupAll;
 
   /// No description provided for @notifGroupMessages.
   ///
-  /// In en, this message translates to:
-  /// **'Messages'**
+  /// In ko, this message translates to:
+  /// **'메시지'**
   String get notifGroupMessages;
 
   /// No description provided for @notifGroupEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No notifications of this kind'**
+  /// In ko, this message translates to:
+  /// **'이 종류의 알림이 없어요'**
   String get notifGroupEmpty;
 
   /// No description provided for @notifReadAll.
   ///
-  /// In en, this message translates to:
-  /// **'Mark all read'**
+  /// In ko, this message translates to:
+  /// **'모두 읽음'**
   String get notifReadAll;
 
   /// No description provided for @notifEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No notifications yet'**
+  /// In ko, this message translates to:
+  /// **'아직 받은 알림이 없어요'**
   String get notifEmpty;
 
   /// No description provided for @notifLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load notifications'**
+  /// In ko, this message translates to:
+  /// **'알림을 불러오지 못했어요'**
   String get notifLoadFailed;
 
   /// No description provided for @notifLoadMore.
   ///
-  /// In en, this message translates to:
-  /// **'Load earlier notifications'**
+  /// In ko, this message translates to:
+  /// **'지난 알림 더 보기'**
   String get notifLoadMore;
 
   /// No description provided for @notifLoadMoreFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load earlier notifications'**
+  /// In ko, this message translates to:
+  /// **'지난 알림을 불러오지 못했어요'**
   String get notifLoadMoreFailed;
 
   /// No description provided for @notifNoEarlier.
   ///
-  /// In en, this message translates to:
-  /// **'No earlier notifications'**
+  /// In ko, this message translates to:
+  /// **'더 지난 알림이 없어요'**
   String get notifNoEarlier;
 
   /// No description provided for @notifTplHealthGoalTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Member goals changed'**
+  /// In ko, this message translates to:
+  /// **'회원 건강 목표가 바뀌었어요'**
   String get notifTplHealthGoalTitle;
 
   /// goals is the member's health goals joined with ' · '.
   ///
-  /// In en, this message translates to:
-  /// **'{name} changed their health goals: {goals}'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 건강 목표를 바꿨어요: {goals}'**
   String notifTplHealthGoalBody(String name, String goals);
 
   /// No description provided for @notifTplHealthNotesTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Member health notes changed'**
+  /// In ko, this message translates to:
+  /// **'회원 주의사항이 바뀌었어요'**
   String get notifTplHealthNotesTitle;
 
   /// No description provided for @notifTplHealthNotesBody.
   ///
-  /// In en, this message translates to:
-  /// **'{name} updated their health notes'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 건강상태·주의사항을 바꿨어요'**
   String notifTplHealthNotesBody(String name);
 
   /// No description provided for @notifTplHealthNotesWithGoalsBody.
   ///
-  /// In en, this message translates to:
-  /// **'{name} updated their health goals and health notes'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 건강 목표와 건강상태·주의사항을 바꿨어요'**
   String notifTplHealthNotesWithGoalsBody(String name);
 
   /// Shown in place of the goal list when the member cleared every health goal.
   ///
-  /// In en, this message translates to:
-  /// **'none'**
+  /// In ko, this message translates to:
+  /// **'목표 없음'**
   String get notifTplNoGoals;
 
   /// No description provided for @notifTplMemberRenamedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Member renamed'**
+  /// In ko, this message translates to:
+  /// **'회원 이름이 바뀌었어요'**
   String get notifTplMemberRenamedTitle;
 
   /// No description provided for @notifTplMemberRenamedBody.
   ///
-  /// In en, this message translates to:
-  /// **'{oldName} changed their name to {newName}.'**
+  /// In ko, this message translates to:
+  /// **'{oldName} 회원이 이름을 바꿨어요: {newName}'**
   String notifTplMemberRenamedBody(String oldName, String newName);
 
   /// No description provided for @notifTplMemberWithdrawnTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Member account deleted'**
+  /// In ko, this message translates to:
+  /// **'회원이 탈퇴했어요'**
   String get notifTplMemberWithdrawnTitle;
 
   /// No description provided for @notifTplMemberWithdrawnBody.
   ///
-  /// In en, this message translates to:
-  /// **'{name} deleted their account.'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 탈퇴했어요.'**
   String notifTplMemberWithdrawnBody(String name);
 
   /// No description provided for @notifTplMemberDisconnectedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Member disconnected'**
+  /// In ko, this message translates to:
+  /// **'담당 연결이 해제됐어요'**
   String get notifTplMemberDisconnectedTitle;
 
   /// No description provided for @notifTplMemberDisconnectedBody.
   ///
-  /// In en, this message translates to:
-  /// **'{name} ended their connection with you.'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 담당 연결을 해제했어요.'**
   String notifTplMemberDisconnectedBody(String name);
 
   /// No description provided for @notifTplConsultRequestedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'New consultation request'**
+  /// In ko, this message translates to:
+  /// **'새 상담 요청이 도착했어요'**
   String get notifTplConsultRequestedTitle;
 
   /// No description provided for @notifTplConsultCancelledTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation request cancelled'**
+  /// In ko, this message translates to:
+  /// **'상담 요청이 취소됐어요'**
   String get notifTplConsultCancelledTitle;
 
   /// No description provided for @notifTplConsultBookingCancelledTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Confirmed consultation cancelled'**
+  /// In ko, this message translates to:
+  /// **'확정된 상담이 취소됐어요'**
   String get notifTplConsultBookingCancelledTitle;
 
   /// No description provided for @notifTplConsultWithdrawnTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Consultation request cancelled: member account deleted'**
+  /// In ko, this message translates to:
+  /// **'회원 탈퇴로 상담 요청이 취소됐어요'**
   String get notifTplConsultWithdrawnTitle;
 
   /// No description provided for @notifTplConsultWithdrawnBookedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Confirmed consultation cancelled: member account deleted'**
+  /// In ko, this message translates to:
+  /// **'회원 탈퇴로 확정된 상담이 취소됐어요'**
   String get notifTplConsultWithdrawnBookedTitle;
 
   /// No description provided for @notifTplInviteAcceptedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Coaching request accepted'**
+  /// In ko, this message translates to:
+  /// **'담당 요청이 수락됐어요'**
   String get notifTplInviteAcceptedTitle;
 
   /// No description provided for @notifTplInviteAcceptedBody.
   ///
-  /// In en, this message translates to:
-  /// **'{name} is now one of your members.'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 담당으로 연결됐어요.'**
   String notifTplInviteAcceptedBody(String name);
 
   /// No description provided for @notifTplInviteRejectedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Coaching request declined'**
+  /// In ko, this message translates to:
+  /// **'담당 요청이 거절됐어요'**
   String get notifTplInviteRejectedTitle;
 
   /// No description provided for @notifTplInviteRejectedBody.
   ///
-  /// In en, this message translates to:
-  /// **'{name} declined your coaching request.'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 담당 요청을 거절했어요.'**
   String notifTplInviteRejectedBody(String name);
 
   /// No description provided for @notifTplReservationBookedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'New booking'**
+  /// In ko, this message translates to:
+  /// **'새 예약이 들어왔어요'**
   String get notifTplReservationBookedTitle;
 
   /// No description provided for @notifTplReservationCancelledTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Booking cancelled'**
+  /// In ko, this message translates to:
+  /// **'예약이 취소됐어요'**
   String get notifTplReservationCancelledTitle;
 
   /// A member's name followed by a date or time, e.g. for a booking.
   ///
-  /// In en, this message translates to:
-  /// **'{name} · {detail}'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원 · {detail}'**
   String notifTplMemberWithDetail(String name, String detail);
 
   /// Just the member's name, used when a cancelled booking has no time.
   ///
-  /// In en, this message translates to:
-  /// **'{name}'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원'**
   String notifTplMemberOnly(String name);
 
   /// Seoul wall-clock date and time of a session. month and day have no leading zero, time is 24-hour HH:mm.
   ///
-  /// In en, this message translates to:
-  /// **'{month}/{day} {time}'**
+  /// In ko, this message translates to:
+  /// **'{month}월 {day}일 {time}'**
   String notifTplWhen(String month, String day, String time);
 
   /// No description provided for @notifTplMemberMessageTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Message from {name}'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원의 메시지'**
   String notifTplMemberMessageTitle(String name);
 
   /// Body of the new-message notification when a member sent only a photo in the coach chat.
   ///
-  /// In en, this message translates to:
-  /// **'Sent a photo'**
+  /// In ko, this message translates to:
+  /// **'사진을 보냈어요'**
   String get notifTplMemberPhotoBody;
 
   /// Trainer notification title when a member submits their weekly feedback (#3026).
   ///
-  /// In en, this message translates to:
-  /// **'{name} sent their weekly feedback'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 주간 피드백을 보냈어요'**
   String notifTplWeeklyFeedbackTitle(String name);
 
   /// Title when a member re-submits weekly feedback the trainer has already read (#3026).
   ///
-  /// In en, this message translates to:
-  /// **'{name} updated their weekly feedback'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 주간 피드백을 수정했어요'**
   String notifTplWeeklyFeedbackRevisedTitle(String name);
 
   /// Title when the weekly feedback reports pain. The pain area itself is never shown in the notification (#3026).
   ///
-  /// In en, this message translates to:
-  /// **'{name} reported pain'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원이 통증을 알렸어요'**
   String notifTplWeeklyFeedbackPainTitle(String name);
 
   /// No description provided for @notifTplWeeklyFeedbackCondition.
   ///
-  /// In en, this message translates to:
-  /// **'Condition: {value}'**
+  /// In ko, this message translates to:
+  /// **'컨디션 {value}'**
   String notifTplWeeklyFeedbackCondition(String value);
 
   /// No description provided for @notifTplWeeklyFeedbackIntensity.
   ///
-  /// In en, this message translates to:
-  /// **'Intensity: {value}'**
+  /// In ko, this message translates to:
+  /// **'운동 강도 {value}'**
   String notifTplWeeklyFeedbackIntensity(String value);
 
   /// No description provided for @notifTplWeeklyFeedbackPain.
   ///
-  /// In en, this message translates to:
-  /// **'Pain reported'**
+  /// In ko, this message translates to:
+  /// **'통증 있음'**
   String get notifTplWeeklyFeedbackPain;
 
   /// No description provided for @notifAllRead.
   ///
-  /// In en, this message translates to:
-  /// **'All caught up'**
+  /// In ko, this message translates to:
+  /// **'모두 확인했어요'**
   String get notifAllRead;
 
   /// No description provided for @notifReadAllFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t mark them read. Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'읽음 처리하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get notifReadAllFailed;
 
   /// No description provided for @notifUnreadCount.
   ///
-  /// In en, this message translates to:
-  /// **'{count} unread'**
+  /// In ko, this message translates to:
+  /// **'읽지 않은 알림 {count}건'**
   String notifUnreadCount(int count);
 
   /// No description provided for @myDeleteAccount.
   ///
-  /// In en, this message translates to:
-  /// **'Delete account'**
+  /// In ko, this message translates to:
+  /// **'계정 탈퇴'**
   String get myDeleteAccount;
 
   /// No description provided for @myDeleteAction.
   ///
-  /// In en, this message translates to:
-  /// **'Delete account'**
+  /// In ko, this message translates to:
+  /// **'탈퇴'**
   String get myDeleteAction;
 
   /// No description provided for @myDeleteDemo.
   ///
-  /// In en, this message translates to:
-  /// **'Demo mode has no account to delete'**
+  /// In ko, this message translates to:
+  /// **'데모 모드에는 지울 계정이 없어요'**
   String get myDeleteDemo;
 
   /// No description provided for @myDeleteTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Delete your account?'**
+  /// In ko, this message translates to:
+  /// **'계정을 탈퇴할까요?'**
   String get myDeleteTitle;
 
   /// No description provided for @myDeleteBody.
   ///
-  /// In en, this message translates to:
-  /// **'Your profile, messages with members, the PT programs and personal exercises you sent, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can\'t be undone.'**
+  /// In ko, this message translates to:
+  /// **'프로필과 회원과의 대화, 보낸 PT 프로그램·개인운동, 일정과 예약 가능 시간이 지워지고, 담당 회원 연결과 예정된 예약이 종료되며 회원에게 알림이 전달돼요. 담당 회원의 사용 전 PT 재등록 쿠폰은 취소되고 포인트가 회원에게 돌아가요. 이 작업은 되돌릴 수 없어요.'**
   String get myDeleteBody;
 
   /// No description provided for @myDeleteFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t delete your account. Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get myDeleteFailed;
 
   /// No description provided for @myDeleteReauthPrompt.
   ///
-  /// In en, this message translates to:
-  /// **'Enter your current password to confirm it\'s you'**
+  /// In ko, this message translates to:
+  /// **'본인 확인을 위해 현재 비밀번호를 입력해 주세요'**
   String get myDeleteReauthPrompt;
 
   /// No description provided for @myDeleteReauthWrongPassword.
   ///
-  /// In en, this message translates to:
-  /// **'Your current password is incorrect'**
+  /// In ko, this message translates to:
+  /// **'현재 비밀번호가 일치하지 않아요'**
   String get myDeleteReauthWrongPassword;
 
   /// No description provided for @myDeleteReauthSocialPrompt.
   ///
-  /// In en, this message translates to:
-  /// **'This account uses social sign-in. Sign in again with your social account to confirm it\'s you.'**
+  /// In ko, this message translates to:
+  /// **'소셜 계정으로 가입한 계정이에요. 본인 확인을 위해 소셜 계정으로 다시 로그인해 주세요.'**
   String get myDeleteReauthSocialPrompt;
 
   /// No description provided for @myDeleteReauthSocialAction.
   ///
-  /// In en, this message translates to:
-  /// **'Sign in again with your social account'**
+  /// In ko, this message translates to:
+  /// **'소셜 계정으로 다시 로그인'**
   String get myDeleteReauthSocialAction;
 
   /// No description provided for @myDeleteReauthKakao.
   ///
-  /// In en, this message translates to:
-  /// **'Sign in again with Kakao'**
+  /// In ko, this message translates to:
+  /// **'카카오로 다시 로그인'**
   String get myDeleteReauthKakao;
 
   /// No description provided for @myDeleteReauthGoogle.
   ///
-  /// In en, this message translates to:
-  /// **'Sign in again with Google'**
+  /// In ko, this message translates to:
+  /// **'구글로 다시 로그인'**
   String get myDeleteReauthGoogle;
 
   /// No description provided for @myDeleteReauthSocialDone.
   ///
-  /// In en, this message translates to:
-  /// **'Social account confirmed. Press Delete account to continue.'**
+  /// In ko, this message translates to:
+  /// **'소셜 계정을 확인했어요. 탈퇴를 누르면 진행돼요.'**
   String get myDeleteReauthSocialDone;
 
   /// No description provided for @myDeleteReauthSocialFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t confirm your social account. Please sign in again.'**
+  /// In ko, this message translates to:
+  /// **'소셜 계정을 확인하지 못했어요. 다시 로그인해 주세요.'**
   String get myDeleteReauthSocialFailed;
 
   /// Shown in the account-deletion confirmation when no social sign-in is configured for this build (#330).
   ///
-  /// In en, this message translates to:
-  /// **'Social sign-in isn\'t available in this version yet. Please contact support.'**
+  /// In ko, this message translates to:
+  /// **'이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요.'**
   String get myDeleteReauthSocialUnavailable;
 
   /// No description provided for @myWithdrawReasonTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Are you sure you want to delete your account?'**
+  /// In ko, this message translates to:
+  /// **'정말 탈퇴할까요?'**
   String get myWithdrawReasonTitle;
 
   /// No description provided for @myWithdrawReasonQuestion.
   ///
-  /// In en, this message translates to:
-  /// **'What didn\'t work for you?'**
+  /// In ko, this message translates to:
+  /// **'어떤 점이 아쉬우셨나요?'**
   String get myWithdrawReasonQuestion;
 
   /// No description provided for @myWithdrawReasonHint.
   ///
-  /// In en, this message translates to:
-  /// **'Pick as many as you like, or skip.'**
+  /// In ko, this message translates to:
+  /// **'여러 개 골라도 되고, 고르지 않아도 넘어갈 수 있어요.'**
   String get myWithdrawReasonHint;
 
   /// No description provided for @myWithdrawReasonRarelyUsed.
   ///
-  /// In en, this message translates to:
-  /// **'I rarely use it'**
+  /// In ko, this message translates to:
+  /// **'자주 사용하지 않아요'**
   String get myWithdrawReasonRarelyUsed;
 
   /// No description provided for @myWithdrawReasonHardToUse.
   ///
-  /// In en, this message translates to:
-  /// **'It\'s hard to use'**
+  /// In ko, this message translates to:
+  /// **'쓰기가 불편해요'**
   String get myWithdrawReasonHardToUse;
 
   /// No description provided for @myWithdrawReasonMissingFeature.
   ///
-  /// In en, this message translates to:
-  /// **'It lacks features I need for members'**
+  /// In ko, this message translates to:
+  /// **'회원 관리에 필요한 기능이 없어요'**
   String get myWithdrawReasonMissingFeature;
 
   /// No description provided for @myWithdrawReasonLeavingWork.
   ///
-  /// In en, this message translates to:
-  /// **'I\'m taking a break from training'**
+  /// In ko, this message translates to:
+  /// **'트레이너 일을 쉬거나 그만둬요'**
   String get myWithdrawReasonLeavingWork;
 
   /// No description provided for @myWithdrawReasonAlternative.
   ///
-  /// In en, this message translates to:
-  /// **'I use another tool'**
+  /// In ko, this message translates to:
+  /// **'다른 도구를 쓰고 있어요'**
   String get myWithdrawReasonAlternative;
 
   /// No description provided for @myWithdrawReasonOther.
   ///
-  /// In en, this message translates to:
-  /// **'Something else'**
+  /// In ko, this message translates to:
+  /// **'그 밖의 이유'**
   String get myWithdrawReasonOther;
 
   /// No description provided for @myWithdrawKeepTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Before you go'**
+  /// In ko, this message translates to:
+  /// **'탈퇴하기 전에'**
   String get myWithdrawKeepTitle;
 
   /// No description provided for @myWithdrawKeepRarelyUsed.
   ///
-  /// In en, this message translates to:
-  /// **'Turn on alerts so you don\'t miss member messages and bookings. Change them in Settings › Notifications.'**
+  /// In ko, this message translates to:
+  /// **'알림을 켜 두면 회원 메시지와 예약을 놓치지 않아요. 설정 › 알림에서 바꿀 수 있어요.'**
   String get myWithdrawKeepRarelyUsed;
 
   /// No description provided for @myWithdrawKeepHardToUse.
   ///
-  /// In en, this message translates to:
-  /// **'Tell us what felt awkward via 1:1 inquiry and we\'ll work on it.'**
+  /// In ko, this message translates to:
+  /// **'불편했던 점을 1:1 문의로 알려 주시면 고쳐 볼게요.'**
   String get myWithdrawKeepHardToUse;
 
   /// No description provided for @myWithdrawKeepMissingFeature.
   ///
-  /// In en, this message translates to:
-  /// **'Tell us which feature you need via 1:1 inquiry — we\'ll consider it next.'**
+  /// In ko, this message translates to:
+  /// **'필요한 기능을 1:1 문의로 알려 주세요. 다음 개선에 반영할게요.'**
   String get myWithdrawKeepMissingFeature;
 
   /// No description provided for @myWithdrawKeepLeavingWork.
   ///
-  /// In en, this message translates to:
-  /// **'If it\'s just a break, you can keep your account. Deleting it disconnects all your members.'**
+  /// In ko, this message translates to:
+  /// **'잠시 쉬는 거라면 계정을 그대로 두어도 돼요. 탈퇴하면 담당 회원 연결이 모두 끊겨요.'**
   String get myWithdrawKeepLeavingWork;
 
   /// No description provided for @myWithdrawKeepAlternative.
   ///
-  /// In en, this message translates to:
-  /// **'Deleting your account removes member records, programs and reports from your console for good.'**
+  /// In ko, this message translates to:
+  /// **'탈퇴하면 회원 기록·프로그램·리포트가 트레이너 화면에서 모두 사라지고 되살릴 수 없어요.'**
   String get myWithdrawKeepAlternative;
 
   /// No description provided for @myWithdrawKeepOther.
   ///
-  /// In en, this message translates to:
-  /// **'Your feedback via 1:1 inquiry would help us a lot.'**
+  /// In ko, this message translates to:
+  /// **'더 나은 서비스를 위해 1:1 문의로 의견을 남겨 주시면 큰 도움이 돼요.'**
   String get myWithdrawKeepOther;
 
   /// No description provided for @myWithdrawKeepDefault.
   ///
-  /// In en, this message translates to:
-  /// **'Deleting your account removes your member connections and bookings, and your members are notified. This can\'t be undone.'**
+  /// In ko, this message translates to:
+  /// **'탈퇴하면 담당 회원 연결과 예약이 사라지고, 회원에게 알림이 가요. 되돌릴 수 없어요.'**
   String get myWithdrawKeepDefault;
 
   /// No description provided for @myWithdrawNext.
   ///
-  /// In en, this message translates to:
-  /// **'Next'**
+  /// In ko, this message translates to:
+  /// **'다음'**
   String get myWithdrawNext;
 
   /// No description provided for @myWithdrawStay.
   ///
-  /// In en, this message translates to:
-  /// **'Keep using'**
+  /// In ko, this message translates to:
+  /// **'계속 사용하기'**
   String get myWithdrawStay;
 
   /// No description provided for @myWithdrawContinue.
   ///
-  /// In en, this message translates to:
-  /// **'Continue deleting'**
+  /// In ko, this message translates to:
+  /// **'탈퇴 계속'**
   String get myWithdrawContinue;
 
   /// No description provided for @workoutKindPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise'**
+  /// In ko, this message translates to:
+  /// **'개인운동'**
   String get workoutKindPersonal;
 
   /// No description provided for @workoutRoutineDay.
   ///
-  /// In en, this message translates to:
-  /// **'{month}/{day} ({weekday})'**
+  /// In ko, this message translates to:
+  /// **'{month}/{day}({weekday})'**
   String workoutRoutineDay(int month, int day, String weekday);
 
   /// No description provided for @workoutRoutineDoneOf.
   ///
-  /// In en, this message translates to:
-  /// **'{done} of {total} done'**
+  /// In ko, this message translates to:
+  /// **'{total}개 중 {done}개 완료'**
   String workoutRoutineDoneOf(int done, int total);
 
   /// No description provided for @workoutRoutineSentUntil.
   ///
-  /// In en, this message translates to:
-  /// **'Sent {sent} · until {end}'**
+  /// In ko, this message translates to:
+  /// **'{sent} 보냄 · {end}까지'**
   String workoutRoutineSentUntil(String sent, String end);
 
   /// No description provided for @workoutRoutineWeekSummary.
   ///
-  /// In en, this message translates to:
-  /// **'All done {full} of {days} days'**
+  /// In ko, this message translates to:
+  /// **'{days}일 중 모두 완료 {full}일'**
   String workoutRoutineWeekSummary(int days, int full);
 
   /// No description provided for @workoutRoutineWeekLate.
   ///
-  /// In en, this message translates to:
-  /// **'{count} late on {weekday}'**
+  /// In ko, this message translates to:
+  /// **'{weekday} {count}건 늦게'**
   String workoutRoutineWeekLate(String weekday, int count);
 
   /// No description provided for @workoutRoutineWeekFirstDay.
   ///
-  /// In en, this message translates to:
-  /// **'Starts today'**
+  /// In ko, this message translates to:
+  /// **'오늘 시작'**
   String get workoutRoutineWeekFirstDay;
 
   /// No description provided for @workoutRoutineWeekSent.
   ///
-  /// In en, this message translates to:
-  /// **'Sent {date} · {names}'**
+  /// In ko, this message translates to:
+  /// **'{date} 보냄 · {names}'**
   String workoutRoutineWeekSent(String date, String names);
 
   /// No description provided for @workoutRoutineWeekOngoing.
   ///
-  /// In en, this message translates to:
-  /// **'Ongoing · {names}'**
+  /// In ko, this message translates to:
+  /// **'계속 · {names}'**
   String workoutRoutineWeekOngoing(String names);
 
   /// No description provided for @workoutRoutineWeekMore.
   ///
-  /// In en, this message translates to:
-  /// **'{names} +{count} more'**
+  /// In ko, this message translates to:
+  /// **'{names} 외 {count}개'**
   String workoutRoutineWeekMore(String names, int count);
 
   /// No description provided for @workoutRoutineAllCount.
   ///
-  /// In en, this message translates to:
-  /// **'Sent {count} times'**
+  /// In ko, this message translates to:
+  /// **'{count}회 보냄'**
   String workoutRoutineAllCount(int count);
 
   /// No description provided for @workoutRoutineAllAverage.
   ///
-  /// In en, this message translates to:
-  /// **'{percent}% on average'**
+  /// In ko, this message translates to:
+  /// **'평균 {percent}%'**
   String workoutRoutineAllAverage(int percent);
 
   /// No description provided for @workoutRoutineAllSent.
   ///
-  /// In en, this message translates to:
-  /// **'Sent {date}'**
+  /// In ko, this message translates to:
+  /// **'{date} 보냄'**
   String workoutRoutineAllSent(String date);
 
   /// No description provided for @workoutRoutineAllUntil.
   ///
-  /// In en, this message translates to:
-  /// **'until {date}'**
+  /// In ko, this message translates to:
+  /// **'~{date}'**
   String workoutRoutineAllUntil(String date);
 
   /// No description provided for @workoutRoutineAllUntilShort.
   ///
-  /// In en, this message translates to:
-  /// **'until {date} · {days} days'**
+  /// In ko, this message translates to:
+  /// **'~{date} · {days}일'**
   String workoutRoutineAllUntilShort(String date, int days);
 
   /// No description provided for @workoutRoutineAllOngoing.
   ///
-  /// In en, this message translates to:
-  /// **'In progress · day {day}'**
+  /// In ko, this message translates to:
+  /// **'진행 중 · {day}일째'**
   String workoutRoutineAllOngoing(int day);
 
   /// No description provided for @workoutRoutineAllFirstDay.
   ///
-  /// In en, this message translates to:
-  /// **'Starts today'**
+  /// In ko, this message translates to:
+  /// **'오늘 시작'**
   String get workoutRoutineAllFirstDay;
 
   /// No description provided for @workoutRoutineAllRing.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise sent {date}, {percent}% done'**
+  /// In ko, this message translates to:
+  /// **'{date} 보낸 개인운동, {percent}% 완료'**
   String workoutRoutineAllRing(String date, int percent);
 
   /// No description provided for @coachRoutineAdherenceTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise completion'**
+  /// In ko, this message translates to:
+  /// **'개인운동 완료'**
   String get coachRoutineAdherenceTitle;
 
   /// No description provided for @coachRoutineAdherenceCell.
   ///
-  /// In en, this message translates to:
-  /// **'{date}: {done} of {total} done'**
+  /// In ko, this message translates to:
+  /// **'{date}: {done}/{total} 완료'**
   String coachRoutineAdherenceCell(String date, int done, int total);
 
   /// No description provided for @workoutTotalBurned.
   ///
-  /// In en, this message translates to:
-  /// **'{calories} kcal burned'**
+  /// In ko, this message translates to:
+  /// **'총 소모 {calories}kcal'**
   String workoutTotalBurned(String calories);
 
   /// No description provided for @workoutLineBurned.
   ///
-  /// In en, this message translates to:
-  /// **'{calories} kcal burned'**
+  /// In ko, this message translates to:
+  /// **'소모 {calories}kcal'**
   String workoutLineBurned(String calories);
 
   /// No description provided for @workoutLineEstimated.
   ///
-  /// In en, this message translates to:
-  /// **'Est. {calories} kcal burned'**
+  /// In ko, this message translates to:
+  /// **'예상 소모 {calories}kcal'**
   String workoutLineEstimated(String calories);
 
   /// No description provided for @workoutIntensityPerformed.
   ///
-  /// In en, this message translates to:
-  /// **'Did {level}'**
+  /// In ko, this message translates to:
+  /// **'수행 {level}'**
   String workoutIntensityPerformed(String level);
 
   /// No description provided for @workoutDaySourcePt.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'PT'**
   String get workoutDaySourcePt;
 
   /// No description provided for @workoutUndatedTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Records without a date'**
+  /// In ko, this message translates to:
+  /// **'날짜를 알 수 없는 기록'**
   String get workoutUndatedTitle;
 
   /// No description provided for @workoutMemberLogTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Added by member'**
+  /// In ko, this message translates to:
+  /// **'회원 추가'**
   String get workoutMemberLogTitle;
 
   /// Shown in the expanded day when its workouts fail to load (#2892)
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load this day\'s workouts'**
+  /// In ko, this message translates to:
+  /// **'운동 기록을 불러오지 못했어요'**
   String get workoutDayExercisesFailed;
 
   /// Label/tooltip of the console header's client search.
   ///
-  /// In en, this message translates to:
-  /// **'Search members'**
+  /// In ko, this message translates to:
+  /// **'회원 검색'**
   String get searchClients;
 
   /// No description provided for @searchClientsHint.
   ///
-  /// In en, this message translates to:
-  /// **'Members, goals, recent messages, last program sent date'**
+  /// In ko, this message translates to:
+  /// **'회원·목표·최근 메시지·마지막 프로그램 전송일 검색'**
   String get searchClientsHint;
 
   /// No description provided for @searchClear.
   ///
-  /// In en, this message translates to:
-  /// **'Clear search'**
+  /// In ko, this message translates to:
+  /// **'검색어 지우기'**
   String get searchClear;
 
   /// No description provided for @searchQuickActions.
   ///
-  /// In en, this message translates to:
-  /// **'Open in another tab'**
+  /// In ko, this message translates to:
+  /// **'다른 탭에서 열기'**
   String get searchQuickActions;
 
   /// No description provided for @searchNoResults.
   ///
-  /// In en, this message translates to:
-  /// **'No member matches “{query}”'**
+  /// In ko, this message translates to:
+  /// **'“{query}”와 일치하는 회원이 없어요'**
   String searchNoResults(String query);
 
   /// Search dropdown footer: what picking a result does on this tab.
   ///
-  /// In en, this message translates to:
-  /// **'Picking one opens their detail'**
+  /// In ko, this message translates to:
+  /// **'선택하면 회원 상세가 열려요'**
   String get searchGoClientDetail;
 
   /// No description provided for @searchGoSchedule.
   ///
-  /// In en, this message translates to:
-  /// **'Picking one jumps to their next booked day'**
+  /// In ko, this message translates to:
+  /// **'선택하면 다음 예약 날짜로 이동해요'**
   String get searchGoSchedule;
 
   /// No description provided for @searchGoCoaching.
   ///
-  /// In en, this message translates to:
-  /// **'Picking one loads them into AI coaching'**
+  /// In ko, this message translates to:
+  /// **'선택하면 AI 코칭에 불러와요'**
   String get searchGoCoaching;
 
   /// No description provided for @searchGoReport.
   ///
-  /// In en, this message translates to:
-  /// **'Picking one opens their weekly report'**
+  /// In ko, this message translates to:
+  /// **'선택하면 주간 리포트를 열어요'**
   String get searchGoReport;
 
   /// No description provided for @searchDetailUnread.
   ///
-  /// In en, this message translates to:
-  /// **'{count} awaiting a reply'**
+  /// In ko, this message translates to:
+  /// **'답장 대기 {count}건'**
   String searchDetailUnread(int count);
 
   /// No description provided for @searchDetailMessage.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{message} · {time}'**
   String searchDetailMessage(String message, String time);
 
   /// No description provided for @searchDetailNextSession.
   ///
-  /// In en, this message translates to:
-  /// **'Next appointment {date} {time}'**
+  /// In ko, this message translates to:
+  /// **'다음 예약 {date} {time}'**
   String searchDetailNextSession(String date, String time);
 
   /// No description provided for @searchDetailNoUpcoming.
   ///
-  /// In en, this message translates to:
-  /// **'Nothing booked'**
+  /// In ko, this message translates to:
+  /// **'예정된 예약 없음'**
   String get searchDetailNoUpcoming;
 
   /// No description provided for @searchDetailLastRoutine.
   ///
-  /// In en, this message translates to:
-  /// **'Last program {when}'**
+  /// In ko, this message translates to:
+  /// **'마지막 프로그램 {when}'**
   String searchDetailLastRoutine(String when);
 
   /// No description provided for @searchDetailCompletion.
   ///
-  /// In en, this message translates to:
-  /// **'{percent}% completion rate this week'**
+  /// In ko, this message translates to:
+  /// **'이번 주 완료율 {percent}%'**
   String searchDetailCompletion(int percent);
 
   /// No description provided for @navOperationsGroup.
   ///
-  /// In en, this message translates to:
-  /// **'Operations'**
+  /// In ko, this message translates to:
+  /// **'운영'**
   String get navOperationsGroup;
 
   /// No description provided for @navCoachingGroup.
   ///
-  /// In en, this message translates to:
-  /// **'Coaching'**
+  /// In ko, this message translates to:
+  /// **'코칭'**
   String get navCoachingGroup;
 
   /// No description provided for @dashTodayTasks.
   ///
-  /// In en, this message translates to:
-  /// **'Today\'s tasks'**
+  /// In ko, this message translates to:
+  /// **'오늘 할 일'**
   String get dashTodayTasks;
 
   /// No description provided for @dashTasksReviewed.
   ///
-  /// In en, this message translates to:
-  /// **'All reviewed'**
+  /// In ko, this message translates to:
+  /// **'모두 확인했어요'**
   String get dashTasksReviewed;
 
   /// No description provided for @dashTasksNeedReview.
   ///
-  /// In en, this message translates to:
-  /// **'{count} to review'**
+  /// In ko, this message translates to:
+  /// **'{count}개 확인 필요'**
   String dashTasksNeedReview(int count);
 
   /// No description provided for @dashTaskProgressTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Task completion'**
+  /// In ko, this message translates to:
+  /// **'할 일 진행률'**
   String get dashTaskProgressTitle;
 
   /// No description provided for @dashTaskProgressToday.
   ///
-  /// In en, this message translates to:
-  /// **'Today\'s tasks'**
+  /// In ko, this message translates to:
+  /// **'오늘 할 일'**
   String get dashTaskProgressToday;
 
   /// No description provided for @dashTaskProgressCarriedOver.
   ///
-  /// In en, this message translates to:
-  /// **'Carried over'**
+  /// In ko, this message translates to:
+  /// **'지난 할 일'**
   String get dashTaskProgressCarriedOver;
 
   /// No description provided for @dashTodoConsultation.
   ///
-  /// In en, this message translates to:
-  /// **'Consult'**
+  /// In ko, this message translates to:
+  /// **'상담'**
   String get dashTodoConsultation;
 
   /// No description provided for @dashTodoDiet.
   ///
-  /// In en, this message translates to:
-  /// **'Diet'**
+  /// In ko, this message translates to:
+  /// **'식단'**
   String get dashTodoDiet;
 
   /// No description provided for @dashTodoWorkout.
   ///
-  /// In en, this message translates to:
-  /// **'Workout'**
+  /// In ko, this message translates to:
+  /// **'운동'**
   String get dashTodoWorkout;
 
   /// No description provided for @dashTodoProgram.
   ///
-  /// In en, this message translates to:
-  /// **'Program'**
+  /// In ko, this message translates to:
+  /// **'프로그램'**
   String get dashTodoProgram;
 
   /// No description provided for @dashTodoReport.
   ///
-  /// In en, this message translates to:
-  /// **'Report'**
+  /// In ko, this message translates to:
+  /// **'리포트'**
   String get dashTodoReport;
 
   /// Subtitle of a consultation-request task: the member's preferred (or chosen slot) date and time, not the date the request arrived.
   ///
-  /// In en, this message translates to:
-  /// **'Preferred: {when}'**
+  /// In ko, this message translates to:
+  /// **'희망 {when}'**
   String dashTodoConsultationSubtitle(String when);
 
   /// Subtitle of the demo carried-over task shown before real history exists.
   ///
-  /// In en, this message translates to:
-  /// **'Diet feedback left over from yesterday'**
+  /// In ko, this message translates to:
+  /// **'어제 남긴 식단 피드백'**
   String get dashTodoCarriedOverDemoSubtitle;
 
   /// No description provided for @dashTodoProgramSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'No recent program sent'**
+  /// In ko, this message translates to:
+  /// **'최근 보낸 프로그램 없음'**
   String get dashTodoProgramSubtitle;
 
   /// No description provided for @dashTodoReportSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'This week\'s report is due'**
+  /// In ko, this message translates to:
+  /// **'이번 주 리포트 작성 대상'**
   String get dashTodoReportSubtitle;
 
   /// No description provided for @dashTaskSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save your task status. Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'할 일 상태를 저장하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get dashTaskSaveFailed;
 
   /// No description provided for @dashTaskLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load your task status. Please try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get dashTaskLoadFailed;
 
   /// Toast when a task tap arrives after midnight on a dashboard opened the previous day; the tap is ignored and today's list is reloaded.
   ///
-  /// In en, this message translates to:
-  /// **'The date changed, so today\'s tasks were reloaded. Please tap again'**
+  /// In ko, this message translates to:
+  /// **'날짜가 바뀌어 오늘 할 일로 새로 불러왔어요. 다시 눌러 주세요'**
   String get dashTaskDayChanged;
 
   /// No description provided for @dashTaskDismissTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Delete this item?'**
+  /// In ko, this message translates to:
+  /// **'이 항목을 삭제할까요?'**
   String get dashTaskDismissTitle;
 
   /// No description provided for @dashTaskDismissBody.
   ///
-  /// In en, this message translates to:
-  /// **'It only disappears from the task list. Actually handling it (consultation, program, report) still happens on its own screen.'**
+  /// In ko, this message translates to:
+  /// **'할 일 목록에서만 사라져요. 실제 처리(상담·프로그램·리포트)는 각 화면에서 해야 해요.'**
   String get dashTaskDismissBody;
 
   /// No description provided for @dashTaskCarriedOverTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Carried over'**
+  /// In ko, this message translates to:
+  /// **'지난 할 일'**
   String get dashTaskCarriedOverTitle;
 
   /// No description provided for @dashTaskCategoryDone.
   ///
-  /// In en, this message translates to:
-  /// **'Done'**
+  /// In ko, this message translates to:
+  /// **'완료'**
   String get dashTaskCategoryDone;
 
   /// No description provided for @dashTaskCategoryEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'None'**
+  /// In ko, this message translates to:
+  /// **'없음'**
   String get dashTaskCategoryEmpty;
 
   /// No description provided for @dashTaskCategoryRemaining.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'+{count}'**
   String dashTaskCategoryRemaining(int count);
 
   /// No description provided for @dashTaskUncheckTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Undo completion of \'{name}\'?'**
+  /// In ko, this message translates to:
+  /// **'\'{name}\' 완료를 취소할까요?'**
   String dashTaskUncheckTitle(String name);
 
   /// No description provided for @dashTaskUncheckBody.
   ///
-  /// In en, this message translates to:
-  /// **'It also drops off the task progress chart.'**
+  /// In ko, this message translates to:
+  /// **'할 일 진행률에서도 빠져요.'**
   String get dashTaskUncheckBody;
 
   /// No description provided for @dashTaskUncheckConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Undo completion'**
+  /// In ko, this message translates to:
+  /// **'완료 취소'**
   String get dashTaskUncheckConfirm;
 
   /// No description provided for @churnNoRecentFeedback.
   ///
-  /// In en, this message translates to:
-  /// **'No trainer feedback in 7 days'**
+  /// In ko, this message translates to:
+  /// **'최근 7일 트레이너 피드백 없음'**
   String get churnNoRecentFeedback;
 
   /// No description provided for @navMessages.
   ///
-  /// In en, this message translates to:
-  /// **'Messages'**
+  /// In ko, this message translates to:
+  /// **'메시지'**
   String get navMessages;
 
   /// No description provided for @messagesSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Exchange coaching updates with members and follow up quickly'**
+  /// In ko, this message translates to:
+  /// **'회원과 코칭 내용을 주고받고 빠르게 후속 조치하세요'**
   String get messagesSubtitle;
 
   /// No description provided for @messagesLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load conversations.'**
+  /// In ko, this message translates to:
+  /// **'대화 목록을 불러오지 못했어요.'**
   String get messagesLoadFailed;
 
   /// No description provided for @messagesEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No conversations match these filters.'**
+  /// In ko, this message translates to:
+  /// **'조건에 맞는 대화가 없어요.'**
   String get messagesEmpty;
 
   /// No description provided for @messagesFilterAll.
   ///
-  /// In en, this message translates to:
-  /// **'All'**
+  /// In ko, this message translates to:
+  /// **'전체'**
   String get messagesFilterAll;
 
   /// No description provided for @messagesFilterUnread.
   ///
-  /// In en, this message translates to:
-  /// **'Unread'**
+  /// In ko, this message translates to:
+  /// **'읽지 않음'**
   String get messagesFilterUnread;
 
   /// No description provided for @messagesFilterAttention.
   ///
-  /// In en, this message translates to:
-  /// **'Needs attention'**
+  /// In ko, this message translates to:
+  /// **'관리 필요'**
   String get messagesFilterAttention;
 
   /// No description provided for @messagesFilterUnreadCount.
   ///
-  /// In en, this message translates to:
-  /// **'Unread {count}'**
+  /// In ko, this message translates to:
+  /// **'읽지 않음 {count}'**
   String messagesFilterUnreadCount(int count);
 
   /// No description provided for @messagesNoPreview.
   ///
-  /// In en, this message translates to:
-  /// **'No messages yet'**
+  /// In ko, this message translates to:
+  /// **'아직 대화가 없어요'**
   String get messagesNoPreview;
 
   /// No description provided for @messagesPreviewEmote.
   ///
-  /// In en, this message translates to:
-  /// **'Sent an emote'**
+  /// In ko, this message translates to:
+  /// **'이모티콘을 보냈어요'**
   String get messagesPreviewEmote;
 
   /// No description provided for @messagesPreviewPhoto.
   ///
-  /// In en, this message translates to:
-  /// **'Photo'**
+  /// In ko, this message translates to:
+  /// **'사진'**
   String get messagesPreviewPhoto;
 
   /// No description provided for @messagesTimeJustNow.
   ///
-  /// In en, this message translates to:
-  /// **'Just now'**
+  /// In ko, this message translates to:
+  /// **'방금'**
   String get messagesTimeJustNow;
 
   /// No description provided for @messagesClientDetail.
   ///
-  /// In en, this message translates to:
-  /// **'Member details'**
+  /// In ko, this message translates to:
+  /// **'회원 상세'**
   String get messagesClientDetail;
 
   /// No description provided for @messagesSelectPrompt.
   ///
-  /// In en, this message translates to:
-  /// **'Select a member from the list to start a conversation.'**
+  /// In ko, this message translates to:
+  /// **'왼쪽 목록에서 대화할 회원을 선택하세요.'**
   String get messagesSelectPrompt;
 
   /// No description provided for @clientQuickMessages.
   ///
-  /// In en, this message translates to:
-  /// **'Messages'**
+  /// In ko, this message translates to:
+  /// **'메시지'**
   String get clientQuickMessages;
 
   /// No description provided for @clientQuickProgram.
   ///
-  /// In en, this message translates to:
-  /// **'Program'**
+  /// In ko, this message translates to:
+  /// **'프로그램'**
   String get clientQuickProgram;
 
   /// No description provided for @clientQuickReport.
   ///
-  /// In en, this message translates to:
-  /// **'Report'**
+  /// In ko, this message translates to:
+  /// **'리포트'**
   String get clientQuickReport;
 
   /// No description provided for @clientProfileSectionTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Body and goals'**
+  /// In ko, this message translates to:
+  /// **'신체·목표'**
   String get clientProfileSectionTitle;
 
   /// No description provided for @clientMemoDialogTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Memos & feedback'**
+  /// In ko, this message translates to:
+  /// **'메모·피드백'**
   String get clientMemoDialogTitle;
 
   /// No description provided for @clientTrainerMemo.
   ///
-  /// In en, this message translates to:
-  /// **'Memo'**
+  /// In ko, this message translates to:
+  /// **'메모'**
   String get clientTrainerMemo;
 
   /// No description provided for @clientHealthUnset.
   ///
-  /// In en, this message translates to:
-  /// **'Not set'**
+  /// In ko, this message translates to:
+  /// **'미입력'**
   String get clientHealthUnset;
 
   /// No description provided for @clientHealthTabBody.
   ///
-  /// In en, this message translates to:
-  /// **'Body'**
+  /// In ko, this message translates to:
+  /// **'신체'**
   String get clientHealthTabBody;
 
   /// No description provided for @clientHealthTabFocus.
   ///
-  /// In en, this message translates to:
-  /// **'Health goals'**
+  /// In ko, this message translates to:
+  /// **'건강 목표'**
   String get clientHealthTabFocus;
 
   /// No description provided for @clientGoalPerDay.
   ///
-  /// In en, this message translates to:
-  /// **'Per day'**
+  /// In ko, this message translates to:
+  /// **'하루 기준'**
   String get clientGoalPerDay;
 
   /// No description provided for @clientGoalCalories.
   ///
-  /// In en, this message translates to:
-  /// **'Calories'**
+  /// In ko, this message translates to:
+  /// **'칼로리'**
   String get clientGoalCalories;
 
   /// No description provided for @clientGoalSodium.
   ///
-  /// In en, this message translates to:
-  /// **'Sodium'**
+  /// In ko, this message translates to:
+  /// **'나트륨'**
   String get clientGoalSodium;
 
   /// No description provided for @clientGoalSugar.
   ///
-  /// In en, this message translates to:
-  /// **'Sugar'**
+  /// In ko, this message translates to:
+  /// **'당류'**
   String get clientGoalSugar;
 
   /// No description provided for @clientGoalCarbs.
   ///
-  /// In en, this message translates to:
-  /// **'Carbs'**
+  /// In ko, this message translates to:
+  /// **'탄수화물'**
   String get clientGoalCarbs;
 
   /// No description provided for @clientGoalProtein.
   ///
-  /// In en, this message translates to:
-  /// **'Protein'**
+  /// In ko, this message translates to:
+  /// **'단백질'**
   String get clientGoalProtein;
 
   /// No description provided for @clientGoalFat.
   ///
-  /// In en, this message translates to:
-  /// **'Fat'**
+  /// In ko, this message translates to:
+  /// **'지방'**
   String get clientGoalFat;
 
   /// No description provided for @clientGoalBurnDaily.
   ///
-  /// In en, this message translates to:
-  /// **'Daily calories burned'**
+  /// In ko, this message translates to:
+  /// **'하루 소모 칼로리'**
   String get clientGoalBurnDaily;
 
   /// No description provided for @clientGoalCardioWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly cardio'**
+  /// In ko, this message translates to:
+  /// **'주간 유산소'**
   String get clientGoalCardioWeekly;
 
   /// No description provided for @clientGoalStrengthWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly strength'**
+  /// In ko, this message translates to:
+  /// **'주간 근력'**
   String get clientGoalStrengthWeekly;
 
   /// No description provided for @clientGoalStretchWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly stretching'**
+  /// In ko, this message translates to:
+  /// **'주간 스트레칭'**
   String get clientGoalStretchWeekly;
 
   /// No description provided for @clientBodyHeight.
   ///
-  /// In en, this message translates to:
-  /// **'Height'**
+  /// In ko, this message translates to:
+  /// **'키'**
   String get clientBodyHeight;
 
   /// No description provided for @clientBodyWeight.
   ///
-  /// In en, this message translates to:
-  /// **'Weight'**
+  /// In ko, this message translates to:
+  /// **'체중'**
   String get clientBodyWeight;
 
   /// No description provided for @clientUnitCm.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'cm'**
   String get clientUnitCm;
 
   /// No description provided for @clientGoalDefaultHint.
   ///
-  /// In en, this message translates to:
-  /// **'Dimmed values are the defaults used until a goal is set. Empty fields use them.'**
+  /// In ko, this message translates to:
+  /// **'흐린 값은 회원이 목표를 세우기 전의 기본 기준이에요. 비워 두면 이 값으로 계산해요.'**
   String get clientGoalDefaultHint;
 
   /// No description provided for @clientGoalSuggestionDiet.
   ///
-  /// In en, this message translates to:
-  /// **'Suggested: {kcal} kcal · carbs {carbs} g · sugar {sugar} g · protein {protein} g · fat {fat} g · sodium {sodium} mg'**
+  /// In ko, this message translates to:
+  /// **'권장: {kcal}kcal · 탄수화물 {carbs}g · 당류 {sugar}g · 단백질 {protein}g · 지방 {fat}g · 나트륨 {sodium}mg'**
   String clientGoalSuggestionDiet(
     int kcal,
     int carbs,
@@ -7672,8 +7620,8 @@ abstract class AppLocalizations {
 
   /// No description provided for @clientGoalSuggestionExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Suggested: {burn} kcal burned a day · {cardio} min cardio · {strength} strength sets · {flexibility} min stretching a week'**
+  /// In ko, this message translates to:
+  /// **'권장: 하루 소모 {burn}kcal · 주 유산소 {cardio}분 · 근력 {strength}세트 · 스트레칭 {flexibility}분'**
   String clientGoalSuggestionExercise(
     int burn,
     int cardio,
@@ -7683,338 +7631,338 @@ abstract class AppLocalizations {
 
   /// No description provided for @clientGoalSuggestionPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'Based on age, gender, height, weight, and health goals (2020 KDRIs and WHO guidelines)'**
+  /// In ko, this message translates to:
+  /// **'나이·성별·키·체중과 건강 목표로 계산했어요 (2020 한국인 영양소 섭취기준·WHO 권고)'**
   String get clientGoalSuggestionPersonal;
 
   /// No description provided for @clientGoalSuggestionFallback.
   ///
-  /// In en, this message translates to:
-  /// **'Age, height, or weight is missing, so only the health goals adjust the defaults'**
+  /// In ko, this message translates to:
+  /// **'나이·키·체중이 없어 기본 기준에 건강 목표만 반영했어요'**
   String get clientGoalSuggestionFallback;
 
   /// No description provided for @clientGoalApplySuggestion.
   ///
-  /// In en, this message translates to:
-  /// **'Use suggested goals'**
+  /// In ko, this message translates to:
+  /// **'권장값으로 채우기'**
   String get clientGoalApplySuggestion;
 
   /// No description provided for @clientTrainerMemoHint.
   ///
-  /// In en, this message translates to:
-  /// **'Note what you want to remember about this member'**
+  /// In ko, this message translates to:
+  /// **'이 회원에 대해 기억할 내용을 적어 주세요'**
   String get clientTrainerMemoHint;
 
   /// No description provided for @clientTrainerMemoPrivate.
   ///
-  /// In en, this message translates to:
-  /// **'Only you can see this memo. It\'s hidden from the member.'**
+  /// In ko, this message translates to:
+  /// **'나만 보는 메모예요. 회원에게는 보이지 않아요.'**
   String get clientTrainerMemoPrivate;
 
   /// No description provided for @clientTrainerMemoAdd.
   ///
-  /// In en, this message translates to:
-  /// **'Add memo'**
+  /// In ko, this message translates to:
+  /// **'메모 추가'**
   String get clientTrainerMemoAdd;
 
   /// No description provided for @clientTrainerMemoEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No memos yet.'**
+  /// In ko, this message translates to:
+  /// **'아직 남긴 메모가 없어요.'**
   String get clientTrainerMemoEmpty;
 
   /// No description provided for @clientTrainerMemoFromChat.
   ///
-  /// In en, this message translates to:
-  /// **'From chat'**
+  /// In ko, this message translates to:
+  /// **'채팅에서 감지'**
   String get clientTrainerMemoFromChat;
 
   /// No description provided for @clientTrainerMemoLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load memos. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'메모를 불러오지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get clientTrainerMemoLoadFailed;
 
   /// No description provided for @clientTrainerMemoSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the memo. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'메모를 저장하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get clientTrainerMemoSaveFailed;
 
   /// No description provided for @clientTrainerMemoDeleteFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t delete the memo. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'메모를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get clientTrainerMemoDeleteFailed;
 
   /// No description provided for @clientTrainerMemoDeleteTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Delete this memo?'**
+  /// In ko, this message translates to:
+  /// **'메모를 삭제할까요?'**
   String get clientTrainerMemoDeleteTitle;
 
   /// No description provided for @clientTrainerMemoDeleteBody.
   ///
-  /// In en, this message translates to:
-  /// **'A deleted memo can\'t be restored.'**
+  /// In ko, this message translates to:
+  /// **'삭제한 메모는 되돌릴 수 없어요.'**
   String get clientTrainerMemoDeleteBody;
 
   /// No description provided for @clientExerciseMemoAdd.
   ///
-  /// In en, this message translates to:
-  /// **'Leave a memo'**
+  /// In ko, this message translates to:
+  /// **'메모 남기기'**
   String get clientExerciseMemoAdd;
 
   /// No description provided for @clientExerciseMemoCount.
   ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 memo} other{{count} memos}}'**
+  /// In ko, this message translates to:
+  /// **'메모 {count}개'**
   String clientExerciseMemoCount(int count);
 
   /// No description provided for @clientExerciseMemoHint.
   ///
-  /// In en, this message translates to:
-  /// **'Note what to remember from this workout'**
+  /// In ko, this message translates to:
+  /// **'이 운동 기록에서 기억할 내용을 적어 주세요'**
   String get clientExerciseMemoHint;
 
   /// No description provided for @clientExerciseMemoSaved.
   ///
-  /// In en, this message translates to:
-  /// **'Saved to memos.'**
+  /// In ko, this message translates to:
+  /// **'메모에 남겼어요.'**
   String get clientExerciseMemoSaved;
 
   /// No description provided for @clientMemoTagManual.
   ///
-  /// In en, this message translates to:
-  /// **'Written by you'**
+  /// In ko, this message translates to:
+  /// **'직접 작성'**
   String get clientMemoTagManual;
 
   /// No description provided for @clientMemoTagPtSession.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'PT · {date}'**
   String clientMemoTagPtSession(String date);
 
   /// No description provided for @clientMemoTagPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise · {date}'**
+  /// In ko, this message translates to:
+  /// **'개인운동 · {date}'**
   String clientMemoTagPersonal(String date);
 
   /// No description provided for @clientMemoTagPersonalNamed.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercise · {date} {name}'**
+  /// In ko, this message translates to:
+  /// **'개인운동 · {date} {name}'**
   String clientMemoTagPersonalNamed(String date, String name);
 
   /// No description provided for @clientMemoTagMemberLog.
   ///
-  /// In en, this message translates to:
-  /// **'Added by member · {date}'**
+  /// In ko, this message translates to:
+  /// **'회원 추가 · {date}'**
   String clientMemoTagMemberLog(String date);
 
   /// No description provided for @clientMemoTagDay.
   ///
-  /// In en, this message translates to:
-  /// **'Workout · {date}'**
+  /// In ko, this message translates to:
+  /// **'운동 기록 · {date}'**
   String clientMemoTagDay(String date);
 
   /// No description provided for @clientMemoEdited.
   ///
-  /// In en, this message translates to:
-  /// **'Edited'**
+  /// In ko, this message translates to:
+  /// **'수정됨'**
   String get clientMemoEdited;
 
   /// No description provided for @clientMemoSearchHint.
   ///
-  /// In en, this message translates to:
-  /// **'Search memos (text or tag)'**
+  /// In ko, this message translates to:
+  /// **'메모 검색 (본문·태그)'**
   String get clientMemoSearchHint;
 
   /// No description provided for @clientMemoSearchEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No memos match your search.'**
+  /// In ko, this message translates to:
+  /// **'찾는 메모가 없어요.'**
   String get clientMemoSearchEmpty;
 
   /// No description provided for @clientMemoCategoryExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise'**
+  /// In ko, this message translates to:
+  /// **'운동'**
   String get clientMemoCategoryExercise;
 
   /// No description provided for @clientMemoCategoryDiet.
   ///
-  /// In en, this message translates to:
-  /// **'Diet'**
+  /// In ko, this message translates to:
+  /// **'식단'**
   String get clientMemoCategoryDiet;
 
   /// No description provided for @clientMemoCategoryPain.
   ///
-  /// In en, this message translates to:
-  /// **'Pain · injury'**
+  /// In ko, this message translates to:
+  /// **'통증·부상'**
   String get clientMemoCategoryPain;
 
   /// No description provided for @clientMemoCategoryLife.
   ///
-  /// In en, this message translates to:
-  /// **'Life · schedule'**
+  /// In ko, this message translates to:
+  /// **'생활·일정'**
   String get clientMemoCategoryLife;
 
   /// No description provided for @clientMemoRecordLink.
   ///
-  /// In en, this message translates to:
-  /// **'Link a workout (optional)'**
+  /// In ko, this message translates to:
+  /// **'운동 기록 연결 (선택)'**
   String get clientMemoRecordLink;
 
   /// No description provided for @clientMemoRecordNone.
   ///
-  /// In en, this message translates to:
-  /// **'No link'**
+  /// In ko, this message translates to:
+  /// **'연결 안 함'**
   String get clientMemoRecordNone;
 
   /// No description provided for @clientMemoRecordEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No workouts in the last 14 days'**
+  /// In ko, this message translates to:
+  /// **'최근 14일 운동 기록이 없어요'**
   String get clientMemoRecordEmpty;
 
   /// No description provided for @clientMemoRecordDay.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{month}/{day} ({weekday})'**
   String clientMemoRecordDay(String month, String day, String weekday);
 
   /// No description provided for @clientMemoRecordPtSession.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{date} PT'**
   String clientMemoRecordPtSession(String date);
 
   /// No description provided for @clientMemoRecordPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'{date} Personal exercise'**
+  /// In ko, this message translates to:
+  /// **'{date} 개인운동'**
   String clientMemoRecordPersonal(String date);
 
   /// No description provided for @clientMemoRecordPersonalNamed.
   ///
-  /// In en, this message translates to:
-  /// **'{date} Personal exercise · {name}'**
+  /// In ko, this message translates to:
+  /// **'{date} 개인운동 · {name}'**
   String clientMemoRecordPersonalNamed(String date, String name);
 
   /// No description provided for @clientMemoRecordMemberLog.
   ///
-  /// In en, this message translates to:
-  /// **'{date} Added by member'**
+  /// In ko, this message translates to:
+  /// **'{date} 회원 추가'**
   String clientMemoRecordMemberLog(String date);
 
   /// No description provided for @clientMemoRecordExerciseDay.
   ///
-  /// In en, this message translates to:
-  /// **'{date} workout'**
+  /// In ko, this message translates to:
+  /// **'{date} 운동 기록'**
   String clientMemoRecordExerciseDay(String date);
 
   /// No description provided for @clientMemoTabMemo.
   ///
-  /// In en, this message translates to:
-  /// **'Memos'**
+  /// In ko, this message translates to:
+  /// **'메모'**
   String get clientMemoTabMemo;
 
   /// No description provided for @clientMemoTabFeedback.
   ///
-  /// In en, this message translates to:
-  /// **'Feedback'**
+  /// In ko, this message translates to:
+  /// **'피드백'**
   String get clientMemoTabFeedback;
 
   /// No description provided for @clientFeedbackPrivate.
   ///
-  /// In en, this message translates to:
-  /// **'Feedback you and the member exchanged. Tap one to edit it where it was written.'**
+  /// In ko, this message translates to:
+  /// **'회원과 주고받은 피드백이에요. 누르면 쓴 자리로 가서 고칠 수 있어요.'**
   String get clientFeedbackPrivate;
 
   /// No description provided for @clientFeedbackToMember.
   ///
-  /// In en, this message translates to:
-  /// **'Trainer → member'**
+  /// In ko, this message translates to:
+  /// **'트레이너 → 회원'**
   String get clientFeedbackToMember;
 
   /// No description provided for @clientFeedbackFromMember.
   ///
-  /// In en, this message translates to:
-  /// **'Member → trainer'**
+  /// In ko, this message translates to:
+  /// **'회원 → 트레이너'**
   String get clientFeedbackFromMember;
 
   /// No description provided for @clientFeedbackSourcePt.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'PT · {date}'**
   String clientFeedbackSourcePt(String date);
 
   /// No description provided for @clientFeedbackSourceReport.
   ///
-  /// In en, this message translates to:
-  /// **'Report · week of {date}'**
+  /// In ko, this message translates to:
+  /// **'리포트 · {date} 주'**
   String clientFeedbackSourceReport(String date);
 
   /// No description provided for @clientFeedbackSourceWeekly.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly feedback · week of {date}'**
+  /// In ko, this message translates to:
+  /// **'주간 피드백 · {date} 주'**
   String clientFeedbackSourceWeekly(String date);
 
   /// No description provided for @clientFeedbackWeeklyNoNote.
   ///
-  /// In en, this message translates to:
-  /// **'No one-line feedback'**
+  /// In ko, this message translates to:
+  /// **'한 줄 피드백 없음'**
   String get clientFeedbackWeeklyNoNote;
 
   /// No description provided for @clientFeedbackEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No feedback exchanged yet.'**
+  /// In ko, this message translates to:
+  /// **'아직 주고받은 피드백이 없어요.'**
   String get clientFeedbackEmpty;
 
   /// No description provided for @clientFeedbackLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load feedback. Try again in a moment'**
+  /// In ko, this message translates to:
+  /// **'피드백을 불러오지 못했어요. 잠시 후 다시 시도해 주세요'**
   String get clientFeedbackLoadFailed;
 
   /// No description provided for @clientFeedbackSearchHint.
   ///
-  /// In en, this message translates to:
-  /// **'Search feedback (text, source, direction)'**
+  /// In ko, this message translates to:
+  /// **'피드백 검색 (본문·출처·방향)'**
   String get clientFeedbackSearchHint;
 
   /// No description provided for @clientFeedbackSearchEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No feedback matches your search.'**
+  /// In ko, this message translates to:
+  /// **'찾는 피드백이 없어요.'**
   String get clientFeedbackSearchEmpty;
 
   /// No description provided for @programEditorDefaultName.
   ///
-  /// In en, this message translates to:
-  /// **'{goal} program'**
+  /// In ko, this message translates to:
+  /// **'{goal} 프로그램'**
   String programEditorDefaultName(String goal);
 
   /// No description provided for @programEditorSaveUnsupported.
   ///
-  /// In en, this message translates to:
-  /// **'Give the program a name first.'**
+  /// In ko, this message translates to:
+  /// **'프로그램 이름을 입력해 주세요'**
   String get programEditorSaveUnsupported;
 
   /// No description provided for @programDraftSaved.
   ///
-  /// In en, this message translates to:
-  /// **'Program saved.'**
+  /// In ko, this message translates to:
+  /// **'프로그램을 저장했어요'**
   String get programDraftSaved;
 
   /// No description provided for @programAssignConfirmAttachBody.
   ///
-  /// In en, this message translates to:
-  /// **'This program will be attached to {name}\'s PT already planned for {date} {session}. The time you picked ({selected}) won\'t be applied.'**
+  /// In ko, this message translates to:
+  /// **'{date} {session}에 이미 예정된 {name}님의 PT에 이 프로그램이 연결돼요. 고른 시간({selected})은 적용되지 않아요.'**
   String programAssignConfirmAttachBody(
     String name,
     String date,
@@ -8024,8 +7972,8 @@ abstract class AppLocalizations {
 
   /// No description provided for @programAssignConfirmChooseBody.
   ///
-  /// In en, this message translates to:
-  /// **'{name} has several PT appointments on {date} that overlap the time you picked ({selected}). Choose which one to attach this program to. The picked time won\'t be applied.'**
+  /// In ko, this message translates to:
+  /// **'{date}에 고른 시간({selected})과 겹치는 {name}님의 PT가 여러 개예요. 프로그램을 연결할 회차를 골라 주세요. 고른 시간은 적용되지 않아요.'**
   String programAssignConfirmChooseBody(
     String name,
     String date,
@@ -8034,86 +7982,86 @@ abstract class AppLocalizations {
 
   /// No description provided for @coachAttachTargetChanged.
   ///
-  /// In en, this message translates to:
-  /// **'The PT appointment to attach to has changed. Tap Add to schedule again to check'**
+  /// In ko, this message translates to:
+  /// **'연결할 PT 일정이 그 사이 바뀌었어요. 일정 추가를 다시 눌러 확인해 주세요'**
   String get coachAttachTargetChanged;
 
   /// No description provided for @coachScheduleOverlap.
   ///
-  /// In en, this message translates to:
-  /// **'Another appointment is already booked at that time, so nothing was added. Pick a different time and try again'**
+  /// In ko, this message translates to:
+  /// **'고른 시간에 이미 다른 일정이 있어 등록하지 않았어요. 시간을 바꿔 다시 보내 주세요'**
   String get coachScheduleOverlap;
 
   /// No description provided for @programEditorNoExercises.
   ///
-  /// In en, this message translates to:
-  /// **'Add at least one exercise'**
+  /// In ko, this message translates to:
+  /// **'운동을 하나 이상 추가해 주세요'**
   String get programEditorNoExercises;
 
   /// No description provided for @programEditorExerciseNameInvalid.
   ///
-  /// In en, this message translates to:
-  /// **'An exercise name is empty or longer than 100 characters'**
+  /// In ko, this message translates to:
+  /// **'이름이 비었거나 100자를 넘는 운동이 있어요'**
   String get programEditorExerciseNameInvalid;
 
   /// No description provided for @programEditorRegisterDatePast.
   ///
-  /// In en, this message translates to:
-  /// **'That date has passed. Pick today or a later date'**
+  /// In ko, this message translates to:
+  /// **'지난 날짜예요. 오늘 이후 날짜를 골라 주세요'**
   String get programEditorRegisterDatePast;
 
   /// No description provided for @programEditorSending.
   ///
-  /// In en, this message translates to:
-  /// **'Adding to the schedule'**
+  /// In ko, this message translates to:
+  /// **'일정에 추가하는 중이에요'**
   String get programEditorSending;
 
   /// No description provided for @programEditorAlreadySent.
   ///
-  /// In en, this message translates to:
-  /// **'You just sent this setup. Apply a new one to send again'**
+  /// In ko, this message translates to:
+  /// **'방금 보낸 구성이에요. 새 구성을 반영하면 다시 보낼 수 있어요'**
   String get programEditorAlreadySent;
 
   /// No description provided for @coachSendNetworkFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Check your network connection and try again'**
+  /// In ko, this message translates to:
+  /// **'네트워크 연결을 확인한 뒤 다시 시도해 주세요'**
   String get coachSendNetworkFailed;
 
   /// No description provided for @coachSendClientNotFound.
   ///
-  /// In en, this message translates to:
-  /// **'This member isn\'t linked to you. Check the member\'s connection'**
+  /// In ko, this message translates to:
+  /// **'담당 회원을 찾을 수 없어요. 회원 연결 상태를 확인해 주세요'**
   String get coachSendClientNotFound;
 
   /// No description provided for @coachSendInvalid.
   ///
-  /// In en, this message translates to:
-  /// **'The server didn\'t accept this schedule. Check the date, time and exercises'**
+  /// In ko, this message translates to:
+  /// **'서버가 이 일정을 받지 않았어요. 날짜·시간·운동 구성을 확인해 주세요'**
   String get coachSendInvalid;
 
   /// No description provided for @coachSendUnverified.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t confirm the result. Check the schedule to see whether it was added'**
+  /// In ko, this message translates to:
+  /// **'등록 결과를 확인하지 못했어요. 스케줄에서 등록 여부를 확인해 주세요'**
   String get coachSendUnverified;
 
   /// No description provided for @programEditorSessionLimitReached.
   ///
-  /// In en, this message translates to:
-  /// **'A program can have up to {max} sessions'**
+  /// In ko, this message translates to:
+  /// **'세션은 최대 {max}개까지 만들 수 있어요'**
   String programEditorSessionLimitReached(int max);
 
   /// No description provided for @programEditorExerciseLimitReached.
   ///
-  /// In en, this message translates to:
-  /// **'A program can have up to {max} exercises in total'**
+  /// In ko, this message translates to:
+  /// **'운동은 프로그램 전체에서 최대 {max}개까지 넣을 수 있어요'**
   String programEditorExerciseLimitReached(int max);
 
   /// No description provided for @programEditorSizeExceeded.
   ///
-  /// In en, this message translates to:
-  /// **'{sessions}/{maxSessions} sessions · {exercises}/{maxExercises} exercises — remove the extra to add it to the schedule'**
+  /// In ko, this message translates to:
+  /// **'세션 {sessions}/{maxSessions}개 · 운동 {exercises}/{maxExercises}개 — 한도를 넘은 만큼 줄여야 일정에 추가할 수 있어요'**
   String programEditorSizeExceeded(
     int sessions,
     int maxSessions,
@@ -8123,1562 +8071,1562 @@ abstract class AppLocalizations {
 
   /// No description provided for @programAssignConfirmTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Add to the schedule?'**
+  /// In ko, this message translates to:
+  /// **'일정에 추가할까요?'**
   String get programAssignConfirmTitle;
 
   /// No description provided for @programAssignConfirmBody.
   ///
-  /// In en, this message translates to:
-  /// **'A new PT appointment will be created for {name} on {date} at {time} with this program.'**
+  /// In ko, this message translates to:
+  /// **'{date} {time}에 {name}님의 PT 일정을 새로 만들고 이 프로그램을 추가해요.'**
   String programAssignConfirmBody(String name, String date, String time);
 
   /// No description provided for @programEditorSaveTemplate.
   ///
-  /// In en, this message translates to:
-  /// **'Save as template'**
+  /// In ko, this message translates to:
+  /// **'템플릿 저장'**
   String get programEditorSaveTemplate;
 
   /// No description provided for @programEditorAddSchedule.
   ///
-  /// In en, this message translates to:
-  /// **'Add to schedule'**
+  /// In ko, this message translates to:
+  /// **'일정 추가'**
   String get programEditorAddSchedule;
 
   /// No description provided for @programEditorExerciseConfig.
   ///
-  /// In en, this message translates to:
-  /// **'Workout structure'**
+  /// In ko, this message translates to:
+  /// **'운동 구성'**
   String get programEditorExerciseConfig;
 
   /// No description provided for @programEditorAddSession.
   ///
-  /// In en, this message translates to:
-  /// **'Add session'**
+  /// In ko, this message translates to:
+  /// **'세션 추가'**
   String get programEditorAddSession;
 
   /// No description provided for @programTemplateSessionPickerTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Add to which session?'**
+  /// In ko, this message translates to:
+  /// **'어느 세션에 추가할까요?'**
   String get programTemplateSessionPickerTitle;
 
   /// No description provided for @programTemplateSessionPickerBody.
   ///
-  /// In en, this message translates to:
-  /// **'Choose a session for the \'{name}\' template.'**
+  /// In ko, this message translates to:
+  /// **'\'{name}\' 템플릿을 추가할 세션을 골라 주세요.'**
   String programTemplateSessionPickerBody(String name);
 
   /// No description provided for @programEditorAiReapplyTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Replace the AI exercises with the new plan?'**
+  /// In ko, this message translates to:
+  /// **'AI 운동을 새 안으로 바꿀까요?'**
   String get programEditorAiReapplyTitle;
 
   /// No description provided for @programEditorAiReapplyBody.
   ///
-  /// In en, this message translates to:
-  /// **'Replaces the AI exercises added earlier ({count}) with the new plan. Exercises you added or edited stay.'**
+  /// In ko, this message translates to:
+  /// **'앞서 반영한 AI 운동 {count}개를 새 안으로 바꿔요. 직접 추가하거나 고친 운동은 그대로 남아요.'**
   String programEditorAiReapplyBody(int count);
 
   /// No description provided for @programEditorAiReapplyReplace.
   ///
-  /// In en, this message translates to:
-  /// **'Replace'**
+  /// In ko, this message translates to:
+  /// **'바꾸기'**
   String get programEditorAiReapplyReplace;
 
   /// No description provided for @programEditorAiReapplyAppend.
   ///
-  /// In en, this message translates to:
-  /// **'Add after'**
+  /// In ko, this message translates to:
+  /// **'뒤에 추가'**
   String get programEditorAiReapplyAppend;
 
   /// No description provided for @programEditorSessionNameTyped.
   ///
-  /// In en, this message translates to:
-  /// **'{type} session'**
+  /// In ko, this message translates to:
+  /// **'{type} 세션'**
   String programEditorSessionNameTyped(String type);
 
   /// No description provided for @programEditorSessionNameNumbered.
   ///
-  /// In en, this message translates to:
-  /// **'{type} session {index}'**
+  /// In ko, this message translates to:
+  /// **'{type} 세션 {index}'**
   String programEditorSessionNameNumbered(String type, int index);
 
   /// No description provided for @programEditorSessionUp.
   ///
-  /// In en, this message translates to:
-  /// **'Move session up'**
+  /// In ko, this message translates to:
+  /// **'세션 위로 이동'**
   String get programEditorSessionUp;
 
   /// No description provided for @programEditorSessionDown.
   ///
-  /// In en, this message translates to:
-  /// **'Move session down'**
+  /// In ko, this message translates to:
+  /// **'세션 아래로 이동'**
   String get programEditorSessionDown;
 
   /// No description provided for @programEditorSessionReset.
   ///
-  /// In en, this message translates to:
-  /// **'Reset session'**
+  /// In ko, this message translates to:
+  /// **'세션 초기화'**
   String get programEditorSessionReset;
 
   /// No description provided for @programEditorSessionResetTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Reset this session?'**
+  /// In ko, this message translates to:
+  /// **'세션을 초기화할까요?'**
   String get programEditorSessionResetTitle;
 
   /// No description provided for @programEditorSessionResetBody.
   ///
-  /// In en, this message translates to:
-  /// **'Every exercise in \'{name}\' will be cleared. The session itself and other sessions stay.'**
+  /// In ko, this message translates to:
+  /// **'\'{name}\' 세션의 운동이 모두 지워져요. 세션 자체와 다른 세션은 그대로 남아요.'**
   String programEditorSessionResetBody(String name);
 
   /// No description provided for @programEditorSessionEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'Add exercises to build this session.'**
+  /// In ko, this message translates to:
+  /// **'운동을 추가해 세션을 구성하세요.'**
   String get programEditorSessionEmpty;
 
   /// No description provided for @programEditorAdd.
   ///
-  /// In en, this message translates to:
-  /// **'Add'**
+  /// In ko, this message translates to:
+  /// **'추가'**
   String get programEditorAdd;
 
   /// No description provided for @programEditorAddExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Add exercise'**
+  /// In ko, this message translates to:
+  /// **'운동 추가'**
   String get programEditorAddExercise;
 
   /// No description provided for @programEditorExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Exercise'**
+  /// In ko, this message translates to:
+  /// **'운동'**
   String get programEditorExercise;
 
   /// No description provided for @programEditorExerciseUp.
   ///
-  /// In en, this message translates to:
-  /// **'Move exercise up'**
+  /// In ko, this message translates to:
+  /// **'운동 위로 이동'**
   String get programEditorExerciseUp;
 
   /// No description provided for @programEditorExerciseDown.
   ///
-  /// In en, this message translates to:
-  /// **'Move exercise down'**
+  /// In ko, this message translates to:
+  /// **'운동 아래로 이동'**
   String get programEditorExerciseDown;
 
   /// No description provided for @programEditorExerciseMoveSession.
   ///
-  /// In en, this message translates to:
-  /// **'Move to another session'**
+  /// In ko, this message translates to:
+  /// **'다른 세션으로'**
   String get programEditorExerciseMoveSession;
 
   /// No description provided for @programEditorExerciseMoveTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Which session should it move to?'**
+  /// In ko, this message translates to:
+  /// **'어느 세션으로 옮길까요?'**
   String get programEditorExerciseMoveTitle;
 
   /// No description provided for @programEditorExerciseMoveBody.
   ///
-  /// In en, this message translates to:
-  /// **'Pick the session to move \'{name}\' into.'**
+  /// In ko, this message translates to:
+  /// **'\'{name}\' 운동을 옮길 세션을 골라 주세요.'**
   String programEditorExerciseMoveBody(String name);
 
   /// No description provided for @programEditorSets.
   ///
-  /// In en, this message translates to:
-  /// **'Sets'**
+  /// In ko, this message translates to:
+  /// **'세트 수'**
   String get programEditorSets;
 
   /// No description provided for @programEditorReps.
   ///
-  /// In en, this message translates to:
-  /// **'Reps'**
+  /// In ko, this message translates to:
+  /// **'횟수'**
   String get programEditorReps;
 
   /// No description provided for @programEditorWeight.
   ///
-  /// In en, this message translates to:
-  /// **'Weight (kg)'**
+  /// In ko, this message translates to:
+  /// **'중량 (kg)'**
   String get programEditorWeight;
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name} kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 이번 주 운동과 식단을 계획대로 잘 이어 갔어요. 지금 리듬을 지키면서 다음 주에는 운동 강도를 조금 올려 봐도 좋겠어요.'**
   String reportsDemoSummarySteadyThisWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name} kept workouts and meals on plan that week. Hold this rhythm and consider nudging the training intensity up gradually.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 그 주 운동과 식단을 계획대로 잘 이어 갔어요. 이 리듬을 지키면서 운동 강도를 조금씩 올려 봐도 좋겠어요.'**
   String reportsDemoSummarySteadyPastWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s workouts slipped this week. Ask whether the schedule was tight, then rebuild with a shorter routine next week.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 이번 주 운동 완료율이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.'**
   String reportsDemoSummaryCompletionThisWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s workouts slipped that week. Ask whether the schedule was tight, then rebuild with a shorter routine.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 그 주 운동 완료율이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.'**
   String reportsDemoSummaryCompletionPastWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name} skipped a few exercises this week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  /// In ko, this message translates to:
+  /// **'{name}님이 이번 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠어요.'**
   String reportsDemoSummarySkippedThisWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name} skipped a few exercises that week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  /// In ko, this message translates to:
+  /// **'{name}님이 그 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠어요.'**
   String reportsDemoSummarySkippedPastWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name} had salty meals often this week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 이번 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.'**
   String reportsDemoSummarySodiumThisWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name} had salty meals often that week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 그 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.'**
   String reportsDemoSummarySodiumPastWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name} had sweets and sugary drinks often this week. Start by suggesting fruit or nuts as snacks instead.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 이번 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.'**
   String reportsDemoSummarySugarThisWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name} had sweets and sugary drinks often that week. Start by suggesting fruit or nuts as snacks instead.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 그 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.'**
   String reportsDemoSummarySugarPastWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s intake drifted from the calorie goal this week. Review the meal log together for skipped or oversized meals.'**
+  /// In ko, this message translates to:
+  /// **'{name}님의 이번 주 섭취 칼로리가 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.'**
   String reportsDemoSummaryCaloriesThisWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s intake drifted from the calorie goal that week. Review the meal log together for skipped or oversized meals.'**
+  /// In ko, this message translates to:
+  /// **'{name}님의 그 주 섭취 칼로리가 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.'**
   String reportsDemoSummaryCaloriesPastWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s carb, protein and fat split differed from the goals this week. Go over meal composition together to rebalance it.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 이번 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.'**
   String reportsDemoSummaryMacroThisWeek(String name);
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s carb, protein and fat split differed from the goals that week. Go over meal composition together to rebalance it.'**
+  /// In ko, this message translates to:
+  /// **'{name}님은 그 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.'**
   String reportsDemoSummaryMacroPastWeek(String name);
 
   /// No description provided for @reportsBackToList.
   ///
-  /// In en, this message translates to:
-  /// **'Member list'**
+  /// In ko, this message translates to:
+  /// **'회원 목록'**
   String get reportsBackToList;
 
   /// No description provided for @reportsAverageSodium.
   ///
-  /// In en, this message translates to:
-  /// **'Average sodium'**
+  /// In ko, this message translates to:
+  /// **'평균 나트륨'**
   String get reportsAverageSodium;
 
   /// No description provided for @reportsFeedbackTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Trainer feedback'**
+  /// In ko, this message translates to:
+  /// **'트레이너 피드백'**
   String get reportsFeedbackTitle;
 
   /// No description provided for @reportsFeedbackDraftNote.
   ///
-  /// In en, this message translates to:
-  /// **'A draft filled in from this week\'s figures. Check it over before sending.'**
+  /// In ko, this message translates to:
+  /// **'수치에서 자동으로 채운 초안이에요. 보내기 전에 확인하고 고쳐 주세요.'**
   String get reportsFeedbackDraftNote;
 
   /// No description provided for @reportsFeedbackUndo.
   ///
-  /// In en, this message translates to:
-  /// **'Undo'**
+  /// In ko, this message translates to:
+  /// **'되돌리기'**
   String get reportsFeedbackUndo;
 
   /// No description provided for @reportsFeedbackRedo.
   ///
-  /// In en, this message translates to:
-  /// **'Redo'**
+  /// In ko, this message translates to:
+  /// **'다시 실행'**
   String get reportsFeedbackRedo;
 
   /// No description provided for @reportsFeedbackSave.
   ///
-  /// In en, this message translates to:
-  /// **'Save'**
+  /// In ko, this message translates to:
+  /// **'저장'**
   String get reportsFeedbackSave;
 
   /// No description provided for @reportsFeedbackSaving.
   ///
-  /// In en, this message translates to:
-  /// **'Saving…'**
+  /// In ko, this message translates to:
+  /// **'저장 중…'**
   String get reportsFeedbackSaving;
 
   /// No description provided for @reportsFeedbackSaved.
   ///
-  /// In en, this message translates to:
-  /// **'Saved the feedback draft.'**
+  /// In ko, this message translates to:
+  /// **'피드백 초안을 저장했어요.'**
   String get reportsFeedbackSaved;
 
   /// No description provided for @reportsFeedbackSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the draft. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'초안을 저장하지 못했어요. 다시 시도해 주세요.'**
   String get reportsFeedbackSaveFailed;
 
   /// No description provided for @reportsFeedbackHint.
   ///
-  /// In en, this message translates to:
-  /// **'Write coaching feedback for the member.'**
+  /// In ko, this message translates to:
+  /// **'회원에게 전달할 코칭 피드백을 작성하세요.'**
   String get reportsFeedbackHint;
 
   /// No description provided for @reportsAiTitle.
   ///
-  /// In en, this message translates to:
-  /// **'This week\'s summary'**
+  /// In ko, this message translates to:
+  /// **'이번 주 요약'**
   String get reportsAiTitle;
 
   /// No description provided for @reportsAiNextWeek.
   ///
-  /// In en, this message translates to:
-  /// **'Next week\'s coaching'**
+  /// In ko, this message translates to:
+  /// **'다음 주 코칭 제안'**
   String get reportsAiNextWeek;
 
   /// No description provided for @reportsAiMoreWatchpoints.
   ///
-  /// In en, this message translates to:
-  /// **'{count} more — see the full report.'**
+  /// In ko, this message translates to:
+  /// **'외 {count}건은 리포트 본문에서 확인하세요.'**
   String reportsAiMoreWatchpoints(int count);
 
   /// No description provided for @reportsActionSodium.
   ///
-  /// In en, this message translates to:
-  /// **'Ask them to leave half the broth and the pickled sides.'**
+  /// In ko, this message translates to:
+  /// **'국물·절임 반찬을 절반만 남기도록 안내해 주세요.'**
   String get reportsActionSodium;
 
   /// No description provided for @reportsActionSugar.
   ///
-  /// In en, this message translates to:
-  /// **'Some days went over the {target} g sugar goal. Start with drinks and snacks.'**
+  /// In ko, this message translates to:
+  /// **'당류가 목표({target}g)를 넘긴 날이 있어요. 음료·간식부터 짚어 주세요.'**
   String reportsActionSugar(String target);
 
   /// No description provided for @reportsActionLowCompletion.
   ///
-  /// In en, this message translates to:
-  /// **'Drop the program a notch so they finish it first.'**
+  /// In ko, this message translates to:
+  /// **'프로그램 난이도를 한 단계 낮춰 완수 경험을 먼저 만들어 주세요.'**
   String get reportsActionLowCompletion;
 
   /// No description provided for @reportsActionHighCompletion.
   ///
-  /// In en, this message translates to:
-  /// **'Good pace. Add a set or a little weight next week.'**
+  /// In ko, this message translates to:
+  /// **'페이스가 좋아요. 다음 주에는 세트 수나 중량을 한 단계 올려 보세요.'**
   String get reportsActionHighCompletion;
 
   /// No description provided for @reportsActionSkipped.
   ///
-  /// In en, this message translates to:
-  /// **'Prepare alternatives for {names} for the next PT.'**
+  /// In ko, this message translates to:
+  /// **'{names} 대체 운동을 준비해 다음 PT에서 맞춰 주세요.'**
   String reportsActionSkipped(String names);
 
   /// No description provided for @reportsActionUnlogged.
   ///
-  /// In en, this message translates to:
-  /// **'{days} days went unlogged. Build the logging habit first.'**
+  /// In ko, this message translates to:
+  /// **'기록이 없는 날이 {days}일이었어요. 기록 습관을 먼저 잡아 주세요.'**
   String reportsActionUnlogged(int days);
 
   /// No description provided for @reportsActionCalories.
   ///
-  /// In en, this message translates to:
-  /// **'Intake is under the {target} kcal goal. Suggest one protein-led meal.'**
+  /// In ko, this message translates to:
+  /// **'칼로리가 목표({target}kcal)보다 적어요. 단백질 한 끼 보완을 제안해 주세요.'**
   String reportsActionCalories(String target);
 
   /// No description provided for @reportsAiGenerated.
   ///
-  /// In en, this message translates to:
-  /// **'AI generated'**
+  /// In ko, this message translates to:
+  /// **'AI 생성'**
   String get reportsAiGenerated;
 
   /// No description provided for @reportsAiUseAsDraft.
   ///
-  /// In en, this message translates to:
-  /// **'Use as feedback'**
+  /// In ko, this message translates to:
+  /// **'피드백으로 가져오기'**
   String get reportsAiUseAsDraft;
 
   /// No description provided for @reportsAiRegenerate.
   ///
-  /// In en, this message translates to:
-  /// **'Regenerate'**
+  /// In ko, this message translates to:
+  /// **'다시 생성'**
   String get reportsAiRegenerate;
 
   /// No description provided for @reportsAiFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t create the summary. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'요약을 만들지 못했어요. 다시 시도해 주세요.'**
   String get reportsAiFailed;
 
-  /// No description provided for @reportsAiDailyLimit.
+  /// Report AI card when the summary returns 429 daily_limit. No retry button — retrying gives the same result today (#3032).
   ///
-  /// In en, this message translates to:
-  /// **'You\'ve used today\'s AI limit. Please try again tomorrow.'**
+  /// In ko, this message translates to:
+  /// **'오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요.'**
   String get reportsAiDailyLimit;
 
   /// No description provided for @reportsPdfFallbackClient.
   ///
-  /// In en, this message translates to:
-  /// **'member'**
+  /// In ko, this message translates to:
+  /// **'회원'**
   String get reportsPdfFallbackClient;
 
   /// No description provided for @reportsPdfDocTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly report'**
+  /// In ko, this message translates to:
+  /// **'주간 리포트'**
   String get reportsPdfDocTitle;
 
   /// No description provided for @reportsPdfClient.
   ///
-  /// In en, this message translates to:
-  /// **'Member  {name}'**
+  /// In ko, this message translates to:
+  /// **'회원  {name}'**
   String reportsPdfClient(String name);
 
   /// No description provided for @reportsPdfPeriod.
   ///
-  /// In en, this message translates to:
-  /// **'Period  {start} – {end}'**
+  /// In ko, this message translates to:
+  /// **'기간  {start} ~ {end}'**
   String reportsPdfPeriod(String start, String end);
 
   /// No description provided for @reportsPdfSectionMetrics.
   ///
-  /// In en, this message translates to:
-  /// **'Key metrics'**
+  /// In ko, this message translates to:
+  /// **'핵심 지표'**
   String get reportsPdfSectionMetrics;
 
   /// No description provided for @reportsPdfSectionChange.
   ///
-  /// In en, this message translates to:
-  /// **'Change from last week'**
+  /// In ko, this message translates to:
+  /// **'지난주 대비 변화'**
   String get reportsPdfSectionChange;
 
   /// No description provided for @reportsPdfSectionTrend.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly trend (Mon–Sun)'**
+  /// In ko, this message translates to:
+  /// **'주간 추이 (월~일)'**
   String get reportsPdfSectionTrend;
 
   /// No description provided for @reportsPdfSectionDaily.
   ///
-  /// In en, this message translates to:
-  /// **'Workouts by day'**
+  /// In ko, this message translates to:
+  /// **'요일별 운동'**
   String get reportsPdfSectionDaily;
 
   /// No description provided for @reportsPdfBullet.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'• {label}: {value}'**
   String reportsPdfBullet(String label, String value);
 
   /// No description provided for @reportsPdfDay.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{weekday}: {completion} · {exercises}'**
   String reportsPdfDay(String weekday, String completion, String exercises);
 
   /// No description provided for @reportsPdfLabelCompletion.
   ///
-  /// In en, this message translates to:
-  /// **'Workout completion rate'**
+  /// In ko, this message translates to:
+  /// **'운동 완료율'**
   String get reportsPdfLabelCompletion;
 
   /// No description provided for @reportsPdfLabelSessions.
   ///
-  /// In en, this message translates to:
-  /// **'PT done'**
+  /// In ko, this message translates to:
+  /// **'완료 PT'**
   String get reportsPdfLabelSessions;
 
   /// No description provided for @reportsPdfLabelSessionCount.
   ///
-  /// In en, this message translates to:
-  /// **'PT done'**
+  /// In ko, this message translates to:
+  /// **'완료 PT'**
   String get reportsPdfLabelSessionCount;
 
   /// No description provided for @reportsPdfLabelSodiumOver.
   ///
-  /// In en, this message translates to:
-  /// **'Days over sodium goal'**
+  /// In ko, this message translates to:
+  /// **'나트륨 목표 초과'**
   String get reportsPdfLabelSodiumOver;
 
   /// No description provided for @reportsPdfLabelCalories.
   ///
-  /// In en, this message translates to:
-  /// **'Average calories'**
+  /// In ko, this message translates to:
+  /// **'평균 칼로리'**
   String get reportsPdfLabelCalories;
 
   /// No description provided for @reportsPdfLabelSugar.
   ///
-  /// In en, this message translates to:
-  /// **'Average sugar'**
+  /// In ko, this message translates to:
+  /// **'평균 당류'**
   String get reportsPdfLabelSugar;
 
   /// No description provided for @reportsPdfLabelCaloriesShort.
   ///
-  /// In en, this message translates to:
-  /// **'Calories'**
+  /// In ko, this message translates to:
+  /// **'칼로리'**
   String get reportsPdfLabelCaloriesShort;
 
   /// No description provided for @reportsPdfLabelSodiumShort.
   ///
-  /// In en, this message translates to:
-  /// **'Sodium'**
+  /// In ko, this message translates to:
+  /// **'나트륨'**
   String get reportsPdfLabelSodiumShort;
 
   /// No description provided for @reportsPdfLabelSugarShort.
   ///
-  /// In en, this message translates to:
-  /// **'Sugar'**
+  /// In ko, this message translates to:
+  /// **'당류'**
   String get reportsPdfLabelSugarShort;
 
   /// No description provided for @reportsPdfValuePercent.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{value}%'**
   String reportsPdfValuePercent(String value);
 
   /// No description provided for @reportsPdfValueMg.
   ///
-  /// In en, this message translates to:
-  /// **'{value} mg'**
+  /// In ko, this message translates to:
+  /// **'{value}mg'**
   String reportsPdfValueMg(String value);
 
   /// No description provided for @reportsPdfValueKcal.
   ///
-  /// In en, this message translates to:
-  /// **'{value} kcal'**
+  /// In ko, this message translates to:
+  /// **'{value}kcal'**
   String reportsPdfValueKcal(String value);
 
   /// No description provided for @reportsPdfValueGram.
   ///
-  /// In en, this message translates to:
-  /// **'{value} g'**
+  /// In ko, this message translates to:
+  /// **'{value}g'**
   String reportsPdfValueGram(String value);
 
   /// No description provided for @reportsPdfValueDays.
   ///
-  /// In en, this message translates to:
-  /// **'{value} days'**
+  /// In ko, this message translates to:
+  /// **'{value}일'**
   String reportsPdfValueDays(String value);
 
   /// No description provided for @reportsPdfValueSessions.
   ///
-  /// In en, this message translates to:
-  /// **'{value}'**
+  /// In ko, this message translates to:
+  /// **'{value}회'**
   String reportsPdfValueSessions(String value);
 
   /// No description provided for @reportsPdfAttendance.
   ///
-  /// In en, this message translates to:
-  /// **'{done}/{booked} ({rate}%)'**
+  /// In ko, this message translates to:
+  /// **'{done}/{booked}회 ({rate}%)'**
   String reportsPdfAttendance(String done, String booked, String rate);
 
   /// No description provided for @reportsPdfNoData.
   ///
-  /// In en, this message translates to:
-  /// **'Not measured'**
+  /// In ko, this message translates to:
+  /// **'미집계'**
   String get reportsPdfNoData;
 
   /// No description provided for @reportsPdfNoFeedback.
   ///
-  /// In en, this message translates to:
-  /// **'No feedback'**
+  /// In ko, this message translates to:
+  /// **'피드백 없음'**
   String get reportsPdfNoFeedback;
 
   /// No description provided for @a11yChartSummary.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{title}. {detail}'**
   String a11yChartSummary(String title, String detail);
 
   /// No description provided for @a11yChartEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'{title}. No records yet'**
+  /// In ko, this message translates to:
+  /// **'{title}. 기록이 없어요'**
   String a11yChartEmpty(String title);
 
   /// No description provided for @a11yChartPoint.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{day} {value}'**
   String a11yChartPoint(String day, String value);
 
   /// No description provided for @a11yShowPassword.
   ///
-  /// In en, this message translates to:
-  /// **'Show password'**
+  /// In ko, this message translates to:
+  /// **'비밀번호 표시'**
   String get a11yShowPassword;
 
   /// No description provided for @a11yHidePassword.
   ///
-  /// In en, this message translates to:
-  /// **'Hide password'**
+  /// In ko, this message translates to:
+  /// **'비밀번호 숨기기'**
   String get a11yHidePassword;
 
   /// No description provided for @unitMg.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'mg'**
   String get unitMg;
 
   /// No description provided for @unitGram.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'g'**
   String get unitGram;
 
   /// No description provided for @a11yRemoveExercise.
   ///
-  /// In en, this message translates to:
-  /// **'Delete exercise'**
+  /// In ko, this message translates to:
+  /// **'운동 삭제'**
   String get a11yRemoveExercise;
 
   /// No description provided for @a11yRemoveCertification.
   ///
-  /// In en, this message translates to:
-  /// **'Delete certification'**
+  /// In ko, this message translates to:
+  /// **'자격증 삭제'**
   String get a11yRemoveCertification;
 
   /// No description provided for @a11yPrevWeek.
   ///
-  /// In en, this message translates to:
-  /// **'Previous week'**
+  /// In ko, this message translates to:
+  /// **'지난주'**
   String get a11yPrevWeek;
 
   /// No description provided for @a11yNextWeek.
   ///
-  /// In en, this message translates to:
-  /// **'Next week'**
+  /// In ko, this message translates to:
+  /// **'다음 주'**
   String get a11yNextWeek;
 
   /// No description provided for @a11ySendMessage.
   ///
-  /// In en, this message translates to:
-  /// **'Send message'**
+  /// In ko, this message translates to:
+  /// **'메시지 보내기'**
   String get a11ySendMessage;
 
   /// AI 1~3단계 화면에서 AI 추천 대신 빈 템플릿으로 바로 넘어가는 버튼.
   ///
-  /// In en, this message translates to:
-  /// **'Build manually'**
+  /// In ko, this message translates to:
+  /// **'직접 만들기'**
   String get aiManualCreate;
 
   /// 직접 만들기로 넘어간 뒤 다시 AI 마법사 화면으로 돌아가는 링크.
   ///
-  /// In en, this message translates to:
-  /// **'Back to AI suggestions'**
+  /// In ko, this message translates to:
+  /// **'AI 추천으로 돌아가기'**
   String get aiReturnToWizard;
 
   /// 채팅 스레드에서 날이 바뀌는 자리의 날짜 구분선. 요일까지 적는다(ko: 2026년 9월 14일 월요일, en: Monday, September 14, 2026).
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{date}'**
   String chatDateDivider(DateTime date);
 
   /// No description provided for @coachClientDemographics.
   ///
-  /// In en, this message translates to:
-  /// **'{gender} · Age {age}'**
+  /// In ko, this message translates to:
+  /// **'{gender} · {age}세'**
   String coachClientDemographics(String gender, int age);
 
   /// Age-only identity label when the member has no gender on file or the server hides it (#2814, #2870).
   ///
-  /// In en, this message translates to:
-  /// **'Age {age}'**
+  /// In ko, this message translates to:
+  /// **'{age}세'**
   String coachClientAge(int age);
 
   /// No description provided for @routineFormDecrease.
   ///
-  /// In en, this message translates to:
-  /// **'Decrease'**
+  /// In ko, this message translates to:
+  /// **'줄이기'**
   String get routineFormDecrease;
 
   /// No description provided for @routineFormIncrease.
   ///
-  /// In en, this message translates to:
-  /// **'Increase'**
+  /// In ko, this message translates to:
+  /// **'늘리기'**
   String get routineFormIncrease;
 
   /// No description provided for @reportsPending.
   ///
-  /// In en, this message translates to:
-  /// **'Not sent'**
+  /// In ko, this message translates to:
+  /// **'안 보냄'**
   String get reportsPending;
 
   /// No description provided for @reportsCountPeople.
   ///
-  /// In en, this message translates to:
-  /// **'{count}'**
+  /// In ko, this message translates to:
+  /// **'{count}명'**
   String reportsCountPeople(int count);
 
   /// No description provided for @reportsSortLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Sort'**
+  /// In ko, this message translates to:
+  /// **'정렬'**
   String get reportsSortLabel;
 
   /// No description provided for @reportsSortPriority.
   ///
-  /// In en, this message translates to:
-  /// **'Needs attention first'**
+  /// In ko, this message translates to:
+  /// **'관리 필요 우선'**
   String get reportsSortPriority;
 
   /// No description provided for @reportsSortName.
   ///
-  /// In en, this message translates to:
-  /// **'Name A–Z'**
+  /// In ko, this message translates to:
+  /// **'이름 오름차순'**
   String get reportsSortName;
 
   /// No description provided for @reportsSortNameDescending.
   ///
-  /// In en, this message translates to:
-  /// **'Name Z–A'**
+  /// In ko, this message translates to:
+  /// **'이름 내림차순'**
   String get reportsSortNameDescending;
 
   /// No description provided for @reportsSentSortUnread.
   ///
-  /// In en, this message translates to:
-  /// **'Unread first'**
+  /// In ko, this message translates to:
+  /// **'안 읽은 회원 먼저'**
   String get reportsSentSortUnread;
 
   /// No description provided for @reportsSendProgress.
   ///
-  /// In en, this message translates to:
-  /// **'{done} / {total} sent'**
+  /// In ko, this message translates to:
+  /// **'{done} / {total} 보냄'**
   String reportsSendProgress(int done, int total);
 
   /// No description provided for @reportsSendPercent.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{percent}%'**
   String reportsSendPercent(int percent);
 
   /// No description provided for @reportsQueueAllSent.
   ///
-  /// In en, this message translates to:
-  /// **'Every report for this week has been sent'**
+  /// In ko, this message translates to:
+  /// **'이번 주 리포트를 모두 보냈어요'**
   String get reportsQueueAllSent;
 
   /// No description provided for @reportsSentColumn.
   ///
-  /// In en, this message translates to:
-  /// **'Sent'**
+  /// In ko, this message translates to:
+  /// **'보냄'**
   String get reportsSentColumn;
 
   /// No description provided for @reportsSentColumnEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No reports sent yet'**
+  /// In ko, this message translates to:
+  /// **'아직 보낸 리포트가 없어요'**
   String get reportsSentColumnEmpty;
 
   /// No description provided for @reportsSentSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'View sent report'**
+  /// In ko, this message translates to:
+  /// **'보낸 리포트 보기'**
   String get reportsSentSubtitle;
 
   /// No description provided for @reportsOpenDraft.
   ///
-  /// In en, this message translates to:
-  /// **'Open'**
+  /// In ko, this message translates to:
+  /// **'열기'**
   String get reportsOpenDraft;
 
   /// No description provided for @reportsReasonUnknown.
   ///
-  /// In en, this message translates to:
-  /// **'Loading figures'**
+  /// In ko, this message translates to:
+  /// **'수치를 불러오는 중'**
   String get reportsReasonUnknown;
 
   /// No description provided for @reportsReasonCompletion.
   ///
-  /// In en, this message translates to:
-  /// **'{percent}% complete'**
+  /// In ko, this message translates to:
+  /// **'완료율 {percent}%'**
   String reportsReasonCompletion(int percent);
 
   /// No description provided for @reportsReasonSessionDone.
   ///
-  /// In en, this message translates to:
-  /// **'PT {count} done'**
+  /// In ko, this message translates to:
+  /// **'완료 PT {count}회'**
   String reportsReasonSessionDone(int count);
 
   /// No description provided for @reportsReasonSlump.
   ///
-  /// In en, this message translates to:
-  /// **'Down {points}%p late'**
+  /// In ko, this message translates to:
+  /// **'주 후반 {points}%p 하락'**
   String reportsReasonSlump(int points);
 
   /// No description provided for @reportsReasonRising.
   ///
-  /// In en, this message translates to:
-  /// **'Up {points}%p late'**
+  /// In ko, this message translates to:
+  /// **'주 후반 {points}%p 상승'**
   String reportsReasonRising(int points);
 
   /// No description provided for @reportsReasonFullLog.
   ///
-  /// In en, this message translates to:
-  /// **'Logged all 7 days'**
+  /// In ko, this message translates to:
+  /// **'7일 전량 기록'**
   String get reportsReasonFullLog;
 
   /// No description provided for @reportsReasonOnboarding.
   ///
-  /// In en, this message translates to:
-  /// **'New · settling in'**
+  /// In ko, this message translates to:
+  /// **'신규 · 적응 중'**
   String get reportsReasonOnboarding;
 
   /// No description provided for @reportsReasonSteady.
   ///
-  /// In en, this message translates to:
-  /// **'On track'**
+  /// In ko, this message translates to:
+  /// **'순조로움'**
   String get reportsReasonSteady;
 
   /// No description provided for @reportsSentOn.
   ///
-  /// In en, this message translates to:
-  /// **'Sent {date}'**
+  /// In ko, this message translates to:
+  /// **'{date} 보냄'**
   String reportsSentOn(String date);
 
   /// No description provided for @reportsSentRead.
   ///
-  /// In en, this message translates to:
-  /// **'Read'**
+  /// In ko, this message translates to:
+  /// **'읽음'**
   String get reportsSentRead;
 
   /// No description provided for @reportsSentUnread.
   ///
-  /// In en, this message translates to:
-  /// **'Unread'**
+  /// In ko, this message translates to:
+  /// **'안 읽음'**
   String get reportsSentUnread;
 
   /// No description provided for @reportsBackToWorkbench.
   ///
-  /// In en, this message translates to:
-  /// **'This week\'s reports'**
+  /// In ko, this message translates to:
+  /// **'이번 주 리포트'**
   String get reportsBackToWorkbench;
 
   /// No description provided for @reportsSentHeadline.
   ///
-  /// In en, this message translates to:
-  /// **'Report sent to {name}'**
+  /// In ko, this message translates to:
+  /// **'{name}님에게 보낸 리포트'**
   String reportsSentHeadline(String name);
 
   /// No description provided for @reportsSentAt.
   ///
-  /// In en, this message translates to:
-  /// **'Sent {date} {time}'**
+  /// In ko, this message translates to:
+  /// **'{date} {time} 보냄'**
   String reportsSentAt(String date, String time);
 
   /// No description provided for @reportsSentRewrite.
   ///
-  /// In en, this message translates to:
-  /// **'Rewrite from this'**
+  /// In ko, this message translates to:
+  /// **'이 내용으로 다시 작성'**
   String get reportsSentRewrite;
 
   /// No description provided for @reportsHistoryButton.
   ///
-  /// In en, this message translates to:
-  /// **'Past reports'**
+  /// In ko, this message translates to:
+  /// **'지난 리포트'**
   String get reportsHistoryButton;
 
   /// No description provided for @reportsViewSent.
   ///
-  /// In en, this message translates to:
-  /// **'View'**
+  /// In ko, this message translates to:
+  /// **'보기'**
   String get reportsViewSent;
 
   /// No description provided for @reportsHistoryTitle.
   ///
-  /// In en, this message translates to:
-  /// **'{name}\'s past reports'**
+  /// In ko, this message translates to:
+  /// **'{name}님의 지난 리포트'**
   String reportsHistoryTitle(String name);
 
   /// No description provided for @reportsHistoryBack.
   ///
-  /// In en, this message translates to:
-  /// **'Past reports'**
+  /// In ko, this message translates to:
+  /// **'지난 리포트'**
   String get reportsHistoryBack;
 
   /// No description provided for @reportsHistoryUnsent.
   ///
-  /// In en, this message translates to:
-  /// **'Not sent'**
+  /// In ko, this message translates to:
+  /// **'안 보냄'**
   String get reportsHistoryUnsent;
 
   /// No description provided for @reportsHistoryThisWeek.
   ///
-  /// In en, this message translates to:
-  /// **'This week'**
+  /// In ko, this message translates to:
+  /// **'이번 주'**
   String get reportsHistoryThisWeek;
 
   /// No description provided for @reportsHistoryEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No reports sent yet'**
+  /// In ko, this message translates to:
+  /// **'아직 보낸 리포트가 없어요'**
   String get reportsHistoryEmpty;
 
   /// No description provided for @reportsHistoryLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load past reports'**
+  /// In ko, this message translates to:
+  /// **'지난 리포트를 불러오지 못했어요'**
   String get reportsHistoryLoadFailed;
 
   /// No description provided for @reportsHistoryMore.
   ///
-  /// In en, this message translates to:
-  /// **'Load more'**
+  /// In ko, this message translates to:
+  /// **'더 보기'**
   String get reportsHistoryMore;
 
   /// No description provided for @reportsHistoryMoreFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load more. Tap to try again.'**
+  /// In ko, this message translates to:
+  /// **'더 불러오지 못했어요. 다시 눌러 주세요.'**
   String get reportsHistoryMoreFailed;
 
   /// No description provided for @reportsHistorySendCount.
   ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{Sent once} other{Sent {count} times}}'**
+  /// In ko, this message translates to:
+  /// **'{count}회 보냄'**
   String reportsHistorySendCount(int count);
 
   /// No description provided for @reportsHistoryPdf.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'PDF'**
   String get reportsHistoryPdf;
 
   /// No description provided for @reportsResendTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Already sent'**
+  /// In ko, this message translates to:
+  /// **'이미 보낸 리포트예요'**
   String get reportsResendTitle;
 
   /// No description provided for @reportsResendBody.
   ///
-  /// In en, this message translates to:
-  /// **'You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their messages.'**
+  /// In ko, this message translates to:
+  /// **'{name}님에게 {date} {time}에 이 주 리포트를 보냈어요. 다시 보내면 회원에게 메시지로 한 번 더 도착해요.'**
   String reportsResendBody(String name, String date, String time);
 
   /// No description provided for @reportsResendConfirm.
   ///
-  /// In en, this message translates to:
-  /// **'Send again'**
+  /// In ko, this message translates to:
+  /// **'다시 보내기'**
   String get reportsResendConfirm;
 
   /// No description provided for @reportsSendHistoryFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load send history. Members you\'ve already sent to may show as not sent.'**
+  /// In ko, this message translates to:
+  /// **'전송 이력을 불러오지 못했어요. 이미 보낸 회원이 안 보냄으로 보일 수 있어요.'**
   String get reportsSendHistoryFailed;
 
   /// No description provided for @reportsStepReview.
   ///
-  /// In en, this message translates to:
-  /// **'Review'**
+  /// In ko, this message translates to:
+  /// **'확인'**
   String get reportsStepReview;
 
   /// No description provided for @reportsStepWrite.
   ///
-  /// In en, this message translates to:
-  /// **'Write'**
+  /// In ko, this message translates to:
+  /// **'작성'**
   String get reportsStepWrite;
 
   /// No description provided for @reportsStepSend.
   ///
-  /// In en, this message translates to:
-  /// **'Send'**
+  /// In ko, this message translates to:
+  /// **'보내기'**
   String get reportsStepSend;
 
   /// No description provided for @reportsStepPrint.
   ///
-  /// In en, this message translates to:
-  /// **'Print'**
+  /// In ko, this message translates to:
+  /// **'인쇄'**
   String get reportsStepPrint;
 
   /// No description provided for @reportsPrintNeedsPdf.
   ///
-  /// In en, this message translates to:
-  /// **'You can print once the preview PDF is ready'**
+  /// In ko, this message translates to:
+  /// **'미리보기 PDF가 준비되면 인쇄할 수 있어요'**
   String get reportsPrintNeedsPdf;
 
   /// No description provided for @reportsPrintFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t open the print dialog. Please try again'**
+  /// In ko, this message translates to:
+  /// **'인쇄 창을 열지 못했어요. 다시 시도해 주세요'**
   String get reportsPrintFailed;
 
   /// No description provided for @reportsStepperLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly report steps'**
+  /// In ko, this message translates to:
+  /// **'주간 리포트 작성 진행 단계'**
   String get reportsStepperLabel;
 
   /// No description provided for @reportsStepNext.
   ///
-  /// In en, this message translates to:
-  /// **'Next'**
+  /// In ko, this message translates to:
+  /// **'다음'**
   String get reportsStepNext;
 
   /// No description provided for @reportsStepPrev.
   ///
-  /// In en, this message translates to:
-  /// **'Back'**
+  /// In ko, this message translates to:
+  /// **'이전'**
   String get reportsStepPrev;
 
   /// No description provided for @reportsPreviewTitle.
   ///
-  /// In en, this message translates to:
-  /// **'What the member receives'**
+  /// In ko, this message translates to:
+  /// **'회원이 받는 리포트'**
   String get reportsPreviewTitle;
 
   /// No description provided for @reportsPreviewRecipient.
   ///
-  /// In en, this message translates to:
-  /// **'To'**
+  /// In ko, this message translates to:
+  /// **'받는 사람'**
   String get reportsPreviewRecipient;
 
   /// No description provided for @reportsPreviewWeek.
   ///
-  /// In en, this message translates to:
-  /// **'Week'**
+  /// In ko, this message translates to:
+  /// **'대상 주'**
   String get reportsPreviewWeek;
 
   /// No description provided for @reportsPreviewDelivery.
   ///
-  /// In en, this message translates to:
-  /// **'Sent to {name} as a PDF file in messages'**
+  /// In ko, this message translates to:
+  /// **'{name}님에게 메시지로 PDF 파일이 전송돼요'**
   String reportsPreviewDelivery(String name);
 
   /// No description provided for @reportsPreviewEditHint.
   ///
-  /// In en, this message translates to:
-  /// **'To change the text, tap Back to return to the Write step'**
+  /// In ko, this message translates to:
+  /// **'글을 고치려면 이전을 눌러 작성 단계로 돌아가세요'**
   String get reportsPreviewEditHint;
 
   /// No description provided for @reportsPreviewGenerating.
   ///
-  /// In en, this message translates to:
-  /// **'Preparing the preview'**
+  /// In ko, this message translates to:
+  /// **'미리보기를 만드는 중이에요'**
   String get reportsPreviewGenerating;
 
   /// No description provided for @reportsPreviewFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t prepare the preview'**
+  /// In ko, this message translates to:
+  /// **'미리보기를 만들지 못했어요'**
   String get reportsPreviewFailed;
 
   /// No description provided for @reportsPreviewPage.
   ///
-  /// In en, this message translates to:
-  /// **'Page {current} of {total}'**
+  /// In ko, this message translates to:
+  /// **'{current} / {total}쪽'**
   String reportsPreviewPage(int current, int total);
 
   /// No description provided for @reportsPreviewPrevPage.
   ///
-  /// In en, this message translates to:
-  /// **'Previous page'**
+  /// In ko, this message translates to:
+  /// **'이전 쪽'**
   String get reportsPreviewPrevPage;
 
   /// No description provided for @reportsPreviewNextPage.
   ///
-  /// In en, this message translates to:
-  /// **'Next page'**
+  /// In ko, this message translates to:
+  /// **'다음 쪽'**
   String get reportsPreviewNextPage;
 
   /// No description provided for @reportsPreviewZoomIn.
   ///
-  /// In en, this message translates to:
-  /// **'Zoom in'**
+  /// In ko, this message translates to:
+  /// **'확대'**
   String get reportsPreviewZoomIn;
 
   /// No description provided for @reportsPreviewZoomOut.
   ///
-  /// In en, this message translates to:
-  /// **'Zoom out'**
+  /// In ko, this message translates to:
+  /// **'축소'**
   String get reportsPreviewZoomOut;
 
   /// No description provided for @reportsGridPtSession.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'PT'**
   String get reportsGridPtSession;
 
   /// No description provided for @reportsGridPtPerWeek.
   ///
-  /// In en, this message translates to:
-  /// **'{count}/week'**
+  /// In ko, this message translates to:
+  /// **'주 {count}회'**
   String reportsGridPtPerWeek(int count);
 
   /// No description provided for @reportsGridPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'Personal exercises'**
+  /// In ko, this message translates to:
+  /// **'개인운동'**
   String get reportsGridPersonal;
 
   /// No description provided for @reportsGridPersonalUnit.
   ///
-  /// In en, this message translates to:
-  /// **'Done / assigned'**
+  /// In ko, this message translates to:
+  /// **'수행 / 배정'**
   String get reportsGridPersonalUnit;
 
   /// No description provided for @reportsGridDoneOfAssigned.
   ///
-  /// In en, this message translates to:
-  /// **'{done} / {total}'**
+  /// In ko, this message translates to:
+  /// **'{done} / {total}회'**
   String reportsGridDoneOfAssigned(int done, int total);
 
   /// No description provided for @reportsGridMeals.
   ///
-  /// In en, this message translates to:
-  /// **'Meal logs'**
+  /// In ko, this message translates to:
+  /// **'식단 기록'**
   String get reportsGridMeals;
 
   /// No description provided for @reportsGridMealsUnit.
   ///
-  /// In en, this message translates to:
-  /// **'Times logged'**
+  /// In ko, this message translates to:
+  /// **'기록 횟수'**
   String get reportsGridMealsUnit;
 
   /// No description provided for @reportsGridMealCount.
   ///
-  /// In en, this message translates to:
-  /// **'{count}x'**
+  /// In ko, this message translates to:
+  /// **'{count}회'**
   String reportsGridMealCount(int count);
 
   /// No description provided for @reportsGridCalories.
   ///
-  /// In en, this message translates to:
-  /// **'Calories eaten'**
+  /// In ko, this message translates to:
+  /// **'섭취 칼로리'**
   String get reportsGridCalories;
 
   /// No description provided for @reportsGridCalorieTarget.
   ///
-  /// In en, this message translates to:
-  /// **'Goal {value}'**
+  /// In ko, this message translates to:
+  /// **'목표 {value}'**
   String reportsGridCalorieTarget(String value);
 
   /// No description provided for @reportsMacroNone.
   ///
-  /// In en, this message translates to:
-  /// **'No meals logged yet, so macros can\'t be shown'**
+  /// In ko, this message translates to:
+  /// **'아직 끼니 기록이 없어 탄단지를 볼 수 없어요'**
   String get reportsMacroNone;
 
   /// No description provided for @reportsMacroValueOfTarget.
   ///
-  /// In en, this message translates to:
-  /// **'{name} {value} / {target} g'**
+  /// In ko, this message translates to:
+  /// **'{name} {value} / {target}g'**
   String reportsMacroValueOfTarget(String name, int value, int target);
 
   /// Shortfall line under the report macro bars. {name} is metricCarbs, metricProtein or metricFat; in Korean all three end with a final consonant, so the copy uses the subject particle '이' only (no two-form '이(가)', #1177).
   ///
-  /// In en, this message translates to:
-  /// **'{name} is well under goal — worth raising in your feedback'**
+  /// In ko, this message translates to:
+  /// **'{name}이 목표보다 많이 부족해요 — 피드백에서 짚어 보세요'**
   String reportsMacroShortfall(String name);
 
   /// No description provided for @reportsMemberFeedbackTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Member\'s weekly feedback'**
+  /// In ko, this message translates to:
+  /// **'회원 주간 피드백'**
   String get reportsMemberFeedbackTitle;
 
   /// No description provided for @reportsMemberFeedbackAttention.
   ///
-  /// In en, this message translates to:
-  /// **'Needs attention'**
+  /// In ko, this message translates to:
+  /// **'확인 필요'**
   String get reportsMemberFeedbackAttention;
 
   /// No description provided for @reportsMemberFeedbackNone.
   ///
-  /// In en, this message translates to:
-  /// **'Not received yet'**
+  /// In ko, this message translates to:
+  /// **'아직 받지 못했어요'**
   String get reportsMemberFeedbackNone;
 
   /// No description provided for @reportsMemberFeedbackNoneHint.
   ///
-  /// In en, this message translates to:
-  /// **'It shows up here once the member sends their weekly feedback'**
+  /// In ko, this message translates to:
+  /// **'회원이 주간 피드백을 보내면 여기에 표시돼요'**
   String get reportsMemberFeedbackNoneHint;
 
   /// No description provided for @reportsMemberFeedbackConditionLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Condition'**
+  /// In ko, this message translates to:
+  /// **'컨디션'**
   String get reportsMemberFeedbackConditionLabel;
 
   /// No description provided for @reportsMemberFeedbackIntensityLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Intensity'**
+  /// In ko, this message translates to:
+  /// **'운동 강도'**
   String get reportsMemberFeedbackIntensityLabel;
 
   /// No description provided for @reportsMemberFeedbackPainLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Pain'**
+  /// In ko, this message translates to:
+  /// **'통증'**
   String get reportsMemberFeedbackPainLabel;
 
   /// No description provided for @reportsMemberFeedbackPainNone.
   ///
-  /// In en, this message translates to:
-  /// **'None'**
+  /// In ko, this message translates to:
+  /// **'없음'**
   String get reportsMemberFeedbackPainNone;
 
   /// No description provided for @reportsMemberFeedbackUnanswered.
   ///
-  /// In en, this message translates to:
-  /// **'No answer'**
+  /// In ko, this message translates to:
+  /// **'미응답'**
   String get reportsMemberFeedbackUnanswered;
 
   /// Member feedback card value when the feedback request failed, kept apart from 'No answer' (#3246).
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load'**
+  /// In ko, this message translates to:
+  /// **'불러오지 못했어요'**
   String get reportsMemberFeedbackLoadFailed;
 
   /// No description provided for @reportsMemberFeedbackLoadFailedHint.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t check whether the member answered. Reload the report in a moment'**
+  /// In ko, this message translates to:
+  /// **'회원이 답했는지 확인하지 못했어요. 잠시 후 리포트를 다시 불러와 주세요'**
   String get reportsMemberFeedbackLoadFailedHint;
 
   /// No description provided for @reportsMemberFeedbackNoteLabel.
   ///
-  /// In en, this message translates to:
-  /// **'One-line feedback'**
+  /// In ko, this message translates to:
+  /// **'한 줄 피드백'**
   String get reportsMemberFeedbackNoteLabel;
 
   /// No description provided for @reportsMemberFeedbackNoteNone.
   ///
-  /// In en, this message translates to:
-  /// **'No one-line feedback'**
+  /// In ko, this message translates to:
+  /// **'한 줄 피드백 없음'**
   String get reportsMemberFeedbackNoteNone;
 
   /// No description provided for @reportsMemberFeedbackPainOn.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'{area} ({date})'**
   String reportsMemberFeedbackPainOn(String area, String date);
 
   /// No description provided for @reportsMemberFeedbackConditionGreat.
   ///
-  /// In en, this message translates to:
-  /// **'Great'**
+  /// In ko, this message translates to:
+  /// **'아주 좋았어요'**
   String get reportsMemberFeedbackConditionGreat;
 
   /// No description provided for @reportsMemberFeedbackConditionGood.
   ///
-  /// In en, this message translates to:
-  /// **'Good'**
+  /// In ko, this message translates to:
+  /// **'좋았어요'**
   String get reportsMemberFeedbackConditionGood;
 
   /// No description provided for @reportsMemberFeedbackConditionOk.
   ///
-  /// In en, this message translates to:
-  /// **'Okay'**
+  /// In ko, this message translates to:
+  /// **'보통이었어요'**
   String get reportsMemberFeedbackConditionOk;
 
   /// No description provided for @reportsMemberFeedbackConditionTired.
   ///
-  /// In en, this message translates to:
-  /// **'Worn out'**
+  /// In ko, this message translates to:
+  /// **'지쳤어요'**
   String get reportsMemberFeedbackConditionTired;
 
   /// No description provided for @reportsMemberFeedbackConditionBad.
   ///
-  /// In en, this message translates to:
-  /// **'Rough'**
+  /// In ko, this message translates to:
+  /// **'많이 안 좋았어요'**
   String get reportsMemberFeedbackConditionBad;
 
   /// No description provided for @reportsMemberFeedbackIntensityTooEasy.
   ///
-  /// In en, this message translates to:
-  /// **'Too easy'**
+  /// In ko, this message translates to:
+  /// **'너무 쉬웠어요'**
   String get reportsMemberFeedbackIntensityTooEasy;
 
   /// No description provided for @reportsMemberFeedbackIntensityRight.
   ///
-  /// In en, this message translates to:
-  /// **'Just right'**
+  /// In ko, this message translates to:
+  /// **'딱 맞았어요'**
   String get reportsMemberFeedbackIntensityRight;
 
   /// No description provided for @reportsMemberFeedbackIntensityHard.
   ///
-  /// In en, this message translates to:
-  /// **'A bit hard'**
+  /// In ko, this message translates to:
+  /// **'조금 힘들었어요'**
   String get reportsMemberFeedbackIntensityHard;
 
   /// No description provided for @reportsMemberFeedbackIntensityTooHard.
   ///
-  /// In en, this message translates to:
-  /// **'Too hard'**
+  /// In ko, this message translates to:
+  /// **'너무 힘들었어요'**
   String get reportsMemberFeedbackIntensityTooHard;
 
   /// No description provided for @reportsTrendUnavailable.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load this week\'s workout records'**
+  /// In ko, this message translates to:
+  /// **'이 주의 운동 기록을 불러오지 못했어요'**
   String get reportsTrendUnavailable;
 
   /// No description provided for @reportsTrendNoGoal.
   ///
-  /// In en, this message translates to:
-  /// **'No goal'**
+  /// In ko, this message translates to:
+  /// **'목표 없음'**
   String get reportsTrendNoGoal;
 
   /// No description provided for @reportsExerciseTrend.
   ///
-  /// In en, this message translates to:
-  /// **'Workout trend'**
+  /// In ko, this message translates to:
+  /// **'운동 추이'**
   String get reportsExerciseTrend;
 
   /// No description provided for @reportsWriteFromScratch.
   ///
-  /// In en, this message translates to:
-  /// **'Write from scratch'**
+  /// In ko, this message translates to:
+  /// **'직접 작성하기'**
   String get reportsWriteFromScratch;
 
   /// No description provided for @reportsCardWeekTitle.
   ///
-  /// In en, this message translates to:
-  /// **'This week'**
+  /// In ko, this message translates to:
+  /// **'이번 주'**
   String get reportsCardWeekTitle;
 
   /// No description provided for @reportsCardWeekSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'On one axis you can see the days that fell together'**
+  /// In ko, this message translates to:
+  /// **'한 축에 겹쳐 보면 같이 무너진 날이 보여요'**
   String get reportsCardWeekSubtitle;
 
   /// No description provided for @reportsAiSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Written automatically from the figures'**
+  /// In ko, this message translates to:
+  /// **'AI가 수치에서 자동 작성'**
   String get reportsAiSubtitle;
 
   /// No description provided for @reportsMemberFeedbackMeta.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly · submitted {date}'**
+  /// In ko, this message translates to:
+  /// **'주 1회 · {date} 제출'**
   String reportsMemberFeedbackMeta(String date);
 
   /// No description provided for @reportsTrendSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'By type · last {weeks} weeks'**
+  /// In ko, this message translates to:
+  /// **'유형별 · 최근 {weeks}주'**
   String reportsTrendSubtitle(int weeks);
 
   /// No description provided for @reportsTrendCenterLabel.
   ///
-  /// In en, this message translates to:
-  /// **'of goal'**
+  /// In ko, this message translates to:
+  /// **'목표의'**
   String get reportsTrendCenterLabel;
 
   /// No description provided for @reportsTrendWeeklyGoal.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly goal {goal}'**
+  /// In ko, this message translates to:
+  /// **'주간 목표 {goal}'**
   String reportsTrendWeeklyGoal(String goal);
 
   /// No description provided for @reportsTrendRunDown.
   ///
-  /// In en, this message translates to:
-  /// **'Down {weeks} weeks running'**
+  /// In ko, this message translates to:
+  /// **'{weeks}주 연속 감소'**
   String reportsTrendRunDown(int weeks);
 
   /// No description provided for @reportsTrendRunUp.
   ///
-  /// In en, this message translates to:
-  /// **'Up {weeks} weeks running'**
+  /// In ko, this message translates to:
+  /// **'{weeks}주 연속 상승'**
   String reportsTrendRunUp(int weeks);
 
   /// No description provided for @reportsTrendVsLastWeek.
   ///
-  /// In en, this message translates to:
-  /// **'{delta}% vs last week'**
+  /// In ko, this message translates to:
+  /// **'지난주 대비 {delta}%'**
   String reportsTrendVsLastWeek(String delta);
 
   /// No description provided for @reportsTrendFlat.
   ///
-  /// In en, this message translates to:
-  /// **'About the same as last week'**
+  /// In ko, this message translates to:
+  /// **'지난주와 비슷'**
   String get reportsTrendFlat;
 
   /// No description provided for @reportsTrendNoHistory.
   ///
-  /// In en, this message translates to:
-  /// **'No earlier week to compare'**
+  /// In ko, this message translates to:
+  /// **'견줄 지난주가 없어요'**
   String get reportsTrendNoHistory;
 
   /// No description provided for @reportsTrendRate.
   ///
-  /// In en, this message translates to:
-  /// **'Weekly goal progress'**
+  /// In ko, this message translates to:
+  /// **'주간 달성률'**
   String get reportsTrendRate;
 
   /// No description provided for @reportsTrendAverage.
   ///
-  /// In en, this message translates to:
-  /// **'{weeks}-week average'**
+  /// In ko, this message translates to:
+  /// **'{weeks}주 평균'**
   String reportsTrendAverage(int weeks);
 
   /// No description provided for @reportsTrendRateFalling.
   ///
-  /// In en, this message translates to:
-  /// **'Goal progress down {weeks} weeks running'**
+  /// In ko, this message translates to:
+  /// **'달성률 {weeks}주 연속 하락'**
   String reportsTrendRateFalling(int weeks);
 
   /// No description provided for @reportsTrendTracked.
   ///
-  /// In en, this message translates to:
-  /// **'{count} tracked exercises — picked automatically'**
+  /// In ko, this message translates to:
+  /// **'추적 운동 {count}개 — 자동 선별됨'**
   String reportsTrendTracked(int count);
 
   /// No description provided for @reportsTrendTrackedTimes.
   ///
-  /// In en, this message translates to:
-  /// **'{count}×'**
+  /// In ko, this message translates to:
+  /// **'{count}회'**
   String reportsTrendTrackedTimes(int count);
 
   /// No description provided for @reportsCalorieThisWeekAvg.
   ///
-  /// In en, this message translates to:
-  /// **'This week {kcal} kcal/day'**
+  /// In ko, this message translates to:
+  /// **'이번 주 평균 {kcal}kcal'**
   String reportsCalorieThisWeekAvg(String kcal);
 
   /// No description provided for @reportsCalorieBaselineAvg.
   ///
-  /// In en, this message translates to:
-  /// **'Past {weeks} weeks {kcal} kcal/day'**
+  /// In ko, this message translates to:
+  /// **'지난 {weeks}주 평균 {kcal}kcal'**
   String reportsCalorieBaselineAvg(int weeks, String kcal);
 
   /// No description provided for @reportsGridCalorieTargetDefault.
   ///
-  /// In en, this message translates to:
-  /// **'Default {kcal}'**
+  /// In ko, this message translates to:
+  /// **'기본 목표 {kcal}'**
   String reportsGridCalorieTargetDefault(String kcal);
 
   /// No description provided for @summaryBasisDefault.
   ///
-  /// In en, this message translates to:
-  /// **'default goal'**
+  /// In ko, this message translates to:
+  /// **'기본 목표'**
   String get summaryBasisDefault;
 
   /// No description provided for @summaryBasisPersonal.
   ///
-  /// In en, this message translates to:
-  /// **'personal goal'**
+  /// In ko, this message translates to:
+  /// **'개인 목표'**
   String get summaryBasisPersonal;
 
   /// No description provided for @summaryDirOver.
   ///
-  /// In en, this message translates to:
-  /// **'above'**
+  /// In ko, this message translates to:
+  /// **'초과'**
   String get summaryDirOver;
 
   /// No description provided for @summaryDirUnder.
   ///
-  /// In en, this message translates to:
-  /// **'below'**
+  /// In ko, this message translates to:
+  /// **'부족'**
   String get summaryDirUnder;
 
   /// No description provided for @summaryCompletionLow.
   ///
-  /// In en, this message translates to:
-  /// **'Avg workout completion rate {pct}% · below the {threshold}% bar'**
+  /// In ko, this message translates to:
+  /// **'운동 완료율 평균 {pct}% · 기준 {threshold}% 미만'**
   String summaryCompletionLow(String pct, String threshold);
 
   /// No description provided for @summaryCompletionTopic.
   ///
-  /// In en, this message translates to:
-  /// **'workout completion rate at {pct}%'**
+  /// In ko, this message translates to:
+  /// **'운동 완료율 {pct}%'**
   String summaryCompletionTopic(String pct);
 
   /// No description provided for @summaryCompletionAvg.
   ///
-  /// In en, this message translates to:
-  /// **'Avg workout completion rate {pct}%'**
+  /// In ko, this message translates to:
+  /// **'운동 완료율 평균 {pct}%'**
   String summaryCompletionAvg(String pct);
 
   /// No description provided for @summarySkipped.
   ///
-  /// In en, this message translates to:
-  /// **'Skipped: {names}'**
+  /// In ko, this message translates to:
+  /// **'건너뛴 운동: {names}'**
   String summarySkipped(String names);
 
   /// No description provided for @summarySkippedTopic.
   ///
-  /// In en, this message translates to:
-  /// **'{count} skipped exercise(s)'**
+  /// In ko, this message translates to:
+  /// **'건너뛴 운동 {count}가지'**
   String summarySkippedTopic(String count);
 
   /// No description provided for @summarySodium.
   ///
-  /// In en, this message translates to:
-  /// **'Avg sodium {avg} mg · over the {basis} of {target} mg on {days} day(s)'**
+  /// In ko, this message translates to:
+  /// **'나트륨 평균 {avg}mg · {basis} {target}mg 초과 {days}일'**
   String summarySodium(String avg, String basis, String target, String days);
 
   /// No description provided for @summarySodiumOverTopic.
   ///
-  /// In en, this message translates to:
-  /// **'sodium over goal on {days} day(s)'**
+  /// In ko, this message translates to:
+  /// **'나트륨 목표 초과 {days}일'**
   String summarySodiumOverTopic(String days);
 
   /// No description provided for @summarySodiumAvgTopic.
   ///
-  /// In en, this message translates to:
-  /// **'avg sodium {avg} mg'**
+  /// In ko, this message translates to:
+  /// **'나트륨 평균 {avg}mg'**
   String summarySodiumAvgTopic(String avg);
 
   /// No description provided for @summarySugar.
   ///
-  /// In en, this message translates to:
-  /// **'Avg sugar {avg} g · over the {basis} of {target} g on {days} day(s)'**
+  /// In ko, this message translates to:
+  /// **'당류 평균 {avg}g · {basis} {target}g 초과 {days}일'**
   String summarySugar(String avg, String basis, String target, String days);
 
   /// No description provided for @summarySugarOverTopic.
   ///
-  /// In en, this message translates to:
-  /// **'sugar over goal on {days} day(s)'**
+  /// In ko, this message translates to:
+  /// **'당류 목표 초과 {days}일'**
   String summarySugarOverTopic(String days);
 
   /// No description provided for @summarySugarAvgTopic.
   ///
-  /// In en, this message translates to:
-  /// **'avg sugar {avg} g'**
+  /// In ko, this message translates to:
+  /// **'당류 평균 {avg}g'**
   String summarySugarAvgTopic(String avg);
 
   /// No description provided for @summaryCalories.
   ///
-  /// In en, this message translates to:
-  /// **'Avg calories {avg} kcal · {pct}% {direction} the {basis} of {target} kcal'**
+  /// In ko, this message translates to:
+  /// **'칼로리 평균 {avg}kcal · {basis} {target}kcal 대비 {direction} {pct}%'**
   String summaryCalories(
     String avg,
     String basis,
@@ -9689,20 +9637,20 @@ abstract class AppLocalizations {
 
   /// No description provided for @summaryCaloriesTopic.
   ///
-  /// In en, this message translates to:
-  /// **'calories {direction} goal'**
+  /// In ko, this message translates to:
+  /// **'칼로리 {direction}'**
   String summaryCaloriesTopic(String direction);
 
   /// No description provided for @summaryCaloriesAvg.
   ///
-  /// In en, this message translates to:
-  /// **'Avg calories {avg} kcal'**
+  /// In ko, this message translates to:
+  /// **'칼로리 평균 {avg}kcal'**
   String summaryCaloriesAvg(String avg);
 
   /// No description provided for @summaryMacro.
   ///
-  /// In en, this message translates to:
-  /// **'Avg {label} {avg} g · {pct}% {direction} the personal goal of {target} g'**
+  /// In ko, this message translates to:
+  /// **'{label} 평균 {avg}g · 개인 목표 {target}g 대비 {direction} {pct}%'**
   String summaryMacro(
     String label,
     String avg,
@@ -9713,38 +9661,38 @@ abstract class AppLocalizations {
 
   /// No description provided for @summaryMacroTopic.
   ///
-  /// In en, this message translates to:
-  /// **'{label} {direction} goal'**
+  /// In ko, this message translates to:
+  /// **'{label} {direction}'**
   String summaryMacroTopic(String label, String direction);
 
   /// No description provided for @summaryMorePoints.
   ///
-  /// In en, this message translates to:
-  /// **'{count} more — see the report'**
+  /// In ko, this message translates to:
+  /// **'외 {count}건 — 리포트 본문에서 확인'**
   String summaryMorePoints(String count);
 
   /// No description provided for @summaryHeadlineNoData.
   ///
-  /// In en, this message translates to:
-  /// **'{name} has no records for the week — plan next week\'s start together.'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.'**
   String summaryHeadlineNoData(String name);
 
   /// No description provided for @summaryHeadlineSteady.
   ///
-  /// In en, this message translates to:
-  /// **'{name} stayed within their goals — the current intensity can stay as is.'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋아요.'**
   String summaryHeadlineSteady(String name);
 
   /// No description provided for @summaryHeadlineRest.
   ///
-  /// In en, this message translates to:
-  /// **' Also look at {count} more.'**
+  /// In ko, this message translates to:
+  /// **' 그 밖에 {count}가지도 함께 보세요.'**
   String summaryHeadlineRest(String count);
 
   /// No description provided for @summaryHeadlineGoodCare.
   ///
-  /// In en, this message translates to:
-  /// **'{name} kept {kept} on track; next week, let\'s also work on {top}.{rest}'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원은 {kept} 잘 지켰고, 다음 주는 {top} 함께 챙기면 좋겠어요.{rest}'**
   String summaryHeadlineGoodCare(
     String name,
     String kept,
@@ -9754,32 +9702,32 @@ abstract class AppLocalizations {
 
   /// No description provided for @summaryHeadlineNeedsAdjust.
   ///
-  /// In en, this message translates to:
-  /// **'{name} missed the goal on {top} — next week needs adjusting.{rest}'**
+  /// In ko, this message translates to:
+  /// **'{name} 회원은 {top} 목표를 벗어나 다음 주 조정이 필요해요.{rest}'**
   String summaryHeadlineNeedsAdjust(String name, String top, String rest);
 
   /// No description provided for @reportsPdfFileSuffix.
   ///
-  /// In en, this message translates to:
-  /// **'weekly_report'**
+  /// In ko, this message translates to:
+  /// **'주간리포트'**
   String get reportsPdfFileSuffix;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Diet analysis'**
+  /// In ko, this message translates to:
+  /// **'식단 분석'**
   String get clientDietAnalysisTitle;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'No meals logged today yet.'**
+  /// In ko, this message translates to:
+  /// **'오늘 식단 기록이 아직 없어요.'**
   String get clientDietAnalysisTodayEmpty;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{food} at {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} ({foodValue}) pushed today\'s {nutrient, select, sodium{sodium} sugar{sugar} other{calories}} to {value}, {ratio}x the {target} goal.'**
+  /// In ko, this message translates to:
+  /// **'{slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}}에 먹은 {food}({foodValue}) 때문에 오늘 {nutrient, select, sodium{나트륨이} sugar{당류가} other{칼로리가}} {value}까지 올라 목표 {target}의 {ratio}배가 됐어요.'**
   String clientDietAnalysisTodayOver(
     String slot,
     String food,
@@ -9792,8 +9740,8 @@ abstract class AppLocalizations {
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{slot, select, breakfast{Breakfast} lunch{Lunch} dinner{Dinner} lateNight{Late-night snack} other{Snack}} ({foodValue}) pushed today\'s {nutrient, select, sodium{sodium} sugar{sugar} other{calories}} to {value}, {ratio}x the {target} goal.'**
+  /// In ko, this message translates to:
+  /// **'{slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 식사({foodValue}) 때문에 오늘 {nutrient, select, sodium{나트륨이} sugar{당류가} other{칼로리가}} {value}까지 올라 목표 {target}의 {ratio}배가 됐어요.'**
   String clientDietAnalysisTodayOverMeal(
     String slot,
     String foodValue,
@@ -9805,14 +9753,14 @@ abstract class AppLocalizations {
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Protein is at {value}, {gap} short of the goal.'**
+  /// In ko, this message translates to:
+  /// **'단백질은 {value}으로 목표보다 {gap} 부족해요.'**
   String clientDietAnalysisTodayProteinShort(String value, String gap);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Protein is at {value}, {gap} short of the goal, and the 4-week average of {avg} a day stays low.'**
+  /// In ko, this message translates to:
+  /// **'단백질은 {value}으로 목표보다 {gap} 모자라고, 최근 4주 평균도 하루 {avg}이라 꾸준히 부족한 편이에요.'**
   String clientDietAnalysisTodayProteinChronic(
     String value,
     String gap,
@@ -9821,26 +9769,26 @@ abstract class AppLocalizations {
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'No {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} logged yet.'**
+  /// In ko, this message translates to:
+  /// **'{slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 기록이 아직 없어요.'**
   String clientDietAnalysisTodayMissing(String slot);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{kcal} today, evenly within the goals.'**
+  /// In ko, this message translates to:
+  /// **'오늘 {kcal}, 목표 안에서 고르게 드셨어요.'**
   String clientDietAnalysisTodayGood(String kcal);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'No meals logged this week yet.'**
+  /// In ko, this message translates to:
+  /// **'이번 주 식단 기록이 아직 없어요.'**
   String get clientDietAnalysisWeekEmpty;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Skipped breakfast on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  /// In ko, this message translates to:
+  /// **'{scope, select, last{지난주} other{이번 주}} 기록한 {logged}일 중 {days}일 아침을 걸렀어요.'**
   String clientDietAnalysisWeekSkipBreakfast(
     String scope,
     int logged,
@@ -9849,8 +9797,8 @@ abstract class AppLocalizations {
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Skipped breakfast on {days} of {logged} logged days {scope, select, last{last week} other{this week}}, snacking instead on {snackDays}.'**
+  /// In ko, this message translates to:
+  /// **'{scope, select, last{지난주} other{이번 주}} 기록한 {logged}일 중 {days}일 아침을 걸렀고, 그중 {snackDays}일은 간식으로 채웠어요.'**
   String clientDietAnalysisWeekSkipBreakfastSnack(
     String scope,
     int logged,
@@ -9860,8 +9808,8 @@ abstract class AppLocalizations {
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{nutrient, select, sodium{Sodium} sugar{Sugar} other{Calories}} went over the goal on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  /// In ko, this message translates to:
+  /// **'{scope, select, last{지난주} other{이번 주}} 기록한 {logged}일 중 {days}일 {nutrient, select, sodium{나트륨이} sugar{당류가} other{칼로리가}} 목표를 넘었어요.'**
   String clientDietAnalysisWeekOver(
     String scope,
     int logged,
@@ -9871,8 +9819,8 @@ abstract class AppLocalizations {
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'The biggest was {food} at {weekday, select, 0{Monday} 1{Tuesday} 2{Wednesday} 3{Thursday} 4{Friday} 5{Saturday} other{Sunday}} {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} ({foodValue}).'**
+  /// In ko, this message translates to:
+  /// **'{weekday, select, 0{월요일} 1{화요일} 2{수요일} 3{목요일} 4{금요일} 5{토요일} other{일요일}} {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}}에 먹은 {food}({foodValue}) 영향이 가장 컸어요.'**
   String clientDietAnalysisWeekCause(
     String weekday,
     String slot,
@@ -9882,104 +9830,104 @@ abstract class AppLocalizations {
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Protein fell below 80% of the goal on {days} of {logged} logged days {scope, select, last{last week} other{this week}}.'**
+  /// In ko, this message translates to:
+  /// **'{scope, select, last{지난주} other{이번 주}} 기록한 {logged}일 중 {days}일 단백질이 목표의 80%에 못 미쳤어요.'**
   String clientDietAnalysisWeekProteinShort(String scope, int logged, int days);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'All {days} logged days {scope, select, last{last week} other{this week}} stayed within the goals.'**
+  /// In ko, this message translates to:
+  /// **'{scope, select, last{지난주} other{이번 주}} 기록한 {days}일 모두 목표 안에서 드셨어요.'**
   String clientDietAnalysisWeekGood(String scope, int days);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
   ///
-  /// In en, this message translates to:
-  /// **'{food} replaced breakfast most often ({count} times).'**
+  /// In ko, this message translates to:
+  /// **'아침 대신 먹은 것은 {food} {count}회가 가장 많았어요.'**
   String clientDietAnalysisWeekBreakfastSnackFood(String food, int count);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
   ///
-  /// In en, this message translates to:
-  /// **'Those days averaged {value} a day.'**
+  /// In ko, this message translates to:
+  /// **'모자란 날은 하루 평균 {value} 정도였어요.'**
   String clientDietAnalysisWeekProteinAvg(String value);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
   ///
-  /// In en, this message translates to:
-  /// **'Averaged {kcal} and {protein} protein a day.'**
+  /// In ko, this message translates to:
+  /// **'하루 평균 {kcal}, 단백질 {protein}을 드셨어요.'**
   String clientDietAnalysisWeekGoodAvg(String kcal, String protein);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
   ///
-  /// In en, this message translates to:
-  /// **'{way, select, more{Up from last week} less{Down from last week} other{About the same as last week}} ({prevDays} of {prevLogged} days).'**
+  /// In ko, this message translates to:
+  /// **'지난주({prevLogged}일 중 {prevDays}일){way, select, more{보다 늘었어요} less{보다 줄었어요} other{와 비슷해요}}.'**
   String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays, String way);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Only {days} days logged in the last 4 weeks. The trend shows after 7.'**
+  /// In ko, this message translates to:
+  /// **'최근 4주 기록이 {days}일이라, 7일이 넘으면 흐름을 짚어 드릴게요.'**
   String clientDietAnalysisAllFew(int days);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'In the last 4 weeks, {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} sodium went over half the goal {days} times.'**
+  /// In ko, this message translates to:
+  /// **'최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 나트륨이 {days}회 목표의 절반을 넘었어요.'**
   String clientDietAnalysisAllSlotSodium(String slot, int days);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Carbs made up {pct}% of calories in the last 4 weeks.'**
+  /// In ko, this message translates to:
+  /// **'최근 4주 섭취 칼로리 중 탄수화물이 {pct}%로 높은 편이에요.'**
   String clientDietAnalysisAllCarbHeavy(int pct);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Protein made up only {pct}% of calories in the last 4 weeks.'**
+  /// In ko, this message translates to:
+  /// **'최근 4주 섭취 칼로리 중 단백질이 {pct}%로 낮은 편이에요.'**
   String clientDietAnalysisAllProteinLight(int pct);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Days meeting the protein goal rose from {before} in the prior 2 weeks to {after} in the last 2 weeks.'**
+  /// In ko, this message translates to:
+  /// **'단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 {after}일로 늘었어요.'**
   String clientDietAnalysisAllProteinTrendUp(int before, int after);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Days meeting the protein goal fell from {before} in the prior 2 weeks to {after} in the last 2 weeks.'**
+  /// In ko, this message translates to:
+  /// **'단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 {after}일로 줄었어요.'**
   String clientDietAnalysisAllProteinTrendDown(int before, int after);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{food} was the most common {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} in the last 4 weeks ({count} times).'**
+  /// In ko, this message translates to:
+  /// **'최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 메뉴로 {food} {count}회가 가장 많았어요.'**
   String clientDietAnalysisAllFrequent(String slot, String food, int count);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{food1} and {food2} make up much of the last 4 weeks\' log.'**
+  /// In ko, this message translates to:
+  /// **'최근 4주 음식 기록에서 {food1}·{food2} 비중이 높아요.'**
   String clientDietAnalysisAllRepeated(String food1, String food2);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{days} days logged in the last 4 weeks, with an even trend.'**
+  /// In ko, this message translates to:
+  /// **'최근 4주 동안 {days}일 기록했고, 흐름이 고른 편이에요.'**
   String clientDietAnalysisAllGood(int days);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Mostly {food1} ({count1} times).'**
+  /// In ko, this message translates to:
+  /// **'{food1} {count1}회가 대부분이에요.'**
   String clientDietAnalysisFoodsOne(String food1, int count1);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Mostly {food1} ({count1} times) and {food2} ({count2} times).'**
+  /// In ko, this message translates to:
+  /// **'{food1} {count1}회, {food2} {count2}회가 대부분이에요.'**
   String clientDietAnalysisFoodsTwo(
     String food1,
     int count1,
@@ -9989,512 +9937,512 @@ abstract class AppLocalizations {
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Recommend this {slot, select, breakfast{for breakfast} lunch{for lunch} dinner{for dinner} lateNight{as a late-night snack} other{as a snack}} to the member?'**
+  /// In ko, this message translates to:
+  /// **'{slot, select, breakfast{아침으로} lunch{점심으로} dinner{저녁으로} lateNight{야식으로} other{간식으로}} 이 메뉴를 회원에게 추천할까요?'**
   String clientDietRecQuestion(String slot);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Recommend this for the next meal to the member?'**
+  /// In ko, this message translates to:
+  /// **'다음 식사로 이 메뉴를 회원에게 추천할까요?'**
   String get clientDietRecQuestionNext;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'AI pick {index} / {total}'**
+  /// In ko, this message translates to:
+  /// **'AI 추천 {index} / {total}'**
   String clientDietRecCounter(int index, int total);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'No'**
+  /// In ko, this message translates to:
+  /// **'아니요'**
   String get clientDietRecNo;
 
   /// AI 식단 추천 카운터 왼쪽 꺾쇠 툴팁 — 같은 묶음 안 앞 후보로.
   ///
-  /// In en, this message translates to:
-  /// **'Previous pick'**
+  /// In ko, this message translates to:
+  /// **'이전 추천'**
   String get clientDietRecPrev;
 
   /// AI 식단 추천 카운터 오른쪽 꺾쇠 툴팁 — 같은 묶음 안 다음 후보로(거절 아님).
   ///
-  /// In en, this message translates to:
-  /// **'Next pick'**
+  /// In ko, this message translates to:
+  /// **'다음 추천'**
   String get clientDietRecForward;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Yes, recommend'**
+  /// In ko, this message translates to:
+  /// **'예, 추천할게요'**
   String get clientDietRecYes;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'You passed on all {count} AI picks.'**
+  /// In ko, this message translates to:
+  /// **'AI 추천 메뉴 {count}개를 모두 넘겼어요.'**
   String clientDietRecExhausted(int count);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Start over'**
+  /// In ko, this message translates to:
+  /// **'처음부터 다시 보기'**
   String get clientDietRecRestart;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'See other menus'**
+  /// In ko, this message translates to:
+  /// **'다른 메뉴 보기'**
   String get clientDietRecMore;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'You recommended this on {date}. It\'s on the member\'s home as a trainer pick.'**
+  /// In ko, this message translates to:
+  /// **'{date}에 이 메뉴를 추천했어요. 회원 앱 홈에 트레이너 추천으로 떠 있어요.'**
   String clientDietRecActive(String date);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Change'**
+  /// In ko, this message translates to:
+  /// **'바꾸기'**
   String get clientDietRecChange;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'The member had the recommended {name} for {slot, select, breakfast{breakfast} lunch{lunch} dinner{dinner} lateNight{late-night snack} other{snack}} on {date}.'**
+  /// In ko, this message translates to:
+  /// **'회원이 {date} {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}}에 추천한 메뉴({name})를 먹었어요.'**
   String clientDietRecResolved(String name, String date, String slot);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'The member had the recommended {name} on {date}.'**
+  /// In ko, this message translates to:
+  /// **'회원이 {date}에 추천한 메뉴({name})를 먹었어요.'**
   String clientDietRecResolvedNoSlot(String name, String date);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'See next pick'**
+  /// In ko, this message translates to:
+  /// **'다음 추천 보기'**
   String get clientDietRecNext;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the pick. Please try again.'**
+  /// In ko, this message translates to:
+  /// **'추천을 저장하지 못했어요. 다시 시도해 주세요.'**
   String get clientDietRecConfirmFailed;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{kcal} kcal · protein {protein} g · sodium {sodium} mg'**
+  /// In ko, this message translates to:
+  /// **'{kcal}kcal · 단백질 {protein}g · 나트륨 {sodium}mg'**
   String clientDietRecNutrition(String kcal, String protein, String sodium);
 
   /// 트레이너웹 AI 식단 추천의 끼니 배지 (#2379).
   ///
-  /// In en, this message translates to:
-  /// **'{slot, select, breakfast{Breakfast} lunch{Lunch} dinner{Dinner} lateNight{Late-night snack} other{Snack}}'**
+  /// In ko, this message translates to:
+  /// **'{slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}}'**
   String clientDietRecSlot(String slot);
 
   /// No description provided for @authForgotPassword.
   ///
-  /// In en, this message translates to:
-  /// **'Forgot password?'**
+  /// In ko, this message translates to:
+  /// **'비밀번호 찾기'**
   String get authForgotPassword;
 
   /// Text button next to 'Forgot password?' on sign-in that opens the find-email screen.
   ///
-  /// In en, this message translates to:
-  /// **'Forgot email?'**
+  /// In ko, this message translates to:
+  /// **'아이디 찾기'**
   String get authFindEmail;
 
   /// No description provided for @findEmailTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Find your email'**
+  /// In ko, this message translates to:
+  /// **'아이디 찾기'**
   String get findEmailTitle;
 
   /// No description provided for @findEmailSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the name and phone number you signed up with to find your email.'**
+  /// In ko, this message translates to:
+  /// **'가입할 때 입력한 이름과 휴대폰 번호로 가입 이메일을 찾아요.'**
   String get findEmailSubtitle;
 
   /// No description provided for @findEmailAction.
   ///
-  /// In en, this message translates to:
-  /// **'Find email'**
+  /// In ko, this message translates to:
+  /// **'아이디 찾기'**
   String get findEmailAction;
 
   /// Toast shown when the find-email button is pressed while the lookup is not available yet.
   ///
-  /// In en, this message translates to:
-  /// **'Finding your email is coming soon.'**
+  /// In ko, this message translates to:
+  /// **'아이디 찾기는 준비 중이에요.'**
   String get findEmailComingSoon;
 
   /// Placeholder of the phone field on trainer sign-up and find-email.
   ///
-  /// In en, this message translates to:
+  /// In ko, this message translates to:
   /// **'010-0000-0000'**
   String get signUpPhoneHint;
 
   /// No description provided for @signUpPhoneHelper.
   ///
-  /// In en, this message translates to:
-  /// **'Used to find your sign-up email if you forget it.'**
+  /// In ko, this message translates to:
+  /// **'가입한 이메일을 잊었을 때 찾는 데 쓰는 연락처예요'**
   String get signUpPhoneHelper;
 
   /// No description provided for @passwordResetTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Reset password'**
+  /// In ko, this message translates to:
+  /// **'비밀번호 재설정'**
   String get passwordResetTitle;
 
   /// No description provided for @passwordResetRequestSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'We\'ll email a reset code to the address you signed up with.'**
+  /// In ko, this message translates to:
+  /// **'가입한 이메일로 재설정 코드를 보내 드려요.'**
   String get passwordResetRequestSubtitle;
 
   /// No description provided for @passwordResetSendAction.
   ///
-  /// In en, this message translates to:
-  /// **'Send code'**
+  /// In ko, this message translates to:
+  /// **'코드 받기'**
   String get passwordResetSendAction;
 
   /// No description provided for @passwordResetHaveCode.
   ///
-  /// In en, this message translates to:
-  /// **'I already have a code'**
+  /// In ko, this message translates to:
+  /// **'이미 코드가 있어요'**
   String get passwordResetHaveCode;
 
   /// No description provided for @passwordResetSentTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Check your email'**
+  /// In ko, this message translates to:
+  /// **'메일을 확인해 주세요'**
   String get passwordResetSentTitle;
 
   /// Shown after a reset request. Same text whether or not the account exists.
   ///
-  /// In en, this message translates to:
-  /// **'If an account uses {email}, we\'ve sent a code you can use once within {minutes} minutes.'**
+  /// In ko, this message translates to:
+  /// **'{email} 로 가입된 계정이 있다면 {minutes}분 동안 한 번 쓸 수 있는 코드를 보냈어요.'**
   String passwordResetSentBody(String email, int minutes);
 
   /// No description provided for @passwordResetConfirmSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the code from the email and your new password.'**
+  /// In ko, this message translates to:
+  /// **'메일로 받은 코드와 새 비밀번호를 입력해 주세요.'**
   String get passwordResetConfirmSubtitle;
 
   /// No description provided for @passwordResetCodeHint.
   ///
-  /// In en, this message translates to:
-  /// **'16-character reset code'**
+  /// In ko, this message translates to:
+  /// **'재설정 코드 16자리'**
   String get passwordResetCodeHint;
 
   /// No description provided for @passwordResetCodeEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the code'**
+  /// In ko, this message translates to:
+  /// **'코드를 입력해 주세요'**
   String get passwordResetCodeEmpty;
 
   /// No description provided for @passwordResetCodeMalformed.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the 16-character code from the email'**
+  /// In ko, this message translates to:
+  /// **'메일에 적힌 16자리 코드를 입력해 주세요'**
   String get passwordResetCodeMalformed;
 
   /// No description provided for @passwordResetCodeInvalid.
   ///
-  /// In en, this message translates to:
-  /// **'This code is wrong or has expired. Request a new one.'**
+  /// In ko, this message translates to:
+  /// **'코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.'**
   String get passwordResetCodeInvalid;
 
   /// No description provided for @passwordResetConfirmAction.
   ///
-  /// In en, this message translates to:
-  /// **'Save new password'**
+  /// In ko, this message translates to:
+  /// **'새 비밀번호 저장'**
   String get passwordResetConfirmAction;
 
   /// No description provided for @passwordResetResend.
   ///
-  /// In en, this message translates to:
-  /// **'Send a new code'**
+  /// In ko, this message translates to:
+  /// **'코드 다시 받기'**
   String get passwordResetResend;
 
   /// No description provided for @passwordResetDemoNote.
   ///
-  /// In en, this message translates to:
-  /// **'Demo mode doesn\'t send email. The code is filled in for you.'**
+  /// In ko, this message translates to:
+  /// **'데모 모드에서는 메일이 가지 않아요. 코드 칸을 미리 채워 두었어요.'**
   String get passwordResetDemoNote;
 
   /// No description provided for @passwordResetUnavailable.
   ///
-  /// In en, this message translates to:
-  /// **'We can\'t send reset emails right now. Please contact support.'**
+  /// In ko, this message translates to:
+  /// **'지금은 재설정 메일을 보낼 수 없어요. 고객 지원으로 문의해 주세요.'**
   String get passwordResetUnavailable;
 
   /// No description provided for @passwordResetDoneTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Password reset'**
+  /// In ko, this message translates to:
+  /// **'비밀번호를 바꿨어요'**
   String get passwordResetDoneTitle;
 
   /// No description provided for @passwordResetDoneBody.
   ///
-  /// In en, this message translates to:
-  /// **'Sign in with your new password. You\'ve been signed out on every device.'**
+  /// In ko, this message translates to:
+  /// **'새 비밀번호로 다시 로그인해 주세요. 모든 기기의 로그인이 끝났어요.'**
   String get passwordResetDoneBody;
 
   /// No description provided for @passwordResetBackToSignIn.
   ///
-  /// In en, this message translates to:
-  /// **'Go to sign in'**
+  /// In ko, this message translates to:
+  /// **'로그인하러 가기'**
   String get passwordResetBackToSignIn;
 
   /// No description provided for @passwordResetTooMany.
   ///
-  /// In en, this message translates to:
-  /// **'Too many attempts. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'시도가 너무 많아요. 잠시 후 다시 시도해 주세요.'**
   String get passwordResetTooMany;
 
   /// No description provided for @passwordResetTemporaryFailure.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t complete the request. Please try again shortly.'**
+  /// In ko, this message translates to:
+  /// **'요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get passwordResetTemporaryFailure;
 
   /// No description provided for @signUpCodeSend.
   ///
-  /// In en, this message translates to:
-  /// **'Send code'**
+  /// In ko, this message translates to:
+  /// **'인증 코드 받기'**
   String get signUpCodeSend;
 
   /// No description provided for @signUpCodeLabel.
   ///
-  /// In en, this message translates to:
-  /// **'Verification code'**
+  /// In ko, this message translates to:
+  /// **'인증 코드'**
   String get signUpCodeLabel;
 
   /// Same text whether or not the email already has an account.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the 6-digit code from the email. If this email already has an account, you\'ll get a notice instead of a code.'**
+  /// In ko, this message translates to:
+  /// **'메일로 받은 6자리 코드를 입력해 주세요. 이미 가입된 이메일이면 코드 대신 안내 메일이 가요.'**
   String get signUpCodeSentNotice;
 
   /// Remaining validity of the sign-up email code; time looks like 9:41.
   ///
-  /// In en, this message translates to:
-  /// **'Expires in {time}'**
+  /// In ko, this message translates to:
+  /// **'남은 시간 {time}'**
   String signUpCodeRemaining(String time);
 
   /// No description provided for @signUpCodeExpired.
   ///
-  /// In en, this message translates to:
-  /// **'The code has expired. Request a new one.'**
+  /// In ko, this message translates to:
+  /// **'코드가 만료됐어요. 다시 받아 주세요.'**
   String get signUpCodeExpired;
 
   /// No description provided for @signUpCodeResend.
   ///
-  /// In en, this message translates to:
-  /// **'Resend'**
+  /// In ko, this message translates to:
+  /// **'다시 받기'**
   String get signUpCodeResend;
 
   /// No description provided for @signUpCodeResendIn.
   ///
-  /// In en, this message translates to:
-  /// **'Resend in {seconds}s'**
+  /// In ko, this message translates to:
+  /// **'{seconds}초 뒤 다시 받기'**
   String signUpCodeResendIn(int seconds);
 
   /// No description provided for @signUpCodeDemoNote.
   ///
-  /// In en, this message translates to:
-  /// **'Demo mode doesn\'t send email. Enter {code} as the code.'**
+  /// In ko, this message translates to:
+  /// **'데모 모드에서는 메일이 가지 않아요. 인증 코드로 {code} 를 입력해 주세요.'**
   String signUpCodeDemoNote(String code);
 
   /// No description provided for @signUpCodeInvalid.
   ///
-  /// In en, this message translates to:
-  /// **'This code is wrong or has expired. Request a new one.'**
+  /// In ko, this message translates to:
+  /// **'인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.'**
   String get signUpCodeInvalid;
 
   /// No description provided for @signUpCodeRequired.
   ///
-  /// In en, this message translates to:
-  /// **'Enter the email verification code.'**
+  /// In ko, this message translates to:
+  /// **'이메일 인증 코드를 입력해 주세요.'**
   String get signUpCodeRequired;
 
   /// No description provided for @signUpCodeTooMany.
   ///
-  /// In en, this message translates to:
-  /// **'Too many requests. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'요청이 너무 많아요. 잠시 후 다시 시도해 주세요.'**
   String get signUpCodeTooMany;
 
   /// No description provided for @signUpCodeUnavailable.
   ///
-  /// In en, this message translates to:
-  /// **'We can\'t send verification emails right now. Please try again later.'**
+  /// In ko, this message translates to:
+  /// **'지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.'**
   String get signUpCodeUnavailable;
 
   /// No description provided for @signUpCodeRequestFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send the code. Please try again shortly.'**
+  /// In ko, this message translates to:
+  /// **'인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.'**
   String get signUpCodeRequestFailed;
 
   /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023). Plain wording for members and trainers, not deployment jargon (#3204).
   ///
-  /// In en, this message translates to:
-  /// **'The app has been updated'**
+  /// In ko, this message translates to:
+  /// **'앱이 업데이트됐어요'**
   String get releaseUpdateTitle;
 
   /// Body of the new-release banner.
   ///
-  /// In en, this message translates to:
-  /// **'Refresh to switch to the latest version. Save anything you\'re working on first.'**
+  /// In ko, this message translates to:
+  /// **'새로고침하면 최신 버전으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.'**
   String get releaseUpdateMessage;
 
   /// Button that hides the banner and reloads the page with the new release's files (#3204).
   ///
-  /// In en, this message translates to:
-  /// **'Refresh'**
+  /// In ko, this message translates to:
+  /// **'새로고침'**
   String get releaseUpdateReload;
 
   /// Tooltip of the button that hides the new-release banner for this release.
   ///
-  /// In en, this message translates to:
-  /// **'Dismiss'**
+  /// In ko, this message translates to:
+  /// **'안내 닫기'**
   String get releaseUpdateDismiss;
 
   /// Shown in error toasts and error states when a request failed because of a network error or timeout, instead of the HTTP library's own English message.
   ///
-  /// In en, this message translates to:
-  /// **'The connection is unstable. Please check your network and try again.'**
+  /// In ko, this message translates to:
+  /// **'연결이 불안정합니다. 네트워크를 확인하고 다시 시도해 주세요.'**
   String get errorNetworkUnstable;
 
   /// Shown in error toasts and error states when the server answered with a 5xx status and gave no reason of its own.
   ///
-  /// In en, this message translates to:
-  /// **'The server is having a temporary problem. Please try again in a moment.'**
+  /// In ko, this message translates to:
+  /// **'서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.'**
   String get errorServerTemporary;
 
   /// Button on the gym card and title of the screen where a trainer picks a different gym to be affiliated with.
   ///
-  /// In en, this message translates to:
-  /// **'Change gym'**
+  /// In ko, this message translates to:
+  /// **'헬스장 변경'**
   String get myGymChange;
 
   /// Button on the gym card and title of the screen where an affiliated trainer edits the gym hours, phone and tags (#2700).
   ///
-  /// In en, this message translates to:
-  /// **'Edit hours & contact'**
+  /// In ko, this message translates to:
+  /// **'영업시간·연락처 수정'**
   String get myGymInfoEdit;
 
   /// No description provided for @myGymInfoSubtitle.
   ///
-  /// In en, this message translates to:
-  /// **'Shown as-is on the gym list and detail in the member app. Any trainer at this gym can edit it, and the last save stays.'**
+  /// In ko, this message translates to:
+  /// **'회원 앱 헬스장 목록과 상세에 그대로 보여요. 같은 헬스장 트레이너 누구나 고칠 수 있고, 마지막에 저장한 내용이 남아요.'**
   String get myGymInfoSubtitle;
 
   /// No description provided for @myGymInfoCardTitle.
   ///
-  /// In en, this message translates to:
-  /// **'Gym info members see'**
+  /// In ko, this message translates to:
+  /// **'회원에게 보이는 헬스장 정보'**
   String get myGymInfoCardTitle;
 
   /// No description provided for @myGymWeekdayHours.
   ///
-  /// In en, this message translates to:
-  /// **'Weekday hours'**
+  /// In ko, this message translates to:
+  /// **'평일 영업시간'**
   String get myGymWeekdayHours;
 
   /// No description provided for @myGymWeekendHours.
   ///
-  /// In en, this message translates to:
-  /// **'Weekend hours'**
+  /// In ko, this message translates to:
+  /// **'주말 영업시간'**
   String get myGymWeekendHours;
 
   /// No description provided for @myGymHoursHint.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. 06:00 - 23:00'**
+  /// In ko, this message translates to:
+  /// **'예: 06:00 - 23:00'**
   String get myGymHoursHint;
 
   /// No description provided for @myGymPhone.
   ///
-  /// In en, this message translates to:
-  /// **'Main phone'**
+  /// In ko, this message translates to:
+  /// **'대표 전화'**
   String get myGymPhone;
 
   /// No description provided for @myGymPhoneHint.
   ///
-  /// In en, this message translates to:
-  /// **'e.g. 02-123-4567'**
+  /// In ko, this message translates to:
+  /// **'예: 02-123-4567'**
   String get myGymPhoneHint;
 
   /// No description provided for @myGymTags.
   ///
-  /// In en, this message translates to:
-  /// **'Tags'**
+  /// In ko, this message translates to:
+  /// **'태그'**
   String get myGymTags;
 
   /// No description provided for @myGymAddTag.
   ///
-  /// In en, this message translates to:
-  /// **'Add a tag...'**
+  /// In ko, this message translates to:
+  /// **'태그 추가...'**
   String get myGymAddTag;
 
   /// No description provided for @myGymTagsEmpty.
   ///
-  /// In en, this message translates to:
-  /// **'No tags yet.'**
+  /// In ko, this message translates to:
+  /// **'아직 태그가 없어요.'**
   String get myGymTagsEmpty;
 
   /// No description provided for @myGymInfoLoadFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the gym info.'**
+  /// In ko, this message translates to:
+  /// **'헬스장 정보를 불러오지 못했어요.'**
   String get myGymInfoLoadFailed;
 
   /// No description provided for @myGymInfoSaveFailed.
   ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the gym info.'**
+  /// In ko, this message translates to:
+  /// **'헬스장 정보를 저장하지 못했어요.'**
   String get myGymInfoSaveFailed;
 
   /// No description provided for @a11yRemoveGymTag.
   ///
-  /// In en, this message translates to:
-  /// **'Delete tag'**
+  /// In ko, this message translates to:
+  /// **'태그 삭제'**
   String get a11yRemoveGymTag;
 
   /// No description provided for @myGymTagsHint.
   ///
-  /// In en, this message translates to:
-  /// **'Shown as chips on the gym card in the member app. Up to {max} tags, {length} characters each.'**
+  /// In ko, this message translates to:
+  /// **'회원 앱 헬스장 카드에 칩으로 보여요. 최대 {max}개, 한 개에 {length}자까지 적을 수 있어요.'**
   String myGymTagsHint(int max, int length);
 
   /// No description provided for @myGymTagsFull.
   ///
-  /// In en, this message translates to:
-  /// **'You can add up to {max} tags'**
+  /// In ko, this message translates to:
+  /// **'태그는 {max}개까지 넣을 수 있어요'**
   String myGymTagsFull(int max);
 
   /// No description provided for @myGymTagTooLong.
   ///
-  /// In en, this message translates to:
-  /// **'A tag can be up to {length} characters'**
+  /// In ko, this message translates to:
+  /// **'태그는 {length}자까지 적을 수 있어요'**
   String myGymTagTooLong(int length);
 
   /// No description provided for @myGymHoursWeekday.
   ///
-  /// In en, this message translates to:
-  /// **'Weekdays {hours}'**
+  /// In ko, this message translates to:
+  /// **'평일 {hours}'**
   String myGymHoursWeekday(String hours);
 
   /// No description provided for @myGymHoursWeekend.
   ///
-  /// In en, this message translates to:
-  /// **'Weekends {hours}'**
+  /// In ko, this message translates to:
+  /// **'주말 {hours}'**
   String myGymHoursWeekend(String hours);
 }
 
@@ -10509,7 +10457,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'ko'].contains(locale.languageCode);
+      <String>['ko'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -10518,8 +10466,6 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
     case 'ko':
       return AppLocalizationsKo();
   }

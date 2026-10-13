@@ -13,14 +13,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 const ValueKey<String> _loadMoreKey = ValueKey<String>(
   'notifications-load-more',
@@ -118,14 +116,11 @@ class _PagedRepo implements TrainerNotificationRepository {
 
 Future<void> _pump(
   WidgetTester tester,
-  _PagedRepo repo, {
-  Locale locale = const Locale('ko'),
-}) async {
+  _PagedRepo repo) async {
   await pumpTrainerApp(
     tester,
     token: 'demo-token',
     at: AppRoutes.notifications,
-    locale: locale,
     extraOverrides: <Override>[
       trainerNotificationRepositoryProvider.overrideWithValue(repo),
     ],
@@ -334,47 +329,4 @@ void main() {
     expect(find.text('알림 d'), findsOneWidget);
   });
 
-  testWidgets('영어 화면은 이어 받기 문구도 영어다', (tester) async {
-    final repo = _PagedRepo(<List<String>>[
-      <String>['a'],
-      <String>['b'],
-      <String>['c'],
-    ])..failuresLeft = 1;
-    await _pump(tester, repo, locale: const Locale('en'));
-
-    expect(find.text(_en.notifLoadMore), findsOneWidget);
-    expect(find.text(_ko.notifLoadMore), findsNothing);
-
-    await tester.tap(find.byKey(_loadMoreKey));
-    await settle(tester);
-    expect(find.text(_en.notifLoadMoreFailed), findsOneWidget);
-    expect(find.text(_en.actionRetry), findsWidgets);
-
-    await tester.tap(find.byKey(_retryKey));
-    await settle(tester);
-    await tester.tap(find.byKey(_loadMoreKey));
-    await settle(tester);
-
-    expect(find.text(_en.notifNoEarlier), findsOneWidget);
-    expect(find.text(_ko.notifNoEarlier), findsNothing);
-  });
-
-  test('영어 문구가 비어 있거나 한국어로 남지 않았다', () {
-    final RegExp hangul = RegExp('[가-힣]');
-    for (final String text in <String>[
-      _en.notifLoadMore,
-      _en.notifLoadMoreFailed,
-      _en.notifNoEarlier,
-    ]) {
-      expect(text, isNotEmpty);
-      expect(hangul.hasMatch(text), isFalse, reason: text);
-    }
-    for (final String text in <String>[
-      _ko.notifLoadMore,
-      _ko.notifLoadMoreFailed,
-      _ko.notifNoEarlier,
-    ]) {
-      expect(hangul.hasMatch(text), isTrue, reason: text);
-    }
-  });
 }

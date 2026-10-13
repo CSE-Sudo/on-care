@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,7 +20,6 @@ void main() {
   /// Opens the detail and returns how to push the next roster.
   Future<void Function(List<TrainerClient>)> openDetail(
     WidgetTester tester, {
-    required Locale locale,
     String? section,
   }) async {
     final StreamController<List<TrainerClient>> roster =
@@ -30,7 +28,6 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      locale: locale,
       extraOverrides: <Override>[
         clientsProvider.overrideWith((ref) => roster.stream),
       ],
@@ -45,13 +42,12 @@ void main() {
   }
 
   for (final String section in <String>['diet', 'workout']) {
-    testWidgets('open $section detail falls back to not-found (ko)', (
+    testWidgets('open $section detail falls back to not-found', (
       tester,
     ) async {
       await withWideSurface(tester, () async {
         final pushRoster = await openDetail(
           tester,
-          locale: const Locale('ko'),
           section: section,
         );
         expect(find.text('회원을 찾을 수 없어요'), findsNothing);
@@ -68,21 +64,8 @@ void main() {
     });
   }
 
-  testWidgets('open detail falls back to not-found (en)', (tester) async {
-    await withWideSurface(tester, () async {
-      final pushRoster = await openDetail(tester, locale: const Locale('en'));
-      expect(find.text('Member not found'), findsNothing);
-
-      pushRoster(<TrainerClient>[makeClient(id: 'seed-client-2')]);
-      await settle(tester);
-
-      expect(tester.takeException(), isNull);
-      expect(find.text('Member not found'), findsOneWidget);
-    });
-  });
-
   testWidgets('narrow layout offers the way back to the list', (tester) async {
-    final pushRoster = await openDetail(tester, locale: const Locale('ko'));
+    final pushRoster = await openDetail(tester);
     pushRoster(<TrainerClient>[makeClient(id: 'seed-client-2')]);
     await settle(tester);
 
@@ -96,7 +79,7 @@ void main() {
     tester,
   ) async {
     await withWideSurface(tester, () async {
-      final pushRoster = await openDetail(tester, locale: const Locale('ko'));
+      final pushRoster = await openDetail(tester);
       pushRoster(<TrainerClient>[makeClient(id: 'seed-client-2')]);
       await settle(tester);
       // 다음 주기의 명단도 같다 — 한 번 바뀐 화면이 되돌아가지 않는다.

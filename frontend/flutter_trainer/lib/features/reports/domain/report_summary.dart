@@ -361,14 +361,14 @@ ReportSummary ruleReportSummary(
     if (good.isNotEmpty) {
       headline = l.summaryHeadlineGoodCare(
         name,
-        withParticle(l, good.first, '으로', '로'),
-        withParticle(l, top, '을', '를'),
+        withJosa(good.first, '으로', '로'),
+        withJosa(top, '을', '를'),
         rest,
       );
     } else {
       headline = l.summaryHeadlineNeedsAdjust(
         name,
-        withParticle(l, top, '이', '가'),
+        withJosa(top, '이', '가'),
         rest,
       );
     }
@@ -407,7 +407,7 @@ List<String> summaryCoachingActions(AppLocalizations l, WeeklyReport report) {
         actions.add(l.reportsActionLowCompletion);
       case 'skipped':
         final names = summarySkippedExercises(report).take(2).join(', ');
-        actions.add(l.reportsActionSkipped(withParticle(l, names, '은', '는')));
+        actions.add(l.reportsActionSkipped(withJosa(names, '은', '는')));
       case 'calories':
         actions.add(
           l.reportsActionCalories(

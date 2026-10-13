@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 
@@ -497,10 +496,8 @@ void main() {
   });
 
   group('mock gym search (#3223)', () {
-    Future<List<String>> ids(String query, {DemoLanguage? language}) async {
-      final repository = MockTrainerProfileRepository(
-        language: language ?? DemoLanguage.ko,
-      );
+    Future<List<String>> ids(String query) async {
+      final repository = MockTrainerProfileRepository();
       return (await repository.searchGyms(
         query,
       )).map((TrainerGymCandidate g) => g.id).toList();
@@ -523,12 +520,6 @@ void main() {
       expect(await ids('강남 헬스장'), <String>['gym-2']);
       expect(await ids('헬스장'), hasLength(3));
       expect(await ids('피트니스'), hasLength(3));
-    });
-
-    test('is case-insensitive in English', () async {
-      expect(await ids('ONCARE gangnam', language: DemoLanguage.en), <String>[
-        'gym-2',
-      ]);
     });
 
     test('never comes back empty for a real gym name — 데모 헬스장 전체', () async {

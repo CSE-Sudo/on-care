@@ -178,7 +178,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 보낸다 — 미리보기와 회원이 받는 파일이 서로 다를 수 없다.
   Future<Uint8List>? _preview;
 
-  /// [_preview] 의 재료(`회원|주|언어|리포트 내용|문구`). ② 에서 글을 고치고
+  /// [_preview] 의 재료(`회원|주|리포트 내용|문구`). ② 에서 글을 고치고
   /// 돌아오면 문구가 달라져 새로 만든다.
   ///
   /// 리포트는 객체가 아니라 내용으로 가른다(#2484). 스트림이 내용이 같은
@@ -190,7 +190,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     AppLocalizations l,
     WeeklyReport report,
     String message,
-  ) => '${_feedbackKey(report)}|${l.localeName}|${report.contentKey}|$message';
+  ) => '${_feedbackKey(report)}|${report.contentKey}|$message';
 
   /// [report] 를 [message] 로 만든 미리보기가 지금 있는가.
   bool _previewMatches(

@@ -66,8 +66,8 @@ class _RecordingOptionsRepository implements TrainerRoutineOptionsRepository {
   }
 }
 
-Widget _host(Widget child, {Locale locale = const Locale('ko')}) => MaterialApp(
-  locale: locale,
+Widget _host(Widget child) => MaterialApp(
+  locale: const Locale('ko'),
   theme: AppTheme.light(),
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,

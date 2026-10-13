@@ -214,7 +214,7 @@ class _KindCard extends StatelessWidget {
                     Text(
                       // ko `1,200kcal` · en `1,200 kcal`(#3120).
                       '${formatNumber(week.caloriesOf(kind))}'
-                      '${unitGap(Localizations.localeOf(context).toString())}'
+                      ''
                       '${l.unitKcal}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

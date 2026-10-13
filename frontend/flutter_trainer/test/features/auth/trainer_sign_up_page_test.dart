@@ -12,7 +12,6 @@ import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/signup_email_code_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/my/presentation/pages/legal_document_page.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -111,7 +110,6 @@ class _RecordingCodeRepository implements SignupEmailCodeRepository {
 }
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 실 API 모드 설정.
 const AppConfig _realConfig = AppConfig(
@@ -128,14 +126,12 @@ Future<_RecordingAuthRepository> _pumpSignUp(
   bool demo = false,
   AuthException? error,
   SignupEmailCodeError? codeError,
-  Locale locale = const Locale('ko'),
 }) async {
   final repo = _RecordingAuthRepository()..error = error;
   _codes = _RecordingCodeRepository()..error = codeError;
   await pumpTrainerApp(
     tester,
     at: AppRoutes.signUp,
-    locale: locale,
     extraOverrides: <Override>[
       if (!demo) ...<Override>[
         appConfigProvider.overrideWithValue(_realConfig),
@@ -971,27 +967,6 @@ void main() {
     await _enterCode(tester, MockSignupEmailCodeRepository.demoCode);
     await _submit(tester);
     expect(repo.emailCode, MockSignupEmailCodeRepository.demoCode);
-  });
-
-  testWidgets('영어 화면은 코드 단계도 영어다', (WidgetTester tester) async {
-    await _pumpSignUp(tester, locale: const Locale('en'));
-
-    expect(find.text(_en.signUpCodeSend), findsOneWidget);
-
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(_emailKey),
-        matching: find.byType(TextField),
-      ),
-      'new@oncare.com',
-    );
-    await _requestCode(tester);
-
-    expect(find.text(_en.signUpCodeLabel), findsOneWidget);
-    expect(find.text(_en.signUpCodeSentNotice), findsOneWidget);
-    expect(find.text(_en.signUpCodeRemaining('10:00')), findsOneWidget);
-    expect(find.text(_en.signUpCodeResendIn(60)), findsOneWidget);
-    expect(_en.signUpCodeResendIn(60), 'Resend in 60s');
   });
 
   testWidgets('코드를 받는 사이 이메일을 고치면 옛 주소의 코드를 버린다 (#3248)', (

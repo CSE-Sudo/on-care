@@ -65,13 +65,12 @@ Future<void> _tapKey(WidgetTester tester, String key) async {
 
 void main() {
   group('설정 목록', () {
-    testWidgets('알림·화면 언어·계정·고객 지원·로그아웃 순서의 한 장이다', (tester) async {
+    testWidgets('알림·계정·고객 지원·로그아웃 순서의 한 장이다', (tester) async {
       await _openSettings(tester);
 
       final List<double> ys =
           <String>[
                 'my-notifications-entry',
-                'my-language-entry',
                 'my-account-entry',
                 'my-support-entry',
                 'my-logout-button',

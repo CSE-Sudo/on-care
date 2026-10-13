@@ -24,7 +24,6 @@ import 'package:oncare_report/oncare_report.dart'
         kReportSheetHistoryWeeks,
         kReportSheetTrendWeeks;
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/storage/seed_health_profiles.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -38,22 +37,20 @@ final DateTime _now = DateTime(2026, 9, 24, 21);
 final DateTime _thisMonday = DateTime(2026, 9, 21);
 const String _minsu = 'seed-client-1';
 
-Future<AppDatabase> _seeded(DemoLanguage language) async {
+Future<AppDatabase> _seeded() async {
   final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
-  await seedIfEmpty(db, clock: _now, language: language);
+  await seedIfEmpty(db, clock: _now);
   return db;
 }
 
 DateTime _weeksAgo(int back) =>
     DateTime(_thisMonday.year, _thisMonday.month, _thisMonday.day - 7 * back);
 
-ReportSheetInputs _member(DateTime weekStart, {String lang = 'ko'}) =>
-    demoReportSheetInputs(
-      fixture: DemoFixture.load(),
-      weekStart: weekStart,
-      now: _now,
-      languageCode: lang,
-    );
+ReportSheetInputs _member(DateTime weekStart) => demoReportSheetInputs(
+  fixture: DemoFixture.load(),
+  weekStart: weekStart,
+  now: _now,
+);
 
 void main() {
   setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
@@ -78,7 +75,7 @@ void main() {
   });
 
   test('요일별 수치·끼니 수·배정 수가 심은 일별 지표와 같다', () async {
-    final AppDatabase db = await _seeded(DemoLanguage.ko);
+    final AppDatabase db = await _seeded();
     addTearDown(db.close);
     final List<ClientDailyMetricRow> rows = await (db.select(
       db.clientDailyMetrics,
@@ -118,7 +115,7 @@ void main() {
   });
 
   test('PT 는 이 앱 스케줄과 같이 주마다 한 번 진행했다', () async {
-    final AppDatabase db = await _seeded(DemoLanguage.ko);
+    final AppDatabase db = await _seeded();
     addTearDown(db.close);
     final rows = await (db.select(
       db.trainerScheduleEntries,
@@ -144,35 +141,27 @@ void main() {
     }
   });
 
-  for (final (DemoLanguage language, String lang) in <(DemoLanguage, String)>[
-    (DemoLanguage.ko, 'ko'),
-    (DemoLanguage.en, 'en'),
-  ]) {
-    test('회원 답이 심은 주간 피드백과 같다 ($lang)', () async {
-      final AppDatabase db = await _seeded(language);
-      addTearDown(db.close);
-      final rows = await (db.select(
-        db.clientWeeklyFeedbacks,
-      )..where((t) => t.clientId.equals(_minsu))).get();
-      expect(rows, hasLength(kDemoReportAnswers.length));
-      for (final DemoReportAnswer a in kDemoReportAnswers) {
-        final DateTime monday = _weeksAgo(a.weeksAgo);
-        final row = rows.singleWhere((r) => r.weekStart == ymd(monday));
-        final ReportSheetAnswers answers = _member(
-          monday,
-          lang: lang,
-        ).week.answers!;
-        final String at = '${a.weeksAgo}주 전';
-        expect(answers.conditionWire, row.condition, reason: at);
-        expect(answers.intensityWire, row.intensity, reason: at);
-        expect(answers.painArea, row.painArea, reason: at);
-        expect(
-          answers.painOn == null ? '' : ymd(answers.painOn!),
-          row.painOn,
-          reason: at,
-        );
-        expect(answers.note, row.note, reason: at);
-      }
-    });
-  }
+  test('회원 답이 심은 주간 피드백과 같다', () async {
+    final AppDatabase db = await _seeded();
+    addTearDown(db.close);
+    final rows = await (db.select(
+      db.clientWeeklyFeedbacks,
+    )..where((t) => t.clientId.equals(_minsu))).get();
+    expect(rows, hasLength(kDemoReportAnswers.length));
+    for (final DemoReportAnswer a in kDemoReportAnswers) {
+      final DateTime monday = _weeksAgo(a.weeksAgo);
+      final row = rows.singleWhere((r) => r.weekStart == ymd(monday));
+      final ReportSheetAnswers answers = _member(monday).week.answers!;
+      final String at = '${a.weeksAgo}주 전';
+      expect(answers.conditionWire, row.condition, reason: at);
+      expect(answers.intensityWire, row.intensity, reason: at);
+      expect(answers.painArea, row.painArea, reason: at);
+      expect(
+        answers.painOn == null ? '' : ymd(answers.painOn!),
+        row.painOn,
+        reason: at,
+      );
+      expect(answers.note, row.note, reason: at);
+    }
+  });
 }

@@ -1,20 +1,17 @@
-/// 알림 문장을 화면 언어로 조립한다(#2302).
+/// 알림 문장을 틀과 인자로 조립한다(#2302).
 ///
-/// 한국어 기대값은 서버가 틀 이전에 저장하던 문장 그대로다
-/// (`backend/tests/test_notification_templates.py` 의 `LEGACY_KO`). 영어 기대값은
-/// 서버의 영어 조립과 같다 — 트레이너 웹이 조립하든 서버가 조립하든 같은 문장이
-/// 보여야 한다.
+/// 기대값은 서버가 틀 이전에 저장하던 문장 그대로다
+/// (`backend/tests/test_notification_templates.py` 의 `LEGACY_KO`) — 트레이너
+/// 웹이 조립하든 서버가 조립하든 같은 문장이 보여야 한다.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 import 'package:oncare_trainer/features/notifications/presentation/trainer_notification_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 final AppLocalizations _ko = AppLocalizationsKo();
-final AppLocalizations _en = AppLocalizationsEn();
 
 /// 서버가 저장해 둔 문장. 조립에 실패하면 이 문장이 그대로 보여야 한다.
 const String _storedTitle = '저장된 제목';
@@ -42,10 +39,10 @@ TrainerNotification _n(
 TrainerNotificationText _text(AppLocalizations l, TrainerNotification n) =>
     trainerNotificationText(l, n);
 
-/// (틀, 인자, 한국어 제목, 한국어 본문, 영어 제목, 영어 본문).
+/// (틀, 인자, 제목, 본문).
 /// 메시지 알림의 본문은 회원이 쓴 문장이라 저장된 본문이 그대로 나온다.
-const List<(String, Map<String, Object?>, String, String, String, String)>
-_cases = <(String, Map<String, Object?>, String, String, String, String)>[
+const List<(String, Map<String, Object?>, String, String)> _cases =
+    <(String, Map<String, Object?>, String, String)>[
   (
     'trainer_health_goal',
     <String, Object?>{
@@ -54,32 +51,24 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     },
     '회원 건강 목표가 바뀌었어요',
     '지수 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활',
-    'Member goals changed',
-    '지수 changed their health goals: Build strength · Rehab',
   ),
   (
     'trainer_health_goal',
     <String, Object?>{'member_name': '지수', 'focus': <String>[]},
     '회원 건강 목표가 바뀌었어요',
     '지수 회원이 건강 목표를 바꿨어요: 목표 없음',
-    'Member goals changed',
-    '지수 changed their health goals: none',
   ),
   (
     'trainer_health_notes',
     <String, Object?>{'member_name': '지수', 'with_focus': false},
     '회원 주의사항이 바뀌었어요',
     '지수 회원이 건강상태·주의사항을 바꿨어요',
-    'Member health notes changed',
-    '지수 updated their health notes',
   ),
   (
     'trainer_health_notes',
     <String, Object?>{'member_name': '지수', 'with_focus': true},
     '회원 주의사항이 바뀌었어요',
     '지수 회원이 건강 목표와 건강상태·주의사항을 바꿨어요',
-    'Member health notes changed',
-    '지수 updated their health goals and health notes',
   ),
   (
     'trainer_health_goal',
@@ -89,66 +78,48 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     },
     '회원 건강 목표가 바뀌었어요',
     'Alex 회원이 건강 목표를 바꿨어요: 체중 감량 · 체력 강화 · 자세 교정 · 식습관 개선 · 운동 습관 · 혈압 관리',
-    'Member goals changed',
-    'Alex changed their health goals: Weight loss · Improve fitness · '
-        'Posture correction · Better eating habits · Exercise habit · '
-        'Blood pressure care',
   ),
   (
     'trainer_member_renamed',
     <String, Object?>{'old_name': '김지수', 'new_name': '김지수B'},
     '회원 이름이 바뀌었어요',
     '김지수 회원이 이름을 바꿨어요: 김지수B',
-    'Member renamed',
-    '김지수 changed their name to 김지수B.',
   ),
   (
     'trainer_member_withdrawn',
     <String, Object?>{'member_name': '지수'},
     '회원이 탈퇴했어요',
     '지수 회원이 탈퇴했어요.',
-    'Member account deleted',
-    '지수 deleted their account.',
   ),
   (
     'trainer_member_disconnected',
     <String, Object?>{'member_name': '지수'},
     '담당 연결이 해제됐어요',
     '지수 회원이 담당 연결을 해제했어요.',
-    'Member disconnected',
-    '지수 ended their connection with you.',
   ),
   (
     'trainer_consult_requested',
     <String, Object?>{'member_name': '지수', 'preferred_date': '2026-10-01'},
     '새 상담 요청이 도착했어요',
     '지수 회원 · 10월 1일',
-    'New consultation request',
-    '지수 · 10/1',
   ),
   (
     'trainer_consult_cancelled',
     <String, Object?>{'member_name': '지수', 'preferred_date': '2026-10-01'},
     '상담 요청이 취소됐어요',
     '지수 회원 · 10월 1일',
-    'Consultation request cancelled',
-    '지수 · 10/1',
   ),
   (
     'trainer_consult_booking_cancelled',
     <String, Object?>{'member_name': '지수', 'starts_at': _starts},
     '확정된 상담이 취소됐어요',
     '지수 회원 · 10월 1일 09:05',
-    'Confirmed consultation cancelled',
-    '지수 · 10/1 09:05',
   ),
   (
     'trainer_consult_withdrawn',
     <String, Object?>{'member_name': '지수', 'preferred_date': '2026-10-01'},
     '회원 탈퇴로 상담 요청이 취소됐어요',
     '지수 회원 · 10월 1일',
-    'Consultation request cancelled: member account deleted',
-    '지수 · 10/1',
   ),
   // 수락되어 잡혀 있던 상담이 회원 탈퇴로 빠졌다(#3360).
   (
@@ -161,75 +132,57 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     },
     '회원 탈퇴로 확정된 상담이 취소됐어요',
     '지수 회원 · 10월 1일 09:05',
-    'Confirmed consultation cancelled: member account deleted',
-    '지수 · 10/1 09:05',
   ),
   (
     'trainer_invite_accepted',
     <String, Object?>{'member_name': '지수'},
     '담당 요청이 수락됐어요',
     '지수 회원이 담당으로 연결됐어요.',
-    'Coaching request accepted',
-    '지수 is now one of your members.',
   ),
   (
     'trainer_invite_rejected',
     <String, Object?>{'member_name': '지수'},
     '담당 요청이 거절됐어요',
     '지수 회원이 담당 요청을 거절했어요.',
-    'Coaching request declined',
-    '지수 declined your coaching request.',
   ),
   (
     'trainer_reservation_booked',
     <String, Object?>{'member_name': '지수', 'starts_at': _starts},
     '새 예약이 들어왔어요',
     '지수 회원 · 10월 1일 09:05',
-    'New booking',
-    '지수 · 10/1 09:05',
   ),
   (
     'trainer_reservation_cancelled',
     <String, Object?>{'member_name': '지수', 'starts_at': _starts},
     '예약이 취소됐어요',
     '지수 회원 · 10월 1일 09:05',
-    'Booking cancelled',
-    '지수 · 10/1 09:05',
   ),
   (
     'trainer_reservation_cancelled',
     <String, Object?>{'member_name': '지수', 'starts_at': null},
     '예약이 취소됐어요',
     '지수 회원',
-    'Booking cancelled',
-    '지수',
   ),
   (
     'trainer_reservation_cancelled',
     <String, Object?>{'member_name': '지수'},
     '예약이 취소됐어요',
     '지수 회원',
-    'Booking cancelled',
-    '지수',
   ),
   (
     'trainer_member_message',
     <String, Object?>{'member_name': '지수'},
     '지수 회원의 메시지',
     _storedBody,
-    'Message from 지수',
-    _storedBody,
   ),
-  // 글 없이 사진만 보냈으면 본문을 화면 언어로 적는다(#1665).
+  // 글 없이 사진만 보냈으면 본문을 화면 문구로 적는다(#1665).
   (
     'trainer_member_message',
     <String, Object?>{'member_name': '지수', 'photo_only': true},
     '지수 회원의 메시지',
     '사진을 보냈어요',
-    'Message from 지수',
-    'Sent a photo',
   ),
-  // 회원 주간 피드백(#3026). 서버 `LEGACY_KO`·`ENGLISH` 와 같은 문장이다.
+  // 회원 주간 피드백(#3026). 서버 `LEGACY_KO` 와 같은 문장이다.
   (
     'trainer_member_weekly_feedback',
     <String, Object?>{
@@ -241,8 +194,6 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     },
     '지수 회원이 주간 피드백을 보냈어요',
     '컨디션 좋았어요 · 운동 강도 딱 맞았어요',
-    '지수 sent their weekly feedback',
-    'Condition: Good · Intensity: Just right',
   ),
   // 통증은 수정보다 먼저 보인다 — 다음 PT 를 바꿔야 할 수 있는 답이다.
   (
@@ -256,8 +207,6 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     },
     '지수 회원이 통증을 알렸어요',
     '컨디션 지쳤어요 · 운동 강도 너무 힘들었어요 · 통증 있음',
-    '지수 reported pain',
-    'Condition: Worn out · Intensity: Too hard · Pain reported',
   ),
   (
     'trainer_member_weekly_feedback',
@@ -270,8 +219,6 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     },
     '지수 회원이 주간 피드백을 수정했어요',
     '컨디션 아주 좋았어요 · 운동 강도 너무 쉬웠어요',
-    '지수 updated their weekly feedback',
-    'Condition: Great · Intensity: Too easy',
   ),
 ];
 
@@ -295,8 +242,6 @@ const Set<String> _trainerTemplates = <String>{
   'trainer_member_weekly_feedback',
 };
 
-final RegExp _hangul = RegExp('[가-힣]');
-
 void main() {
   group('한국어는 옛 문장과 같다', () {
     for (final (
@@ -304,8 +249,6 @@ void main() {
           Map<String, Object?> args,
           String koTitle,
           String koBody,
-          _,
-          _,
         )
         in _cases) {
       test('$template $args', () {
@@ -316,61 +259,18 @@ void main() {
     }
   });
 
-  group('영어로 조립한다', () {
-    for (final (
-          String template,
-          Map<String, Object?> args,
-          _,
-          _,
-          String enTitle,
-          String enBody,
-        )
-        in _cases) {
-      test('$template $args', () {
-        final TrainerNotificationText text = _text(_en, _n(template, args));
-        expect(text.title, enTitle);
-        expect(text.body, enBody);
-      });
-    }
-  });
-
-  test('영어 조립은 이름·날짜 말고는 한글을 남기지 않는다', () {
-    for (final String template in _trainerTemplates) {
-      final TrainerNotificationText text = _text(
-        _en,
-        _n(template, <String, Object?>{
-          'member_name': 'Alex',
-          'old_name': 'Alex',
-          'new_name': 'Alexandra',
-          'focus': <String>['근력 향상', '혈압 관리'],
-          'preferred_date': '2026-10-01',
-          'starts_at': _starts,
-          'condition': 'bad',
-          'intensity': 'hard',
-          'pain': true,
-        }, body: 'See you'),
-      );
-      expect(text.title, isNot(matches(_hangul)), reason: template);
-      expect(text.body, isNot(matches(_hangul)), reason: template);
-      // 조립에 성공했다 — 저장된 한국어 제목으로 돌아가지 않았다.
-      expect(text.title, isNot(_storedTitle), reason: template);
-    }
-  });
-
   test('모든 트레이너 틀이 조립된다', () {
     final Set<String> covered = <String>{
-      for (final (String template, _, _, _, _, _) in _cases) template,
+      for (final (String template, _, _, _) in _cases) template,
     };
     expect(covered, _trainerTemplates);
   });
 
   group('저장된 문장으로 돌아간다', () {
     void expectStored(TrainerNotification n) {
-      for (final AppLocalizations l in <AppLocalizations>[_ko, _en]) {
-        final TrainerNotificationText text = _text(l, n);
-        expect(text.title, n.title);
-        expect(text.body, n.body);
-      }
+      final TrainerNotificationText text = _text(_ko, n);
+      expect(text.title, n.title);
+      expect(text.body, n.body);
     }
 
     test('틀이 없는 옛 알림', () {
@@ -470,29 +370,29 @@ void main() {
 
   test('모르는 건강 목표 값(옛 질환명)은 받은 그대로 적는다', () {
     final TrainerNotificationText text = _text(
-      _en,
+      _ko,
       _n('trainer_health_goal', <String, Object?>{
         'member_name': 'Alex',
         'focus': <String>['고혈압', '재활'],
       }),
     );
-    expect(text.body, 'Alex changed their health goals: 고혈압 · Rehab');
+    expect(text.body, 'Alex 회원이 건강 목표를 바꿨어요: 고혈압 · 재활');
   });
 
   test('예약 시각은 적힌 서울 시각을 그대로 읽는다(시간대를 옮기지 않는다)', () {
     final TrainerNotificationText text = _text(
-      _en,
+      _ko,
       _n('trainer_reservation_booked', <String, Object?>{
         'member_name': 'Alex',
         'starts_at': '2026-12-31T23:30:00+09:00',
       }),
     );
-    expect(text.body, 'Alex · 12/31 23:30');
+    expect(text.body, 'Alex 회원 · 12월 31일 23:30');
   });
 
   test('사진 전용 표시가 거짓이면 회원이 쓴 글을 그대로 둔다', () {
     final TrainerNotificationText text = _text(
-      _en,
+      _ko,
       _n('trainer_member_message', <String, Object?>{
         'member_name': 'Alex',
         'photo_only': false,
@@ -503,12 +403,12 @@ void main() {
 
   test('메시지 본문이 비었으면 비어 있는 그대로다', () {
     final TrainerNotificationText text = _text(
-      _en,
+      _ko,
       _n('trainer_member_message', <String, Object?>{
         'member_name': 'Alex',
       }, body: ''),
     );
-    expect(text.title, 'Message from Alex');
+    expect(text.title, 'Alex 회원의 메시지');
     expect(text.body, isEmpty);
   });
 
@@ -534,14 +434,14 @@ void main() {
       );
       expect(n.template, 'trainer_member_withdrawn');
       expect(n.args, <String, Object?>{'member_name': '지수'});
-      expect(_text(_en, n).body, '지수 deleted their account.');
+      expect(_text(_ko, n).body, '지수 회원이 탈퇴했어요.');
     });
 
     test('틀이 없는 옛 응답은 저장된 문장을 쓴다', () {
       final TrainerNotification n = TrainerNotification.fromJson(json());
       expect(n.template, isNull);
       expect(n.args, isEmpty);
-      expect(_text(_en, n).title, '회원이 탈퇴했어요');
+      expect(_text(_ko, n).title, '회원이 탈퇴했어요');
     });
 
     test('null·빈 문자열·다른 모양은 없는 것으로 읽는다', () {
@@ -561,7 +461,7 @@ void main() {
       expect(n.template, 'trainer_member_withdrawn');
       expect(n.args, isEmpty);
       // 인자가 없어 조립하지 못하고 저장된 문장으로 돌아간다.
-      expect(_text(_en, n).body, '지수 회원이 탈퇴했어요.');
+      expect(_text(_ko, n).body, '지수 회원이 탈퇴했어요.');
     });
 
     test('인자는 바꿀 수 없다', () {
@@ -596,14 +496,12 @@ void main() {
         },
         <String, Object?>{'condition': 'good', 'intensity': 'right'},
       ]) {
-        for (final AppLocalizations l in <AppLocalizations>[_ko, _en]) {
-          final TrainerNotificationText text = _text(
-            l,
-            _n('trainer_member_weekly_feedback', args),
-          );
-          expect(text.title, _storedTitle, reason: '$args');
-          expect(text.body, _storedBody, reason: '$args');
-        }
+        final TrainerNotificationText text = _text(
+          _ko,
+          _n('trainer_member_weekly_feedback', args),
+        );
+        expect(text.title, _storedTitle, reason: '$args');
+        expect(text.body, _storedBody, reason: '$args');
       }
     });
 

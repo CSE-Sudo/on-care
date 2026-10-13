@@ -159,12 +159,10 @@ void main() {
     Future<(_AuthRepository, ProviderContainer)> pumpSignIn(
       WidgetTester tester, {
       Object? error,
-      Locale locale = const Locale('ko'),
     }) async {
       final _AuthRepository repo = _AuthRepository(error: error);
       final ProviderContainer container = await pumpTrainerApp(
         tester,
-        locale: locale,
         extraOverrides: <Override>[
           trainerAuthRepositoryProvider.overrideWithValue(repo),
         ],
@@ -336,20 +334,6 @@ void main() {
       expect(repo.socialCalls, 1);
       expect(_saves(tester), 0);
     });
-
-    testWidgets('영어 화면에서도 힌트와 묶음이 같다', (tester) async {
-      await pumpSignIn(tester, locale: const Locale('en'));
-
-      expect(find.byType(TrainerSignInPage), findsOneWidget);
-      expect(_field(tester, email).autofillHints, <String>[
-        AutofillHints.username,
-        AutofillHints.email,
-      ]);
-      expect(_field(tester, password).autofillHints, <String>[
-        AutofillHints.password,
-      ]);
-      expect(_groupAround(email), findsOneWidget);
-    });
   });
 
   group('가입 화면', () {
@@ -363,13 +347,11 @@ void main() {
       WidgetTester tester, {
       bool demo = false,
       Object? error,
-      Locale locale = const Locale('ko'),
     }) async {
       final _AuthRepository repo = _AuthRepository(error: error);
       await pumpTrainerApp(
         tester,
         at: AppRoutes.signUp,
-        locale: locale,
         extraOverrides: <Override>[
           if (!demo) ...<Override>[
             appConfigProvider.overrideWithValue(_realConfig),
@@ -541,16 +523,6 @@ void main() {
       expect(find.byType(TrainerSignUpPage), findsNothing);
       expect(_saves(tester), 0);
       expect(_finishCalls(tester), <bool?>[false]);
-    });
-
-    testWidgets('영어 화면에서도 힌트와 묶음이 같다', (tester) async {
-      await pumpSignUp(tester, locale: const Locale('en'));
-
-      expect(_field(tester, name).autofillHints, <String>[AutofillHints.name]);
-      expect(_field(tester, password).autofillHints, <String>[
-        AutofillHints.newPassword,
-      ]);
-      expect(_groupAround(confirm), findsOneWidget);
     });
   });
 }

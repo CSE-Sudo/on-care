@@ -65,10 +65,9 @@ void main() {
       tester,
       token: 'demo-trainer-token',
       at: AppRoutes.my,
-      locale: const Locale('en'),
     );
     await settle(tester);
 
-    expect(_isClipped(tester, 'My profile'), isFalse);
+    expect(_isClipped(tester, '내 정보'), isFalse);
   });
 }

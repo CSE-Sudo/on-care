@@ -2,12 +2,14 @@
 
 두 앱의 개인정보 처리방침 본문(`myLegalPrivacyBody`)은 ARB 에 있다. 이 문서는 그 본문이 따르는
 **원본 표**다. 처리 구조(인프라·외부 API·보관 기간·탈퇴 처리)가 바뀌면 이 표를 먼저 고치고,
-아래 "본문을 고칠 때" 절차대로 네 개의 ARB 와 버전 상수를 함께 맞춘다.
+아래 "본문을 고칠 때" 절차대로 두 앱의 ARB 와 버전 상수를 함께 맞춘다.
 
-| 앱 | 한국어(원본) | 영문 |
-| --- | --- | --- |
-| 회원 앱 | `frontend/flutter/lib/l10n/app_ko.arb` | 없음 — 회원 앱은 한국어만 지원한다(#3404) |
-| 트레이너 웹 | `frontend/flutter_trainer/lib/l10n/app_ko.arb` | `frontend/flutter_trainer/lib/l10n/app_en.arb` |
+| 앱 | 원본 |
+| --- | --- |
+| 회원 앱 | `frontend/flutter/lib/l10n/app_ko.arb` |
+| 트레이너 웹 | `frontend/flutter_trainer/lib/l10n/app_ko.arb` |
+
+두 앱 모두 한국어만 지원한다(#3404).
 
 > 이 표와 처리방침 문안은 법률 검토 전의 초안이다. 스토어 제출·정식 출시 전에 법률 검토를 받고,
 > 아래 "확정이 필요한 값" 을 채운다.
@@ -97,7 +99,7 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 
 처리방침에는 개인 성명 대신 직책(On-Care 서비스 운영팀 개인정보 보호책임자)과 연락처를 적는다.
 연락처는 **한 곳**, `shared/oncare_core/lib/legal_contact.dart` 의 `LegalContact.privacyOfficerEmail`
-에서만 정한다(#3005). 네 ARB 의 처리방침 본문은 `{contact}` 자리표시자를 쓰고, 두 앱과 공개 페이지
+에서만 정한다(#3005). 두 앱 ARB 의 처리방침 본문은 `{contact}` 자리표시자를 쓰고, 두 앱과 공개 페이지
 생성기가 모두 이 상수로 채운다. 지금 값은 팀이 메일을 직접 받는 `sudo.capstone@gmail.com` 이다(#3132).
 예전 값은 데모 시드 전용 도메인이라 메일을 받지 못했다 — 생성기는 값이 데모 도메인이면 경고를 낸다.
 
@@ -114,7 +116,7 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 ## 7. 본문을 고칠 때
 
 1. 이 문서의 표를 먼저 고친다.
-2. 네 ARB 의 `myLegalPrivacyBody` 를 같은 내용으로 고친다. 한국어가 원본이고, 영문은 같은 절 번호를 쓴다.
+2. 두 앱 ARB 의 `myLegalPrivacyBody` 를 같은 내용으로 고친다.
 3. 본문 끝의 개정 이력에 한 줄을 더하고 `시행일`, `myLegalPrivacyEffectiveDate` 를 새 날짜로 바꾼다.
 4. `backend/app/services/signup_consent.py` 의 `CURRENT_VERSIONS["privacy"]` 를 같은 날짜로 올린다 —
    옛 버전에만 동의한 계정은 다음 로그인 때 동의 화면을 다시 거친다.
@@ -130,7 +132,7 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 
 | 문서 | 경로 | 원본 |
 | --- | --- | --- |
-| 개인정보 처리방침 | `/legal/privacy.html` | 두 앱 ARB `myLegalPrivacyBody`(회원·트레이너, 한국어·영문) |
+| 개인정보 처리방침 | `/legal/privacy.html` | 두 앱 ARB `myLegalPrivacyBody`(회원·트레이너) |
 | 이용약관 | `/legal/terms.html` | 두 앱 ARB `myLegalTermsBody` |
 | 위치기반서비스 이용약관 | `/legal/location.html` | 회원 앱 ARB `myLegalLocationBody`(한국어, #3136). 위치는 회원 앱만 쓴다 |
 

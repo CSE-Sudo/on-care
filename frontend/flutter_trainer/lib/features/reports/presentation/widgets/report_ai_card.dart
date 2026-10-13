@@ -45,9 +45,9 @@ class ReportAiCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final ReportSummaryKey key = (
-      report: ReportKey(client: report.client, weekStart: report.weekStart),
-      locale: Localizations.localeOf(context),
+    final ReportKey key = ReportKey(
+      client: report.client,
+      weekStart: report.weekStart,
     );
     final summary = ref.watch(reportSummaryProvider(key));
     final Widget content = summary.when(

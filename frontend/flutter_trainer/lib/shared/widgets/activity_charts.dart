@@ -203,7 +203,7 @@ class BurnDonut extends StatelessWidget {
                       points: calories == 0
                           ? const <String>[]
                           : <String>[
-                              '$calories${unitGap(locale)}${l.unitKcal}',
+                              '$calories${l.unitKcal}',
                             ],
                     ),
                     child: ExcludeSemantics(
@@ -746,7 +746,7 @@ class BurnBarChart extends StatelessWidget {
     }
     return <InlineSpan>[
       // ko `310kcal` · en `310 kcal`(#3120).
-      TextSpan(text: '${calories[i]}${unitGap(locale)}${l.unitKcal}'),
+      TextSpan(text: '${calories[i]}${l.unitKcal}'),
       if (rows.isNotEmpty) TextSpan(text: '\n${rows.join('\n')}'),
     ];
   }
