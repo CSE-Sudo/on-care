@@ -43,8 +43,6 @@ void main() {
   group('데모 = 서버', () {
     for (final Object? raw in _cases['cases']! as List<Object?>) {
       final Map<String, Object?> c = raw! as Map<String, Object?>;
-      // 공유 사례 파일은 서버 생성기가 만든다. 앱은 한국어 사례만 본다.
-      if (((c['lang'] as String?) ?? 'ko') != 'ko') continue;
       test('${c['name']}', () {
         final Map<String, Object?> t = c['targets']! as Map<String, Object?>;
         final Map<String, Object?> res = demoDietAdvice(
@@ -90,12 +88,21 @@ void main() {
       });
     }
 
+    test('공유 사례는 한국어 하나다 — 언어 칸이 없다 (#3415)', () {
+      expect(_cases['demo_plan'], isA<List<Object?>>());
+      for (final Object? raw in _cases['cases']! as List<Object?>) {
+        expect((raw! as Map<String, Object?>).containsKey('lang'), isFalse);
+      }
+      for (final Object? raw in _cases['renderings']! as List<Object?>) {
+        expect((raw! as Map<String, Object?>).containsKey('en'), isFalse);
+      }
+    });
+
     test('메뉴 리스트는 서버의 카탈로그 리스트와 같다', () {
-      final Map<String, Object?> plan =
-          _cases['demo_plan']! as Map<String, Object?>;
+      final List<Object?> plan = _cases['demo_plan']! as List<Object?>;
       expect(
         <Map<String, Object?>>[
-          for (final DemoPlanMenu m in kDemoMenuPlan['ko']!)
+          for (final DemoPlanMenu m in kDemoMenuPlan)
             <String, Object?>{
               'slot': m.slot,
               'name': m.name,
@@ -104,7 +111,7 @@ void main() {
             },
         ],
         <Map<String, Object?>>[
-          for (final Object? m in plan['ko']! as List<Object?>)
+          for (final Object? m in plan)
             <String, Object?>{
               for (final String k in <String>['slot', 'name', 'tag', 'keyword'])
                 k: (m! as Map<String, Object?>)[k],

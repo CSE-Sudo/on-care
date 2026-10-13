@@ -18,8 +18,8 @@ _ROOT = Path(__file__).resolve().parents[2]
 _CASES = json.loads(
     (_ROOT / "frontend/flutter/test/core/demo/diet_advice_cases.json").read_text(encoding="utf-8")
 )
-#: 서버 문장은 한국어 하나다(#3404). 공유 파일에 영어 사례가 남아 있어도 견주지 않는다.
-_SERVER_CASES = [c for c in _CASES["cases"] if c.get("lang", "ko") == "ko"]
+#: 서버 문장은 한국어 하나다(#3404). 공유 파일에도 한국어 사례만 있다(#3415).
+_SERVER_CASES = _CASES["cases"]
 
 _spec = importlib.util.spec_from_file_location(
     "gen_diet_advice_cases", _ROOT / "backend/scripts/gen_diet_advice_cases.py"
@@ -42,9 +42,17 @@ def test_cases_fit_the_card(case):
     assert len(copy.message(analysis, action_line)) <= 45
 
 
+def test_shared_cases_are_korean_only():
+    """공유 파일에 언어 칸이 없다 — 메뉴 리스트는 하나, 사례에 `lang` 이 없다(#3415)."""
+    assert isinstance(_CASES["demo_plan"], list)
+    assert isinstance(gen.DEMO_PLAN, list)
+    assert not [c["name"] for c in _CASES["cases"] if "lang" in c]
+    assert not [c["name"] for c in gen.cases() if "lang" in c]
+
+
 def test_demo_plan_is_the_servers_rules_plan():
     """데모의 고정 메뉴 리스트는 서버가 기록 없는 회원에게 만드는 카탈로그 리스트다."""
-    assert _CASES["demo_plan"]["ko"] == gen.DEMO_PLAN["ko"]
+    assert _CASES["demo_plan"] == gen.DEMO_PLAN
 
 
 def test_renderings_cover_every_key_and_match_the_server():
