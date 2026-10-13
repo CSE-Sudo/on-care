@@ -787,7 +787,8 @@ def attach_target_names(db: Session, rows: list[ConsultationRequest]) -> list[Co
     out: list[ConsultationOut] = []
     for row in rows:
         item = ConsultationOut.model_validate(row)
-        # 트레이너가 지워졌으면 이름은 None 으로 남는다 — 앱이 폴백 문구를 쓴다.
+        # 트레이너가 지워졌으면 이름은 None 으로 남는다 — 앱은 대체 문구 없이 이름
+        # 자리를 비워 둔다.
         item.trainer_name = trainer_names.get(row.trainer_id or "")
         item.trainer_gym_name = trainer_gyms.get(row.trainer_id or "") or None
         slot = schedules.get(row.id) or slots.get(row.slot_id or "")

@@ -325,8 +325,9 @@ class StreakShield(Base):
     포인트 사용처에서 300P 로 교환하면 `held` 로 생기고, 회원이 운동을 못 한 어제를
     연속 기록에 이어 붙이면 `used` 가 되며 그 날짜(`protected_on`, KST)를 남긴다.
 
-    - 사용하지 않은 보호권은 회원당 최대 2장이다. 교환이 잔액 행을 잠근 채 세므로
-      같은 회원의 교환이 겹쳐도 넘지 않는다(`streak_shield_service.exchange`).
+    - 사용하지 않은 보호권은 회원당 최대 4장이다(`streak_shield_service.MAX_HELD`).
+      교환이 잔액 행을 잠근 채 세므로 같은 회원의 교환이 겹쳐도 넘지 않는다
+      (`streak_shield_service.exchange`).
     - 한 날짜는 한 번만 보호한다(partial unique index). 같은 날을 다시 보호하려는
       재시도가 보호권을 두 장 쓰지 않게 하는 마지막 방어선이다.
     - 보호한 날은 **연속 일수에만** 운동한 날로 센다. 운동 시간·칼로리·횟수 합계에는
