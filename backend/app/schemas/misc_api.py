@@ -22,6 +22,20 @@ class NotificationAction(BaseModel):
     target: str
 
 
+class NotificationReport(BaseModel):
+    """리포트 알림이 가리키는 리포트(#3344).
+
+    `action.target` 은 `coach_chat` 그대로 두고 이 칸을 **더한다**. 목적지 값을 새로
+    만들면 이미 배포된 앱이 모르는 값이라 눌러도 아무 데도 가지 않는다 — 옛 앱은
+    이 칸을 읽지 않고 지금처럼 대화로 가고, 새 앱만 그 주 리포트를 바로 연다.
+    """
+
+    #: 리포트가 다루는 주의 월요일(`YYYY-MM-DD`).
+    week_start: str
+    #: 리포트가 실려 온 대화 메시지. 첨부(PDF)가 여기 달려 있다.
+    message_id: str | None = None
+
+
 class NotificationOut(BaseModel):
     id: str
     title: str
@@ -36,6 +50,9 @@ class NotificationOut(BaseModel):
     #: `body` 는 이미 요청 언어로 조립돼 있어, 앱이 직접 조립할 때만 쓴다.
     template: str | None = None
     args: dict[str, Any] | None = None
+    #: 리포트 알림(`coach_report`)이 가리키는 리포트(#3344). 다른 갈래와, 이 칸이
+    #: 생기기 전에 쌓인 리포트 알림은 `null` 이다 — 앱은 그때 `action` 만 따른다.
+    report: NotificationReport | None = None
 
 
 # ---- 장소 ----

@@ -686,6 +686,9 @@ class _SessionBlock extends StatelessWidget {
                           lines: <_BlockLine>[
                             _BlockLine(
                               text: range,
+                              // 좁은 칸에서는 시작 시각만 — 끝은 블록 길이가
+                              // 말한다. 범위를 다 적으면 `09:30–1…` 로 잘린다.
+                              narrowText: session.time,
                               style: OnCareTypography.numeric(lineStyle)
                                   .copyWith(
                                     color: session.isFinished
@@ -738,9 +741,17 @@ class _SessionBlock extends StatelessWidget {
 
 /// 블록 한 줄의 글과 그 글꼴.
 class _BlockLine {
-  const _BlockLine({required this.text, required this.style, this.trailing});
+  const _BlockLine({
+    required this.text,
+    required this.style,
+    this.narrowText,
+    this.trailing,
+  });
 
   final String text;
+
+  /// 칸이 [_BlockLines.narrowWidth] 보다 좁을 때 [text] 대신 그리는 짧은 글.
+  final String? narrowText;
   final TextStyle style;
 
   /// [text] 오른쪽 끝에 붙는 것 — 종류 알약. 같은 줄이지만 무게가 다르다.
@@ -769,11 +780,17 @@ class _BlockLines extends StatelessWidget {
   /// 위에서부터의 우선순위 순서.
   final List<_BlockLine> lines;
 
+  /// 이보다 좁은 칸에서는 줄마다 가장 중요한 값만 남긴다 — 종류 알약을 빼고
+  /// 이름에 폭을 다 준다. 알약과 나눠 쓰면 1024 창에서 이름이 한 글자로
+  /// 잘렸다(#3316).
+  static const double narrowWidth = 80;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final available = constraints.maxHeight;
+        final bool narrow = constraints.maxWidth < narrowWidth;
         final drawn = <Widget>[];
         var used = 0.0;
         for (var i = 0; i < lines.length; i++) {
@@ -794,13 +811,13 @@ class _BlockLines extends StatelessWidget {
                 Flexible(
                   flex: 3,
                   child: Text(
-                    line.text,
+                    narrow ? line.narrowText ?? line.text : line.text,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: line.style,
                   ),
                 ),
-                if (line.trailing != null) ...<Widget>[
+                if (line.trailing != null && !narrow) ...<Widget>[
                   const SizedBox(width: OnCareSpacing.s4),
                   Flexible(
                     flex: 2,

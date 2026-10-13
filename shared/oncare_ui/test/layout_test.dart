@@ -140,6 +140,43 @@ void main() {
     );
   });
 
+  testWidgets('분할 레이아웃은 폭 경계를 넘어도 목록·상세 상태를 지킨다 (#3316)', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    Future<void> pumpAt(double width) async {
+      tester.view.physicalSize = Size(width, 900);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: _theme(OnCareDensity.web),
+          home: const Scaffold(
+            body: AppSplitView(
+              showDetailWhenNarrow: true,
+              list: _TapCounter(label: 'list'),
+              detail: _TapCounter(label: 'detail'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    await pumpAt(1280);
+    await tester.tap(find.text('list 0'));
+    await tester.tap(find.text('detail 0'));
+    await tester.pump();
+    expect(find.text('list 1'), findsOneWidget);
+    expect(find.text('detail 1'), findsOneWidget);
+
+    // 좁아지면 상세만 보이지만, 가려진 목록도 값을 쥐고 있다.
+    await pumpAt(800);
+    expect(find.text('detail 1'), findsOneWidget);
+    expect(find.text('list 1'), findsNothing);
+    expect(find.text('list 1', skipOffstage: false), findsOneWidget);
+
+    await pumpAt(1280);
+    expect(find.text('list 1'), findsOneWidget);
+    expect(find.text('detail 1'), findsOneWidget);
+  });
+
   testWidgets('사이드바 항목 높이는 44 다', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -231,6 +268,57 @@ void main() {
     expect(find.text('99+'), findsOneWidget);
   });
 
+  testWidgets('오른쪽이 빈 머리에서는 가운데 자리가 오른쪽 끝까지 간다 (#3316)', (tester) async {
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _theme(OnCareDensity.web),
+        home: const Scaffold(
+          body: AppWebPage(
+            title: '고객',
+            subtitle: '담당 회원',
+            headerCenter: SizedBox.expand(key: Key('center')),
+            body: ColoredBox(color: Colors.white),
+          ),
+        ),
+      ),
+    );
+    // 좌우 여백 16 을 뺀 머리의 오른쪽 끝이다.
+    expect(tester.getRect(find.byKey(const Key('center'))).right, 800 - 16);
+  });
+
+  testWidgets('좁은 머리의 긴 부제는 잘리지 않고 두 줄로 선다 (#3316)', (tester) async {
+    tester.view.physicalSize = const Size(420, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const String subtitle = '전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 보여요';
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _theme(OnCareDensity.web),
+        home: const Scaffold(
+          body: AppWebPage(
+            title: '프로필 수정',
+            subtitle: subtitle,
+            body: ColoredBox(key: Key('body'), color: Colors.white),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(tester.widget<Text>(find.text(subtitle)).maxLines, 2);
+    // 머리 높이는 그대로다.
+    expect(
+      tester.getTopLeft(find.byKey(const Key('body'))).dy,
+      OnCareLayout.webHeaderHeight,
+    );
+    expect(
+      tester.getRect(find.text(subtitle)).bottom,
+      lessThanOrEqualTo(OnCareLayout.webHeaderHeight),
+    );
+  });
+
   group('웹 페이지 머리는 글자 배율이 커져도 넘치지 않는다 (#2431)', () {
     Future<void> pumpPage(
       WidgetTester tester, {
@@ -286,4 +374,26 @@ void main() {
       });
     }
   });
+}
+
+/// 누른 횟수를 제 상태로 쥐는 칸 — 다시 만들어지면 0 으로 돌아간다.
+class _TapCounter extends StatefulWidget {
+  const _TapCounter({required this.label});
+
+  final String label;
+
+  @override
+  State<_TapCounter> createState() => _TapCounterState();
+}
+
+class _TapCounterState extends State<_TapCounter> {
+  int _count = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => setState(() => _count++),
+      child: Center(child: Text('${widget.label} $_count')),
+    );
+  }
 }

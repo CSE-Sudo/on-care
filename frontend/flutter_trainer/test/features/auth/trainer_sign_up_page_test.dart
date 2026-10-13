@@ -311,15 +311,13 @@ void main() {
     );
   });
 
-  testWidgets('가입하면 소속 헬스장을 고르는 프로필 수정으로 간다 (#2543)', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('가입하면 소속 헬스장을 고르는 화면으로 간다 (#2543)', (WidgetTester tester) async {
     await _pumpSignUp(tester);
     await _fill(tester);
 
     await _submit(tester);
 
-    expect(currentLocation(tester), AppRoutes.mySection('edit'));
+    expect(currentLocation(tester), AppRoutes.mySection('gym'));
     expect(find.byKey(const ValueKey<String>('gym-search')), findsOneWidget);
   });
 

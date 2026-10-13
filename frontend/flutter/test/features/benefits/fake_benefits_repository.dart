@@ -29,6 +29,12 @@ class FakeBenefitsRepository implements BenefitsRepository {
   /// 채워 두면 교환이 이것이 풀릴 때까지 기다린다 — 교환 중의 화면을 본다.
   Completer<void>? exchangeGate;
 
+  /// 교환 요청이 실은 `client_request_id` 를 받은 순서대로 적는다(#3363).
+  final List<String?> exchangeRequestIds = <String?>[];
+
+  /// 채워 두면 교환이 앞에서부터 하나씩 꺼내 던진다 — 서버 거절을 흉내 낸다.
+  final List<Object> exchangeErrors = <Object>[];
+
   /// 서버처럼 사용 가능한 쿠폰의 종류와 이번 달 교환을 반영해 목록을 다시 만든다.
   void _refreshShop(int balance) {
     shop = shopWith(
@@ -58,6 +64,8 @@ class FakeBenefitsRepository implements BenefitsRepository {
   }) async {
     final Completer<void>? gate = exchangeGate;
     if (gate != null) await gate.future;
+    exchangeRequestIds.add(clientRequestId);
+    if (exchangeErrors.isNotEmpty) throw exchangeErrors.removeAt(0);
     exchanged.add(option == null ? itemId : '$itemId:$option');
     final ShopItem item = shop.items.firstWhere((ShopItem i) => i.id == itemId);
     final int balance = shop.balance - item.cost;
@@ -86,12 +94,18 @@ class FakeBenefitsRepository implements BenefitsRepository {
   );
   int trayClaims = 0;
 
+  /// 식판 받기 요청의 `client_request_id` 와, 앞에서부터 꺼내 던질 오류(#3363).
+  final List<String?> trayRequestIds = <String?>[];
+  final List<Object> trayErrors = <Object>[];
+
   @override
   Future<DietTray> fetchDietTray() async => tray;
 
   /// 서버처럼 수령 쿠폰을 만들어 내 쿠폰 앞에 세운다.
   @override
   Future<DietTray> claimDietTray({String? clientRequestId}) async {
+    trayRequestIds.add(clientRequestId);
+    if (trayErrors.isNotEmpty) throw trayErrors.removeAt(0);
     trayClaims++;
     final Coupon coupon = couponOf(
       id: 'cpn-tray-$trayClaims',

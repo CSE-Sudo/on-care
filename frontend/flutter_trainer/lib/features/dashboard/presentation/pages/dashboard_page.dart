@@ -65,70 +65,75 @@ class DashboardPage extends ConsumerWidget {
                 builder: (context, constraints) {
                   final wide =
                       constraints.maxWidth >= OnCareLayout.twoColumnBreakpoint;
-                  // 왼쪽: 오늘의 일정 + (그 아래) 활동 피드백. 오른쪽: 오늘 할 일 +
-                  // (그 아래) 할 일 진행률 — 활동 피드백이 그래프와 나란한 줄에
-                  // 오도록 왼쪽 칸에 둔다.
-                  final leftColumn = Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      const TodayTimelineCard(),
-                      const SizedBox(height: OnCareSpacing.s16),
-                      AiSummaryCard(
-                        key: const ValueKey<String>(
-                          'dashboard-activity-feedback',
-                        ),
-                        activityFeedback:
-                            activityFeedback.valueOrNull ??
-                            const <ActivityFeedbackItem>[],
-                        // 입력이 준비되지 않았으면 "담당 회원 없음" 대신 상태를
-                        // 말한다(#2891).
-                        statusMessage: activityFeedback.hasValue
-                            ? null
-                            : activityFeedback.hasError &&
-                                  !activityFeedback.isLoading
-                            ? l.dashActivityFeedbackUnavailable
-                            : l.dashActivityFeedbackLoading,
-                      ),
-                    ],
+                  const gap = SizedBox(height: OnCareSpacing.s16);
+                  const timeline = TodayTimelineCard();
+                  final feedback = AiSummaryCard(
+                    key: const ValueKey<String>('dashboard-activity-feedback'),
+                    activityFeedback:
+                        activityFeedback.valueOrNull ??
+                        const <ActivityFeedbackItem>[],
+                    // 입력이 준비되지 않았으면 "담당 회원 없음" 대신 상태를
+                    // 말한다(#2891).
+                    statusMessage: activityFeedback.hasValue
+                        ? null
+                        : activityFeedback.hasError &&
+                              !activityFeedback.isLoading
+                        ? l.dashActivityFeedbackUnavailable
+                        : l.dashActivityFeedbackLoading,
                   );
-                  final rightColumn = Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      TodayTasksCard(entries: summary.attention),
-                      const SizedBox(height: OnCareSpacing.s16),
-                      const _TaskProgressCard(),
-                    ],
-                  );
+                  final tasks = TodayTasksCard(entries: summary.attention);
+                  const progress = _TaskProgressCard();
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       _KpiRow(
                         summary: summary,
                         churnRisk: churnRisk,
-                        wide: wide,
+                        // 네 칸은 본문 두 열보다 좁은 폭에서도 선다(#3316).
+                        wide:
+                            constraints.maxWidth >=
+                            OnCareLayout.statRowBreakpoint,
                         onRetryChurn: () => retryChurnInputs(ref.invalidate),
                       ),
-                      const SizedBox(height: OnCareSpacing.s16),
+                      gap,
                       if (wide)
+                        // 왼쪽: 오늘의 일정 + (그 아래) 활동 피드백. 오른쪽: 오늘
+                        // 할 일 + (그 아래) 할 일 진행률 — 활동 피드백이 그래프와
+                        // 나란한 줄에 오도록 왼쪽 칸에 둔다.
                         Row(
                           key: const ValueKey<String>('dashboard-action-row'),
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             // 5:4 — 딱 반반은 아니다.
-                            Expanded(flex: 5, child: leftColumn),
+                            Expanded(
+                              flex: 5,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: <Widget>[timeline, gap, feedback],
+                              ),
+                            ),
                             const SizedBox(width: OnCareSpacing.s16),
-                            Expanded(flex: 4, child: rightColumn),
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: <Widget>[tasks, gap, progress],
+                              ),
+                            ),
                           ],
                         )
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: <Widget>[
-                            leftColumn,
-                            const SizedBox(height: OnCareSpacing.s16),
-                            rightColumn,
-                          ],
-                        ),
+                      else ...<Widget>[
+                        // 한 열로 쌓을 때는 두 열 화면을 윗줄부터 읽는 순서다 —
+                        // 일정과 같은 줄이던 오늘 할 일이 활동 피드백 뒤로
+                        // 밀리지 않는다(#3316).
+                        timeline,
+                        gap,
+                        tasks,
+                        gap,
+                        feedback,
+                        gap,
+                        progress,
+                      ],
                     ],
                   );
                 },
