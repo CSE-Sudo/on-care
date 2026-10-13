@@ -281,6 +281,13 @@ class MockGymRepository implements GymRepository {
   }
 
   @override
+  Future<List<Gym>> searchGyms(String query) async {
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    // 서버처럼 띄어쓰기·단어 순서를 보지 않는다. 목업은 태그도 함께 본다.
+    return _gyms.where((Gym gym) => gym.matchesQuery(query)).toList();
+  }
+
+  @override
   Future<Gym?> fetchGym(String gymId) async {
     await Future<void>.delayed(const Duration(milliseconds: 60));
     return _gyms.where((Gym gym) => gym.id == gymId).firstOrNull;

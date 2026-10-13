@@ -1193,6 +1193,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exNearbyGyms => 'Nearby gyms';
 
   @override
+  String get exGymSearchResults => 'Search results';
+
+  @override
   String get exGymListCollapse => 'Collapse list';
 
   @override
@@ -1200,6 +1203,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymsLoadError => 'Couldn\'t load gyms.';
+
+  @override
+  String get exGymSearchError => 'Couldn\'t search gyms.';
 
   @override
   String exGymWeekdayHours(String hours) {

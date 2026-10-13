@@ -32,6 +32,7 @@ import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
+import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/presentation/pages/consultation_complete_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/consultation_history_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/consultation_request_page.dart';
@@ -271,8 +272,13 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutes.gymDetail,
-        builder: (context, state) =>
-            GymDetailPage(gymId: state.pathParameters['gymId'] ?? ''),
+        // 이름 검색에서 들어오면 그 결과를 `extra` 로 받는다 — 외부 검색에서만
+        // 찾은 헬스장은 서버에 없어 id 로 다시 읽을 수 없다(#3355). 새로고침으로
+        // `extra` 가 사라지면 id 로 읽는 기존 경로를 탄다.
+        builder: (context, state) => GymDetailPage(
+          gymId: state.pathParameters['gymId'] ?? '',
+          initialGym: state.extra is Gym ? state.extra! as Gym : null,
+        ),
       ),
       GoRoute(
         path: AppRoutes.trainerDetail,

@@ -714,6 +714,7 @@
   "exNoSearchResults": "No search results.",
   "exTrainersLoadError": "Couldn't load trainers.",
   "exNearbyGyms": "Nearby gyms",
+  "exGymSearchResults": "Search results",
   "exGymListCollapse": "Collapse list",
   "@exGymListCollapse": {
     "description": "Hides the gym result list so the map fills the space"
@@ -723,6 +724,7 @@
     "description": "Brings the gym result list back under the map"
   },
   "exGymsLoadError": "Couldn't load gyms.",
+  "exGymSearchError": "Couldn't search gyms.",
   "exGymWeekdayHours": "Weekdays {hours}",
   "@exGymWeekdayHours": {
     "placeholders": {
