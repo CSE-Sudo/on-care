@@ -220,7 +220,7 @@ def test_reading_candidates_does_not_call_ai_or_flip_member_language(
     client, db_session, pair, llm
 ):
     _salty_low_protein_week(db_session, pair.member_id)
-    diet_menu_plan.get_plan(db_session, pair.member_id, lang="ko")
+    diet_menu_plan.get_plan(db_session, pair.member_id)
     assert llm.calls == 1
 
     r = client.get(pair.base, headers=_h(pair.trainer_id, lang="en"))

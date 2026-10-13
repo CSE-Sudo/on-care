@@ -108,20 +108,19 @@ def test_report_message_speaks_in_three_completion_bands():
     from app.schemas.trainer_api import WeeklyReportOut
     from app.services.trainer.reports import report_message
 
-    def message(completion: int, locale: str = "ko") -> str:
+    def message(completion: int) -> str:
         return report_message(WeeklyReportOut(
             member_id="m", member_name="김민수",
             week_start="2026-08-03", week_end="2026-08-09",
             sessions_booked=0, sessions_done=0,
             completion_avg=completion, sodium_over_days=0,
             sodium_avg=None, message="",
-        ), locale=locale)
+        ))
 
     assert "운동은 평균 80%로 잘 따라오셨어요." in message(80)
     assert "운동은 평균 75%로 꾸준히 해 주셨어요." in message(75)
     assert "운동은 평균 60%로 꾸준히 해 주셨어요." in message(60)
     assert "운동 완료율은 평균 59%였어요." in message(59)
-    assert "You stayed steady — 70% of your workouts done." in message(70, "en")
 
 
 def test_summary_praises_and_warns_only_outside_the_middle_band():
@@ -142,7 +141,7 @@ def test_summary_praises_and_warns_only_outside_the_middle_band():
             sessions_booked=0, sessions_done=0,
             completion_avg=completion, sodium_over_days=0,
             sodium_avg=None, message="",
-        ), "ko")]
+        ))]
 
     assert "completion" in kinds(59)
     assert "completion" not in kinds(60)

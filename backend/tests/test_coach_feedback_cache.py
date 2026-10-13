@@ -210,18 +210,16 @@ def test_zero_cache_seconds_generates_every_time(client, db_session, llm, limits
     assert state.generations == 2
 
 
-def test_other_language_is_generated_separately(client, llm, limits):
+def test_an_english_header_reads_the_same_cached_cards(client, llm, limits):
+    """서버 문장은 한국어 하나다 — 헤더가 달라도 같은 카드를 캐시에서 준다(#3404)."""
     _, h = _member(client)
 
-    ko = _get(client, h)
+    plain = _get(client, h)
     en = _get(client, h, **EN)
 
-    assert llm.calls == 2
-    assert _card(ko, "diet")["title"] == _NO_DIET_TITLE
-    assert _card(en, "diet")["title"] == "Log today's meals"
-    # 마지막에 만든 언어가 캐시에 남는다.
-    _get(client, h, **EN)
-    assert llm.calls == 2
+    assert llm.calls == 1
+    assert _card(plain, "diet")["title"] == _NO_DIET_TITLE
+    assert en == plain
 
 
 def test_cache_is_per_member(client, llm, limits):
@@ -469,14 +467,15 @@ def test_rule_cards_over_the_limit_follow_new_records(client, db_session, llm, l
     assert "유산소 40분" in _card(over, "exercise")["body"]
 
 
-def test_rule_cards_over_the_limit_follow_the_request_language(client, llm, limits):
+def test_rule_cards_over_the_limit_are_korean_for_an_english_header(client, llm, limits):
     limits(cache_seconds=0, per_day=1)
     _, h = _member(client)
     _get(client, h)
 
     over = _get(client, h, **EN)
 
-    assert _card(over, "exercise")["title"] == "Start this week's workouts"
+    assert llm.calls == 1
+    assert any("가" <= ch <= "힣" for ch in _card(over, "exercise")["title"])
 
 
 def test_daily_limit_is_per_member(client, llm, limits):

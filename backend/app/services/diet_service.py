@@ -19,7 +19,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import Locale, localized
 from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
@@ -42,8 +41,9 @@ logger = logging.getLogger(__name__)
 # 비례 환산에 필요한 건 DB 재조회가 아니라 이 한 값이다. 없을 수 있다(양을 못 얻은
 # 인식·이 필드 이전 기록) — 읽는 쪽이 null 을 견딘다.
 #
-# `display_name` 은 영어 화면에서 분석한 음식의 표시 이름이다(#2850). 있을 때만
-# 남긴다 — 한국어 화면·수기 입력 기록에 null 칸을 늘리지 않는다.
+# `display_name` 은 예전에 영어 화면에서 분석한 음식의 표시 이름이다(#2850). 지금은
+# 새로 만들지 않고, 클라이언트가 실어 보내면 그대로 둔다. 있을 때만 남긴다 —
+# 없는 기록에 null 칸을 늘리지 않는다.
 _FOOD_STORAGE_FIELDS = (
     "name", "display_name", "amount_g", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
@@ -179,7 +179,6 @@ def _entry_out(entry: DietEntry, photo_id: str | None = None) -> DietEntryOut:
 def coach_message(
     total_sodium_mg: int,
     has_entries: bool,
-    locale: Locale | None = None,
     *,
     is_past: bool = False,
     sodium_limit_mg: int | None = None,
@@ -193,45 +192,19 @@ def coach_message(
     상한은 [sodium_limit_mg](회원 나트륨 목표), 없으면 [SODIUM_LIMIT_MG] 다.
     홈 나트륨 경고가 회원 목표를 쓰는데 이 문장만 고정 기준이면, 목표를 낮춘
     회원에게 두 화면이 서로 다른 판정을 말한다.
-
-    언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어). (#2299)
     """
     limit = sodium_limit_mg or SODIUM_LIMIT_MG
     if is_past:
         if total_sodium_mg > limit:
-            return localized(
-                "그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.",
-                "Sodium ran high that day. Go easy on soups and sauces the next day to balance it out.",
-                locale,
-            )
+            return "그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요."
         if not has_entries:
-            return localized(
-                "이날은 식단 기록이 없어요.",
-                "No meals were logged that day.",
-                locale,
-            )
-        return localized(
-            "나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.",
-            "A well-balanced day with sodium within your target.",
-            locale,
-        )
+            return "이날은 식단 기록이 없어요."
+        return "나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요."
     if total_sodium_mg > limit:
-        return localized(
-            "오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!",
-            "You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!",
-            locale,
-        )
+        return "오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!"
     if not has_entries:
-        return localized(
-            "아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?",
-            "No meals logged today yet. Want to log your first meal?",
-            locale,
-        )
-    return localized(
-        "균형 잡힌 하루였어요. 내일도 이대로 가요!",
-        "A well-balanced day. Keep it up tomorrow!",
-        locale,
-    )
+        return "아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?"
+    return "균형 잡힌 하루였어요. 내일도 이대로 가요!"
 
 
 def member_sodium_limit(db: Session, user_id: str) -> int:

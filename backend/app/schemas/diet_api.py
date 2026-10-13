@@ -293,18 +293,18 @@ class DietAdviceResponse(BaseModel):
     #: 앱이 그대로 보여 준다.
     message: str
     #: 규칙 한 줄 (#2251). 굵게 보일 곳은 `**` 로 감싼다. [analysis_key] 가 있으면
-    #: 앱이 그 키와 값으로 자기 언어의 문장을 그리고, 모르는 키면 이 문장을 쓴다.
+    #: 앱이 그 키와 값으로 자기 문장을 그리고, 모르는 키면 이 문장을 쓴다.
     analysis: str = ""
     analysis_key: str | None = None
     analysis_params: dict[str, int | str] = Field(default_factory=dict)
-    #: 다음 할 일 한 문장. 키가 없으면 AI 가 요청 언어(`lang`)로 만든 문장이다.
+    #: 다음 할 일 한 문장. 키가 없으면 AI 가 만든 문장이다.
     action: str = ""
     action_key: str | None = None
     action_params: dict[str, int | str] = Field(default_factory=dict)
     #: 다음 할 일의 출처 — `plan`(4주 추천 메뉴 리스트)·`rules`·`llm`. 문장이 없으면 null.
     action_source: str | None = None
-    #: 트레이너 웹 `식단 분석` 의 서술형 문장들(#2379). 앱이 키·값으로 자기 언어의
-    #: 문장을 그린다. 회원 경로는 비어 있다.
+    #: 트레이너 웹 `식단 분석` 의 서술형 문장들(#2379). 앱이 키·값으로 문장을
+    #: 직접 그릴 수 있다. 회원 경로는 비어 있다.
     sentences: list[DietAdviceSentence] = Field(default_factory=list)
 
 
@@ -399,7 +399,7 @@ class DietRecommendationItem(BaseModel):
     문자열(요리명·태그)을 내려주지 않는 게 핵심이다. 앱이 `key` 로 번들 이미지와
     로케일 문구를 찾아 그리므로, 서버는 "무엇을 어떤 순서로"만 정한다.
     `reason_text` 는 LLM 이 쓴 개인화 문구이며 없을 수 있다(그때 앱은 `reason_key`
-    의 l10n 기본 문구를 쓴다) — 영어 로케일에서 한국어가 새는 걸 막는 장치다.
+    의 l10n 기본 문구를 쓴다).
     """
     key: str
     reason_key: str
@@ -419,8 +419,7 @@ class DietRecommendationsResponse(BaseModel):
     personalized: bool = False
     source: Literal["llm", "rules", "fallback"] = "rules"
 
-    # 근거를 앱이 직접 문장으로 만들 수 있도록 수치도 함께 준다. `basis` 는 서버가
-    # 조립한 한국어 문장이라 영어 로케일에 그대로 쓸 수 없다(요리명·이유를 key 로
+    # 근거를 앱이 직접 문장으로 만들 수 있도록 수치도 함께 준다(요리명·이유를 key 로
     # 주고받는 것과 같은 이유). 화면 문구는 앱이 l10n 으로 만든다.
     days_with_data: int = 0
     avg_sodium_mg: int = 0

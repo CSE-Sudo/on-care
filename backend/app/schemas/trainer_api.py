@@ -170,9 +170,8 @@ class TrainerClientOut(BaseModel):
     fat_g: float                 # 오늘 총 지방(g)
     last_routine: str            # 마지막 루틴 전송 라벨(오늘/어제/N일 전)
     #: 마지막 루틴을 보낸 날(KST, YYYY-MM-DD). 없으면 None (#2300).
-    #: `last_routine` 은 서버가 문장으로 만든 라벨이라 화면 언어를 따라가지 못한다
-    #: — 앱은 이 날짜로 `오늘`·`N일 전` 을 로케일에 맞춰 직접 그린다. 옛 앱을 위해
-    #: `last_routine` 도 계속 보낸다.
+    #: `last_routine` 은 서버가 문장으로 만든 라벨이다 — 앱은 이 날짜로
+    #: `오늘`·`N일 전` 을 직접 그린다. 옛 앱을 위해 `last_routine` 도 계속 보낸다.
     last_routine_date: str | None = None
     #: 이번 주 일별 이행률 7개(월→일). 그날 걸린 개인운동·잡힌 PT 중 한 비율이다
     #: (#2513). 아무것도 걸리지 않은 날과 아직 오지 않은 날은 null 이다 — 0 은
@@ -329,9 +328,8 @@ RoutineHistoryKind = Literal[
 class RoutineHistoryExerciseOut(BaseModel):
     """이력의 운동 한 종목 — 문장이 아닌 값(#2300).
 
-    `exercises` 의 `스쿼트 3세트 12회 40kg` 은 단위가 한국어로 박힌 문장이라 영어
-    화면에서도 `세트`·`회` 가 그대로 나온다. 같은 내용을 값으로 나눠 보내고 단위는
-    앱이 ARB 로 붙인다. 필드 이름은 앱 `ClientExerciseItem` 과 같다.
+    `exercises` 의 `스쿼트 3세트 12회 40kg` 은 단위가 박힌 문장이다. 같은 내용을
+    값으로 나눠 보내고 단위는 앱이 ARB 로 붙인다. 필드 이름은 앱 `ClientExerciseItem` 과 같다.
     """
     name: str
     #: `cardio` | `strength` | `stretching` | `other`. 모르면 빈 문자열.
@@ -1564,8 +1562,7 @@ RoutineFindingKind = Literal[
 class RoutineFindingOut(BaseModel):
     """서버가 이번 생성에서 찾은 것 하나와 그에 따른 반영 방향(#3280).
 
-    `routine_ai.rule_findings` 가 규칙형 생성과 같은 규칙으로 만든다. 문장은
-    요청 언어다.
+    `routine_ai.rule_findings` 가 규칙형 생성과 같은 규칙으로 만든다.
     """
 
     kind: RoutineFindingKind
@@ -2297,7 +2294,7 @@ class MemberWeeklyReportOut(WeeklyReportOut):
 
 
 #: 리포트 요약 headline 의 응답 상한(#3090). 회원 이름(최대 100자)이 들어간 규칙 기반
-#: 영어 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
+#: 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
 REPORT_HEADLINE_MAX = 400
 
 

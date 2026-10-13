@@ -23,7 +23,6 @@ from sqlalchemy.orm import Session
 
 from app.services import ai_call_quota, health_focus
 from app.core import clock, metrics
-from app.core.locale import Locale, current_locale
 from app.core.week import monday_of
 from app.models.models import (
     ChatMessage,
@@ -298,29 +297,8 @@ changes 에 "런지 → 레그 익스텐션(무릎)", "벤치프레스 4세트 �
 """
 )
 
-#: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2301).
-#:
-#: 한국어 프롬프트는 한 글자도 바꾸지 않는다 — 지금까지 검증한 한국어 출력이 그대로
-#: 남아야 한다. 영어는 같은 지시 위에 "쓰는 언어만 바꾸라" 를 얹는다. `intensity`·
-#: `type` 은 스키마 Literal(한국어 계약값)이라 번역하면 422 로 떨어져 규칙형 폴백이
-#: 되므로, 번역하지 말라고 못 박는다. `reason` 은 승인하면 회원에게 가는 트레이너
-#: 명의의 안내문이라 트레이너가 읽고 보내는 언어(= 요청 언어)로 쓴다.
-_ENGLISH_OUTPUT_RULE = """
-Output language: the trainer is using the app in English.
-Write every free-text value in natural English: plan label, exercises[].name,
-reason, rationale and plan_c.changes. Keep exercise names copied from
-next_pt.base_program as written. Ignore the "한국어 이름" hint in the JSON example above.
-Do NOT translate "intensity" or exercises[].type — they are contract values and
-must be exactly one of the Korean values listed in the JSON example.
-Quote member data (messages, memos, exercise names from records) as-is when you
-cite it, but write the surrounding sentence in English.
-"""
-
-
-def system_prompt(locale: Locale = "ko") -> str:
-    """요청 언어에 맞는 시스템 프롬프트. 한국어는 [_SYSTEM_PROMPT] 그대로다(#2301)."""
-    if locale == "en":
-        return _SYSTEM_PROMPT + _ENGLISH_OUTPUT_RULE
+def system_prompt() -> str:
+    """시스템 프롬프트 — [_SYSTEM_PROMPT] 그대로다."""
     return _SYSTEM_PROMPT
 
 
@@ -993,14 +971,13 @@ def _recent_pt_sessions(
 
 
 def build_next_pt(
-    db: Session, trainer_id: str, member_id: str, locale: Locale = "ko"
+    db: Session, trainer_id: str, member_id: str
 ) -> routine_next_pt.NextPt:
     """이번 차례 판단(#3282). 기록이 없으면 기본 분할 시작이다."""
     today_date = clock.today()
     return routine_next_pt.choose_next(
         _recent_pt_sessions(db, trainer_id, member_id, today_date),
         today=today_date,
-        locale=locale,
     )
 
 
@@ -1008,7 +985,6 @@ def _rule_plan_c(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
     next_pt: routine_next_pt.NextPt,
-    locale: Locale,
 ) -> RoutineOptionPlanOut:
     """C안 규칙형 — AI 가 실패했거나 C안을 지키지 못했을 때 쓴다."""
     signals = [*analysis.recent_messages, *_fallback_signals(analysis)]
@@ -1020,7 +996,6 @@ def _rule_plan_c(
             avg_completion_rate=analysis.avg_completion_rate,
             cautions=routine_ai.cautions_in(analysis.conditions, signals),
             escalate=routine_ai.needs_professional_check(analysis.conditions, signals),
-            locale=locale,
         )
     )
 
@@ -1032,26 +1007,25 @@ def _finding_sources(analysis: RoutineOptionAnalysisOut) -> list[routine_ai.Find
     같은 자료다. 대화는 오래된 것부터 오므로 뒤집어 최근 언급을 먼저 잡는다.
     """
     return [
-        ("건강 프로필", "Health profile", [analysis.conditions] if analysis.conditions else []),
-        ("채팅 감지 메모", "Chat insight memo", analysis.insight_memos),
-        ("트레이너 메모", "Trainer memo", analysis.trainer_memos),
-        ("PT 피드백", "PT feedback", analysis.pt_feedbacks),
-        ("주간 피드백", "Weekly feedback", analysis.weekly_feedback),
-        ("상담 메모", "Consultation memo", analysis.consult_memos),
-        ("최근 대화", "Recent chat", list(reversed(analysis.recent_messages))),
+        ("건강 프로필", [analysis.conditions] if analysis.conditions else []),
+        ("채팅 감지 메모", analysis.insight_memos),
+        ("트레이너 메모", analysis.trainer_memos),
+        ("PT 피드백", analysis.pt_feedbacks),
+        ("주간 피드백", analysis.weekly_feedback),
+        ("상담 메모", analysis.consult_memos),
+        ("최근 대화", list(reversed(analysis.recent_messages))),
     ]
 
 
 def build_findings(
     analysis: RoutineOptionAnalysisOut,
-    locale: Locale = "ko",
     next_pt: routine_next_pt.NextPt | None = None,
 ) -> list[RoutineFindingOut]:
     """이번 생성의 판단 결과(#3280). AI·규칙형 어느 쪽이 답해도 같다.
 
     [next_pt] 가 있으면 C안의 차례 판단(#3282)을 맨 뒤에 덧붙인다.
     """
-    rotation = [] if next_pt is None else [routine_next_pt.finding(next_pt, locale)]
+    rotation = [] if next_pt is None else [routine_next_pt.finding(next_pt)]
     return [
         RoutineFindingOut.model_validate(item)
         for item in routine_ai.rule_findings(
@@ -1061,7 +1035,6 @@ def build_findings(
             analysis_period_days=analysis.analysis_period_days,
             sodium_today_mg=analysis.sodium_today_mg,
             avg_completion_rate=analysis.avg_completion_rate,
-            locale=locale,
         )
         + rotation
     ]
@@ -1070,14 +1043,9 @@ def build_findings(
 def build_rule_options(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
-    locale: Locale = "ko",
     next_pt: routine_next_pt.NextPt | None = None,
 ) -> RoutineOptionsOut:
-    """LLM 실패 시 공용 결정형 생성기로 동일 계약을 반환한다.
-
-    [locale] 은 이름·사유·근거 문장의 언어다 — AI 가 죽은 주에도 영어 화면에는
-    영어 후보가 나와야 한다(#2301).
-    """
+    """LLM 실패 시 공용 결정형 생성기로 동일 계약을 반환한다."""
     plan_a, plan_b = routine_ai.rule_based_plans(
         goal=analysis.goal,
         sodium_today_mg=analysis.sodium_today_mg,
@@ -1096,15 +1064,14 @@ def build_rule_options(
         # 트레이너가 켠 나머지 자료(직접 쓴 메모·PT 피드백·주간 피드백의 통증)도
         # 같은 자리로 읽는다(#2587). 끈 자료는 분석에 없으니 여기에도 없다.
         insight_memos=_fallback_signals(analysis),
-        locale=locale,
     )
     return RoutineOptionsOut(
         analysis=analysis,
         plan_a=RoutineOptionPlanOut.model_validate(plan_a),
         plan_b=RoutineOptionPlanOut.model_validate(plan_b),
         generated_by="rule",
-        findings=build_findings(analysis, locale, next_pt),
-        plan_c=None if next_pt is None else _rule_plan_c(analysis, request, next_pt, locale),
+        findings=build_findings(analysis, next_pt),
+        plan_c=None if next_pt is None else _rule_plan_c(analysis, request, next_pt),
     )
 
 
@@ -1137,9 +1104,6 @@ def _call_llm(
     prompt: str, system: str = _SYSTEM_PROMPT, *, trainer_id: str | None = None
 ):
     """LLM 호출 + 타임아웃. 실패는 호출부가 잡아 규칙 폴백으로 내린다.
-
-    [system] 은 부르는 쪽이 요청 언어로 골라 넘긴다(#2301). 워커 스레드에서는
-    요청 컨텍스트(`current_locale`)가 보이지 않으므로 여기서 다시 읽지 않는다.
 
     빈 워커가 없으면 큐에서 기다리지 않고 즉시 실패시킨다(`_llm_slots` 주석 참고).
     기다려 봐야 타임아웃이고, 그동안 요청 스레드만 붙잡아 두기 때문이다.
@@ -1219,7 +1183,6 @@ def _llm_plan_c(
     raw: object,
     request: RoutineOptionsRequest,
     next_pt: routine_next_pt.NextPt,
-    locale: Locale,
 ) -> RoutineOptionPlanOut | None:
     """AI 가 준 C안. 계약을 어기면 None — 호출부가 규칙형 C안으로 채운다.
 
@@ -1234,7 +1197,7 @@ def _llm_plan_c(
             {
                 **raw,
                 "key": "C",
-                "label": routine_next_pt.plan_c_label(locale),
+                "label": routine_next_pt.plan_c_label(),
                 "basis": next_pt.basis,
             }
         )
@@ -1248,7 +1211,6 @@ def _llm_plan_c(
 def _generate_with_llm(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
-    locale: Locale = "ko",
     *,
     trainer_id: str | None = None,
     next_pt: routine_next_pt.NextPt | None = None,
@@ -1263,7 +1225,7 @@ def _generate_with_llm(
         },
         ensure_ascii=False,
     )
-    result = _call_llm(prompt, system_prompt(locale), trainer_id=trainer_id)
+    result = _call_llm(prompt, system_prompt(), trainer_id=trainer_id)
     if is_truncated(result):
         # 출력 상한에 끊긴 JSON 은 앞부분만으로도 파싱될 수 있어 따로 막는다(#3032).
         raise RoutineContractError("LLM 응답이 출력 상한에 걸려 끊겼습니다.")
@@ -1273,7 +1235,7 @@ def _generate_with_llm(
     payload["generated_by"] = "ai"
     # 판단 결과는 모델이 아니라 서버 규칙이 쓴다(#3280) — 모델이 덧붙인 값은 버린다.
     payload["findings"] = [
-        f.model_dump() for f in build_findings(analysis, locale, next_pt)
+        f.model_dump() for f in build_findings(analysis, next_pt)
     ]
     options = RoutineOptionsOut.model_validate(payload)
     if (
@@ -1282,10 +1244,10 @@ def _generate_with_llm(
     ):
         raise RoutineContractError("LLM 루틴 시간이 요청 가능한 시간을 초과했습니다.")
     if next_pt is not None:
-        plan_c = _llm_plan_c(raw_plan_c, request, next_pt, locale)
+        plan_c = _llm_plan_c(raw_plan_c, request, next_pt)
         if plan_c is None:
             metrics.incr("routine_options.plan_c_fallback")
-            plan_c = _rule_plan_c(analysis, request, next_pt, locale)
+            plan_c = _rule_plan_c(analysis, request, next_pt)
         options = options.model_copy(update={"plan_c": plan_c})
     return options
 
@@ -1319,16 +1281,13 @@ def generate_routine_options(
 ) -> RoutineOptionsOut:
     analysis = build_member_analysis(db, trainer_id, member_id, request)
     request = _resolve_conditions(analysis, request)
-    # 출력 언어는 요청한 트레이너의 화면 언어다(#2301). 워커 스레드로 넘어가기 전에
-    # 요청 컨텍스트에서 한 번 읽어 AI·폴백 양쪽에 같은 값을 쓴다.
-    locale = current_locale()
-    next_pt = build_next_pt(db, trainer_id, member_id, locale)
-    fallback = build_rule_options(analysis, request, locale, next_pt)
+    next_pt = build_next_pt(db, trainer_id, member_id)
+    fallback = build_rule_options(analysis, request, next_pt)
     started = time.monotonic()
     had_chat = bool(analysis.recent_messages)
     try:
         options = _generate_with_llm(
-            analysis, request, locale, trainer_id=trainer_id, next_pt=next_pt
+            analysis, request, trainer_id=trainer_id, next_pt=next_pt
         )
     except ai_call_quota.TrainerAiDailyLimitReached:
         # 이 트레이너의 오늘 몫을 다 썼다 — 규칙형으로 덮지 않고 429 로 알린다(#3032).

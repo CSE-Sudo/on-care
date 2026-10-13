@@ -20,7 +20,6 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import Locale, current_locale
 from app.models.models import (
     MemberNotificationSetting,
     Notification,
@@ -83,29 +82,22 @@ _CATEGORY: dict[str, str] = {
 }
 
 
-def time_ago(
-    dt: datetime, locale: Locale | None = None, *, now: datetime | None = None
-) -> str:
-    """알림 목록의 상대 시각 문구. 회원·트레이너 알림함이 함께 쓴다. (#503)
-
-    [locale] 이 없으면 요청 언어를 따른다(#2302). 한국어는 예전 문구 그대로다.
-    """
-    locale = locale or current_locale()
+def time_ago(dt: datetime, *, now: datetime | None = None) -> str:
+    """알림 목록의 상대 시각 문구. 회원·트레이너 알림함이 함께 쓴다. (#503)"""
     now = now or datetime.now(timezone.utc)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     sec = (now - dt).total_seconds()
-    ko = locale == "ko"
     if sec < 60:
-        return "방금 전" if ko else "just now"
+        return "방금 전"
     if sec < 3600:
         n = int(sec // 60)
-        return f"{n}분 전" if ko else f"{n} min ago"
+        return f"{n}분 전"
     if sec < 86400:
         n = int(sec // 3600)
-        return f"{n}시간 전" if ko else f"{n} {'hour' if n == 1 else 'hours'} ago"
+        return f"{n}시간 전"
     n = int(sec // 86400)
-    return f"{n}일 전" if ko else f"{n} {'day' if n == 1 else 'days'} ago"
+    return f"{n}일 전"
 
 
 def get_settings(db: Session, member_id: str) -> dict[str, bool]:
@@ -196,7 +188,7 @@ def texts(
     """알림 행의 문장 칸(`title`·`body`·`template`·`template_args`). (#2302)
 
     틀을 주면 한국어 문장을 틀로 만든다 — 저장되는 `title`·`body` 는 틀이 생기기
-    전과 같은 문장이고, 틀과 인자는 읽는 쪽이 자기 언어로 다시 조립하는 데 쓴다
+    전과 같은 문장이고, 틀과 인자는 읽는 쪽(앱)이 문장을 직접 조립하는 데 쓴다
     (`notification_templates`). [body] 는 틀의 본문이 사람이 쓴 글일 때 그 글이다.
 
     틀 없이 문장만 주는 호출부도 그대로 받는다 — 문장이 곧 저장값인 알림이다.

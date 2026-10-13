@@ -11,7 +11,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import current_locale
 from app.models.models import (
     ChatMessage, MemberReceivedReport, Notification,
     TrainerClient, TrainerSchedule,
@@ -149,18 +148,14 @@ def post_routine_delivery(
     회원에게 안 읽음으로 잡힌다)이다. 알림은 따로 그대로 간다.
 
     본문은 안내 카드를 그리지 못하는 자리(로스터·대화 목록의 마지막 메시지)가
-    읽는 한 줄이고, 카드는 [routine_delivery_json] 으로 두 앱이 화면 언어에
-    맞춰 그린다.
+    읽는 한 줄이고, 카드는 [routine_delivery_json] 으로 두 앱이 직접 그린다.
     """
     names = [*program_names, *routine_names]
     if not names:
         return
     shown = ", ".join(names[:_DELIVERY_CARD_NAMES])
     more = len(names) - _DELIVERY_CARD_NAMES
-    if current_locale() == "en":
-        body = f"Sent a workout: {shown}" + (f" and {more} more" if more > 0 else "")
-    else:
-        body = f"운동을 보냈어요: {shown}" + (f" 외 {more}개" if more > 0 else "")
+    body = f"운동을 보냈어요: {shown}" + (f" 외 {more}개" if more > 0 else "")
     send_message(
         db,
         trainer_id,

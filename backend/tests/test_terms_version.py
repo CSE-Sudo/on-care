@@ -20,9 +20,7 @@ from app.services import signup_consent
 _ROOT = Path(__file__).resolve().parents[2]
 _APPS = ("flutter", "flutter_trainer")
 _ARBS = [
-    _ROOT / "frontend" / app / "lib" / "l10n" / f"app_{lang}.arb"
-    for app in _APPS
-    for lang in ("ko", "en")
+    _ROOT / "frontend" / app / "lib" / "l10n" / "app_ko.arb" for app in _APPS
 ]
 
 pytestmark = pytest.mark.skipif(
@@ -48,20 +46,11 @@ def _terms_version() -> date:
 
 @pytest.mark.parametrize("app", _APPS)
 def test_korean_effective_date_is_the_consent_version(app: str):
-    """한국어 원본 부칙의 시행일이 동의 기록 버전과 같은 날이다."""
+    """부칙의 시행일이 동의 기록 버전과 같은 날이다."""
     found = _KO_EFFECTIVE.findall(_terms_body(app, "ko"))
     assert len(found) == 1, "시행일 문장이 하나여야 한다"
     y, m, d = (int(x) for x in found[0])
     assert date(y, m, d) == _terms_version()
-
-
-@pytest.mark.parametrize("app", _APPS)
-def test_english_effective_date_is_the_consent_version(app: str):
-    """영문본도 같은 날짜를 단다."""
-    v = _terms_version()
-    body = _terms_body(app, "en")
-    month = v.strftime("%B")
-    assert f"{v.day} {month} {v.year}" in body or f"{month} {v.day}, {v.year}" in body
 
 
 @pytest.mark.parametrize("app", _APPS)

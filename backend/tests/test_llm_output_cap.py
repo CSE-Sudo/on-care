@@ -260,12 +260,12 @@ def test_truncated_report_summary_falls_back_to_rules(ceiling, monkeypatch):
     monkeypatch.setattr(
         trainer_reports_service, "build_weekly_report", lambda *a, **k: report
     )
-    evidence = svc._evidence(report, "ko")
+    evidence = svc._evidence(report)
     reply = json.dumps({"headline": "좋은 한 주", "points": [evidence[0]]}, ensure_ascii=False)
     llm = _Recording(reply, truncated=True)
     monkeypatch.setattr(svc, "get_coach_llm", lambda *a, **k: llm)
 
-    out = svc.generate_summary(None, "t", "m", None, "ko")
+    out = svc.generate_summary(None, "t", "m", None)
 
     assert out.generated_by == "rule"
     assert llm.kwargs[0]["max_output_tokens"] == svc.LLM_MAX_OUTPUT_TOKENS
@@ -279,7 +279,7 @@ def test_truncated_diet_sentence_is_dropped(ceiling, monkeypatch):
     before = metrics.snapshot()["counters"].get("cap_test.fallback{reason=truncated}", 0)
 
     out = ai.generate(
-        lang="ko", analysis_text="", finding="나트륨이 높아요", records=[], notes=[],
+        analysis_text="", finding="나트륨이 높아요", records=[], notes=[],
         goal="체중 감량", metric="cap_test",
     )
 
@@ -301,7 +301,7 @@ def test_diet_sentence_falls_back_quietly_at_the_global_cap(ceiling, monkeypatch
 
     monkeypatch.setattr(ai_call_quota, "acquire", _full)
     out = ai.generate(
-        lang="ko", analysis_text="", finding="나트륨이 높아요", records=[], notes=[],
+        analysis_text="", finding="나트륨이 높아요", records=[], notes=[],
         goal="체중 감량", metric="cap_test",
     )
 
