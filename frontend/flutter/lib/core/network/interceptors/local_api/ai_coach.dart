@@ -294,8 +294,17 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
   }
 
   /// GET /ai-coach/insights — 최근 30일 회원 메시지의 감지 기록, 최신순(#1824).
-  Future<Response<Object?>> _aiCoachInsights(RequestOptions options) async {
-    final bool english = _prefersEnglish(options);
+  Future<Response<Object?>> _aiCoachInsights(RequestOptions options) async =>
+      _ok(options, <String, Object?>{
+        'window_days': kChatInsightWindowDays,
+        'insights': await _insightRows(english: _prefersEnglish(options)),
+      });
+
+  /// 감지 기록의 줄들(최신순). 주간 리포트 교환도 살 때의 감지를 여기서 읽는다
+  /// (#3349).
+  Future<List<Map<String, Object?>>> _insightRows({
+    required bool english,
+  }) async {
     final DateTime now = nowKst();
     final List<Map<String, Object?>> rows = await _aiCoachMessages();
     final List<Map<String, Object?>> insights = <Map<String, Object?>>[];
@@ -319,10 +328,7 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
         'text': text,
       });
     }
-    return _ok(options, <String, Object?>{
-      'window_days': kChatInsightWindowDays,
-      'insights': insights,
-    });
+    return insights;
   }
 
   /// DELETE /ai-coach/insights/{message_id} — 그 줄의 감지를 기록에서 치운다(#1975).

@@ -66,6 +66,7 @@ class _ForbiddenRepository implements MemberReportSheetRepository {
     required DateTime weekStart,
     required String languageCode,
     ReportSheetGoals goals = const ReportSheetGoals(),
+    String? messageId,
   }) async {
     calls++;
     throw const ForbiddenError(detail: '아직 받지 않은 주간 리포트예요.');

@@ -15,12 +15,18 @@ extension _LocalApiPoints on LocalApiInterceptor {
 
   Future<Response<Object?>> _pointsExchange(RequestOptions options) async {
     final body = _jsonBody(options);
+    final String item = (body['item'] as String?) ?? '';
     return _couponResponse(
       options,
       _coupons.exchange(
-        (body['item'] as String?) ?? '',
+        item,
         option: body['option'] as String?,
         clientRequestId: body['client_request_id'] as String?,
+        // 주간 리포트는 살 때의 감지 기록을 함께 남긴다(#3349). 실서버가 구매
+        // 기록에 굳히는 것과 같다 — 한 달 뒤에 열어도 살 때의 감지가 적힌다.
+        reportInsights: item == kDemoWeeklyReport.id
+            ? await _insightRows(english: _prefersEnglish(options))
+            : const <Map<String, Object?>>[],
       ),
     );
   }
