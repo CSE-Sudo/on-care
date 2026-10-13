@@ -3826,7 +3826,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGymChangeFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t change your gym. The rest of your profile was saved.'**
+  /// **'Couldn\'t change your gym.'**
   String get myGymChangeFailed;
 
   /// No description provided for @myTabProfile.
@@ -4816,13 +4816,13 @@ abstract class AppLocalizations {
   /// No description provided for @myDiscardTitle.
   ///
   /// In en, this message translates to:
-  /// **'Stop editing?'**
+  /// **'Save your changes?'**
   String get myDiscardTitle;
 
   /// No description provided for @myDiscardBody.
   ///
   /// In en, this message translates to:
-  /// **'Your changes won\'t be saved.'**
+  /// **'If you leave without saving, your changes will be lost.'**
   String get myDiscardBody;
 
   /// No description provided for @myKeepEditing.
@@ -4834,8 +4834,14 @@ abstract class AppLocalizations {
   /// No description provided for @myDiscardAction.
   ///
   /// In en, this message translates to:
-  /// **'Leave'**
+  /// **'Don\'t save'**
   String get myDiscardAction;
+
+  /// No description provided for @mySaveAndLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and leave'**
+  String get mySaveAndLeave;
 
   /// No description provided for @mySignOutConfirm.
   ///
@@ -4864,13 +4870,13 @@ abstract class AppLocalizations {
   /// No description provided for @myGymEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No gym yet. Set yours in Edit profile.'**
+  /// **'No gym yet. Pick yours in Set gym.'**
   String get myGymEmpty;
 
   /// No description provided for @myEditVisibleBody.
   ///
   /// In en, this message translates to:
-  /// **'Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.'**
+  /// **'Your specialty, career, introduction and certifications appear on your trainer profile in the member app.'**
   String get myEditVisibleBody;
 
   /// No description provided for @myClientManagementNoteTitle.
@@ -5352,6 +5358,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Program templates'**
   String get coachTemplates;
+
+  /// No description provided for @coachMemberRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Member records'**
+  String get coachMemberRecords;
 
   /// No description provided for @coachSentHistory.
   ///
@@ -10353,10 +10365,16 @@ abstract class AppLocalizations {
   /// **'The server is having a temporary problem. Please try again in a moment.'**
   String get errorServerTemporary;
 
+  /// Button on the gym card and title of the screen where a trainer picks a different gym to be affiliated with.
+  ///
+  /// In en, this message translates to:
+  /// **'Change gym'**
+  String get myGymChange;
+
   /// Button on the gym card and title of the screen where an affiliated trainer edits the gym hours, phone and tags (#2700).
   ///
   /// In en, this message translates to:
-  /// **'Edit gym info'**
+  /// **'Edit hours & contact'**
   String get myGymInfoEdit;
 
   /// No description provided for @myGymInfoSubtitle.

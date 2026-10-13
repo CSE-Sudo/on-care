@@ -29,6 +29,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 목표 글이 배지 줄과 나눠 쓰는 폭 중 목표 몫의 상한.
 const double _goalWidthShare = 0.4;
 
+/// 머리가 이보다 좁으면 나가는 버튼(메시지·프로그램·리포트)을 아랫줄로 내린다.
+const double _stackedHeaderWidth = 480;
+
 /// 회원 상세를 열어 둔 동안 다시 읽는 간격 — 로스터·식단·운동 기록 스트림이
 /// 쓰는 폴링 주기(`DioClientRepository.pollInterval`)와 같다(#2330).
 const Duration _clientDetailSyncInterval = Duration(seconds: 30);
@@ -537,153 +540,12 @@ class _Header extends StatelessWidget {
         color: OnCareColors.surfaceCard,
         border: Border(bottom: BorderSide(color: OnCareColors.lineSubtle)),
       ),
-      child: Row(
-        // 주의사항 줄이 사라졌는지를 테스트가 재려면 프로필 줄의 끝을 지목할 수
-        // 있어야 한다(#926).
-        key: const ValueKey<String>('client-detail-identity'),
-        // `<`·아바타·나가는 버튼이 이름·목표 두 줄의 세로 가운데에 선다 —
-        // 메시지 탭 대화 머리와 같은 정렬이다. 윗줄에 붙이면 아래 목표 줄
-        // 옆이 비어 머리가 위로 쏠려 보였다.
-        children: <Widget>[
-          // 닫기(X) 대신 늘 `<` 다(#2330) — 분할 보기에서도 같은 자리·같은
-          // 모양이라, 화면 폭이 바뀌어도 나가는 길이 한 곳이다.
-          Semantics(
-            label: l.clientList,
-            child: AppBackButton(
-              key: const ValueKey<String>('client-detail-back'),
-              onPressed: onBack,
-            ),
-          ),
-          // 이름 줄에 휴면·동작이, 목표 줄에 신호 배지가 붙어 [ClientRow] 대신
-          // 같은 머리 밀도의 아바타·글씨를 직접 쓴다(#2467).
-          ClientAvatar(
-            name: client.avatar,
-            size: ClientRowDensity.header.avatarSize,
-          ),
-          SizedBox(width: ClientRowDensity.header.avatarGap),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    // `이름  성별 · 나이` — 다른 탭의 회원 행과 같다. 좁은 화면
-                    // 에서는 목록이 가려져 여기가 아니면 성별·나이를 볼 곳이
-                    // 없다. 바닥선을 맞추고, 긴 이름은 말줄임해 버튼 자리를
-                    // 뺏지 않는다.
-                    Flexible(
-                      child: Row(
-                        key: const ValueKey<String>('client-detail-name-row'),
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(
-                              client.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: clientNameStyle(
-                                context,
-                                ClientRowDensity.header,
-                              ),
-                            ),
-                          ),
-                          // 성별·나이를 모두 모르면 자리를 그리지 않는다(#2870).
-                          if (clientDemographicsLabel(context, client)
-                              case final String demographics
-                              when demographics.isNotEmpty) ...<Widget>[
-                            const SizedBox(width: OnCareSpacing.s4),
-                            // 좁은 폭·큰 글씨에서는 이름과 함께 줄어 말줄임한다.
-                            Flexible(
-                              child: Text(
-                                demographics,
-                                key: const ValueKey<String>(
-                                  'client-detail-demographics',
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: clientDemographicsStyle(context),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    // `활성` 은 기본값이라 적지 않는다(#2330). 휴면일 때만
-                    // 말하고, 누르면 활성으로 돌린다.
-                    if (!client.active) ...<Widget>[
-                      const SizedBox(width: OnCareSpacing.s8),
-                      Tooltip(
-                        message: l.clientDormantActivate,
-                        child: AppTag(
-                          key: const ValueKey<String>('client-status-toggle'),
-                          label: l.clientDormant,
-                          icon: AppIcons.dormant,
-                          onTap: onActivate,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(width: OnCareSpacing.s4),
-                    // 이 화면에서 끝나는 동작 — 회색, 이름 바로 옆.
-                    _HeaderAction(
-                      key: const ValueKey<String>('client-detail-open-health'),
-                      icon: AppIcons.goal,
-                      label: l.clientProfileSectionTitle,
-                      onPressed: onOpenHealth,
-                      quiet: true,
-                    ),
-                    _HeaderAction(
-                      key: const ValueKey<String>('client-detail-open-memo'),
-                      icon: AppIcons.note,
-                      label: l.clientTrainerMemo,
-                      onPressed: onOpenMemo,
-                      quiet: true,
-                    ),
-                  ],
-                ),
-                // 목표와 신호 배지가 한 줄이다(#2330) — 배지만의 줄을 두면
-                // 헤더가 한 줄 더 커진다. 목표 글은 폭의 40% 까지만 쓰고 말줄임,
-                // 나머지 폭에 배지가 한 줄로 선다.
-                LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints c) => Row(
-                    children: <Widget>[
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: c.maxWidth * _goalWidthShare,
-                        ),
-                        child: Text(
-                          healthFocusGoalLabel(l, client.goal),
-                          key: const ValueKey<String>('client-detail-goal'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: clientDetailStyle(
-                            context,
-                            ClientRowDensity.header,
-                          ),
-                        ),
-                      ),
-                      if (signals.isNotEmpty) ...<Widget>[
-                        const SizedBox(width: OnCareSpacing.s8),
-                        Expanded(
-                          child: ClientSignalBadges(
-                            signals: signals,
-                            keyPrefix: 'client-detail',
-                            onOpen: onOpenSignal,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
           // 다른 화면으로 넘어가는 동작 — 파랑, 오른쪽 끝. 예전에는 식단·운동을
           // 다 읽고도 메시지 탭·프로그램 탭으로 건너가 같은 사람을 목록에서
           // 다시 찾아야 했다(#823).
-          Row(
+          final Widget quickActions = Row(
             key: const ValueKey<String>('client-detail-quick-actions'),
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -706,8 +568,173 @@ class _Header extends StatelessWidget {
                 onPressed: () => context.go(AppRoutes.reportFor(client.id)),
               ),
             ],
-          ),
-        ],
+          );
+          final List<Widget> lead = <Widget>[
+            // 닫기(X) 대신 늘 `<` 다(#2330) — 분할 보기에서도 같은 자리·같은
+            // 모양이라, 화면 폭이 바뀌어도 나가는 길이 한 곳이다.
+            Semantics(
+              label: l.clientList,
+              child: AppBackButton(
+                key: const ValueKey<String>('client-detail-back'),
+                onPressed: onBack,
+              ),
+            ),
+            // 이름 줄에 휴면·동작이, 목표 줄에 신호 배지가 붙어 [ClientRow] 대신
+            // 같은 머리 밀도의 아바타·글씨를 직접 쓴다(#2467).
+            ClientAvatar(
+              name: client.avatar,
+              size: ClientRowDensity.header.avatarSize,
+            ),
+            SizedBox(width: ClientRowDensity.header.avatarGap),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      // `이름  성별 · 나이` — 다른 탭의 회원 행과 같다. 좁은 화면
+                      // 에서는 목록이 가려져 여기가 아니면 성별·나이를 볼 곳이
+                      // 없다. 바닥선을 맞추고, 긴 이름은 말줄임해 버튼 자리를
+                      // 뺏지 않는다.
+                      Flexible(
+                        child: Row(
+                          key: const ValueKey<String>('client-detail-name-row'),
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: <Widget>[
+                            Flexible(
+                              child: Text(
+                                client.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: clientNameStyle(
+                                  context,
+                                  ClientRowDensity.header,
+                                ),
+                              ),
+                            ),
+                            // 성별·나이를 모두 모르면 자리를 그리지 않는다(#2870).
+                            if (clientDemographicsLabel(context, client)
+                                case final String demographics
+                                when demographics.isNotEmpty) ...<Widget>[
+                              const SizedBox(width: OnCareSpacing.s4),
+                              // 좁은 폭·큰 글씨에서는 이름과 함께 줄어 말줄임한다.
+                              Flexible(
+                                child: Text(
+                                  demographics,
+                                  key: const ValueKey<String>(
+                                    'client-detail-demographics',
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: clientDemographicsStyle(context),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      // `활성` 은 기본값이라 적지 않는다(#2330). 휴면일 때만
+                      // 말하고, 누르면 활성으로 돌린다.
+                      if (!client.active) ...<Widget>[
+                        const SizedBox(width: OnCareSpacing.s8),
+                        Tooltip(
+                          message: l.clientDormantActivate,
+                          child: AppTag(
+                            key: const ValueKey<String>('client-status-toggle'),
+                            label: l.clientDormant,
+                            icon: AppIcons.dormant,
+                            onTap: onActivate,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: OnCareSpacing.s4),
+                      // 이 화면에서 끝나는 동작 — 회색, 이름 바로 옆.
+                      _HeaderAction(
+                        key: const ValueKey<String>(
+                          'client-detail-open-health',
+                        ),
+                        icon: AppIcons.goal,
+                        label: l.clientProfileSectionTitle,
+                        onPressed: onOpenHealth,
+                        quiet: true,
+                      ),
+                      _HeaderAction(
+                        key: const ValueKey<String>('client-detail-open-memo'),
+                        icon: AppIcons.note,
+                        label: l.clientTrainerMemo,
+                        onPressed: onOpenMemo,
+                        quiet: true,
+                      ),
+                    ],
+                  ),
+                  // 목표와 신호 배지가 한 줄이다(#2330) — 배지만의 줄을 두면
+                  // 헤더가 한 줄 더 커진다. 목표 글은 폭의 40% 까지만 쓰고 말줄임,
+                  // 나머지 폭에 배지가 한 줄로 선다.
+                  LayoutBuilder(
+                    builder: (BuildContext context, BoxConstraints c) => Row(
+                      children: <Widget>[
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: c.maxWidth * _goalWidthShare,
+                          ),
+                          child: Text(
+                            healthFocusGoalLabel(l, client.goal),
+                            key: const ValueKey<String>('client-detail-goal'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: clientDetailStyle(
+                              context,
+                              ClientRowDensity.header,
+                            ),
+                          ),
+                        ),
+                        if (signals.isNotEmpty) ...<Widget>[
+                          const SizedBox(width: OnCareSpacing.s8),
+                          Expanded(
+                            child: ClientSignalBadges(
+                              signals: signals,
+                              keyPrefix: 'client-detail',
+                              onOpen: onOpenSignal,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ];
+          // 좁은 머리에서는 나가는 버튼을 아랫줄로 내린다 — 한 줄에 두면
+          // 휴대폰 폭에서 버튼이 자리를 다 가져가 회원 이름이 사라졌다(#3316).
+          if (constraints.maxWidth < _stackedHeaderWidth) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Row(
+                  key: const ValueKey<String>('client-detail-identity'),
+                  children: lead,
+                ),
+                Align(alignment: Alignment.centerRight, child: quickActions),
+              ],
+            );
+          }
+          return Row(
+            // 주의사항 줄이 사라졌는지를 테스트가 재려면 프로필 줄의 끝을 지목할 수
+            // 있어야 한다(#926).
+            key: const ValueKey<String>('client-detail-identity'),
+            // `<`·아바타·나가는 버튼이 이름·목표 두 줄의 세로 가운데에 선다 —
+            // 메시지 탭 대화 머리와 같은 정렬이다. 윗줄에 붙이면 아래 목표 줄
+            // 옆이 비어 머리가 위로 쏠려 보였다.
+            children: <Widget>[
+              ...lead,
+              const SizedBox(width: OnCareSpacing.s8),
+              quickActions,
+            ],
+          );
+        },
       ),
     );
   }
