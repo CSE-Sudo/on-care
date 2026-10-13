@@ -85,11 +85,18 @@ class _FakeCoachRepository implements MemberCoachRepository {
       const <CoachMessage>[];
 
   @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async =>
+      const ReceivedReportsPage(reports: <ReceivedReport>[]);
+
+  @override
   Future<List<CoachRoutine>> fetchRoutines() async => const <CoachRoutine>[];
 
   @override
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async =>
       const <CoachRoutine>[];
+
+  @override
+  Future<UpcomingRoutines?> fetchUpcomingRoutines() async => null;
 
   @override
   Future<List<CoachSession>> fetchSessions() async => const <CoachSession>[];
@@ -109,8 +116,12 @@ class _FakeCoachRepository implements MemberCoachRepository {
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) async => throw UnimplementedError();
@@ -184,7 +195,7 @@ void main() {
   group('AlertAction', () {
     test('앱이 아는 target 은 이동할 수 있다', () {
       const AlertAction action = AlertAction(
-        label: '대화 보기',
+        label: '메시지 보기',
         target: AlertTarget.coachChat,
       );
 

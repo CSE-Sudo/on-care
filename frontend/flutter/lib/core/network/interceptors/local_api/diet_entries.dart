@@ -12,7 +12,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     final n = await (_db.delete(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).go();
-    if (n == 0) return _notFound(options, '식단 기록을 찾을 수 없습니다.');
+    if (n == 0) return _notFound(options, '식단 기록을 찾을 수 없어요.');
     await _retireCuratedAdvice(
       dietDates: <String>[if (existing != null) existing.date],
     );
@@ -39,7 +39,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     }
     final String? mealType = (body['meal_type'] as String?)?.trim();
     if (mealType == null || !_mealTypes.contains(mealType)) {
-      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+      return _unprocessable(options, 'meal_type 이 올바르지 않아요.');
     }
     final Object? foodsValue = body['foods'];
     if (foodsValue is! List ||
@@ -71,7 +71,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
       if (sugar > carbs) {
         return _unprocessable(
           options,
-          '${i + 1}번째 음식(${food['name']})의 당류는 탄수화물보다 클 수 없습니다.',
+          '${i + 1}번째 음식(${food['name']})의 당류는 탄수화물보다 클 수 없어요.',
         );
       }
     }
@@ -90,7 +90,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
             requestOptions: options,
             statusCode: 409,
             data: <String, Object?>{
-              'detail': '같은 idempotency_key로 다른 끼니를 저장할 수 없습니다.',
+              'detail': '같은 idempotency_key로 다른 끼니를 저장할 수 없어요.',
             },
           );
         }
@@ -99,7 +99,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     }
     final now = nowKst();
     final String id = 'diet-${now.microsecondsSinceEpoch}';
-    final String day = date ?? _todayDateString();
+    final String day = date ?? wireDate(now);
     await _db
         .into(_db.dietEntries)
         .insert(
@@ -107,9 +107,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
             id: id,
             date: day,
             mealType: mealType,
-            timeLabel:
-                '${now.hour.toString().padLeft(2, '0')}:'
-                '${now.minute.toString().padLeft(2, '0')}',
+            timeLabel: _recordTimeLabel(day, mealType, now),
             foodsJson: jsonEncode(foods),
             totalCalories: _sumMacro(foods, 'calories').round(),
             sodiumMg: Value(_sumMacro(foods, 'sodium_mg').round()),
@@ -153,7 +151,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     final existing = await (_db.select(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (existing == null) return _notFound(options, '식단 기록을 찾을 수 없습니다.');
+    if (existing == null) return _notFound(options, '식단 기록을 찾을 수 없어요.');
     final body = _jsonBody(options);
     // 기록 날짜(#1241). 실서버와 같은 규칙이다 — 형식이 틀리거나 아직 오지 않은
     // 날은 받지 않는다. 데모에서만 통과하면 실연동에서 그 화면이 처음 실패한다.
@@ -169,7 +167,7 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
     if (body.containsKey('meal_type') &&
         body['meal_type'] != null &&
         !_mealTypes.contains(body['meal_type'])) {
-      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+      return _unprocessable(options, 'meal_type 이 올바르지 않아요.');
     }
     if (timeLabel != null &&
         timeLabel.isNotEmpty &&
@@ -439,7 +437,6 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
       'total_sugar_g': totalSugar,
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
       'ai_coach_message': await _dietDayCoachMessage(
-        options,
         date: date,
         totalSodium: totalSodium,
         empty: rows.isEmpty,
@@ -500,13 +497,38 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
 String? _entryDateError(String? date) {
   final DateTime? parsed = DateTime.tryParse(date ?? '');
   if (date == null || parsed == null || date.length != 10) {
-    return 'date 는 YYYY-MM-DD 형식이어야 합니다.';
+    return 'date 는 YYYY-MM-DD 형식이어야 해요.';
   }
   final DateTime now = nowKst();
   if (parsed.isAfter(DateTime(now.year, now.month, now.day))) {
-    return 'date 는 오늘보다 뒤일 수 없습니다.';
+    return 'date 는 오늘보다 뒤일 수 없어요.';
+  }
+  // 하한은 사진 분석·직접 입력·수정이 함께 쓴다(#3354) — 앱의 날짜 고르기
+  // 범위와 같다.
+  if (parsed.isBefore(DateTime(now.year - 1))) {
+    return 'date 는 작년 1월 1일보다 앞설 수 없어요.';
   }
   return null;
+}
+
+/// 지난 날짜에 적는 끼니의 기본 시각 — 서버 `MEAL_DEFAULT_TIME_LABELS` 와 같다.
+const Map<String, String> _mealDefaultTimeLabels = <String, String>{
+  'breakfast': '08:00',
+  'lunch': '12:00',
+  'snack': '15:00',
+  'dinner': '18:00',
+  'lateNight': '22:00',
+};
+
+/// 새 끼니의 `time_label`(#3354). 실서버(`record_time_label`)와 같은 규칙이다 —
+/// 오늘 기록은 적는 시각, 지난 날짜 기록은 끼니 종류의 기본 시각. 어제 아침을
+/// 밤에 적어도 그 끼니가 밤 시각으로 남지 않는다.
+String _recordTimeLabel(String day, String mealType, DateTime now) {
+  if (day.compareTo(wireDate(now)) >= 0) {
+    return '${now.hour.toString().padLeft(2, '0')}:'
+        '${now.minute.toString().padLeft(2, '0')}';
+  }
+  return _mealDefaultTimeLabels[mealType] ?? '';
 }
 
 /// 음식 목록에서 탄·단·지 한 항목의 합. `diet_entries` 에는 탄단지 칼럼이

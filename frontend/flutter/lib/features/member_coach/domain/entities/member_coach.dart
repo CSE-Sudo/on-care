@@ -32,6 +32,28 @@ class MemberCoach {
 /// `trainer._common.member_routine_days` 와 같은 모양이다.
 typedef RoutineDay = ({DateTime date, List<CoachRoutine> routines});
 
+/// 아직 시작하지 않은 개인운동 한 묶음 — `GET /me/coach/routines/upcoming`. (#3106)
+///
+/// 트레이너가 `개인운동만` 을 미래 시작일로 보내면 알림은 바로 오지만, 오늘
+/// 목록은 시작일부터 그 운동을 싣는다. 운동 탭은 이 값으로 오늘 목록 아래에
+/// `8/22(토)부터 · 빠르게 걷기 · …` 한 줄을 둔다. 체크는 시작일부터다.
+class UpcomingRoutines {
+  const UpcomingRoutines({
+    required this.startsOn,
+    required this.sentOn,
+    required this.names,
+  });
+
+  /// 걸리기 시작하는 날(KST 날짜).
+  final DateTime startsOn;
+
+  /// 트레이너가 보낸 날(KST 날짜).
+  final DateTime sentOn;
+
+  /// 묶음의 운동 이름(배정 순서).
+  final List<String> names;
+}
+
 /// A routine the member received from their coach — `/me/coach/routines`.
 class CoachRoutine {
   const CoachRoutine({
@@ -49,6 +71,10 @@ class CoachRoutine {
     this.completedAt,
     this.completedMinutes,
     this.completedDurationSeconds,
+    this.completedSets,
+    this.completedReps,
+    this.completedHoldSeconds,
+    this.completedWeight,
     this.completedIntensity,
     this.programName = '',
     this.sessionName = '',
@@ -111,6 +137,16 @@ class CoachRoutine {
   /// 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 null 이다(#2221) —
   /// 그때는 [completedMinutes] 가 그 기록의 값이다.
   final int? completedDurationSeconds;
+
+  /// 회원이 완료하며 적은 세트·횟수·버틴 시간·중량 — 근력 완료에만 있다. (#3364)
+  ///
+  /// 배정 값([sets]·[reps]·[holdSeconds]·[weight])은 트레이너가 정한 것이고,
+  /// 이 값은 회원이 실제로 한 것이다. 완료한 줄은 이 값을 읽는다. 이 키를
+  /// 모르는 옛 응답과 근력이 아닌 완료는 null 이라 배정 값으로 떨어진다.
+  final int? completedSets;
+  final int? completedReps;
+  final int? completedHoldSeconds;
+  final double? completedWeight;
   final String? completedIntensity;
 
   /// 여러 세션으로 짜인 프로그램의 이름. 단일 루틴은 빈 문자열이다(#709).
@@ -154,6 +190,10 @@ class CoachRoutine {
     DateTime? completedAt,
     int? completedMinutes,
     int? completedDurationSeconds,
+    int? completedSets,
+    int? completedReps,
+    int? completedHoldSeconds,
+    double? completedWeight,
     String? completedIntensity,
     PointsAward? pointsAward,
   }) => CoachRoutine(
@@ -175,6 +215,10 @@ class CoachRoutine {
     completedMinutes: completedMinutes ?? this.completedMinutes,
     completedDurationSeconds:
         completedDurationSeconds ?? this.completedDurationSeconds,
+    completedSets: completedSets ?? this.completedSets,
+    completedReps: completedReps ?? this.completedReps,
+    completedHoldSeconds: completedHoldSeconds ?? this.completedHoldSeconds,
+    completedWeight: completedWeight ?? this.completedWeight,
     completedIntensity: completedIntensity ?? this.completedIntensity,
     // 완료만 표시해도 프로그램·세션·운동 구성은 그대로 남아야 한다 — 빠뜨리면
     // 완료를 누른 순간 화면에서 프로그램 제목과 운동이 사라진다(#709).
@@ -208,6 +252,7 @@ class CoachSession {
     this.note = '',
     this.program = const <CoachProgramItem>[],
     this.sessionNumber,
+    this.trainerName = '',
   });
 
   /// Server id.
@@ -241,6 +286,11 @@ class CoachSession {
   /// 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터). 서버가 완료 PT 에만
   /// 싣는다 — 예정·취소·상담과 옛 서버 응답은 null 이다. (#2697)
   final int? sessionNumber;
+
+  /// 이 수업의 트레이너 이름. 목록에는 지금 담당의 일정과 함께 지난 담당과 마친
+  /// PT 도 있어, 누구와의 수업이었는지를 행이 직접 말한다. 옛 서버 응답은 비어
+  /// 있다 — 그때는 화면이 지금 담당의 이름으로 읽는다. (#3347)
+  final String trainerName;
 
   /// Whether this session is still ahead.
   ///
@@ -343,6 +393,61 @@ class CoachMessage {
   final CoachRoutineDelivery? routineDelivery;
 
   bool get fromMe => sender == CoachSender.me;
+}
+
+/// 회원이 받은 주간 리포트 한 건 — `GET /me/coach/reports` 의 한 줄. (#3348)
+///
+/// 예전에는 대화에 남은 안내 메시지를 끝까지 읽어 목록을 만들었다. 대화는
+/// 담당이 해제되면 읽을 수 없고 보낸 트레이너가 탈퇴하면 함께 지워지지만, 받은
+/// 리포트는 회원에게 남는 기록이라 서버가 따로 들고 준다.
+class ReceivedReport {
+  const ReceivedReport({
+    required this.id,
+    required this.weekStart,
+    required this.sentAt,
+    required this.body,
+    this.trainerName,
+    this.attachment,
+  });
+
+  /// 리포트를 실어 온 전송 메시지의 id. 보낼 때 굳힌 값을 이것으로 찾는다.
+  final String id;
+
+  /// 리포트가 가리키는 주의 월요일.
+  final DateTime weekStart;
+
+  /// 트레이너가 보낸 시각.
+  final DateTime sentAt;
+
+  /// 보낸 트레이너의 이름. 그 트레이너가 탈퇴했으면 없다.
+  final String? trainerName;
+
+  /// 트레이너가 함께 적은 글.
+  final String body;
+
+  /// 함께 온 PDF. 본문만 보낸 리포트이거나 파일이 더 남아 있지 않으면 없다.
+  final CoachAttachment? attachment;
+
+  /// 이 리포트를 실어 온 대화 안내의 모양 — 대화와 목록이 같은 규칙으로 연다.
+  CoachMessage get notice => CoachMessage(
+    id: id,
+    sender: CoachSender.trainer,
+    body: body,
+    timeLabel: '',
+    createdAt: sentAt,
+    attachment: attachment,
+    reportWeekStart: weekStart,
+  );
+}
+
+/// 받은 리포트 한 쪽(최신 주 → 오래된 주). (#3348)
+class ReceivedReportsPage {
+  const ReceivedReportsPage({required this.reports, this.nextBefore});
+
+  final List<ReceivedReport> reports;
+
+  /// 이 쪽보다 앞선 주가 더 있으면 다음 요청에 넘길 커서(주 월요일). 없으면 null.
+  final DateTime? nextBefore;
 }
 
 /// 루틴 전송 안내 — 무엇을 보냈나. 서버 `RoutineDeliveryCardOut`. (#2672)

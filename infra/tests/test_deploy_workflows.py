@@ -212,8 +212,10 @@ def test_frontend_prune_counts_release_roots_via_script() -> None:
     assert "ends_with" not in run
     assert step["env"]["KEEP"] == "5"
     assert step["env"]["PREVIOUS_ORIGIN_PATH"] == "${{ steps.switch.outputs.previous_origin_path }}"
-    # 실패한 배포에서는 정리하지 않는다(롤백 대상 보존).
-    assert "if" not in step
+    # 실패한 배포에서는 정리하지 않는다(롤백 대상 보존). 조건은 옛 커밋 재배포
+    # 가드(#3254) 하나뿐이다 — 상태 함수가 없는 `if` 는 암묵적으로 `success()` 를
+    # 함께 보므로 앞 단계가 실패하면 여전히 돌지 않는다. `always()`·`failure()` 는 안 된다.
+    assert step.get("if") == "steps.live.outputs.deploy == 'true'"
 
 
 def test_frontend_prune_script_normalizes_to_release_root() -> None:

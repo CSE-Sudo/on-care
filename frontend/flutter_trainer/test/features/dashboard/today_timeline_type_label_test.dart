@@ -1,7 +1,7 @@
-/// 대시보드 `오늘 일정` 의 세션 종류 태그는 화면 언어로 나온다. (#2867)
+/// 대시보드 `오늘 일정` 의 세션 종류 태그는 화면 문구로 나온다. (#2867)
 ///
-/// 태그가 저장된 계약값(`상담`)을 그대로 적어, 영어 화면에서도 대시보드만
-/// `상담` 이 남았다. 스케줄 탭 카드·주간 표는 `sessionTypeLabel` 로 옮겨 적는다.
+/// 태그는 저장된 계약값(`상담`)을 그대로 적지 않고, 스케줄 탭 카드·주간 표처럼
+/// `sessionTypeLabel` 로 옮겨 적는다.
 /// 상담 판정도 문자열 부분 일치가 아니라 계약 상수 비교다.
 library;
 
@@ -48,9 +48,7 @@ void main() {
 
   Future<void> openDashboard(
     WidgetTester tester,
-    List<ScheduleSession> sessions, {
-    Locale locale = const Locale('ko'),
-  }) async {
+    List<ScheduleSession> sessions) async {
     useFixedKstDate();
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(1600, 1200);
@@ -60,7 +58,6 @@ void main() {
       tester,
       token: 'demo-trainer-token',
       at: AppRoutes.dashboard,
-      locale: locale,
       extraOverrides: <Override>[
         clientsProvider.overrideWith(
           (ref) => Stream<List<TrainerClient>>.value(roster),
@@ -113,19 +110,6 @@ void main() {
     });
   });
 
-  testWidgets('영어 화면에서 상담 줄의 종류 태그가 Consultation 이다', (tester) async {
-    await openDashboard(tester, day, locale: const Locale('en'));
-
-    expect(rowTag('sess-consult', 'Consultation'), findsOneWidget);
-    expect(rowTag('sess-consult', '상담'), findsNothing);
-  });
-
-  testWidgets('영어 화면의 PT 줄 태그도 화면 문구로 나온다', (tester) async {
-    await openDashboard(tester, day, locale: const Locale('en'));
-
-    expect(rowTag('sess-pt', '1:1 PT'), findsOneWidget);
-  });
-
   testWidgets('한국어 화면의 상담 태그는 그대로 상담이다', (tester) async {
     await openDashboard(tester, day);
 
@@ -140,15 +124,4 @@ void main() {
     expect(find.text('PT 준비하기'), findsNothing);
   });
 
-  testWidgets('영어 화면에서도 상담 배너 버튼은 메모 쪽이다', (tester) async {
-    await openDashboard(tester, day, locale: const Locale('en'));
-
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('dashboard-next-session-cta')),
-        matching: find.text('Leave a memo'),
-      ),
-      findsOneWidget,
-    );
-  });
 }

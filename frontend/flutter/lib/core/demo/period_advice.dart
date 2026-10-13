@@ -14,6 +14,7 @@ import 'dart:ui' show Locale;
 
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart' show calendarDaysBetween;
 import 'package:oncare_rules/oncare_rules.dart'
     show endsWithHangul, normalizeExerciseType, normalizeExerciseTypeKo;
 import 'package:oncare_ui/oncare_ui.dart' show mondayOf;
@@ -60,6 +61,9 @@ String _mainType(Map<String, int> byType) {
 }
 
 /// `전체` 가 거슬러 올라가는 주 수. 서버의 `ALL_PERIOD_DAYS`(84일)와 같다.
+///
+/// 운동 조언의 직접 기록 구간은 이 값을 쓰지 않는다(#3365) — 첫 기록이 있는
+/// 주부터 세고, 그 주 수를 [exercisePeriodAdviceOf] 의 `weeks` 로 받는다.
 const int kAllPeriodWeeks = 12;
 
 /// 한국어 번역 — 데모의 한국어 문장(`message`)도 앱 ARB 로 그린다(#2210). 한국어
@@ -88,10 +92,15 @@ ExerciseAdvice _advice(
 ///
 /// 오늘 걸린 추천 개인운동([routineDays])이 있으면 그 목록을 기준으로 말한다
 /// (#2162, [routineCoachAdvice]). 없으면 직접 기록 기준 조언이다.
+///
+/// [weeks] 는 `전체` 가 덮는 주의 수다(#3365) — 문장의 "○주 동안" 이 이 값이라
+/// `전체` 그래프의 칸 수와 같아야 한다. 생략하면 [days] 의 첫 날부터 마지막
+/// 날까지가 걸친 주 수다(서버 `period_weeks`).
 ExerciseAdvice exercisePeriodAdviceOf(
   List<ExerciseDayTotals> days,
   String period, {
   List<RoutineAdviceDay> routineDays = const <RoutineAdviceDay>[],
+  int? weeks,
 }) {
   final ExerciseAdvice? routine = routineCoachAdvice(routineDays, period);
   if (routine != null) return routine;
@@ -165,11 +174,15 @@ ExerciseAdvice exercisePeriodAdviceOf(
     if (_avg(recent) < _avg(earlier) * 0.9) return _advice('record_all_down');
   }
   return _advice('record_all_steady', <String, Object>{
-    'weeks': kAllPeriodWeeks,
+    'weeks': weeks ?? _weeksSpanned(days.first.date, days.last.date),
     'days': activeDays,
     'minutes': totalMinutes,
   });
 }
+
+/// [first]…[last] 가 걸친 주의 수 — 서버 `exercise_service.period_weeks`.
+int _weeksSpanned(DateTime first, DateTime last) =>
+    calendarDaysBetween(mondayOf(first), mondayOf(last)) ~/ 7 + 1;
 
 // --- 추천 개인운동 기준 조언 (#2162) ------------------------------------------
 //
@@ -661,7 +674,8 @@ ExerciseAdvice _routineAll(List<RoutineAdviceDay> days) {
         )
         .date,
   );
-  final int span = today.difference(since).inDays + 1;
+  // 달력으로 센다(#3250) — `difference(...).inDays` 는 서머타임 전환을 끼면 하루 모자란다.
+  final int span = calendarDaysBetween(since, today) + 1;
   if (span < _allMinDays) {
     return _advice('routine_all_new', <String, Object>{'days': span});
   }

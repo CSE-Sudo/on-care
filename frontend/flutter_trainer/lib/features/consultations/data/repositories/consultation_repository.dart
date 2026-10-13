@@ -11,7 +11,6 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/poll_intervals.dart';
@@ -106,20 +105,16 @@ class ConsultationAcceptResult {
 /// 오류로 멈췄다. [db] 가 없으면(단위 테스트) 메모리에만 둔다.
 class DemoConsultationRepository implements ConsultationRepository {
   /// Creates the demo source.
-  ///
-  /// [language] 는 회원이 남긴 신청 메시지의 데모 언어다(#2304). 이름은 어느
-  /// 언어에서든 그대로다.
   DemoConsultationRepository({
     List<ConsultationRequest>? requests,
     this.scheduleRepository,
     this.db,
-    DemoLanguage language = DemoLanguage.ko,
-  }) : _requests = requests ?? _seedRequests(language);
+  }) : _requests = requests ?? _seedRequests();
 
   /// 시드 요청 — 회원이 트레이너가 연 **상담 자리**([demoReservationSlots])를
   /// 골라 신청한 모양이다(#1873). 예전에는 자리 목록에 없는 시각(내일 19:00
   /// 등)을 골라, 예약 슬롯 창과 상담함이 서로 다른 달력을 말했다(#2669).
-  static List<ConsultationRequest> _seedRequests(DemoLanguage language) {
+  static List<ConsultationRequest> _seedRequests() {
     final DateTime now = nowKst();
     final Map<String, ReservationSlot> slots = <String, ReservationSlot>{
       for (final ReservationSlot slot in demoReservationSlots(now: now))
@@ -144,10 +139,7 @@ class DemoConsultationRepository implements ConsultationRepository {
         slotStartsAt: evening.startsAt,
         slotDurationMinutes: evening.durationMinutes,
         status: 'pending',
-        message: language.isEnglish
-            ? "I'd like my first consultation at a time that works "
-                  'after work.'
-            : '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
+        message: '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
         // 받은 시각 — 인박스가 최신순으로 서고 `더 보기` 커서가 된다.
         createdAt: now.subtract(const Duration(hours: 3)),
       ),
@@ -164,10 +156,7 @@ class DemoConsultationRepository implements ConsultationRepository {
         slotStartsAt: morning.startsAt,
         slotDurationMinutes: morning.durationMinutes,
         status: 'pending',
-        message: language.isEnglish
-            ? 'It would be great if you could help with my blood '
-                  'pressure too.'
-            : '혈압 관리도 같이 봐주시면 좋겠어요.',
+        message: '혈압 관리도 같이 봐주시면 좋겠어요.',
         createdAt: now.subtract(const Duration(days: 1, hours: 2)),
       ),
     ];
@@ -586,7 +575,6 @@ final consultationRepositoryProvider = Provider<ConsultationRepository>((ref) {
     return DemoConsultationRepository(
       scheduleRepository: () => ref.read(scheduleRepositoryProvider),
       db: ref.watch(appDatabaseProvider),
-      language: ref.watch(demoLanguageProvider),
     );
   }
   return DioConsultationRepository(ref.watch(dioProvider));
@@ -659,11 +647,31 @@ class ConsultationInboxController
   /// 이어 받아 둔 과거 요청(오래된 쪽).
   List<ConsultationRequest> _older = const <ConsultationRequest>[];
 
+  /// 지난번 받은 첫 쪽. 새 요청이 들어와 첫 쪽 끝에서 밀려난 요청을 찾는다.
+  List<ConsultationRequest> _firstPage = const <ConsultationRequest>[];
+
   void _onFirstPage(List<ConsultationRequest> page) {
     if (!mounted) return;
+    final Set<String> ids = page.map((r) => r.id).toSet();
+    // `더 보기` 로 이어 받은 뒤 새 요청이 오면, 꽉 찬 첫 쪽의 마지막 요청이 밀려
+    // 나 첫 쪽에도 이어 받은 목록에도 없게 된다 — 한 건이 사라졌다(#3249). 이어
+    // 받은 목록 앞에 붙여 둔다. 첫 쪽의 마지막보다 **새** 요청이 빠졌다면 밀린 것이
+    // 아니라 처리돼 이 갈래를 떠난 것(수락·거절)이라 붙이지 않는다.
+    if (_older.isNotEmpty &&
+        page.isNotEmpty &&
+        page.length >= consultationPageSize) {
+      final ConsultationRequest edge = page.last;
+      final List<ConsultationRequest> pushedOut = <ConsultationRequest>[
+        for (final ConsultationRequest r in _firstPage)
+          if (!ids.contains(r.id) && _isOlderThan(r, edge)) r,
+      ];
+      if (pushedOut.isNotEmpty) {
+        _older = <ConsultationRequest>[...pushedOut, ..._older];
+      }
+    }
+    _firstPage = page;
     // 첫 쪽에 다시 나타난 요청은 이어 받아 둔 목록에서 뺀다 — 같은 요청이 두 줄로
     // 그려지면 트레이너는 요청이 두 건 온 것으로 읽는다.
-    final Set<String> ids = page.map((r) => r.id).toSet();
     _older = _older
         .where((ConsultationRequest r) => !ids.contains(r.id))
         .toList(growable: false);
@@ -674,6 +682,16 @@ class ConsultationInboxController
       // 이어 받은 쪽이 있으면 "더 있는가" 는 그 마지막 쪽이 이미 답했다.
       hasMore: _older.isEmpty ? page.length >= consultationPageSize : null,
     );
+  }
+
+  /// 서버 순서(`created_at`, `id` 내림차순)로 [r] 가 [edge] 보다 뒤(오래된 쪽)인가.
+  /// 시각을 모르면 밀린 것으로 본다 — 지우는 것보다 남기는 편이 덜 해롭다.
+  static bool _isOlderThan(ConsultationRequest r, ConsultationRequest edge) {
+    final DateTime? a = r.createdAt;
+    final DateTime? b = edge.createdAt;
+    if (a == null || b == null) return true;
+    final int byTime = a.compareTo(b);
+    return byTime != 0 ? byTime < 0 : r.id.compareTo(edge.id) < 0;
   }
 
   void _onError(Object error, StackTrace stack) {

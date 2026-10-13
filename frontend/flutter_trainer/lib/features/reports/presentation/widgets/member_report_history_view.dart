@@ -165,7 +165,7 @@ class MemberReportHistoryView extends ConsumerWidget {
   }
 }
 
-/// `8월 3일 – 8월 9일` — 한 주의 범위.
+/// `8월 3일 ~ 8월 9일` — 한 주의 범위.
 String reportWeekRangeLabel(AppLocalizations l, DateTime weekStart) {
   final DateTime weekEnd = DateTime(
     weekStart.year,

@@ -10,7 +10,6 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -84,7 +83,7 @@ void main() {
 
     await repo.sendTrainerMessage(
       clientId: _client,
-      text: '이번 주 리포트 등록해 뒀어요',
+      text: '이번 주 리포트 보내 드렸어요',
       reportWeekStart: DateTime(2026, 9, 28),
     );
     await _waitReply();
@@ -112,23 +111,5 @@ void main() {
     await _waitReply();
 
     expect((await thread(repo)).last.sender, ChatSender.trainer);
-  });
-
-  test('영어 데모에는 영어로 답한다', () async {
-    final AppDatabase en = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(en.close);
-    await seedIfEmpty(en, language: DemoLanguage.en);
-    final DemoRepliesChatRepository repo = DemoRepliesChatRepository(
-      en,
-      replyDelay: _delay,
-    );
-    addTearDown(repo.dispose);
-
-    await repo.sendTrainerMessage(clientId: _client, text: 'Hello');
-    await _waitReply();
-
-    final ClientChatMessage last = (await repo.watchThread(_client).first).last;
-    expect(last.sender, ChatSender.client);
-    expect(RegExp(r'[가-힣]').hasMatch(last.body), isFalse);
   });
 }

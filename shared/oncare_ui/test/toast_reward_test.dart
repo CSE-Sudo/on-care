@@ -60,13 +60,13 @@ void main() {
     final BuildContext context = await _pump(tester);
     showAppToast(
       context,
-      '식단이 저장되었어요',
+      '식단을 저장했어요',
       type: AppToastType.success,
       rewardLabel: '+50P',
     );
     await tester.pump(OnCareMotion.toastEnter);
 
-    expect(find.text('식단이 저장되었어요'), findsOneWidget);
+    expect(find.text('식단을 저장했어요'), findsOneWidget);
     expect(_badge, findsOneWidget);
     expect(
       find.descendant(of: _badge, matching: find.text('+50P')),
@@ -79,7 +79,7 @@ void main() {
     // 표시는 메시지 오른쪽에 선다.
     expect(
       tester.getTopLeft(_badge).dx,
-      greaterThan(tester.getTopRight(find.text('식단이 저장되었어요')).dx),
+      greaterThan(tester.getTopRight(find.text('식단을 저장했어요')).dx),
     );
 
     // 토스트가 내려앉은 뒤 반짝임이 시작되고, 앞부분에서 커졌다가 돌아온다.
@@ -128,7 +128,7 @@ void main() {
     final BuildContext context = await _pump(tester, disableAnimations: true);
     showAppToast(
       context,
-      '식단이 저장되었어요',
+      '식단을 저장했어요',
       type: AppToastType.success,
       rewardLabel: '+50P',
     );

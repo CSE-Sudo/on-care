@@ -40,8 +40,8 @@ const Trainer _trainer = Trainer(
   role: '전담 트레이너',
 );
 
-/// 다른 헬스장의 담당 트레이너(#2611). 이 트레이너가 담당이면 [_trainer] 에게는
-/// 상담을 낼 수 없다.
+/// 다른 헬스장의 담당 트레이너. 이 트레이너가 담당이어도 [_trainer] 에게 상담을
+/// 낼 수 있다(#3358).
 const Trainer _otherCoach = Trainer(
   id: 'trainer-other-coach',
   gymId: 'gym-other',
@@ -403,7 +403,9 @@ void main() {
       );
     });
 
-    testWidgets('정말 소속 트레이너가 없으면 기존 빈 상태 문구다', (WidgetTester tester) async {
+    testWidgets('정말 소속 트레이너가 없으면 상담 버튼 대신 안내를 둔다 (#3357)', (
+      WidgetTester tester,
+    ) async {
       await pumpRoute(
         tester,
         AppRoutes.gymDetailPath(_gym.id),
@@ -413,9 +415,12 @@ void main() {
       final AppLocalizations l = _localizations(tester);
       expect(find.byKey(const Key('gym-detail-trainers-error')), findsNothing);
 
-      await openPicker(tester);
-      expect(find.text(l.exGymConsultNoTrainers), findsOneWidget);
-      expect(find.byKey(const Key('gym-consult-trainer-error')), findsNothing);
+      // 눌러도 "소속 트레이너가 없어요" 로 끝나는 버튼은 두지 않는다.
+      final Finder notice = find.byKey(const Key('gym-inquiry-no-trainers'));
+      await _scrollTo(tester, notice, 250);
+      expect(notice, findsOneWidget);
+      expect(find.byKey(const Key('gym-consult-start')), findsNothing);
+      expect(find.text(l.exGymConsultRequest), findsNothing);
     });
   });
 
@@ -671,11 +676,6 @@ void main() {
           const ConsultationRateLimited(retryAfter: Duration(hours: 5)),
           (AppLocalizations l) => l.exConsultRateLimitedHours(5),
         ),
-        (
-          '다른 담당 트레이너',
-          const ConsultationLinkedToOtherTrainer(),
-          (AppLocalizations l) => l.exConsultLinkedToOtherTrainer,
-        ),
       ]) {
     testWidgets('$name에 걸리면 안내하고 대기 중으로 표시하지 않는다 (#1628)', (
       WidgetTester tester,
@@ -815,7 +815,7 @@ void main() {
     expect(repository.sent!.exerciseGoal, ExerciseGoal.weightLoss);
   });
 
-  testWidgets('담당이 따로 있으면 다른 트레이너 상세의 상담 버튼을 막는다 (#2611)', (
+  testWidgets('담당이 따로 있어도 다른 트레이너 상세에서 상담을 신청할 수 있다 (#3358)', (
     WidgetTester tester,
   ) async {
     await pumpRoute(
@@ -827,16 +827,18 @@ void main() {
 
     final Finder start = find.byKey(const Key('consult-start'));
     await _scrollTo(tester, start, 250);
-    expect(tester.widget<AppButton>(start).onPressed, isNull);
-    expect(find.text(l.exConsultLinkedToOtherTrainer), findsOneWidget);
-    // 담당이 아니므로 이 화면에는 연결 해제 버튼이 없다 — 담당 상세로 보낸다.
+    expect(tester.widget<AppButton>(start).onPressed, isNotNull);
+    expect(find.text(l.exTrainerConsultRequest), findsOneWidget);
+    // 담당이 아니므로 이 화면에는 연결 해제 버튼이 없다.
     expect(find.byKey(const Key('connection-disconnect-button')), findsNothing);
-    final Finder goToCoach = find.byKey(const Key('consult-go-to-my-trainer'));
-    await _scrollTo(tester, goToCoach, 250);
-    expect(goToCoach, findsOneWidget);
+
+    await tester.tap(start);
+    await tester.pumpAndSettle();
+    // 담당이 아닌 트레이너에게 내는 것이라 정보 전달 동의를 받는다.
+    expect(find.byKey(const Key('consultDataSharingConsent')), findsOneWidget);
   });
 
-  testWidgets('담당이 따로 있으면 다른 헬스장 상담 버튼도 막는다 (#2611)', (
+  testWidgets('담당이 따로 있어도 다른 헬스장 상담 버튼이 켜진다 (#3358)', (
     WidgetTester tester,
   ) async {
     await pumpRoute(
@@ -845,18 +847,41 @@ void main() {
       hasMyGym: false,
       linkedElsewhere: true,
     );
-    final AppLocalizations l = _localizations(tester);
 
     final Finder start = find.byKey(const Key('gym-consult-start'));
     await _scrollTo(tester, start, 250);
-    expect(tester.widget<AppButton>(start).onPressed, isNull);
-    // 안내는 버튼 아래라 화면 밖이면 아직 그려지지 않는다 — 끝까지 내린다.
-    await _scrollTo(
+    expect(tester.widget<AppButton>(start).onPressed, isNotNull);
+  });
+
+  testWidgets('담당이 따로 있는 회원의 신청은 동의를 받고 그대로 보낸다 (#3358)', (
+    WidgetTester tester,
+  ) async {
+    final _CapturingRepository repository = _CapturingRepository();
+    await pumpRoute(
       tester,
-      find.byKey(const Key('consult-go-to-my-trainer')),
-      250,
+      AppRoutes.consultationRequestPath(gymId: _gym.id, trainerId: _trainer.id),
+      linkedElsewhere: true,
+      healthFocus: kHealthFocusStrength,
+      repository: repository,
     );
-    expect(find.text(l.exConsultLinkedToOtherTrainer), findsOneWidget);
+    final AppLocalizations l = _localizations(tester);
+
+    // 담당에게 내는 재상담(#2585)이 아니다 — 목표를 미리 채우지 않는다.
+    expect(find.text(l.exConsultDataSharingLinked), findsNothing);
+    expect(find.text(l.exConsultGoalPrefilled), findsNothing);
+
+    await tester.tap(find.byKey(const Key('consultDataSharingConsent')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l.healthFocusWeightLoss));
+    await _pickSlot(tester);
+    await _revealInForm(tester, find.byKey(const Key('consult-submit')), 220);
+    await tester.tap(find.byKey(const Key('consult-submit')));
+    await tester.pumpAndSettle();
+
+    final ConsultationDraft sent = repository.sent!;
+    expect(sent.trainerId, _trainer.id);
+    expect(sent.dataSharingConsent, isTrue);
+    expect(sent.exerciseGoal, ExerciseGoal.weightLoss);
   });
 
   testWidgets('담당이 아니면 목표를 채우지 않고 동의를 받는다 (#2585)', (

@@ -1,6 +1,5 @@
 // Boot smoke test — the trainer app now starts on the login screen.
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +26,7 @@ void main() {
           ),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
-        child: const OncareTrainerApp(locale: Locale('ko')),
+        child: const OncareTrainerApp(),
       ),
     );
     await tester.pumpAndSettle();

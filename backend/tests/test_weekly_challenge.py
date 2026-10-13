@@ -1,4 +1,5 @@
 """주간 운동 챌린지 — 참가 기간·한 주 한 번·건 포인트·진행 세기·주 마감 판정. (#1789)
+판정 앞의 하루 유예와 기록 마감, 미읽음 수 조회의 결과 알림 생성. (#3362)
 DB 필요(로컬 skip, CI 실행).
 
 요일은 `clock.now` 를 고정해 정한다. 토큰 발급·만료는 실제 시각을 쓰므로 고정해도
@@ -32,6 +33,9 @@ THU = MON + timedelta(days=3)
 SAT = MON + timedelta(days=5)
 SUN = MON + timedelta(days=6)
 NEXT_MON = MON + timedelta(days=7)
+#: 지난주 유예(월요일)가 끝나 판정하는 첫날.
+NEXT_TUE = MON + timedelta(days=8)
+NEXT_WED = MON + timedelta(days=9)
 
 _LABELS = ("월", "화", "수", "목", "금", "토", "일")
 _RESULT_TITLE = "주간 챌린지%"
@@ -73,8 +77,19 @@ def _new_member(
     return member_id, headers
 
 
-def _record(db_session, member_id: str, day: date, *, source: str = "member") -> None:
-    """[day] 의 운동 기록 한 건을 표에 직접 넣는다(적립 없이)."""
+def _record(
+    db_session,
+    member_id: str,
+    day: date,
+    *,
+    source: str = "member",
+    stored_on: date | None = None,
+) -> None:
+    """[day] 의 운동 기록 한 건을 표에 직접 넣는다(적립 없이).
+
+    저장 시각은 [stored_on](기본 그날) 정오(KST)다 — 판정이 기록 마감을 저장 시각으로
+    본다(#3362).
+    """
     monday = day - timedelta(days=day.weekday())
     db_session.add(
         ExerciseSession(
@@ -87,9 +102,18 @@ def _record(db_session, member_id: str, day: date, *, source: str = "member") ->
             calories=120,
             source=source,
             completed_at=exercise_activity.noon(day),
+            created_at=datetime.combine(
+                stored_on or day, time(12, 0), tzinfo=clock.SEOUL
+            ),
         )
     )
     db_session.commit()
+
+
+def _unread(client, headers) -> int:
+    r = client.get("/v1/notifications/unread-count", headers=headers)
+    assert r.status_code == 200, r.text
+    return r.json()["unread"]
 
 
 def _weekly(client, headers) -> dict:
@@ -224,6 +248,99 @@ def test_join_stakes_100_points_and_freezes_goal(client, db_session, at):
     state = _weekly(client, h)
     assert state["goal"] == 4
     assert state["challenge"]["goal"] == 4
+
+
+def _set_goal(client, headers, goal: int | None) -> None:
+    """회원 앱 MY 건강 목표가 보내는 모양으로 주간 운동 횟수를 정한다. (#3361)"""
+    r = client.put(
+        "/v1/users/me/health-goals",
+        json={"weekly_workout_goal": goal},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["weekly_workout_goal"] == goal
+
+
+def test_member_set_goal_applies_from_the_next_join(client, db_session, at):
+    """회원이 정한 주간 운동 횟수가 목표가 되고, 참가한 주는 그대로다. (#3361)"""
+    _, h = _new_member(client, db_session)
+    at(MON)
+    assert _weekly(client, h)["goal"] == 3
+
+    _set_goal(client, h, 5)
+    assert _weekly(client, h)["goal"] == 5
+    r = _join(client, h)
+    assert r.status_code == 201, r.text
+    assert r.json()["challenge"]["goal"] == 5
+
+    # 주 중간에 목표를 낮춰도 이번 주 챌린지는 참가할 때 값이다.
+    at(WED)
+    _set_goal(client, h, 2)
+    state = _weekly(client, h)
+    assert state["goal"] == 5
+    assert state["challenge"]["goal"] == 5
+
+    # 다음 주에 참가하면 새 목표가 걸리고, 지난주 기록의 목표는 5 그대로다.
+    at(NEXT_MON)
+    assert _weekly(client, h)["goal"] == 2
+    assert _join(client, h).status_code == 201
+    assert [c["goal"] for c in _history(client, h)] == [2, 5]
+
+
+def test_clearing_the_goal_falls_back_to_three(client, db_session, at):
+    """목표를 지운 회원의 다음 챌린지는 다시 3회다. (#3361)"""
+    _, h = _new_member(client, db_session, goal=6)
+    at(MON)
+    assert _weekly(client, h)["goal"] == 6
+
+    _set_goal(client, h, None)
+    assert _weekly(client, h)["goal"] == 3
+
+
+def test_history_lists_results_newest_first_with_rewards(client, db_session, at):
+    """지난 결과 — 주·목표·운동한 날·성공 여부·받은 포인트를 최근 주 먼저. (#3361)"""
+    member_id, h = _new_member(client, db_session, points=1000, goal=3)
+    assert _history(client, h) == []
+
+    # 첫 주는 목표를 채우고, 둘째 주는 하루만 운동한다.
+    at(MON)
+    assert _join(client, h).status_code == 201
+    for day in (MON, WED, SAT):
+        _record(db_session, member_id, day)
+    at(NEXT_MON)
+    assert _join(client, h).status_code == 201
+    _record(db_session, member_id, NEXT_MON)
+
+    # 셋째 주 화요일 — 두 주 모두 유예까지 끝났다.
+    third_tue = MON + timedelta(days=15)
+    at(third_tue)
+    assert _join(client, h).status_code == 201
+
+    rows = _history(client, h)
+    assert [c["week_start"] for c in rows] == [
+        (MON + timedelta(days=14)).isoformat(),
+        NEXT_MON.isoformat(),
+        MON.isoformat(),
+    ]
+    assert [c["status"] for c in rows] == ["active", "failed", "succeeded"]
+    assert [c["goal"] for c in rows] == [3, 3, 3]
+    assert [c["progress"] for c in rows] == [0, 1, 3]
+    assert [c["rewarded"] for c in rows] == [0, 0, 200]
+    assert rows[0]["settling"] is False
+    assert rows[2]["week_end"] == SUN.isoformat()
+    # 건 포인트 셋(-300)과 첫 주 보상(+200).
+    assert _balance(client, h) == 900
+
+
+def test_history_is_per_member(client, db_session, at):
+    """다른 회원의 참가 기록은 섞이지 않는다. (#3361)"""
+    _, mine = _new_member(client, db_session)
+    _, other = _new_member(client, db_session)
+    at(MON)
+    assert _join(client, other).status_code == 201
+
+    assert _history(client, mine) == []
+    assert len(_history(client, other)) == 1
 
 
 @pytest.mark.parametrize(("goal", "expected"), [(None, 3), (0, 3), (5, 5), (10, 7)])
@@ -368,7 +485,12 @@ def test_success_rewards_200_once_after_the_week_ends(client, db_session, at):
     assert _weekly(client, h)["challenge"]["status"] == "active"
     assert _balance(client, h) == 900
 
+    # 월요일 하루는 유예다 — 판정하지 않는다(#3362).
     at(NEXT_MON, 0, 1)
+    assert _history(client, h)[0]["status"] == "active"
+    assert _balance(client, h) == 900
+
+    at(NEXT_TUE, 0, 1)
     history = _history(client, h)
     last = history[0]
     assert last["week_start"] == MON.isoformat()
@@ -398,12 +520,13 @@ def test_success_rewards_200_once_after_the_week_ends(client, db_session, at):
     # 결과는 포인트 사용처로 보낸다 — 다음 주 참가와 돌려받은 포인트가 그 화면에
     # 있다. 내 혜택은 교환해 가진 것(쿠폰·보호권)만 둔다(#1789).
     assert notices[0].category == "points_shop"
-    assert "9월 14일~9월 20일" in notices[0].body
+    assert "9월 14일 ~ 9월 20일" in notices[0].body
 
     # 새 주의 상태는 참가 전이다.
     state = _weekly(client, h)
     assert state["week_start"] == NEXT_MON.isoformat()
     assert state["challenge"] is None
+    assert state["settling_challenge"] is None
     assert state["joinable"] is True
 
 
@@ -414,7 +537,7 @@ def test_failure_loses_the_stake(client, db_session, at):
     _record(db_session, member_id, MON)
     _record(db_session, member_id, TUE)
 
-    at(NEXT_MON)
+    at(NEXT_TUE)
     last = _history(client, h)[0]
     assert last["status"] == "failed"
     assert last["progress"] == 2
@@ -469,7 +592,7 @@ def test_reading_notifications_creates_the_result_notice(client, db_session, at)
     assert _join(client, h).status_code == 201
     _record(db_session, member_id, TUE)
 
-    at(NEXT_MON)
+    at(NEXT_TUE)
     r = client.get("/v1/notifications", headers=h)
     assert r.status_code == 200, r.text
     notices = [n for n in r.json() if n["title"].startswith("주간 챌린지")]
@@ -491,7 +614,12 @@ def test_last_week_reward_lands_before_this_week_join(client, db_session, at):
     assert _join(client, h).status_code == 201
     _record(db_session, member_id, MON)
 
+    # 월요일은 지난주의 유예라 보상이 아직 없다 — 잔액이 모자라 참가하지 못한다(#3362).
     at(NEXT_MON)
+    assert _join(client, h).status_code == 409
+    assert _ledger(db_session, member_id, "earn") == []
+
+    at(NEXT_TUE)
     r = _join(client, h)
     assert r.status_code == 201, r.text
     assert r.json()["balance"] == 100  # 0 + 보상 200 - 이번 주 100
@@ -510,3 +638,246 @@ def test_weeks_left_unread_are_settled_later_once(client, db_session, at):
     assert [c["status"] for c in history] == ["failed"]
     assert len(_result_notifications(db_session, member_id)) == 1
     assert _balance(client, h) == 900
+
+
+# ---- 유예와 기록 마감 (#3362) ----
+
+
+def test_the_day_after_the_week_is_a_grace_day(client, db_session, at):
+    """주가 끝난 다음 날은 판정하지 않고 집계 중으로 답한다."""
+    member_id, h = _new_member(client, db_session, points=1000, goal=3)
+    at(MON)
+    assert _join(client, h).status_code == 201
+    _record(db_session, member_id, MON)
+    _record(db_session, member_id, WED)
+
+    # 주 안에서는 집계 중이 아니다.
+    at(SUN, 23, 59)
+    state = _weekly(client, h)
+    assert state["challenge"]["settling"] is False
+    assert state["settling_challenge"] is None
+
+    for hour, minute in ((0, 1), (12, 0), (23, 59)):
+        at(NEXT_MON, hour, minute)
+        # 판정을 부르던 읽기 경로를 모두 지나도 그대로다.
+        assert client.get("/v1/me/points/shop", headers=h).status_code == 200
+        assert client.get("/v1/notifications", headers=h).status_code == 200
+        state = _weekly(client, h)
+        assert state["week_start"] == NEXT_MON.isoformat()
+        assert state["challenge"] is None
+        pending = state["settling_challenge"]
+        assert pending["week_start"] == MON.isoformat()
+        assert pending["status"] == "active"
+        assert pending["settling"] is True
+        assert pending["progress"] == 2
+        assert pending["settled_at"] is None
+        last = _history(client, h)[0]
+        assert last["status"] == "active"
+        assert last["settling"] is True
+        assert _balance(client, h) == 900
+
+    assert _ledger(db_session, member_id, "earn") == []
+    assert _result_notifications(db_session, member_id) == []
+
+    at(NEXT_TUE, 0, 0)
+    state = _weekly(client, h)
+    assert state["settling_challenge"] is None
+    last = _history(client, h)[0]
+    assert last["status"] == "failed"
+    assert last["settling"] is False
+    assert len(_result_notifications(db_session, member_id)) == 1
+
+
+def test_a_record_written_on_the_grace_day_counts(client, db_session, at):
+    """일요일 운동을 월요일에 적어도 반영된다 — 그 전에 앱을 열었어도 같다."""
+    member_id, h = _new_member(client, db_session, points=1000, goal=3)
+    at(MON)
+    assert _join(client, h).status_code == 201
+    _record(db_session, member_id, MON)
+    _record(db_session, member_id, WED)
+
+    # 월요일 아침에 MY 를 먼저 연다. 예전에는 이 순간 실패로 굳었다.
+    at(NEXT_MON, 8, 0)
+    assert _balance(client, h) == 900
+    assert _weekly(client, h)["settling_challenge"]["progress"] == 2
+
+    _record(db_session, member_id, SUN, stored_on=NEXT_MON)
+    at(NEXT_MON, 21, 0)
+    pending = _weekly(client, h)["settling_challenge"]
+    assert pending["progress"] == 3
+    assert pending["achieved"] is True
+    assert pending["rewarded"] == 0
+
+    at(NEXT_TUE)
+    last = _history(client, h)[0]
+    assert last["status"] == "succeeded"
+    assert last["progress"] == 3
+    assert _balance(client, h) == 1100
+    assert len(_ledger(db_session, member_id, "earn")) == 1
+
+
+def test_a_record_written_after_the_grace_day_does_not_count(client, db_session, at):
+    """기록 마감은 유예 마지막 날이다 — 판정 요청이 늦게 닿아도 결과가 같다."""
+    member_id, h = _new_member(client, db_session, points=1000, goal=3)
+    at(MON)
+    assert _join(client, h).status_code == 201
+    _record(db_session, member_id, MON)
+    _record(db_session, member_id, WED)
+
+    # 유예가 끝날 때까지 앱을 열지 않았고, 화요일에 지난주 기록을 먼저 넣었다.
+    _record(db_session, member_id, SUN, stored_on=NEXT_TUE)
+    at(NEXT_WED)
+    last = _history(client, h)[0]
+    assert last["status"] == "failed"
+    assert last["progress"] == 2
+    assert _balance(client, h) == 900
+    assert _ledger(db_session, member_id, "earn") == []
+
+
+def test_a_finished_settlement_is_not_recalculated(client, db_session, at):
+    member_id, h = _new_member(client, db_session, points=1000, goal=2)
+    at(MON)
+    assert _join(client, h).status_code == 201
+    _record(db_session, member_id, MON)
+    _record(db_session, member_id, TUE)
+
+    at(NEXT_TUE)
+    first = _history(client, h)[0]
+    assert first["status"] == "succeeded"
+
+    # 판정 뒤 지난주 기록이 사라져도, 날이 더 지나도 결과·보상·알림은 그대로다.
+    db_session.expire_all()
+    for row in db_session.scalars(
+        select(ExerciseSession).where(ExerciseSession.user_id == member_id)
+    ).all():
+        db_session.delete(row)
+    db_session.commit()
+    for day in (NEXT_TUE, NEXT_WED, NEXT_MON + timedelta(days=7)):
+        at(day)
+        again = next(
+            c for c in _history(client, h) if c["week_start"] == MON.isoformat()
+        )
+        assert again["status"] == "succeeded"
+        assert again["progress"] == 2
+        assert again["settled_at"] == first["settled_at"]
+        _unread(client, h)
+    assert len(_ledger(db_session, member_id, "earn")) == 1
+    assert len(_result_notifications(db_session, member_id)) == 1
+
+
+def test_joining_this_week_keeps_last_week_settling(client, db_session, at):
+    """유예 중에 이번 주에 참가해도 지난주는 집계 중으로 남는다."""
+    member_id, h = _new_member(client, db_session, points=1000, goal=1)
+    at(MON)
+    assert _join(client, h).status_code == 201
+    _record(db_session, member_id, MON)
+
+    at(NEXT_MON)
+    assert _join(client, h).status_code == 201
+    state = _weekly(client, h)
+    assert state["challenge"]["week_start"] == NEXT_MON.isoformat()
+    assert state["challenge"]["settling"] is False
+    assert state["settling_challenge"]["week_start"] == MON.isoformat()
+    assert state["settling_challenge"]["settling"] is True
+    assert _challenge_rows(db_session, member_id) == 2
+
+    at(NEXT_TUE)
+    state = _weekly(client, h)
+    assert state["settling_challenge"] is None
+    assert state["challenge"]["status"] == "active"
+    assert [c["status"] for c in _history(client, h)] == ["active", "succeeded"]
+
+
+def test_recorded_after_compares_with_the_kst_day_it_was_stored():
+    from types import SimpleNamespace
+
+    from app.services import weekly_challenge_service as wcs
+
+    assert wcs.GRACE_DAYS == 1
+    assert wcs.record_deadline(MON) == NEXT_MON
+    monday_night = datetime.combine(NEXT_MON, time(23, 59), tzinfo=clock.SEOUL)
+    assert wcs.recorded_after(SimpleNamespace(created_at=monday_night), NEXT_MON) is False
+    tuesday = datetime.combine(NEXT_TUE, time(0, 0), tzinfo=clock.SEOUL)
+    assert wcs.recorded_after(SimpleNamespace(created_at=tuesday), NEXT_MON) is True
+    # UTC naive 로 저장된 값은 KST 로 옮겨 본다 — 월요일 15:30 UTC 는 화요일 00:30 KST.
+    utc_naive = datetime.combine(NEXT_MON, time(15, 30))
+    assert wcs.recorded_after(SimpleNamespace(created_at=utc_naive), NEXT_MON) is True
+    assert wcs.recorded_after(SimpleNamespace(created_at=None), NEXT_MON) is False
+
+
+# ---- 미읽음 수 조회의 늦은 생성 (#3362) ----
+
+
+def test_unread_count_creates_the_result_notice(client, db_session, at):
+    """알림함을 열지 않아도 배지 조회가 결과 알림을 만든다."""
+    member_id, h = _new_member(client, db_session, goal=1)
+    at(MON)
+    assert _join(client, h).status_code == 201
+    _record(db_session, member_id, MON)
+
+    # 유예 중에는 만들지 않는다.
+    at(NEXT_MON, 23, 0)
+    before = _unread(client, h)
+    assert _result_notifications(db_session, member_id) == []
+
+    at(NEXT_TUE, 0, 1)
+    assert _unread(client, h) == before + 1
+    notices = _result_notifications(db_session, member_id)
+    assert len(notices) == 1
+    assert notices[0].read is False
+    assert len(_ledger(db_session, member_id, "earn")) == 1
+
+    # 다시 읽어도, 알림함을 열어도 한 건이다.
+    at(NEXT_TUE, 9, 0)
+    assert _unread(client, h) == before + 1
+    assert client.get("/v1/notifications", headers=h).status_code == 200
+    assert len(_result_notifications(db_session, member_id)) == 1
+
+
+def test_unread_count_checks_due_notifications_once_per_interval(
+    client, db_session, at, monkeypatch
+):
+    """배지는 자주 읽는다 — 회원마다 간격에 한 번만 판정·만료 확인을 돌린다."""
+    from app.api.v1 import notifications as route
+
+    _, h = _new_member(client, db_session)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        route, "create_due_notifications", lambda db, user_id: calls.append(user_id)
+    )
+
+    at(TUE, 10, 0)
+    _unread(client, h)
+    _unread(client, h)
+    at(TUE, 10, 4)
+    _unread(client, h)
+    assert len(calls) == 1
+
+    at(TUE, 10, 5)
+    _unread(client, h)
+    assert len(calls) == 2
+
+    # 다른 회원은 따로 센다.
+    _, other = _new_member(client, db_session)
+    _unread(client, other)
+    assert len(calls) == 3
+    assert calls[0] == calls[1] != calls[2]
+
+
+def test_unread_count_also_reminds_expiring_coupons(
+    client, db_session, at, monkeypatch
+):
+    """만료 임박 알림도 같은 자리에서 만든다. 실패해도 배지는 답한다."""
+    from app.api.v1 import notifications as route
+
+    member_id, h = _new_member(client, db_session)
+    seen: list[str] = []
+
+    def _remind(db, user_id: str) -> int:
+        seen.append(user_id)
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(route.points_coupon_service, "remind_expiring", _remind)
+    at(WED)
+    assert _unread(client, h) >= 0
+    assert seen == [member_id]

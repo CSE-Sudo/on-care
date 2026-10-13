@@ -1,4 +1,4 @@
-/// 로그인 화면의 `비밀번호를 잊으셨나요?` 와 비밀번호 재설정 화면(#2824).
+/// 로그인 화면의 `비밀번호 찾기` 와 비밀번호 재설정 화면(#2824).
 ///
 /// 요청 → 코드 입력 → 완료 흐름, 메일 링크의 코드로 바로 시작하기, 서버 실패
 /// 이유가 어느 칸에 붙는지, 데모가 코드를 채워 주는지를 본다.
@@ -322,5 +322,36 @@ void main() {
     await _fillConfirm(tester);
     await _tap(tester, _key('passwordReset-submit'));
     expect(find.byKey(const Key('passwordResetDoneStep')), findsOneWidget);
+  });
+
+  testWidgets('코드 입력 단계는 소셜 가입이면 메일이 오지 않는다고 알린다 (#3338)', (tester) async {
+    // 소셜 전용 계정에도 서버는 같은 202 를 준다 — 화면이 미리 알려야 한다.
+    final _FakeReset repo = _FakeReset();
+    final AppLocalizations l = await _pump(
+      tester,
+      repository: repo,
+      initialLocation: AppRoutes.passwordReset,
+    );
+    // 요청 단계에는 아직 없다.
+    expect(find.byKey(const Key('passwordResetSocialNote')), findsNothing);
+
+    await tester.enterText(_key('passwordReset-email'), 'member@example.com');
+    await _tap(tester, _key('passwordReset-send'));
+
+    expect(find.byKey(const Key('passwordResetConfirmStep')), findsOneWidget);
+    expect(find.text(l.passwordResetSocialNote), findsOneWidget);
+    expect(l.passwordResetSocialNote, contains('소셜 로그인'));
+  });
+
+  testWidgets('메일을 요청하지 않고 코드 단계로 와도 소셜 가입 안내가 보인다 (#3338)', (tester) async {
+    final AppLocalizations l = await _pump(
+      tester,
+      repository: _FakeReset(),
+      initialLocation: AppRoutes.passwordReset,
+    );
+    await _tap(tester, _key('passwordReset-have-code'));
+
+    expect(find.byKey(const Key('passwordResetSentNotice')), findsNothing);
+    expect(find.text(l.passwordResetSocialNote), findsOneWidget);
   });
 }

@@ -67,6 +67,8 @@ ReportSheetWeekData reportSheetWeekFromJson(
     carbsTarget: optDouble('carbs_target'),
     proteinTarget: optDouble('protein_target'),
     fatTarget: optDouble('fat_target'),
+    // 실효 단백질 목표(#2898). 트레이너 화면 탄단지 막대와 같은 선으로 견준다.
+    effectiveProteinTarget: optDouble('effective_protein_target'),
     days: <ReportSheetDay>[
       for (final Object? day
           in json['days'] as List<Object?>? ?? const <Object?>[])

@@ -50,7 +50,7 @@ class _Taps {
   int delete = 0;
 }
 
-Widget _app(Widget child, {Locale locale = const Locale('ko')}) =>
+Widget _app(Widget child) =>
     ProviderScope(
       overrides: <Override>[
         clientsProvider.overrideWith(
@@ -59,7 +59,7 @@ Widget _app(Widget child, {Locale locale = const Locale('ko')}) =>
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -73,9 +73,7 @@ Widget _app(Widget child, {Locale locale = const Locale('ko')}) =>
 
 Future<_Taps> _pumpCard(
   WidgetTester tester,
-  ScheduleSession session, {
-  Locale locale = const Locale('ko'),
-}) async {
+  ScheduleSession session) async {
   final taps = _Taps();
   tester.view.physicalSize = const Size(420, 1000);
   tester.view.devicePixelRatio = 1.0;
@@ -95,7 +93,6 @@ Future<_Taps> _pumpCard(
         sendingProgram: false,
         onSendProgram: () {},
       ),
-      locale: locale,
     ),
   );
   await tester.pump();
@@ -164,7 +161,7 @@ void main() {
           find.byKey(const ValueKey<String>('session-finished-hint')),
           findsOneWidget,
         );
-        expect(find.text('끝난 PT는 메모·프로그램만 고칠 수 있어요.'), findsOneWidget);
+        expect(find.text('끝난 PT는 피드백·프로그램만 고칠 수 있어요.'), findsOneWidget);
 
         await _openMenu(tester);
         // 감추지 않고 흐리게 둔다 — 동작이 있는데 지금은 안 된다.
@@ -188,7 +185,7 @@ void main() {
     testWidgets('완료 세션은 일정 수정을 열고, 되돌리기 안내를 보인다', (tester) async {
       final taps = await _pumpCard(tester, _session(ScheduleStatus.done));
 
-      expect(find.textContaining('완료한 PT는 메모·프로그램만'), findsOneWidget);
+      expect(find.textContaining('완료한 PT는 피드백·프로그램만'), findsOneWidget);
       await _openMenu(tester);
       await _tapItem(tester, 'session-edit-schedule-chip');
       expect(taps.editSchedule, 1);
@@ -212,16 +209,6 @@ void main() {
       await _openMenu(tester);
       await _tapItem(tester, 'session-edit-schedule-chip');
       expect(taps.editSchedule, 1);
-    });
-
-    testWidgets('영어 화면은 영어 안내다', (tester) async {
-      await _pumpCard(
-        tester,
-        _session(ScheduleStatus.cancelled),
-        locale: const Locale('en'),
-      );
-
-      expect(find.textContaining('A finished PT can only'), findsOneWidget);
     });
   });
 

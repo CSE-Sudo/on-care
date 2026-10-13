@@ -158,6 +158,32 @@ def test_inviting_does_not_touch_the_roster(client, db_session):
     )
 
 
+def test_the_invite_does_not_reveal_the_member_email(client, db_session):
+    """수락 전 요청 응답에는 회원 이메일이 없다(#3239) — 보낸 직후와 목록 모두."""
+    _, trainer_token = _trainer(client, db_session)
+    member_id, member_email, _ = _member(client)
+
+    response = client.post(
+        "/v1/trainer/client-invites",
+        json={"member_id": member_id},
+        headers=_auth(trainer_token),
+    )
+    assert response.status_code == 201, response.text
+    assert "member_email" not in response.json()
+    assert member_email not in response.text
+
+    listed = client.get(
+        "/v1/trainer/client-invites",
+        params={"status": "all"},
+        headers=_auth(trainer_token),
+    )
+    assert listed.status_code == 200, listed.text
+    mine = [row for row in listed.json() if row["member_id"] == member_id]
+    assert len(mine) == 1
+    assert "member_email" not in mine[0]
+    assert member_email not in listed.text
+
+
 def test_the_member_sees_the_invite_and_gets_a_notification(client, db_session):
     trainer, trainer_token = _trainer(client, db_session)
     member_id, _, member_token = _member(client)

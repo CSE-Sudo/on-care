@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' show Locale;
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
@@ -37,11 +36,12 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_period.da
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/health_focus.dart';
+import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Reads a trainer's clients + their diet/history for the 고객 관리 tab.
@@ -112,22 +112,19 @@ abstract interface class ClientRepository {
   /// 회원 앱 조언과 **같은 기간·같은 판정**이다(이번 주는 월·화 지난주 회고,
   /// 전체는 최근 4주). 같은 회원의 같은 기간을 두 화면이 다른 기준으로 말하면
   /// 상담에서 둘이 다른 이야기를 들고 앉는다. 문장은 키·값으로 오고 화면이 ARB 로
-  /// 그린다. 실서버는 [locale] 을 `Accept-Language` 로 보낸다(#2299) — 문장 키는
-  /// 언어와 무관하다.
+  /// 그린다.
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  });
+    ClientPeriod period,
+  );
 
   /// 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2378, #2379)
   ///
   /// 후보는 회원의 4주 추천 메뉴 리스트에서 급한 태그를 채우는 메뉴부터다. 조회로
   /// AI 를 새로 부르지 않는다.
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  });
+    String clientId,
+  );
 
   /// 후보 하나를 회원에게 추천한다 — 회원 앱 홈 `추천 식단` 첫 장이 된다. 다시
   /// 부르면 바꾸기다. 돌려주는 것은 확정 뒤의 상태다.
@@ -135,7 +132,6 @@ abstract interface class ClientRepository {
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   });
 
   Future<ClientDietPeriod> fetchDietPeriod(
@@ -224,12 +220,22 @@ Future<void> writeDemoUnregisteredClientIds(
 /// 바뀔 때마다 다시 돈다. 대신 미등록 상태를 바꾸는 이 두 호출부
 /// (`MyPage._removeClient`, `ClientConnectDialog._connect`)가 명시적으로
 /// 무효화한다.
-void invalidateClientVisibilityDependentViews(WidgetRef ref) {
-  ref.invalidate(todayScheduleProvider);
-  ref.invalidate(scheduleForDateProvider);
-  ref.invalidate(bookedDatesProvider);
-  ref.invalidate(scheduleRangeProvider);
-  ref.invalidate(unreadCountsProvider);
+void invalidateClientVisibilityDependentViews(WidgetRef ref) =>
+    _invalidateClientVisibilityDependentViews(ref.invalidate);
+
+/// [invalidateClientVisibilityDependentViews] 를 컨테이너로 — 요청이 끝나기 전에
+/// 화면이 해제될 수 있는 자리가 쓴다(#3248).
+void invalidateClientVisibilityDependentViewsIn(ProviderContainer container) =>
+    _invalidateClientVisibilityDependentViews(container.invalidate);
+
+void _invalidateClientVisibilityDependentViews(
+  void Function(ProviderOrFamily provider) invalidate,
+) {
+  invalidate(todayScheduleProvider);
+  invalidate(scheduleForDateProvider);
+  invalidate(bookedDatesProvider);
+  invalidate(scheduleRangeProvider);
+  invalidate(unreadCountsProvider);
 }
 
 /// Reads client + schedule data from the local drift DB for the
@@ -249,6 +255,9 @@ class DriftClientRepository implements ClientRepository {
       readsFrom: <ResultSetImplementation<Object?, Object?>>{
         _db.trainerClients,
         _db.appKeyValues,
+        // 노쇼 신호는 일정 기록에서 센다(#3304) — 스케줄에서 노쇼·회원 사정
+        // 취소를 남기면 로스터도 다시 계산돼야 한다.
+        _db.trainerScheduleEntries,
       },
     );
     return trigger.watch().asyncMap((_) async {
@@ -258,10 +267,60 @@ class DriftClientRepository implements ClientRepository {
         ]);
       final rows = await query.get();
       final removed = await readDemoUnregisteredClientIds(_db);
+      final Map<String, int> noShows = await _recentNoShowCounts();
       return rows
-          .map((row) => _toEntity(row, registered: !removed.contains(row.id)))
+          .map(
+            (row) => _toEntity(
+              row,
+              registered: !removed.contains(row.id),
+              noShowCount: noShows[row.id] ?? 0,
+            ),
+          )
           .toList();
     });
+  }
+
+  /// 회원별 최근 [demoNoShowWindowDays]일(오늘 포함) 노쇼·회원 사정 취소 수.
+  /// (#3304, #3306)
+  ///
+  /// 실서버 `client_signals.py` 와 같은 규칙이다 — 노쇼는 PT 날짜로, 회원 사정
+  /// 취소는 **취소한 날**로 창에 넣는다. 그래서 앞으로 있을 PT 를 미리 취소해도
+  /// 바로 센다. 취소 시각이 없는 기록은 PT 날짜로 세고, 트레이너 사정 취소는
+  /// 회원의 미이행이 아니라 세지 않는다. 예전에는 시드에 신호를 박아 두어,
+  /// 스케줄에서 노쇼를 남겨도 이탈 위험이 그대로였다.
+  Future<Map<String, int>> _recentNoShowCounts() async {
+    final DateTime now = nowKst();
+    final String to = ymd(now);
+    final String from = ymd(
+      DateTime(now.year, now.month, now.day - demoNoShowWindowDays),
+    );
+    final t = _db.trainerScheduleEntries;
+    final rows =
+        await (_db.select(t)..where(
+              (r) =>
+                  r.clientId.isNotNull() &
+                  (r.status.equals(ScheduleStatus.noShow) |
+                      (r.status.equals(ScheduleStatus.cancelled) &
+                          r.cancellationSource.equals(
+                            CancellationSource.member,
+                          ))),
+            ))
+            .get();
+    final Map<String, int> counts = <String, int>{};
+    for (final TrainerScheduleRow row in rows) {
+      final DateTime? cancelledAt = row.status == ScheduleStatus.cancelled
+          ? row.cancelledAt
+          : null;
+      final String countedOn = cancelledAt != null
+          ? ymd(cancelledAt)
+          : row.date;
+      if (countedOn.compareTo(from) < 0 || countedOn.compareTo(to) > 0) {
+        continue;
+      }
+      final String id = row.clientId!;
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    return counts;
   }
 
   /// Most recent message time per client.
@@ -812,9 +871,8 @@ class DriftClientRepository implements ClientRepository {
   @override
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) async {
+    ClientPeriod period,
+  ) async {
     // 데모는 서버 규칙(`diet_trainer_analysis`)을 옮긴 [todaySentences]·
     // [weekSentences]·[allSentences] 로 로컬 기록을 읽는다(#2379). 고정 문장을
     // 돌려주면 어느 고객을 열어도 같은 말을 해서 기간을 바꿔도 분석이 따라 바뀌는지
@@ -949,9 +1007,8 @@ class DriftClientRepository implements ClientRepository {
 
   @override
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  }) async {
+    String clientId,
+  ) async {
     // 데모 후보는 회원별 4주 추천 메뉴 리스트([demoMenuPlanFor])다(#2667) — 실서버가
     // 회원마다 리스트를 따로 두는 것과 같다. 김민수는 회원 앱 데모가 다음 식사를
     // 고르는 공유 리스트([kDemoMenuPlan]) 그대로라, 두 앱이 같은 메뉴를 말한다.
@@ -967,10 +1024,7 @@ class DriftClientRepository implements ClientRepository {
     );
     final List<String> needs = _needsOf(recent, targets);
     final ClientDietPick? pick = await _demoPick(clientId, recent);
-    final List<DemoPlanMenu> plan = demoMenuPlanFor(
-      clientId,
-      locale.languageCode,
-    );
+    final List<DemoPlanMenu> plan = demoMenuPlanFor(clientId);
     final Set<String> days = <String>{
       for (final DietRuleEntry e in recent) e.date,
     };
@@ -1029,19 +1083,15 @@ class DriftClientRepository implements ClientRepository {
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   }) async {
-    final List<DemoPlanMenu> plan = demoMenuPlanFor(
-      clientId,
-      locale.languageCode,
-    );
+    final List<DemoPlanMenu> plan = demoMenuPlanFor(clientId);
     final DemoPlanMenu? menu = plan
         .where(
           (DemoPlanMenu m) => m.slot == slot && _norm(m.name) == _norm(name),
         )
         .firstOrNull;
     if (menu == null) {
-      throw ArgumentError.value(name, 'name', '추천 후보에 없는 메뉴입니다.');
+      throw ArgumentError.value(name, 'name', '추천 후보에 없는 메뉴예요.');
     }
     await _db.putValue(
       _demoPickKey(clientId),
@@ -1053,7 +1103,7 @@ class DriftClientRepository implements ClientRepository {
         'confirmed_at': nowKst().toIso8601String(),
       }),
     );
-    return fetchDietRecommendations(clientId, locale: locale);
+    return fetchDietRecommendations(clientId);
   }
 
   /// 데모 트레이너가 확정해 둔 추천. 확정한 날부터 그 메뉴를 기록했으면 해소다 —
@@ -1343,8 +1393,15 @@ class DriftClientRepository implements ClientRepository {
     );
   }
 
-  TrainerClient _toEntity(TrainerClientRow row, {bool registered = true}) =>
-      trainerClientFromRow(row, registered: registered);
+  TrainerClient _toEntity(
+    TrainerClientRow row, {
+    bool registered = true,
+    int? noShowCount,
+  }) => trainerClientFromRow(
+    row,
+    registered: registered,
+    noShowCount: noShowCount,
+  );
 }
 
 /// 데모 로스터 한 줄을 화면의 회원으로 옮긴다 — 리포트 저장소도 같은 변환을
@@ -1352,6 +1409,7 @@ class DriftClientRepository implements ClientRepository {
 TrainerClient trainerClientFromRow(
   TrainerClientRow row, {
   bool registered = true,
+  int? noShowCount,
 }) {
   // 걸린 것이 없던 날은 null 이다(#2513). 웹에서는 숫자가 double 로 읽힐 수 있어
   // num 으로 받는다.
@@ -1393,13 +1451,39 @@ TrainerClient trainerClientFromRow(
     caloriesWeek: caloriesWeek,
     sugarWeek: sugarWeek,
     // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
-    signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
+    // [noShowCount] 를 주면 노쇼 신호만 일정 기록으로 다시 정한다(#3304).
+    signals: withDemoNoShowSignal(
+      clientSignalsFromJson(jsonDecode(row.signalsJson)),
+      noShowCount,
+    ),
     // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
     // 성별·나이가 비어 있으면 화면은 그 값을 적지 않는다 — 지어내지
     // 않는다(#2744, #2814, #2870).
     gender: registered ? row.gender ?? '' : '',
     age: registered ? row.age : null,
   );
+}
+
+/// 노쇼를 반복으로 보는 창(일)과 최소 횟수 — 실서버 `client_signals.py` 의
+/// `NO_SHOW_WINDOW_DAYS`·`NO_SHOW_MIN_COUNT` 와 같다. (#3304)
+const int demoNoShowWindowDays = 30;
+const int demoNoShowMinCount = 2;
+
+/// [signals] 의 노쇼 신호를 [noShowCount] 로 다시 정한다. (#3304)
+///
+/// [noShowCount] 가 null 이면(일정을 읽지 않은 자리) 저장된 신호 그대로다.
+/// 신호는 선언 순서가 급한 순서라([ClientSignalKind]) 그 순서로 다시 놓는다.
+List<ClientSignal> withDemoNoShowSignal(
+  List<ClientSignal> signals,
+  int? noShowCount,
+) {
+  if (noShowCount == null) return signals;
+  return <ClientSignal>[
+    for (final ClientSignal s in signals)
+      if (s.kind != ClientSignalKind.noShow) s,
+    if (noShowCount >= demoNoShowMinCount)
+      ClientSignal(ClientSignalKind.noShow, count: noShowCount),
+  ]..sort((a, b) => a.kind.index.compareTo(b.kind.index));
 }
 
 /// Provides the [ClientRepository]: the real Dio-backed source against the
@@ -1495,7 +1579,9 @@ final lastChatAtProvider = StreamProvider.autoDispose<Map<String, DateTime>>((
 /// Stays an [AsyncValue] on purpose. When the schedule is loading or failed
 /// there is no honest number to show, and `valueOrNull` is null — the UI
 /// hides the badge instead of claiming "0명 예약", which would be wrong.
-final todayReservationCountProvider = Provider<AsyncValue<int>>((ref) {
+final todayReservationCountProvider = Provider.autoDispose<AsyncValue<int>>((
+  ref,
+) {
   return ref
       .watch(todayScheduleProvider)
       .whenData(
@@ -1518,7 +1604,14 @@ final todayReservationCountProvider = Provider<AsyncValue<int>>((ref) {
 ///
 /// [todayReservationCountProvider] 와 같은 이유로 [AsyncValue] 로 남는다 —
 /// 스케줄을 못 읽으면 0 이 아니라 값 없음이고, 화면은 배지를 감춘다.
-final todayPendingSessionCountProvider = Provider<AsyncValue<int>>((ref) {
+///
+/// 두 수 모두 **보는 화면이 있는 동안만** 산다(#3248). 예전에는 autoDispose 가
+/// 아니어서 사이드바가 한 번 읽으면 [todayScheduleProvider] 를 붙잡아, 로그아웃한
+/// 뒤 로그인 화면에서도 토큰 없이 5초마다 `/trainer/schedule` 을 불러 401 을
+/// 받았고, 다음에 로그인한 트레이너가 잠깐 이전 수를 봤다.
+final todayPendingSessionCountProvider = Provider.autoDispose<AsyncValue<int>>((
+  ref,
+) {
   return ref
       .watch(todayScheduleProvider)
       .whenData((sessions) => sessions.where((s) => s.isUpcoming).length);
@@ -1579,11 +1672,9 @@ void refreshClientDietInsights(WidgetRef ref) {
 final clientDietAdviceProvider = FutureProvider.autoDispose
     .family<ClientDietAnalysis, ClientDietAdviceKey>((ref, key) async {
       keepAliveForAccount(ref);
-      // 화면 언어가 바뀌면 다시 읽는다 — 조언 문장이 그 언어로 온다(#2299).
-      final Locale locale = ref.watch(trainerResolvedLocaleProvider);
       return ref
           .watch(clientRepositoryProvider)
-          .fetchDietAdvice(key.clientId, key.period, locale: locale);
+          .fetchDietAdvice(key.clientId, key.period);
     });
 
 /// 회원에게 추천할 AI 식단 후보와 지금 확정한 추천. (#2379)
@@ -1596,10 +1687,9 @@ final clientDietRecommendationsProvider = FutureProvider.autoDispose
       key,
     ) async {
       keepAliveForAccount(ref);
-      final Locale locale = ref.watch(trainerResolvedLocaleProvider);
       return ref
           .watch(clientRepositoryProvider)
-          .fetchDietRecommendations(key.clientId, locale: locale);
+          .fetchDietRecommendations(key.clientId);
     });
 
 /// 추천 확정 — 저장한 뒤 후보·상태를 다시 읽는다. 실패는 호출한 쪽으로 던진다.
@@ -1608,14 +1698,12 @@ Future<void> confirmClientDietRecommendation(
   String clientId,
   ClientDietCandidate candidate,
 ) async {
-  final Locale locale = ref.read(trainerResolvedLocaleProvider);
   await ref
       .read(clientRepositoryProvider)
       .confirmDietRecommendation(
         clientId,
         slot: candidate.slot,
         name: candidate.name,
-        locale: locale,
       );
   ref.invalidate(
     clientDietRecommendationsProvider(clientDietRecommendationsKey(clientId)),

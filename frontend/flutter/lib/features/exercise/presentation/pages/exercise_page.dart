@@ -156,6 +156,8 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
       );
       notifier.state = notifier.state == s ? null : s;
     },
+    onReserved: () =>
+        ref.read(exerciseSelectedReservationSlotProvider.notifier).state = null,
   );
 }
 
@@ -224,8 +226,7 @@ class _SubTabs extends StatelessWidget {
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
                 // 라벨은 남는 폭 안에서 접힌다. 아이콘·라벨 둘 다 고정 폭이면
-                // 320px 에서 탭 두 개가 화면을 넘겼다 — 영어(`Exercise log`)는
-                // 기본 배율에서도 넘친다(#766). 아이콘은 접지 않는다.
+                // 320px 에서 탭 두 개가 화면을 넘겼다(#766). 아이콘은 접지 않는다.
                 Flexible(
                   child: Text(
                     label,
@@ -269,10 +270,29 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
   /// 이 화면이 마지막으로 그린 오늘 — 식단 탭과 같은 자정 넘김 규칙이다(#2882).
   late DateTime _shownToday = _selected;
 
+  /// 자정을 넘겨 주가 바뀌었고 새 주 자료를 아직 받지 못했다(#3244).
+  ///
+  /// 주간 자료는 요일 이름으로 하루를 가른다. 일요일에서 월요일로 넘어가면 들고
+  /// 있던 지난주 자료의 `월` 이 오늘로 읽혀, 지난주 월요일 기록이 오늘 기록처럼
+  /// 보였다. 새 주를 받을 때까지는 그리지 않는다.
+  bool _weekRolled = false;
+
+  /// [_weekRolled] 뒤 주간 자료를 다시 읽기 시작했다 — 다음에 오는 결과가 새 주다.
+  bool _awaitingWeek = false;
+
   /// 날이 바뀌었으면, 회원이 날짜를 직접 고르지 않았을 때만 새 오늘로 옮긴다.
   void _followMidnight(DateTime today) {
     if (today == _shownToday) return;
     if (_weekShift == 0 && _selected == _shownToday) _selected = today;
+    if (mondayOfWeek(today) != mondayOfWeek(_shownToday)) {
+      _weekRolled = true;
+      // 그리는 중에는 provider 를 비울 수 없다 — 이 프레임이 끝난 뒤 비운다.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _awaitingWeek = true;
+        ref.invalidate(exerciseWeekProvider);
+      });
+    }
     _shownToday = today;
   }
 
@@ -288,10 +308,29 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
     final AsyncValue<ExerciseWeek> weekAsync = ref.watch(
       exerciseWeekViewProvider,
     );
+    ref.listen<AsyncValue<ExerciseWeek>>(exerciseWeekProvider, (
+      AsyncValue<ExerciseWeek>? previous,
+      AsyncValue<ExerciseWeek> next,
+    ) {
+      if (!_awaitingWeek || next.isLoading) return;
+      setState(() {
+        _awaitingWeek = false;
+        _weekRolled = false;
+      });
+    });
     final DateTime today = _today;
     _followMidnight(today);
-    final DateTime center = today.add(Duration(days: _weekShift * 7));
+    // 날짜는 달력으로 더한다 — 24시간 단위로 더하면 서머타임이 있는 기기에서
+    // 전날 23시가 되어 한 칸 밀린다(#3244).
+    final DateTime center = DateTime(
+      today.year,
+      today.month,
+      today.day + _weekShift * 7,
+    );
     final bool atToday = _weekShift == 0 && _selected == today;
+    if (_weekRolled) {
+      return const AppLoading(placement: AppStatePlacement.card);
+    }
     return weekAsync.when(
       loading: () => const AppLoading(placement: AppStatePlacement.card),
       error: (Object e, StackTrace _) => Padding(
@@ -468,13 +507,13 @@ class _ExerciseWeekStrip extends StatelessWidget {
     final DateTime monday = mondayOf(center);
     final List<DateTime> days = List<DateTime>.generate(
       7,
-      (int i) => monday.add(Duration(days: i)),
+      (int i) => DateTime(monday.year, monday.month, monday.day + i),
     );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),
       // 식단 탭과 같은 모양 — 주 라벨·`오늘` 알약과 양옆 원형 꺾쇠(#1778).
       child: AppWeekStrip(
-        // 영어의 날짜 라벨은 한국어보다 훨씬 길어 좁은 화면에서는 말줄임한다(#766).
+        // 날짜 라벨이 길면 좁은 화면에서는 말줄임한다(#766).
         label: weekStripLabel(context, l, selected: selected, today: today),
         todayLabel: l.dietToday,
         onToday: showTodayButton ? onToday : null,
@@ -632,6 +671,24 @@ class _ExerciseDayDetail extends ConsumerWidget {
     );
     final bool hasRoutineBlock =
         dayRoutines.isNotEmpty || routineSessions.isNotEmpty;
+    // 그날 PT 를 함께한 트레이너(#3347). 운동 기록에는 이름이 없어 그날의 완료
+    // 일정에서 읽는다 — 담당이 바뀐 뒤에도 지난 수업은 그때의 트레이너 이름으로
+    // 남는다. 일정을 못 읽었거나 이름이 없는 옛 응답이면 적지 않는다.
+    final DateTime day = dateOnly(date);
+    final String ptCoachName = ptSessions.isEmpty
+        ? ''
+        : (ref.watch(coachSessionsProvider).valueOrNull ??
+                      const <CoachSession>[])
+                  .where(
+                    (CoachSession s) =>
+                        s.isDone &&
+                        s.trainerName.isNotEmpty &&
+                        s.date != null &&
+                        dateOnly(s.date!) == day,
+                  )
+                  .map((CoachSession s) => s.trainerName)
+                  .firstOrNull ??
+              '';
     // 유형별 값은 `운동 현황 > 오늘` 과 **같은 카드**로 그린다 — 유산소·스트레칭은
     // 분, 근력은 세트로. 같은 데이터를 두 가지 모양으로 그리지 않는다(#682).
     final ExerciseDayLoad load = ExerciseDayLoad.fromMinutes(
@@ -669,6 +726,7 @@ class _ExerciseDayDetail extends ConsumerWidget {
               icon: AppIcons.exercise,
               sessions: ptSessions,
               intensityInHeader: true,
+              coachName: ptCoachName,
             ),
           if (ptSessions.isNotEmpty && hasRoutineBlock)
             const SizedBox(height: OnCareSpacing.s12),
@@ -735,7 +793,12 @@ class _DayRecordCard extends StatelessWidget {
     required this.icon,
     required this.sessions,
     this.intensityInHeader = false,
+    this.coachName = '',
   });
+
+  /// 그날 PT 를 함께한 트레이너 이름 — 칩 한 칸으로 적는다(#3347). 개인운동
+  /// 묶음과 이름을 모르는 날은 비워 둔다.
+  final String coachName;
 
   /// 강도를 머리 오른쪽 한 번만 적는가 — PT 는 수업 하나에 강도가 하나라
   /// 종목마다 되풀이하지 않는다(오늘 PT 카드와 같다, #2507). 개인운동은 운동마다
@@ -756,7 +819,8 @@ class _DayRecordCard extends StatelessWidget {
   /// 이름과 운동량을 **필드에서** 붙인다. 예전에는 `items`(이름 문자열)를 그대로
   /// 썼는데, 그러려면 픽스처가 세트·중량을 이름에 적어 넣어야 했다(#1902).
   /// 이제 기록 한 행이 운동 하나이므로 그 행의 값이 곧 그 종목의 값이다.
-  static String _name(AppLocalizations l, ExerciseSession s) => s.name.isNotEmpty
+  static String _name(AppLocalizations l, ExerciseSession s) =>
+      s.name.isNotEmpty
       ? s.name
       : s.assignedRoutineName.isNotEmpty
       ? s.assignedRoutineName
@@ -786,7 +850,9 @@ class _DayRecordCard extends StatelessWidget {
             title: title,
             icon: icon,
             trailing: intensityInHeader && sessions.isNotEmpty
-                ? exerciseIntensityTag(exerciseIntensityLabel(l, sessions.first.intensity))
+                ? exerciseIntensityTag(
+                    exerciseIntensityLabel(l, sessions.first.intensity),
+                  )
                 : null,
           ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -814,6 +880,14 @@ class _DayRecordCard extends StatelessWidget {
                       secondsUnit: l.exUnitSeconds,
                     ),
                     tone: AppTagTone.brand,
+                  ),
+                ),
+              if (coachName.isNotEmpty)
+                _fitTag(
+                  AppTag(
+                    key: const ValueKey<String>('exercise-pt-coach-name'),
+                    icon: AppIcons.person,
+                    label: coachName,
                   ),
                 ),
             ],
@@ -850,19 +924,11 @@ class _PtLogCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 담당 트레이너가 없으면 PT 일지 자리 자체가 없다(#2014). 연결을 끊었는데
-    // 이 카드가 남으면, 트레이너가 있던 흔적만 화면에 서 있게 된다. 실서버는
-    // 담당이 없을 때 세션 목록이 비어 자연히 사라졌지만, 데모는 픽스처 세션을
-    // 그대로 읽어 연결과 무관하게 카드를 세웠다.
-    //
-    // **담당이 없다고 확인됐을 때만** 걷는다. 코치 조회가 아직 오는 중이거나
-    // 실패했을 때는 담당이 없는 것이 아니다 — 그때 숨기면 담당이 있는 회원의
-    // 오늘 PT 기록이 조회 한 번 실패로 사라지고, 불러오는 동안 칸이 비었다가
-    // 튀어나온다. 실서버에서는 세션 목록이 이미 담당 여부를 따른다.
-    final AsyncValue<MemberCoach?> linked = ref.watch(memberCoachProvider);
-    if (linked.hasValue && linked.value == null) {
-      return const SizedBox.shrink();
-    }
+    // 담당 트레이너가 없어도 오늘 마친 PT 는 남긴다(#3347). 받은 수업은 회원의
+    // 기록이라, 수업 뒤에 담당을 바꾸거나 연결을 끊었다고 그날의 일지가 사라지면
+    // 안 된다. 예전에는 담당이 없으면 카드를 걷었다(#2014) — 서버가 지금 담당의
+    // 일정만 주던 때의 규칙이다. 이제 서버는 지난 담당과 마친 PT 도 주고, 누구와의
+    // 수업이었는지를 행마다 싣는다([CoachSession.trainerName]).
     final AppLocalizations l = AppLocalizations.of(context);
     // 고르는 기준은 **출처**다. `근력이면 PT` 로 세면, 오늘 회원이 직접 적은
     // 근력 한 줄이 PT 일지 안으로 딸려 들어가 하지 않은 종목이 트레이너
@@ -902,7 +968,6 @@ class _PtLogCard extends ConsumerWidget {
     if (completedToday.isEmpty) return const SizedBox.shrink();
 
     final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
-    final CoachSession session = completedToday.first;
     // 강도는 PT 프로그램에 없다 — 수업을 마칠 때 서버가 남기는 그날의 PT 운동
     // 기록에 있다. 데모 카드처럼 종목 줄 끝에 적는다. 기록을 아직 못 읽었으면
     // 강도 없이 적는다 — 없는 값을 지어내지 않는다. (#2666)
@@ -916,24 +981,49 @@ class _PtLogCard extends ConsumerWidget {
       for (final ExerciseSession s in todayPt)
         if (s.name.isNotEmpty) s.name: s.type,
     };
-    final List<_LineData> lines = <_LineData>[
-      for (final CoachProgramItem item in session.program)
-        (
-          type: typeByName[item.name],
-          name: item.name,
-          amount: _ptProgramAmount(l, item),
-        ),
-    ];
-    return _PtSessionCard(
-      key: const Key('completedPtSessionCard'),
+
+    Widget card(CoachSession session, Key key) => _PtSessionCard(
+      key: key,
       time: session.time,
       sessionNumber: session.sessionNumber,
       minutes: session.durationMinutes,
       intensity: intensity,
-      lines: lines,
+      lines: <_LineData>[
+        for (final CoachProgramItem item in session.program)
+          (
+            type: typeByName[item.name],
+            name: item.name,
+            amount: _ptProgramAmount(l, item),
+          ),
+      ],
       emptyProgram: l.exCompletedPtNoProgram,
-      coachName: coach?.name ?? l.exAssignedTrainer,
+      // 그 수업의 트레이너다 — 지금 담당이 아닐 수 있다(#3347). 이름을 싣지
+      // 않는 옛 응답만 지금 담당의 이름으로 읽는다.
+      coachName: session.trainerName.isNotEmpty
+          ? session.trainerName
+          : coach?.name ?? l.exAssignedTrainer,
       feedback: session.note,
+    );
+
+    // 같은 날 완료한 PT 가 여러 건이면 **모두** 그린다(#3309) — 늦은 시각부터.
+    // 한 건만 그리던 동안에는 트레이너가 방금 완료·전송한 PT 가 같은 날 더 늦은
+    // 시각의 PT 에 가려 회원에게 보이지 않았다. 맨 위 카드의 키는 그대로 둔다.
+    if (completedToday.length == 1) {
+      return card(completedToday.first, const Key('completedPtSessionCard'));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        for (int i = 0; i < completedToday.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(height: OnCareSpacing.s12),
+          card(
+            completedToday[i],
+            i == 0
+                ? const Key('completedPtSessionCard')
+                : Key('completedPtSessionCard-${completedToday[i].id}'),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -1030,11 +1120,13 @@ class _PtSessionCard extends StatelessWidget {
           // 서버가 주지 않으면 비운다. (#2666)
           //
           // 배지는 제목 줄에서 제 폭을 고집하므로 `Flexible` 로 감싸 말줄임한다 —
-          // 영어(`Session 12`)·글자 배율 2.0·폭 320 에서 제목 줄이 넘쳤다(#766).
+          // 글자 배율 2.0·폭 320 에서 제목 줄이 넘쳤다(#766).
           AppSectionHeader(
             title: l.exCompletedPtTitle,
             icon: AppIcons.exercise,
-            trailing: intensity == null ? null : exerciseIntensityTag(exerciseIntensityLabel(l, intensity!)),
+            trailing: intensity == null
+                ? null
+                : exerciseIntensityTag(exerciseIntensityLabel(l, intensity!)),
             titleBadge: number == null
                 ? null
                 : Flexible(
@@ -1113,7 +1205,7 @@ class _PtSessionCard extends StatelessWidget {
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       // 이름·라벨 묶음이 고정 폭이면 문구가 길어질 때 줄이 그대로
-                      // 넘친다 — 영어(`Today's feedback`)에서 드러났다(#847, #766).
+                      // 넘친다(#847, #766).
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1209,9 +1301,10 @@ class _NextPtBadge extends ConsumerWidget {
     final String date = DateFormat.MMMEd(
       Localizations.localeOf(context).toString(),
     ).format(at);
+    // 시각은 24시간제 — 같은 화면의 예약 목록·슬롯(`19:00–20:00`)과 같다(#3120).
     final String time = MaterialLocalizations.of(
       context,
-    ).formatTimeOfDay(TimeOfDay.fromDateTime(at));
+    ).formatTimeOfDay(TimeOfDay.fromDateTime(at), alwaysUse24HourFormat: true);
     return '$date $time';
   }
 }

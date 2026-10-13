@@ -10,6 +10,7 @@ class AccountDeletionPreview {
     this.points = 0,
     this.activeCoupons = 0,
     this.upcomingReservations = 0,
+    this.upcomingSessions = 0,
     this.pendingConsultations = 0,
   });
 
@@ -22,6 +23,10 @@ class AccountDeletionPreview {
   /// 아직 시작하지 않은 PT 예약 수. 탈퇴하면 취소된다.
   final int upcomingReservations;
 
+  /// 트레이너가 잡아 둔, 아직 시작하지 않은 PT 일정 수(회원 예약으로 생긴 것
+  /// 제외). 탈퇴하면 취소된다. (#3341)
+  final int upcomingSessions;
+
   /// 트레이너 응답을 기다리는 상담 요청 수. 탈퇴하면 취소된다.
   final int pendingConsultations;
 
@@ -30,6 +35,7 @@ class AccountDeletionPreview {
       points > 0 ||
       activeCoupons > 0 ||
       upcomingReservations > 0 ||
+      upcomingSessions > 0 ||
       pendingConsultations > 0;
 
   factory AccountDeletionPreview.fromJson(Map<String, Object?> json) =>
@@ -37,6 +43,7 @@ class AccountDeletionPreview {
         points: _count(json['points']),
         activeCoupons: _count(json['active_coupons']),
         upcomingReservations: _count(json['upcoming_reservations']),
+        upcomingSessions: _count(json['upcoming_sessions']),
         pendingConsultations: _count(json['pending_consultations']),
       );
 
@@ -44,11 +51,13 @@ class AccountDeletionPreview {
     int? points,
     int? activeCoupons,
     int? upcomingReservations,
+    int? upcomingSessions,
     int? pendingConsultations,
   }) => AccountDeletionPreview(
     points: points ?? this.points,
     activeCoupons: activeCoupons ?? this.activeCoupons,
     upcomingReservations: upcomingReservations ?? this.upcomingReservations,
+    upcomingSessions: upcomingSessions ?? this.upcomingSessions,
     pendingConsultations: pendingConsultations ?? this.pendingConsultations,
   );
 
@@ -58,6 +67,7 @@ class AccountDeletionPreview {
       other.points == points &&
       other.activeCoupons == activeCoupons &&
       other.upcomingReservations == upcomingReservations &&
+      other.upcomingSessions == upcomingSessions &&
       other.pendingConsultations == pendingConsultations;
 
   @override
@@ -65,13 +75,14 @@ class AccountDeletionPreview {
     points,
     activeCoupons,
     upcomingReservations,
+    upcomingSessions,
     pendingConsultations,
   );
 
   @override
   String toString() =>
       'AccountDeletionPreview(points: $points, coupons: $activeCoupons, '
-      'reservations: $upcomingReservations, '
+      'reservations: $upcomingReservations, sessions: $upcomingSessions, '
       'consultations: $pendingConsultations)';
 }
 

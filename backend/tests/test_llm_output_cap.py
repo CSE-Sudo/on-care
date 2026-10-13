@@ -220,6 +220,8 @@ def test_truncated_routine_json_falls_back_to_rules(ceiling, monkeypatch):
     from app.services import trainer_routine_options_service as svc
     llm = _Recording(_ROUTINE_JSON, truncated=True)
     monkeypatch.setattr(svc, "build_member_analysis", lambda *_: _routine_analysis())
+    # 이 테스트는 DB 없이 돈다 — 연계안 기준(#3282)은 기록 없음으로 둔다.
+    monkeypatch.setattr(svc, "build_next_pt", lambda *_a, **_k: svc.routine_next_pt.choose_next([], today=svc.clock.today()))
     monkeypatch.setattr(svc, "get_coach_llm", lambda *a, **k: llm)
     before = metrics.snapshot()["counters"].get(
         "routine_options.fallback{reason=contract}", 0
@@ -258,12 +260,12 @@ def test_truncated_report_summary_falls_back_to_rules(ceiling, monkeypatch):
     monkeypatch.setattr(
         trainer_reports_service, "build_weekly_report", lambda *a, **k: report
     )
-    evidence = svc._evidence(report, "ko")
+    evidence = svc._evidence(report)
     reply = json.dumps({"headline": "좋은 한 주", "points": [evidence[0]]}, ensure_ascii=False)
     llm = _Recording(reply, truncated=True)
     monkeypatch.setattr(svc, "get_coach_llm", lambda *a, **k: llm)
 
-    out = svc.generate_summary(None, "t", "m", None, "ko")
+    out = svc.generate_summary(None, "t", "m", None)
 
     assert out.generated_by == "rule"
     assert llm.kwargs[0]["max_output_tokens"] == svc.LLM_MAX_OUTPUT_TOKENS
@@ -277,7 +279,7 @@ def test_truncated_diet_sentence_is_dropped(ceiling, monkeypatch):
     before = metrics.snapshot()["counters"].get("cap_test.fallback{reason=truncated}", 0)
 
     out = ai.generate(
-        lang="ko", analysis_text="", finding="나트륨이 높아요", records=[], notes=[],
+        analysis_text="", finding="나트륨이 높아요", records=[], notes=[],
         goal="체중 감량", metric="cap_test",
     )
 
@@ -299,7 +301,7 @@ def test_diet_sentence_falls_back_quietly_at_the_global_cap(ceiling, monkeypatch
 
     monkeypatch.setattr(ai_call_quota, "acquire", _full)
     out = ai.generate(
-        lang="ko", analysis_text="", finding="나트륨이 높아요", records=[], notes=[],
+        analysis_text="", finding="나트륨이 높아요", records=[], notes=[],
         goal="체중 감량", metric="cap_test",
     )
 

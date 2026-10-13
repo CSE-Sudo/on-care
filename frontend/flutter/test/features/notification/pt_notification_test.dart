@@ -63,8 +63,8 @@ Map<String, Object?> _row(String category, Map<String, Object?>? action) =>
 
 AlertItem _alert(AlertTarget target) => AlertItem(
   id: 'a1',
-  title: 'PT 수업 완료',
-  body: '3회차 PT 를 마쳤어요',
+  title: '박코치 트레이너와 3회차 PT를 마쳤어요',
+  body: '운동 기록에 남겼어요',
   createdAt: '2026-09-28T09:00:00Z',
   timeAgo: '방금',
   category: AlertCategory.ptDone,
@@ -142,20 +142,6 @@ void main() {
       expect(item.action?.isNavigable, isTrue);
     });
 
-    test('영어 라벨도 서버 문구를 그대로 쓴다', () async {
-      final DioNotificationRepository repo = DioNotificationRepository(
-        _dio(<Object?>[
-          _row('pt_done', <String, Object?>{
-            'label': 'View PT record',
-            'target': 'exercise',
-          }),
-        ]),
-      );
-
-      final AlertItem item = (await repo.fetchPage()).single;
-      expect(item.action?.label, 'View PT record');
-    });
-
     test('버튼이 없는 옛 일정 알림도 갈래는 읽는다', () async {
       final DioNotificationRepository repo = DioNotificationRepository(
         _dio(<Object?>[_row('member_schedule', null)]),
@@ -188,8 +174,8 @@ void main() {
           NotificationItemsCompanion.insert(
             id: 'n-done',
             createdAt: now.subtract(const Duration(minutes: 1)),
-            title: 'PT 수업 완료',
-            body: '3회차 PT 를 마쳤어요',
+            title: '박코치 트레이너와 3회차 PT를 마쳤어요',
+            body: '운동 기록에 남겼어요',
             category: 'pt_done',
           ),
         ]);
@@ -231,7 +217,7 @@ void main() {
   });
 
   group('데모 시드', () {
-    test('PT 수업 완료 예시는 PT 기록 갈래이고 PT 기록 보기 버튼이다', () async {
+    test('PT 완료 예시는 PT 기록 갈래이고 PT 기록 보기 버튼이다', () async {
       final List<AlertItem> alerts = await fetchDemoAlerts();
       final AlertItem done = alerts.singleWhere(
         (AlertItem a) => a.id == 'seed-noti-2',

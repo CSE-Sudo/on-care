@@ -1,10 +1,9 @@
-"""주간 리포트의 나트륨 초과일 기준과 요일 칸 운동 유형 라벨의 언어. (#2885)
+"""주간 리포트의 나트륨 초과일 기준과 요일 칸 운동 유형 라벨. (#2885)
 
 - 초과일은 그 회원의 나트륨 목표(`daily_sodium_mg`)로 센다. 목표가 없거나 0
   이하일 때만 공통 기준(2,000mg)이다. 같은 응답의 `sodium_target` 과 초안 문장의
   `목표(…mg)` 가 같은 기준을 말한다.
-- 이름이 빈 옛 운동 기록의 유형 라벨은 요청 언어로 고른다 — 영어 리포트에
-  `근력` 이 남지 않는다.
+- 이름이 빈 옛 운동 기록은 유형 라벨(`근력`·`유산소`…)로 적는다.
 """
 from __future__ import annotations
 
@@ -15,7 +14,6 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import delete
 
-from app.core import locale as locale_mod
 from app.models.models import (
     DietEntry,
     HealthProfile,
@@ -42,19 +40,6 @@ def _drop_created_accounts(db_session):
     db_session.execute(delete(User).where(User.id.in_(list(_created))))
     db_session.commit()
     _created.clear()
-
-
-@pytest.fixture
-def request_locale():
-    """요청 언어 컨텍스트를 바꾼다 — 미들웨어가 하는 일과 같다."""
-    tokens: list = []
-
-    def _set(value: str) -> None:
-        tokens.append(locale_mod._request_locale_ctx.set(value))
-
-    yield _set
-    for token in reversed(tokens):
-        locale_mod._request_locale_ctx.reset(token)
 
 
 def _user(db, prefix: str, role: str) -> str:
@@ -203,74 +188,37 @@ def _report(**over) -> WeeklyReportOut:
 
 
 def test_korean_message_names_the_personal_target_when_over():
-    message = trainer_reports_service.report_message(_report(sodium_target=1500), "ko")
+    message = trainer_reports_service.report_message(_report(sodium_target=1500))
     assert "목표(1,500mg)를 넘긴 날이 2일" in message
 
 
 def test_korean_message_names_the_personal_target_when_inside():
     message = trainer_reports_service.report_message(
-        _report(sodium_target=2300, sodium_over_days=0, sodium_avg=2100), "ko"
+        _report(sodium_target=2300, sodium_over_days=0, sodium_avg=2100)
     )
     assert "목표(2,300mg) 안에서" in message
 
 
-def test_english_message_names_the_personal_target():
-    message = trainer_reports_service.report_message(_report(sodium_target=1500), "en")
-    assert "went over the 1,500mg target on 2 days." in message
-
-
 def test_message_without_a_target_keeps_the_common_default():
-    message = trainer_reports_service.report_message(_report(), "ko")
+    message = trainer_reports_service.report_message(_report())
     assert "목표(2,000mg)" in message
 
 
 # ---- 운동 유형 라벨 ----
 
 
-@pytest.mark.parametrize(
-    ("value", "locale", "label"),
-    [
-        ("strength", "en", "Strength"),
-        ("근력", "en", "Strength"),
-        ("cardio", "en", "Cardio"),
-        ("걷기", "en", "Cardio"),
-        ("stretching", "en", "Stretching"),
-        (None, "en", "Other"),
-        ("strength", "ko", "근력"),
-        ("cardio", "ko", "유산소"),
-        (None, "ko", "기타"),
-        ("strength", "ja", "근력"),
-    ],
-)
-def test_normalize_label_picks_the_requested_language(value, locale, label):
-    assert exercise_types.normalize_label(value, locale) == label
-
-
-def test_normalize_label_defaults_to_korean():
-    assert exercise_types.normalize_label("strength") == exercise_types.normalize_ko(
-        "strength"
-    )
-
-
 def _row(day: str, kind: str, name: str | None = None) -> SimpleNamespace:
     return SimpleNamespace(day_label=day, type=kind, name=name)
 
 
-def test_english_report_day_uses_the_english_type_label(request_locale):
-    request_locale("en")
+def test_report_day_uses_the_type_label_for_an_unnamed_record():
     days = trainer_common_service._week_days(
         [_row("화", "strength"), _row("화", "cardio", "Running")], [0] * 7
     )
-    assert days[1].exercises == ["Strength", "Running"]
+    assert days[1].exercises == [exercise_types.normalize_ko("strength"), "Running"]
+    assert days[1].exercises[0] == "근력"
 
 
-def test_korean_report_day_keeps_the_korean_type_label(request_locale):
-    request_locale("ko")
-    days = trainer_common_service._week_days([_row("화", "strength")], [0] * 7)
-    assert days[1].exercises == ["근력"]
-
-
-def test_named_records_keep_their_own_name_in_any_language(request_locale):
-    request_locale("en")
+def test_named_records_keep_their_own_name():
     days = trainer_common_service._week_days([_row("월", "strength", "스쿼트")], [0] * 7)
     assert days[0].exercises == ["스쿼트"]

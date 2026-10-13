@@ -5,32 +5,47 @@
 
 ## 1. 버전·빌드 번호 규칙
 
-버전은 `frontend/flutter/pubspec.yaml` 의 `version: <이름>+<번호>` 한 곳에서 정합니다.
-Android `versionName`/`versionCode`, iOS `CFBundleShortVersionString`/`CFBundleVersion` 은
-Flutter 가 이 값에서 채웁니다.
+버전 이름은 `frontend/flutter/pubspec.yaml` 의 `version: <이름>+<번호>` 중 `+` 앞에서 정하고,
+빌드 번호는 **릴리스 빌드가 자동으로 채웁니다**(#3226). Android `versionName`/`versionCode`,
+iOS `CFBundleShortVersionString`/`CFBundleVersion` 은 Flutter 가 이 두 값에서 채웁니다.
 
-| 부분 | 형식 | 올리는 때 |
+| 부분 | 형식 | 정하는 곳 |
 | --- | --- | --- |
-| 버전 이름 (`+` 앞) | `MAJOR.MINOR.PATCH` | 회원이 보는 변화가 있을 때. 기능 추가 → MINOR, 수정만 → PATCH, 첫 정식 출시 → `1.0.0` |
-| 빌드 번호 (`+` 뒤) | 양의 정수 | **스토어(Play Console·App Store Connect)에 올리는 빌드마다 1씩.** 버전 이름이 바뀌어도 0 으로 되돌리지 않는다 |
+| 버전 이름 (`+` 앞) | `MAJOR.MINOR.PATCH` | 사람이 pubspec 에서 올린다. 회원이 보는 변화가 있을 때. 기능 추가 → MINOR, 수정만 → PATCH, 첫 정식 출시 → `1.0.0` |
+| 빌드 번호 | 양의 정수 | **빌드하는 커밋까지의 커밋 수**(`git rev-list --count HEAD`). 워크플로가 `--build-number` 로 넣는다 |
 
-- 빌드 번호는 두 스토어에서 같은 값을 씁니다. 한 번 올린 번호는 다시 쓸 수 없습니다(업로드 거부).
-- 제출 빌드는 `--build-number` 로 덮어쓰지 않고, `pubspec.yaml` 을 올린 커밋을 main 에 넣은 뒤
-  그 커밋에서 빌드합니다. 그래야 스토어의 빌드와 저장소 이력이 1:1 로 맞습니다.
-- 커밋 제목 예: `chore(mobile): 1.0.1+12 릴리스 버전 갱신`.
+- 빌드 번호는 `.github/scripts/release_build_stamp.sh` 하나가 만듭니다. 서명 빌드(`member-app-release.yml`),
+  데모 Pages(`deploy.yml`), 운영 웹(`aws-frontend-deploy.yml`)이 모두 이 스크립트를 씁니다.
+  - main 에 병합할 때마다 커지므로 다음 릴리스 빌드의 번호는 늘 이전보다 큽니다.
+  - 워크플로마다 따로 세는 실행 번호가 아니라 커밋에 묶인 하나의 카운터라, 같은 커밋이면 어느 워크플로·
+    어느 앱에서 만들어도 같은 번호입니다. 번호만으로 웹 배포와 스토어 빌드를 맞춰 볼 수 있습니다.
+  - 서명 빌드는 pubspec 의 `+` 뒤 번호(예전에 손으로 올리던 값)를 하한으로 주어, 새 번호가 그보다 크지
+    않으면 멈춥니다. 커밋 수가 이미 훨씬 커서 오프셋은 두지 않습니다.
+  - 얕은 체크아웃에서는 커밋 수가 1 로 나오므로 스크립트가 멈춥니다. 번호를 만드는 잡의 체크아웃은
+    `fetch-depth: 0` 입니다.
+- 빌드 번호는 두 스토어에서 같은 값을 씁니다. 한 번 올린 번호는 다시 쓸 수 없습니다(업로드 거부). 같은
+  커밋으로 다시 빌드하면 같은 번호이므로, 다시 올려야 하면 새 커밋을 main 에 넣고 빌드합니다. 스토어의
+  빌드와 저장소 커밋이 1:1 로 맞습니다.
+- pubspec 의 `+` 뒤 번호는 로컬 빌드의 기본값으로만 남습니다. 올리지 않아도 됩니다.
+- 버전 이름 커밋 제목 예: `chore(mobile): 1.0.1 릴리스 버전 갱신`.
 
 ### 화면의 버전과 웹 배포
 
-회원 앱 MY → 설정 → 고객 지원 하단과 트레이너 웹 MY 하단의 `… · 버전 <이름>` 은 빌드에서
-읽은 버전 이름입니다(`package_info_plus`, 모바일은 `versionName`·`CFBundleShortVersionString`, 웹은
-빌드의 `version.json`). 번역 문구에 숫자를 적지 않습니다(#3047). 읽지 못하면 앱 이름만 보입니다.
+버전은 화면에 한 곳만 보입니다 — 회원 앱 MY → 설정 → 고객 지원 하단, 트레이너 웹 설정 → 고객 지원
+하단의 버전 줄입니다(#3047, #3226). 모양은 `<앱 이름> · 버전 <버전 이름> (<빌드 번호>) · <배포 일시> KST 배포`
+입니다(예: `On-Care · 버전 0.4.0 (7032) · 2026년 10월 5일 14:30 KST 배포`).
 
+- 버전 이름은 빌드에서 읽습니다(`package_info_plus`, 모바일은 `versionName`·`CFBundleShortVersionString`,
+  웹은 빌드의 `version.json`). 번역 문구에 숫자를 적지 않습니다(#3047).
+- 빌드 번호와 배포 일시는 빌드 때 `--dart-define=BUILD_NUMBER`·`--dart-define=RELEASE_DATE`(UTC ISO 8601)로
+  들어가고, 앱이 KST 로 바꿔 화면 언어에 맞춰 적습니다.
+- 두 define 이 없는 로컬 실행·테스트 빌드는 `<앱 이름> · 버전 <버전 이름> · 개발 빌드` 로 보입니다. 버전
+  이름과 빌드 번호를 모두 읽지 못하면 버전 칸이 빠집니다(예: `On-Care · 개발 빌드`).
 - 트레이너 웹(`frontend/flutter_trainer/pubspec.yaml`)도 같은 규칙으로 버전을 둡니다.
-- 배포 워크플로(Pages·AWS)는 `--build-name`·`--build-number` 를 주입하지 않습니다. 주입하면 저장소
-  이력과 배포물의 버전이 갈라집니다.
+- 배포 워크플로(Pages·AWS)는 `--build-number` 만 자동 번호로 넣고 `--build-name` 은 넣지 않습니다.
+  버전 이름은 저장소의 pubspec 과 늘 같습니다.
 - 회원이나 트레이너가 보는 변화가 있는 웹 배포 전에는 그 앱의 버전 이름을 위 표대로 올리는 커밋을
-  main 에 넣습니다. 웹만 배포할 때는 빌드 번호(`+` 뒤)를 올리지 않아도 됩니다. 빌드 번호는 스토어
-  업로드에만 씁니다.
+  main 에 넣습니다.
 
 ## 2. Android 릴리스 서명
 
@@ -114,8 +129,8 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
 | --- | --- | --- |
 | 수출 규정 | `ios/Runner/Info.plist` `ITSAppUsesNonExemptEncryption=false` | 표준 HTTPS 와 OS 키체인만 쓰고 자체 암호화가 없다. 암호화 라이브러리를 추가하면 다시 판단 |
 | 개인정보 매니페스트 | `ios/Runner/PrivacyInfo.xcprivacy` | 추적 없음, 필수 사유 API(UserDefaults), 수집 데이터 유형 |
-| 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko`, `en` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게. 개발 언어(`developmentRegion`)는 `en` — 앱 안 문구의 폴백과 같다 |
-| 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `ios/Runner/en.lproj/InfoPlist.strings`, `Info.plist`(영어 폴백) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
+| 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게 한국어 하나다(#3404). 개발 언어(`developmentRegion`)도 `ko` |
+| 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `Info.plist`(같은 한국어 문구) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
 
 - 두 스토어의 **개인정보처리방침 URL** 은 운영 도메인의 `/legal/privacy.html`, 이용약관이 필요한 칸에는
   `/legal/terms.html` 을 적습니다. 로그인 없이 열리는 정적 페이지로, 앱 안 문서와 같은 원본에서
@@ -134,8 +149,8 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
   - [ ] 추적: 하지 않음
 - 오류 수집 SDK 를 빼거나 Sentry 세션 추적(`enableAutoSessionTracking`)을 끄면 진단 항목을 함께 고칩니다. 어긋나면 `test/platform/privacy_manifest_test.dart` 가 실패합니다.
 - 권한 문구는 실제로 그 권한을 쓰는 화면과 맞아야 합니다. 새 용도가 생기면 문구도 고칩니다.
-- **권한 문구는 세 곳을 함께 고칩니다**(#3048): `ko.lproj/InfoPlist.strings`, `en.lproj/InfoPlist.strings`, `Info.plist` 본문(영어 폴백). 권한 키를 새로 더할 때(예: 푸시 알림 #474)도 같습니다. 한 곳이라도 빠지면 `test/platform/ios_localizations_test.dart` 가 실패합니다.
-- 릴리스 전에 기기 언어를 한국어·영어로 바꿔 가며 카메라·사진·위치 권한 창의 설명과 버튼이 그 언어로 뜨는지, 설정 → On-Care 에 언어 항목(한국어·영어)이 보이는지 확인합니다.
+- **권한 문구는 두 곳을 함께 고칩니다**(#3048, #3404): `ko.lproj/InfoPlist.strings` 와 `Info.plist` 본문. 둘은 같은 한국어 문구입니다. 권한 키를 새로 더할 때(예: 푸시 알림 #474)도 같습니다. 한 곳이라도 빠지면 `test/platform/ios_localizations_test.dart` 가 실패합니다.
+- 릴리스 전에 기기 언어가 한국어가 아니어도 카메라·사진·위치 권한 창의 설명이 한국어로 뜨는지 확인합니다.
 - iOS 빌드·서명은 Mac 과 Apple Developer 계정이 필요합니다. 서명 인증서·프로비저닝은
   Xcode 의 자동 서명(팀 계정)으로 하고, 인증서 파일도 저장소에 올리지 않습니다.
 
@@ -225,7 +240,10 @@ flutter build ipa --release --dart-define-from-file=config/release.json
 2. 빌드 전에 `bash tool/check_release_defines.sh config/release.json` 을 돌립니다. 키가 빠졌거나 형식이
    틀리면(`ENV` 가 `prod`·`staging` 이 아님, 목업, `http://`·예시·로컬 주소, DSN 없음, 데모 전용 스위치
    `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남음) 빌드하지 말라는 오류와 함께 멈춥니다.
-3. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
+3. `python3 ../tool/strip_demo_assets.py .` 로 pubspec 의 데모 전용 자산 구간(`# >>> demo-assets`)을 지웁니다.
+   데모 시드 사진·데모 대화 첨부가 스토어 빌드에 실리지 않게 합니다(#3157). 서명 빌드 워크플로는 이 단계를
+   빌드 직전에 돌립니다. 손으로 빌드했다면 끝난 뒤 `git checkout pubspec.yaml` 로 되돌립니다.
+4. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
 
 빌드 단계를 건너뛰어도 앱이 한 번 더 막습니다. 릴리스 모드에서 `ENV` 가 `prod`·`staging` 이 아니거나,
 데모 빌드 표시(`DEMO_BUILD=true`) 없이 목업이거나, API 주소가 `https://` 가 아니거나 예시·로컬
@@ -306,7 +324,8 @@ git push origin member-app-v1.0.1
 
 잡 순서:
 
-1. **Check signing secrets** — 실행 조건(main·태그 이름)을 확인하고, 아래 비밀이 묶음별로 **있는지만**
+1. **Check signing secrets** — 실행 조건(main·태그 이름)을 확인하고, 빌드 번호(커밋 수)·배포 일시를
+   만들어 두 빌드 잡에 넘긴 뒤(1절), 아래 비밀이 묶음별로 **있는지만**
    봅니다. 묶음의 비밀이 하나도 없으면 실패가 아니라 안내(notice)와 실행 요약을 남기고 그 빌드 잡을
    건너뜁니다. 일부만 있으면 설정 실수로 보고 멈춥니다.
 2. **Signed AAB**(ubuntu) — define 파일을 쓰고 `tool/check_release_defines.sh` 로 검사한 뒤
@@ -327,7 +346,7 @@ git push origin member-app-v1.0.1
 | `member-app-aab-<버전 이름>-<실행 번호>` | `on-care-<버전 이름>.aab`, `build-info.txt` |
 | `member-app-ipa-<버전 이름>-<실행 번호>` | `on-care-<버전 이름>.ipa`, `build-info.txt` |
 
-`build-info.txt` 에는 pubspec 버전, 커밋, 실행 주소, Flutter 버전, `ENV`, `API_BASE_URL`, define 키 목록,
+`build-info.txt` 에는 pubspec 버전, 빌드 번호, 배포 일시, 커밋, 실행 주소, Flutter 버전, `ENV`, `API_BASE_URL`, define 키 목록,
 산출물 SHA-256, (AAB) 서명 인증서 소유자·지문, (IPA) 프로비저닝 프로필 UUID 가 있습니다. 비밀 값은
 적지 않습니다. 올리기 전에 커밋이 의도한 main 커밋인지, 서명 지문이 Play Console 의 **업로드 키**
 지문과 같은지 확인합니다.
@@ -366,8 +385,13 @@ iOS 프로필은 다른 앱·와일드카드·개발용·Ad Hoc 프로필이면 
 | `MEMBER_APP_KAKAO_JS_KEY` | `KAKAO_JS_KEY` | 아니요(4절 헬스장 찾기 지도) |
 | `MEMBER_APP_KAKAO_MAP_ORIGIN` | `KAKAO_MAP_ORIGIN` | 아니요(4절) |
 | `MEMBER_APP_IOS_APP_STORE_ID` | `IOS_APP_STORE_ID` | 아니요(6절) |
+| `MEMBER_APP_KAKAO_NATIVE_APP_KEY` | `KAKAO_NATIVE_APP_KEY` | 아니요 — 카카오 로그인([social_login_setup.md](social_login_setup.md)) |
+| `MEMBER_APP_GOOGLE_WEB_CLIENT_ID` | `GOOGLE_WEB_CLIENT_ID` | 아니요 — 구글 로그인(Android·iOS 의 서버 client_id) |
+| `MEMBER_APP_GOOGLE_IOS_CLIENT_ID` | `GOOGLE_IOS_CLIENT_ID` | 아니요 — iOS 구글 로그인. 웹 client_id 와 함께 넣습니다 |
 
 `ENV` 는 실행 방법(위 표), `USE_MOCK_API` 는 `false` 로 워크플로가 정합니다.
+로그인 변수를 비우면 그 버튼은 '준비 중'으로 꺼진 채 빌드됩니다. iOS 잡은 같은 값으로 로그인 URL
+스킴 파일(`ios/Flutter/Social.xcconfig`)도 만듭니다.
 
 등록은 키 보관 담당자가 금고에서 파일을 받아 자기 PC 에서 바로 넣고, 파일은 넣은 뒤 지웁니다.
 값을 이슈·PR·채팅에 붙이지 않습니다.

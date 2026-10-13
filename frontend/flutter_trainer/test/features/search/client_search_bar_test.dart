@@ -8,17 +8,27 @@ import 'package:oncare_trainer/features/search/presentation/widgets/client_searc
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
   final results = find.byKey(clientSearchResultsKey);
 
-  Future<void> openDesktop(WidgetTester tester, String route) async {
+  Future<void> openDesktop(
+    WidgetTester tester,
+    String route, {
+    DateTime? seedClock,
+  }) async {
     tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await pumpTrainerApp(tester, token: 'demo-trainer-token', at: route);
+    await pumpTrainerApp(
+      tester,
+      token: 'demo-trainer-token',
+      at: route,
+      seedClock: seedClock,
+    );
   }
 
   Future<void> search(WidgetTester tester, String query) async {
@@ -207,6 +217,38 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  // #3261 — 스케줄 탭에서 박성호를 고르면 결과 행의 다음 예약(#3249)과 같은
+  // 세션이 열려야 한다. 시드는 목요일 16:00(45분) 수업을 `예정` 으로 두고
+  // 토요일 14:00 수업을 하나 더 놓는다.
+  Future<Uri> pickOnSchedule(WidgetTester tester, DateTime now) async {
+    await openDesktop(tester, AppRoutes.schedule, seedClock: now);
+    await search(tester, '박성호');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await settle(tester);
+    return Uri.parse(location(tester));
+  }
+
+  testWidgets('스케줄 탭 회원 선택은 이미 끝난 오늘 예정을 열지 않는다', (tester) async {
+    // 목요일 21:00 — 정리하지 않은 16:00 수업은 끝났다.
+    final uri = await pickOnSchedule(tester, kMidWeekEveningKst);
+
+    expect(uri.path, AppRoutes.schedule);
+    expect(uri.queryParameters['d'], '2026-08-22');
+    expect(uri.queryParameters['session'], isNot('seed-schedule-3'));
+  });
+
+  testWidgets('스케줄 탭 회원 선택은 진행 중인 오늘 수업을 연다', (tester) async {
+    // 목요일 16:30 — 16:00~16:45 수업이 진행 중이다.
+    final uri = await pickOnSchedule(tester, DateTime(2026, 8, 20, 16, 30));
+
+    expect(uri.path, AppRoutes.schedule);
+    expect(uri.queryParameters['d'], '2026-08-20');
+    expect(uri.queryParameters['session'], 'seed-schedule-3');
   });
 
   testWidgets('이름이 아닌 최근 메시지로도 회원을 통합 검색한다', (tester) async {

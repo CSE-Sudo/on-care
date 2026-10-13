@@ -158,16 +158,6 @@ void main() {
         tester.getSize(find.byTooltip(l.a11ySendMessage)).height,
       );
     });
-
-    testWidgets('영어 화면에서는 버튼 이름도 영어다', (tester) async {
-      await _pumpChat(
-        tester,
-        picker: _FakePicker(),
-        locale: const Locale('en'),
-      );
-
-      expect(find.byTooltip('Send a photo'), findsOneWidget);
-    });
   });
 
   group('고르는 길', () {
@@ -400,23 +390,6 @@ void main() {
       expect(_failed, findsNothing);
       expect(coach.requestIds, hasLength(1));
       expect(await coach.fetchChat(), hasLength(before));
-    });
-
-    testWidgets('영어 화면의 실패 안내와 버튼', (tester) async {
-      final AppLocalizations l = await _pumpChat(
-        tester,
-        picker: _FakePicker(result: MealPhoto.fromBytes(_png)),
-        coach: _PhotoRepository(failures: 1),
-        layout: MealPhotoChoiceLayout.systemMenu,
-        locale: const Locale('en'),
-      );
-
-      await tester.tap(find.byTooltip(l.coachPhotoAttach));
-      await tester.pumpAndSettle();
-
-      expect(find.text("Couldn't send the photo"), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
-      expect(find.text('Remove'), findsOneWidget);
     });
   });
 

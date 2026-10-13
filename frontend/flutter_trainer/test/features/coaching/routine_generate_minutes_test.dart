@@ -66,8 +66,8 @@ class _RecordingOptionsRepository implements TrainerRoutineOptionsRepository {
   }
 }
 
-Widget _host(Widget child, {Locale locale = const Locale('ko')}) => MaterialApp(
-  locale: locale,
+Widget _host(Widget child) => MaterialApp(
+  locale: const Locale('ko'),
   theme: AppTheme.light(),
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
@@ -148,10 +148,6 @@ Future<void> _pumpFlow(
         supportedLocales: AppLocalizations.supportedLocales,
         home: const AiRoutineOptionsFlow(
           client: _client,
-          recommendedExercises: <RoutineExercise>[
-            RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
-          ],
-          recommendedReason: '기존 회원 데이터 기반 추천',
         ),
       ),
     ),
@@ -386,11 +382,16 @@ void main() {
 
       expect(find.text('10~180분 사이로 입력해 주세요'), findsOneWidget);
 
+      // 시·분 칸이다(초 칸 없음). 9시간은 서버 상한(180분)을 넘는다.
+      expect(
+        find.byKey(const ValueKey<String>('generation-minutes-seconds')),
+        findsNothing,
+      );
       final Finder field = find.byKey(
-        const ValueKey<String>('generation-minutes-field'),
+        const ValueKey<String>('generation-minutes-hours'),
       );
       await tester.ensureVisible(field);
-      await tester.enterText(field, '200');
+      await tester.enterText(field, '9');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
       await _tapGenerate(tester);
@@ -407,7 +408,7 @@ void main() {
         find.text('생성 조건을 확인해 주세요. 총 운동 시간은 10~180분 사이여야 해요'),
         findsOneWidget,
       );
-      expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+      expect(find.text('AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
     });
   });
 }

@@ -26,7 +26,13 @@ from sqlalchemy import select, text
 
 from app.core import clock
 from app.core.security import create_access_token
-from app.models.models import Notification, TrainerClient, TrainerSchedule, User
+from app.models.models import (
+    Notification,
+    TrainerClient,
+    TrainerProfile,
+    TrainerSchedule,
+    User,
+)
 from app.services import notification_service
 from app.services import notification_templates as nt
 
@@ -384,14 +390,17 @@ def test_feedback_on_a_finished_consultation_tells_nobody(client, db_session, pa
     assert _of(_member_inbox(client, pair), "pt_done") == []
 
 
-def test_pt_alerts_read_in_english(client, db_session, pair):
+def test_pt_alerts_are_korean_for_an_english_header(client, db_session, pair):
     sid = _past_session(db_session, pair)
     _complete(client, pair, sid)
 
+    plain = _of(_member_inbox(client, pair), "pt_done")[0]
     row = _of(_member_inbox(client, pair, "en"), "pt_done")[0]
-    assert row["title"] == "You finished PT session 1 with 박코치"
-    assert row["body"] == "Saved to your workout log"
-    assert row["action"] == {"label": "View PT record", "target": "exercise"}
+    assert (row["title"], row["body"], row["action"]) == (
+        plain["title"], plain["body"], plain["action"],
+    )
+    assert any("가" <= ch <= "힣" for ch in row["title"])
+    assert row["action"]["target"] == "exercise"
 
 
 def test_pt_alert_keeps_the_template_for_the_app(client, db_session, pair):
@@ -422,7 +431,7 @@ def test_weekly_feedback_tells_the_trainer(client, db_session, pair):
     assert len(rows) == 1
     row = rows[0]
     assert row["title"] == "지수 회원이 주간 피드백을 보냈어요"
-    assert row["body"] == "컨디션 좋았어요 · 운동 강도 적당했어요"
+    assert row["body"] == "컨디션 좋았어요 · 운동 강도 딱 맞았어요"
     assert row["subject_id"] == pair.member_id
     assert row["target_date"] == "2026-09-21"
     assert row["template"] == nt.TRAINER_MEMBER_WEEKLY_FEEDBACK
@@ -461,7 +470,7 @@ def test_resubmitting_before_reading_rewrites_the_same_alert(client, db_session,
     assert len(rows) == 1
     assert rows[0]["id"] == first["id"]
     assert rows[0]["title"] == "지수 회원이 주간 피드백을 보냈어요"
-    assert rows[0]["body"] == "컨디션 많이 힘들었어요 · 운동 강도 너무 힘들었어요"
+    assert rows[0]["body"] == "컨디션 많이 안 좋았어요 · 운동 강도 너무 힘들었어요"
 
 
 def test_resubmitting_before_reading_moves_the_alert_to_the_top(client, db_session, pair):
@@ -520,7 +529,7 @@ def test_revised_alert_rewritten_before_reading_stays_revised(client, db_session
     rows = _of(_trainer_inbox(client, pair), "weekly_feedback")
     assert len(rows) == 2
     assert rows[0]["title"] == "지수 회원이 주간 피드백을 수정했어요"
-    assert rows[0]["body"].startswith("컨디션 많이 힘들었어요")
+    assert rows[0]["body"].startswith("컨디션 많이 안 좋았어요")
 
 
 def test_another_week_is_its_own_alert(client, db_session, pair):
@@ -529,6 +538,34 @@ def test_another_week_is_its_own_alert(client, db_session, pair):
 
     rows = _of(_trainer_inbox(client, pair), "weekly_feedback")
     assert sorted(r["target_date"] for r in rows) == ["2026-09-14", "2026-09-21"]
+
+
+def _turn_off_member_updates(db_session, p: Pair) -> None:
+    """트레이너의 담당 회원 소식 알림을 끈다(#2420)."""
+    db_session.add(TrainerProfile(trainer_id=p.trainer_id, notify_member_updates=False))
+    db_session.commit()
+
+
+def test_member_updates_off_silences_weekly_feedback(client, db_session, pair):
+    """주간 피드백은 담당 회원 소식 스위치를 따른다(#2420)."""
+    _turn_off_member_updates(db_session, pair)
+
+    _send_feedback(client, pair)
+
+    assert _of(_trainer_inbox(client, pair), "weekly_feedback") == []
+
+
+def test_member_updates_off_does_not_bump_an_unread_alert(client, db_session, pair):
+    """끈 뒤에 고쳐 내도 이미 받은 줄을 고쳐 맨 위로 올리지 않는다(#2420)."""
+    _send_feedback(client, pair, condition="good")
+    first = _of(_trainer_inbox(client, pair), "weekly_feedback")[0]
+    _turn_off_member_updates(db_session, pair)
+
+    _send_feedback(client, pair, condition="bad")
+
+    rows = _of(_trainer_inbox(client, pair), "weekly_feedback")
+    assert [row["id"] for row in rows] == [first["id"]]
+    assert rows[0]["body"] == first["body"]
 
 
 def test_rejected_feedback_creates_no_alert(client, db_session, pair):
@@ -571,12 +608,14 @@ def test_unread_count_includes_the_feedback_alert(client, db_session, pair):
     assert after["unread"] == before["unread"] + 1
 
 
-def test_weekly_feedback_reads_in_english(client, db_session, pair):
+def test_weekly_feedback_is_korean_for_an_english_header(client, db_session, pair):
     _send_feedback(client, pair, condition="great", intensity="too_easy")
 
+    plain = _of(_trainer_inbox(client, pair), "weekly_feedback")[0]
     row = _of(_trainer_inbox(client, pair, "en"), "weekly_feedback")[0]
-    assert row["title"] == "지수 sent their weekly feedback"
-    assert row["body"] == "Condition: Great · Intensity: Too easy"
+    assert (row["title"], row["body"]) == (plain["title"], plain["body"])
+    assert any("가" <= ch <= "힣" for ch in row["title"])
+    assert "Condition" not in (row["body"] or "")
 
 
 def test_saving_still_returns_the_answer(client, db_session, pair):
@@ -621,7 +660,7 @@ def test_schedule_alerts_open_the_workout_tab(client, db_session, pair):
         assert row["action"] == {"label": "일정 보기", "target": "exercise"}
 
     en = _of(_member_inbox(client, pair, "en"), notification_service.MEMBER_SCHEDULE)
-    assert {r["action"]["label"] for r in en} == {"View schedule"}
+    assert {r["action"]["label"] for r in en} == {"일정 보기"}
 
 
 def test_detaching_with_upcoming_pts_opens_the_workout_tab(client, db_session, pair):

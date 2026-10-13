@@ -75,8 +75,9 @@ class AppGuideState {
 /// 첫 홈 진입 가이드의 진행. (#1857)
 ///
 /// 한 번 본 회원에게는 다시 뜨지 않는다 — 끝까지 봤든 건너뛰었든 같다. 그
-/// 기억은 기기에 남는다(로그인 계정이 아니라 기기 설정이라, 앱을 지우면 다시
-/// 볼 수 있다).
+/// 기억은 기기 설정에 남되 지금 로그인한 계정의 것이다 — 로그아웃·만료로
+/// 세션이 끝나면 지워져, 같은 기기에 다른 계정으로 들어온 회원도 처음처럼
+/// 본다(#3154). 앱을 지워도 다시 볼 수 있다.
 class AppGuideController extends Notifier<AppGuideState> {
   @override
   AppGuideState build() => const AppGuideState();

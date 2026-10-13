@@ -108,6 +108,10 @@ Future<CapturedWidget> captureReportWidget(
       ..finalizeTree();
     pipelineOwner.rootNode = null;
     pipelineOwner.dispose();
+    // 렌더 객체가 쥔 레이어(그림 한 장 크기)도 놓는다(#3246, #3250) — 자식이
+    // 먼저다.
+    boundary.dispose();
+    renderView.dispose();
     focusManager.dispose();
   }
 }

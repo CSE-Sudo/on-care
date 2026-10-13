@@ -85,8 +85,18 @@ TrainerNotificationText? _assemble(
     case 'trainer_consult_cancelled':
     // 회원 탈퇴로 대기 요청이 함께 사라졌다(#1632). 이름은 탈퇴 직전 이름이다.
     case 'trainer_consult_withdrawn':
-      final Object? day = args['preferred_date'];
-      if (name == null || day is! String || day.isEmpty) return null;
+      final String? day = _day(l, args['preferred_date']);
+      if (name == null || day == null) return null;
+      // 수락되어 스케줄에 잡혀 있던 상담이 탈퇴로 빠졌다(#3360) — 시각까지 적는다.
+      if (template == 'trainer_consult_withdrawn' && args['booked'] == true) {
+        return (
+          title: l.notifTplConsultWithdrawnBookedTitle,
+          body: l.notifTplMemberWithDetail(
+            name,
+            _when(l, args['starts_at']) ?? day,
+          ),
+        );
+      }
       return (
         title: switch (template) {
           'trainer_consult_requested' => l.notifTplConsultRequestedTitle,
@@ -94,6 +104,15 @@ TrainerNotificationText? _assemble(
           _ => l.notifTplConsultCancelledTitle,
         },
         body: l.notifTplMemberWithDetail(name, day),
+      );
+    // 회원이 수락된 상담을 시작 전에 취소했다(#3359). 스케줄에 잡혀 있던 약속이라
+    // 대기 요청 취소와 달리 시각까지 적는다.
+    case 'trainer_consult_booking_cancelled':
+      final String? when = _when(l, args['starts_at']);
+      if (name == null || when == null) return null;
+      return (
+        title: l.notifTplConsultBookingCancelledTitle,
+        body: l.notifTplMemberWithDetail(name, when),
       );
     case 'trainer_invite_accepted':
       if (name == null) return null;
@@ -189,9 +208,9 @@ String? _goals(AppLocalizations l, Object? value) {
       .join(kHealthFocusLabelSeparator);
 }
 
-/// 서울 벽시계 ISO 시각(`2026-10-01T09:00:00+09:00`) → `10월 01일 09:00` /
-/// `10/01 09:00`. 시간대를 옮기지 않고 적힌 시각을 그대로 읽는다 — 서버가 이미
-/// 서울 시각으로 적어 둔다.
+/// 서울 벽시계 ISO 시각(`2026-10-01T09:00:00+09:00`) → `10월 1일 09:00` /
+/// `10/1 09:00`. 시간대를 옮기지 않고 적힌 시각을 그대로 읽는다 — 서버가 이미
+/// 서울 시각으로 적어 둔다. 날짜는 0 을 채우지 않고 시각은 24시간제다(#3120).
 final RegExp _isoWallClock = RegExp(r'^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})');
 
 String? _when(AppLocalizations l, Object? value) {
@@ -199,8 +218,19 @@ String? _when(AppLocalizations l, Object? value) {
   final RegExpMatch? m = _isoWallClock.firstMatch(value);
   if (m == null) return null;
   return l.notifTplWhen(
-    m.group(1)!,
-    m.group(2)!,
+    int.parse(m.group(1)!).toString(),
+    int.parse(m.group(2)!).toString(),
     '${m.group(3)}:${m.group(4)}',
   );
+}
+
+/// 날짜(`2026-10-01`) → `10월 1일` / `10/1`. 서버 `_day` 와 같은 모양이다.
+/// 날짜로 읽히지 않는 값은 받은 그대로 둔다 — 비었으면 저장된 문장으로 돌아간다.
+final RegExp _isoDate = RegExp(r'^\d{4}-(\d{2})-(\d{2})$');
+
+String? _day(AppLocalizations l, Object? value) {
+  if (value is! String || value.isEmpty) return null;
+  final RegExpMatch? m = _isoDate.firstMatch(value);
+  if (m == null) return value;
+  return l.dateMonthDay(int.parse(m.group(1)!), int.parse(m.group(2)!));
 }

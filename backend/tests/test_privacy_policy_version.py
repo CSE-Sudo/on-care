@@ -21,9 +21,7 @@ from app.services import signup_consent
 _ROOT = Path(__file__).resolve().parents[2]
 _APPS = ("flutter", "flutter_trainer")
 _ARBS = [
-    _ROOT / "frontend" / app / "lib" / "l10n" / f"app_{lang}.arb"
-    for app in _APPS
-    for lang in ("ko", "en")
+    _ROOT / "frontend" / app / "lib" / "l10n" / "app_ko.arb" for app in _APPS
 ]
 
 pytestmark = pytest.mark.skipif(
@@ -44,20 +42,11 @@ def _privacy_version() -> date:
 
 @pytest.mark.parametrize("app", _APPS)
 def test_korean_effective_date_is_the_consent_version(app: str):
-    """한국어 원본의 시행일이 동의 기록 버전과 같은 날이다."""
+    """본문의 시행일이 동의 기록 버전과 같은 날이다."""
     found = _KO_EFFECTIVE.findall(_privacy_body(app, "ko"))
     assert len(found) == 1, "시행일 줄이 하나여야 한다"
     y, m, d = (int(x) for x in found[0])
     assert date(y, m, d) == _privacy_version()
-
-
-@pytest.mark.parametrize("app", _APPS)
-def test_english_effective_date_is_the_consent_version(app: str):
-    """영문본도 같은 날짜를 단다 — 두 언어의 시행일이 갈리면 안 된다."""
-    v = _privacy_version()
-    body = _privacy_body(app, "en")
-    month = v.strftime("%B")
-    assert f"{v.day} {month} {v.year}" in body or f"{month} {v.day}, {v.year}" in body
 
 
 def test_effective_date_is_not_the_old_placeholder():
@@ -83,15 +72,41 @@ def test_newest_revision_entry_is_the_consent_version(app: str):
 
 @pytest.mark.parametrize("app", _APPS)
 def test_contact_change_is_recorded_in_the_history(app: str):
-    """보호책임자 연락처 변경(#3132)이 두 언어의 개정 이력에 남는다."""
+    """보호책임자 연락처 변경(#3132)이 개정 이력에 남는다."""
     assert "개인정보 보호책임자 연락처 변경" in _privacy_body(app, "ko")
-    assert "changed the contact address" in _privacy_body(app, "en")
+
+
+def test_naver_apple_removal_is_folded_into_the_unreleased_revision():
+    """네이버·애플 로그인 제외(#3217)는 미배포 2026-10-05 판에 합쳤다 — 버전을 새로 만들지 않는다.
+
+    같은 날짜 안에서 두 번째 버전을 만들 수 없고(버전이 날짜 문자열), 그 판은 아직
+    배포 전이라 재동의를 다시 요구할 실익이 없다. 그래서 동의 버전은 그대로이고,
+    회원 앱 처리방침의 같은 날짜 개정 이력에 제외 사실을 덧붙였다.
+    """
+    assert _privacy_version() == date(2026, 10, 5)
+    ko = _privacy_body("flutter", "ko")
+    # 같은 날짜 개정(위치정보 동의 안내, #3136)과 한 줄로 합쳐져 있다.
+    assert "- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경," in ko
+    assert "소셜 로그인 수단에서 네이버·애플 제외" in ko
+    # 수집 항목에는 실제로 제공하는 소셜 로그인만 남는다.
+    assert "소셜 로그인(카카오·구글)" in ko
+
+
+@pytest.mark.parametrize("app", _APPS)
+def test_naver_apple_appear_only_in_the_revision_history(app: str):
+    """네이버·애플은 제외를 알리는 개정 이력 줄 말고는 처리방침에 나오지 않는다(#3217)."""
+    lines = [
+        line
+        for line in _privacy_body(app, "ko").splitlines()
+        if any(word in line for word in ("네이버", "애플"))
+    ]
+    for line in lines:
+        assert line.startswith("- 2026년 10월 5일: "), line
 
 
 def test_contact_placeholder_is_kept_in_every_body():
     """연락처는 본문에 박지 않고 `{contact}` 자리로 둔다 — 정의 지점은 한 곳이다(#3005)."""
     for app in _APPS:
-        for lang in ("ko", "en"):
-            body = _privacy_body(app, lang)
-            assert "{contact}" in body
-            assert "@" not in body.replace("{contact}", "")
+        body = _privacy_body(app, "ko")
+        assert "{contact}" in body
+        assert "@" not in body.replace("{contact}", "")

@@ -200,7 +200,10 @@ DateTime? askableWeek([DateTime? today]) {
 DateTime manualFeedbackWeek([DateTime? today]) {
   final DateTime day = _dateOnly(today ?? todayKst());
   if (day.weekday == DateTime.sunday) return mondayOf(day);
-  return mondayOf(day).subtract(const Duration(days: 7));
+  // 달력으로 뺀다 — 24시간 단위로 빼면 서머타임이 있는 기기에서 일요일 23시가
+  // 되어 다른 주 키가 된다(#3244).
+  final DateTime monday = mondayOf(day);
+  return DateTime(monday.year, monday.month, monday.day - 7);
 }
 
 DateTime _dateOnly(DateTime v) => DateTime(v.year, v.month, v.day);

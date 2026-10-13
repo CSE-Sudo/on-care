@@ -27,7 +27,7 @@ class _LiveAdviceRepository extends FakeDietRepository {
   int adviceCalls = 0;
 
   @override
-  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) async {
+  Future<DietAdvice> fetchAdvice(String period) async {
     adviceCalls++;
     final DietDay day = await fetchToday();
     final int sodium = day.entries.fold<int>(
@@ -46,7 +46,7 @@ class _LiveAdviceRepository extends FakeDietRepository {
 }
 
 String _sodiumLine(int sodium) =>
-    '나트륨 ${NumberFormat.decimalPattern('ko').format(sodium)}mg, 권장량 초과예요.';
+    '나트륨 ${NumberFormat.decimalPattern('ko').format(sodium)}mg, 목표 초과예요.';
 
 void main() {
   testWidgets('음식 나트륨을 고쳐 저장하면 돌아온 식단 탭 조언이 새 합계를 말한다', (

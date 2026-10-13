@@ -52,7 +52,7 @@ void main() {
     test('서버 거절은 사유를 실은 AppError 다', () async {
       failGet(
         _routinesPath,
-        _httpError(404, _routinesPath, detail: '일정을 찾을 수 없습니다'),
+        _httpError(404, _routinesPath, detail: '일정을 찾을 수 없어요'),
       );
 
       await expectLater(
@@ -61,7 +61,7 @@ void main() {
           isA<NotFoundError>().having(
             (e) => e.message,
             'message',
-            '일정을 찾을 수 없습니다',
+            '일정을 찾을 수 없어요',
           ),
         ),
       );

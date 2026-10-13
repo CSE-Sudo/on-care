@@ -13,14 +13,12 @@ import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/pump_app.dart';
 
 /// 기대 문구는 로케일을 명시해 읽는다.
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 const String _token = 'demo-trainer-token-existing';
 
@@ -120,7 +118,7 @@ void main() {
   });
 
   group('signed in', () {
-    testWidgets('an unknown path shows the 404 in Korean, URL untouched', (
+    testWidgets('an unknown path shows the 404, URL untouched', (
       tester,
     ) async {
       await pumpTrainerApp(tester, token: _token, at: '/nope');
@@ -134,22 +132,6 @@ void main() {
       expect(find.textContaining('Page Not Found'), findsNothing);
       expect(currentLocation(tester), '/nope');
       expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('the 404 reads in English under an English locale', (
-      tester,
-    ) async {
-      await pumpTrainerApp(
-        tester,
-        token: _token,
-        at: '/nope',
-        locale: const Locale('en'),
-      );
-
-      expect(find.text(_en.notFoundTitle), findsOneWidget);
-      expect(find.text(_en.notFoundMessage), findsOneWidget);
-      expect(find.text(_en.notFoundGoDashboard), findsOneWidget);
-      expect(find.text(_ko.notFoundTitle), findsNothing);
     });
 
     testWidgets('the primary button goes back to the 대시보드', (tester) async {
@@ -355,23 +337,17 @@ void main() {
     });
 
     for (final width in <double>[1280, 1920]) {
-      for (final locale in <Locale>[const Locale('ko'), const Locale('en')]) {
-        testWidgets(
-          'the 404 fits a ${width.toInt()}px desktop in ${locale.languageCode}',
-          (tester) async {
-            await withWideSurface(tester, size: Size(width, 900), () async {
-              await pumpTrainerApp(
-                tester,
-                token: _token,
-                at: '/clients/seed-client-1/diet/old',
-                locale: locale,
-              );
-              expect(_page, findsOneWidget);
-              expect(tester.takeException(), isNull);
-            });
-          },
-        );
-      }
+      testWidgets('the 404 fits a ${width.toInt()}px desktop', (tester) async {
+        await withWideSurface(tester, size: Size(width, 900), () async {
+          await pumpTrainerApp(
+            tester,
+            token: _token,
+            at: '/clients/seed-client-1/diet/old',
+          );
+          expect(_page, findsOneWidget);
+          expect(tester.takeException(), isNull);
+        });
+      });
     }
   });
 
@@ -449,7 +425,7 @@ void main() {
 
     // 인증 게이트가 다시 돌기 전 한 프레임을 흉내 낸다 — 세션이 없는데 404 가
     // 그려지는 경우. 게이트 없는 라우터로 직접 띄운다.
-    Future<void> pumpGateless(WidgetTester tester, Locale locale) async {
+    Future<void> pumpGateless(WidgetTester tester) async {
       final container = await pumpTrainerApp(tester, seed: false);
       expect(
         container.read(sessionControllerProvider).status,
@@ -471,7 +447,6 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp.router(
-            locale: locale,
             theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -485,7 +460,7 @@ void main() {
     testWidgets('signed-out 404 uses the sign-in layout and goes to sign-in', (
       tester,
     ) async {
-      await pumpGateless(tester, const Locale('ko'));
+      await pumpGateless(tester);
 
       expect(_page, findsOneWidget);
       expect(find.text(_ko.notFoundTitle), findsOneWidget);
@@ -507,26 +482,12 @@ void main() {
       expect(find.text('sign-in-stub'), findsOneWidget);
     });
 
-    testWidgets('signed-out 404 reads in English under an English locale', (
-      tester,
-    ) async {
-      await pumpGateless(tester, const Locale('en'));
-
-      expect(find.text(_en.notFoundTitle), findsOneWidget);
-      expect(find.text(_en.notFoundMessage), findsOneWidget);
-      expect(find.text(_en.notFoundGoSignIn), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
   });
 
-  test('every 404 string is filled in both locales', () {
-    for (final l in <AppLocalizations>[_ko, _en]) {
-      expect(l.notFoundTitle, isNotEmpty);
-      expect(l.notFoundMessage, isNotEmpty);
-      expect(l.notFoundGoDashboard, isNotEmpty);
-      expect(l.notFoundGoSignIn, isNotEmpty);
-    }
-    expect(_en.notFoundTitle, isNot(_ko.notFoundTitle));
-    expect(_en.notFoundGoDashboard, isNot(_ko.notFoundGoDashboard));
+  test('every 404 string is filled in', () {
+    expect(_ko.notFoundTitle, isNotEmpty);
+    expect(_ko.notFoundMessage, isNotEmpty);
+    expect(_ko.notFoundGoDashboard, isNotEmpty);
+    expect(_ko.notFoundGoSignIn, isNotEmpty);
   });
 }

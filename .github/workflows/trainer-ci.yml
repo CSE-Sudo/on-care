@@ -21,10 +21,17 @@ on:
       - "shared/oncare_rules/**"
       # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
       - "shared/oncare_core/**"
+      # 두 앱이 함께 쓰는 카카오·구글 로그인(#330).
+      - "shared/oncare_social_login/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       # 웹 빌드가 받는 drift WASM 의 공용 다운로드 스크립트와 SHA-256 표(#3089).
       - "tool/drift_wasm/**"
+      # 운영 빌드의 데모 자산 선언 제거와 운영 번들 검사(#3157).
+      - "frontend/tool/strip_demo_assets.py"
+      - "tool/ci/check_prod_web_bundle.py"
+      # 화면 하드코딩 검사 도구와 규칙(#1698) — 트레이너 웹 검사가 여기서 돈다. 규칙만 바뀌어도 돈다(#3237).
+      - "tool/ui_guard/**"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -44,28 +51,38 @@ on:
       - "shared/oncare_rules/**"
       # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
       - "shared/oncare_core/**"
+      # 두 앱이 함께 쓰는 카카오·구글 로그인(#330).
+      - "shared/oncare_social_login/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       # 웹 빌드가 받는 drift WASM 의 공용 다운로드 스크립트와 SHA-256 표(#3089).
       - "tool/drift_wasm/**"
+      # 운영 빌드의 데모 자산 선언 제거와 운영 번들 검사(#3157).
+      - "frontend/tool/strip_demo_assets.py"
+      - "tool/ci/check_prod_web_bundle.py"
+      # 화면 하드코딩 검사 도구와 규칙(#1698) — 트레이너 웹 검사가 여기서 돈다. 규칙만 바뀌어도 돈다(#3237).
+      - "tool/ui_guard/**"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: trainer-ci-${{ github.workflow }}-${{ github.ref }}
-  # PR 실행만 취소한다. 같은 브랜치에 새 커밋이 오면 옛 실행은 볼 값이 없다.
+  # PR 은 브랜치마다 한 그룹이라 새 커밋이 오면 옛 실행을 취소한다 — 옛 실행은 볼 값이 없다.
   #
-  # main 은 다르다. `github.ref` 가 병합마다 똑같이 `refs/heads/main` 이라,
-  # 연달아 병합하면 앞선 검증이 취소된다 — 병합 뒤 검증이 안전망인데 빠르게
-  # 병합할수록 그 안전망이 꺼진다. 2026-08-16 에 실제로 네 커밋이 검증되지
-  # 않은 채 지나갔고, 다섯 번째에서야 깨진 것이 드러났다(#807).
+  # main push 는 커밋마다 그룹을 따로 둔다. 병합 뒤 검증이 안전망인데, 2026-08-16 에 연달아
+  # 병합한 네 커밋이 검증되지 않은 채 지나갔고 다섯 번째에서야 깨진 것이 드러났다(#807).
+  # `cancel-in-progress: false` 만으로는 막지 못한다 — 진행 중인 실행은 지키지만 GitHub 은
+  # 그룹마다 대기 실행을 하나만 두고 새 실행이 오면 대기 중이던 것을 취소해, 세 번 이상 연달아
+  # 병합하면 가운데 커밋의 검증이 취소된다(#3237). 이 워크플로의 완료를 받아 배포하는 곳은 없어
+  # (프런트 배포 게이트는 커밋별 결과를 읽기만 한다) 커밋끼리 나란히 돌아도 된다.
+  group: trainer-ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  analyze-and-test:
-    name: Analyze and test
+  analyze:
+    # 분석·린트. 앱 테스트는 아래 `test` 잡이 묶음으로 나눠 동시에 돈다(#3321).
+    name: Analyze (trainer web)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -112,13 +129,78 @@ jobs:
         timeout-minutes: 10
         run: dart run custom_lint
 
+  test:
+    # 테스트를 묶음으로 나눠 잡마다 하나씩 돌린다(#3321). 한 러너에서 `flutter test` 한 번으로
+    # 돌리면 15분이 걸렸다. 테스트도 설정도 그대로고, 파일을 나눠 동시에 돌 뿐이다 —
+    # `.github/scripts/flutter_test_shard.sh` 가 테스트 파일을 빠짐·겹침 없이 묶음에 나눈다.
+    #
+    # 묶음 수를 바꿀 때는 아래 `shard` 목록만 고친다(1 부터 빈 번호 없이). 전체 묶음 수는
+    # 목록 길이를 따라간다.
+    name: Test (trainer web, ${{ matrix.shard }}/${{ strategy.job-total }})
+    runs-on: ubuntu-latest
+    strategy:
+      # 한 묶음이 실패해도 나머지를 끝까지 돌린다. 먼저 끊으면 한 번의 CI 로 알 수 있는
+      # 실패가 묶음 하나 분량으로 줄어든다.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    defaults:
+      run:
+        working-directory: frontend/flutter_trainer
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          # analyze 잡과 같은 이유로 고정한다(#659).
+          flutter-version: '3.44.9'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
       - name: Test
-        run: flutter test
+        env:
+          SHARD: ${{ matrix.shard }}
+          TOTAL_SHARDS: ${{ strategy.job-total }}
+        run: bash ../../.github/scripts/flutter_test_shard.sh "$SHARD" "$TOTAL_SHARDS"
+
+  analyze-and-test:
+    # 분석 잡과 모든 테스트 묶음이 성공해야만 성공한다(#3321). 묶음으로 나누기 전의 잡 이름을
+    # 그대로 써서, PR 화면에서 보던 체크 하나로 결과를 읽을 수 있다.
+    #
+    # `if: always()` 가 없으면 앞 잡이 실패했을 때 이 잡이 건너뛰어지고, 건너뛴 체크는
+    # 실패로 보이지 않는다. 그래서 늘 돌고, 결과가 success 가 아닌 것(실패·취소·건너뜀)이
+    # 하나라도 있으면 실패한다.
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    needs: [analyze, test]
+    if: always()
+    steps:
+      - name: Require the analysis and every test shard to pass
+        env:
+          ANALYZE_RESULT: ${{ needs.analyze.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          set -euo pipefail
+          echo "analyze: ${ANALYZE_RESULT}"
+          echo "test shards: ${TEST_RESULT}"
+          if [ "${ANALYZE_RESULT}" != success ] || [ "${TEST_RESULT}" != success ]; then
+            echo "::error::분석 또는 테스트 묶음이 통과하지 못했습니다. 위 잡의 로그를 확인하세요."
+            exit 1
+          fi
 
   web-build:
     name: Build trainer web with Drift WASM
     runs-on: ubuntu-latest
-    needs: analyze-and-test
+    # 분석이 통과하면 테스트 묶음을 기다리지 않고 바로 빌드한다(#3321). 테스트 결과는
+    # `Analyze and test` 체크가 따로 모은다.
+    needs: analyze
     defaults:
       run:
         working-directory: frontend/flutter_trainer
@@ -154,11 +236,25 @@ jobs:
           test -s web/sqlite3.wasm
           test -s web/drift_worker.js
 
+      # 운영과 같은 조건으로 빌드한다(#3157) — 데모 자산 선언을 빼고, DEMO_BUILD 없이
+      # 실서버 설정으로. 목업 분기가 트리 셰이킹되고 데모 자산이 빠졌는지는 아래
+      # 번들 검사가 본다. 주소는 검사용 자리값이다 — 이 산출물은 배포하지 않는다.
+      - name: Strip demo-only assets
+        run: python3 ../tool/strip_demo_assets.py .
+
       - name: Build trainer web
-        run: flutter build web --release --base-href "/trainer/"
+        run: >-
+          flutter build web --release --base-href "/trainer/"
+          --dart-define=USE_MOCK_API=false
+          --dart-define=ENV=prod
+          --dart-define=API_BASE_URL=https://api.example.org/v1
 
       # 다운로드뿐 아니라 최종 산출물에도 두 파일이 포함됐는지 확인(배포 시 404 방지).
       - name: Verify built Drift runtime files (build/web/)
         run: |
           test -s build/web/sqlite3.wasm
           test -s build/web/drift_worker.js
+
+      - name: Check production bundle has no demo code or assets
+        working-directory: .
+        run: python3 tool/ci/check_prod_web_bundle.py --app trainer frontend/flutter_trainer/build/web

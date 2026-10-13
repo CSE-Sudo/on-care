@@ -11,12 +11,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/misconfigured_build_page.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 const List<ReleaseProblem> _all = ReleaseProblem.values;
 
@@ -26,11 +24,8 @@ Finder get _details => find.byKey(MisconfiguredBuildPage.detailsKey);
 Future<void> _pump(
   WidgetTester tester, {
   List<ReleaseProblem> problems = _all,
-  Locale locale = const Locale('ko'),
 }) async {
-  await tester.pumpWidget(
-    MisconfiguredBuildApp(problems: problems, locale: locale),
-  );
+  await tester.pumpWidget(MisconfiguredBuildApp(problems: problems));
   await tester.pumpAndSettle();
 }
 
@@ -47,24 +42,10 @@ void main() {
       '· ${_ko.misconfiguredBuildMockWithoutDemo}',
       '· ${_ko.misconfiguredBuildPlaceholderApiUrl}',
       '· ${_ko.misconfiguredBuildInsecureApiUrl}',
+      '· ${_ko.misconfiguredBuildDemoEntry}',
+      '· ${_ko.misconfiguredBuildRealApi}',
     ].join('\n');
     expect(find.text(details), findsOneWidget);
-  });
-
-  testWidgets('영어 기기에서는 영어로 안내한다', (tester) async {
-    await _pump(
-      tester,
-      problems: const <ReleaseProblem>[ReleaseProblem.devEnvironment],
-      locale: const Locale('en'),
-    );
-
-    expect(find.text(_en.misconfiguredBuildTitle), findsOneWidget);
-    expect(find.text(_en.misconfiguredBuildMessage), findsOneWidget);
-    expect(
-      find.text('· ${_en.misconfiguredBuildDevEnvironment}'),
-      findsOneWidget,
-    );
-    expect(find.text(_ko.misconfiguredBuildTitle), findsNothing);
   });
 
   testWidgets('찾은 문제만 나열한다', (tester) async {
@@ -126,5 +107,17 @@ void main() {
         MisconfiguredBuildPage.describe(_ko, p),
     };
     expect(lines, hasLength(ReleaseProblem.values.length));
+  });
+
+  testWidgets('데모 진입이 켜진 운영 빌드는 그 설정을 짚는다 (#3147)', (tester) async {
+    await _pump(
+      tester,
+      problems: const <ReleaseProblem>[
+        ReleaseProblem.demoEntryWithoutDemoBuild,
+      ],
+    );
+
+    expect(find.text('· ${_ko.misconfiguredBuildDemoEntry}'), findsOneWidget);
+    expect(find.textContaining('SHOW_DEMO_ENTRY'), findsOneWidget);
   });
 }

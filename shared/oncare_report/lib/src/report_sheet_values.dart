@@ -122,6 +122,7 @@ class ReportSheetWeekData implements ReportSheetWeek {
     this.carbsTarget,
     this.proteinTarget,
     this.fatTarget,
+    this.effectiveProteinTarget,
     this.days = const <ReportSheetDay>[],
     this.mealCounts = const <int>[],
     this.answers,
@@ -168,6 +169,8 @@ class ReportSheetWeekData implements ReportSheetWeek {
   @override
   final double? fatTarget;
   @override
+  final double? effectiveProteinTarget;
+  @override
   final List<ReportSheetDay> days;
   @override
   final List<int> mealCounts;
@@ -197,6 +200,7 @@ class ReportSheetWeekData implements ReportSheetWeek {
         carbsTarget: carbsTarget,
         proteinTarget: proteinTarget,
         fatTarget: fatTarget,
+        effectiveProteinTarget: effectiveProteinTarget,
         days: days,
         mealCounts: mealCounts,
         answers: value,
@@ -289,10 +293,18 @@ class ReportSheetInputs {
     required this.week,
     this.trend,
     this.history = const <ReportSheetWeek>[],
+    this.asOf,
   });
 
   /// 리포트가 보는 주.
   final ReportSheetWeek week;
+
+  /// [week] 의 값을 굳힌 시각(KST 벽시계). null 이면 지금 읽은 값이다. (#3349)
+  ///
+  /// 회원이 받았거나 산 리포트는 그때의 값으로 고정된다. 진행 중이던 주를 굳힌
+  /// 리포트는 이 시각을 `오늘` 로 그려야 한다 — 그때 아직 오지 않았던 요일을
+  /// 기록하지 않은 날로 세면 안 된다.
+  final DateTime? asOf;
 
   /// 여덟 주 운동 실적. 읽지 못했으면 null.
   final ReportSheetTrend? trend;

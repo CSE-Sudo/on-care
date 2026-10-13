@@ -152,15 +152,50 @@ void main() {
       expect(detailCode(wrong), 'invalid_current_password');
       expect((await profile())['email'], 'minsu@oncare.com');
 
+      // 새 주소 인증 코드가 없거나 틀리면 바꾸지 않는다(#3230).
+      final noCode = await putMe(<String, Object?>{
+        'email': 'new@b.com',
+        'current_password': 'demo-pass-1',
+      });
+      expect(noCode.statusCode, 422);
+      expect(detailCode(noCode), 'email_code_required');
+      final badCode = await putMe(<String, Object?>{
+        'email': 'new@b.com',
+        'current_password': 'demo-pass-1',
+        'email_code': '123456',
+      });
+      expect(badCode.statusCode, 400);
+      expect(detailCode(badCode), 'invalid_email_code');
+      expect((await profile())['email'], 'minsu@oncare.com');
+
       final ok = await putMe(<String, Object?>{
         'email': 'new@b.com',
         'current_password': 'demo-pass-1',
+        'email_code': '000000',
       });
       expect(ok.statusCode, 200);
       expect(ok.data!['email'], 'new@b.com');
       // 이메일이 바뀌면 새 토큰 한 쌍을 준다.
       expect(ok.data!['access_token'], isA<String>());
       expect(ok.data!['refresh_token'], isA<String>());
+    });
+
+    test('새 이메일 인증 코드 요청은 202, 지금 이메일이면 422 (#3230)', () async {
+      await login('a@b.com', 'demo-pass-1');
+      final sent = await dio.post<Map<String, Object?>>(
+        '/users/me/email/code',
+        data: <String, Object?>{'email': 'new@b.com'},
+      );
+      expect(sent.statusCode, 202);
+      expect(sent.data!['expires_in_minutes'], 10);
+      expect(sent.data!['resend_after_seconds'], 60);
+
+      final same = await dio.post<Map<String, Object?>>(
+        '/users/me/email/code',
+        data: <String, Object?>{'email': 'Minsu@OnCare.com'},
+      );
+      expect(same.statusCode, 422);
+      expect(detailCode(same), 'email_unchanged');
     });
 
     test('가입 계정은 가입한 비밀번호로 확인하고, 중복은 확인 뒤에 본다', () async {

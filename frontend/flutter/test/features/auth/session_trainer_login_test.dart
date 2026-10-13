@@ -260,14 +260,16 @@ void main() {
       expect(
         trainerWebAddress(
           isWeb: true,
-          page: Uri.parse('https://ewhasudo.zapto.org/frontend/#/sign-in'),
+          page: Uri.parse(
+            'https://cse-sudo.github.io/on-care/member/#/sign-in',
+          ),
         ),
-        Uri.parse('https://ewhasudo.zapto.org/trainer/'),
+        Uri.parse('https://cse-sudo.github.io/on-care/trainer/'),
       );
       expect(
         trainerWebAddress(
           isWeb: true,
-          page: Uri.parse('https://oncare.test/frontend/index.html?x=1'),
+          page: Uri.parse('https://oncare.test/member/index.html?x=1'),
         ),
         Uri.parse('https://oncare.test/trainer/'),
       );
@@ -338,7 +340,7 @@ void main() {
       }
     }
 
-    for (final Locale locale in const <Locale>[Locale('ko'), Locale('en')]) {
+    for (final Locale locale in const <Locale>[Locale('ko')]) {
       testWidgets('트레이너 계정 로그인은 트레이너 웹 안내를 보인다 (${locale.languageCode})', (
         WidgetTester tester,
       ) async {

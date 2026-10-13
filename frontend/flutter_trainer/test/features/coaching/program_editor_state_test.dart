@@ -123,4 +123,46 @@ void main() {
     // 이름 없이 확정된 듯한 숫자를 띄우지 않는다 — 회원 앱과 같은 규약이다.
     expect(unnamed.calories, isNull);
   });
+
+  group('nextFreeId (#3247)', () {
+    ProgramSessionDraft session(String id, List<String> exerciseIds) =>
+        ProgramSessionDraft(
+          id: id,
+          name: id,
+          exercises: <ProgramExerciseDraft>[
+            for (final String e in exerciseIds)
+              ProgramExerciseDraft(id: e, name: e),
+          ],
+        );
+
+    test('운동 수가 아니라 이미 쓴 번호 다음부터다', () {
+      // 세션 1·운동 2·세션 3·운동 4 — 운동 수 + 2 는 4 라 다음 운동과 겹쳤다.
+      final ProgramEditorState draft = ProgramEditorState(
+        name: '프로그램',
+        sessions: <ProgramSessionDraft>[
+          session('session-1', <String>['exercise-2']),
+          session('session-3', <String>['exercise-4']),
+        ],
+      );
+      expect(draft.nextFreeId, 5);
+    });
+
+    test('다른 모양의 id 는 번호를 차지하지 않는다', () {
+      final ProgramEditorState draft = ProgramEditorState(
+        name: '프로그램',
+        sessions: <ProgramSessionDraft>[
+          session('session-1', <String>['ai-77', 'exercise-x', 'exercise-3']),
+        ],
+      );
+      expect(draft.nextFreeId, 4);
+    });
+
+    test('빈 초안은 2 부터다 — 첫 세션이 session-1 이다', () {
+      final ProgramEditorState draft = ProgramEditorState(
+        name: '프로그램',
+        sessions: <ProgramSessionDraft>[session('session-1', <String>[])],
+      );
+      expect(draft.nextFreeId, 2);
+    });
+  });
 }

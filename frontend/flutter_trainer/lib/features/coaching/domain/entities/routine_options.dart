@@ -208,9 +208,11 @@ class RoutinePlan {
     required this.exercises,
     required this.reason,
     required this.rationale,
+    this.basis = '',
+    this.changes = const <String>[],
   });
 
-  /// "A" or "B".
+  /// "A", "B" or "C"(#3282).
   final String key;
   final String label;
   final int totalMinutes;
@@ -220,6 +222,37 @@ class RoutinePlan {
 
   /// Data-grounded rationale citing the member's numbers.
   final String rationale;
+
+  /// C안만(#3282) — 왜 이번 차례인지. 서버 규칙이 쓴다.
+  final String basis;
+
+  /// C안만(#3282) — 기준 프로그램(지난 PT)에서 바꾼 점, 한 줄씩.
+  final List<String> changes;
+}
+
+/// 서버가 이번 생성에서 찾은 것 하나와 반영 방향(#3280).
+///
+/// [MemberAnalysis] 는 판단에 **넣은** 값이고, 이것은 그 값에서 **찾은** 신호다.
+/// 문장은 서버가 요청 언어로 쓴다 — 화면은 옮기지 않는다.
+class RoutineFinding {
+  const RoutineFinding({
+    required this.kind,
+    required this.finding,
+    required this.source,
+    required this.action,
+  });
+
+  /// `caution` · `escalation` · `pattern` · `sodium` · `adherence`.
+  final String kind;
+
+  /// 찾은 것 — `무릎 불편·통증 언급`.
+  final String finding;
+
+  /// 어디서 봤는지 — `최근 대화`, `PT 피드백 · 10.06`.
+  final String source;
+
+  /// 후보에 어떻게 반영했는지.
+  final String action;
 }
 
 /// The full A/B options response.
@@ -229,6 +262,8 @@ class RoutineOptions {
     required this.planA,
     required this.planB,
     required this.generatedBy,
+    this.findings = const <RoutineFinding>[],
+    this.planC,
   });
 
   final MemberAnalysis analysis;
@@ -237,4 +272,11 @@ class RoutineOptions {
 
   /// "ai" (LLM) or "rule" (deterministic fallback).
   final String generatedBy;
+
+  /// 이번 생성의 판단 결과(#3280). 옛 서버·찾은 것이 없으면 비어 있다.
+  final List<RoutineFinding> findings;
+
+  /// 지난 PT 흐름상 이번 차례 프로그램을 최근 상태에 맞게 고친 안(#3282).
+  /// 서버는 늘 채운다 — 옛 서버·옛 자동 보관만 비어 있다.
+  final RoutinePlan? planC;
 }

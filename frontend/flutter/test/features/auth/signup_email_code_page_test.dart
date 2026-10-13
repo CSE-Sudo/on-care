@@ -294,7 +294,7 @@ void main() {
         registerBody: const <String, Object?>{
           'detail': <String, Object?>{
             'code': 'invalid_email_code',
-            'message': '인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.',
+            'message': '인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.',
           },
         },
       ),
@@ -382,26 +382,6 @@ void main() {
     expect(
       find.byKey(const ValueKey<String>('member-signup-code-demo')),
       findsNothing,
-    );
-  });
-
-  testWidgets('영어 화면에서는 영어 문구다', (tester) async {
-    await _pump(tester, locale: const Locale('en'));
-
-    expect(find.text('Send code'), findsOneWidget);
-
-    await _type(tester, 'member-signup-email', 'new@oncare.com');
-    await tapSignupCodeSend(tester);
-
-    expect(find.text('Verification code'), findsOneWidget);
-    expect(find.text('Resend in 60s'), findsOneWidget);
-    expect(
-      find.text('6-digit code from the email · expires in 10:00'),
-      findsOneWidget,
-    );
-    expect(
-      find.text("Demo mode doesn't send email. Enter 000000 as the code."),
-      findsOneWidget,
     );
   });
 

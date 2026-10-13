@@ -8,9 +8,10 @@ AI 코치만 쓰는 회원에게 한 주를 돌아보는 자리를 포인트 교
 - 사는 주는 **지난주**(가장 최근에 끝난 KST 월~일)다. 진행 중인 주는 기록이 반쯤이라
   돌아보기에 맞지 않고, 트레이너도 끝난 주를 등록한다.
 - **같은 주는 한 번만** 산다([WeekAlreadyOwned], `uq_weekly_report_purchase_week`).
-- 리포트 내용은 저장하지 않는다. 앱이 회원이 쌓은 식단·운동 기록과 감지 기록으로
-  세우고, 트레이너 리포트와 같은 문서로 연다. 트레이너 코멘트 자리는 비운다.
-  여기에는 어느 주를 샀는지만 남는다.
+- 리포트는 앱이 트레이너 리포트와 같은 문서로 세우고, 트레이너 코멘트 자리는
+  비운다. 재료(그 주의 수치·목표·감지 기록)는 **살 때의 값**으로 남긴다(#3349) —
+  열 때마다 다시 계산하면 산 뒤에 고친 기록이 지난 리포트를 바꾸고, 감지 기록은
+  30일 창을 벗어나 사라진다. 그 전에 산 주는 남긴 값이 없어 지금처럼 다시 읽는다.
 - 산 뒤에 담당이 생겨도 산 리포트는 그대로 본다 — 회원 자신의 기록이다.
 """
 from __future__ import annotations
@@ -74,6 +75,8 @@ def owns(db: Session, member_id: str, week_start: date) -> bool:
 
 def list_reports(db: Session, member_id: str) -> WeeklyReportListOut:
     """산 주(최근 주 먼저)와 지금 살 수 있는 주."""
+    from app.services import report_snapshot_service
+
     rows = db.scalars(
         select(WeeklyReportPurchase)
         .where(WeeklyReportPurchase.user_id == member_id)
@@ -83,7 +86,9 @@ def list_reports(db: Session, member_id: str) -> WeeklyReportListOut:
     return WeeklyReportListOut(
         reports=[
             WeeklyReportPurchaseOut(
-                week_start=row.week_start, purchased_at=row.created_at
+                week_start=row.week_start,
+                purchased_at=row.created_at,
+                insights=report_snapshot_service.read_insights(row.insights_json),
             )
             for row in rows
         ],
@@ -104,12 +109,15 @@ def exchange(
     [TrainerAssigned], 이미 받은 주면 [WeekAlreadyOwned], 잔액이 모자라면
     [points_service.InsufficientPoints] 다.
     """
+    from app.services import report_snapshot_service
     from app.services.trainer import _common as trainer_common_service
 
-    if client_request_id and _by_request(db, member_id, client_request_id):
-        return _exchange_out(db, member_id)
+    if client_request_id:
+        replayed = _by_request(db, member_id, client_request_id)
+        if replayed is not None:
+            return _replayed_out(db, member_id, replayed)
     if trainer_common_service.get_member_trainer_id(db, member_id) is not None:
-        raise TrainerAssigned("담당 트레이너가 리포트를 등록해 줘요.")
+        raise TrainerAssigned("담당 트레이너가 주간 리포트를 보내 줘요.")
 
     week = target_week()
     points_service.lock_balance(db, member_id)
@@ -127,6 +135,15 @@ def exchange(
         week_start=week.isoformat(),
         cost=COST,
         client_request_id=client_request_id,
+        # 살 때의 값으로 굳힌다(#3349). 담당이 없는 회원만 사므로 감지 기록을
+        # 읽을 수 있는 것도 지금이다 — 담당이 생기면 `GET /ai-coach/insights`
+        # 는 403 이다.
+        report_snapshot_json=report_snapshot_service.build_report_snapshot(
+            db, member_id, week, trainer_id=""
+        ),
+        insights_json=report_snapshot_service.build_insights_snapshot(
+            db, member_id, week
+        ),
     )
     try:
         db.add(row)
@@ -142,8 +159,10 @@ def exchange(
         db.commit()
     except IntegrityError:
         db.rollback()
-        if client_request_id and _by_request(db, member_id, client_request_id):
-            return _exchange_out(db, member_id)
+        if client_request_id:
+            replayed = _by_request(db, member_id, client_request_id)
+            if replayed is not None:
+                return _replayed_out(db, member_id, replayed)
         if owns(db, member_id, week):
             raise WeekAlreadyOwned("이 주의 리포트는 이미 받았어요.") from None
         raise
@@ -161,11 +180,20 @@ def _by_request(
     )
 
 
-def _exchange_out(
-    db: Session, member_id: str, week: date | None = None
-) -> ExchangeOut:
+def _exchange_out(db: Session, member_id: str, week: date) -> ExchangeOut:
     return ExchangeOut(
-        weekly_report_week=(week or target_week()).isoformat(),
+        weekly_report_week=week.isoformat(),
         spent=COST,
         balance=points_service.balance(db, member_id),
     )
+
+
+def _replayed_out(
+    db: Session, member_id: str, row: WeeklyReportPurchase
+) -> ExchangeOut:
+    """같은 요청의 재시도 — 그때 산 주를 그대로 돌려준다. (#3240)
+
+    지금의 [target_week] 를 주면 월요일 0시(KST)를 넘긴 재시도가 사지 않은 주를
+    받았다고 답한다.
+    """
+    return _exchange_out(db, member_id, date.fromisoformat(row.week_start))

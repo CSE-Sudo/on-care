@@ -58,16 +58,11 @@ void main() {
     const ValueKey<String>('report-step-next'),
   );
 
-  /// 작업대 카드 제목 줄의 주 표시 — `8월 10일 – 8월 16일`.
+  /// 작업대 카드 제목 줄의 주 표시 — `8월 10일 ~ 8월 16일`.
   String koRange(DateTime monday) {
     final DateTime sunday = DateTime(monday.year, monday.month, monday.day + 6);
-    return '${monday.month}월 ${monday.day}일 – '
+    return '${monday.month}월 ${monday.day}일 ~ '
         '${sunday.month}월 ${sunday.day}일';
-  }
-
-  String enRange(DateTime monday) {
-    final DateTime sunday = DateTime(monday.year, monday.month, monday.day + 6);
-    return '${monday.month}/${monday.day} – ${sunday.month}/${sunday.day}';
   }
 
   /// URL 의 query 만 떼어 본다 — 순서에 매이지 않게.
@@ -78,7 +73,6 @@ void main() {
     WidgetTester tester, {
     String? at,
     String? bootAt,
-    Locale locale = const Locale('ko'),
   }) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(1600, 1200);
@@ -90,7 +84,6 @@ void main() {
       token: 'demo-trainer-token',
       at: at,
       bootAt: bootAt,
-      locale: locale,
       extraOverrides: <Override>[
         clientsProvider.overrideWith(
           (ref) => Stream<List<TrainerClient>>.value(_roster),
@@ -369,21 +362,4 @@ void main() {
     });
   });
 
-  group('영어', () {
-    testWidgets('지난 주 링크와 주 이동이 영어 화면에서도 같다', (tester) async {
-      await pump(
-        tester,
-        at: AppRoutes.reportFor(null, weekStart: _twoWeeksAgo),
-        locale: const Locale('en'),
-      );
-      expect(find.text(enRange(_twoWeeksAgo)), findsWidgets);
-
-      await tester.tap(nextWeek);
-      await settle(tester);
-
-      expect(find.text(enRange(_lastWeek)), findsWidgets);
-      expect(query(tester)['week'], '2026-08-10');
-      expect(tester.takeException(), isNull);
-    });
-  });
 }

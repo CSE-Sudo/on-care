@@ -6,37 +6,57 @@
 # 운영(CloudFront)은 응답 헤더 CSP 가 API 출처로 좁히지만(#3017), Pages 는 응답 헤더를
 # 바꿀 수 없어 meta 가 전부다. 그래서 데모 빌드 산출물의 connect-src 를 그 빌드가 실제로
 # 부르는 출처만으로 바꾼다 — 운영 헤더와 같은 목록이다.
-#   'self' · API 출처(실서버 빌드만, 목업은 네트워크를 쓰지 않는다) · CanvasKit(www.gstatic.com)
+#   'self' · blob:(사진 선택기가 줄인 사진을 같은 탭의 blob: 주소에서 읽는다)
+#   · API 출처(실서버 빌드만, 목업은 네트워크를 쓰지 않는다) · CanvasKit(www.gstatic.com)
 #   · 대체 글꼴(fonts.gstatic.com) · 카카오맵 SDK(dapi.kakao.com)
+#   · 구글 로그인 버튼(accounts.google.com/gsi/, #330)
 #
 # 사용:
 #   pages_demo_csp.sh narrow <index.html> [API_BASE_URL]   산출물의 connect-src 를 바꾼다
 #   pages_demo_csp.sh check  <index.html> [API_BASE_URL]   좁혀졌는지 확인한다
+# check 의 차단 기준은 운영 헤더 검사(frontend_security_headers.sh)와 같다(#3255) — scheme 전체
+# (https:·http:·wss:·ws:)·`*`·호스트가 `*` 인 출처(https://*·https://*:443·https://*/…)·http://·ws://
+# 평문 출처·localhost·127.0.0.1. 하위 도메인 묶음(https://*.example.com)은 허용한다.
 # API_BASE_URL 을 주면(실서버 빌드) 그 출처(`https://호스트[:포트]`)를 넣고·요구한다.
 set -euo pipefail
 # connect-src 의 `*` 가 파일 이름으로 펼쳐지지 않게 한다.
 set -f
 
-STATIC_SOURCES="https://www.gstatic.com https://fonts.gstatic.com https://dapi.kakao.com"
+STATIC_SOURCES="https://www.gstatic.com https://fonts.gstatic.com https://dapi.kakao.com https://accounts.google.com/gsi/"
 
 fail() {
   echo "::error title=Pages 데모 CSP::$1" >&2
   exit 1
 }
 
-# api_origin <API_BASE_URL>: https://host[:port] 만 남긴다.
+# PAGES_CSP_ALLOW_LOCAL=1 이면 데모 Pages 의 local 빌드다 — API 주소로
+# http://localhost[:포트]·http://127.0.0.1[:포트] 하나만 더 받는다(내 컴퓨터 백엔드).
+ALLOW_LOCAL=${PAGES_CSP_ALLOW_LOCAL:-0}
+
+# is_local_origin <origin>: 허용하는 로컬 백엔드 출처인가.
+is_local_origin() {
+  [ "$ALLOW_LOCAL" = "1" ] || return 1
+  printf '%s' "$1" | grep -Eq '^http://(localhost|127\.0\.0\.1)(:[0-9]{1,5})?$'
+}
+
+# api_origin <API_BASE_URL>: scheme://host[:port] 만 남긴다.
 api_origin() {
   local url=$1
+  local scheme
   case "$url" in
-    https://*) ;;
+    https://*) scheme=https ;;
+    http://*) scheme=http ;;
     *) fail "API_BASE_URL 은 https:// 로 시작해야 합니다: $url" ;;
   esac
-  local rest=${url#https://}
+  local rest=${url#"$scheme"://}
   local host=${rest%%/*}
   case "$host" in
     '' | *[!A-Za-z0-9.:-]*) fail "API_BASE_URL 의 호스트가 올바르지 않습니다: $url" ;;
   esac
-  printf 'https://%s' "$host"
+  if [ "$scheme" = "http" ] && ! is_local_origin "http://$host"; then
+    fail "API_BASE_URL 은 https:// 로 시작해야 합니다: $url"
+  fi
+  printf '%s://%s' "$scheme" "$host"
 }
 
 # meta_csp <file>: meta CSP 의 content 값을 한 줄로 낸다. 정확히 하나여야 한다.
@@ -80,7 +100,7 @@ case "$cmd" in
     if [ -z "$(connect_src "$csp")" ]; then
       fail "$file 의 meta CSP 에 connect-src 가 없습니다."
     fi
-    sources="'self'${origin:+ $origin} $STATIC_SOURCES"
+    sources="'self' blob:${origin:+ $origin} $STATIC_SOURCES"
     # connect-src 지시어 하나만 바꾼다(다음 `;` 전까지). 다른 지시어의 https: 는 그대로 둔다.
     tmp=$(mktemp)
     sed -E "/<meta http-equiv=\"Content-Security-Policy\"/ s#connect-src [^;\"]*#connect-src ${sources}#" \
@@ -96,15 +116,22 @@ case "$cmd" in
       fail "$file 의 meta CSP 에 connect-src 가 없습니다."
     fi
     for source in $connect; do
+      if [ -n "$origin" ] && [ "$source" = "$origin" ] && is_local_origin "$origin"; then
+        continue
+      fi
       case "$source" in
-        https: | http: | '*' | 'https://*' | 'http://*')
+        https: | http: | wss: | ws: | '*' | *://\* | *://\*:* | *://\*/*)
           fail "$file: connect-src 가 좁혀지지 않았습니다('$source')." ;;
-        http://*)
-          fail "$file: connect-src 에 http 출처가 남아 있습니다('$source')." ;;
+        http://* | ws://*)
+          fail "$file: connect-src 에 평문(http·ws) 출처가 남아 있습니다('$source')." ;;
         *localhost* | *127.0.0.1*)
           fail "$file: connect-src 에 로컬 개발 주소가 남아 있습니다('$source')." ;;
       esac
     done
+    case " $connect " in
+      *" blob: "*) ;;
+      *) fail "$file: connect-src 에 blob: 이 없습니다 — 웹 사진 선택이 실패합니다." ;;
+    esac
     if [ -n "$origin" ]; then
       case " $connect " in
         *" $origin "*) ;;

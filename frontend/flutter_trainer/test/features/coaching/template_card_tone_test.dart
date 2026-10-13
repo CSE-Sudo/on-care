@@ -73,7 +73,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey<String>('template-menu-$id')).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('템플릿 편집'), findsOneWidget);
+    expect(find.text('템플릿 수정'), findsOneWidget);
     expect(find.text('삭제'), findsNothing);
   });
 }

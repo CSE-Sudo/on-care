@@ -136,16 +136,17 @@ def test_kakao_docs_to_places_parsing():
 
     docs = [
         {
-            "id": "1", "place_name": "온케어짐", "x": "127.0", "y": "37.5",
+            "id": "1", "place_name": "온케어내과", "x": "127.0", "y": "37.5",
             "distance": "120", "road_address_name": "서울 서대문구 신촌로 120",
         },
         {"id": "2", "place_name": "좌표없음"},  # x/y 없음 → 스킵
         {"id": "3", "place_name": "거리없음", "x": "127.1", "y": "37.6"},  # distance 없음 → 0
     ]
-    out = docs_to_places(docs, "fitness")
+    # 헬스장 판별(#3357)은 `fitness` 에만 걸린다 — 여기서는 파싱만 본다.
+    out = docs_to_places(docs, "medical")
     assert len(out) == 2
-    assert out[0].name == "온케어짐"
-    assert out[0].category == "fitness"
+    assert out[0].name == "온케어내과"
+    assert out[0].category == "medical"
     assert out[0].distance_meters == 120
     assert out[0].lat == 37.5 and out[0].lng == 127.0
     assert out[1].distance_meters == 0
@@ -218,6 +219,33 @@ def test_places_uses_kakao_when_configured(client, monkeypatch):
     assert body[0]["name"] == "카카오헬스장"
 
 
+def test_places_kakao_wait_does_not_hold_db_connection(client, monkeypatch):
+    """카카오를 기다리는 동안 요청 세션이 트랜잭션(연결)을 쥐지 않는다(#3242)."""
+    import app.api.v1.places as places_mod
+    from app.core.config import get_settings
+
+    seen: dict = {}
+    real_release = places_mod.release_connection
+
+    def spy_release(db):
+        seen["db"] = db
+        return real_release(db)
+
+    async def fake_search(lat, lng, category, radius_m, api_key, timeout):
+        seen["in_transaction"] = seen["db"].in_transaction()
+        return []
+
+    monkeypatch.setattr(places_mod, "release_connection", spy_release)
+    monkeypatch.setattr(places_mod.kakao, "search_nearby", fake_search)
+    s = get_settings()
+    monkeypatch.setattr(s, "kakao_rest_api_key", "test-key")
+    monkeypatch.setattr(s, "places_provider", "kakao")
+
+    r = client.get("/v1/places/nearby", params={"category": "fitness"})
+    assert r.status_code == 200, r.text
+    assert seen["in_transaction"] is False
+
+
 def test_places_input_validation(client):
     """좌표 범위·category 허용값 밖은 DB 500 이 아니라 422(리뷰 재-#5)."""
     assert client.get("/v1/places/nearby", params={"lat": 100}).status_code == 422
@@ -263,8 +291,8 @@ def test_kakao_cache_reduces_calls(monkeypatch):
     monkeypatch.setattr(kk.httpx, "AsyncClient", _FakeClient)
 
     async def _run():
-        a = await kk.search_nearby(37.5, 127.0, "fitness", 3000, api_key="k")
-        b = await kk.search_nearby(37.5, 127.0, "fitness", 3000, api_key="k")
+        a = await kk.search_nearby(37.5, 127.0, "pharmacy", 3000, api_key="k")
+        b = await kk.search_nearby(37.5, 127.0, "pharmacy", 3000, api_key="k")
         return a, b
 
     try:

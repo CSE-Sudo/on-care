@@ -211,6 +211,24 @@ def test_service_skips_members_whose_assignment_ended(client, db_session):
     assert member not in {s.member_id for s in out.sends}
 
 
+def test_service_skips_members_who_revoked_consent(client, db_session):
+    """링크가 살아 있어도 동의가 철회된 회원은 싣지 않는다(#3239, #2868 과 같은 경계)."""
+    member = _member(db_session)
+    link = db_session.scalars(
+        select(TrainerClient).where(TrainerClient.member_id == member)
+    ).one()
+    link.data_consent_at = None
+    link.data_consent_revoked_at = datetime(2025, 11, 1, tzinfo=timezone.utc)
+    db_session.commit()
+    _message(db_session, member, week="2025-11-10")
+
+    out = trainer_reports_service.list_report_sends(
+        db_session, TRAINER_ID, date(2025, 11, 10)
+    )
+
+    assert member not in {s.member_id for s in out.sends}
+
+
 def test_service_keeps_trainers_apart(client, db_session):
     other = _trainer(db_session)
     mine = _member(db_session)

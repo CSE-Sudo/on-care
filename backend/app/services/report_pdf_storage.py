@@ -31,11 +31,11 @@ def save(data: bytes, *, file_id: str | None = None) -> str:
     if file_id is None:
         file_id = uuid.uuid4().hex
     elif not _FILE_ID.fullmatch(file_id):
-        raise PdfStorageError("PDF 식별자가 올바르지 않습니다.")
+        raise PdfStorageError("PDF 식별자가 올바르지 않아요.")
     try:
         _store().put(f"{file_id}.pdf", data, content_type=_MEDIA_TYPE)
     except OSError as exc:
-        raise PdfStorageError("리포트 PDF를 저장하지 못했습니다.") from exc
+        raise PdfStorageError("리포트 PDF를 저장하지 못했어요.") from exc
     return file_id
 
 

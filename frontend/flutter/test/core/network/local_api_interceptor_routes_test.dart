@@ -32,6 +32,7 @@ const List<String> _exactRoutes = <String>[
   'GET /exercise/weeks',
   'GET /exercise/advice',
   'POST /exercise/sessions',
+  'POST /exercise/sessions/move',
   'POST /exercise/calories',
   'GET /notifications',
   'GET /notifications/unread-count',
@@ -45,6 +46,8 @@ const List<String> _exactRoutes = <String>[
   'POST /auth/register',
   // 가입 이메일 인증 코드(#3038).
   'POST /auth/register/email-code',
+  // 아이디(가입 이메일) 찾기(#3337).
+  'POST /auth/find-email',
   'POST /auth/logout',
   'POST /auth/refresh',
   'POST /auth/social/kakao',
@@ -53,6 +56,8 @@ const List<String> _exactRoutes = <String>[
   'POST /users/me/consents',
   'GET /users/me/profile',
   'PUT /users/me',
+  // 이메일 변경 인증 코드(#3230).
+  'POST /users/me/email/code',
   'DELETE /users/me',
   'POST /users/me/onboarding',
   'POST /users/me/onboarding/skip',

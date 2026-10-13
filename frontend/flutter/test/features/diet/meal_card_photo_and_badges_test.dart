@@ -33,7 +33,7 @@ final DietMeal _breakfast = DietMeal(
   total: 217,
   emoji: '🥣',
   thumbBg: const Color(0xFFFFF3E0),
-  photoAsset: 'assets/images/breakfast-scrambled-egg-strawberry.jpg',
+  photoAsset: 'assets/demo/images/breakfast-scrambled-egg-strawberry.jpg',
   items: const <DietFood>[DietFood('스크램블 에그', 185), DietFood('딸기', 32)],
   tags: const <DietTag>[],
   sodium: 221,
@@ -117,7 +117,7 @@ void main() {
     );
     // `칼로리 217 kcal` 처럼 이름표를 달면 배지 하나뿐인 카드에서 같은 말이
     // 두 번 읽힌다(#1848).
-    expect(totalBadgeOf(tester).text.toPlainText(), '217 ${l.unitKcal}');
+    expect(totalBadgeOf(tester).text.toPlainText(), l.unitKcalValue(217));
   });
 
   testWidgets('끼니 카드에 남는 수치는 총 칼로리뿐이다', (WidgetTester tester) async {

@@ -5,7 +5,7 @@ import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 /// repository so the DTO ↔ domain mapping can be unit-tested directly.
 ///
 /// Shape: `{ id, name, email, phone, specialty, career, intro,
-/// certifications[], gym { name, address, hours, phone },
+/// certifications[], gym { id, name, address, hours, phone, lat, lng },
 /// is_admin, has_password }`. `is_admin` 은
 /// `true` 일 때만 운영자다(#3008) — 칸이 없는 예전 서버는 운영자가 아니다. Missing
 /// scalar fields fall back to `''`; a missing/invalid `gym` yields an
@@ -19,6 +19,8 @@ TrainerProfile trainerProfileFromJson(Map<String, Object?> json) {
           address: _str(gymJson['address']),
           hours: _str(gymJson['hours']),
           phone: _str(gymJson['phone']),
+          lat: _nullableDouble(gymJson['lat']),
+          lng: _nullableDouble(gymJson['lng']),
         )
       : const TrainerGym(name: '', address: '', hours: '', phone: '');
 
@@ -62,3 +64,6 @@ int? careerYearsFromJson(Map<String, Object?> json) {
 }
 
 String? _nullableStr(Object? value) => value?.toString();
+
+double? _nullableDouble(Object? value) =>
+    value is num ? value.toDouble() : null;

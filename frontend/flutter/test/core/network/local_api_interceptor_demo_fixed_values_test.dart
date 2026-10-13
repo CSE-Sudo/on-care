@@ -45,6 +45,8 @@ void main() {
           'email': 'minji@oncare.com',
           // 이메일 변경은 본인 확인을 거친다(#3039). 테스트 전용 값이다.
           'current_password': 'pw-current-1',
+          // 새 주소 인증 코드(#3230). 데모는 고정 코드를 받는다.
+          'email_code': '000000',
         },
       );
 
@@ -136,6 +138,79 @@ void main() {
       expect(rec.data!['days_with_data'], 1);
       expect(rec.data!['avg_sodium_mg'], 500);
       expect(rec.data!['sodium_limit_mg'], 2000);
+    });
+  });
+
+  // 단백질 부족 신호는 식단 조언과 같은 실효 목표(개인 목표 → 체중 × 1.2g →
+  // 60g)로 본다(#3270) — 서버 `build_context` 와 같다. 예전에는 개인 목표가
+  // 있을 때만 봐, 목표 칸을 비운 회원은 단백질 메뉴가 앞으로 오지 않았다.
+  group('추천 식단 단백질 부족', () {
+    Future<void> logToday({required int proteinG}) async {
+      final DateTime now = nowKst();
+      final res = await dio.post<Map<String, Object?>>(
+        '/diet/entries',
+        data: <String, Object?>{
+          'date': wire(DateTime(now.year, now.month, now.day)),
+          'meal_type': 'lunch',
+          'foods': <Map<String, Object?>>[
+            // 칼로리·나트륨·당류는 신호 사이 — 단백질만 갈린다.
+            <String, Object?>{
+              'name': '비빔국수',
+              'calories': 1500,
+              'carbs_g': 250,
+              'protein_g': proteinG,
+              'fat_g': 30,
+              'sodium_mg': 500,
+              'sugar_g': 10,
+            },
+          ],
+        },
+      );
+      expect(res.statusCode, 201);
+    }
+
+    Future<Map<String, Object?>> recommend() async =>
+        (await dio.get<Map<String, Object?>>('/diet/recommendations')).data!;
+
+    List<Object?> keys(Map<String, Object?> body) => <Object?>[
+      for (final Object? e in body['items']! as List<Object?>)
+        (e! as Map<Object?, Object?>)['key'],
+    ];
+
+    test('개인 목표 없이 체중만 있으면 체중 × 1.2g 의 60% 이하가 부족이다', () async {
+      // 데모 회원 72kg → 실효 86g, 문턱 51.6g. 하루 40g 은 부족이다.
+      await dio.put<Map<String, Object?>>(
+        '/users/me/health-goals',
+        data: <String, Object?>{'daily_protein_g': null},
+      );
+      await logToday(proteinG: 40);
+
+      final Map<String, Object?> body = await recommend();
+
+      expect(keys(body), <String>[
+        'chicken_salad',
+        'salmon',
+        'brown_rice_box',
+        'tofu',
+        'namul_bibimbap',
+      ]);
+      expect(body['personalized'], isTrue);
+    });
+
+    test('개인 목표가 있으면 그것이 기준이다 — 체중으로는 부족이어도', () async {
+      // 개인 목표 50g 의 60% 는 30g — 하루 45g 은 부족이 아니다. 체중(86g)으로
+      // 보면 부족이지만 개인 목표가 먼저다.
+      await dio.put<Map<String, Object?>>(
+        '/users/me/health-goals',
+        data: <String, Object?>{'daily_protein_g': 50},
+      );
+      await logToday(proteinG: 45);
+
+      final Map<String, Object?> body = await recommend();
+
+      expect(body['personalized'], isFalse);
+      expect(keys(body).first, 'chicken_salad');
+      expect(keys(body)[1], 'brown_rice_box');
     });
   });
 

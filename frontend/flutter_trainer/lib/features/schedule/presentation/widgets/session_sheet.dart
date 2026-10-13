@@ -99,6 +99,10 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   /// 저장 시도가 찾아낸 겹치는 회차. 비어 있지 않으면 아무것도 만들어지지 않았다.
   List<ScheduleSession> _conflicts = const <ScheduleSession>[];
 
+  /// [_conflicts] 를 찾은 입력([_scheduleInputKey]). 입력을 바꾸면 그 목록은 더
+  /// 이상 지금 회차의 이야기가 아니다 — 배너를 내린다(#3249).
+  String? _conflictsFor;
+
   /// 한 건 저장이 다른 일정과 시간이 겹쳐 막혔다(#2284). null 이면 막히지
   /// 않았다 — 겹친 목록이 비어 있어도 막힌 것은 막힌 것이라 null 로 구분한다.
   List<ScheduleSession>? _overlaps;
@@ -263,6 +267,32 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   /// 화면이 보여 준 회차 수와 실제로 만들어지는 수가 어긋나지 않는다.
   List<DateTime> get _occurrences => seriesOccurrences(_date, _rule);
 
+  /// 저장이 **새로 만들** 회차. 새 일정은 [_occurrences] 그대로고, 수정 + 반복은
+  /// 이 회차를 첫 회차로 두고 다음 날부터 만든다([_saveEditAsRepeatStart]).
+  List<DateTime> _plannedOccurrences(ScheduleSession? existing) {
+    if (existing == null) return _occurrences;
+    final DateTime? until = _repeatUntil;
+    if (until == null) return const <DateTime>[];
+    return seriesOccurrences(
+      addCalendarDays(_date, 1),
+      WeeklyRecurrence(weekdays: _repeatDays, until: until),
+    );
+  }
+
+  /// 반복 충돌을 가른 입력 — 날짜·시각·길이·요일·종료일·회원·종류.
+  String _scheduleInputKey() {
+    final DateTime? until = _repeatUntil;
+    return jsonEncode(<Object?>[
+      ymd(_date),
+      _startTotalMinutes,
+      _endTotalMinutes,
+      _repeatDays.toList()..sort(),
+      until == null ? null : ymd(until),
+      _clientValue,
+      _type,
+    ]);
+  }
+
   /// 지난 반복 등록 시도의 (입력 지문, 멱등키).
   ({String fingerprint, String id})? _seriesRequest;
 
@@ -361,6 +391,12 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       return;
     }
     final e = widget.existing;
+    // 만들 회차가 하나도 없으면 보내지 않는다(#3249). 서버는 엉뚱한 문구로 400 을
+    // 주고, 수정 + 반복은 이 회차의 수정을 먼저 반영한 뒤에야 실패했다.
+    if (_repeatDays.isNotEmpty && _plannedOccurrences(e).isEmpty) {
+      showAppToast(context, l.schedRepeatNoOccurrences);
+      return;
+    }
     final String newDate = ymd(_date);
     // 창을 열 때 받은 값이 아니라 서버에 반영된 값과 비교한다 — 되돌리기만
     // 성공하고 다음 단계가 실패한 재시도가 되돌리기를 또 보내지 않게(#3102).
@@ -379,6 +415,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     setState(() {
       _saving = true;
       _overlaps = null;
+      _conflicts = const <ScheduleSession>[];
+      _conflictsFor = null;
     });
     final repo = ref.read(scheduleRepositoryProvider);
     final navigator = Navigator.of(context);
@@ -425,6 +463,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         setState(() {
           _saving = false;
           _conflicts = error.conflicts;
+          _conflictsFor = _scheduleInputKey();
         });
       }
       return;
@@ -638,6 +677,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         ),
         firstDate: first.subtract(const Duration(days: 365)),
         lastDate: today.add(const Duration(days: 7 * maxSeriesOccurrences)),
+        // 기기 날짜가 아니라 KST 오늘에 테두리를 세운다(#3267).
+        currentDate: today,
       );
       if (range == null || !mounted) return;
       setState(() {
@@ -653,6 +694,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     }
     final picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       firstDate: first.subtract(const Duration(days: 365)),
       lastDate: today.add(const Duration(days: 365)),
@@ -670,7 +713,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppDialog(
+    final Widget dialog = AppDialog(
       title: widget.title,
       size: AppDialogSize.medium,
       footer: AppButtonPair(
@@ -687,6 +730,10 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       ),
       child: _fields(l),
     );
+    // 저장 중에는 배경·뒤로 가기·닫기 X 로 닫히지 않는다(#3245) — 닫히면 겹침·
+    // 반복 충돌 목록과 서버 사유를 보여 줄 자리가 사라진다. 기다리는 동안이
+    // 아니면 지금처럼 닫힌다. 저장이 끝나 닫는 것은 `pop` 이라 막히지 않는다.
+    return PopScope(canPop: !_saving, child: dialog);
   }
 
   Widget _fields(AppLocalizations l) {
@@ -860,7 +907,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       // 종료일은 위 날짜 필드에서 시작일과 함께 범위로 고른다 — 요일을
       // 고르면 회차 수는 아래 미리보기가 그대로 계산해 준다.
       SessionRepeatPreview(dates: _occurrences),
-      if (_conflicts.isNotEmpty) ...<Widget>[
+      if (_conflicts.isNotEmpty &&
+          _conflictsFor == _scheduleInputKey()) ...<Widget>[
         const SizedBox(height: OnCareSpacing.s8),
         SessionRepeatConflicts(
           total: _occurrences.length,

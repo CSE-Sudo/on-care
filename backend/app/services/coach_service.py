@@ -10,9 +10,6 @@ AI 코치 서비스.
 
 키·자료가 없거나 LLM 호출이 실패하면, 이 모듈의 규칙 기반 코치가 회원의 실제
 식단·운동 기록을 읽어 제안을 만든다(폴백). 두 경로의 응답 형식은 같다.
-
-인사말과 규칙 문구는 요청 언어(`Accept-Language`, #2297)로 만든다(#2707). 헤더가
-없으면 지금까지처럼 한국어다.
 """
 from __future__ import annotations
 
@@ -20,12 +17,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import localized
 from app.core.week import monday_of
-from app.models.models import DietEntry, ExerciseSession
+from app.models.models import DietEntry, ExerciseSession, HealthProfile
 from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
 from app.services import diet_service
-from app.services.exercise_service import monday_of_this_week_str
+from app.services.exercise_service import (
+    cardio_minutes, monday_of_this_week_str, weekly_cardio_goal,
+)
 
 #: 이번 주에 나트륨 초과일이 이만큼 쌓이면 "계속 높았다" 패턴으로 본다. 하루이틀은
 #: 우연일 수 있어 제외하고, 사흘부터는 오늘 하루가 괜찮아도 짚어줄 근거로 본다.
@@ -47,9 +45,14 @@ def _month_bounds() -> tuple[str, str]:
     return today.replace(day=1).isoformat(), today.isoformat()
 
 
-def _week_stats(db: Session, user_id: str) -> diet_service.DietPeriodStats:
+def _week_stats(
+    db: Session, user_id: str, sodium_limit_mg: int
+) -> diet_service.DietPeriodStats:
+    """이번 주 집계. 나트륨 초과일은 [sodium_limit_mg](회원 목표)로 센다(#3350)."""
     week_from, week_to = _week_bounds()
-    return diet_service.period_stats(db, user_id, week_from, week_to)
+    return diet_service.period_stats(
+        db, user_id, week_from, week_to, sodium_limit_mg
+    )
 
 
 def _month_stats(db: Session, user_id: str) -> diet_service.DietPeriodStats:
@@ -63,15 +66,19 @@ def diet_period_context(db: Session, user_id: str) -> str:
     회원 앱 식단 탭의 `오늘/이번 주/이번 달` 과 같은 기간 개념을 코칭 경로에도
     준다. 벡터 검색(`coach/rag.py`)은 의미상 가까운 개별 기록 몇 건만 뽑아오므로
     "이번 주 평균 나트륨" 같은 계산된 값은 만들지 못한다 — 그 값을 이 함수가 낸다.
+
+    나트륨 기준은 회원의 하루 목표다(#3350). AI 가 읽는 요약이 고정 권장량으로
+    적히면, 목표를 낮춘 회원에게 식단 탭과 다른 초과 일수를 말하게 된다.
     """
-    week = _week_stats(db, user_id)
+    sodium_limit = diet_service.member_sodium_limit(db, user_id)
+    week = _week_stats(db, user_id, sodium_limit)
     month = _month_stats(db, user_id)
 
     lines: list[str] = []
     if not week.empty:
         lines.append(
             f"- 이번 주 {week.days_logged}일 기록, "
-            f"나트륨 권장량({diet_service.SODIUM_LIMIT_MG}mg) 초과 {week.days_over_sodium}일, "
+            f"나트륨 목표({sodium_limit}mg) 초과 {week.days_over_sodium}일, "
             f"평균 나트륨 {week.avg_sodium_mg}mg"
         )
     if not month.empty:
@@ -111,22 +118,17 @@ def _diet_today_priority(db: Session, user_id: str) -> CoachSuggestion | None:
     if not rows:
         return CoachSuggestion(
             tag="diet",
-            title=localized("오늘 식단을 기록해 보세요", "Log today's meals"),
-            body=localized(
-                "사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
-                "One photo is all it takes to analyze calories and sodium. "
-                "Shall we start with your first meal?",
-            ),
+            title="오늘 식단을 기록해 보세요",
+            body="사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
         )
-    if total_na > diet_service.SODIUM_LIMIT_MG:
+    # 기준은 회원의 하루 나트륨 목표다 — 식단 탭·홈 게이지와 같은 값(#3350).
+    if total_na > diet_service.member_sodium_limit(db, user_id):
         return CoachSuggestion(
             tag="diet",
-            title=localized("나트륨 섭취가 많아요", "High sodium today"),
-            body=localized(
-                f"오늘 나트륨이 약 {total_na}mg 으로 권장량을 넘었어요. "
-                "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
-                f"Today's sodium is about {total_na}mg, over the recommended amount. "
-                "At dinner, leave the broth and add more vegetables to balance it out.",
+            title="나트륨 섭취가 많아요",
+            body=(
+                f"오늘 나트륨이 약 {total_na:,}mg으로 목표를 넘었어요. "
+                "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요."
             ),
         )
     return None
@@ -143,28 +145,25 @@ def _diet_weekly_or_default(db: Session, user_id: str) -> CoachSuggestion:
     # 오늘은 괜찮아도 이번 주 내내 나트륨이 높았다면 짚어준다(#933) — 하루만 보면
     # "오늘 안정적" 문구가 매번 반복되어, 거의 매일 초과하던 회원도 오늘 하루
     # 낮았다는 이유만으로 계속 잘하고 있다는 인상을 준다.
-    week = _week_stats(db, user_id)
+    # 초과일도 회원의 나트륨 목표로 센다(#3350).
+    week = _week_stats(
+        db, user_id, diet_service.member_sodium_limit(db, user_id)
+    )
     # days_over_sodium 은 days_logged 를 넘을 수 없으니 기록일수 조건은 따로 안
     # 둔다 — 초과일이 기준을 채우면 기록일수는 이미 그만큼 채워진 것이다.
     if week.days_over_sodium >= _SODIUM_PATTERN_MIN_DAYS:
         return CoachSuggestion(
             tag="diet",
-            title=localized("이번 주 나트륨이 계속 높았어요", "Sodium ran high this week"),
-            body=localized(
+            title="이번 주 나트륨이 계속 높았어요",
+            body=(
                 f"이번 주 기록한 {week.days_logged}일 중 {week.days_over_sodium}일 "
-                "나트륨이 권장량을 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요.",
-                f"Sodium went over the recommended amount on {week.days_over_sodium} "
-                f"of the {week.days_logged} days you logged this week. "
-                "Try to have more low-sodium days like today.",
+                "나트륨이 목표를 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요."
             ),
         )
     return CoachSuggestion(
         tag="diet",
-        title=localized("식단 균형이 좋아요", "Nicely balanced meals"),
-        body=localized(
-            "오늘 나트륨 섭취가 안정적이에요. 이대로 꾸준히 유지해봐요!",
-            "Your sodium intake is steady today. Keep it up!",
-        ),
+        title="식단 균형이 좋아요",
+        body="오늘 나트륨 섭취가 안정적이에요. 이대로 꾸준히 유지해봐요!",
     )
 
 
@@ -183,7 +182,12 @@ def _diet_suggestion(db: Session, user_id: str) -> CoachSuggestion:
 
 
 def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
-    """운동 도메인 코치의 규칙 기반 폴백."""
+    """운동 도메인 코치의 규칙 기반 폴백.
+
+    판정은 운동 탭과 같다(#3350) — 이번 주 **유산소 분**을 회원의 주간 유산소
+    목표와 견준다. 예전에는 유형을 가리지 않은 합계를 주 150분 고정과 견줘,
+    목표가 90분인 회원이 100분을 채워도 "조금만 더" 라고 했다.
+    """
     week = monday_of_this_week_str()
     rows = db.scalars(
         select(ExerciseSession)
@@ -195,64 +199,78 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
     if total_min == 0:
         return CoachSuggestion(
             tag="exercise",
-            title=localized("이번 주 운동을 시작해 보세요", "Start this week's workouts"),
-            body=localized(
-                "가벼운 30분 걷기부터 시작하면 혈압·혈당 관리에 도움이 돼요.",
-                "Start with a light 30-minute walk. "
-                "It helps with blood pressure and blood sugar.",
-            ),
+            title="이번 주 운동을 시작해 보세요",
+            # 앱이 재지 않는 지표(혈압·혈당)를 근거로 들지 않는다(#602, #3251).
+            body="가벼운 30분 걷기부터 시작하면 체력과 컨디션을 끌어올리는 데 도움이 돼요.",
         )
-    if total_min < 150:
+    cardio_min = cardio_minutes(rows)
+    goal_min = weekly_cardio_goal(
+        db.scalar(select(HealthProfile).where(HealthProfile.user_id == user_id))
+    )
+    if cardio_min <= 0:
+        # 다른 운동은 했는데 유산소가 없는 주 — "유산소 0분 운동했어요" 대신 유산소를
+        # 권한다. 홈 조언의 `exercise_cardio_start` 와 같은 규칙·같은 뜻이다.
         return CoachSuggestion(
             tag="exercise",
-            title=localized("조금만 더 움직여봐요", "Let's move a little more"),
-            body=localized(
-                f"이번 주 {total_min}분 운동했어요. 주 150분을 목표로 가볍게 더해봐요.",
-                f"You've exercised {total_min} minutes this week. "
-                "Aim for 150 minutes a week and add a little more.",
+            title="유산소를 더해봐요",
+            body="이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?",
+        )
+    if cardio_min < goal_min:
+        return CoachSuggestion(
+            tag="exercise",
+            title="조금만 더 움직여봐요",
+            body=(
+                f"이번 주 유산소 {cardio_min}분 운동했어요. "
+                f"주 {goal_min}분을 목표로 가볍게 더해봐요."
             ),
         )
     return CoachSuggestion(
         tag="exercise",
-        title=localized("운동량이 충분해요", "Great activity level"),
-        body=localized(
-            f"이번 주 {total_min}분! 권장 운동량을 잘 채우고 있어요. 멋져요!",
-            f"{total_min} minutes this week! "
-            "You're meeting the recommended amount. Nice work!",
-        ),
+        title="운동량이 충분해요",
+        body=f"이번 주 유산소 {cardio_min}분! 목표 운동량을 잘 채우고 있어요. 멋져요!",
     )
 
 
-def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback:
+def build_greeting(user_name: str) -> str:
+    """시각(KST)에 맞는 인사말. 모델을 부르지 않는다."""
+    hour = clock.now().hour
+    if hour < 11:
+        return f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요."
+    if hour < 18:
+        return f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?"
+    return f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요."
+
+
+def build_suggestions(
+    db: Session, user_id: str, *, use_model: bool = True
+) -> list[CoachSuggestion]:
     """
     도메인별 코치를 각각 호출해 합친다.
 
     식단·운동 코치는 RAG 기반(domain_coaches)으로 동작한다.
     RAG 가 불가(키 미설정/자료 없음/실패)하면 내부에서 규칙 기반으로 자동 폴백한다.
+
+    `use_model=False` 면 검색도 모델도 거치지 않고 규칙 기반 카드만 만든다 — 회원의
+    하루 상한을 넘겼을 때 쓴다(#3351).
     """
-    hour = clock.now().hour
-    if hour < 11:
-        greeting = localized(
-            f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요.",
-            f"Good morning, {user_name}! Let's start the day healthy.",
-        )
-    elif hour < 18:
-        greeting = localized(
-            f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?",
-            f"Hi {user_name}, how's your day going?",
-        )
-    else:
-        greeting = localized(
-            f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요.",
-            f"How was your day, {user_name}? Let's wrap it up healthy.",
-        )
+    # 카드는 데모와 같은 식단·운동 두 장이다(#2706) — 데모 화면이 기준이다.
+    if not use_model:
+        return [_diet_suggestion(db, user_id), _exercise_suggestion(db, user_id)]
 
     # 지연 import (순환 참조 방지: domain_coaches 가 coach_service 를 import)
     from app.services.coach.domain_coaches import diet_coach, exercise_coach
 
-    # 카드는 데모와 같은 식단·운동 두 장이다(#2706) — 데모 화면이 기준이다.
-    suggestions = [
+    return [
         diet_coach(db, user_id),       # 식단 RAG 코치 (실패 시 규칙 폴백)
         exercise_coach(db, user_id),   # 운동 RAG 코치 (실패 시 규칙 폴백)
     ]
-    return AiCoachFeedback(greeting=greeting, suggestions=suggestions)
+
+
+def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback:
+    """인사말과 카드를 캐시·상한 없이 바로 만든다.
+
+    회원 앱 경로는 `coach_feedback_service.feedback` 을 거친다(#3351).
+    """
+    return AiCoachFeedback(
+        greeting=build_greeting(user_name), suggestions=build_suggestions(db, user_id)
+    )

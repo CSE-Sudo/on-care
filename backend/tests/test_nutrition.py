@@ -622,6 +622,83 @@ def _raw_full(name, kcal, na, sugar, carbs, protein, fat):
     return row
 
 
+def test_import_caps_sugar_at_carbs():
+    """#3243: 고른 원본 행의 당류가 탄수화물보다 크면 탄수화물로 내린다.
+
+    그대로 두면 이 음식이 든 끼니는 회원이 손대지 않아도 수정할 때 422 가 난다.
+    탄수화물이 빈 행은 견줄 것이 없어 당류를 그대로 둔다.
+    """
+    from scripts.import_food_nutrients import aggregate
+
+    [capped] = aggregate([_raw_full("살구", "30", "1", "7.39", "7.12", "1.2", "0.05")], "음식")
+    assert (capped["sugar_g"], capped["carbs_g"]) == (7.12, 7.12)
+
+    [blank] = aggregate([_raw("레몬차", "레몬차", "가정식(분석 함량)", "100g", "60", "3", "16.3")], "음식")
+    assert (blank["sugar_g"], blank["carbs_g"]) == (16.3, None)
+
+
+def test_food_seed_sugar_never_exceeds_carbs():
+    """#3243: 시드(큐레이션 + 공공 집계본)에 당류 > 탄수화물인 행이 없다."""
+    from app.db.init_db import _food_nutrient_seed_rows
+
+    bad = [
+        (r["name"], r["sugar_g"], r["carbs_g"])
+        for r in _food_nutrient_seed_rows()
+        if r["carbs_g"] is not None and (r["sugar_g"] or 0) > r["carbs_g"]
+    ]
+    assert bad == []
+
+
+def _write_raw(path, rows):
+    import csv
+
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def test_import_only_keeps_other_datasets_rows(tmp_path):
+    """#3251: `--only` 로 한 데이터셋만 다시 만들어도 다른 데이터셋 행은 글자 그대로 남는다."""
+    import shutil
+
+    from scripts import import_food_nutrients as imp
+
+    committed = Path(imp.__file__).resolve().parent.parent / "app" / "data" / "food_nutrients_public.csv"
+    out = tmp_path / "out.csv"
+    shutil.copy(committed, out)
+    before = out.read_text(encoding="utf-8").splitlines()
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    _write_raw(raw / "음식.csv", [
+        _raw_full("새찌개_가정식", "50", "400", "1", "5", "3", "2") | {"대표식품명": "t3251새찌개"},
+    ])
+
+    assert imp.main(["--raw-dir", str(raw), "--out", str(out), "--only", "음식"]) == 0
+
+    after = out.read_text(encoding="utf-8").splitlines()
+    not_food = [line for line in before[1:] if ",음식," not in line]
+    assert not_food and set(not_food) <= set(after)
+    assert any(line.startswith("t3251새찌개,") for line in after)
+    # 음식은 새로 만든 것만 남는다.
+    assert [line for line in after[1:] if ",음식," in line] == [
+        line for line in after if line.startswith("t3251새찌개,")
+    ]
+
+
+def test_import_with_no_source_leaves_the_output_untouched(tmp_path):
+    from scripts import import_food_nutrients as imp
+
+    out = tmp_path / "out.csv"
+    original = "name,source_dataset\n기존,가공식품\n"
+    out.write_text(original, encoding="utf-8")
+    raw = tmp_path / "raw"
+    raw.mkdir()
+
+    assert imp.main(["--raw-dir", str(raw), "--out", str(out), "--only", "음식"]) == 1
+    assert out.read_text(encoding="utf-8") == original
+
+
 def test_import_takes_all_values_from_one_source_row():
     """#2100: 영양소마다 따로 중앙값을 내면 열량과 탄·단·지가 다른 제품에서 온다.
 

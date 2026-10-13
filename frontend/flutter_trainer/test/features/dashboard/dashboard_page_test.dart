@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tasks_card.dart';
+import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_timeline_card.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
@@ -30,9 +31,10 @@ void main() {
   Future<void> openDashboard(
     WidgetTester tester, {
     List<Override> extraOverrides = const <Override>[],
+    Size size = const Size(1600, 1200),
   }) async {
     tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.physicalSize = size;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await pumpTrainerApp(
@@ -219,7 +221,7 @@ void main() {
       find.descendant(of: find.byType(AppStatCard), matching: find.text('메시지')),
       findsOneWidget,
     );
-    expect(find.text('주의 회원'), findsOneWidget);
+    expect(find.text('관리 필요'), findsOneWidget);
     expect(find.text('이탈 위험'), findsOneWidget);
 
     // 13 of the 15 seeded clients are active; 박성호 and 문가영 are the
@@ -243,13 +245,13 @@ void main() {
     // 5 · 단백질 1 · 운동 2 로 여덟이다. 답장 대기는 주의가 아니다.
     // 둘이 다시 합쳐지면 이 카드가 더 큰 수를 말하며 뜻을 잃는다.
     final attention = tester.widget<AppStatCard>(
-      find.ancestor(of: find.text('주의 회원'), matching: find.byType(AppStatCard)),
+      find.ancestor(of: find.text('관리 필요'), matching: find.byType(AppStatCard)),
     );
     expect(attention.value, '8');
     // 1명 이상이면 빨강, 0명이면 초록 — 판단을 담는 지표라 색으로도 말한다.
     expect(attention.toneColor, OnCareColors.danger);
     expect(find.text('관리 신호 확인'), findsOneWidget);
-    expect(find.text('식단·이행률 확인'), findsNothing);
+    expect(find.text('식단·완료율 확인'), findsNothing);
   });
 
   testWidgets('a KPI deep-links into the pre-filtered roster', (tester) async {
@@ -323,7 +325,7 @@ void main() {
     expect(findMissionRow('feedback-calorie_off'), findsNWidgets(5));
     expect(findMissionRow('feedback-protein_low'), findsOneWidget);
     // 할 일은 목록 배지보다 자세히 — 근거 수치를 붙인다.
-    expect(find.textContaining('칼로리 20% 과다'), findsNWidgets(5));
+    expect(find.textContaining('칼로리 20% 초과'), findsNWidgets(5));
     expect(find.textContaining('단백질 목표의 60%'), findsOneWidget);
     expect(find.textContaining('나트륨'), findsNothing);
     expect(find.text('답장 대기'), findsNothing);
@@ -353,7 +355,7 @@ void main() {
     expect(find.text('식단 피드백 미완료'), findsOneWidget);
     expect(find.textContaining('난이도를 낮추고'), findsOneWidget);
     expect(find.textContaining('나트륨'), findsNothing);
-    expect(find.textContaining('이행률'), findsNothing);
+    expect(find.textContaining('완료율'), findsNothing);
   });
 
   for (final scenario in <({String kind, String route})>[
@@ -420,12 +422,12 @@ void main() {
     expect(toggle('지난 할 일'), findsNothing);
     for (final String title in <String>['운동', '식단', '프로그램', '리포트']) {
       expect(labelIn(title, '없음'), findsOneWidget, reason: title);
-      // 자리 잡기용으로 보이지 않게 깔린 "완료 >" 는 세지 않는다.
+      // 자리 잡기용으로 보이지 않게 깔린 "완료"와 펼침 화살표는 세지 않는다.
       expect(
         find
             .descendant(
               of: toggle(title),
-              matching: find.byIcon(AppIcons.chevronRight),
+              matching: find.byIcon(AppIcons.expandMore),
             )
             .hitTestable(),
         findsNothing,
@@ -439,8 +441,15 @@ void main() {
 
     // 상담 두 건을 모두 체크하면 그 칸은 "없음"이 아니라 "완료"다.
     expect(labelIn('상담', '+2'), findsOneWidget);
+    // #3317 — 제자리에서 펼쳐지는 칸이라 접힘은 아래, 펼침은 위 화살표다.
+    Finder iconIn(String title, IconData icon) =>
+        find.descendant(of: toggle(title), matching: find.byIcon(icon));
+    expect(iconIn('상담', AppIcons.expandMore), findsOneWidget);
+    expect(iconIn('상담', AppIcons.chevronRight), findsNothing);
     await tester.tap(toggle('상담'));
     await settle(tester);
+    expect(iconIn('상담', AppIcons.expandLess), findsOneWidget);
+    expect(iconIn('상담', AppIcons.expandMore), findsNothing);
     final Finder boxes = find.descendant(
       of: find.byType(TodayTasksCard),
       matching: find.byType(Checkbox),
@@ -465,6 +474,48 @@ void main() {
     );
     expect(actionRow.children.whereType<Expanded>(), hasLength(2));
     expect(find.text('활동 피드백'), findsOneWidget);
+  });
+
+  // 1280 은 사이드바가 펼쳐져 본문이 1016, 1024 는 레일이라 916 이다. 둘 다
+  // 전체화면과 같은 배치여야 한다(#3316).
+  for (final Size size in const <Size>[Size(1280, 720), Size(1024, 768)]) {
+    testWidgets('${size.width.toInt()} 창에서도 요약 네 칸과 두 열 본문이 선다', (
+      tester,
+    ) async {
+      await openDashboard(tester, size: size);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('dashboard-action-row')),
+        findsOneWidget,
+      );
+      final Set<double> tops = <double>{
+        for (final Element card in find.byType(AppStatCard).evaluate())
+          tester.getTopLeft(find.byWidget(card.widget)).dy,
+      };
+      expect(tops, hasLength(1), reason: '요약 네 칸은 한 줄이다');
+    });
+  }
+
+  testWidgets('한 열로 쌓일 때 일정 → 오늘 할 일 → 활동 피드백 순서다 (#3316)', (tester) async {
+    await openDashboard(tester, size: const Size(768, 1024));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('dashboard-action-row')),
+      findsNothing,
+    );
+    final double timeline = tester
+        .getTopLeft(find.byType(TodayTimelineCard))
+        .dy;
+    final double tasks = tester.getTopLeft(find.byType(TodayTasksCard)).dy;
+    final double feedback = tester
+        .getTopLeft(
+          find.byKey(const ValueKey<String>('dashboard-activity-feedback')),
+        )
+        .dy;
+    expect(timeline, lessThan(tasks));
+    expect(tasks, lessThan(feedback));
   });
 
   testWidgets('오늘 할 일은 각 미션에 맞는 회원만 보여준다', (tester) async {

@@ -136,7 +136,7 @@ void main() {
       // 대역의 아침 끼니는 217 kcal 이다. 이 값은 카드 안에서 **총량 배지
       // 한 곳에만** 나온다 — 제목 줄에도 있으면 같은 숫자가 두 번 읽힌다.
       // 배지는 `Text.rich` 라 `findRichText` 를 켜야 잡힌다.
-      expect(find.textContaining('217 kcal', findRichText: true), findsWidgets);
+      expect(find.textContaining('217kcal', findRichText: true), findsWidgets);
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('meal-card-header')).first,

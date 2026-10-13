@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
+import 'package:oncare_trainer/features/clients/presentation/controllers/roster_view.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_connect_dialog.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -23,25 +24,22 @@ const ValueKey<String> _connectBanner = ValueKey<String>(
 );
 
 const String _hintKo = '연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요.';
-const String _hintEn = 'Connect members with the code they show you';
 
 Future<void> _pumpEmpty(
   WidgetTester tester, {
   String at = AppRoutes.clients,
   List<Override> extra = const <Override>[],
-  Locale locale = const Locale('ko'),
 }) async {
   await pumpTrainerApp(
     tester,
     token: 'demo-trainer-token',
     at: at,
-    locale: locale,
     extraOverrides: <Override>[stillRoster(), ...extra],
   );
 }
 
 void main() {
-  testWidgets('연결 가능 + 0명: 안내 문구와 신규 회원 등록 버튼', (tester) async {
+  testWidgets('연결 가능 + 0명: 안내 문구와 회원 연결 버튼', (tester) async {
     await _pumpEmpty(tester);
 
     expect(find.byKey(_empty), findsOneWidget);
@@ -54,7 +52,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(_emptyConnect),
-        matching: find.text('신규 회원 등록'),
+        matching: find.text('회원 연결'),
       ),
       findsOneWidget,
     );
@@ -101,6 +99,25 @@ void main() {
     expect(find.textContaining(_hintKo), findsNothing);
   });
 
+  // 관리 필터만 건 0명이 "아직 담당 회원이 없어요" 로 보였다(#3249).
+  testWidgets('관리 필터로 걸러진 0명은 담당 회원이 없다고 하지 않는다', (tester) async {
+    await _pumpEmpty(
+      tester,
+      extra: <Override>[
+        rosterViewProvider.overrideWith(
+          (ref) => const RosterView(
+            filters: <RosterManagementFilter>{RosterManagementFilter.noShow},
+          ),
+        ),
+      ],
+    );
+
+    expect(find.byKey(_empty), findsOneWidget);
+    expect(find.text('아직 담당 회원이 없어요'), findsNothing);
+    expect(find.text('조건에 맞는 회원이 없어요'), findsOneWidget);
+    expect(find.byKey(_emptyConnect), findsNothing);
+  });
+
   testWidgets('회원이 있으면 빈 상태가 없다', (tester) async {
     await pumpTrainerApp(
       tester,
@@ -112,17 +129,4 @@ void main() {
     expect(find.byKey(_emptyConnect), findsNothing);
   });
 
-  testWidgets('영문 화면도 안내 문구와 버튼을 보인다', (tester) async {
-    await _pumpEmpty(tester, locale: const Locale('en'));
-
-    expect(find.text('No members yet'), findsOneWidget);
-    expect(find.textContaining(_hintEn), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(_emptyConnect),
-        matching: find.text('Register new member'),
-      ),
-      findsOneWidget,
-    );
-  });
 }

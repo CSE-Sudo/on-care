@@ -3,6 +3,7 @@
 
   GET  /exercise/weeks/current   -> 이번 주 운동 집계(요일별/타입별 + streak + 코칭)
   POST /exercise/sessions        -> 운동 기록 1~N개 추가 (집계에 반영, #2544)
+  POST /exercise/sessions/move   -> 운동 기록 1~N개의 날짜를 한 번에 이동 (#3365)
   POST /exercise/calories        -> 운동 이름·시간·강도로 소모 칼로리 미리보기
 """
 from __future__ import annotations
@@ -25,9 +26,11 @@ from app.models.models import ExerciseSession, HealthProfile
 from app.schemas.exercise_api import (
     ExerciseAdviceResponse, ExerciseCalorieRequest, ExerciseCalorieResponse,
     ExercisePeriodResponse, ExerciseSessionCreate, ExerciseSessionOut,
-    ExerciseSessionsCreate, ExerciseSessionsCreatedOut, ExerciseWeekResponse,
+    ExerciseSessionsCreate, ExerciseSessionsCreatedOut, ExerciseSessionsMove,
+    ExerciseSessionsMovedOut, ExerciseWeekResponse,
 )
 from app.schemas.points_api import PointsOut
+from app.schemas.record_dates import parse_ymd
 from app.services import (
     exercise_activity,
     exercise_records,
@@ -67,7 +70,7 @@ def _reject_if_derived(row: ExerciseSession) -> None:
     if row.source != "member":
         raise HTTPException(
             status_code=409,
-            detail="코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.",
+            detail="코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없어요.",
         )
 
 
@@ -116,14 +119,15 @@ def current_week(
     if week_start is None:
         week_start = monday_of_this_week_str()
     else:
-        # strptime 으로 엄격하게 본다. date.fromisoformat 은 3.11 부터
-        # `20260810` 같은 기본 형식도 받아, 앱의 로컬 목업(엄격한 YYYY-MM-DD)과
-        # 받아들이는 값의 집합이 갈린다.
+        # 표기 하나(`YYYY-MM-DD`)만 받는다. date.fromisoformat 은 3.11 부터
+        # `20260810` 같은 기본 형식도 받고, strptime 은 `2026-1-5` 를 받는다 —
+        # 그 값은 주 계산(`monday_of_str`)에서 형식 오류로 떨어져 조용히 이번 주가
+        # 됐다(#3243). 식단·트레이너 날짜와 같은 검사를 쓴다.
         try:
-            datetime.strptime(week_start, "%Y-%m-%d")
+            parse_ymd(week_start)
         except ValueError:
             raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 합니다."
+                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 해요."
             ) from None
         week_start = monday_of_str(week_start)
     rows = db.scalars(
@@ -174,14 +178,18 @@ def exercise_advice(
     """
     start, end, days = exercise_service.period_days(db, current_user.id, period)
     routine_days = trainer_member_mirror_service.advice_routine_days(db, current_user.id, period)
-    advice = exercise_service.period_advice(days, period, routine_days)
+    advice = exercise_service.period_advice(
+        days, period, routine_days,
+        # "○주 동안" 은 읽은 구간의 주 수다 — `전체` 그래프의 칸 수와 같다(#3365).
+        weeks=exercise_service.period_weeks(start, end),
+    )
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=advice.text_for(),
-        # 앱이 자기 언어로 그릴 수 있게 문장 키와 값도 함께 준다(#2210).
+        message=advice.text,
+        # 앱이 문장을 직접 그릴 수 있게 문장 키와 값도 함께 준다(#2210).
         advice_key=advice.key,
         advice_params=advice.params,
     )
@@ -439,7 +447,7 @@ def _replay_sessions(
     ):
         raise HTTPException(
             status_code=409,
-            detail="같은 client_request_id에 다른 운동 기록을 보낼 수 없습니다.",
+            detail="같은 client_request_id에 다른 운동 기록을 보낼 수 없어요.",
         )
     awarded = 0
     for row in rows:
@@ -524,7 +532,7 @@ def update_session(
         .where(ExerciseSession.user_id == current_user.id)
     )
     if row is None:
-        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없어요.")
     _reject_if_derived(row)
 
     # 날짜를 주지 않은 수정은 원래 있던 자리를 그대로 둔다 — 오늘로 끌어오면
@@ -561,6 +569,91 @@ def update_session(
     return out
 
 
+@router.post("/exercise/sessions/move", response_model=ExerciseSessionsMovedOut)
+def move_sessions(
+    payload: ExerciseSessionsMove,
+    current_user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
+) -> ExerciseSessionsMovedOut:
+    """운동 기록 1~N개의 날짜를 **한 트랜잭션으로** 옮긴다. (#3365)
+
+    회원이 하루의 기록을 다른 날로 옮길 때 쓴다. 전부 옮겨지거나 하나도 옮겨지지
+    않는다 — 기록마다 수정 요청을 보내면 중간에 하나가 실패했을 때 하루치가 두
+    날로 갈린 채 남는다.
+
+    기록마다의 규칙은 단건 수정(`PUT /exercise/sessions/{id}`)과 같다. 본인 것이
+    아닌 id 가 하나라도 있으면 404, PT·배정 루틴에서 생긴 기록이 하나라도 섞여
+    있으면 409 이고, 두 경우 모두 **아무것도 옮기지 않는다.** 날짜 말고는 건드리지
+    않으므로 칼로리도 다시 계산하지 않는다.
+
+    같은 요청을 다시 보내도 결과가 같다 — 날짜를 "얼마만큼" 이 아니라 "어느 날로"
+    옮기는 요청이라, 응답을 잃은 뒤의 재시도가 기록을 한 번 더 옮기지 않는다.
+    같은 id 가 두 번 와도 한 번만 센다.
+    """
+    ids = list(dict.fromkeys(payload.session_ids))
+    found = {
+        row.id: row
+        for row in db.scalars(
+            select(ExerciseSession)
+            .where(ExerciseSession.id.in_(ids))
+            .where(ExerciseSession.user_id == current_user.id)
+        )
+    }
+    if len(found) != len(ids):
+        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없어요.")
+    rows = [found[session_id] for session_id in ids]
+    for row in rows:
+        _reject_if_derived(row)
+
+    # 셋을 함께 옮긴다 — `completed_at` 만 옛 날짜에 남으면 그 기록의 날짜가
+    # 화면과 다른 곳에서 갈린다. (#1264)
+    week_start, day_label, completed_at = _placement(payload.date)
+    for row in rows:
+        row.week_start, row.day_label, row.completed_at = (
+            week_start, day_label, completed_at,
+        )
+    # 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+    # 모두 같은 날로 가므로 한 번이면 된다.
+    streak_shield_service.refund_for_record(db, current_user.id, payload.date)
+    db.commit()
+    for row in rows:
+        db.refresh(row)
+
+    out = ExerciseSessionsMovedOut(
+        sessions=[
+            ExerciseSessionOut(**build_current_week([row])["sessions"][0])
+            for row in rows
+        ]
+    )
+    # 코치가 읽는 근거 문서에도 날짜가 적혀 있다 — 옮긴 날로 맞춘다(#603). 기록마다
+    # 임베딩을 부르므로 추가 경로처럼 응답 뒤에 한다(#3095).
+    background_tasks.add_task(
+        _refresh_exercises, db.get_bind(), current_user.id, ids
+    )
+    return out
+
+
+def _refresh_exercises(
+    bind: Engine | Connection, user_id: str, session_ids: list[str]
+) -> None:
+    """옮긴 운동 기록의 개인 RAG 문서를 현재 행에 맞춘다 — 응답 뒤에 돈다. (#3365)
+
+    [_ingest_exercises] 와 같은 까닭으로 자기 세션을 연다. 갱신은 best-effort 다 —
+    실패해도 이미 나간 응답에는 영향이 없고, 항목 하나가 실패해도 다음 항목은
+    갱신한다.
+    """
+    with Session(bind=bind, autoflush=False) as db:
+        for session_id in session_ids:
+            try:
+                personal_ingest.refresh_exercise(db, user_id, session_id=session_id)
+            except Exception as exc:  # noqa: BLE001 — 갱신 실패가 이동을 깨면 안 된다
+                db.rollback()
+                log.warning(
+                    "운동 기록 RAG 갱신 실패(무시): %s", type(exc).__name__
+                )
+
+
 @router.delete("/exercise/sessions/{session_id}")
 def delete_session(
     session_id: str,
@@ -574,7 +667,7 @@ def delete_session(
         .where(ExerciseSession.user_id == current_user.id)
     )
     if row is None:
-        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없어요.")
     _reject_if_derived(row)
     # 이 기록으로 받은 포인트를 회수한다 — 삭제와 같은 트랜잭션이다(#1786).
     points_service.revoke(

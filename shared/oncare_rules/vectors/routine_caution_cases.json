@@ -10,6 +10,7 @@
     ],
     "risky": [
      "러닝",
+     "런닝",
      "달리기",
      "점프",
      "스쿼트",
@@ -29,6 +30,7 @@
      "윗몸",
      "점프",
      "러닝",
+     "런닝",
      "달리기"
     ]
    },
@@ -55,6 +57,7 @@
     ],
     "risky": [
      "러닝",
+     "런닝",
      "달리기",
      "점프",
      "줄넘기",
@@ -80,6 +83,7 @@
   "cardio_keywords": [
    "걷기",
    "러닝",
+   "런닝",
    "자전거",
    "유산소",
    "인터벌",
@@ -199,6 +203,14 @@
      "무릎"
     ],
     "needs_professional_check": true
+   },
+   {
+    "conditions": "무릎 통증으로 런닝 자제",
+    "messages": [],
+    "cautions": [
+     "무릎"
+    ],
+    "needs_professional_check": false
    }
   ],
   "avoids": [
@@ -261,6 +273,48 @@
    },
    {
     "name": "계단 오르기",
+    "cautions": [
+     "무릎"
+    ],
+    "avoids": true
+   },
+   {
+    "name": "런닝 30분",
+    "cautions": [
+     "무릎"
+    ],
+    "avoids": true
+   },
+   {
+    "name": "런닝",
+    "cautions": [
+     "허리"
+    ],
+    "avoids": true
+   },
+   {
+    "name": "런닝",
+    "cautions": [
+     "발목"
+    ],
+    "avoids": true
+   },
+   {
+    "name": "런닝",
+    "cautions": [
+     "어깨"
+    ],
+    "avoids": false
+   },
+   {
+    "name": "러닝머신",
+    "cautions": [
+     "무릎"
+    ],
+    "avoids": true
+   },
+   {
+    "name": "런닝머신",
     "cautions": [
      "무릎"
     ],
@@ -439,6 +493,35 @@
       2
      ]
     ]
+   },
+   {
+    "parts": [
+     [
+      "런닝 30분",
+      "유산소",
+      2
+     ],
+     [
+      "플랭크",
+      "근력",
+      1
+     ]
+    ],
+    "cautions": [
+     "무릎"
+    ],
+    "result": [
+     [
+      "플랭크",
+      "근력",
+      1
+     ],
+     [
+      "코어 스트레칭",
+      "스트레칭",
+      2
+     ]
+    ]
    }
   ],
   "guess_type": [
@@ -456,6 +539,14 @@
    },
    {
     "name": "달리기",
+    "type": "유산소"
+   },
+   {
+    "name": "런닝",
+    "type": "유산소"
+   },
+   {
+    "name": "런닝머신",
     "type": "유산소"
    },
    {
@@ -483,7 +574,7 @@
      "무릎"
     ],
     "escalate": false,
-    "ko": " 주의사항(무릎) 반영: 해당 부위 부담 동작을 뺐습니다.",
+    "ko": " 주의사항(무릎) 반영: 해당 부위 부담 동작을 뺐어요.",
     "en": " Cautions (knee) applied: removed movements that load those areas."
    },
    {
@@ -492,13 +583,13 @@
      "발목"
     ],
     "escalate": true,
-    "ko": " 주의사항(허리, 발목) 반영: 해당 부위 부담 동작을 뺐습니다. 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.",
+    "ko": " 주의사항(허리, 발목) 반영: 해당 부위 부담 동작을 뺐어요. 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.",
     "en": " Cautions (lower back, ankle) applied: removed movements that load those areas. Intensity was not raised — adjust after a professional check."
    },
    {
     "cautions": [],
     "escalate": true,
-    "ko": " 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.",
+    "ko": " 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.",
     "en": " Intensity was not raised — adjust after a professional check."
    }
   ]

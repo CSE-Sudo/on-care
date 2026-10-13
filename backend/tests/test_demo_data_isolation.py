@@ -227,12 +227,57 @@ def test_demo_trainer_detail_is_404_when_demo_is_off(client, demo_off):
     assert client.get("/v1/trainers/trainer-demo-seo").status_code == 404
 
 
-def test_gym_trainer_list_hides_demo_trainers_when_demo_is_off(client, demo_off):
-    r = client.get("/v1/gyms/gym-oncare-sinchon/trainers")
-    assert r.status_code == 200, r.text
-    from app.db import demo_ids
+def test_gym_trainer_list_hides_demo_trainers_when_demo_is_off(
+    client, db_session, monkeypatch
+):
+    """실재 헬스장의 소속 트레이너 목록에서 데모 트레이너가 빠진다.
 
-    assert not {t["id"] for t in r.json()} & demo_ids.demo_trainer_ids()
+    가상 헬스장은 데모가 꺼지면 헬스장 자체가 404 라(#3356) 이 규칙을 볼 수 없다.
+    예전 시드처럼 데모 트레이너가 실재 업체에 붙어 있는 상황을 만들어 확인한다.
+    """
+    from app.db import demo_ids
+    from app.models import models
+
+    demo_trainer_id = "trainer-demo-seo"
+    assert demo_trainer_id in demo_ids.demo_trainer_ids()
+    gym_id = _place(db_session, "real-gym-trainers")
+    assert gym_id not in demo_ids.demo_place_ids()
+    real_trainer_id = _user(db_session, "trainer", "real-gym-trainer")
+    db_session.add(models.TrainerProfile(
+        trainer_id=real_trainer_id, gym_id=gym_id, specialty="퍼스널 트레이너",
+    ))
+    profile = (
+        db_session.query(models.TrainerProfile)
+        .filter_by(trainer_id=demo_trainer_id)
+        .one()
+    )
+    original = profile.gym_id
+    profile.gym_id = gym_id
+    db_session.commit()
+    try:
+        monkeypatch.setattr(get_settings(), "seed_demo_data", True)
+        r = client.get(f"/v1/gyms/{gym_id}/trainers")
+        assert r.status_code == 200, r.text
+        assert {t["id"] for t in r.json()} == {real_trainer_id, demo_trainer_id}
+
+        monkeypatch.setattr(get_settings(), "seed_demo_data", False)
+        r = client.get(f"/v1/gyms/{gym_id}/trainers")
+        assert r.status_code == 200, r.text
+        ids = {t["id"] for t in r.json()}
+        assert not ids & demo_ids.demo_trainer_ids()
+        assert ids == {real_trainer_id}
+    finally:
+        profile.gym_id = original
+        db_session.delete(db_session.get(models.User, real_trainer_id))
+        db_session.commit()
+        db_session.delete(db_session.get(models.Place, gym_id))
+        db_session.commit()
+
+
+def test_demo_gym_trainer_list_is_404_when_demo_is_off(client, demo_off):
+    """가상 헬스장은 데모가 꺼진 서버에 없는 헬스장이다 — 소속 목록도 404. (#3356)"""
+    assert client.get("/v1/gyms/gym-oncare-sinchon").status_code == 404
+    assert client.get("/v1/gyms/gym-oncare-sinchon/trainers").status_code == 404
 
 
 def test_consultation_to_demo_trainer_is_rejected_when_demo_is_off(

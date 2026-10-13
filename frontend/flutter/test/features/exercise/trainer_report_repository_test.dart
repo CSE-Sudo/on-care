@@ -146,7 +146,7 @@ void main() {
       final DioTrainerReportRepository repository = _repo(
         _StubAdapter(
           status: 404,
-          body: <String, Object?>{'detail': '트레이너를 찾을 수 없습니다.'},
+          body: <String, Object?>{'detail': '트레이너를 찾을 수 없어요.'},
         ),
       );
 

@@ -20,7 +20,6 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
 from app.core.config import get_settings
-from app.core.locale import RequestLocale
 from app.core.pagination import MAX_PAGE
 from app.core.rate_limit import (
     limiter,
@@ -41,6 +40,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     notification_service,
+    report_snapshot_service,
     trainer_report_summary_service,
     report_pdf_storage,
 )
@@ -68,11 +68,11 @@ def _report_week(day: str) -> _date:
     보낼 수 있고, 화면에도 다음 주로 가는 길이 없다.
     """
     if not _is_ymd(day):
-        raise HTTPException(status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 합니다.")
+        raise HTTPException(status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 해요.")
     week = trainer_reports_service.week_start_of(_date.fromisoformat(day))
     today = _date.fromisoformat(trainer_common_service.today_iso())
     if week > trainer_reports_service.week_start_of(today):
-        raise HTTPException(status_code=422, detail="아직 오지 않은 주는 조회할 수 없습니다.")
+        raise HTTPException(status_code=422, detail="아직 오지 않은 주는 조회할 수 없어요.")
     return week
 
 
@@ -103,15 +103,12 @@ def trainer_client_report_summary(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    locale: RequestLocale,
     week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
 ) -> ReportSummaryOut:
     """그 주의 리포트 요약.
 
     리포트 본문과 **따로** 부른다. 생성에 몇 초가 걸리는데 한 응답에 묶으면
     고객을 고를 때마다 화면 전체가 그만큼 멈춘다.
-
-    문장은 `Accept-Language` 언어로 만든다(#2298). 헤더가 없으면 한국어다.
 
     **하루 상한(#3032)** — 이 트레이너의 AI 호출 합이 `trainer_ai_calls_per_day` 를
     넘으면 429 `daily_limit` + `Retry-After` 다(규칙형으로 덮지 않는다). 서버 전체
@@ -132,7 +129,6 @@ def trainer_client_report_summary(
         trainer.id,
         member_id,
         _report_week(week_start or trainer_common_service.today_iso()),
-        locale,
     )
 
 
@@ -322,7 +318,7 @@ def trainer_client_report_sends(
     if before is not None:
         if not _is_ymd(before):
             raise HTTPException(
-                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 합니다."
+                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 해요."
             )
         cursor = _date.fromisoformat(before)
     return trainer_reports_service.list_member_report_sends(
@@ -357,6 +353,11 @@ def trainer_send_report(
         db, trainer.id, member_id, "trainer", text,
         notify=notification_service.WEEKLY_REPORT,
         report_week_start=week.isoformat(),
+        # 회원이 열 때마다 다시 계산하면 보낸 뒤 고친 기록·목표가 이 리포트를
+        # 바꾼다. 보내는 지금의 값을 함께 남긴다(#3349).
+        report_snapshot=report_snapshot_service.build_report_snapshot(
+            db, member_id, week, trainer_id=trainer.id
+        ),
     )
 
 
@@ -376,9 +377,8 @@ def trainer_send_report_pdf(
 ) -> ChatMessageOut:
     """현재 리포트에서 생성한 PDF만 담당 고객 채팅으로 전송한다.
 
-    `message` 는 필수이고 공백뿐이면 422 다(#2771). 서버가 대신 채우던 한국어
-    기본 문장은 트레이너·회원의 언어를 몰라, 영어로 쓰는 회원에게도 한국어가
-    나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+    `message` 는 필수이고 공백뿐이면 422 다(#2771). 서버는 기본 문장을 대신
+    채우지 않는다 — 회원이 받을 글은 앱이 만든다.
 
     동기 라우트다(#2835). 멱등 조회·PDF 저장(`os.fsync`)·메시지 커밋이 모두 동기라
     `async def` 로 두면 이벤트 루프를 막는다. 업로드도 `UploadFile.file` 로 읽는다.
@@ -398,18 +398,24 @@ def trainer_send_report_pdf(
             if existing.body != text or existing.attachment_type != "pdf":
                 raise HTTPException(
                     status_code=409,
-                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
+                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없어요.",
                 )
             return trainer_chat_service.chat_message_out(existing, "trainer")
 
     if pdf.content_type != "application/pdf":
-        raise HTTPException(status_code=415, detail="PDF 파일만 전송할 수 있습니다.")
+        raise HTTPException(status_code=415, detail="PDF 파일만 전송할 수 있어요.")
     settings = get_settings()
     data = pdf.file.read(settings.max_report_pdf_bytes + 1)
     if len(data) > settings.max_report_pdf_bytes:
-        raise HTTPException(status_code=413, detail="PDF 파일 용량이 너무 큽니다.")
+        raise HTTPException(status_code=413, detail="PDF 파일 용량이 너무 커요.")
     if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-1024:]:
-        raise HTTPException(status_code=415, detail="유효한 PDF 파일이 아닙니다.")
+        raise HTTPException(status_code=415, detail="유효한 PDF 파일이 아니에요.")
+    # 파일은 그 자체로 고정이지만, 회원 앱의 결과지가 이 주를 직전 주로 견줄 때는
+    # 수치를 다시 읽는다. 본문 전송과 같이 보내는 지금의 값을 남긴다(#3349). 파일을
+    # 쓰기 전에 만들어, 여기서 실패해도 남는 파일이 없게 한다.
+    snapshot = report_snapshot_service.build_report_snapshot(
+        db, member_id, week, trainer_id=trainer.id
+    )
 
     display_name = re.sub(
         r"[\x00-\x1f]", "_", PurePath(pdf.filename or "weekly-report.pdf").name
@@ -434,6 +440,7 @@ def trainer_send_report_pdf(
             attachment_file_id=file_id,
             attachment_file_size=len(data),
             report_week_start=week.isoformat(),
+            report_snapshot=snapshot,
         )
         # 동시 재시도 두 건이 모두 사전 조회를 통과할 수 있다. DB 멱등키에서
         # 진 요청이 기존 메시지를 반환했다면, 그 요청이 쓴 여분 파일을 지운다.

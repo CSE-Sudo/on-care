@@ -15,6 +15,13 @@ const String kConsultationSessionType = '1:1 PT';
 /// 신청 직후 만료되는 자리를 고를 수 있다(#1873).
 const Duration kConsultationSlotMinLead = Duration(hours: 4);
 
+/// 대기 요청이 자리를 잡고 있을 수 있는 시간 — 신청 뒤 [kConsultationHold] 와 자리
+/// 시작 [kConsultationExpireBeforeStart] 전 중 먼저 오는 쪽에서 만료된다. 서버
+/// `CONSULT_HOLD_HOURS`·`CONSULT_EXPIRE_BEFORE_START_HOURS` 와 같은 값이다 — 데모
+/// 대역이 실서버처럼 내 목록을 읽을 때 지난 요청을 만료로 내린다(#3360).
+const Duration kConsultationHold = Duration(hours: 24);
+const Duration kConsultationExpireBeforeStart = Duration(hours: 2);
+
 /// 답을 기다리는 상담 요청을 동시에 둘 수 있는 수. 서버 설정
 /// `consultation_max_pending`(backend/app/core/config.py) 의 기본값과 같다 —
 /// 데모 대역이 실서버와 같은 자리에서 [TooManyPendingConsultations] 를 낸다(#3099).
@@ -34,11 +41,12 @@ abstract class ConsultationRepository {
   /// 접수 시 서버가 409 로 알려 주고, 컨트롤러가 그 응답으로 목록을 채운다.
   Future<List<ConsultationRequest>> fetchMine({int limit});
 
-  /// 대기 중인 신청을 취소한다.
+  /// 대기 중인 신청, 또는 수락됐지만 아직 시작하지 않은 상담을 취소한다(#3359).
   ///
-  /// 트레이너가 이미 결정했거나 만료돼 대기 중이 아니면
-  /// [ConsultationNoLongerPending], 서버에 없는 id 면 [ConsultationNotFound]
-  /// 다(#2858). 둘 다 화면이 서버 목록을 다시 받아 카드를 실제 상태로 맞춘다.
+  /// 거절·만료·취소로 이미 끝난 요청이면 [ConsultationNoLongerPending], 수락된
+  /// 상담의 시작 시각이 지났으면 [ConsultationAlreadyStarted], 서버에 없는 id 면
+  /// [ConsultationNotFound] 다(#2858). 셋 다 화면이 서버 목록을 다시 받아 카드를
+  /// 실제 상태로 맞춘다.
   Future<void> cancel(String consultationId) async {}
 
   /// 상담을 신청할 수 있는 그 트레이너의 빈 자리. (#1873)
@@ -77,19 +85,16 @@ class TooManyPendingConsultations implements Exception {
   final int? limit;
 }
 
-/// 서버가 409 로 거절했는데 **담당 트레이너가 따로 있어서**인 경우. (#2611)
-///
-/// 담당이 있는 회원은 담당에게만 상담을 낸다 — 다른 트레이너에게는 담당 연결을
-/// 해제한 뒤 낸다. [DuplicatePendingConsultation] 과 같은 409 지만 이 트레이너에게
-/// 신청한 적이 없다 — 섞으면 "이미 대기 중" 으로 잘못 표시한다.
-class ConsultationLinkedToOtherTrainer implements Exception {
-  const ConsultationLinkedToOtherTrainer();
-}
-
-/// 취소하려던 신청이 이미 대기 중이 아니다 — 트레이너가 승인·거절했거나
-/// 만료됐다. 서버 409. (#2858)
+/// 취소하려던 신청이 이미 끝났다 — 트레이너가 거절했거나, 만료됐거나, 이미
+/// 취소됐다. 서버 409. (#2858)
 class ConsultationNoLongerPending implements Exception {
   const ConsultationNoLongerPending();
+}
+
+/// 취소하려던 수락된 상담의 시작 시각이 지났다. 서버 409 `consultation_started`.
+/// (#3359)
+class ConsultationAlreadyStarted implements Exception {
+  const ConsultationAlreadyStarted();
 }
 
 /// 취소하려던 신청이 서버에 없다. 서버 404. (#2858)

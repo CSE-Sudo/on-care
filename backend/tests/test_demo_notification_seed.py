@@ -38,7 +38,7 @@ def test_unread_alerts_sit_on_top():
 
 def _target(title: str) -> str | None:
     item = next(n for n in DEMO_NOTIFICATIONS if n.title == title)
-    action = _action_for(item.category, "ko", item.target)
+    action = _action_for(item.category, item.target)
     return None if action is None else action.target
 
 
@@ -46,26 +46,25 @@ def test_each_alert_opens_the_same_screen_as_the_app_demo():
     # 회원 앱 데모 목록(`demo_alert_keys.dart` 의 `kDemoAlertActionBySeedId`)과 같다.
     # 리마인더라도 운동 목표는 운동이다(#2690).
     assert _target("새 개인운동이 왔어요") == "exercise"
-    assert _target("이번 주 리포트가 등록됐어요") == "coach_chat"
-    assert _target("PT 수업 완료") == "exercise"
-    assert _target("트레이너 피드백 도착") == "coach_chat"
+    assert _target("주간 리포트가 도착했어요") == "coach_chat"
+    assert _target("12회차 PT를 마쳤어요") == "exercise"
+    assert _target("트레이너 피드백이 도착했어요") == "coach_chat"
     assert _target("이번 주 운동 목표까지 조금 남았어요") == "exercise"
     assert _target("식단 기록을 꾸준히 이어가고 있어요") == "dashboard"
     # 공지는 갈 곳이 없다 — 앱 데모도 같은 알림에 목적지를 두지 않는다.
-    assert _target("서비스 점검 안내") is None
+    assert _target("서비스 점검이 예정돼 있어요") is None
 
 
 def test_alert_specific_target_keeps_the_category_label_when_it_matches():
     # 갈래별 표와 목적지가 같으면 그 라벨이다. 다르면 목적지 라벨이다(#2690).
-    assert _action_for("routine", "ko", "exercise").label == "운동 보기"
-    assert _action_for("reminder", "ko", "diet").label == "식단 보기"
-    assert _action_for("reminder", "en", "diet").label == "View meals"
-    assert _action_for("system", "ko", None) is None
+    assert _action_for("routine", "exercise").label == "운동 보기"
+    assert _action_for("reminder", "diet").label == "식단 보기"
+    assert _action_for("system", None) is None
 
 
 def test_demo_alerts_show_the_same_times_as_the_app_demo():
     # 회원 앱 데모와 같은 문구 — 하루 지난 알림은 "어제" 다(#2691).
-    assert [demo_time_ago(n.ago, "ko") for n in DEMO_NOTIFICATIONS] == [
+    assert [demo_time_ago(n.ago) for n in DEMO_NOTIFICATIONS] == [
         "30분 전",
         "45분 전",
         "1시간 전",
@@ -74,10 +73,9 @@ def test_demo_alerts_show_the_same_times_as_the_app_demo():
         "어제",
         "어제",
     ]
-    assert demo_time_ago(timedelta(minutes=10), "en") == "10 min ago"
-    assert demo_time_ago(timedelta(hours=1), "en") == "1 hour ago"
-    assert demo_time_ago(timedelta(hours=26), "en") == "yesterday"
-    assert demo_time_ago(timedelta(days=3), "ko") == "3일 전"
+    assert demo_time_ago(timedelta(minutes=10)) == "10분 전"
+    assert demo_time_ago(timedelta(hours=26)) == "어제"
+    assert demo_time_ago(timedelta(days=3)) == "3일 전"
 
 
 def test_report_and_feedback_use_different_categories():
@@ -86,8 +84,8 @@ def test_report_and_feedback_use_different_categories():
     둘이 같은 갈래면 회원 앱 알림함에서 리포트도 말풍선으로 보인다.
     """
     by_title = {n.title: n.category for n in DEMO_NOTIFICATIONS}
-    assert by_title["이번 주 리포트가 등록됐어요"] == notification_service.MEMBER_COACH_REPORT
-    assert by_title["트레이너 피드백 도착"] == notification_service.MEMBER_COACH_CHAT
+    assert by_title["주간 리포트가 도착했어요"] == notification_service.MEMBER_COACH_REPORT
+    assert by_title["트레이너 피드백이 도착했어요"] == notification_service.MEMBER_COACH_CHAT
 
 
 def test_categories_are_known_backend_categories():
@@ -110,17 +108,16 @@ def test_categories_are_known_backend_categories():
 def test_pt_completion_alert_uses_the_same_category_as_the_server():
     """실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027) — 아이콘·라벨이 같아야 한다."""
     by_title = {n.title: n for n in DEMO_NOTIFICATIONS}
-    item = by_title["PT 수업 완료"]
+    item = by_title["12회차 PT를 마쳤어요"]
     assert item.category == notification_service.MEMBER_PT_DONE
     assert item.target == "exercise"
 
 
 def test_pt_done_action_reads_as_a_pt_record():
-    assert _action_for(notification_service.MEMBER_PT_DONE, "ko", None).label == "PT 기록 보기"
-    assert _action_for(notification_service.MEMBER_PT_DONE, "en", None).label == "View PT record"
+    assert _action_for(notification_service.MEMBER_PT_DONE, None).label == "PT 기록 보기"
     # 데모 알림처럼 목적지가 갈래 표와 같으면 갈래 라벨을 그대로 쓴다.
     assert (
-        _action_for(notification_service.MEMBER_PT_DONE, "ko", "exercise").label
+        _action_for(notification_service.MEMBER_PT_DONE, "exercise").label
         == "PT 기록 보기"
     )
 

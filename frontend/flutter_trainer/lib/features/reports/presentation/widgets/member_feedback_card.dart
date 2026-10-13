@@ -14,10 +14,18 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 주에 무엇이 회원의 말이고 무엇이 우리 해석인지 아무도 구분하지 못한다.
 class MemberFeedbackCard extends StatelessWidget {
   /// Creates the card.
-  const MemberFeedbackCard({super.key, required this.feedback});
+  const MemberFeedbackCard({
+    super.key,
+    required this.feedback,
+    this.failed = false,
+  });
 
   /// 아직 안 냈으면 null.
   final MemberWeeklyFeedback? feedback;
+
+  /// 답을 읽지 못했다(#3246). 그때 빈 칸은 `미응답` 이 아니라 `불러오지 못함`
+  /// 이다 — 답한 회원을 안 답한 회원으로 그리지 않는다.
+  final bool failed;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +35,9 @@ class MemberFeedbackCard extends StatelessWidget {
     // 안 낸 주에도 칸은 그대로 선다(#2450). 칸이 사라지면 답한 주와 안 한 주의
     // 카드 모양이 달라 나란히 비교가 안 되고, 무엇을 안 물어본 것인지 무엇에
     // 안 답한 것인지 구분되지 않는다.
-    final String unanswered = l.reportsMemberFeedbackUnanswered;
+    final String unanswered = failed
+        ? l.reportsMemberFeedbackLoadFailed
+        : l.reportsMemberFeedbackUnanswered;
     final Widget answers = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -103,7 +113,9 @@ class MemberFeedbackCard extends StatelessWidget {
             // 언제 낸 답인지를 제목 줄에 적는다 — 주가 끝난 뒤에 받는 답이라,
             // 날짜가 없으면 이번 주 도중에 쓴 말처럼 읽힌다.
             titleMeta: given == null
-                ? l.reportsMemberFeedbackNone
+                ? (failed
+                      ? l.reportsMemberFeedbackLoadFailed
+                      : l.reportsMemberFeedbackNone)
                 : l.reportsMemberFeedbackMeta(
                     l.dateMonthDay(
                       given.submittedOn.month,
@@ -120,10 +132,15 @@ class MemberFeedbackCard extends StatelessWidget {
           if (given == null) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
             // 빈 칸이 무엇을 뜻하는지 말해 준다 — 기능이 고장 난 것이 아니라
-            // 회원이 아직 답하지 않은 것이다.
+            // 회원이 아직 답하지 않은 것이다. 읽지 못했으면 그렇다고 말한다
+            // (#3246).
             Text(
-              l.reportsMemberFeedbackNoneHint,
-              key: const ValueKey<String>('report-feedback-empty'),
+              failed
+                  ? l.reportsMemberFeedbackLoadFailedHint
+                  : l.reportsMemberFeedbackNoneHint,
+              key: ValueKey<String>(
+                failed ? 'report-feedback-failed' : 'report-feedback-empty',
+              ),
               style: tokens
                   .text(OnCareTypography.bodySmall)
                   .copyWith(color: OnCareColors.textTertiary),

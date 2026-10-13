@@ -43,6 +43,7 @@ void main() {
       DateTime? lastDate,
       Size viewSize = const Size(800, 1400),
       bool? showClose,
+      DateTime? currentDate,
     }) async {
       tester.view.physicalSize = viewSize;
       tester.view.devicePixelRatio = 1;
@@ -64,6 +65,7 @@ void main() {
                     lastDate: lastDate ?? DateTime(2027),
                     helpText: helpText,
                     showClose: showClose,
+                    currentDate: currentDate,
                   ),
                 );
               },
@@ -536,6 +538,20 @@ void main() {
       expect(results, <DateTime?>[DateTime(2026, 8, 24)]);
     });
 
+    testWidgets('오늘은 넘겨받은 날을 달력에 그대로 건넨다 (#3250)', (WidgetTester tester) async {
+      // 기기가 서울이 아니어도 앱이 정한 오늘(KST)에 테두리가 선다.
+      await openPicker(tester, currentDate: DateTime(2026, 8, 20));
+
+      expect(
+        tester
+            .widget<AppCalendarDatePicker>(
+              find.byKey(AppDatePickerDialog.calendarKey),
+            )
+            .currentDate,
+        DateTime(2026, 8, 20),
+      );
+    });
+
     testWidgets('showClose 를 끄면 X 없이 취소로만 닫는다 (#2170)', (
       WidgetTester tester,
     ) async {
@@ -563,6 +579,7 @@ void main() {
     Future<List<DateTimeRange?>> openRangePicker(
       WidgetTester tester, {
       DateTimeRange? initialRange,
+      DateTime? currentDate,
     }) async {
       useTallView(tester);
       final List<DateTimeRange?> results = <DateTimeRange?>[];
@@ -580,6 +597,7 @@ void main() {
                     firstDate: DateTime(2026),
                     lastDate: DateTime(2026, 12, 31),
                     initialRange: initialRange,
+                    currentDate: currentDate,
                   ),
                 );
               },
@@ -839,6 +857,102 @@ void main() {
       await tester.tap(find.byKey(AppDateRangePickerDialog.cancelKey));
       await tester.pumpAndSettle();
       expect(results, <DateTimeRange?>[null]);
+    });
+
+    testWidgets('넘겨받은 오늘의 달부터 열고 그날에 테두리를 세운다 (#3267)', (
+      WidgetTester tester,
+    ) async {
+      // 기기가 서울이 아니어도 앱이 정한 오늘(KST)이 기준이다 — 기기의 오늘과
+      // 다른 달을 넘겨 기기 시각을 쓰지 않는지 본다.
+      await openRangePicker(tester, currentDate: DateTime(2026, 3, 15, 23));
+
+      expect(find.text('March 2026'), findsOneWidget);
+      final Finder rings = find.descendant(
+        of: find.byKey(AppDateRangePickerDialog.dialogKey),
+        matching: find.byWidgetPredicate(
+          (Widget w) =>
+              w is DecoratedBox &&
+              w.decoration is BoxDecoration &&
+              (w.decoration as BoxDecoration).shape == BoxShape.circle &&
+              (w.decoration as BoxDecoration).color == null &&
+              (w.decoration as BoxDecoration).border != null,
+        ),
+      );
+      expect(rings, findsOneWidget);
+      // 칸 폭이 소수라 원과 글자의 가운데가 마지막 자리에서 갈린다.
+      expect(
+        tester.getCenter(rings),
+        offsetMoreOrLessEquals(tester.getCenter(find.text('15'))),
+      );
+      expect(
+        (tester.widget<DecoratedBox>(rings).decoration as BoxDecoration).border,
+        Border.all(color: OnCareBrand.trainer.primary),
+      );
+      expect(dayText(tester, '15').style!.color, OnCareBrand.trainer.primary);
+      expect(dayText(tester, '16').style!.color, OnCareColors.textPrimary);
+    });
+
+    testWidgets('날짜 칸은 단일 날짜 달력과 같은 순서로 읽고 오늘을 알린다 (#3267)', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await openRangePicker(tester, currentDate: DateTime(2026, 3, 15));
+      final MaterialLocalizations ml = MaterialLocalizations.of(
+        tester.element(find.byKey(AppDateRangePickerDialog.dialogKey)),
+      );
+      String label(int day, {bool today = false}) =>
+          '${ml.formatDecimal(day)}, ${ml.formatFullDate(DateTime(2026, 3, day))}'
+          '${today ? ', ${ml.currentDateLabel}' : ''}';
+
+      expect(
+        tester.getSemantics(find.text('15')),
+        matchesSemantics(
+          label: label(15, today: true),
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasSelectedState: true,
+          hasTapAction: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.text('16')),
+        matchesSemantics(
+          label: label(16),
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasSelectedState: true,
+          hasTapAction: true,
+        ),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('시작·종료일이 오늘이면 채운 원이 테두리를 덮는다 (#3267)', (
+      WidgetTester tester,
+    ) async {
+      await openRangePicker(
+        tester,
+        initialRange: september,
+        currentDate: DateTime(2026, 9, 7),
+      );
+
+      expect(circleCells(), findsNWidgets(2));
+      expect(dayText(tester, '7').style!.color, OnCareColors.textOnFill);
+      expect(
+        find.descendant(
+          of: find.byKey(AppDateRangePickerDialog.dialogKey),
+          matching: find.byWidgetPredicate(
+            (Widget w) =>
+                w is DecoratedBox &&
+                w.decoration is BoxDecoration &&
+                (w.decoration as BoxDecoration).shape == BoxShape.circle &&
+                (w.decoration as BoxDecoration).border != null,
+          ),
+        ),
+        findsNothing,
+      );
     });
   });
 }

@@ -73,7 +73,7 @@ def trainer_client_chat(
             before_dt = datetime.fromisoformat(before)
         except ValueError as e:
             raise HTTPException(
-                status_code=422, detail="before 는 ISO datetime 형식이어야 합니다."
+                status_code=422, detail="before 는 ISO datetime 형식이어야 해요."
             ) from e
     return trainer_chat_service.build_chat_thread(
         db, trainer.id, member_id, limit=limit, before=before_dt, before_id=before_id
@@ -98,7 +98,7 @@ def trainer_send_chat(
             raise HTTPException(status_code=400, detail="없는 이모티콘이에요.")
         text = text or "(이모티콘)"
     if not text:
-        raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없습니다.")
+        raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없어요.")
     try:
         return trainer_chat_service.send_message(
             db,

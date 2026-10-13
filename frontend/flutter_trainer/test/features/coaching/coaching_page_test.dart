@@ -133,6 +133,7 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) async {
     registerCalls++;
     // Keep the write in flight across client-switching/scroll animations.
@@ -147,6 +148,7 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
       program: program,
       sessionId: sessionId,
       personalRoutines: personalRoutines,
+      note: note,
     );
     completedFor.add(clientId);
     return attached;
@@ -173,6 +175,9 @@ class _CapturingScheduleRepository extends DriftScheduleRepository {
   final List<List<RoutineExercise>> personalRoutineCalls =
       <List<RoutineExercise>>[];
 
+  /// 시도마다 함께 온 트레이너 피드백(#2374).
+  final List<String> notes = <String>[];
+
   @override
   Future<bool> registerProgramSchedule({
     required String date,
@@ -184,10 +189,12 @@ class _CapturingScheduleRepository extends DriftScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) async {
     registerCalls++;
     assignments.add(assignment);
     personalRoutineCalls.add(personalRoutines);
+    notes.add(note);
     if (error != null) throw error!;
     this.clientId = clientId;
     this.time = time;
@@ -284,22 +291,17 @@ class _FixedClientRepository implements ClientRepository {
   @override
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) async => ClientDietAnalysis.empty;
+    ClientPeriod period) async => ClientDietAnalysis.empty;
 
   @override
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  }) async => const ClientDietRecommendations();
+    String clientId) async => const ClientDietRecommendations();
 
   @override
   Future<ClientDietRecommendations> confirmDietRecommendation(
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   }) async => const ClientDietRecommendations();
 
   @override
@@ -527,6 +529,7 @@ class _FakeTrainerAuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async => _tokens;
 
@@ -576,7 +579,10 @@ Future<void> _ensureCentered(WidgetTester tester, Finder finder) async {
 }
 
 /// 이 스크롤해 가며 직접 찾게 한다.
-Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
+Future<void> _applyRecommendedRoutine(
+  WidgetTester tester, {
+  String option = 'A',
+}) async {
   final scrollable = find.byType(Scrollable).first;
 
   final generate = find.byKey(
@@ -593,21 +599,28 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   await tester.tap(generate);
   await tester.pumpAndSettle();
 
-  // 세 후보(회복안·강화안·기존안) 중 기존 AI 추천 그대로인 `기존안` 을
-  // 고른다 — 편집기에 들어갈 값이 이 회원의 seeded 추천과 같아야 한다.
-  final existing = find.byKey(
-    const ValueKey<String>('routine-option-recommended'),
+  // 세 후보(회복안·강화안·연계안) 중 `회복안` 으로 간다 — 이 회원의 반복
+  // 운동을 그대로 유지하는 안이라 편집기 값이 정해져 있다. 옛 `기존안`(배정된
+  // AI 개인운동)은 PT 단계에서 빠졌다(#3282). 회복안은 생성 직후 이미 골라져
+  // 있으므로 누르지 않는다 — 가운데로 끌어온 첫 카드는 위쪽 단계 칩과 겹쳐,
+  // 누르면 칩이 탭을 받아 흐름이 처음으로 되돌아간다.
+  final chosen = find.byKey(ValueKey<String>('routine-option-$option'));
+  expect(
+    find.byKey(ValueKey<String>('routine-option-$option'), skipOffstage: false),
+    findsOneWidget,
   );
-  await tester.scrollUntilVisible(
-    existing,
-    150,
-    scrollable: scrollable,
-    maxScrolls: 100,
-  );
-  await _ensureCentered(tester, existing);
-  await tester.pump();
-  await tester.tap(existing);
-  await tester.pumpAndSettle();
+  if (option != 'A') {
+    await tester.scrollUntilVisible(
+      chosen,
+      150,
+      scrollable: scrollable,
+      maxScrolls: 100,
+    );
+    await _ensureCentered(tester, chosen);
+    await tester.pump();
+    await tester.tap(chosen);
+    await tester.pumpAndSettle();
+  }
 
   final complete = find.byKey(
     const ValueKey<String>('complete-routine-review'),
@@ -790,10 +803,13 @@ Future<void> _revealBuilt(WidgetTester tester, String key) async {
 /// 이미 운동을 갖고 있으면(트레이너가 직접 채웠거나 이미 반영했다면)
 /// 여기서 다시 채우지 않는다. 조건 없이 AI 흐름을 다시 밟으면 방금 지운
 /// 운동이 되살아난다.
-Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
+Future<Finder> _ensureSendButtonReady(
+  WidgetTester tester, {
+  String option = 'A',
+}) async {
   final send = find.byKey(const ValueKey<String>('program-editor-send'));
   if (send.evaluate().isEmpty) {
-    await _applyRecommendedRoutine(tester);
+    await _applyRecommendedRoutine(tester, option: option);
   }
   await _revealBuilt(tester, 'program-editor-send');
   await tester.scrollUntilVisible(
@@ -1028,7 +1044,7 @@ void main() {
       expect(minsu.first.type, '유산소');
 
       final jisu = await repo.watchRoutine('seed-client-2').first;
-      expect(jisu.first.name, '인터벌 런닝');
+      expect(jisu.first.name, '인터벌 러닝');
     });
 
     test(
@@ -1156,7 +1172,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('저강도 유산소 (걷기)'),
+            matching: find.text('저강도 유산소'),
           ),
           findsOneWidget,
         );
@@ -1303,6 +1319,75 @@ void main() {
         tester.getSize(mainColumn).width,
         greaterThanOrEqualTo(OnCareLayout.dialogSmall),
       );
+      expect(tester.takeException(), isNull);
+    });
+
+    // 양옆 열을 252·380 으로 못 박았던 때에는 1280 창(콘텐츠 1016)에서 두 열로
+    // 바뀌어 식단·운동이 편집기 위에 얹혔다(#3316).
+    testWidgets('1280 창에서도 세 열이 서고 편집기가 맨 위에서 시작한다', (tester) async {
+      await openTab(tester, size: const Size(1280, 720));
+
+      final mainColumn = find.byKey(
+        const ValueKey<String>('coaching-wide-main-column'),
+      );
+      final rail = find.byKey(
+        const ValueKey<String>('coaching-client-rail-scroll'),
+      );
+      expect(rail, findsOneWidget);
+      expect(
+        tester.getTopLeft(rail).dx,
+        greaterThan(tester.getTopRight(mainColumn).dx - 1),
+      );
+      expect(tester.getSize(mainColumn).width, greaterThanOrEqualTo(440));
+      // 세 열에서는 자리가 구분해 주므로 제목 줄을 두지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('coaching-member-records-header')),
+        findsNothing,
+      );
+      // 가장 좁은 식단·운동 열에서도 탄단지는 세 칸으로 나란하다.
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key('client-nutrition-macro-탄수화물')))
+            .dy,
+        closeTo(
+          tester
+              .getTopLeft(find.byKey(const Key('client-nutrition-macro-지방')))
+              .dy,
+          1,
+        ),
+      );
+      expect(
+        tester.getTopLeft(find.byType(AiRoutineOptionsFlow)).dy,
+        closeTo(tester.getTopLeft(mainColumn).dy, 1),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('한 열은 회원 → 템플릿 → 편집기 → 식단·운동 순서로 쌓는다 (#3316)', (tester) async {
+      await openTab(tester, size: const Size(800, 4000));
+
+      final double template = tester.getTopLeft(find.text('프로그램 템플릿')).dy;
+      final double editor = tester
+          .getTopLeft(find.byType(AiRoutineOptionsFlow))
+          .dy;
+      final double data = tester
+          .getTopLeft(
+            find.byKey(const ValueKey<String>('program-client-data-switcher')),
+          )
+          .dy;
+      expect(template, lessThan(editor));
+      expect(editor, lessThan(data));
+      // 편집기 아래로 내려온 기록은 제목 줄로 가른다.
+      final double header = tester
+          .getTopLeft(
+            find.byKey(
+              const ValueKey<String>('coaching-member-records-header'),
+            ),
+          )
+          .dy;
+      expect(find.text('회원 기록'), findsOneWidget);
+      expect(editor, lessThan(header));
+      expect(header, lessThan(data));
       expect(tester.takeException(), isNull);
     });
 
@@ -1573,7 +1658,7 @@ void main() {
       }
       // 이행률 막대도 뺐다(#1029) — 이 줄에는 이제 이름·목표만 남는다.
       expect(
-        find.descendant(of: row, matching: find.text('운동 이행률')),
+        find.descendant(of: row, matching: find.text('운동 완료율')),
         findsNothing,
       );
       expect(tester.takeException(), isNull);
@@ -1595,45 +1680,58 @@ void main() {
         const ValueKey<String>('client-exercise-detail'),
       );
       expect(detail, findsOneWidget);
-      // 운동 현황 카드 안이 아니라 그 아래 따로 선 `운동 기록` 카드다(#2509).
-      final Finder recordsCard = find.ancestor(
-        of: detail,
-        matching: find.byWidgetPredicate(
-          (Widget w) =>
-              w.key is ValueKey<String> &&
-              (w.key! as ValueKey<String>).value.startsWith(
-                'program-workout-records-',
-              ),
-        ),
-      );
-      expect(recordsCard, findsOneWidget);
-      expect(
-        find.descendant(of: recordsCard, matching: find.text('운동 기록')),
-        findsOneWidget,
-      );
+      // 운동 현황 그래프 카드 안 아래에 붙는다 — 접힌 기본이 최근 1건이라
+      // 이행률보다 먼저 와도 길지 않다(#3004).
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('client-exercise-status-card')),
           matching: detail,
         ),
-        findsNothing,
+        findsOneWidget,
       );
-      // 요약 → 상세 순이다: 주간 운동 이행률이 운동 기록보다 위다.
       expect(
-        tester
-            .getTopLeft(
-              find.byKey(
-                const ValueKey<String>('program-week-completion-chart'),
-              ),
-            )
-            .dy,
-        lessThan(tester.getTopLeft(recordsCard).dy),
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-exercise-status-card')),
+          matching: find.text('운동 기록'),
+        ),
+        findsOneWidget,
       );
-      // 이름과 값을 ` · ` 로 잇는다(#1902) — 예전에는 그 수가 이름 안에 있었다.
+      // `오늘` 은 맨 위에 오늘 개인운동이 선다 — 회원 상세 `오늘` 맨 위 상자와
+      // 같은 내용이다(#3004). 이번 주·전체는 최근 기록부터다.
       expect(
         find.descendant(
           of: detail,
-          matching: find.text('벤치프레스 · 4세트 · 10회 · 40kg'),
+          matching: find.byKey(
+            const ValueKey<String>('workout-pending-routines'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-period-toggle')),
+          matching: find.text('이번 주'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: detail,
+          matching: find.byKey(
+            const ValueKey<String>('workout-pending-routines'),
+          ),
+        ),
+        findsNothing,
+      );
+      // 이름과 값을 ` · ` 로 잇는다(#1902) — 예전에는 그 수가 이름 안에 있었다.
+      // 줄은 회원 상세 운동 탭과 같은 모양이라 이름만 진하게 따로 칠한다(#3004).
+      expect(
+        find.descendant(
+          of: detail,
+          matching: find.textContaining(
+            '벤치프레스 · 4세트 · 10회 · 40kg',
+            findRichText: true,
+          ),
         ),
         findsOneWidget,
       );
@@ -1995,14 +2093,16 @@ void main() {
         // 추천 루틴을 편집기에 반영해야 기본 추천이 보인다. AI 흐름 자신의
         // 검토 목록에도 같은 이름이 뜰 수 있어 편집기 안으로 범위를 좁힌다.
         await _applyRecommendedRoutine(tester);
+        // 회복안은 그 회원의 반복 운동이다 — 이지수는 매일 하는 개인운동
+        // (인터벌 러닝)부터다(#3293).
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('인터벌 런닝'),
+            matching: find.text('인터벌 러닝'),
           ),
           findsOneWidget,
         );
-        expect(find.text('저강도 유산소 (걷기)'), findsNothing);
+        expect(find.text('저강도 유산소'), findsNothing);
       },
     );
 
@@ -2134,7 +2234,7 @@ void main() {
       await _applyRecommendedRoutine(tester);
       final inEditor = find.descendant(
         of: find.byType(ProgramEditorWorkspace),
-        matching: find.text('저강도 유산소 (걷기)'),
+        matching: find.text('저강도 유산소'),
       );
       expect(inEditor, findsOneWidget);
       await _selectExerciseAction(tester, '삭제');
@@ -2148,7 +2248,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('김민수'));
       await settle(tester);
-      expect(find.text('저강도 유산소 (걷기)'), findsNothing);
+      expect(find.text('저강도 유산소'), findsNothing);
     });
 
     testWidgets('오늘 스케줄에 등록 writes the routine onto the schedule tab', (
@@ -2181,7 +2281,7 @@ void main() {
         find.text('오늘에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요'),
         findsOneWidget,
       );
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
 
       // The 스케줄 tab shows the registered plan on his 예정 session.
       await goTo(tester, AppRoutes.schedule);
@@ -2206,7 +2306,7 @@ void main() {
       await settle(tester);
       // 회원 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트가
       // 흐름이 끝까지 성공했다는 신호를 대신한다.
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
 
       // Routine delivery is shown in the member's routine feed, not as a
       // trainer-authored blue chat bubble.
@@ -2261,7 +2361,7 @@ void main() {
 
       await _sendProgram(tester);
       await settle(tester);
-      expect(find.text('내일 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('내일 일정에 추가했어요'), findsOneWidget);
 
       // Booked under tomorrow's date, not today's. Reading a drift stream
       // must run outside the fake-async zone (`runAsync`), otherwise the
@@ -2279,7 +2379,7 @@ void main() {
       expect(booked, hasLength(1));
       expect(booked.single.program, isNotEmpty);
 
-      // Drain the action toast timer (`스케줄로 이동하기`) so it isn't left
+      // Drain the action toast timer (`스케줄로 가기`) so it isn't left
       // pending.
       await tester.pump(OnCareMotion.toastActionVisible);
     });
@@ -2324,10 +2424,8 @@ void main() {
       expect(
         find.descendant(
           of: timeButton,
-          matching: find.text(
-            '${const TimeOfDay(hour: 14, minute: 30).format(tester.element(timeButton))} – '
-            '${const TimeOfDay(hour: 15, minute: 45).format(tester.element(timeButton))}',
-          ),
+          // 시각은 24시간제(#3120).
+          matching: find.text('14:30 – 15:45'),
         ),
         findsOneWidget,
       );
@@ -2348,7 +2446,7 @@ void main() {
 
       await _sendProgram(tester);
       await settle(tester);
-      expect(find.text('내일 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('내일 일정에 추가했어요'), findsOneWidget);
 
       final tomorrow = ymd(nowKst().add(const Duration(days: 1)));
       final rows = await tester.runAsync(
@@ -2379,9 +2477,9 @@ void main() {
       await settle(tester);
 
       // 회원 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트와
-      // "스케줄로 이동하기" 액션이 완료 안내를 대신한다.
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsOneWidget);
-      expect(find.text('스케줄로 이동하기'), findsOneWidget);
+      // "스케줄로 가기" 액션이 완료 안내를 대신한다.
+      expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
+      expect(find.text('스케줄로 가기'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 4)); // reset window
       // 초기화된 편집기는 다시 빈 프로그램 정보 박스로 시작한다(#1028) —
@@ -2389,7 +2487,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(ProgramEditorWorkspace),
-          matching: find.text('저강도 유산소 (걷기)'),
+          matching: find.text('저강도 유산소'),
         ),
         findsNothing,
       );
@@ -2476,7 +2574,7 @@ void main() {
       // must not be left disabled by the previous client's guard. The
       // editor is a lazy list, so bring the button back into view first.
       final send = await _ensureSendButtonReady(tester);
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
       expect(tester.widget<AppButton>(send).onPressed, isNotNull);
       await tester.pump(const Duration(seconds: 5));
       await settle(tester);
@@ -2506,8 +2604,8 @@ void main() {
       await _sendProgram(tester);
       await settle(tester);
 
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
     });
 
     testWidgets('A → B → A cannot double-register while A is still saving', (
@@ -2662,7 +2760,7 @@ void main() {
       // lands on 이지수, and her edit survives — 김민수's reset timer must
       // not fire against her (review PR 239). 새 등록 토스트에는 회원
       // 이름이 없으므로(#1536) 문구 하나로 두 회원 다 대신 검증한다.
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
       await tester.scrollUntilVisible(
         find.text('레그프레스 5세트'),
         150,
@@ -2680,9 +2778,8 @@ void main() {
       // 있으려면 먼저 AI 코칭 보조 제안을 편집기에 반영해야 한다.
       await _applyRecommendedRoutine(tester);
 
-      // 김민수의 개인 운동을 모두 지운다 — 공유 픽스처가 정한 네 건이다
-      // (#1170).
-      for (var i = 0; i < 4; i++) {
+      // 회복안의 운동을 모두 지운다 — 김민수의 반복 운동 세 건이다(#3282).
+      for (var i = 0; i < 3; i++) {
         await _selectExerciseAction(tester, '삭제');
       }
 
@@ -2749,7 +2846,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('program-assign-confirm')),
-          matching: find.textContaining('오전 10:00 – 오전 11:00'),
+          matching: find.textContaining('10:00 – 11:00'),
         ),
         findsOneWidget,
       );
@@ -2763,7 +2860,7 @@ void main() {
         find.byKey(const ValueKey<String>('program-assign-confirm')),
         findsNothing,
       );
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
       // 취소했으니 편집기 내용도 그대로 남아 있고, 다시 눌러 보낼 수 있다.
       expect(tester.widget<AppButton>(send).onPressed, isNotNull);
     });
@@ -3167,8 +3264,8 @@ void main() {
       return scheduleRepo;
     }
 
-    Future<void> tapSend(WidgetTester tester) async {
-      final send = await _ensureSendButtonReady(tester);
+    Future<void> tapSend(WidgetTester tester, {String option = 'A'}) async {
+      final send = await _ensureSendButtonReady(tester, option: option);
       // `_ensureSendButtonReady` 가 편집기를 채우려고 AI 흐름을 지났다면
       // (#1028) `템플릿에 반영` 스낵바가 큐에 남아 있을 수 있다 — 같은
       // `ScaffoldMessenger` 를 쓰므로, 그 스낵바가 다 사라질 때까지 기다려
@@ -3191,7 +3288,9 @@ void main() {
       (tester) async {
         final scheduleRepo = await openRealApiTab(tester);
 
-        await tapSend(tester);
+        // 근력·유산소가 함께 있는 강화안으로 보낸다 — 옛 `기존안`(배정된 AI
+        // 개인운동)은 PT 단계에서 빠졌다(#3282).
+        await tapSend(tester, option: 'B');
 
         expect(scheduleRepo.registerCalls, 1);
         expect(scheduleRepo.clientId, 'real-client-1');
@@ -3202,9 +3301,9 @@ void main() {
         // 들고 나가야 한다 — 횟수가 여기서만 빠져 있어, 편집기에서 채운
         // 값이 일정에 등록되는 순간 사라졌다.
         final strength = scheduleRepo.program!.singleWhere(
-          (item) => item.type == '근력',
+          (item) => item.name == '스쿼트',
         );
-        expect(strength.name, '스쿼트');
+        expect(strength.type, '근력');
         expect(strength.sets, isNotNull);
         expect(strength.reps, isNotNull);
         expect(strength.weight, isNotNull);
@@ -3212,10 +3311,10 @@ void main() {
         final cardio = scheduleRepo.program!.singleWhere(
           (item) => item.type == '유산소',
         );
-        expect(cardio.duration, 30);
+        expect(cardio.duration, isNotNull);
         // 초를 함께 싣는다(#2521) — 분만 실으면 일정의 운동이 분 × 60 으로
         // 되짚혀 편집기의 45초가 `1분` 이 된다.
-        expect(cardio.durationSeconds, 1800);
+        expect(cardio.durationSeconds, cardio.duration! * 60);
         expect(strength.durationSeconds, isNull);
         expect(cardio.sets, isNull);
         expect(cardio.reps, isNull);
@@ -3306,7 +3405,7 @@ void main() {
 
       await tapSend(tester);
 
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsOneWidget);
       expect(
         find.text('응답을 받지 못했어요. 회원의 받은 루틴을 확인한 뒤 필요한 경우에만 다시 보내주세요'),
         findsNothing,
@@ -3321,7 +3420,7 @@ void main() {
       );
 
       await tapSend(tester);
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
       await tapSend(tester);
 
       expect(scheduleRepo.assignments, hasLength(2));
@@ -3344,7 +3443,7 @@ void main() {
         // 운동이 있으려면 먼저 AI 코칭 보조 제안을 편집기에 반영해야 한다.
         await _applyRecommendedRoutine(tester);
 
-        // Remove all 3 seeded AI suggestions for 김민수.
+        // Remove all 3 exercises of plan A (the template recovery plan).
         for (var i = 0; i < 3; i++) {
           await _selectExerciseAction(tester, '삭제');
         }
@@ -3571,6 +3670,61 @@ void main() {
       await settle(tester);
       expect(scheduleRepo.registerCalls, 1);
       expect(scheduleRepo.personalRoutineCalls.single, isNotEmpty);
+    });
+
+    testWidgets('편집기 하단에 쓴 트레이너 피드백을 확인창에 보이고 일정 추가로 보낸다', (tester) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
+
+      // 피드백 칸은 편집기 하단에 있다(#2374) — 위저드에는 없다.
+      await _revealBuilt(tester, 'program-schedule-feedback');
+      final field = find.byKey(
+        const ValueKey<String>('program-schedule-feedback'),
+      );
+      expect(field, findsOneWidget);
+      await _ensureCentered(tester, field);
+      await tester.enterText(field, '하체 위주로 짰어요');
+      await tester.pump();
+
+      await tapEditorSend(tester);
+      expect(
+        find.byKey(const ValueKey<String>('program-assign-feedback')),
+        findsOneWidget,
+      );
+      expect(find.text('하체 위주로 짰어요'), findsWidgets);
+      expect(find.text('PT를 마치면 회원 앱에 피드백으로 보여요'), findsWidgets);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+      );
+      await settle(tester);
+
+      expect(scheduleRepo.registerCalls, 1);
+      expect(scheduleRepo.notes.single, '하체 위주로 짰어요');
+    });
+
+    testWidgets('피드백을 비워 두면 확인창에 피드백 줄이 없다', (tester) async {
+      final scheduleRepo = await openCoaching(tester);
+      await openManualEditor(tester);
+
+      await tapEditorSend(tester);
+      expect(
+        find.byKey(const ValueKey<String>('program-assign-feedback')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-assign-confirm-submit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('no-personal-routine-skip')),
+      );
+      await settle(tester);
+
+      expect(scheduleRepo.notes.single, isEmpty);
     });
 
     testWidgets('개인운동 없이 추가를 고르면 개인운동 없이 일정에 올린다', (tester) async {
@@ -3867,6 +4021,9 @@ class _AttachScheduleRepository extends DriftScheduleRepository {
   final List<String> updatedFor = <String>[];
   final List<List<RoutineExercise>> updatedItems = <List<RoutineExercise>>[];
 
+  /// 시도마다 함께 온 트레이너 피드백(#2374).
+  final List<String> notes = <String>[];
+
   @override
   Future<bool> registerProgramSchedule({
     required String date,
@@ -3878,9 +4035,11 @@ class _AttachScheduleRepository extends DriftScheduleRepository {
     required List<ProgramItem> program,
     String? sessionId,
     List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
+    String note = '',
   }) async {
     registerCalls++;
     personalRoutineCalls.add(personalRoutines);
+    notes.add(note);
     return true;
   }
 

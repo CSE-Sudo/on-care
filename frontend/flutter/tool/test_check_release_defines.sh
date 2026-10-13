@@ -45,6 +45,24 @@ expect fail '지도 출처 https localhost' "$(good prod '"false"' "$GOOD_URL" "
 expect fail '지도 출처 경로 포함' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"https://app.oncare.kr/frontend"')"
 expect pass 'iOS 앱 ID 숫자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"IOS_APP_STORE_ID":"1234567890"')"
 expect fail 'iOS 앱 ID 자리표시자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"IOS_APP_STORE_ID":"<Apple ID>"')"
+KAKAO_KEY='0123456789abcdef0123456789abcdef'
+G_WEB='123456789012-webhash.apps.googleusercontent.com'
+G_IOS='123456789012-ioshash.apps.googleusercontent.com'
+expect pass '카카오 네이티브 앱 키' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ",\"KAKAO_NATIVE_APP_KEY\":\"$KAKAO_KEY\"")"
+expect fail '카카오 키 자리표시자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_NATIVE_APP_KEY":"<네이티브 앱 키>"')"
+expect pass '구글 웹·iOS client_id' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ",\"GOOGLE_WEB_CLIENT_ID\":\"$G_WEB\",\"GOOGLE_IOS_CLIENT_ID\":\"$G_IOS\"")"
+expect pass '구글 웹 client_id 만(Android)' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ",\"GOOGLE_WEB_CLIENT_ID\":\"$G_WEB\"")"
+expect fail '구글 iOS client_id 만' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ",\"GOOGLE_IOS_CLIENT_ID\":\"$G_IOS\"")"
+expect fail '구글 웹·iOS 같은 값' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ",\"GOOGLE_WEB_CLIENT_ID\":\"$G_WEB\",\"GOOGLE_IOS_CLIENT_ID\":\"$G_WEB\"")"
+expect fail '구글 client_id 아님' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"GOOGLE_WEB_CLIENT_ID":"GOCSPX-secret"')"
+# 빌드 번호·배포 일시(#3226) — 선택 키지만 있으면 형식을 본다.
+expect pass '빌드 번호·배포 일시' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":"7032","RELEASE_DATE":"2026-10-05T05:30:00Z"')"
+expect pass '빌드 번호 JSON 숫자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":7032')"
+expect fail '빌드 번호 0' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":"0"')"
+expect fail '빌드 번호 글자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":"abc"')"
+expect fail '빌드 번호 음수' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":"-3"')"
+expect fail '배포 일시 시간대 없음' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"RELEASE_DATE":"2026-10-05T05:30:00"')"
+expect fail '배포 일시 날짜만' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"RELEASE_DATE":"2026-10-05"')"
 
 # 필수 키 누락
 expect fail 'ENV 누락' "{\"USE_MOCK_API\":\"false\",\"API_BASE_URL\":\"$GOOD_URL\",\"SENTRY_DSN\":\"$GOOD_DSN\"}"

@@ -182,21 +182,13 @@ class _TodayDiet extends ConsumerWidget {
 /// 올리면 아침 카드 아래에 저녁 카드가 붙는다 — 회원 앱은 시각 표시를 내리며
 /// 순서를 끼니로 고정했고, 트레이너 화면도 같은 순서로 읽혀야 한다.
 ///
-/// 라벨로 가른다. 서버는 한국어 라벨을 보내고(`_meal_kr`), 영어 데모 시드는
-/// 같은 라벨을 옮긴 값을 적는다. 모르는 라벨은 맨 뒤로 가되 서로의 순서는 둔다.
-const List<List<String>> _mealOrder = <List<String>>[
-  <String>['아침', 'Breakfast'],
-  <String>['점심', 'Lunch'],
-  <String>['저녁', 'Dinner'],
-  <String>['간식', 'Snack'],
-  <String>['야식', 'Late-night snack'],
-];
+/// 라벨로 가른다. 서버는 한국어 라벨을 보낸다(`_meal_kr`). 모르는 라벨은 맨
+/// 뒤로 가되 서로의 순서는 둔다.
+const List<String> _mealOrder = <String>['아침', '점심', '저녁', '간식', '야식'];
 
 int _mealRank(String label) {
-  for (int i = 0; i < _mealOrder.length; i++) {
-    if (_mealOrder[i].contains(label)) return i;
-  }
-  return _mealOrder.length;
+  final int rank = _mealOrder.indexOf(label);
+  return rank < 0 ? _mealOrder.length : rank;
 }
 
 /// [meals] 를 끼니 순서로. 같은 끼니가 둘 이상이면 받은 순서를 지킨다 —
@@ -239,7 +231,7 @@ MealLimits mealLimitsOf(MemberHealthProfile? profile) => (
 ///    그대로 저장돼 있다.
 ///  * 음식: 이름 옆에 **내용량**(보조색), 오른쪽 끝에 그 음식의 kcal.
 ///  * 합계: `탄수화물(당류) / 단백질 / 지방 | 나트륨` 네 칸 오른쪽 끝에
-///    `총 247 kcal`([_MealTotals], 좁으면 네 칸 위 한 줄). 총 kcal 은 음식
+///    `총 247kcal`([_MealTotals], 좁으면 네 칸 위 한 줄). 총 kcal 은 음식
 ///    kcal 과 같은 세로선이라 "더하면 이 값" 으로 읽힌다.
 ///  * 과다: 끼니가 [MealLimits] 를 넘으면 합계 값이 빨강이 되고, 그 영양을 가장
 ///    많이 보탠 음식 옆에 빨간 배지가 선다. 평소에는 아무것도 서지 않는다 —
@@ -363,7 +355,7 @@ class _MealPhoto extends StatelessWidget {
   }
 }
 
-/// `스크램블 에그 130g …… 213 kcal` — 음식 한 줄.
+/// `스크램블 에그 130g …… 213kcal` — 음식 한 줄.
 ///
 /// 내용량은 이름 **바로 옆**이다 — 양은 "무엇을 얼마나" 의 일부라 음식에 붙고,
 /// 오른쪽 kcal 은 그 결과다(회원 앱 #1964 와 같은 자리). 양을 모르는 음식과
@@ -436,7 +428,10 @@ class _FoodLine extends StatelessWidget {
                         const SizedBox(width: OnCareSpacing.s12),
                     ],
                     Text(
-                      '${formatNumber(food.calories)} ${l.unitKcal}',
+                      // ko `310kcal` · en `310 kcal`(#3120).
+                      '${formatNumber(food.calories)}'
+                      ''
+                      '${l.unitKcal}',
                       style: OnCareTypography.numeric(
                         tokens
                             .text(OnCareTypography.bodySmall)
@@ -454,14 +449,14 @@ class _FoodLine extends StatelessWidget {
   }
 }
 
-/// 끼니 합계 — 네 칸, 그 오른쪽 끝에 `총 247 kcal`. (#2333)
+/// 끼니 합계 — 네 칸, 그 오른쪽 끝에 `총 247kcal`. (#2333)
 ///
 /// ```
 /// 탄수화물 17%     단백질 27%    지방 56%    │ 나트륨
-/// 10.4g 당류 6.8g  16g           14.8g       │ 359mg     총 247 kcal
+/// 10.4g 당류 6.8g  16g           14.8g       │ 359mg     총 247kcal
 /// ```
 ///
-/// 예전에는 `총 칼로리 …… 247 kcal` 이 네 칸 위에 한 줄을 따로 차지했다.
+/// 예전에는 `총 칼로리 …… 247kcal` 이 네 칸 위에 한 줄을 따로 차지했다.
 /// `총` 을 값에 붙이면 라벨 줄 없이도 끼니 합계로 읽힌다 — 펼친 날의
 /// `하루 합계` 줄([_DayRow])이 이미 같은 말로 적는다. 옆자리를 내주면 당류가
 /// 아래 줄로 밀리는 폭(분할 패널의 좁은 쪽)이나 큰 글씨에서는 예전처럼 네 칸
@@ -586,7 +581,8 @@ class _MealTotals extends StatelessWidget {
           columnWidth: _macroColumnWidth(rowWidth),
           value: '${_grams(entry.carbsG)}g',
           valueStyle: value(),
-          sugar: '${l.metricSugar} ${_grams(entry.sugarG)}g',
+          sugar:
+              '${l.metricSugar} ${_grams(entry.sugarG)}g',
           sugarStyle: head,
         );
         final double totalWidth =
@@ -883,7 +879,11 @@ InlineSpan _foodsSpan(BuildContext context, ClientDietEntry meal) {
         if (i > 0) const TextSpan(text: ', '),
         TextSpan(text: meal.foods[i].name),
         if (meal.foods[i].amountG case final double g)
-          TextSpan(text: ' ${_grams(g)}g', style: amount),
+          TextSpan(
+            text:
+                ' ${_grams(g)}g',
+            style: amount,
+          ),
       ],
     ],
   );
@@ -893,7 +893,7 @@ InlineSpan _foodsSpan(BuildContext context, ClientDietEntry meal) {
 /// 음식 이름이 같은 선에서 시작하게 하는 콘텐츠 고유 치수다.
 const double _dayRowLabelWidth = 64;
 
-/// 펼친 날의 한 줄 — `[아침] 스크램블 에그 130g, 딸기 100g …… 247 kcal`, 그 아래
+/// 펼친 날의 한 줄 — `[아침] 스크램블 에그 130g, 딸기 100g …… 247kcal`, 그 아래
 /// 영양 한 줄([_NutrientLine]). (#1025, #2333)
 ///
 /// `오늘` 끼니 카드를 **두 줄로 줄인 것**이다. 말(이름 옆 내용량, 총 kcal,
@@ -936,7 +936,9 @@ class _DayRow extends StatelessWidget {
     final Widget kcal = Text(
       totalStyle
           ? l.clientDietTotalCalories(formatNumber(calories))
-          : '${formatNumber(calories)} ${l.unitKcal}',
+          : '${formatNumber(calories)}'
+                ''
+                '${l.unitKcal}',
       maxLines: 1,
       softWrap: false,
       style: OnCareTypography.numeric(
@@ -1098,7 +1100,8 @@ class _NutrientLine extends StatelessWidget {
         ),
         item(
           TextSpan(
-            text: '${l.metricSodium} ${formatNumber(sodiumMg)}mg',
+            text:
+                '${l.metricSodium} ${formatNumber(sodiumMg)}mg',
             style: sodiumOver ? warn : null,
           ),
         ),

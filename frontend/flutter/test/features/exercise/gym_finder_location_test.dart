@@ -6,6 +6,9 @@
 ///
 /// 데모 세션(목업 빌드·실서버 데모)은 데모 데이터가 신촌 기준이라 예전 화면
 /// 그대로다: 기준은 신촌, 권한 확인·안내 줄 없음, 거리·거리순 그대로.
+///
+/// 여기 묶음은 위치정보 이용 동의(#3136)를 이미 받은 회원을 본다. 동의 전의
+/// 흐름은 `gym_location_consent_flow_test.dart` 가 따로 본다.
 library;
 
 import 'dart:async';
@@ -16,17 +19,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/exercise/data/repositories/location_consent_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/location_consent_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/domain/repositories/place_repository.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -75,6 +79,20 @@ class _FakeLocationService extends GymLocationService {
   }
 }
 
+/// 이미 동의한 회원(#3136).
+class _AgreedConsent implements LocationConsentRepository {
+  const _AgreedConsent();
+
+  @override
+  Future<bool> fetch() async => true;
+
+  @override
+  Future<void> agree() async {}
+
+  @override
+  Future<void> revoke() async {}
+}
+
 final AppLocalizationsKo _ko = AppLocalizationsKo();
 
 const Key _notice = Key('gym-default-area-notice');
@@ -94,6 +112,9 @@ Future<ProviderContainer> _pump(
       placeRepositoryProvider.overrideWithValue(const _EmptyPlaceRepository()),
       gymRepositoryProvider.overrideWithValue(MockGymRepository()),
       gymLocationServiceProvider.overrideWithValue(service),
+      locationConsentRepositoryProvider.overrideWithValue(
+        const _AgreedConsent(),
+      ),
       appConfigProvider.overrideWithValue(
         const AppConfig(
           environment: Environment.dev,
@@ -333,15 +354,6 @@ void main() {
     expect(find.byKey(_notice), findsNothing);
   });
 
-  testWidgets('영어로도 안내가 보인다', (WidgetTester tester) async {
-    final AppLocalizationsEn en = AppLocalizationsEn();
-    await _pump(tester, _FakeLocationService(), locale: const Locale('en'));
-
-    expect(find.text(en.gymDefaultAreaTitle), findsOneWidget);
-    expect(find.text(en.gymDefaultAreaMessage), findsOneWidget);
-    expect(find.text(en.gymUseLocation), findsOneWidget);
-  });
-
   testWidgets('위치를 얻는 중에는 [위치 사용] 을 다시 누를 수 없다', (WidgetTester tester) async {
     final Completer<PlaceQuery> pending = Completer<PlaceQuery>();
     final _SlowLocationService service = _SlowLocationService(pending.future);
@@ -361,9 +373,7 @@ void main() {
   });
 
   group('데모 세션은 예전 화면 그대로', () {
-    testWidgets('목업 빌드는 권한을 보지 않고 신촌을 회원 위치처럼 쓴다', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('목업 빌드는 권한을 보지 않고 신촌을 회원 위치처럼 쓴다', (WidgetTester tester) async {
       final _FakeLocationService service = _FakeLocationService(
         access: GymLocationAccess.granted,
       );
@@ -410,19 +420,6 @@ void main() {
 
       expect(service.checks, 0);
       expect(service.locates, 0);
-    });
-
-    testWidgets('영어로도 안내 줄이 없다', (WidgetTester tester) async {
-      final AppLocalizationsEn en = AppLocalizationsEn();
-      await _pump(
-        tester,
-        _FakeLocationService(),
-        locale: const Locale('en'),
-        demo: true,
-      );
-
-      expect(find.text(en.gymDefaultAreaTitle), findsNothing);
-      expect(find.text(en.gymUseLocation), findsNothing);
     });
   });
 

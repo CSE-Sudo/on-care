@@ -12,7 +12,6 @@ import 'package:oncare_trainer/features/consultations/data/repositories/consulta
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -422,7 +421,7 @@ void main() {
       await settle(tester);
 
       expect(_inInbox(find.text(label)), findsOneWidget);
-      expect(_inInbox(find.text('대기중')), findsNothing);
+      expect(_inInbox(find.text('대기 중')), findsNothing);
       // 끝난 신청이라 결정 버튼이 없다.
       expect(_inInbox(find.text('승인')), findsNothing);
     });
@@ -612,6 +611,34 @@ void main() {
       expect(repo.pendingFetches, greaterThan(pendingBefore));
     });
 
+    // 평소엔 바깥을 눌러 닫히지만, 승인 요청이 도는 동안만은 닫히지 않는다 —
+    // 결과 토스트가 닫힌 창과 함께 사라지지 않게.
+    testWidgets('승인 중엔 바깥 누름·뒤로 가기로 닫히지 않고, 끝나면 닫힌다', (tester) async {
+      final repo = slotRequestRepo();
+      await open(tester, repo);
+      final Finder inbox = find.byKey(
+        const ValueKey<String>('consultations-dialog'),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await tester.pump();
+      await tester.tapAt(const Offset(2, 2));
+      await settle(tester);
+      expect(inbox, findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await settle(tester);
+      expect(inbox, findsOneWidget);
+
+      repo.gate.complete();
+      await settle(tester);
+      expect(repo.accepted, <String>['consult-1']);
+      await tester.tapAt(const Offset(2, 2));
+      await settle(tester);
+      expect(inbox, findsNothing);
+    });
+
     testWidgets('승인 중 필터를 바꿔 카드가 다시 그려져도 갱신을 마친다', (tester) async {
       final repo = slotRequestRepo();
       await open(tester, repo);
@@ -692,14 +719,11 @@ void main() {
     // "This exception was thrown because …" 이 한국어 화면에 그대로 떴다.
     Future<void> acceptWith(
       WidgetTester tester,
-      AppError failure, {
-      Locale locale = const Locale('ko'),
-    }) async {
+      AppError failure) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-token',
         at: AppRoutes.consultations,
-        locale: locale,
         extraOverrides: <Override>[
           consultationRepositoryProvider.overrideWithValue(
             _FailingAcceptRepository(
@@ -741,19 +765,6 @@ void main() {
       );
 
       expect(find.text('이미 처리된 상담 요청입니다.'), findsOneWidget);
-    });
-
-    testWidgets('영어 화면의 연결 오류는 영어 안내다', (tester) async {
-      await acceptWith(
-        tester,
-        const NetworkError(),
-        locale: const Locale('en'),
-      );
-
-      expect(
-        find.text(AppLocalizationsEn().errorNetworkUnstable),
-        findsOneWidget,
-      );
     });
   });
 }

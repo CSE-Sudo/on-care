@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/client_factory.dart';
@@ -53,7 +52,7 @@ void main() {
       expect(summary.headline, isNot(contains('목표 범위 안')));
       expect(summary.headline, contains('나트륨 목표 초과 3일'));
       // 잘한 쪽도 함께 말한다 — 챙길 것만 남으면 보낼 만한 글이 못 된다.
-      expect(summary.headline, contains('운동 이행률 81%'));
+      expect(summary.headline, contains('운동 완료율 81%'));
     });
 
     test('평균도 초과일도 목표 안이면 지금 강도를 유지하라고 말한다', () {
@@ -80,7 +79,7 @@ void main() {
 
   group('summaryEvidence', () {
     test('PT 세션 수는 요약이 다시 말하지 않는다 (#1177)', () {
-      // 바로 옆 `주간 운동 이행률` 카드 제목 줄이 같은 값을 이미 적고 있어,
+      // 바로 옆 `주간 운동 완료율` 카드 제목 줄이 같은 값을 이미 적고 있어,
       // 근거 세 줄 중 하나를 되풀이에 쓰고 있었다.
       final lines = summaryEvidence(
         _ko,
@@ -88,7 +87,7 @@ void main() {
       );
 
       expect(lines.any((line) => line.contains('PT')), isFalse);
-      expect(lines, contains('운동 이행률 평균 81%'));
+      expect(lines, contains('운동 완료율 평균 81%'));
     });
   });
 
@@ -158,8 +157,8 @@ void main() {
         makeClient(name: '김민수'),
       ).headline;
 
-      expect(headline(85), contains('운동 이행률 85%'));
-      expect(headline(75), isNot(contains('운동 이행률 75%')));
+      expect(headline(85), contains('운동 완료율 85%'));
+      expect(headline(75), isNot(contains('운동 완료율 75%')));
     });
   });
 
@@ -264,7 +263,7 @@ void main() {
       expect(summary.points.length, summaryMaxPoints);
       expect(summary.points.last, startsWith('외 '));
       // 가장 위험한 항목이 먼저 남는다.
-      expect(summary.points.first, contains('운동 이행률'));
+      expect(summary.points.first, contains('운동 완료율'));
       expect(summaryHiddenWatchCount(_ko, report), greaterThan(0));
     });
   });
@@ -279,57 +278,4 @@ void main() {
     });
   });
 
-  group('영어 요약 (#2232)', () {
-    final AppLocalizationsEn en = AppLocalizationsEn();
-    final RegExp hangul = RegExp(r'[가-힣]');
-    // 주의사항이 골고루 걸리는 주 — 이행률·나트륨·당류·칼로리·단백질.
-    final report = _report(
-      completionAvg: 55,
-      sodiumAvg: 2600,
-      sodiumOverDays: 4,
-      sugarWeek: const <double>[72, 80, 61, 90, 0, 0, 0],
-      caloriesWeek: const <int>[2900, 3000, 2800, 0, 0, 0, 0],
-      proteinWeek: const <double>[40, 42, 38, 0, 0, 0, 0],
-      proteinTarget: 120,
-    );
-
-    test('머리 문장과 근거 줄에 한글이 남지 않는다', () {
-      final summary = ruleReportSummary(en, report, makeClient(name: 'Min'));
-
-      expect(summary.headline, isNot(matches(hangul)));
-      for (final String point in summary.points) {
-        expect(point, isNot(matches(hangul)), reason: point);
-      }
-    });
-
-    test('주의사항·다음 주 할 일에도 한글이 남지 않는다', () {
-      for (final w in summaryWatchpoints(en, report)) {
-        expect(w.text, isNot(matches(hangul)), reason: w.text);
-        expect(w.topic, isNot(matches(hangul)), reason: w.topic);
-      }
-      for (final String a in summaryCoachingActionsAll(en, report)) {
-        expect(a, isNot(matches(hangul)), reason: a);
-      }
-    });
-
-    test('영어에는 한국어 조사를 붙이지 않는다', () {
-      final summary = ruleReportSummary(
-        en,
-        _report(completionAvg: 95, sodiumAvg: 2600, sodiumOverDays: 4),
-        makeClient(name: 'Min'),
-      );
-
-      expect(summary.headline, contains('workout completion at 95% on track'));
-    });
-
-    test('기록이 없는 주도 영어로 말한다', () {
-      final summary = ruleReportSummary(
-        en,
-        _report(completionAvg: null, sodiumAvg: null, sodiumOverDays: 0),
-        makeClient(name: 'Min'),
-      );
-
-      expect(summary.headline, en.summaryHeadlineNoData('Min'));
-    });
-  });
 }

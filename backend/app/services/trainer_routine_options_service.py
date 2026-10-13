@@ -23,11 +23,11 @@ from sqlalchemy.orm import Session
 
 from app.services import ai_call_quota, health_focus
 from app.core import clock, metrics
-from app.core.locale import Locale, current_locale
 from app.core.week import monday_of
 from app.models.models import (
     ChatMessage,
     DietEntry,
+    ExerciseSession,
     HealthProfile,
     MemberWeeklyFeedback,
     RoutineHistory,
@@ -48,12 +48,14 @@ from app.schemas.trainer_api import (
     RecommendationStatus,
     RoutineIntensityPreference,
     RoutineOptionAnalysisOut,
+    RoutineFindingOut,
     RoutineOptionPlanOut,
     RoutineOptionsOut,
     RoutineContextSource,
     RoutineOptionsRequest,
 )
-from app.services import exercise_types, routine_ai
+from app.services import exercise_types, routine_ai, routine_next_pt
+from app.services.exercise_activity import activity_date_of
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.ai_log import log_ai_fallback
@@ -62,16 +64,19 @@ from app.services.coach.llm_base import is_truncated, output_cap
 logger = logging.getLogger(__name__)
 
 
-#: 개인화 분석에 쓰는 최근 기간(일) — 약 6주. 이보다 넓히면 오래된 루틴이
-#: 지금의 습관인 것처럼 잡히고, 좁히면 격주 세션 패턴을 놓친다(#776).
-HISTORY_LOOKBACK_DAYS = 42
+#: 개인화 분석에 쓰는 최근 기간(일) — 4주. 완료율(28일)과 맞춘다. 이보다 넓히면
+#: 오래된 루틴이 지금의 습관인 것처럼 잡히고, 좁히면 서로 다른 3주에 걸친 패턴을
+#: 볼 수 없다(#776).
+HISTORY_LOOKBACK_DAYS = 28
 
 #: 이 미만이면 판단할 개인 패턴이 없다 — 목표 기반 기본값을 쓴다.
 MIN_SESSIONS_FOR_LEARNING = 2
-#: 이 이상 + 서로 다른 주에 걸쳐 있고 + 반복된 운동이 있어야 "패턴이 있다"고 본다.
-MIN_SESSIONS_FOR_PERSONALIZED = 6
-MIN_DISTINCT_WEEKS_FOR_PERSONALIZED = 3
-MIN_REPEAT_FOR_PERSONALIZED = 3
+#: 기간 안 기록이 한 번이라도 있으면 그 기록으로 분석한다. 주 1회 PT 회원도
+#: 4주 창에서 분석 결과를 받아야 한다(#3293) — 예전 기준(6회·3주·반복 3번)은
+#: 주 1회 회원을 늘 목표 기반 기본안에 묶어 두었다.
+MIN_SESSIONS_FOR_PERSONALIZED = 1
+MIN_DISTINCT_WEEKS_FOR_PERSONALIZED = 1
+MIN_REPEAT_FOR_PERSONALIZED = 1
 
 #: 기록이 없을 때 쓰는 기본 조건. 회원 앱 최초 추천 문구와 맞춰 30분/보통으로 둔다.
 DEFAULT_AVAILABLE_MINUTES = 30
@@ -264,34 +269,36 @@ member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르�
     ],
     "reason": "회원에게 보여줄 짧은 추천 이유",
     "rationale": "트레이너가 확인할 데이터 근거"
+  },
+  "plan_c": {
+    "key": "C",
+    "label": "지난 PT 연계형",
+    "total_minutes": 30,
+    "intensity": "낮음|보통|높음",
+    "exercises": [
+      {"name": "운동명", "minutes": 12, "type": "근력", "sets": 3, "reps": 12, "weight": 20}
+    ],
+    "reason": "회원에게 보여줄 짧은 추천 이유",
+    "rationale": "트레이너가 확인할 데이터 근거",
+    "changes": ["기준 프로그램에서 바꾼 점 한 줄"]
   }
 }
 각 plan의 total_minutes는 exercises의 minutes 합과 정확히 같아야 합니다.
+
+next_pt 가 있으면 plan_c 를 반드시 만드세요. plan_c 는 새 루틴이 아니라
+next_pt.base_program(지난 PT 흐름상 이번 차례에 할 프로그램)을 바탕으로, 위의
+안전 순서와 이번 회원 분석에 맞게 **고친** 안입니다. 아픈 부위에 부담이 가는
+동작은 저충격 대안으로 바꾸고, available_minutes·intensity_preference 를 지키고,
+이행률·주간 피드백에 따라 세트·횟수·중량을 조정하세요. 근력 운동은 sets·reps·
+weight 를 기준 프로그램 값에서 이어 적으세요(모르면 빼세요). 바꾼 점마다
+changes 에 "런지 → 레그 익스텐션(무릎)", "벤치프레스 4세트 → 3세트" 처럼 한 줄씩
+적고, 그대로 둔 것은 적지 마세요. next_pt.basis 는 서버가 정한 차례 근거이니
+바꾸지 말고 rationale 에서 인용해도 됩니다.
 """
 )
 
-#: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2301).
-#:
-#: 한국어 프롬프트는 한 글자도 바꾸지 않는다 — 지금까지 검증한 한국어 출력이 그대로
-#: 남아야 한다. 영어는 같은 지시 위에 "쓰는 언어만 바꾸라" 를 얹는다. `intensity`·
-#: `type` 은 스키마 Literal(한국어 계약값)이라 번역하면 422 로 떨어져 규칙형 폴백이
-#: 되므로, 번역하지 말라고 못 박는다. `reason` 은 승인하면 회원에게 가는 트레이너
-#: 명의의 안내문이라 트레이너가 읽고 보내는 언어(= 요청 언어)로 쓴다.
-_ENGLISH_OUTPUT_RULE = """
-Output language: the trainer is using the app in English.
-Write every free-text value in natural English: plan label, exercises[].name,
-reason and rationale. Ignore the "한국어 이름" hint in the JSON example above.
-Do NOT translate "intensity" or exercises[].type — they are contract values and
-must be exactly one of the Korean values listed in the JSON example.
-Quote member data (messages, memos, exercise names from records) as-is when you
-cite it, but write the surrounding sentence in English.
-"""
-
-
-def system_prompt(locale: Locale = "ko") -> str:
-    """요청 언어에 맞는 시스템 프롬프트. 한국어는 [_SYSTEM_PROMPT] 그대로다(#2301)."""
-    if locale == "en":
-        return _SYSTEM_PROMPT + _ENGLISH_OUTPUT_RULE
+def system_prompt() -> str:
+    """시스템 프롬프트 — [_SYSTEM_PROMPT] 그대로다."""
     return _SYSTEM_PROMPT
 
 
@@ -307,6 +314,9 @@ def _exercise_name(item: object) -> str:
     운동" 으로 A안에 들어갔다.
     """
     if isinstance(item, dict):
+        # 값으로 적힌 기록은 `done: false` 가 안 한 운동이다 — 문장의 `✗` 와 같다.
+        if item.get("done") is False:
+            return ""
         text = str(item.get("name", ""))
     elif isinstance(item, str):
         text = item
@@ -345,7 +355,8 @@ def _analyze_routine_history(
     검토 대기중이거나 반려된 후보의 시간·강도가 다음 생성의 기본값으로 새면
     안 된다.
     """
-    since = (today_date - timedelta(days=HISTORY_LOOKBACK_DAYS - 1)).isoformat()
+    since_date = today_date - timedelta(days=HISTORY_LOOKBACK_DAYS - 1)
+    since = since_date.isoformat()
     rows = db.execute(
         select(RoutineHistory.date, RoutineHistory.exercises_json).where(
             RoutineHistory.member_id == member_id,
@@ -357,13 +368,17 @@ def _analyze_routine_history(
         )
     ).all()
 
-    session_count = len(rows)
+    personal_days = _personal_exercise_days(db, member_id, since_date, today_date)
+
+    session_count = len(rows) + len(personal_days)
     distinct_weeks = {
         date.fromisoformat(history_date).isocalendar()[:2]
         for history_date, _exercises in rows
-    }
+    } | {day.isocalendar()[:2] for day in personal_days}
 
     name_counts: Counter[str] = Counter()
+    for names in personal_days.values():
+        name_counts.update(names)
     for _history_date, exercises_json in rows:
         try:
             items = json.loads(exercises_json or "[]")
@@ -376,7 +391,8 @@ def _analyze_routine_history(
             if name:
                 name_counts[name] += 1
 
-    frequent = [name for name, count in name_counts.most_common() if count >= 2][:3]
+    # 많이 한 순서로 세 개. 한 번만 한 운동도 넣는다 — 기록 한 회로도 분석한다.
+    frequent = [name for name, _count in name_counts.most_common()][:3]
 
     if (
         session_count >= MIN_SESSIONS_FOR_PERSONALIZED
@@ -408,6 +424,35 @@ def _analyze_routine_history(
     )
 
 
+def _personal_exercise_days(
+    db: Session, member_id: str, since: date, today_date: date
+) -> dict[date, set[str]]:
+    """기간 안 회원 개인운동을 날짜별 운동 이름으로 묶는다.
+
+    PT 만 세면 주 1회 PT 회원은 개인운동을 아무리 해도 패턴이 잡히지 않는다.
+    개인운동은 운동 하나가 한 행이라 같은 날의 행을 한 회로 묶고, 한 날 같은
+    운동을 여러 번 적어도 한 번으로 센다. PT 완료에서 파생된 행
+    (`source='trainer_pt'`)은 `RoutineHistory` 에 이미 있어 빼야 두 번 세지 않는다.
+    """
+    rows = db.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == member_id,
+            ExerciseSession.week_start >= monday_of(since).isoformat(),
+            ExerciseSession.source != "trainer_pt",
+        )
+    ).all()
+    days: dict[date, set[str]] = {}
+    for row in rows:
+        day = activity_date_of(row)
+        if day is None or not since <= day <= today_date:
+            continue
+        names = days.setdefault(day, set())
+        name = (row.name or "").strip()
+        if name:
+            names.add(name)
+    return days
+
+
 def build_member_analysis(
     db: Session,
     trainer_id: str,
@@ -423,7 +468,7 @@ def build_member_analysis(
         )
     )
     if link is None:
-        raise ValueError("담당 고객을 찾을 수 없습니다.")
+        raise ValueError("담당 회원을 찾을 수 없어요.")
 
     # 오늘과 28일 창을 같은 스냅샷에서 뽑는다 — 따로 읽으면 KST 자정 사이에
     # 한 응답의 '오늘 나트륨'과 '최근 4주 이행률'이 다른 날을 기준으로 잡힌다.
@@ -848,16 +893,159 @@ def _fallback_signals(analysis: RoutineOptionAnalysisOut) -> list[str]:
     ]
 
 
+#: C안 기준 프로그램의 운동 유형으로 받는 값. 그 밖의 값은 `기타` 다.
+_PLAN_TYPES = frozenset({"걷기", "유산소", "근력", "요가", "스트레칭", "기타"})
+
+
+def _loose_number(value: object) -> float | None:
+    """예전에 자유 문자열로 저장된 `"10회"`·`"20kg"` 에서도 숫자를 읽는다."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if isinstance(value, str):
+        matched = re.search(r"\d+(?:\.\d+)?", value)
+        if matched:
+            return float(matched.group())
+    return None
+
+
+def _pt_items(program_json: str) -> tuple[routine_next_pt.PtItem, ...]:
+    try:
+        raw = json.loads(program_json) if program_json else []
+    except json.JSONDecodeError:
+        return ()
+    items: list[routine_next_pt.PtItem] = []
+    for m in raw if isinstance(raw, list) else []:
+        if not isinstance(m, dict):
+            continue
+        name = str(m.get("name") or "").strip()
+        if not name:
+            continue
+        type_ = m.get("type") if m.get("type") in _PLAN_TYPES else "근력"
+        sets = _loose_number(m.get("sets"))
+        reps = _loose_number(m.get("reps"))
+        weight = _loose_number(m.get("weight"))
+        minutes = _loose_number(m.get("duration"))
+        if minutes is None:
+            seconds = _loose_number(m.get("duration_seconds"))
+            minutes = round(seconds / 60) if seconds else None
+        items.append(routine_next_pt.PtItem(
+            name=name[:100],
+            type=type_,
+            sets=int(sets) if sets else None,
+            reps=int(reps) if reps else None,
+            weight=weight or None,
+            minutes=int(minutes) if minutes else None,
+        ))
+    return tuple(items)
+
+
+def _recent_pt_sessions(
+    db: Session, trainer_id: str, member_id: str, today_date: date
+) -> list[routine_next_pt.PtSession]:
+    """최근 완료한 PT 의 프로그램, 최신 먼저(#3282). 프로그램이 빈 회차는 뺀다."""
+    rows = db.execute(
+        select(TrainerSchedule.date, TrainerSchedule.program_json)
+        .where(
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.type != CONSULT_SCHEDULE_TYPE,
+            TrainerSchedule.status == "완료",
+            TrainerSchedule.date <= today_date.isoformat(),
+            TrainerSchedule.program_json != "[]",
+        )
+        .order_by(
+            TrainerSchedule.date.desc(),
+            TrainerSchedule.time.desc(),
+            TrainerSchedule.id.desc(),
+        )
+        .limit(routine_next_pt.NEXT_PT_LOOKBACK)
+    ).all()
+    sessions: list[routine_next_pt.PtSession] = []
+    for day, program_json in rows:
+        items = _pt_items(program_json)
+        if items:
+            sessions.append(
+                routine_next_pt.PtSession(day=date.fromisoformat(day), items=items)
+            )
+    return sessions
+
+
+def build_next_pt(
+    db: Session, trainer_id: str, member_id: str
+) -> routine_next_pt.NextPt:
+    """이번 차례 판단(#3282). 기록이 없으면 기본 분할 시작이다."""
+    today_date = clock.today()
+    return routine_next_pt.choose_next(
+        _recent_pt_sessions(db, trainer_id, member_id, today_date),
+        today=today_date,
+    )
+
+
+def _rule_plan_c(
+    analysis: RoutineOptionAnalysisOut,
+    request: RoutineOptionsRequest,
+    next_pt: routine_next_pt.NextPt,
+) -> RoutineOptionPlanOut:
+    """C안 규칙형 — AI 가 실패했거나 C안을 지키지 못했을 때 쓴다."""
+    signals = [*analysis.recent_messages, *_fallback_signals(analysis)]
+    return RoutineOptionPlanOut.model_validate(
+        routine_next_pt.rule_plan_c(
+            next_pt,
+            available_minutes=request.available_minutes,
+            intensity_preference=request.intensity_preference,
+            avg_completion_rate=analysis.avg_completion_rate,
+            cautions=routine_ai.cautions_in(analysis.conditions, signals),
+            escalate=routine_ai.needs_professional_check(analysis.conditions, signals),
+        )
+    )
+
+
+def _finding_sources(analysis: RoutineOptionAnalysisOut) -> list[routine_ai.FindingSource]:
+    """판단 결과의 근거로 읽을 자료, 먼저 볼 순서로(#3280).
+
+    규칙 폴백이 주의사항으로 읽는 글([_fallback_signals]·건강 프로필·대화)과
+    같은 자료다. 대화는 오래된 것부터 오므로 뒤집어 최근 언급을 먼저 잡는다.
+    """
+    return [
+        ("건강 프로필", [analysis.conditions] if analysis.conditions else []),
+        ("채팅 감지 메모", analysis.insight_memos),
+        ("트레이너 메모", analysis.trainer_memos),
+        ("PT 피드백", analysis.pt_feedbacks),
+        ("주간 피드백", analysis.weekly_feedback),
+        ("상담 메모", analysis.consult_memos),
+        ("최근 대화", list(reversed(analysis.recent_messages))),
+    ]
+
+
+def build_findings(
+    analysis: RoutineOptionAnalysisOut,
+    next_pt: routine_next_pt.NextPt | None = None,
+) -> list[RoutineFindingOut]:
+    """이번 생성의 판단 결과(#3280). AI·규칙형 어느 쪽이 답해도 같다.
+
+    [next_pt] 가 있으면 C안의 차례 판단(#3282)을 맨 뒤에 덧붙인다.
+    """
+    rotation = [] if next_pt is None else [routine_next_pt.finding(next_pt)]
+    return [
+        RoutineFindingOut.model_validate(item)
+        for item in routine_ai.rule_findings(
+            sources=_finding_sources(analysis),
+            frequent_exercises=analysis.frequent_exercises,
+            history_session_count=analysis.history_session_count,
+            analysis_period_days=analysis.analysis_period_days,
+            sodium_today_mg=analysis.sodium_today_mg,
+            avg_completion_rate=analysis.avg_completion_rate,
+        )
+        + rotation
+    ]
+
+
 def build_rule_options(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
-    locale: Locale = "ko",
+    next_pt: routine_next_pt.NextPt | None = None,
 ) -> RoutineOptionsOut:
-    """LLM 실패 시 공용 결정형 생성기로 동일 계약을 반환한다.
-
-    [locale] 은 이름·사유·근거 문장의 언어다 — AI 가 죽은 주에도 영어 화면에는
-    영어 후보가 나와야 한다(#2301).
-    """
+    """LLM 실패 시 공용 결정형 생성기로 동일 계약을 반환한다."""
     plan_a, plan_b = routine_ai.rule_based_plans(
         goal=analysis.goal,
         sodium_today_mg=analysis.sodium_today_mg,
@@ -876,13 +1064,14 @@ def build_rule_options(
         # 트레이너가 켠 나머지 자료(직접 쓴 메모·PT 피드백·주간 피드백의 통증)도
         # 같은 자리로 읽는다(#2587). 끈 자료는 분석에 없으니 여기에도 없다.
         insight_memos=_fallback_signals(analysis),
-        locale=locale,
     )
     return RoutineOptionsOut(
         analysis=analysis,
         plan_a=RoutineOptionPlanOut.model_validate(plan_a),
         plan_b=RoutineOptionPlanOut.model_validate(plan_b),
         generated_by="rule",
+        findings=build_findings(analysis, next_pt),
+        plan_c=None if next_pt is None else _rule_plan_c(analysis, request, next_pt),
     )
 
 
@@ -915,9 +1104,6 @@ def _call_llm(
     prompt: str, system: str = _SYSTEM_PROMPT, *, trainer_id: str | None = None
 ):
     """LLM 호출 + 타임아웃. 실패는 호출부가 잡아 규칙 폴백으로 내린다.
-
-    [system] 은 부르는 쪽이 요청 언어로 골라 넘긴다(#2301). 워커 스레드에서는
-    요청 컨텍스트(`current_locale`)가 보이지 않으므로 여기서 다시 읽지 않는다.
 
     빈 워커가 없으면 큐에서 기다리지 않고 즉시 실패시킨다(`_llm_slots` 주석 참고).
     기다려 봐야 타임아웃이고, 그동안 요청 스레드만 붙잡아 두기 때문이다.
@@ -971,12 +1157,63 @@ def _call_llm(
     return future.result(timeout=LLM_TIMEOUT_SEC)
 
 
+def _next_pt_prompt(next_pt: routine_next_pt.NextPt) -> dict:
+    """AI 에 넘기는 C안 기준(#3282) — 차례 근거와 그 차례에 했던 프로그램."""
+    return {
+        "basis": next_pt.basis,
+        "base_program": [
+            {
+                key: value
+                for key, value in (
+                    ("name", item.name),
+                    ("type", item.type),
+                    ("sets", item.sets),
+                    ("reps", item.reps),
+                    ("weight", item.weight),
+                    ("minutes", item.minutes),
+                )
+                if value is not None
+            }
+            for item in next_pt.items
+        ],
+    }
+
+
+def _llm_plan_c(
+    raw: object,
+    request: RoutineOptionsRequest,
+    next_pt: routine_next_pt.NextPt,
+) -> RoutineOptionPlanOut | None:
+    """AI 가 준 C안. 계약을 어기면 None — 호출부가 규칙형 C안으로 채운다.
+
+    C안 하나가 어긋났다고 멀쩡한 A·B안까지 버리지 않는다. 차례 근거는 모델이
+    아니라 서버 규칙의 것이다.
+    """
+    if not isinstance(raw, dict):
+        return None
+    try:
+        plan = RoutineOptionPlanOut.model_validate(
+            # 제목은 모델이 아니라 서버가 정한 고정 이름을 쓴다.
+            {
+                **raw,
+                "key": "C",
+                "label": routine_next_pt.plan_c_label(),
+                "basis": next_pt.basis,
+            }
+        )
+    except ValidationError:
+        return None
+    if plan.total_minutes > request.available_minutes:
+        return None
+    return plan
+
+
 def _generate_with_llm(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
-    locale: Locale = "ko",
     *,
     trainer_id: str | None = None,
+    next_pt: routine_next_pt.NextPt | None = None,
 ) -> RoutineOptionsOut:
     prompt = json.dumps(
         {
@@ -984,22 +1221,34 @@ def _generate_with_llm(
             "available_minutes": request.available_minutes,
             "intensity_preference": request.intensity_preference,
             "trainer_note": request.trainer_note.strip(),
+            **({} if next_pt is None else {"next_pt": _next_pt_prompt(next_pt)}),
         },
         ensure_ascii=False,
     )
-    result = _call_llm(prompt, system_prompt(locale), trainer_id=trainer_id)
+    result = _call_llm(prompt, system_prompt(), trainer_id=trainer_id)
     if is_truncated(result):
         # 출력 상한에 끊긴 JSON 은 앞부분만으로도 파싱될 수 있어 따로 막는다(#3032).
         raise RoutineContractError("LLM 응답이 출력 상한에 걸려 끊겼습니다.")
     payload = _decode_json_object(result.text)
+    raw_plan_c = payload.pop("plan_c", None)
     payload["analysis"] = analysis.model_dump()
     payload["generated_by"] = "ai"
+    # 판단 결과는 모델이 아니라 서버 규칙이 쓴다(#3280) — 모델이 덧붙인 값은 버린다.
+    payload["findings"] = [
+        f.model_dump() for f in build_findings(analysis, next_pt)
+    ]
     options = RoutineOptionsOut.model_validate(payload)
     if (
         options.plan_a.total_minutes > request.available_minutes
         or options.plan_b.total_minutes > request.available_minutes
     ):
         raise RoutineContractError("LLM 루틴 시간이 요청 가능한 시간을 초과했습니다.")
+    if next_pt is not None:
+        plan_c = _llm_plan_c(raw_plan_c, request, next_pt)
+        if plan_c is None:
+            metrics.incr("routine_options.plan_c_fallback")
+            plan_c = _rule_plan_c(analysis, request, next_pt)
+        options = options.model_copy(update={"plan_c": plan_c})
     return options
 
 
@@ -1032,14 +1281,14 @@ def generate_routine_options(
 ) -> RoutineOptionsOut:
     analysis = build_member_analysis(db, trainer_id, member_id, request)
     request = _resolve_conditions(analysis, request)
-    # 출력 언어는 요청한 트레이너의 화면 언어다(#2301). 워커 스레드로 넘어가기 전에
-    # 요청 컨텍스트에서 한 번 읽어 AI·폴백 양쪽에 같은 값을 쓴다.
-    locale = current_locale()
-    fallback = build_rule_options(analysis, request, locale)
+    next_pt = build_next_pt(db, trainer_id, member_id)
+    fallback = build_rule_options(analysis, request, next_pt)
     started = time.monotonic()
     had_chat = bool(analysis.recent_messages)
     try:
-        options = _generate_with_llm(analysis, request, locale, trainer_id=trainer_id)
+        options = _generate_with_llm(
+            analysis, request, trainer_id=trainer_id, next_pt=next_pt
+        )
     except ai_call_quota.TrainerAiDailyLimitReached:
         # 이 트레이너의 오늘 몫을 다 썼다 — 규칙형으로 덮지 않고 429 로 알린다(#3032).
         # 규칙형 후보를 주면 "AI 가 만든 것" 과 구분이 안 돼 한도를 모른 채 계속 누른다.

@@ -1,10 +1,10 @@
 /// 데모 알림 문구의 **식별자**. (#1812)
 ///
-/// 문구 자체는 ARB(`demoAlert…`)가 ko·en 양쪽으로 갖고 있고, 데모 데이터(목업
-/// 알림·로컬 시드)는 이 키만 싣는다. 화면이 키를 받아 로케일에 맞는 문장을 고른다
-/// — 홈 AI 조언 데모와 같은 방식이다(`demo_ai_advice.dart`, #435).
+/// 문구 자체는 ARB(`demoAlert…`)가 갖고 있고, 데모 데이터(목업 알림·로컬
+/// 시드)는 이 키만 싣는다. 화면이 키를 받아 ARB 문장을 고른다 — 홈 AI 조언
+/// 데모와 같은 방식이다(`demo_ai_advice.dart`, #435).
 ///
-/// 서버가 만든 알림은 번역본이 없으므로 키 없이 제목·본문 문자열로 온다.
+/// 서버가 만든 알림은 키 없이 제목·본문 문자열로 온다.
 library;
 
 const String kDemoAlertRoutine = 'routine';
@@ -54,7 +54,7 @@ const Map<String, ({String label, String target})> kDemoAlertActionBySeedId =
       'seed-noti-7': (label: '리포트 보기', target: 'coach_chat'),
       // 서버 `pt_done` 갈래의 라벨과 같다(#3027).
       'seed-noti-2': (label: 'PT 기록 보기', target: 'exercise'),
-      'seed-noti-3': (label: '대화 보기', target: 'coach_chat'),
+      'seed-noti-3': (label: '메시지 보기', target: 'coach_chat'),
       'seed-noti-6': (label: '운동 보기', target: 'exercise'),
       'seed-noti-9': (label: '홈 보기', target: 'dashboard'),
     };

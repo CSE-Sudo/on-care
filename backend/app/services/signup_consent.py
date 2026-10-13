@@ -17,13 +17,20 @@
 API 는 쓰지 못한다. 계정은 만들되 동의 행이 없으므로 [pending_kinds] 가 필수
 항목을 모두 돌려주고, 앱은 로그인 직후 동의 화면을 거치게 한다. 화면을 거치지
 않고 부르면 회원 데이터·AI API 가 403 `consent_required` 로 막는다
-(`api/deps.py` 의 `ensure_member_consented`, #3088). 목록을 보냈는데 필수 항목이
+(`api/deps.py` 의 `ensure_consented`, #3088 · 트레이너 API 는 #3155). 목록을 보냈는데 필수 항목이
 빠졌다면 그것은 화면의 잘못이라 422 로 거절한다.
 
 국외 이전 동의는 따로 받지 않는다(#2820). 국외 이전(AWS·Neon 싱가포르, Gemini·Sentry 미국)은
 계약 이행을 위한 처리 위탁·보관이라 「개인정보 보호법」 제28조의8 제1항 제3호에 따라
 처리방침에 이전 항목을 공개하는 것으로 갈음한다. 위탁·이전 표의 원본은
 `docs/privacy_processing.md` 이고, 두 앱 처리방침 본문(ARB)이 그 표를 따른다.
+
+**선택 항목**([OPTIONAL_KINDS])은 가입 필수가 아니다(#3136). 위치정보 이용 동의
+(`location`)는 회원 앱의 헬스장 찾기를 처음 쓸 때 받고, MY 에서 철회한다. 필수 판정
+([REQUIRED_BY_ROLE])에 들지 않으므로 동의하지 않아도 데이터 API 는 막히지 않는다.
+가입·재동의 화면의 `POST /users/me/consents` 는 받지 않고, 따로 둔
+`/users/me/consents/{kind}` 가 기록([record])·철회([revoke])·조회([optional_state])를
+맡는다. 같은 표(`user_consents`)에 항목·버전·시각으로 남는다.
 """
 from __future__ import annotations
 
@@ -48,6 +55,9 @@ Kind = Literal["terms", "privacy", "health", "age14"]
 #: 에 없는 항목을 버린다). 이미 남은 행은 마이그레이션 0141 이 철회 시각을 채웠다.
 RetiredKind = Literal["marketing"]
 
+#: 선택 항목(#3136). 받는 화면과 거두는 화면이 따로 있다.
+OptionalKind = Literal["location"]
+
 #: 요청 본문이 받을 수 있는 항목 — 지금 항목과 더는 받지 않는 항목.
 SubmittedKind = Literal["terms", "privacy", "health", "age14", "marketing"]
 
@@ -55,9 +65,11 @@ TERMS: Kind = "terms"
 PRIVACY: Kind = "privacy"
 HEALTH: Kind = "health"
 AGE14: Kind = "age14"
+LOCATION: OptionalKind = "location"
 
 ALL_KINDS: tuple[Kind, ...] = (TERMS, PRIVACY, HEALTH, AGE14)
 RETIRED_KINDS: tuple[RetiredKind, ...] = ("marketing",)
+OPTIONAL_KINDS: tuple[OptionalKind, ...] = (LOCATION,)
 
 #: 항목마다 지금 동의받는 문서의 버전. 본문을 고치면 그 항목만 올린다.
 #: 만 14세 확인은 문서가 아니지만, 문구가 바뀌면 같은 방식으로 올린다.
@@ -66,14 +78,17 @@ CURRENT_VERSIONS: dict[str, str] = {
     # 시행일과 같은 날짜다 — tests/test_terms_version.py 가 맞물림을 본다.
     TERMS: "2026-10-03",
     # 처리 위탁·국외 이전·파기 절차·보호책임자 절 추가(#2820), 보호책임자 연락처를
-    # 팀 수신 주소로 변경(#3132). 두 앱 처리방침의 시행일과 같은 날짜다 —
-    # tests/test_privacy_policy_version.py 가 맞물림을 본다.
+    # 팀 수신 주소로 변경(#3132), 위치정보 이용 안내 추가(#3136). 두 앱 처리방침의
+    # 시행일과 같은 날짜다 — tests/test_privacy_policy_version.py 가 맞물림을 본다.
     PRIVACY: "2026-10-05",
     HEALTH: "2026-10-01",
     AGE14: "2026-10-01",
+    # 위치기반서비스 이용약관(#3136). 회원 앱 약관 부칙의 시행일과 같은 날짜다 —
+    # tests/test_location_consent.py 가 맞물림을 본다.
+    LOCATION: "2026-10-05",
 }
 
-#: 역할별 필수 항목. 지금은 선택 항목이 없다 — 받는 항목은 모두 필수다.
+#: 역할별 필수 항목. 선택 항목([OPTIONAL_KINDS])은 여기 넣지 않는다.
 REQUIRED_BY_ROLE: dict[str, frozenset[str]] = {
     "member": frozenset({TERMS, PRIVACY, HEALTH, AGE14}),
     "trainer": frozenset({TERMS, PRIVACY, AGE14}),
@@ -155,3 +170,54 @@ def pending_kinds(db: Session, user: User) -> list[str]:
 def is_required(db: Session, user: User) -> bool:
     """이 계정이 동의 화면을 거쳐야 하는가."""
     return bool(pending_kinds(db, user))
+
+
+def optional_state(db: Session, user_id: str, kind: str) -> UserConsent | None:
+    """선택 항목 [kind] 의 가장 최근 기록. 한 번도 묻지 않았으면 `None`.
+
+    지금 버전의 행을 먼저 본다 — 약관이 바뀌어 옛 버전에만 동의한 계정은
+    동의하지 않은 것으로 보되, 철회 시각은 옛 행에서도 읽을 수 있게 둔다.
+    """
+    rows = list(
+        db.scalars(
+            select(UserConsent).where(
+                UserConsent.user_id == user_id,
+                UserConsent.kind == kind,
+            )
+        )
+    )
+    if not rows:
+        return None
+    current = [row for row in rows if row.version == CURRENT_VERSIONS.get(kind)]
+    pool = current or rows
+    return max(pool, key=lambda row: (row.revoked_at or row.agreed_at, row.id))
+
+
+def is_agreed(db: Session, user_id: str, kind: str) -> bool:
+    """[kind] 에 지금 버전으로, 철회하지 않은 동의가 있는가."""
+    return kind in agreed_kinds(db, user_id)
+
+
+def revoke(
+    db: Session,
+    user_id: str,
+    kind: str,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """[kind] 의 남은 동의를 모두 철회한다. 커밋은 부르는 쪽이 한다.
+
+    행은 지우지 않고 철회 시각만 적는다 — 언제 동의했고 언제 거뒀는지가 이력이다.
+    이미 철회했거나 기록이 없으면 아무것도 하지 않고 `False`.
+    """
+    at = now or clock.now()
+    rows = db.scalars(
+        select(UserConsent).where(
+            UserConsent.user_id == user_id,
+            UserConsent.kind == kind,
+            UserConsent.revoked_at.is_(None),
+        )
+    ).all()
+    for row in rows:
+        row.revoked_at = at
+    return bool(rows)

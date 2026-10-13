@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,6 +47,9 @@ class _RecordingRepository implements TrainerReportRepository {
   _RecordingRepository({this.failWith});
 
   Object? failWith;
+
+  /// 있으면 신고가 이것이 끝날 때까지 기다린다 — 보내는 중인 시트를 본다.
+  Completer<void>? gate;
   final List<({String trainerId, TrainerReportReason reason, String memo})>
   sent = <({String trainerId, TrainerReportReason reason, String memo})>[];
 
@@ -54,6 +59,7 @@ class _RecordingRepository implements TrainerReportRepository {
     required TrainerReportReason reason,
     String memo = '',
   }) async {
+    await gate?.future;
     final Object? failure = failWith;
     if (failure != null) throw failure;
     sent.add((trainerId: trainerId, reason: reason, memo: memo));
@@ -228,6 +234,35 @@ void main() {
       await drainToast(tester);
     });
 
+    // 닫히면 접수 결과·실패 안내를 보여 줄 자리가 사라진다(#3245).
+    testWidgets('보내는 중에는 바깥을 눌러도 시트가 닫히지 않는다', (WidgetTester tester) async {
+      final _RecordingRepository repository = _RecordingRepository()
+        ..gate = Completer<void>();
+      await pumpRoute(
+        tester,
+        location: AppRoutes.trainerDetailPath(_trainer.id),
+        repository: repository,
+      );
+      await openFromDetail(tester);
+      await tester.tap(
+        find.byKey(const Key('trainer-report-reason-impersonation')),
+      );
+      await tester.pump();
+      await tester.tap(submit());
+      await tester.pump();
+
+      await tester.tapAt(const Offset(180, 4));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const Key('trainer-report-sheet')), findsOneWidget);
+
+      repository.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(repository.sent, hasLength(1));
+      expect(find.byKey(const Key('trainer-report-sheet')), findsNothing);
+      await drainToast(tester);
+    });
+
     testWidgets('기타는 내용을 적어야 보낼 수 있고, 적은 내용이 함께 간다', (
       WidgetTester tester,
     ) async {
@@ -354,26 +389,6 @@ void main() {
       expect(find.byKey(const Key('trainer-report-sheet')), findsNothing);
       await drainToast(tester);
     });
-
-    testWidgets('영어 로케일에서 시트 문구가 영어다', (WidgetTester tester) async {
-      await pumpRoute(
-        tester,
-        location: AppRoutes.trainerDetailPath(_trainer.id),
-        repository: _RecordingRepository(),
-        locale: const Locale('en'),
-      );
-      expect(
-        find.text('Affiliation registered by the trainer'),
-        findsOneWidget,
-      );
-      await openFromDetail(tester);
-
-      expect(find.text('Report trainer'), findsWidgets);
-      expect(find.text('Impersonation'), findsOneWidget);
-      expect(find.text('Inappropriate message'), findsOneWidget);
-      expect(find.text('Other'), findsOneWidget);
-      expect(find.text('Submit report'), findsOneWidget);
-    });
   });
 
   group('헬스장 상세의 소속 트레이너 (#3008)', () {
@@ -464,12 +479,11 @@ void main() {
     });
   });
 
-  group('연결된 내 트레이너 카드 (#3008)', () {
-    Future<void> pumpCard(
+  group('연결된 내 트레이너 카드', () {
+    Future<void> pump(
       WidgetTester tester, {
-      required Trainer? trainer,
+      required Widget child,
       required TrainerReportRepository repository,
-      bool showTrainerReport = true,
     }) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -481,57 +495,29 @@ void main() {
             locale: const Locale('ko'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: ConnectedGymCard(
-                  gym: _gym,
-                  trainer: trainer,
-                  onGymTap: () {},
-                  onTrainerDetail: () {},
-                  showTrainerReport: showTrainerReport,
-                ),
-              ),
-            ),
+            home: Scaffold(body: SingleChildScrollView(child: child)),
           ),
         ),
       );
       await tester.pumpAndSettle();
     }
 
-    testWidgets('담당 트레이너가 있으면 그 줄 아래에 신고 버튼이 선다', (WidgetTester tester) async {
-      await pumpCard(
+    testWidgets('카드에는 신고 버튼을 두지 않는다 — 신고는 트레이너 상세에서 한다', (
+      WidgetTester tester,
+    ) async {
+      await pump(
         tester,
-        trainer: _trainer,
         repository: _RecordingRepository(),
-      );
-
-      final Finder report = find.byKey(const Key('my-trainer-report'));
-      expect(report, findsOneWidget);
-      expect(
-        tester.getTopLeft(report).dy,
-        greaterThanOrEqualTo(
-          tester
-              .getBottomLeft(find.byKey(const Key('gym-trainer-line-mine')))
-              .dy,
+        child: ConnectedGymCard(
+          gym: _gym,
+          trainer: _trainer,
+          onGymTap: () {},
+          onTrainerDetail: () {},
         ),
       );
-    });
 
-    testWidgets('담당 트레이너가 없으면 신고할 대상도 없다', (WidgetTester tester) async {
-      await pumpCard(tester, trainer: null, repository: _RecordingRepository());
-
-      expect(find.byKey(const Key('my-trainer-report')), findsNothing);
-    });
-
-    testWidgets('끄면 신고 버튼을 두지 않는다', (WidgetTester tester) async {
-      await pumpCard(
-        tester,
-        trainer: _trainer,
-        repository: _RecordingRepository(),
-        showTrainerReport: false,
-      );
-
-      expect(find.byKey(const Key('my-trainer-report')), findsNothing);
+      expect(find.byKey(const Key('gym-trainer-line-mine')), findsOneWidget);
+      expect(find.byType(TrainerReportButton), findsNothing);
     });
 
     testWidgets('데모 저장소로 보내면 같은 트레이너 두 번째 신고는 이미 접수됨이다', (
@@ -539,13 +525,20 @@ void main() {
     ) async {
       final MockTrainerReportRepository repository =
           MockTrainerReportRepository();
-      await pumpCard(tester, trainer: _trainer, repository: repository);
+      await pump(
+        tester,
+        repository: repository,
+        child: const TrainerReportButton(
+          key: Key('trainer-report'),
+          trainer: _trainer,
+        ),
+      );
       final AppLocalizations l = AppLocalizations.of(
-        tester.element(find.byType(ConnectedGymCard)),
+        tester.element(find.byType(TrainerReportButton)),
       );
 
       for (int i = 0; i < 2; i++) {
-        await tester.tap(find.byKey(const Key('my-trainer-report')));
+        await tester.tap(find.byKey(const Key('trainer-report')));
         await tester.pumpAndSettle();
         await tester.tap(
           find.byKey(const Key('trainer-report-reason-impersonation')),

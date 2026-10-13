@@ -15,7 +15,6 @@ from uuid import uuid4
 import pytest
 
 from app.core import clock
-from app.core import locale as locale_module
 from app.models.models import ExerciseSession
 from app.schemas.trainer_api import ProgramItem, RoutineHistoryExerciseOut, RoutineHistoryOut
 from app.services.trainer import _common as trainer_common_service
@@ -43,20 +42,12 @@ def fixed_today(monkeypatch):
     return _FIXED_TODAY
 
 
-@pytest.fixture()
-def english():
-    """이 테스트 동안 요청 언어를 영어로 둔다(미들웨어가 하는 일과 같다)."""
-    token = locale_module._request_locale_ctx.set("en")
-    yield
-    locale_module._request_locale_ctx.reset(token)
-
-
 def _ago(days: int) -> str:
     return (_FIXED_TODAY - timedelta(days=days)).isoformat()
 
 
 # ---------------------------------------------------------------------------
-# 옛 문자열 필드 — 한국어는 그대로, 영어 요청이면 영어
+# 옛 문자열 필드 — 서버가 조립한 한국어 문장
 # ---------------------------------------------------------------------------
 
 
@@ -77,22 +68,6 @@ def test_relative_day_label_korean_is_unchanged(fixed_today, days, expected):
     assert relative_day_label(_ago(days)) == expected
 
 
-@pytest.mark.parametrize(
-    ("days", "expected"),
-    [
-        (0, "Today"),
-        (1, "Yesterday"),
-        (2, "2 days ago"),
-        (15, "15 days ago"),
-        (-3, "Today"),
-    ],
-)
-def test_relative_day_label_follows_english_request(
-    fixed_today, english, days, expected
-):
-    assert relative_day_label(_ago(days)) == expected
-
-
 @pytest.mark.parametrize("raw", ["", "어제", "2026-13-01", "not-a-date"])
 def test_relative_day_label_passes_unparseable_values_through(fixed_today, raw):
     assert relative_day_label(raw) == raw
@@ -110,20 +85,6 @@ def test_relative_day_label_passes_unparseable_values_through(fixed_today, raw):
     ],
 )
 def test_history_date_label_korean_is_unchanged(fixed_today, day, expected):
-    assert history_date_label(day) == expected
-
-
-@pytest.mark.parametrize(
-    ("day", "expected"),
-    [
-        ("2026-09-27", "9/27 (Today)"),
-        ("2026-09-26", "9/26 (Yesterday)"),
-        ("2026-09-20", "9/20"),
-    ],
-)
-def test_history_date_label_follows_english_request(
-    fixed_today, english, day, expected
-):
     assert history_date_label(day) == expected
 
 
@@ -208,7 +169,7 @@ def _item(**kw) -> dict:
             "벤치프레스 4세트 · 8회 · 62.5kg",
             _item(name="벤치프레스", type="strength", sets=4, reps=8, weight=62.5),
         ),
-        ("인터벌 런닝 25분 ✓", _item(name="인터벌 런닝", minutes=25)),
+        ("인터벌 러닝 25분 ✓", _item(name="인터벌 러닝", minutes=25)),
         # 이름에 공백이 있어도 이름으로 남는다
         (
             "인클라인 덤벨 3세트 · 10회 · 26kg",
@@ -503,16 +464,16 @@ def test_history_api_carries_raw_fields_alongside_korean_labels(client):
         for sentence, item in zip(entry["exercises"], entry["exercise_items"]):
             assert item["name"]
             assert item["name"].split(" ")[0] in sentence
-        # 한국어 옛 필드에는 영어가 섞이지 않는다
+        # 옛 필드에는 영어가 섞이지 않는다
         assert "Today" not in entry["date_label"]
         assert "Yesterday" not in entry["date_label"]
-    # 시드의 AI 개인운동은 코드를 받는다
+    # 시드의 하루치 개인운동 카드는 코드를 받는다(#3003)
     assert any(
-        e["label"] == "AI 개인운동" and e["kind"] == "ai_personal" for e in hist
+        e["label"] == "개인운동" and e["kind"] == "personal_routine" for e in hist
     )
 
 
-def test_history_api_english_request_localizes_only_date_label(client):
+def test_history_api_is_the_same_for_an_english_header(client):
     ko = client.get(
         "/v1/trainer/clients/user-jisu/history", headers=_trainer_headers(client)
     ).json()
@@ -522,20 +483,14 @@ def test_history_api_english_request_localizes_only_date_label(client):
     ).json()
     assert [e["id"] for e in en] == [e["id"] for e in ko]
     for k, e in zip(ko, en):
-        # 원시 값은 언어와 무관하다
+        # 서버 문장은 한국어 하나다 — 헤더는 아무것도 바꾸지 않는다(#3404).
         assert e["date"] == k["date"]
         assert e["kind"] == k["kind"]
         assert e["exercise_items"] == k["exercise_items"]
-        # 저장된 이름·문장은 번역하지 않는다(앱이 코드로 그린다)
         assert e["label"] == k["label"]
         assert e["exercises"] == k["exercises"]
-        # 날짜 꼬리표만 요청 언어를 따른다
-        assert e["date_label"] == (
-            k["date_label"]
-            .replace(" (오늘)", " (Today)")
-            .replace(" (어제)", " (Yesterday)")
-        )
-        assert "오늘" not in e["date_label"] and "어제" not in e["date_label"]
+        assert e["date_label"] == k["date_label"]
+        assert "Today" not in e["date_label"] and "Yesterday" not in e["date_label"]
 
 
 def test_history_api_is_trainer_only(client):
@@ -582,13 +537,14 @@ def test_roster_carries_last_routine_date(client):
             continue
         saw_date = True
         delta = (today - date.fromisoformat(raw)).days
+        # `en` 을 보내도 같은 한국어 라벨이다(#3404).
+        assert other["last_routine"] == c["last_routine"]
         if delta <= 0:
-            assert (c["last_routine"], other["last_routine"]) == ("오늘", "Today")
+            assert c["last_routine"] == "오늘"
         elif delta == 1:
-            assert (c["last_routine"], other["last_routine"]) == ("어제", "Yesterday")
+            assert c["last_routine"] == "어제"
         else:
             assert c["last_routine"] == f"{delta}일 전"
-            assert other["last_routine"] == f"{delta} days ago"
     assert saw_date, "시드 로스터에 루틴을 받은 회원이 하나도 없다"
 
 
@@ -646,7 +602,7 @@ def test_completed_pt_session_history_has_code_and_values(client, pt_session):
         "버피 45초",
     ]
     assert entry["date"] == clock.today().isoformat()
-    assert entry["date_label"].endswith(" (Today)")
+    assert entry["date_label"].endswith(" (오늘)")
     items = [
         {k: v for k, v in item.items() if v not in (None, 0, "", True)}
         for item in entry["exercise_items"]

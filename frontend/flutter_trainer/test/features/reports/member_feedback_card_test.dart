@@ -11,7 +11,6 @@ import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/member_feedback_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -36,7 +35,7 @@ Future<void> _pump(
   WidgetTester tester, {
   MemberWeeklyFeedback? feedback,
   bool none = false,
-  String locale = 'ko',
+  bool failed = false,
   Size size = const Size(700, 700),
 }) async {
   tester.view.devicePixelRatio = 1.0;
@@ -46,7 +45,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light(),
-      locale: Locale(locale),
+      locale: const Locale('ko'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -54,6 +53,7 @@ Future<void> _pump(
           padding: const EdgeInsets.all(OnCareSpacing.s16),
           child: MemberFeedbackCard(
             feedback: none ? null : (feedback ?? _feedback()),
+            failed: failed,
           ),
         ),
       ),
@@ -83,6 +83,13 @@ void main() {
     expect(find.text('컨디션'), findsOneWidget);
     expect(find.text('운동 강도'), findsOneWidget);
     expect(find.text('통증'), findsOneWidget);
+  });
+
+  testWidgets('읽지 못한 답은 미응답이 아니라 불러오지 못함으로 적는다 (#3246)', (tester) async {
+    await _pump(tester, none: true, failed: true);
+
+    expect(_answer(tester, 'report-feedback-condition').text, '불러오지 못했어요');
+    expect(find.text('미응답'), findsNothing);
   });
 
   testWidgets('답을 회원이 고른 말 그대로 적는다', (tester) async {
@@ -325,15 +332,6 @@ void main() {
       );
     });
 
-    testWidgets('영어에서도 `No answer` 로 선다', (tester) async {
-      await _pump(tester, none: true, locale: 'en');
-
-      for (final String key in rows) {
-        expect(_answer(tester, key).text, 'No answer');
-      }
-      expect(find.text('One-line feedback'), findsOneWidget);
-    });
-
     testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {
       await _pump(tester, none: true, size: const Size(360, 900));
 
@@ -345,21 +343,18 @@ void main() {
     });
   });
 
-  group('로케일 이름', () {
+  group('답 이름', () {
     final AppLocalizationsKo ko = AppLocalizationsKo();
-    final AppLocalizationsEn en = AppLocalizationsEn();
 
     test('컨디션 다섯 답이 모두 이름을 갖는다', () {
       for (final WeekCondition c in WeekCondition.values) {
         expect(conditionLabel(ko, c), isNotEmpty);
-        expect(conditionLabel(en, c), isNotEmpty);
       }
     });
 
     test('강도 네 답이 모두 이름을 갖는다', () {
       for (final WeekIntensity i in WeekIntensity.values) {
         expect(intensityLabel(ko, i), isNotEmpty);
-        expect(intensityLabel(en, i), isNotEmpty);
       }
     });
 
@@ -370,58 +365,6 @@ void main() {
       };
       expect(names, hasLength(WeekCondition.values.length));
     });
-
-    test('영어 이름에 한글이 남아 있지 않다', () {
-      final RegExp hangul = RegExp(r'[가-힣]');
-      for (final WeekCondition c in WeekCondition.values) {
-        expect(hangul.hasMatch(conditionLabel(en, c)), isFalse);
-      }
-      for (final WeekIntensity i in WeekIntensity.values) {
-        expect(hangul.hasMatch(intensityLabel(en, i)), isFalse);
-      }
-    });
-  });
-
-  testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
-    await _pump(
-      tester,
-      locale: 'en',
-      feedback: _feedback(
-        condition: WeekCondition.tired,
-        painArea: 'knee',
-        painOn: DateTime(2026, 9, 17),
-      ),
-    );
-
-    expect(find.text("Member's weekly feedback"), findsOneWidget);
-    expect(find.text('Condition'), findsOneWidget);
-    expect(find.text('Intensity'), findsOneWidget);
-    expect(find.text('Pain'), findsOneWidget);
-    expect(find.text('😩 Worn out'), findsOneWidget);
-    expect(find.text('Needs attention'), findsOneWidget);
-    expect(_answer(tester, 'report-feedback-pain').text, 'knee (9/17)');
-  });
-
-  testWidgets('영어 빈 카드도 번역되어 있다', (tester) async {
-    await _pump(tester, locale: 'en', none: true);
-
-    // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
-    expect(find.text('· Not received yet'), findsOneWidget);
-    expect(
-      find.text('It shows up here once the member sends their weekly feedback'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    for (final Element e in find.byType(Text).evaluate()) {
-      final String? data = (e.widget as Text).data;
-      if (data == null) continue;
-      expect(hangul.hasMatch(data), isFalse, reason: '번역되지 않은 글: $data');
-    }
   });
 
   testWidgets('긴 답과 긴 한 줄이 들어와도 좁은 폭에서 넘치지 않는다', (tester) async {

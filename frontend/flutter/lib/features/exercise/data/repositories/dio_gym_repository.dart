@@ -104,6 +104,31 @@ class DioGymRepository implements GymRepository {
   );
 
   @override
+  Future<List<Gym>> searchGyms(String query) => _list(
+    '/gyms/search',
+    _gym,
+    // 이름 검색에는 검색 중심이 없다. 좌표는 회원 위치를 얻었을 때만 싣는다 —
+    // 그때만 서버가 가까운 순으로 주고 거리를 채운다(#3044 와 같은 규칙).
+    query: <String, Object?>{'q': query, ...?_memberCoordinates},
+  );
+
+  @override
+  Future<Gym?> fetchGym(String gymId) async {
+    try {
+      // 좌표는 `/me/gym` 과 같은 규칙 — 회원 위치를 얻었을 때만 싣는다(#3044).
+      final res = await _dio.get<Map<String, Object?>>(
+        '/gyms/$gymId',
+        queryParameters: _memberCoordinates,
+      );
+      return res.data == null ? null : _gym(res.data!);
+    } on DioException catch (e) {
+      // 카카오로 찾은 헬스장처럼 서버에 없는 헬스장은 404 다.
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  @override
   Future<List<Trainer>> fetchTrainersByGym(String gymId) async {
     try {
       return await _list('/gyms/$gymId/trainers', _trainer);
@@ -229,6 +254,11 @@ class DioGymRepository implements GymRepository {
       if (code == 409 && _isScheduleOverlap(e.response?.data)) {
         throw SlotTimeTakenError(slotId);
       }
+      // 다가오는 예약이 이미 있으면 코드로 따로 온다(#3240).
+      if (code == 409 &&
+          _detailCode(e.response?.data) == 'upcoming_reservation') {
+        throw UpcomingReservationError(slotId);
+      }
       if (code == 409 || code == 410) {
         throw StateError('slot no longer bookable: $slotId');
       }
@@ -237,9 +267,13 @@ class DioGymRepository implements GymRepository {
   }
 
   /// 서버의 시간 겹침 409 인가 — `detail.code == 'schedule_overlap'`. (#2284)
-  static bool _isScheduleOverlap(Object? body) {
-    if (body is! Map) return false;
+  static bool _isScheduleOverlap(Object? body) =>
+      _detailCode(body) == 'schedule_overlap';
+
+  /// 409 본문 `detail.code`. 문자열 `detail` 이면 null.
+  static Object? _detailCode(Object? body) {
+    if (body is! Map) return null;
     final detail = body['detail'];
-    return detail is Map && detail['code'] == 'schedule_overlap';
+    return detail is Map ? detail['code'] : null;
   }
 }

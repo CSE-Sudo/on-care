@@ -63,12 +63,13 @@ class DashboardSummary {
     required this.macros,
     required this.dietEntries,
     required this.exerciseMinutes,
+    int? exerciseCardioMinutes,
     this.nutritionWeek = const <NutritionDay>[],
     required this.sodiumWarning,
     this.exerciseFeedback,
     this.aiAdviceKey,
     this.aiAdviceParams = const <String, Object>{},
-  });
+  }) : exerciseCardioMinutes = exerciseCardioMinutes ?? exerciseMinutes;
 
   /// 3-row health summary (칼로리 / 나트륨 / 당류).
   final List<HealthIndicator> indicators;
@@ -81,6 +82,11 @@ class DashboardSummary {
 
   /// `quickStats` right tile — total exercise minutes for the current week.
   final int exerciseMinutes;
+
+  /// 이번 주 **유산소** 분 — 운동 조언이 주간 유산소 목표와 견주는 값이고 조언
+  /// 문장에 적히는 분 수다(#3350). 운동 탭의 유산소 달성률과 같은 합계다.
+  /// 이 칸을 모르는 옛 서버의 응답이면 [exerciseMinutes] 를 쓴다.
+  final int exerciseCardioMinutes;
 
   /// 식단 카드 주간 추이(이번 주 월~일 일별 칼로리).
   /// 비어 있으면(데이터 없음) 화면은 기존 데모 상수로 폴백한다.
@@ -98,9 +104,8 @@ class DashboardSummary {
   /// 화면이 [AppLocalizations] 로 풀어 쓰고, [sodiumWarning]·[exerciseFeedback]
   /// 보다 우선한다.
   ///
-  /// 데모(목·시드)가 쓰는 통로다. 서버가 만든 문장은 번역본이 없으므로 그대로
-  /// 문자열 필드로 오지만, 데모 문구는 앱이 ARB 에 이미 양쪽 로케일로 갖고
-  /// 있는데도 한국어 문자열을 실어 보내 영어 데모에서 한국어가 나왔다(#435).
+  /// 데모(목·시드)가 쓰는 통로다. 서버가 만든 문장은 그대로 문자열 필드로
+  /// 오지만, 데모 문구는 앱이 ARB 에 갖고 있어 키만 싣는다(#435).
   final String? aiAdviceKey;
 
   /// [aiAdviceKey] 문장에 끼울 값. `sodium_over_sources` 면 `foods`(나트륨 상위
@@ -126,34 +131,35 @@ class DashboardSummary {
       // 비어 있지 않다 — 주간 추이 차트가 표시돼야 한다.
       !nutritionWeek.any((NutritionDay day) => day.calories > 0);
 
-  factory DashboardSummary.fromJson(Map<String, Object?> json) =>
-      DashboardSummary(
-        indicators: (json['indicators']! as List<Object?>)
+  factory DashboardSummary.fromJson(
+    Map<String, Object?> json,
+  ) => DashboardSummary(
+    indicators: (json['indicators']! as List<Object?>)
+        .cast<Map<String, Object?>>()
+        .map(HealthIndicator.fromJson)
+        .toList(),
+    macros: json['macros'] is Map<Object?, Object?>
+        ? DietMacros.fromJson(
+            (json['macros']! as Map<Object?, Object?>).cast<String, Object?>(),
+          )
+        : const DietMacros.zero(),
+    dietEntries: (json['diet_entries']! as num).toInt(),
+    exerciseMinutes: (json['exercise_minutes']! as num).toInt(),
+    exerciseCardioMinutes: (json['exercise_cardio_minutes'] as num?)?.toInt(),
+    nutritionWeek:
+        ((json['nutrition_week'] as List<Object?>?) ?? const <Object?>[])
             .cast<Map<String, Object?>>()
-            .map(HealthIndicator.fromJson)
+            .map(NutritionDay.fromJson)
             .toList(),
-        macros: json['macros'] is Map<Object?, Object?>
-            ? DietMacros.fromJson(
-                (json['macros']! as Map<Object?, Object?>)
-                    .cast<String, Object?>(),
-              )
-            : const DietMacros.zero(),
-        dietEntries: (json['diet_entries']! as num).toInt(),
-        exerciseMinutes: (json['exercise_minutes']! as num).toInt(),
-        nutritionWeek:
-            ((json['nutrition_week'] as List<Object?>?) ?? const <Object?>[])
-                .cast<Map<String, Object?>>()
-                .map(NutritionDay.fromJson)
-                .toList(),
-        sodiumWarning: json['sodium_warning'] as String?,
-        exerciseFeedback: json['exercise_feedback'] as String?,
-        aiAdviceKey: json['ai_advice_key'] as String?,
-        aiAdviceParams: <String, Object>{
-          for (final MapEntry<Object?, Object?> e
-              in ((json['ai_advice_params'] as Map<Object?, Object?>?) ??
-                      const <Object?, Object?>{})
-                  .entries)
-            if (e.key is String && e.value != null) e.key! as String: e.value!,
-        },
-      );
+    sodiumWarning: json['sodium_warning'] as String?,
+    exerciseFeedback: json['exercise_feedback'] as String?,
+    aiAdviceKey: json['ai_advice_key'] as String?,
+    aiAdviceParams: <String, Object>{
+      for (final MapEntry<Object?, Object?> e
+          in ((json['ai_advice_params'] as Map<Object?, Object?>?) ??
+                  const <Object?, Object?>{})
+              .entries)
+        if (e.key is String && e.value != null) e.key! as String: e.value!,
+    },
+  );
 }

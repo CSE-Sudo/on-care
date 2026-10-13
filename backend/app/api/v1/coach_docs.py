@@ -43,7 +43,7 @@ def upload_public_doc(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     if not payload.content.strip():
-        raise HTTPException(status_code=400, detail="content 가 비어 있습니다.")
+        raise HTTPException(status_code=400, detail="content 가 비어 있어요.")
     try:
         n = ingest_document(
             db, payload.content, user_id=None,
@@ -55,13 +55,13 @@ def upload_public_doc(
         # 한다(로그 포맷이 같은 request id 를 찍는다). (#1556)
         logger.exception("public doc ingest unavailable")
         raise HTTPException(
-            status_code=503, detail="임베딩을 사용할 수 없어 문서를 적재하지 못했습니다."
+            status_code=503, detail="임베딩을 사용할 수 없어 문서를 적재하지 못했어요."
         )
     except Exception:  # noqa: BLE001
         # SDK·DB·파일 경로 오류의 문자열이 그대로 응답에 실리던 자리다. 관리자 전용
         # 경로라 노출 범위는 좁지만, 내부 상세를 감추는 전역 500 처리와 형태를 맞춘다.
         logger.exception("public doc ingest failed")
-        raise HTTPException(status_code=502, detail="문서 적재에 실패했습니다.")
+        raise HTTPException(status_code=502, detail="문서를 적재하지 못했어요.")
     audit(
         db, event="admin.public_doc_upload", user_id=admin.id,
         ip=client_ip(request), success=True, detail=f"{payload.domain}:{payload.title}",

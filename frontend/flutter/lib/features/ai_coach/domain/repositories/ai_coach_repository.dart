@@ -19,7 +19,8 @@ abstract class AiCoachRepository {
   ///
   /// 오늘 무료 대화를 다 썼으면 [payWithPoints] 가 있어야 포인트로 보낸다(#2145).
   /// 한도 때문에 보내지 못하면 [AiChatBlocked] 를 던진다. [clientRequestId] 가 같은
-  /// 재전송은 서버가 한 번만 센다.
+  /// 재전송은 서버가 한 번만 세고 한 번만 저장한다. 같은 키의 앞선 요청이 아직 답을
+  /// 만드는 중이면 [AiChatInProgress] 를 던진다(#3352).
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,

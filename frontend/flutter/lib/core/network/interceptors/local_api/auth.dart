@@ -21,7 +21,7 @@ extension _LocalApiAuth on LocalApiInterceptor {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 401,
-        data: <String, Object?>{'detail': '이메일 또는 비밀번호가 올바르지 않습니다.'},
+        data: <String, Object?>{'detail': '이메일 또는 비밀번호가 올바르지 않아요.'},
       );
     }
     await _accounts.signIn(account == null ? null : username);
@@ -103,7 +103,7 @@ extension _LocalApiAuth on LocalApiInterceptor {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 409,
-        data: <String, Object?>{'detail': '이미 가입된 이메일입니다.'},
+        data: <String, Object?>{'detail': '이미 가입된 이메일이에요.'},
       );
     }
     // 이메일 인증 코드(#3038) — 서버처럼 중복 확인 뒤에 본다. 데모는 메일을
@@ -128,7 +128,7 @@ extension _LocalApiAuth on LocalApiInterceptor {
         data: <String, Object?>{
           'detail': <String, Object?>{
             'code': 'invalid_email_code',
-            'message': '인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.',
+            'message': '인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.',
           },
         },
       );
@@ -194,6 +194,50 @@ extension _LocalApiAuth on LocalApiInterceptor {
     );
   }
 
+  /// POST /auth/find-email — 아이디(가입 이메일) 찾기(#3337).
+  ///
+  /// 서버와 같은 규칙이다. 이름(앞뒤 공백·대소문자 무시)과 번호가 모두 맞는
+  /// 계정을 **가려서만** 돌려주고, 찾지 못해도 200 에 빈 목록이다. 데모 회원
+  /// (김민수)과 이 데모에서 가입한 계정을 찾는다. 이름·번호가 비었거나 번호
+  /// 형식이 틀리면 서버와 같은 422 다.
+  Future<Response<Object?>> _authFindEmail(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final String name = (body['name'] as String? ?? '').trim();
+    // 서버(`normalize_phone`)처럼 하이픈 위치는 세지 않는다 — 숫자만 본다.
+    final String wantedPhone = _phoneDigits(body['phone'] as String? ?? '');
+    if (name.isEmpty ||
+        wantedPhone.length != AppInputRules.phoneDigits ||
+        !wantedPhone.startsWith('010')) {
+      return _unprocessable(options, 'name and phone are required');
+    }
+    final String wantedName = name.toLowerCase();
+    bool matches(Object? accountName, Object? accountPhone) =>
+        accountName is String &&
+        accountPhone is String &&
+        accountName.trim().toLowerCase() == wantedName &&
+        _phoneDigits(accountPhone) == wantedPhone;
+
+    final List<String> emails = <String>[
+      if (matches(_defaultProfile['name'], _defaultProfile['phone']))
+        DemoAccounts.demoEmail,
+    ];
+    for (final String email in await _accounts.emails()) {
+      final Map<String, Object?>? account = await _accounts.find(email);
+      if (account != null && matches(account['name'], account['phone'])) {
+        emails.add(email);
+      }
+    }
+    return _ok(options, <String, Object?>{
+      'accounts': <Object?>[
+        for (final String email in emails)
+          <String, Object?>{
+            'masked_email': _maskEmail(email),
+            'providers': const <String>[],
+          },
+      ],
+    });
+  }
+
   /// 다른 계정이 이미 쓰는 이메일인가 — 데모 회원·데모 세계의 다른 계정
   /// ([_demoTakenEmails])·이 데모에서 가입한 계정. (#2665)
   Future<bool> _isTakenEmail(String email) async {
@@ -253,6 +297,19 @@ extension _LocalApiAuth on LocalApiInterceptor {
       'token_type': 'bearer',
     });
   }
+}
+
+/// 번호 비교용 — 숫자만 남긴다. 하이픈이 있든 없든 같은 번호다.
+String _phoneDigits(String phone) => phone.replaceAll(RegExp(r'\D'), '');
+
+/// 아이디 찾기 응답의 이메일 가림 — 서버(`services/find_email.py` 의
+/// `mask_email`)와 같은 규칙이다. 앞 두 글자와 도메인만 남기고, 로컬 부분이 두
+/// 글자 이하면 한 글자는 반드시 가린다.
+String _maskEmail(String address) {
+  final int at = address.indexOf('@');
+  if (at < 0 || at == address.length - 1) return '***';
+  final int visible = (at - 1).clamp(0, 2);
+  return '${address.substring(0, visible)}***${address.substring(at)}';
 }
 
 /// 데모 세계에서 **다른 계정이 이미 쓰는** 이메일(#2639).

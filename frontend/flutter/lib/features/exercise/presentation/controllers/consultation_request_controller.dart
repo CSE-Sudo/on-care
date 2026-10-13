@@ -177,12 +177,13 @@ class ConsultationRequestController
     return null;
   }
 
-  /// 대기 중인 요청을 취소한다.
+  /// 대기 중인 요청, 또는 수락됐지만 아직 시작하지 않은 상담을 취소한다(#3359).
   ///
   /// 실패하면 예외를 그대로 올리고 목록은 바꾸지 않는다 — 화면이 안내를 띄운다
-  /// (#2858). 저장소는 이미 결정된 요청이면 [ConsultationNoLongerPending], 없는
-  /// 요청이면 [ConsultationNotFound] 를 던지고, 화면은 그때 [refresh] 로 실제
-  /// 상태를 받는다.
+  /// (#2858). 저장소는 이미 끝난 요청이면 [ConsultationNoLongerPending], 시작
+  /// 시각이 지난 상담이면 [ConsultationAlreadyStarted], 없는 요청이면
+  /// [ConsultationNotFound] 를 던지고, 화면은 그때 [refresh] 로 실제 상태를
+  /// 받는다.
   ///
   /// 임시 카드([_adoptServerPending])는 서버 목록에서 같은 트레이너의 실제 대기
   /// 요청을 찾아 그 id 로 취소한다. 없으면 [ConsultationNotFound] 다.
@@ -232,9 +233,10 @@ final consultationRequestControllerProvider =
 /// 상담 신청 폼이 보여 줄 그 트레이너의 빈 자리. (#1873)
 ///
 /// 화면마다 다시 읽는다 — 자리는 다른 회원이 먼저 가져갈 수 있어, 폼을 열 때의
-/// 목록이 곧 지금 고를 수 있는 자리여야 한다.
-final consultationSlotsProvider =
-    FutureProvider.family<List<TrainerSlot>, String>((ref, trainerId) {
+/// 목록이 곧 지금 고를 수 있는 자리여야 한다. 그래서 폼을 닫으면 놓는다 — 붙들고
+/// 있으면 한 번 받은 빈 목록이 앱을 다시 켤 때까지 남아 신청할 길이 없었다(#3244).
+final consultationSlotsProvider = FutureProvider.autoDispose
+    .family<List<TrainerSlot>, String>((ref, trainerId) {
       if (trainerId.isEmpty) {
         return Future<List<TrainerSlot>>.value(const <TrainerSlot>[]);
       }

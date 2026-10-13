@@ -13,9 +13,15 @@ void main() {
   group('metricStatusColor', () {
     test('목표를 넘긴 날만 초과색이다', () {
       expect(metricStatusColor(2100, 2000), OnCareColors.danger);
-      expect(metricStatusColor(1900, 2000), OnCareBrand.member.statusWithinGoal);
+      expect(
+        metricStatusColor(1900, 2000),
+        OnCareBrand.member.statusWithinGoal,
+      );
       // 경계는 초과가 아니다.
-      expect(metricStatusColor(2000, 2000), OnCareBrand.member.statusWithinGoal);
+      expect(
+        metricStatusColor(2000, 2000),
+        OnCareBrand.member.statusWithinGoal,
+      );
     });
 
     test('목표가 0 이면 어떤 값도 초과가 아니다', () {
@@ -47,35 +53,25 @@ void main() {
     });
   });
 
-  testWidgets('요일 라벨은 로케일을 따른다', (WidgetTester tester) async {
-    // 한쪽만 하드코딩하면 영어 로케일에서 한글 요일이 그대로 남는다.
-    late List<String> ko;
-    late List<String> en;
-    for (final (Locale locale, void Function(List<String>) sink) in <
-      (Locale, void Function(List<String>))
-    >[
-      (const Locale('ko'), (List<String> v) => ko = v),
-      (const Locale('en'), (List<String> v) => en = v),
-    ]) {
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: locale,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Builder(
-            builder: (BuildContext context) {
-              sink(weekDayLabels(AppLocalizations.of(context)));
-              return const SizedBox.shrink();
-            },
-          ),
+  testWidgets('요일 라벨은 ARB 에서 읽은 일곱 개다', (WidgetTester tester) async {
+    late List<String> labels;
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (BuildContext context) {
+            labels = weekDayLabels(AppLocalizations.of(context));
+            return const SizedBox.shrink();
+          },
         ),
-      );
-      await tester.pump();
-    }
+      ),
+    );
+    await tester.pump();
 
-    expect(ko, hasLength(7));
-    expect(en, hasLength(7));
-    expect(en, isNot(ko), reason: '로케일이 달라도 같은 요일 문구가 나옵니다.');
+    expect(labels, hasLength(7));
+    expect(labels.toSet(), hasLength(7));
   });
 
   testWidgets('요일 수만큼 라벨을 그리고 오늘만 강조한다', (WidgetTester tester) async {

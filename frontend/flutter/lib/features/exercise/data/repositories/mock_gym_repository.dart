@@ -281,6 +281,19 @@ class MockGymRepository implements GymRepository {
   }
 
   @override
+  Future<List<Gym>> searchGyms(String query) async {
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    // 서버처럼 띄어쓰기·단어 순서를 보지 않는다. 목업은 태그도 함께 본다.
+    return _gyms.where((Gym gym) => gym.matchesQuery(query)).toList();
+  }
+
+  @override
+  Future<Gym?> fetchGym(String gymId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    return _gyms.where((Gym gym) => gym.id == gymId).firstOrNull;
+  }
+
+  @override
   Future<void> disconnectMyGym() async {
     await Future<void>.delayed(const Duration(milliseconds: 60));
     // 헬스장을 떠나면 그곳 소속 트레이너 연결도 함께 사라진다. 락커 쿠폰은
@@ -580,6 +593,10 @@ class MockGymRepository implements GymRepository {
     // 목록에서 이미 빠진 시간을 오래된 화면이 그대로 잡는 것도 막는다.
     if (!_slots[i].startsAt.isAfter(nowKst())) {
       throw StateError('slot already started: $slotId');
+    }
+    // 실서버와 같이 다가오는 예약은 하나다(#3240). 취소한 예약은 목록에서 빠진다.
+    if (_reservations.any((MyReservation r) => r.startsAt.isAfter(nowKst()))) {
+      throw UpcomingReservationError(slotId);
     }
     _slots[i] = _slots[i].copyWith(booked: true);
     _reservations.add(

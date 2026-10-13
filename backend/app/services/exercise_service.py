@@ -14,6 +14,7 @@
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -22,7 +23,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import Locale
 from app.core.week import monday_of
 from app.models.models import ExerciseSession, TrainerSchedule
 from app.services import (
@@ -30,6 +30,8 @@ from app.services import (
 )
 from app.services.exercise_advice import Advice, advice
 from app.services.exercise_catalog import energy, resolver
+
+logger = logging.getLogger(__name__)
 
 #: 요일 라벨(월=0 … 일=6). 순서를 두 벌 두지 않으려고 논리 운동일 모듈의 정의를
 #: 그대로 쓴다 — 여기서 한 칸이라도 어긋나면 같은 기록이 화면과 AI 에서 다른
@@ -97,26 +99,31 @@ def monday_of_this_week_str() -> str:
     return monday_of(today).isoformat()
 
 
+def _parse_day(day: str) -> date:
+    """내부 날짜 문자열(YYYY-MM-DD)을 읽는다. 깨진 값은 `ValueError` 로 올린다.
+
+    예전에는 깨진 값을 이번 주·오늘 요일로 조용히 떨어뜨렸다(#3256). 그러면 엉뚱한
+    주의 기록을 읽거나 써도 맞다고 믿게 된다. 남은 호출자는 모두 `date.isoformat()`
+    값이나 앞단에서 검사한 값(#3243)을 넘기므로, 여기서 깨진 값은 호출자의 버그다.
+    """
+    try:
+        return date.fromisoformat(day)
+    except (TypeError, ValueError):
+        raise ValueError(f"YYYY-MM-DD 날짜가 아니에요: {day!r}") from None
+
+
 def monday_of_str(day: str) -> str:
     """`day`(YYYY-MM-DD) 가 속한 주의 월요일.
 
     지난 주 세션을 오늘 완료 처리할 수 있으므로, 파생 기록의 주차는 완료 시점이
-    아니라 **세션 날짜** 기준이어야 한다. 형식이 깨진 값은 이번 주로 떨어뜨린다.
+    아니라 **세션 날짜** 기준이어야 한다. 형식이 깨진 값은 `ValueError`.
     """
-    try:
-        d = date.fromisoformat(day)
-    except (TypeError, ValueError):
-        return monday_of_this_week_str()
-    return monday_of(d).isoformat()
+    return monday_of(_parse_day(day)).isoformat()
 
 
 def weekday_label_of(day: str) -> str:
-    """`day`(YYYY-MM-DD) 의 요일 라벨(월~일). 형식이 깨지면 오늘 요일."""
-    try:
-        d = date.fromisoformat(day)
-    except (TypeError, ValueError):
-        return WEEKDAY_LABELS[clock.today().weekday()]
-    return WEEKDAY_LABELS[d.weekday()]
+    """`day`(YYYY-MM-DD) 의 요일 라벨(월~일). 형식이 깨진 값은 `ValueError`."""
+    return WEEKDAY_LABELS[_parse_day(day).weekday()]
 
 
 def member_weight_kg(db: Session, user_id: str) -> float | None:
@@ -179,21 +186,23 @@ def isometric_default(db: Session, name: str) -> bool:
     return bool(row is not None and row.isometric)
 
 
-def _date_label_for_day(day_label: str) -> str:
-    today = clock.today()
-    today_idx = today.weekday()  # 0=월
-    if day_label not in WEEKDAY_LABELS:
-        return day_label
-    day_idx = WEEKDAY_LABELS.index(day_label)
-    delta = today_idx - day_idx
+def _date_label_for(day: date | None, day_label: str) -> str:
+    """기록 날짜의 짧은 라벨 — `오늘`·`어제`·`9월 28일`·`수요일`.
+
+    요일만 보지 않고 **실제 날짜**([session_date_of])로 정한다(#3251). 요일만 보면
+    지난주 수요일 기록도 오늘이 수요일이면 `오늘` 이 됐다. 아직 오지 않은 날은 요일
+    이름이고, 날짜를 알 수 없는 옛 행도 요일 이름으로 둔다.
+    """
+    if day is None:
+        return f"{day_label}요일" if day_label in WEEKDAY_LABELS else day_label
+    delta = (clock.today() - day).days
     if delta == 0:
         return "오늘"
     if delta == 1:
         return "어제"
-    if 1 < delta <= 6:
-        d = today - timedelta(days=delta)
-        return f"{d.month}월 {d.day}일"
-    return f"{day_label}요일"
+    if delta > 1:
+        return f"{day.month}월 {day.day}일"
+    return f"{day_label}요일" if day_label in WEEKDAY_LABELS else day_label
 
 
 #: PT 완료가 파생시킨 운동 기록 id 의 앞머리 — 뒤는 그 수업(`trainer_schedule`)
@@ -320,6 +329,28 @@ def weekly_goals(profile) -> tuple[int, int]:
     )
 
 
+def weekly_cardio_goal(profile) -> int:
+    """주간 유산소 분 목표. 프로필에 없으면 기본값. (#3350)
+
+    회원 앱 운동 탭이 유산소 달성률의 분모로 쓰는 값(`weekly_cardio_minutes`)이다.
+    홈 운동 조언·코칭 카드가 이 값으로 판정해야 같은 한 주를 두 화면이 다르게
+    말하지 않는다.
+    """
+    minutes = getattr(profile, "weekly_cardio_minutes", None)
+    return minutes if minutes and minutes > 0 else DEFAULT_WEEKLY_MINUTES_GOAL
+
+
+def cardio_minutes(rows) -> int:
+    """기록들의 유산소 분 합계 — [weekly_cardio_goal] 과 견주는 값. (#3350)
+
+    [build_current_week] 의 `cardio_minutes` 와 같은 칸([_bucket])만 센다. 근력은
+    세트로, 스트레칭은 따로 재므로 여기에 넣지 않는다.
+    """
+    return sum(
+        r.minutes for r in rows if _bucket(r.type) == exercise_types.CARDIO
+    )
+
+
 def _longest_streak(daily: list[int]) -> int:
     """'N일 연속' — 운동한 요일 중 가장 긴 연속 구간의 길이.
 
@@ -347,6 +378,29 @@ def period_floor_monday(last_monday: date) -> date:
     if last_monday - date.min < span:
         return date.min  # 0001-01-01 은 월요일이다
     return last_monday - span
+
+
+def first_record_monday(db: Session, user_id: str, last_monday: date) -> date:
+    """`전체` 가 시작하는 주의 월요일 — 첫 기록이 있는 주다. (#2247, #3365)
+
+    `전체` 그래프([build_period])와 `전체` 조언([period_days])이 이 함수 하나로
+    시작을 정한다. 둘이 따로 세면 오래 쓴 회원에게 그래프는 첫 기록부터, 조언은
+    최근 몇 주만 말하게 된다.
+
+    기록이 하나도 없으면 [last_monday] 다. 그보다 늦은 첫 기록(앞날로 잘못 들어간
+    행)도 [last_monday] 로 끌어내리고, 너무 이른 것은 [period_floor_monday] 로
+    끌어올린다.
+    """
+    first = first_session_date(db, user_id)
+    first_monday = _monday_of(date.fromisoformat(first)) if first else last_monday
+    return max(min(first_monday, last_monday), period_floor_monday(last_monday))
+
+
+def period_weeks(start: str, end: str) -> int:
+    """[start]…[end] 가 걸친 주의 수 — `전체` 그래프가 그리는 칸 수와 같다. (#3365)"""
+    first = _monday_of(date.fromisoformat(start))
+    last = _monday_of(date.fromisoformat(end))
+    return max(1, (last - first).days // 7 + 1)
 
 
 def build_period(
@@ -378,10 +432,7 @@ def build_period(
     if start is not None:
         first_monday = _monday_of(start)
     else:
-        first = first_session_date(db, user_id)
-        first_monday = (
-            _monday_of(date.fromisoformat(first)) if first else last_monday
-        )
+        first_monday = first_record_monday(db, user_id, last_monday)
     if first_monday > last_monday:
         first_monday = last_monday
     first_monday = max(first_monday, period_floor_monday(last_monday))
@@ -441,6 +492,11 @@ def build_current_week(
 
     [pt_times] 는 PT 기록 id → 수업 시각이다([pt_session_times]). 없으면 PT
     기록도 시각 없이 나간다 — 지어내지 않는다. (#2692)
+
+    요일 라벨이 월~일이 아닌 옛 행은 건너뛰고 로그만 남긴다(#3368). 칸에 제약이 없어
+    그런 행이 하나만 있어도 아래 요일 정렬이 터져 그 주 운동 탭이 통째로 500 이었다.
+    어느 요일인지 모르는 기록을 합계에만 넣으면 요일별 값과 합계가 어긋나므로
+    합계에서도 뺀다.
     """
     per_day = {l: 0 for l in WEEKDAY_LABELS}
     per_day_cal = {l: 0 for l in WEEKDAY_LABELS}
@@ -454,6 +510,12 @@ def build_current_week(
     sessions = []
 
     for r in rows:
+        if r.day_label not in per_day:
+            logger.warning(
+                "exercise session %s has a broken day_label %r — skipped",
+                getattr(r, "id", None), r.day_label,
+            )
+            continue
         total_minutes += r.minutes
         total_calories += r.calories
         per_day[r.day_label] = per_day.get(r.day_label, 0) + r.minutes
@@ -490,7 +552,7 @@ def build_current_week(
             "member_note": "",
             "trainer_feedback": "",
             "completed_at": getattr(r, "completed_at", None),
-            "date_label": _date_label_for_day(r.day_label),
+            "date_label": _date_label_for(session_date_of(r), r.day_label),
             "time_label": _time_label_of(r, pt_times),
             # 회원이 적은 이름이 있으면 그게 이 기록의 내용이다. 없을 때만
             # 유형별 기본 문구로 채운다 — 이름 칸이 생기기 전 기록들이다. (#1276)
@@ -604,6 +666,8 @@ def period_advice(
     days: list[ExerciseDayTotals],
     period: str,
     routine_days: Sequence[routine_advice.RoutineDayLike] = (),
+    *,
+    weeks: int | None = None,
 ) -> Advice:
     """기간에 맞는 운동 조언. (#1025, #1574, #2162, #2210)
 
@@ -611,12 +675,17 @@ def period_advice(
     무엇에 치우쳤는지, 전체는 최근 4주와 그 이전의 추세다. 말투도 다르다 —
     오늘은 다음 한 걸음을 제안하고, 이번 주·전체는 되짚어 준다.
 
+    [weeks] 는 `전체` 가 덮는 주의 수다([period_weeks], #3365). 문장의 "○주 동안"
+    이 이 값이라, [period_days] 가 돌려준 구간에서 세어 넘긴다 — 그래야 조언이
+    말하는 기간과 `전체` 그래프가 그리는 기간이 같다. 생략하면 [days] 의 첫 날부터
+    마지막 날까지다.
+
     오늘 걸린 추천 개인운동([routine_days])이 있으면 그 목록을 기준으로 말한다
     (`routine_advice`, #2162) — 회원이 먼저 묻는 것은 "추천 중 뭘 먼저 할까" 다.
     추천이 없는 회원은 아래의 직접 기록 기준 조언을 그대로 듣는다.
 
-    조언은 문장 키와 값으로 돌려준다(#2210) — 앱이 자기 언어로 그리고, 한국어
-    문장은 [Advice.text] 다.
+    조언은 문장 키와 값으로 돌려준다(#2210) — 앱이 키로 직접 그릴 수 있고,
+    서버가 만든 문장은 [Advice.text] 다.
 
     **한 문장 반을 넘기지 않는다.** 카드가 회원 앱·트레이너웹 양쪽에서 좁은 폭에
     들어가고, 길어질수록 정작 숫자가 묻힌다 — 짚어 주는 수치 하나와 다음 행동
@@ -677,7 +746,8 @@ def period_advice(
             return advice("record_all_up")
         if _avg(recent) < _avg(earlier) * 0.9:
             return advice("record_all_down")
-    weeks = round(period_window.ALL_PERIOD_DAYS / 7)
+    if weeks is None:
+        weeks = period_weeks(days[0].date.isoformat(), days[-1].date.isoformat())
     return advice(
         "record_all_steady", weeks=weeks, days=active_days, minutes=total_minutes
     )
@@ -687,13 +757,11 @@ def period_coach_message(
     days: list[ExerciseDayTotals],
     period: str,
     routine_days: Sequence[routine_advice.RoutineDayLike] = (),
-    locale: Locale | None = None,
+    *,
+    weeks: int | None = None,
 ) -> str:
-    """[period_advice] 의 문장 — 키를 모르는 옛 앱과 트레이너웹이 읽는다.
-
-    언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어). (#2299)
-    """
-    return period_advice(days, period, routine_days).text_for(locale)
+    """[period_advice] 의 문장 — 키를 모르는 옛 앱과 트레이너웹이 읽는다."""
+    return period_advice(days, period, routine_days, weeks=weeks).text
 
 
 def period_days(
@@ -705,8 +773,16 @@ def period_days(
     주를 모두 읽어 온 뒤 실제 날짜로 되돌려 거른다. 회원 앱과 트레이너웹이 이
     함수 하나를 함께 쓴다 — 조회 규칙이 갈리면 같은 회원의 `이번 주` 를 두 화면이
     다른 날부터 세게 된다.
+
+    `전체` 는 **첫 기록이 있는 주의 월요일**부터다(#3365) — 같은 화면의 `전체`
+    그래프(`GET /exercise/weeks`)가 시작하는 주와 같다([first_record_monday]).
+    예전에는 최근 84일만 읽어, 12주 넘게 쓴 회원에게 그래프와 조언이 다른 기간을
+    말했다. 기록이 없으면 이번 주 월요일부터다(그래프의 한 칸).
     """
-    start, end = period_window.period_bounds(period)
+    today = clock.today()
+    start, end = period_window.period_bounds(period, today)
+    if period == period_window.PERIOD_ALL:
+        start = first_record_monday(db, user_id, _monday_of(today)).isoformat()
     weeks = exercise_activity.week_starts_covering(
         date.fromisoformat(start), date.fromisoformat(end)
     )

@@ -283,7 +283,7 @@ def test_routine_daily_limit_is_not_hidden_behind_a_rule_fallback(
     assert "plan_a" not in blocked.json()
 
 
-def test_daily_limit_message_follows_the_request_language(
+def test_daily_limit_message_is_korean_for_an_english_header(
     client, caps, make_trainer, llms, monkeypatch
 ):
     monkeypatch.setattr(caps, "trainer_ai_calls_per_day", 1)
@@ -295,7 +295,7 @@ def test_daily_limit_message_follows_the_request_language(
         json={"available_minutes": 30},
     )
     _assert_daily_limit(en)
-    assert "today" in en.json()["detail"]["message"].lower()
+    assert any("가" <= ch <= "힣" for ch in en.json()["detail"]["message"])
 
 
 def test_trainer_cap_off_means_no_daily_limit(
@@ -461,7 +461,7 @@ def test_photo_analysis_passes_the_output_cap_when_under_the_global_cap(
     assert ai_call_quota.used_today(ai_call_quota.GLOBAL_BUCKET) == 1
 
 
-def test_capacity_message_follows_the_request_language(
+def test_capacity_message_is_korean_for_an_english_header(
     client, db_session, caps, llms, monkeypatch
 ):
     _spend_the_global_share(caps, monkeypatch)
@@ -473,4 +473,4 @@ def test_capacity_message_follows_the_request_language(
     )
     _assert_ai_capacity(r)
     assert "AI" in r.json()["detail"]["message"]
-    assert not any("가" <= ch <= "힣" for ch in r.json()["detail"]["message"])
+    assert any("가" <= ch <= "힣" for ch in r.json()["detail"]["message"])

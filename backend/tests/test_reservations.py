@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from unittest.mock import Mock, call
 from uuid import uuid4
 
@@ -8,6 +8,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import clock
+from app.core.clock import SEOUL
 from app.models.models import (
     TrainerReservation,
     TrainerReservationSlot,
@@ -37,7 +39,9 @@ def test_reserve_flushes_schedule_before_reservation() -> None:
         role="member",
     )
     db = Mock(spec=Session)
-    db.scalar.side_effect = [slot, "trainer-client-id", None]
+    # 슬롯, 담당 링크, 같은 자리 중복, 다가오는 예약 수(#3240), 트레이너의 예약
+    # 알림 수신 설정(#2420) 순으로 읽는다.
+    db.scalar.side_effect = [slot, "trainer-client-id", None, 0, True]
     # 겹침 검사(#2284)가 읽는 트레이너의 그날 일정 — 비어 있다.
     db.scalars.return_value.all.return_value = []
 
@@ -166,9 +170,18 @@ def created_slots(db_session):
 
 
 def _create_slot(
-    client, trainer_token: str, created_slots, *, session_type: str = "1:1 PT"
+    client,
+    trainer_token: str,
+    created_slots,
+    *,
+    session_type: str = "1:1 PT",
+    at: time = time(6, 0),
 ):
-    starts_at = datetime.now(timezone.utc) + timedelta(days=2)
+    # 열린 자리끼리는 겹칠 수 없다(#3241). 데모 자리(내일 13:00·모레 19:30)와
+    # 겹치지 않게, 언제 돌려도 같은 모레 아침 시각에 연다.
+    starts_at = datetime.combine(
+        clock.today() + timedelta(days=2), at, tzinfo=SEOUL
+    )
     response = client.post(
         "/v1/trainer/reservation-slots",
         headers=_headers(trainer_token),
@@ -486,10 +499,14 @@ def test_booked_slot_rejects_session_type_change(client, created_slots):
     assert refused.status_code == 409, refused.text
 
 
-def test_consultation_slot_reservation_creates_a_thirty_minute_session(
+def test_consultation_slot_cannot_be_booked_as_a_reservation(
     client, db_session, created_slots
 ):
-    """상담 슬롯을 예약하면 종류·소요 시간이 그 슬롯을 따라간다(#1083)."""
+    """`상담` 종류 자리는 회원 예약으로 잡히지 않는다(#3368).
+
+    회원이 잡는 자리는 `1:1 PT` 하나다(#1849). 예전에는 id 를 직접 보내면 30분짜리
+    상담 일정이 예약으로 생겼다(#1083).
+    """
     trainer_token = _login(client, "trainer@oncare.com")
     member_token = _login(client, "jisu@oncare.com")
     slot = _create_slot(client, trainer_token, created_slots, session_type="상담")
@@ -500,11 +517,63 @@ def test_consultation_slot_reservation_creates_a_thirty_minute_session(
         json={"slot_id": slot["id"]},
     )
 
-    assert booked.status_code == 201, booked.text
-    schedule = db_session.get(TrainerSchedule, booked.json()["schedule_id"])
-    assert schedule is not None
-    assert schedule.type == "상담"
-    assert schedule.duration_minutes == 30
+    assert booked.status_code == 409, booked.text
+    assert booked.json()["detail"] == "예약할 수 없는 시간이에요."
+    # 자리도 일정도 그대로다.
+    db_session.expire_all()
+    assert db_session.get(TrainerReservationSlot, slot["id"]).remaining == 1
+    assert (
+        db_session.query(TrainerReservation)
+        .filter(TrainerReservation.slot_id == slot["id"])
+        .count()
+        == 0
+    )
+
+
+def test_member_slot_list_leaves_out_consultation_slots(client, created_slots):
+    """회원용 목록에는 잡을 수 있는 종류만 온다(#3368). 트레이너 목록은 그대로다."""
+    trainer_token = _login(client, "trainer@oncare.com")
+    member_token = _login(client, "jisu@oncare.com")
+    pt = _create_slot(client, trainer_token, created_slots, at=time(6, 0))
+    consult = _create_slot(
+        client, trainer_token, created_slots, session_type="상담", at=time(8, 0)
+    )
+
+    member_rows = client.get(
+        "/v1/trainers/trainer-demo/slots", headers=_headers(member_token)
+    )
+    trainer_rows = client.get(
+        "/v1/trainer/reservation-slots", headers=_headers(trainer_token)
+    )
+
+    assert member_rows.status_code == 200, member_rows.text
+    member_ids = {row["id"] for row in member_rows.json()}
+    assert pt["id"] in member_ids
+    assert consult["id"] not in member_ids
+    assert {row["session_type"] for row in member_rows.json()} <= {"1:1 PT"}
+    assert trainer_rows.status_code == 200, trainer_rows.text
+    assert consult["id"] in {row["id"] for row in trainer_rows.json()}
+
+
+def test_slot_turned_into_consultation_stops_being_bookable(client, created_slots):
+    """열어 둔 자리를 트레이너가 `상담` 으로 바꾸면 그 뒤로는 예약되지 않는다(#3368)."""
+    trainer_token = _login(client, "trainer@oncare.com")
+    member_token = _login(client, "jisu@oncare.com")
+    slot = _create_slot(client, trainer_token, created_slots)
+    changed = client.put(
+        f"/v1/trainer/reservation-slots/{slot['id']}",
+        headers=_headers(trainer_token),
+        json={"session_type": "상담"},
+    )
+    assert changed.status_code == 200, changed.text
+
+    booked = client.post(
+        "/v1/reservations",
+        headers=_headers(member_token),
+        json={"slot_id": slot["id"]},
+    )
+
+    assert booked.status_code == 409, booked.text
 
 
 def test_past_slots_are_not_returned(client, db_session, created_slots):
@@ -623,6 +692,44 @@ def test_member_cancels_and_the_seat_comes_back(client, db_session, created_slot
     assert schedule.status == "취소"
     assert schedule.cancellation_source == "member"
     assert schedule.cancelled_at is not None
+
+
+def test_a_member_keeps_only_one_upcoming_reservation(client, created_slots):
+    """다가오는 예약이 있으면 다른 자리를 잡지 못하고, 취소하면 다시 잡는다. (#3240)
+
+    회원 앱만 이 규칙을 지키면 예약 직후 목록을 다시 받는 틈에 두 번째 자리가
+    잡혔다.
+    """
+    trainer_token = _login(client, "trainer@oncare.com")
+    member_token = _login(client, "jisu@oncare.com")
+    first = _create_slot(client, trainer_token, created_slots)
+    second = _create_slot(client, trainer_token, created_slots, at=time(8, 0))
+
+    booked = client.post(
+        "/v1/reservations",
+        headers=_headers(member_token),
+        json={"slot_id": first["id"]},
+    )
+    assert booked.status_code == 201, booked.text
+    again = client.post(
+        "/v1/reservations",
+        headers=_headers(member_token),
+        json={"slot_id": second["id"]},
+    )
+    assert again.status_code == 409, again.text
+    # 앱이 마감과 구분해 안내하도록 코드를 싣는다.
+    assert again.json()["detail"]["code"] == "upcoming_reservation"
+
+    cancelled = client.delete(
+        f"/v1/reservations/{booked.json()['id']}", headers=_headers(member_token)
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    moved = client.post(
+        "/v1/reservations",
+        headers=_headers(member_token),
+        json={"slot_id": second["id"]},
+    )
+    assert moved.status_code == 201, moved.text
 
 
 def test_cancelling_frees_the_slot_for_a_new_booking(client, created_slots):

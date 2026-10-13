@@ -14,6 +14,7 @@ ScheduleSession session({
   String? clientId,
   String clientName = '',
   String status = ScheduleStatus.upcoming,
+  int durationMinutes = 60,
 }) => ScheduleSession(
   id: '$date-$time',
   date: date,
@@ -21,7 +22,7 @@ ScheduleSession session({
   clientId: clientId,
   clientName: clientName,
   type: SessionType.personalTraining,
-  durationMinutes: 60,
+  durationMinutes: durationMinutes,
   status: status,
   note: '',
   program: const <ProgramItem>[],
@@ -79,6 +80,30 @@ void main() {
       expect(map['c1']!.time, '11:00');
     });
 
+    // 정리하지 않은 오늘 아침 `예정` 이 저녁에도 다음 예약으로 떴다(#3249).
+    test('지금을 주면 이미 시작한 예정은 다음 예약이 아니다', () {
+      final map = nextSessionsByClient(
+        <TrainerClient>[minsu],
+        <ScheduleSession>[
+          session(date: '2026-08-13', time: '09:00', clientId: 'c1'),
+          session(date: '2026-08-13', time: '19:00', clientId: 'c1'),
+        ],
+        now: DateTime(2026, 8, 13, 18),
+      );
+
+      expect(map['c1']!.time, '19:00');
+      expect(
+        nextSessionsByClient(
+          <TrainerClient>[minsu],
+          <ScheduleSession>[
+            session(date: '2026-08-13', time: '09:00', clientId: 'c1'),
+          ],
+          now: DateTime(2026, 8, 13, 18),
+        ),
+        isEmpty,
+      );
+    });
+
     test('동명이인에게 clientId 없는 예약을 임의 연결하지 않는다', () {
       final anotherMinsu = makeClient(id: 'c3', name: ' 김민수 ');
       final map = nextSessionsByClient(
@@ -132,7 +157,8 @@ void main() {
   });
 
   group('scheduleFocusSession (#2185)', () {
-    const today = '2026-08-13';
+    // 2026-08-13 아침 — 그날 18:00 수업은 아직 시작 전이다.
+    final today = DateTime(2026, 8, 13, 8);
 
     test('다가오는 예정이 있으면 가장 가까운 것을 연다', () {
       final picked = scheduleFocusSession(<ScheduleSession>[
@@ -179,6 +205,63 @@ void main() {
       ], today);
 
       expect(picked!.id, '2026-08-11-09:00');
+    });
+
+    // 완료 처리하지 않은 오늘 아침 `예정` 이 저녁에도 열렸다 — 결과 행의 다음
+    // 예약(#3249)과 다른 세션이었다(#3261).
+    test('이미 끝난 오늘 예정은 다가오는 세션이 아니다', () {
+      final sessions = <ScheduleSession>[
+        session(date: '2026-08-13', time: '09:00', clientId: 'c1'),
+        session(date: '2026-08-20', time: '10:00', clientId: 'c1'),
+      ];
+      final evening = DateTime(2026, 8, 13, 18);
+
+      final picked = scheduleFocusSession(sessions, evening);
+
+      expect(picked!.id, '2026-08-20-10:00');
+      // 검색 요약의 다음 예약과 같은 세션이다.
+      expect(
+        nextSessionsByClient(<TrainerClient>[minsu], sessions, now: evening),
+        <String, ScheduleSession>{'c1': picked},
+      );
+    });
+
+    test('시작했지만 끝나지 않은 오늘 예정은 다가오는 세션이다', () {
+      final sessions = <ScheduleSession>[
+        session(date: '2026-08-13', time: '18:00', clientId: 'c1'),
+        session(date: '2026-08-20', time: '10:00', clientId: 'c1'),
+      ];
+      // 18:00~19:00 수업의 18:30 — 대시보드 배너가 `진행 중` 으로 가리킨다.
+      final during = DateTime(2026, 8, 13, 18, 30);
+
+      expect(scheduleFocusSession(sessions, during)!.id, '2026-08-13-18:00');
+      expect(
+        nextSessionsByClient(
+          <TrainerClient>[minsu],
+          sessions,
+          now: during,
+        )['c1']!.id,
+        '2026-08-13-18:00',
+      );
+      // 끝나는 19:00 이 되면 다음 예약으로 넘어간다.
+      expect(
+        scheduleFocusSession(sessions, DateTime(2026, 8, 13, 19))!.id,
+        '2026-08-20-10:00',
+      );
+    });
+
+    test('다가오는 세션이 없으면 끝난 오늘 예정을 가장 최근 세션으로 연다', () {
+      final picked = scheduleFocusSession(<ScheduleSession>[
+        session(
+          date: '2026-08-11',
+          time: '09:00',
+          clientId: 'c1',
+          status: ScheduleStatus.done,
+        ),
+        session(date: '2026-08-13', time: '09:00', clientId: 'c1'),
+      ], DateTime(2026, 8, 13, 18));
+
+      expect(picked!.id, '2026-08-13-09:00');
     });
 
     test('세션이 없으면 고객 상세로 보낸다', () {

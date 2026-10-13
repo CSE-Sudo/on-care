@@ -32,9 +32,8 @@
 사유를 비우고(`trainer._common._routine_out`), 회원 카드에는 효과 한 줄
 (`effect`, #2570)이 선다.
 
-**언어(#2301).** 근거는 코드로 저장해 트레이너 웹이 화면 언어로 표시한다. 운동
-이름과 `reason` 은 후보를 준비하는 요청(= 트레이너의 검토 목록 조회)의 언어로
-만들어 저장한다.
+**근거(#2301).** 근거는 코드로 저장해 트레이너 웹이 자기 문구로 표시한다. 운동
+이름과 `reason` 은 문장으로 만들어 저장한다.
 """
 from __future__ import annotations
 
@@ -48,7 +47,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import Locale, current_locale, localized
 from app.models.models import (
     ExerciseSession,
     HealthProfile,
@@ -87,9 +85,8 @@ MAX_NEW_SUGGESTIONS = 3
 #: 목록이 된다. 하루치 상한의 두 배 — 이틀 밀리면 멈춘다(#2703 전에도 2 × 2).
 MAX_PENDING_BACKLOG = 2 * MAX_NEW_SUGGESTIONS
 
-#: 근거 **코드**. 문장이 아니라 코드로 저장하고 보낸다 — 트레이너 웹이 화면
-#: 언어에 맞는 문구(ARB)로 바꿔 보여 준다(#2301). 문장으로 저장하면 한 번 만든
-#: 후보의 근거가 영어 화면에서도 영영 한국어로 남는다. 스키마
+#: 근거 **코드**. 문장이 아니라 코드로 저장하고 보낸다 — 트레이너 웹이 자기
+#: 문구(ARB)로 바꿔 보여 준다(#2301). 스키마
 #: (`RoutineSuggestionCreateRequest.evidence`)의 길이 상한 안에 든다.
 EV_RECENT_PT = "recent_pt_feedback"
 EV_STRENGTH_HEAVY = "strength_heavy"
@@ -106,9 +103,9 @@ EVIDENCE_CODES: tuple[str, ...] = (
     EV_RECENT_RECORD,
 )
 
-#: 코드로 바꾸기 전(#2301)에 문장으로 저장된 근거 → 코드. 이미 준비된 검토 대기
-#: 후보가 영어 화면에서도 번역되게, 읽는 쪽(`trainer._common.suggestion_evidence`)이
-#: 이 표로 코드로 되돌린다. 모르는 문장은 원문 그대로 둔다.
+#: 코드로 바꾸기 전(#2301)에 문장으로 저장된 근거 → 코드. 읽는 쪽
+#: (`trainer._common.suggestion_evidence`)이 이 표로 코드로 되돌린다. 모르는
+#: 문장은 원문 그대로 둔다.
 LEGACY_EVIDENCE_LABELS: dict[str, str] = {
     "최근 PT 피드백 반영": EV_RECENT_PT,
     "최근 근력운동 비중 높음": EV_STRENGTH_HEAVY,
@@ -208,7 +205,7 @@ def ensure_suggestions(db: Session, trainer_id: str, member_id: str) -> None:
         return
 
     signals = _collect_signals(db, trainer_id, member_id)
-    candidates = _suggestions_for(signals, current_locale())
+    candidates = _suggestions_for(signals)
     if not candidates:
         return
 
@@ -389,16 +386,14 @@ def _recent_sessions_query(member_id: str, window: tuple[date, date]):
     )
 
 
-def _candidates_for(
-    signals: _Signals, locale: Locale = "ko"
-) -> list[_Candidate]:
+def _candidates_for(signals: _Signals) -> list[_Candidate]:
     """신호를 회복 범위의 후보로 옮긴다. 신호가 없으면 빈 목록.
 
     순서가 곧 우선순위다 — 상한([MAX_NEW_SUGGESTIONS])에 걸리면 뒤가 잘린다.
     회복(PT 직후·근력 편중)을 먼저 두는 이유는 그쪽이 다음 수업까지의 컨디션에
     직접 닿기 때문이다.
 
-    이름·`reason` 은 [locale] 로 쓴다(#2301). 근거는 언어와 무관한 코드다.
+    근거는 문장이 아니라 코드다.
     `reason` 은 트레이너가 읽는 문장이라 신호를 기록 숫자로 말하고, 무엇을
     하기 좋은지로 맺는다(#2579).
     """
@@ -417,14 +412,10 @@ def _candidates_for(
             evidence.append(EV_RECENT_RECORD)
         out.append(
             _Candidate(
-                name=localized(
-                    "하체·전신 회복 스트레칭",
-                    "Lower & full-body recovery stretch",
-                    locale,
-                ),
+                name="하체·전신 회복 스트레칭",
                 minutes=10,
                 type="스트레칭",
-                reason=_recovery_reason(signals, locale),
+                reason=_recovery_reason(signals),
                 evidence=tuple(evidence),
             )
         )
@@ -437,10 +428,10 @@ def _candidates_for(
             evidence.append(EV_LOW_CARDIO)
         out.append(
             _Candidate(
-                name=localized("저강도 걷기", "Low-intensity walk", locale),
+                name="저강도 걷기",
                 minutes=20,
                 type="유산소",
-                reason=_walk_reason(signals, locale),
+                reason=_walk_reason(signals),
                 evidence=tuple(evidence),
             )
         )
@@ -450,18 +441,12 @@ def _candidates_for(
         # 않고, 다음 수업을 준비하는 범위에서 가장 가벼운 것 하나만 둔다.
         out.append(
             _Candidate(
-                name=localized(
-                    "목·어깨 스트레칭", "Neck & shoulder stretch", locale
-                ),
+                name="목·어깨 스트레칭",
                 minutes=8,
                 type="스트레칭",
-                reason=localized(
+                reason=(
                     "최근 2주 기록에 치우침이나 건강 신호가 없어요. "
-                    "다음 수업 준비용으로 가장 가벼운 스트레칭만 두었어요.",
-                    "No imbalance or health flags in the last 2 weeks. "
-                    "Only the lightest stretch is suggested, to prepare for "
-                    "the next session.",
-                    locale,
+                    "다음 PT 준비용으로 가장 가벼운 스트레칭만 두었어요."
                 ),
                 evidence=(
                     EV_RECENT_PT if signals.trainer_feedback else EV_RECENT_RECORD,
@@ -471,22 +456,20 @@ def _candidates_for(
     return out
 
 
-def _suggestions_for(
-    signals: _Signals, locale: Locale = "ko"
-) -> list[_Candidate]:
+def _suggestions_for(signals: _Signals) -> list[_Candidate]:
     """그날 준비할 후보 전부 — 회복·유산소 후보([_candidates_for]) 뒤에 근력
     후보 하나. 신호가 없으면 빈 목록. (#2703)
 
     근력을 맨 뒤에 두는 이유: 회복·유산소는 다음 수업까지의 컨디션에 바로 닿고,
     근력은 그 사이를 메우는 가벼운 동작이다. 상한에 걸려도 회복이 먼저 남는다.
     """
-    base = _candidates_for(signals, locale)
+    base = _candidates_for(signals)
     if not base:
         return []
-    return [*base, _strength_candidate(signals, locale)]
+    return [*base, _strength_candidate(signals)]
 
 
-def _strength_candidate(signals: _Signals, locale: Locale) -> _Candidate:
+def _strength_candidate(signals: _Signals) -> _Candidate:
     """신호에 맞는 가벼운 근력 후보 하나. 세트·횟수·중량을 함께 싣는다. (#2703)
 
     혈압 관리가 먼저다 — 숨을 참게 되는 하체 근력 대신 벽에 기대는 상체 동작을
@@ -495,15 +478,12 @@ def _strength_candidate(signals: _Signals, locale: Locale) -> _Candidate:
     """
     if signals.blood_pressure:
         return _Candidate(
-            name=localized("벽 푸시업", "Wall push-up", locale),
+            name="벽 푸시업",
             minutes=8,
             type="근력",
-            reason=localized(
+            reason=(
                 "혈압 관리가 목표예요. 숨을 참지 않는 가벼운 상체 근력으로 "
-                "이어 가기 좋아요.",
-                "Blood pressure is one of the goals. Light upper-body work "
-                "without breath-holding keeps it going.",
-                locale,
+                "이어 가기 좋아요."
             ),
             evidence=(EV_BLOOD_PRESSURE,),
             sets=2,
@@ -512,17 +492,13 @@ def _strength_candidate(signals: _Signals, locale: Locale) -> _Candidate:
         )
     if signals.strength_heavy:
         return _Candidate(
-            name=localized("힙 브리지", "Hip bridge", locale),
+            name="힙 브리지",
             minutes=12,
             type="근력",
-            reason=localized(
+            reason=(
                 f"최근 2주 운동 {signals.total_minutes}분 중 "
                 f"{signals.strength_minutes}분이 근력이에요. "
-                "하체는 맨몸으로 가볍게만 이어 가기 좋아요.",
-                f"{signals.strength_minutes} of {signals.total_minutes} min in "
-                "the last 2 weeks was strength. Keep the lower body light "
-                "with a bodyweight move.",
-                locale,
+                "하체는 맨몸으로 가볍게만 이어 가기 좋아요."
             ),
             evidence=(EV_STRENGTH_HEAVY,),
             sets=3,
@@ -530,15 +506,10 @@ def _strength_candidate(signals: _Signals, locale: Locale) -> _Candidate:
             weight=0.0,
         )
     return _Candidate(
-        name=localized("맨몸 스쿼트", "Bodyweight squat", locale),
+        name="맨몸 스쿼트",
         minutes=10,
         type="근력",
-        reason=localized(
-            "다음 수업까지 맨몸 하체 근력 하나로 흐름을 이어 가기 좋아요.",
-            "One bodyweight lower-body move keeps the rhythm until the next "
-            "session.",
-            locale,
-        ),
+        reason="다음 PT까지 맨몸 하체 근력 하나로 흐름을 이어 가기 좋아요.",
         evidence=(
             EV_RECENT_PT if signals.trainer_feedback else EV_RECENT_RECORD,
         ),
@@ -548,69 +519,43 @@ def _strength_candidate(signals: _Signals, locale: Locale) -> _Candidate:
     )
 
 
-def _pt_days_ago(days: int, locale: Locale) -> str:
+def _pt_days_ago(days: int) -> str:
     """최근 PT 가 며칠 전이었나 — 오늘이면 `오늘`."""
     if days <= 0:
-        return localized("오늘 PT 가 있었어요.", "There was a PT session today.", locale)
-    return localized(
-        f"{days}일 전 PT 가 있었어요.",
-        f"There was a PT session {days} day{'s' if days != 1 else ''} ago.",
-        locale,
-    )
+        return "오늘 PT 가 있었어요."
+    return f"{days}일 전 PT 가 있었어요."
 
 
-def _recovery_reason(signals: _Signals, locale: Locale) -> str:
+def _recovery_reason(signals: _Signals) -> str:
     """회복 스트레칭의 사유 — 근력 비중·PT 뒤 며칠을 숫자로. (#2579)"""
     parts: list[str] = []
     if signals.strength_heavy and signals.total_minutes > 0:
         share = round(signals.strength_minutes * 100 / signals.total_minutes)
         parts.append(
-            localized(
+            (
                 f"최근 2주 운동 {signals.total_minutes}분 중 "
-                f"{signals.strength_minutes}분({share}%)이 근력이에요.",
-                f"In the last 2 weeks, {signals.strength_minutes} of "
-                f"{signals.total_minutes} min ({share}%) was strength training.",
-                locale,
+                f"{signals.strength_minutes}분({share}%)이 근력이에요."
             )
         )
     if signals.pt_just_finished and signals.days_since_pt is not None:
-        parts.append(_pt_days_ago(signals.days_since_pt, locale))
+        parts.append(_pt_days_ago(signals.days_since_pt))
     parts.append(
-        localized(
-            "다음 수업 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
-            "A recovery stretch helps loosen up before the next session.",
-            locale,
-        )
+        "다음 PT 전까지 회복 스트레칭으로 풀어 두기 좋아요."
     )
     return " ".join(parts)
 
 
-def _walk_reason(signals: _Signals, locale: Locale) -> str:
+def _walk_reason(signals: _Signals) -> str:
     """저강도 걷기의 사유 — 혈압 목표·유산소 기록 없음. (#2579)"""
     if signals.blood_pressure and signals.low_cardio:
-        head = localized(
-            "혈압 관리가 목표인데 최근 2주 유산소 기록이 없어요.",
-            "Blood pressure is a goal, but there is no cardio in the last 2 weeks.",
-            locale,
-        )
+        head = "혈압 관리가 목표인데 최근 2주 유산소 기록이 없어요."
     elif signals.blood_pressure:
-        head = localized(
-            "혈압 관리가 목표예요.", "Blood pressure is one of the goals.", locale
-        )
+        head = "혈압 관리가 목표예요."
     else:
-        head = localized(
-            f"최근 2주 운동 {signals.total_minutes}분 중 유산소가 없어요.",
-            f"None of the {signals.total_minutes} min in the last 2 weeks "
-            "was cardio.",
-            locale,
-        )
+        head = f"최근 2주 운동 {signals.total_minutes}분 중 유산소가 없어요."
     return " ".join(
         (
             head,
-            localized(
-                "대화할 수 있는 속도의 걷기부터 시작하기 좋아요.",
-                "Start with walking at a conversational pace.",
-                locale,
-            ),
+            "대화할 수 있는 속도의 걷기부터 시작하기 좋아요.",
         )
     )

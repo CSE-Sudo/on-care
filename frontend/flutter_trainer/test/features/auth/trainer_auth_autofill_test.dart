@@ -61,6 +61,7 @@ class _AuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) {
     registerCalls++;
@@ -158,12 +159,10 @@ void main() {
     Future<(_AuthRepository, ProviderContainer)> pumpSignIn(
       WidgetTester tester, {
       Object? error,
-      Locale locale = const Locale('ko'),
     }) async {
       final _AuthRepository repo = _AuthRepository(error: error);
       final ProviderContainer container = await pumpTrainerApp(
         tester,
-        locale: locale,
         extraOverrides: <Override>[
           trainerAuthRepositoryProvider.overrideWithValue(repo),
         ],
@@ -335,20 +334,6 @@ void main() {
       expect(repo.socialCalls, 1);
       expect(_saves(tester), 0);
     });
-
-    testWidgets('영어 화면에서도 힌트와 묶음이 같다', (tester) async {
-      await pumpSignIn(tester, locale: const Locale('en'));
-
-      expect(find.byType(TrainerSignInPage), findsOneWidget);
-      expect(_field(tester, email).autofillHints, <String>[
-        AutofillHints.username,
-        AutofillHints.email,
-      ]);
-      expect(_field(tester, password).autofillHints, <String>[
-        AutofillHints.password,
-      ]);
-      expect(_groupAround(email), findsOneWidget);
-    });
   });
 
   group('가입 화면', () {
@@ -362,13 +347,11 @@ void main() {
       WidgetTester tester, {
       bool demo = false,
       Object? error,
-      Locale locale = const Locale('ko'),
     }) async {
       final _AuthRepository repo = _AuthRepository(error: error);
       await pumpTrainerApp(
         tester,
         at: AppRoutes.signUp,
-        locale: locale,
         extraOverrides: <Override>[
           if (!demo) ...<Override>[
             appConfigProvider.overrideWithValue(_realConfig),
@@ -398,6 +381,7 @@ void main() {
         'trainer-signup-code',
         demo ? MockSignupEmailCodeRepository.demoCode : '123456',
       );
+      await _type(tester, 'trainer-signup-phone', '01012345678');
       await _type(tester, password, 'signup-pw-1234');
       await _type(tester, confirm, 'signup-pw-1234');
       // 필수 동의 없이는 가입 버튼이 꺼져 있다(#2819).
@@ -539,16 +523,6 @@ void main() {
       expect(find.byType(TrainerSignUpPage), findsNothing);
       expect(_saves(tester), 0);
       expect(_finishCalls(tester), <bool?>[false]);
-    });
-
-    testWidgets('영어 화면에서도 힌트와 묶음이 같다', (tester) async {
-      await pumpSignUp(tester, locale: const Locale('en'));
-
-      expect(_field(tester, name).autofillHints, <String>[AutofillHints.name]);
-      expect(_field(tester, password).autofillHints, <String>[
-        AutofillHints.newPassword,
-      ]);
-      expect(_groupAround(confirm), findsOneWidget);
     });
   });
 }

@@ -11,11 +11,9 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
-import 'package:oncare_trainer/features/coaching/data/demo_routine_suggestions.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
@@ -27,8 +25,6 @@ import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.d
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
-
-final RegExp _hangul = RegExp(r'[가-힣]');
 
 void main() {
   late AppDatabase db;
@@ -254,8 +250,9 @@ void main() {
       await DriftScheduleRepository(db).dismissScheduledRoutines(pt.id);
       await DemoRoutineStore(db).assigned('seed-client-2');
 
-      // 언어가 바뀌면 같은 날이라도 다시 심는다.
-      await seedIfEmpty(db, language: DemoLanguage.en);
+      // 날짜가 바뀌면 다시 심는다.
+      await db.putValue('trainer_seeded_v57', '2020-01-01');
+      await seedIfEmpty(db);
 
       expect(await DemoRoutineStore(db).readAssigned('seed-client-2'), isNull);
       expect(await DemoRoutineStore(db).readSession(pt.id), isNull);
@@ -471,29 +468,6 @@ void main() {
         isNot(contains(sent.id)),
       );
     });
-
-    test('영어판은 id·시간·유형·세트·근거가 같고 이름·사유만 영어다', () {
-      expect(
-        demoMemberSuggestionsEn.keys,
-        orderedEquals(demoMemberSuggestionsKo.keys),
-      );
-      for (final String member in demoMemberSuggestionsKo.keys) {
-        final List<RoutineSuggestion> ko = demoMemberSuggestionsKo[member]!;
-        final List<RoutineSuggestion> en = demoMemberSuggestionsEn[member]!;
-        expect(en, hasLength(ko.length), reason: member);
-        for (var i = 0; i < ko.length; i++) {
-          expect(en[i].id, ko[i].id);
-          expect(en[i].minutes, ko[i].minutes);
-          expect(en[i].type, ko[i].type);
-          expect(en[i].sets, ko[i].sets);
-          expect(en[i].reps, ko[i].reps);
-          expect(en[i].weight, ko[i].weight);
-          expect(en[i].evidence, ko[i].evidence);
-          expect(en[i].name, isNot(contains(_hangul)));
-          expect(en[i].reason, isNot(contains(_hangul)));
-        }
-      }
-    });
   });
 
   group('AI 루틴 A/B 생성', () {
@@ -526,20 +500,30 @@ void main() {
         ),
         isTrue,
       );
-      // 추천 상태는 시드 기록으로 센다(#2674) — 오세라는 기록 2회라 학습 중이다.
-      expect(o.analysis.recommendationStatus, RecommendationStatus.learning);
+      // 추천 상태는 시드 기록(이력 표)으로 센다(#2674). 하루치 `개인운동` 카드도
+      // 한 회로 센다(#3293) — 오세라는 PT 이력 없이 개인운동만 있어도 맞춤이고,
+      // 매주 PT 이력이 쌓인 최우진도 맞춤이다.
+      expect(
+        o.analysis.recommendationStatus,
+        RecommendationStatus.personalized,
+      );
 
       final RoutineOptions other = await generate('seed-client-5');
       expect(other.analysis.goal, isNot(o.analysis.goal));
+      expect(
+        other.analysis.recommendationStatus,
+        RecommendationStatus.personalized,
+      );
     });
 
     test('근거 문장은 서버 규칙형과 같다 — 고른 자료는 넣지 않고, 목표 이하면 꼬리표가 없다', () async {
+      // 기록이 없는 임도현 — 반복 운동이 없어 근거가 나트륨으로 시작한다.
       final RoutineOptions all = await generate(
-        'seed-client-9',
+        'seed-client-7',
         sources: RoutineContextSource.values.toSet(),
       );
       final RoutineOptions none = await generate(
-        'seed-client-9',
+        'seed-client-7',
         sources: const <RoutineContextSource>{},
       );
       expect(all.planA.rationale, none.planA.rationale);
@@ -547,7 +531,7 @@ void main() {
 
       final client = await (db.select(
         db.trainerClients,
-      )..where((t) => t.id.equals('seed-client-9'))).getSingle();
+      )..where((t) => t.id.equals('seed-client-7'))).getSingle();
       expect(
         all.planA.rationale,
         startsWith(

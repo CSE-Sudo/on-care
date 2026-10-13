@@ -44,7 +44,7 @@ void main() {
                         requestOptions: options,
                         statusCode: status,
                         data: <String, Object?>{
-                          'detail': '같은 client_request_id에 다른 메시지를 보낼 수 없습니다.',
+                          'detail': '같은 client_request_id에 다른 메시지를 보낼 수 없어요.',
                         },
                       ),
               ),

@@ -12,6 +12,8 @@ import os
 import pytest
 from sqlalchemy import create_engine, text
 
+from tests import sharding
+
 #: 테스트 전용 DB. 예전에는 기본값이 개발 DB 라, 한 번 돌릴 때마다 테스트가 만든
 #: 계정이 데모 DB 에 그대로 쌓였다(회원 수천 명·감사 로그 수만 행). 중단된 실행이
 #: 남긴 행 때문에 다음 실행이 중복 키로 깨지기도 했다.
@@ -68,6 +70,46 @@ os.environ.setdefault("TRAINER_AI_CALLS_PER_DAY", "0")
 os.environ.setdefault("ALLOW_DEMO_FALLBACK", "true")
 
 
+#: 이번 실행이 맡은 묶음 — `(묶음 번호, 묶음 수, 맡은 테스트 수, 전체 테스트 수)`.
+_SHARD_REPORT: list[tuple[int, int, int, int]] = []
+
+
+def pytest_collection_modifyitems(config, items):
+    """`PYTEST_SHARD=2/6` 이면 이 실행이 맡은 묶음의 파일만 남긴다. (#3321)
+
+    CI 가 스위트를 여러 잡으로 나눠 돌리는 장치다. 값이 없으면(로컬·한 번에 돌리는
+    실행) 아무것도 하지 않는다. 규칙은 `tests/sharding.py` 에 있다.
+    """
+    try:
+        shard = sharding.parse_shard(os.environ.get(sharding.ENV_VAR))
+    except ValueError as exc:
+        raise pytest.UsageError(str(exc)) from exc
+    if shard is None:
+        return
+    index, total = shard
+    weights: dict[str, int] = {}
+    for item in items:
+        path = item.nodeid.split("::", 1)[0]
+        weights[path] = weights.get(path, 0) + 1
+    assignment = sharding.assign_shards(weights, total)
+    kept, dropped = [], []
+    for item in items:
+        mine = assignment[item.nodeid.split("::", 1)[0]] == index
+        (kept if mine else dropped).append(item)
+    _SHARD_REPORT.append((index, total, len(kept), len(items)))
+    if dropped:
+        config.hook.pytest_deselected(items=dropped)
+        items[:] = kept
+
+
+def pytest_terminal_summary(terminalreporter):
+    """묶음 실행이면 맡은 범위를 결과 끝에 남긴다 — 묶음의 합이 전체인지 로그로 맞춰 본다."""
+    for index, total, kept, collected in _SHARD_REPORT:
+        terminalreporter.write_line(
+            f"{sharding.ENV_VAR}={index}/{total}: 전체 {collected}건 중 {kept}건을 맡음"
+        )
+
+
 #: 이 DB 를 비워도 되는가.
 #:
 #: 로컬은 같은 DB 를 계속 재사용한다. 그래서 고정 id 를 넣는 테스트가 두 번째
@@ -114,9 +156,23 @@ def _reset_database(url: str) -> None:
         engine.dispose()
 
 
+#: DB 탐침의 연결 상한(초). 앱 엔진의 기본 `DB_CONNECT_TIMEOUT_SECONDS` 와 같다.
+#:
+#: 상한이 없으면 Windows 에서 DB 가 꺼진 로컬 실행이 끝나지 않는다. psycopg 는
+#: 비동기 연결의 완료를 쓰기 가능 여부로만 기다리는데, Winsock 은 거부된 연결을
+#: 쓰기 가능으로 알리지 않아 libpq 기본값(무한)으로 멈춘다. 상한이 있으면 주소마다
+#: (`localhost` 는 ::1·127.0.0.1 두 개) 이 시간 뒤 실패해 skip 으로 넘어간다.
+#: DB 가 떠 있는 CI 는 곧바로 붙으므로 영향이 없다.
+_DB_PROBE_CONNECT_TIMEOUT_SECONDS = 5
+
+
 def _db_available() -> bool:
     try:
-        engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+        engine = create_engine(
+            DATABASE_URL,
+            pool_pre_ping=True,
+            connect_args={"connect_timeout": _DB_PROBE_CONNECT_TIMEOUT_SECONDS},
+        )
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         engine.dispose()
@@ -213,8 +269,9 @@ def _force_stub_recognizer(monkeypatch):
 
     스텁과 같은 식단을 돌려주되 이름은 `test-vision` 이다. 개발용 스텁(`stub`)
     결과는 포인트·식판 조건에 세지 않으므로(#2812), 이름까지 스텁이면 "실제 인식기로
-    저장한 끼니" 를 전제로 한 적립·식판 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
-    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다."""
+    저장한 끼니" 를 전제로 한 적립 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
+    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다. 식판 조건은 실제
+    인식기 이름만 세는 허용 목록(#3240)이라, 식판 테스트는 `gemini` 끼니를 직접 넣는다."""
     try:
         from app.core.config import get_settings
         from app.services.recognizer import factory
@@ -259,6 +316,37 @@ def _pin_session_start_clock(monkeypatch):
     yield
 
 
+@pytest.fixture(autouse=True)
+def _restore_seed_personal_routines(request):
+    """테스트가 내린 시드 개인운동(`seed-routine-…`)을 다시 건다(#3309).
+
+    새 개인운동을 보내면 시드 개인운동도 오늘부로 내려간다. DB 는 세션 전체가
+    함께 쓰므로, 개인운동을 보낸 테스트 뒤에 시드 배정을 읽는 테스트가 빈 목록을
+    보게 된다. 시드 개인운동에는 원래 `ended_on` 이 없으므로 비워 되돌린다.
+    """
+    yield
+    if "client" not in request.fixturenames:
+        return
+    from sqlalchemy import update
+
+    from app.db.session import SessionLocal
+    from app.models.models import TrainerRoutine
+
+    db = SessionLocal()
+    try:
+        db.execute(
+            update(TrainerRoutine)
+            .where(
+                TrainerRoutine.id.like("seed-routine-%"),
+                TrainerRoutine.ended_on.is_not(None),
+            )
+            .values(ended_on=None)
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
 @pytest.fixture
 def db_session(client):
     """시드까지 끝난 DB 세션. client 픽스처가 먼저 init_db(시드)를 돌린다."""
@@ -271,9 +359,9 @@ def db_session(client):
         db.close()
 
 
-#: 테스트가 만드는 회원 계정에 필수 동의를 함께 남길까. (#3088)
+#: 테스트가 만드는 회원·트레이너 계정에 필수 동의를 함께 남길까. (#3088, #3155)
 #:
-#: 회원 데이터·AI API 는 필수 동의가 끝난 계정만 받는다. 기존 테스트 다수가
+#: 회원 데이터·AI API 와 트레이너 API 는 필수 동의가 끝난 계정만 받는다. 기존 테스트 다수가
 #: `consents` 없이 가입하거나 `User` 를 DB 에 직접 넣고 토큰을 만드는데, 그 계정은
 #: 모두 동의 화면을 거친 회원을 뜻한다. 가입 헬퍼가 100여 파일에 흩어져 있어
 #: 하나씩 고치는 대신, 회원 행이 생길 때 지금 버전의 필수 동의를 같은 트랜잭션에
@@ -290,10 +378,9 @@ def _record_default_consent(mapper, connection, target) -> None:
     from app.models.models import UserConsent
     from app.services import signup_consent
 
-    # 아직 읽지 않은 서버 기본값(role)은 회원이다.
+    # 아직 읽지 않은 서버 기본값(role)은 회원이다. 트레이너는 역할별 항목(건강정보
+    # 제외)을 남긴다.
     role = target.__dict__.get("role") or "member"
-    if role != "member":
-        return
     now = clock.now()
     rows = [
         {
@@ -320,7 +407,7 @@ except Exception:  # noqa: BLE001, S110 — 앱 의존성 없이 도는 순수 �
 
 @pytest.fixture
 def without_default_consent():
-    """이 테스트가 만드는 회원 계정에는 동의를 남기지 않는다. (#3088)"""
+    """이 테스트가 만드는 회원·트레이너 계정에는 동의를 남기지 않는다. (#3088, #3155)"""
     _DEFAULT_CONSENT["on"] = False
     try:
         yield

@@ -33,7 +33,7 @@ from app.models.models import (
 )
 from app.services import diet_menu_plan
 
-GUARD_DETAIL = "담당 고객을 찾을 수 없습니다."
+GUARD_DETAIL = "담당 회원을 찾을 수 없어요."
 #: 끼니마다 돌려 쓰는 태그. 나트륨·단백질 메뉴가 끼니마다 섞인다.
 _TAGS = (
     catalog.TAG_FIBER_HIGH,
@@ -220,7 +220,7 @@ def test_reading_candidates_does_not_call_ai_or_flip_member_language(
     client, db_session, pair, llm
 ):
     _salty_low_protein_week(db_session, pair.member_id)
-    diet_menu_plan.get_plan(db_session, pair.member_id, lang="ko")
+    diet_menu_plan.get_plan(db_session, pair.member_id)
     assert llm.calls == 1
 
     r = client.get(pair.base, headers=_h(pair.trainer_id, lang="en"))

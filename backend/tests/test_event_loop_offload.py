@@ -42,6 +42,7 @@ def test_upload_routes_without_external_awaits_are_sync(module, name):
         ("app.api.v1.social", "social_login"),
         ("app.api.v1.places", "places_nearby"),
         ("app.api.v1.trainer.profile", "trainer_search_gyms"),
+        ("app.api.v1.trainer.profile", "trainer_nearby_gyms"),
         ("app.api.v1.trainer.profile", "trainer_set_kakao_gym"),
     ],
 )

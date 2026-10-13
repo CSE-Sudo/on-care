@@ -2,6 +2,10 @@ import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+// 달력 날 수는 두 앱이 함께 쓰는 시계 파일에 있다(#3250). 이 파일을 들이던
+// 자리가 그대로 쓰도록 다시 내보낸다.
+export 'package:oncare_core/clock.dart' show calendarDaysBetween;
+
 /// Formats [d] as the `YYYY-MM-DD` string used by every date-keyed
 /// drift column (seeding, schedule filters, reservation counts).
 ///
@@ -33,7 +37,7 @@ List<String> weekdayNames(AppLocalizations l) => <String>[
   l.weekdaySun,
 ];
 
-/// Human date for page headers — `8월 5일 (화)` / `8/5 (Tue)`, with
+/// Human date for page headers — `8/5 (화)` / `8/5 (Tue)`, with
 /// `오늘`/`내일` prefixed when [relativeTo] (defaults to now) makes that
 /// clearer.
 ///
@@ -60,14 +64,6 @@ String dateLabel(AppLocalizations l, DateTime d, {DateTime? relativeTo}) {
   );
   return prefix.isEmpty ? date : l.datePrefixed(prefix, date);
 }
-
-/// [from] 에서 [to] 까지 며칠인가(달력 날짜만). UTC 로 옮겨 빼는 이유는
-/// [dateLabel] 과 같다 — 서머타임이 시작하는 날 두 자정 사이가 23시간이다.
-int calendarDaysBetween(DateTime from, DateTime to) => DateTime.utc(
-  to.year,
-  to.month,
-  to.day,
-).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
 
 /// 지난 날을 `오늘`·`어제`·`N일 전` 으로 — `Today`·`Yesterday`·`N days ago`.
 ///

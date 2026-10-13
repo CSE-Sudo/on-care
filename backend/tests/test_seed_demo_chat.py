@@ -19,9 +19,9 @@ _MEMBER_ID = "user-7d4e9a2c5f18"
 # (sender, body) — 프론트 두 앱의 시드와 글자까지 같아야 한다. 백엔드는
 # 회원을 'member' 로 저장하고 트레이너 API 응답에서만 'client' 로 바꾼다.
 _EXPECTED: list[tuple[str, str]] = [
-    ("trainer", "민수님, 지난주 기록 정리해 봤는데 요일마다 이행률이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?"),
+    ("trainer", "민수님, 지난주 기록 정리해 봤는데 요일마다 완료율이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?"),
     ("member", "화요일이랑 목요일이 야근이 많아요 😥"),
-    ("trainer", "그럼 그 이틀은 15분짜리 짧은 루틴으로 바꿔 둘게요. 안 하는 것보다 훨씬 낫습니다"),
+    ("trainer", "그럼 그 이틀은 15분짜리 짧은 프로그램으로 바꿔 둘게요. 안 하는 것보다 훨씬 낫습니다"),
     ("member", "그 정도면 퇴근하고도 할 수 있을 것 같아요"),
     ("trainer", "혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요"),
     ("member", "네, 아침 8시 그대로예요"),
@@ -33,12 +33,12 @@ _EXPECTED: list[tuple[str, str]] = [
     ("trainer", "이렇게 국은 건더기 위주로 드시면 돼요"),
     ("member", "오늘은 국물 안 마셨어요! 걷기도 25분 했습니다"),
     ("trainer", "좋아요 👏 그 한 가지만 지켜도 추이가 달라져요"),
-    ("trainer", "내일 루틴은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요"),
+    ("trainer", "내일 프로그램은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요"),
     ("trainer", "민수님, AI 식단 분석 잘 받았어요 👍 오늘 나트륨이 목표치를 좀 넘었는데 어떠셨어요?"),
     ("member", "찌개 먹을 때 국물을 많이 마셨나봐요 😅"),
     ("trainer", "그렇군요! 오늘 PT 후에 부상이나 불편한 데는 없으셨나요?"),
     ("member", "무릎이 가볍게 당기긴 했는데 괜찮아요"),
-    ("trainer", "확인했어요. AI가 오늘 식단 기반으로 유산소 루틴을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪"),
+    ("trainer", "확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪"),
 ]
 
 
@@ -169,7 +169,7 @@ def test_trainer_files_are_seeded_in_the_same_places_as_the_apps(client, db_sess
     assert media_type == "image/jpeg"
     image_bytes = blob.read_all()
     assert image_bytes == (
-        frontend / "assets" / "images" / "diet-doenjang-rice.jpeg"
+        frontend / "assets" / "demo" / "images" / "diet-doenjang-rice.jpeg"
     ).read_bytes()
     assert image.attachment_file_size == len(image_bytes)
 

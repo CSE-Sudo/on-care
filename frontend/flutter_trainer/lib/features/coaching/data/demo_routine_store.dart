@@ -5,10 +5,13 @@ import 'package:drift/drift.dart';
 import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
@@ -84,8 +87,93 @@ class DemoRoutineStore {
     if (stored != null) return _withEffects(memberId, stored);
     final List<AssignedRoutine> seeded = await seedAssigned(memberId);
     await writeAssigned(memberId, seeded);
+    // 시드한 개인운동도 보낸 개인운동이다 — 새 `개인운동만` 이 내린다. 실서버는
+    // `delivery_kind` 가 있는 배정을 모두 내린다(#2514).
+    final Set<String> personal = <String>{
+      for (final AssignedRoutine r in seeded)
+        if (r.deliveryKind != null) r.id,
+    };
+    if (personal.isNotEmpty) await writePersonalIds(memberId, personal);
+    await _seedRingHistory(memberId);
     return _withEffects(memberId, seeded);
   }
+
+  /// 시드 회원이 지난 주들에 받은 한 벌을 내린 기록으로, 미리 보낸 한 벌의 보낸
+  /// 날을 남긴다(#2508) — 실서버 시드(`seed_roster._seed_completion_days`)처럼
+  /// 운동 탭 `전체` 가 회원마다 다른 수의 링을 그린다. 지금 걸린 것과 미리 보낸
+  /// 것은 [seedAssigned] 가 목록에 넣는다. 7일을 못 채우고 끝나는 지금 것도 끝난
+  /// 날을 알아야 해 내린 기록에 함께 둔다(시작일 교대와 같은 방식).
+  Future<void> _seedRingHistory(String memberId) async {
+    final DateTime today = _today();
+    final List<DemoRingWindow> windows = demoRingWindows(memberId, today);
+    if (windows.isEmpty) return;
+    final List<ClientAiRoutineRow> rows = await _aiRows(memberId);
+    final List<(AssignedRoutine, DateTime)> ended =
+        <(AssignedRoutine, DateTime)>[];
+    for (final DemoRingWindow w in windows) {
+      if (w.from.isAfter(today)) continue;
+      final bool past = !w.until.isAfter(today);
+      final bool short = w.until.isBefore(
+        DateTime(w.from.year, w.from.month, w.from.day + 7),
+      );
+      if (!past && !(w.personal && short)) continue;
+      for (final AssignedRoutine r in await _withEffects(
+        memberId,
+        _ringRows(memberId, rows, w),
+      )) {
+        ended.add((r, w.until));
+      }
+    }
+    if (ended.isNotEmpty) {
+      await _write(_retiredKey(memberId), <Object?>[
+        for (final (AssignedRoutine r, DateTime end) in ended)
+          <String, Object?>{
+            'routine': assignedRoutineToStoreJson(r),
+            'ended_on': end.toIso8601String(),
+          },
+      ]);
+    }
+    final List<String> early = <String>[
+      for (final DemoRingWindow w in windows)
+        if (w.from.isAfter(today))
+          for (final AssignedRoutine r in _ringRows(memberId, rows, w)) r.id,
+    ];
+    if (early.isNotEmpty) {
+      await _recordSentOn(memberId, early, demoRingSentOn(today));
+    }
+  }
+
+  static DateTime _today() {
+    final DateTime now = nowKst();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  /// 회원에게 심어 둔 AI 개인운동(순서대로).
+  Future<List<ClientAiRoutineRow>> _aiRows(String memberId) =>
+      (_db.select(_db.clientAiRoutines)
+            ..where((t) => t.clientId.equals(memberId))
+            ..orderBy(<OrderingTerm Function($ClientAiRoutinesTable)>[
+              (t) => OrderingTerm(expression: t.sortOrder),
+            ]))
+          .get();
+
+  /// 시드 기간 한 벌 → 그 회원의 개인운동 배정. 개인운동이면 `개인운동만` 이다 —
+  /// 서버 시드(`seed-roster-rt-…`)와 같은 운동·같은 기간이다.
+  static List<AssignedRoutine> _ringRows(
+    String memberId,
+    List<ClientAiRoutineRow> rows,
+    DemoRingWindow w,
+  ) => <AssignedRoutine>[
+    for (final (int i, ClientAiRoutineRow row) in rows.indexed)
+      _seedRow(
+        row,
+        id:
+            'demo-ring-${w.personal ? 'rt' : 'std'}-$memberId-'
+            '${ymd(w.from)}-$i',
+        deliveryKind: w.personal ? DeliveryKinds.routineOnly : null,
+        date: w.from,
+      ),
+  ];
 
   /// 효과가 빈 배정에 문구표 효과를 채운다 — 실서버가 응답 때 하는 일이다
   /// (#2570). 채우지 않으면 데모에서만 트레이너가 효과를 적지 않은 줄이 회색
@@ -156,21 +244,49 @@ class DemoRoutineStore {
   /// 김민수만 배정이 있어 나머지 14명은 빈 목록이었다.
   Future<List<AssignedRoutine>> seedAssigned(String memberId) async {
     if (memberId == demoFixtureMemberId) return demoFixtureAssignedRoutines();
-    final rows =
-        await (_db.select(_db.clientAiRoutines)
-              ..where((t) => t.clientId.equals(memberId))
-              ..orderBy(<OrderingTerm Function($ClientAiRoutinesTable)>[
-                (t) => OrderingTerm(expression: t.sortOrder),
-              ]))
-            .get();
+    final List<ClientAiRoutineRow> rows = await _aiRows(memberId);
+    final DateTime today = _today();
+    // 지난 주들에 한 벌씩 받아 온 회원은 지금 걸린 한 벌과 미리 보낸 한 벌이다
+    // (#2508) — 최근 것이 앞이다. 지난 것은 [_seedRingHistory] 가 내린 기록으로 둔다.
+    final List<DemoRingWindow> windows = demoRingWindows(memberId, today);
+    if (windows.isNotEmpty) {
+      return <AssignedRoutine>[
+        for (final DemoRingWindow w in windows.reversed)
+          if (w.until.isAfter(today)) ..._ringRows(memberId, rows, w),
+      ];
+    }
+    // 신규 회원(임도현)은 오늘 보낸 `개인운동만` 이다 — 지난 날에는 걸린 것이
+    // 없다(#3003). 서버 시드도 같은 날에 같은 세 운동을 보낸 것으로 둔다.
+    final bool sentToday = seedClientIsNew(memberId);
     return <AssignedRoutine>[
       for (final row in rows)
-        assignedFromExercise(
-          seedAiRoutineExercise(row),
+        _seedRow(
+          row,
           id: 'assigned-${row.id}',
+          deliveryKind: sentToday ? DeliveryKinds.routineOnly : null,
+          date: sentToday ? today : null,
         ),
     ];
   }
+
+  /// 심어 둔 AI 개인운동 한 줄 → 배정. 처방 강도도 시드가 정한다 — 서버 시드와
+  /// 같은 값이다(#3003).
+  static AssignedRoutine _seedRow(
+    ClientAiRoutineRow row, {
+    required String id,
+    String? deliveryKind,
+    DateTime? date,
+  }) => assignedRoutineFromJson(<String, Object?>{
+    ...assignedRoutineToStoreJson(
+      assignedFromExercise(
+        seedAiRoutineExercise(row),
+        id: id,
+        deliveryKind: deliveryKind,
+        date: date,
+      ),
+    ),
+    'intensity': seedAiRoutineIntensity(row.id),
+  });
 
   /// 회원에게 한 번에 보낸 묶음을 남긴다 — 배정 목록 맨 앞에 넣고 마지막
   /// 전달로도 기억한다. 서버가 전송 한 번에 배정과 전송 기록을 함께 남기는
@@ -348,7 +464,11 @@ class DemoRoutineStore {
   }
 
   /// 마지막으로 `개인운동만` 보낸 배정 id — 다음에 보낼 때 내린다(#2514).
+  ///
+  /// 배정을 아직 시드하지 않았으면 먼저 시드한다 — 시드한 개인운동도 여기 들어
+  /// 있어야 첫 전송이 그것을 내린다([assigned]).
   Future<Set<String>> readPersonalIds(String memberId) async {
+    if (await readAssigned(memberId) == null) await assigned(memberId);
     final Object? raw = await _read(_personalKey(memberId));
     return <String>{
       if (raw is List)

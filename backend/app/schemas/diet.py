@@ -1,7 +1,7 @@
 """
 식단 인식 결과의 공통 형식(계약).
 
-Gemini든 YOLO든 이 형식으로 변환됩니다(이식성).
+어느 인식 엔진이든 이 형식으로 변환됩니다(이식성).
 On-Care 특화: 칼로리뿐 아니라 나트륨(sodium_mg)·당류(sugar_g)가 1급 지표.
 또한 섭취기준 관점의 식단평(coach_comment)을 포함.
 """
@@ -13,11 +13,11 @@ from pydantic import BaseModel, Field
 
 class RecognizedFood(BaseModel):
     name: str = Field(..., description="음식 이름(한국어)")
-    # 화면 언어로 된 표시 이름(#2850). `name` 은 공공 영양 DB 가 한국어로 매칭하는
-    # 키라 그대로 두고, 영어 화면에서 분석한 음식에만 영어 이름을 함께 싣는다.
-    # 없으면 앱이 `name` 을 보인다(한국어 화면·수기 입력·이 필드 이전 기록).
+    # 표시 이름(#2850). 예전에 영어 화면에서 분석한 음식에 함께 실던 이름이다.
+    # 서버는 이제 새로 만들지 않는다 — 분석 응답에서는 늘 없고(null), 저장된
+    # 기록에 남아 있거나 클라이언트가 실어 보낸 값만 그대로 돌려준다.
     display_name: Optional[str] = Field(
-        None, max_length=80, description="화면 언어 표시 이름"
+        None, max_length=80, description="표시 이름(저장된 값만, 새로 만들지 않음)"
     )
     # 음수는 받지 않는다(#3090). 끼니 합계가 음수가 되면 하루 섭취량·트레이너
     # 요약이 줄어든다. 위쪽 상한은 스키마가 아니라 인식기 변환(`recognizer/parse.py`)이

@@ -46,12 +46,16 @@ import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
-    show kExerciseMaxPeriodWeeks, kMaxExerciseSessionsPerSave;
+    show
+        kExerciseMaxPeriodWeeks,
+        kMaxExerciseSessionsPerMove,
+        kMaxExerciseSessionsPerSave;
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
     show CoachAttachmentKind;
 import 'package:oncare_core/clock.dart';
@@ -73,6 +77,7 @@ import 'package:oncare_ui/oncare_ui.dart'
         kGoalDefaultDailyCalories,
         kGoalDefaultDailySodiumMg,
         kGoalDefaultDailySugarG,
+        kGoalDefaultWeeklyCardioMinutes,
         mondayOf,
         parseWireDate,
         wireDate;
@@ -212,10 +217,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'GET /exercise/weeks': _exercisePeriod,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
+    'POST /exercise/sessions/move': _exerciseMove,
     'POST /exercise/calories': _exerciseCalories,
     'GET /notifications': _notifications,
     'GET /notifications/unread-count': _notificationsUnreadCount,
     'POST /notifications/read-all': _notificationsReadAll,
+    // 대화 읽음 — 메시지·리포트 알림도 함께 읽음이 된다(#3343).
+    'POST /me/coach/chat/read': _coachChatRead,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
     'GET /ai-coach/insights': _aiCoachInsights,
@@ -226,6 +234,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'POST /auth/register': _authRegister,
     // 가입 이메일 인증 코드 — 데모는 고정 코드만 받는다(#3038).
     'POST /auth/register/email-code': _authRegisterEmailCode,
+    // 아이디(가입 이메일) 찾기 — 서버처럼 가려진 이메일만 준다(#3337).
+    'POST /auth/find-email': _authFindEmail,
     'POST /auth/logout': _authLogout,
     'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,
@@ -234,6 +244,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'POST /users/me/consents': _usersMeConsents,
     'GET /users/me/profile': _usersMeProfile,
     'PUT /users/me': _usersMeUpdate,
+    // 이메일 변경 인증 코드 — 데모는 고정 코드만 받는다(#3230).
+    'POST /users/me/email/code': _usersMeEmailCode,
     'GET /users/me/deletion-preview': _usersMeDeletionPreview,
     'DELETE /users/me': _usersMeDelete,
     'POST /users/me/onboarding': _usersMeOnboarding,
@@ -398,47 +410,35 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return null;
   }
 
-  /// 시드에 문장이 없는 날짜(또는 영어 화면)용 — 그날의 수치를 보고 만든 문구.
+  /// 시드에 문장이 없는 날짜용 — 그날의 수치를 보고 만든 문구.
   ///
   /// 실 서버 `diet_service.coach_message` 와 **같은 문장**이다. [isPast] 면
   /// 그날을 되짚는다 — 지난 날짜를 보면서 "오늘 … 저녁은" 을 읽지 않게(#2644).
   /// 나트륨 기준은 [sodiumLimit](회원 목표), 없으면 2,000mg 이다.
   @visibleForTesting
   static String derivedDietDayMessage({
-    required String lang,
     required int totalSodium,
     required bool empty,
     bool isPast = false,
     int? sodiumLimit,
   }) {
-    final bool en = lang == 'en';
     final int limit = sodiumLimit ?? _kDefaultSodiumLimitMg;
     if (isPast) {
       if (totalSodium > limit) {
-        return en
-            ? 'Sodium ran high that day. Go easy on soups and sauces the next day to balance it out.'
-            : '그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.';
+        return '그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.';
       }
       if (empty) {
-        return en ? 'No meals were logged that day.' : '이날은 식단 기록이 없어요.';
+        return '이날은 식단 기록이 없어요.';
       }
-      return en
-          ? 'A well-balanced day with sodium within your target.'
-          : '나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.';
+      return '나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.';
     }
     if (totalSodium > limit) {
-      return en
-          ? 'You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!'
-          : '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
+      return '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
     }
     if (empty) {
-      return en
-          ? 'No meals logged today yet. Want to log your first meal?'
-          : '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
+      return '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
     }
-    return en
-        ? 'A well-balanced day. Keep it up tomorrow!'
-        : '균형 잡힌 하루였어요. 내일도 이대로 가요!';
+    return '균형 잡힌 하루였어요. 내일도 이대로 가요!';
   }
 
   /// 배정 루틴을 수행한 기록 — 서버 `complete_assigned_routine` 의 대역이다.
@@ -457,6 +457,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     required String name,
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
   }) async {
     final String kind = type.name;
     // 초로 완료한 배정은 기록도 초를 든다 — 분은 초에서 파생된다(#2221).
@@ -486,6 +490,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
             calories: estimated.calories,
             intensity: Value(intensity.name),
             durationSeconds: Value(durationSeconds),
+            // 근력 완료의 세트·횟수·버틴 시간·중량(#3364) — 수기 기록과 같은
+            // 칸이라 그래프가 두 기록을 같은 축으로 읽는다.
+            sets: Value(sets),
+            reps: Value(reps),
+            holdSeconds: Value(holdSeconds),
+            weight: Value(weight),
             source: const Value('assigned_routine'),
             assignedRoutineId: Value(routineId),
           ),
@@ -500,11 +510,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         type: kind,
         name: name,
         minutes: savedMinutes,
-        sets: null,
-        reps: null,
-        holdSeconds: null,
+        sets: sets,
+        reps: reps,
+        holdSeconds: holdSeconds,
         durationSeconds: durationSeconds,
-        weight: null,
+        weight: weight,
         calories: estimated.calories,
         intensity: intensity.name,
         calorieSource: estimated.source,

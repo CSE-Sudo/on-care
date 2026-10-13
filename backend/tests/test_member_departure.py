@@ -162,7 +162,7 @@ def test_withdrawal_leaves_a_notice_that_outlives_the_member(client, db_session)
     assert db_session.get(User, member_id) is None
     rows = _left_notifications(client, trainer_token)
     assert len(rows) == 1
-    assert rows[0]["title"] == "회원 탈퇴"
+    assert rows[0]["title"] == "회원이 탈퇴했어요"
     assert "탈퇴회원" in rows[0]["body"]
     assert rows[0]["read"] is False
     # 떠난 회원의 상세는 열 수 없어 가리킬 회원을 남기지 않는다.
@@ -181,7 +181,7 @@ def test_disconnecting_tells_the_trainer(client, db_session, path):
     assert response.status_code == 204, response.text
     rows = _left_notifications(client, trainer_token)
     assert len(rows) == 1
-    assert rows[0]["title"] == "담당 연결 해제"
+    assert rows[0]["title"] == "담당 연결이 해제됐어요"
     assert "해제회원" in rows[0]["body"]
 
 

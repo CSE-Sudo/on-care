@@ -106,7 +106,6 @@ Future<void> _pump(
   required _FakeChatRepository chat,
   required _FakeNotificationRepository notifications,
   required bool useMockApi,
-  Locale locale = const Locale('ko'),
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -127,7 +126,7 @@ Future<void> _pump(
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -163,25 +162,21 @@ Future<void> _pump(
 }
 
 void main() {
-  for (final Locale locale in const <Locale>[Locale('ko'), Locale('en')]) {
-    testWidgets('실 API: 대화를 열면 알림 목록과 배지를 다시 읽는다 '
-        '(${locale.languageCode})', (tester) async {
-      final chat = _FakeChatRepository();
-      final notifications = _FakeNotificationRepository(chat);
-      await _pump(
-        tester,
-        chat: chat,
-        notifications: notifications,
-        useMockApi: false,
-        locale: locale,
-      );
+  testWidgets('실 API: 대화를 열면 알림 목록과 배지를 다시 읽는다', (tester) async {
+    final chat = _FakeChatRepository();
+    final notifications = _FakeNotificationRepository(chat);
+    await _pump(
+      tester,
+      chat: chat,
+      notifications: notifications,
+      useMockApi: false,
+    );
 
-      expect(chat.readCalls, <String>['m1']);
-      expect(notifications.countCalls, greaterThanOrEqualTo(2));
-      expect(notifications.listCalls, greaterThanOrEqualTo(2));
-      expect(find.text('badge:0'), findsOneWidget);
-    });
-  }
+    expect(chat.readCalls, <String>['m1']);
+    expect(notifications.countCalls, greaterThanOrEqualTo(2));
+    expect(notifications.listCalls, greaterThanOrEqualTo(2));
+    expect(find.text('badge:0'), findsOneWidget);
+  });
 
   testWidgets('데모: 알림 저장소를 다시 읽지 않는다', (tester) async {
     final chat = _FakeChatRepository();

@@ -37,6 +37,10 @@ class CouponDetailPage extends ConsumerStatefulWidget {
 class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
   bool _using = false;
 
+  /// 방금 사용 처리한 쿠폰. 목록을 다시 받아 `사용함` 이 되기 전까지 버튼이 다시
+  /// 켜져 한 번 더 누를 수 있었다(#3244) — 그 사이에도 꺼 둔다.
+  String? _usedId;
+
   Future<void> _use(Coupon coupon) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool ok = await showAppConfirmDialog(
@@ -51,6 +55,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
     try {
       await ref.read(benefitsRepositoryProvider).useCoupon(coupon.id);
       if (!mounted) return;
+      _usedId = coupon.id;
       // 식판 수령 쿠폰(#2150)이면 포인트 화면의 식판 카드도 `받음` 이 된다.
       ref
         ..invalidate(myCouponsProvider)
@@ -208,7 +213,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
           size: OnCareButtonSize.large,
           fullWidth: true,
           loading: _using,
-          onPressed: _using ? null : () => _use(coupon),
+          onPressed: _using || _usedId == coupon.id ? null : () => _use(coupon),
         ),
       ],
     ];

@@ -678,8 +678,11 @@ class _RosterList extends StatelessWidget {
         if (clients.isEmpty)
           AppEmptyState(
             key: const ValueKey<String>('clients-empty'),
-            title: filter == ClientFilter.all
+            // 관리 필터만 건 0명은 담당 회원이 없는 것이 아니다(#3249).
+            title: noMembers
                 ? l.clientsEmpty
+                : filter == ClientFilter.all
+                ? l.clientsEmptyForManagement
                 : l.clientsEmptyForFilter(filter.label(l)),
             message: noMembers && canConnect ? l.clientsEmptyConnectHint : null,
             icon: AppIcons.clients,

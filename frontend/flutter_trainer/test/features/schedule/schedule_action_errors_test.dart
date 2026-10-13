@@ -109,7 +109,6 @@ const RoutineExercise _walking = RoutineExercise(
 void main() {
   group('scheduleActionErrorMessage', () {
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
     test('서버 사유가 있으면 그것이다', () {
       expect(
@@ -156,17 +155,6 @@ void main() {
       );
     });
 
-    test('영어 화면에는 한국어 사유를 띄우지 않는다', () {
-      expect(
-        scheduleActionErrorMessage(
-          en,
-          const ServerError(statusCode: 409, message: '이미 마무리된 세션입니다'),
-          en.schedCancelFailed,
-        ),
-        en.schedCancelFailed,
-      );
-    });
-
     test('409 만 상태가 바뀐 거절이다', () {
       expect(
         isScheduleStateConflict(const ServerError(statusCode: 409)),
@@ -181,7 +169,6 @@ void main() {
 
     test('건너뛰기 실패 문구는 전송 실패 문구가 아니다', () {
       expect(ko.schedRoutinesSkipFailed, isNot(ko.schedRoutinesSendFailed));
-      expect(en.schedRoutinesSkipFailed, isNot(en.schedRoutinesSendFailed));
     });
   });
 
@@ -388,7 +375,7 @@ void main() {
       await tapKey(tester, 'schedule-send-program');
 
       expect(find.text('완료한 세션만 보낼 수 있습니다'), findsOneWidget);
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
     });
   });
 }

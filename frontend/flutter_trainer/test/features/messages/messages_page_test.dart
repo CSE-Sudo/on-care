@@ -413,7 +413,7 @@ void main() {
               )
               .label,
       ];
-      expect(labels, <String>['통증·불편', '운동 목표 28%', '칼로리 24% 과다']);
+      expect(labels, <String>['통증·불편', '운동 목표 28%', '칼로리 24% 초과']);
       // 배지는 이름 줄이 아니라 이름·목표 오른쪽 빈자리에, 그 두 줄의 세로
       // 가운데로 선다(#2375) — 이름 줄에 붙으면 배지만 위로 쏠렸다.
       final Rect name = tester.getRect(
@@ -450,7 +450,7 @@ void main() {
       expect(labels.where((l) => l.contains('나트륨')), isEmpty);
       // 대화 화면은 대화만 한다 — 운동 데이터는 회원 탭이 보여 준다.
       expect(find.textContaining('최근 운동'), findsNothing);
-      expect(find.textContaining('주간 이행률'), findsNothing);
+      expect(find.textContaining('주간 완료율'), findsNothing);
     });
   });
 
@@ -571,31 +571,6 @@ void main() {
         find.byKey(const ValueKey<String>('messages-thread-seed-client-2')),
         findsOneWidget,
       );
-    });
-  });
-
-  testWidgets('new workspace labels render in English locale', (tester) async {
-    await withWideSurface(tester, () async {
-      await pumpTrainerApp(
-        tester,
-        token: 'demo-trainer-token-existing',
-        locale: const Locale('en'),
-      );
-      await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
-
-      expect(find.text('Messages'), findsWidgets);
-      expect(find.text('Conversations'), findsNothing);
-      expect(find.textContaining('Unread'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey<String>('messages-client-detail-button'),
-          ),
-          matching: find.text('Member details'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('프로그램'), findsNothing);
     });
   });
 

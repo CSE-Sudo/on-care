@@ -49,15 +49,14 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: Consumer(
-              builder: (BuildContext context, WidgetRef ref, _) => Column(
+            body: Builder(
+              builder: (BuildContext context) => Column(
                 children: <Widget>[
                   const TrainerChatHeaderButton(),
                   TextButton(
                     key: const Key('disconnect'),
                     onPressed: () => confirmDisconnect(
                       context,
-                      ref,
                       message: '트레이너 연결을 끊을까요?',
                       disconnect: (GymRepository repo) =>
                           repo.disconnectMyTrainer(),

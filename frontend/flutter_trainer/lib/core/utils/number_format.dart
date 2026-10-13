@@ -8,10 +8,14 @@
 /// 소수가 붙어도 정수 부분에는 콤마를 찍는다 — 기간 카드의 `하루 평균` 은
 /// 대개 소수라 `2058.5` 로 찍혔고, 같은 값을 회원 앱은 `2,058.5` 로 적는다
 /// (회원 앱 `#,##0.#`, #2156).
+///
+/// 소수 첫째 자리로 **먼저 반올림한 뒤** 정수인지 가른다(#3250). 거꾸로 하면
+/// 17.96 이 `18.0` 으로 찍혀, 같은 값을 `18` 로 적는 회원 앱과 어긋난다.
 String formatNumber(num value) {
-  final String text = value != value.roundToDouble()
-      ? value.toStringAsFixed(1)
-      : value.toInt().toString();
+  final double rounded = double.parse(value.toStringAsFixed(1));
+  final String text = rounded != rounded.roundToDouble()
+      ? rounded.toStringAsFixed(1)
+      : rounded.toInt().toString();
   return text.replaceAllMapped(
     RegExp(r'^-?\d+'),
     (Match m) => m[0]!.replaceAllMapped(

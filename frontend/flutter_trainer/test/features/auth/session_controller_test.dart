@@ -514,6 +514,7 @@ class _FakeAuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async => _tokens('register');
 
@@ -586,5 +587,5 @@ class _BlockingTokenStore extends SecureTokenStore {
   Future<String?> readRefreshToken() async => _values['refresh_token'];
 
   @override
-  Future<void> clear() async => _values.clear();
+  Future<void> clear({bool forgetLegacy = false}) async => _values.clear();
 }

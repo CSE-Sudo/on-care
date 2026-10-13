@@ -11,9 +11,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import current_locale
 from app.models.models import (
-    ChatMessage, Notification,
+    ChatMessage, MemberReceivedReport, Notification,
     TrainerClient, TrainerSchedule,
     User,
 )
@@ -84,20 +83,26 @@ def build_chat_thread(
     ]
 
 
+def chat_attachment_out(msg: ChatMessage) -> ChatAttachmentOut | None:
+    """메시지에 딸린 파일. 없으면 None.
+
+    대화 응답과 회원의 받은 리포트 목록(#3348)이 같은 모양으로 싣는다.
+    """
+    if msg.attachment_type not in ("pdf", "image") or not msg.attachment_file_id:
+        return None
+    # 이름이 없는 첨부도 화면에는 무언가 적혀야 한다 — 종류별 기본값을 준다.
+    fallback = "weekly-report.pdf" if msg.attachment_type == "pdf" else "사진"
+    return ChatAttachmentOut(
+        type=msg.attachment_type,
+        file_name=msg.attachment_file_name or fallback,
+        file_id=msg.attachment_file_id,
+        file_size=msg.attachment_file_size or 0,
+        download_path=f"/chat/attachments/{msg.attachment_file_id}",
+    )
+
+
 def chat_message_out(msg: ChatMessage, viewer: str) -> ChatMessageOut:
-    attachment = None
-    if msg.attachment_type in ("pdf", "image") and msg.attachment_file_id:
-        # 이름이 없는 첨부도 화면에는 무언가 적혀야 한다 — 종류별 기본값을 준다.
-        fallback = (
-            "weekly-report.pdf" if msg.attachment_type == "pdf" else "사진"
-        )
-        attachment = ChatAttachmentOut(
-            type=msg.attachment_type,
-            file_name=msg.attachment_file_name or fallback,
-            file_id=msg.attachment_file_id,
-            file_size=msg.attachment_file_size or 0,
-            download_path=f"/chat/attachments/{msg.attachment_file_id}",
-        )
+    attachment = chat_attachment_out(msg)
     return ChatMessageOut(
         id=msg.id,
         sender=_sender_out(msg.sender, viewer),
@@ -143,18 +148,14 @@ def post_routine_delivery(
     회원에게 안 읽음으로 잡힌다)이다. 알림은 따로 그대로 간다.
 
     본문은 안내 카드를 그리지 못하는 자리(로스터·대화 목록의 마지막 메시지)가
-    읽는 한 줄이고, 카드는 [routine_delivery_json] 으로 두 앱이 화면 언어에
-    맞춰 그린다.
+    읽는 한 줄이고, 카드는 [routine_delivery_json] 으로 두 앱이 직접 그린다.
     """
     names = [*program_names, *routine_names]
     if not names:
         return
     shown = ", ".join(names[:_DELIVERY_CARD_NAMES])
     more = len(names) - _DELIVERY_CARD_NAMES
-    if current_locale() == "en":
-        body = f"Sent a workout: {shown}" + (f" and {more} more" if more > 0 else "")
-    else:
-        body = f"운동을 보냈어요: {shown}" + (f" 외 {more}개" if more > 0 else "")
+    body = f"운동을 보냈어요: {shown}" + (f" 외 {more}개" if more > 0 else "")
     send_message(
         db,
         trainer_id,
@@ -192,7 +193,7 @@ def _existing_message_out(
 ) -> ChatMessageOut:
     if message.body != text:
         raise IdempotencyConflict(
-            "같은 client_request_id에 다른 메시지를 보낼 수 없습니다."
+            "같은 client_request_id에 다른 메시지를 보낼 수 없어요."
         )
     return chat_message_out(message, viewer)
 
@@ -221,43 +222,84 @@ def _schedule_from_chat(
 
     같은 날 같은 시각의 일정이 이미 있으면 아무것도 하지 않는다. 트레이너가
     같은 약속을 두 번 말하는 것은 흔한 일이라, 그때마다 칸이 늘면 일정 화면이
-    중복으로 찬다.
+    중복으로 찬다. 취소·노쇼로 끝난 일정은 그 시간을 차지하지 않으므로 같은 약속을
+    다시 잡는 것을 막지 않는다(#3241).
+
+    다른 일정과 시간이 겹치면 만들지 않는다(#3241) — 일정 화면·예약이 모두 막는
+    이중 예약을 채팅만 지나가게 둘 수 없다. 메시지 전송은 그대로 성공한다: 읽어 낸
+    약속은 덤이고, 겹친 시간은 트레이너가 일정 화면에서 정리한다.
     """
+    # `schedule` 이 이 모듈을 불러 쓰므로 여기서 불러온다.
+    from app.services.trainer import schedule as trainer_schedule_service
+
+    local_sent_at = clock.to_seoul(sent_at)
     parsed = schedule_parse.parse_schedule(
-        text, sent_on=clock.to_seoul(sent_at).date()
+        text, sent_on=local_sent_at.date(), sent_time=local_sent_at.time()
     )
     if parsed is None:
         return
     existing = db.scalar(
-        select(TrainerSchedule).where(
+        select(TrainerSchedule.id).where(
             TrainerSchedule.trainer_id == trainer_id,
             TrainerSchedule.member_id == member_id,
             TrainerSchedule.date == parsed.date,
             TrainerSchedule.time == parsed.time,
+            TrainerSchedule.status.in_(trainer_schedule_service._OCCUPYING_STATUSES),
         )
     )
     if existing is not None:
         return
-    member_name = db.scalar(select(User.name).where(User.id == member_id))
-    db.add(
-        TrainerSchedule(
-            id=f"sched-{uuid.uuid4().hex[:12]}",
-            trainer_id=trainer_id,
-            member_id=member_id,
+    try:
+        trainer_schedule_service.ensure_no_overlap(
+            db,
+            trainer_id,
             date=parsed.date,
             time=parsed.time,
-            client_name=member_name or "",
-            type=PT_SESSION_TYPE,
             duration_minutes=_CHAT_SCHEDULE_MINUTES,
-            status="예정",
-            # 어디서 온 일정인지 남긴다 — 사람이 만든 일정과 섞이면, 잘못
-            # 읽은 약속을 나중에 가려낼 수 없다.
-            note=_CHAT_SCHEDULE_NOTE,
-            program_json="[]",
-            sort_order=0,
+        )
+    except trainer_schedule_service.ScheduleOverlap:
+        return
+    member_name = db.scalar(select(User.name).where(User.id == member_id))
+    # 일정 화면이 일정을 만드는 그 함수로 만든다 — 회원에게 가는 일정 알림
+    # (`member_schedule`)이 같은 문구 틀(날짜·시각·종류)로 함께 얹힌다(#3345).
+    # 예전에는 일정만 만들어, 회원은 메시지 알림만 받고 일정이 생긴 줄 몰랐다 —
+    # 문장을 잘못 읽어 엉뚱한 시각에 잡혀도 운동 탭을 보기 전까지 알 수 없었다.
+    # 알림은 일정이 새로 만들어질 때만 간다: 재전송은 `send_message` 가 여기 오기
+    # 전에 돌려보내고, 같은 약속을 다시 말한 메시지는 위에서 걸러진다.
+    trainer_schedule_service._add_session(
+        db,
+        trainer_id,
+        date=parsed.date,
+        time=parsed.time,
+        client_name=member_name or "",
+        member_id=member_id,
+        type_=PT_SESSION_TYPE,
+        duration_minutes=_CHAT_SCHEDULE_MINUTES,
+        # 어디서 온 일정인지 남긴다 — 사람이 만든 일정과 섞이면, 잘못
+        # 읽은 약속을 나중에 가려낼 수 없다.
+        note=_CHAT_SCHEDULE_NOTE,
+        program_json="[]",
+        client_request_id=None,
+    )
+
+
+def _record_received_report(db: Session, msg: ChatMessage) -> None:
+    """리포트 전송 [msg] 의 회원 쪽 수신 기록을 남긴다. (#3348)
+
+    메시지와 같은 id·같은 시각으로 적는다 — 회원 앱이 여는 `message_id` 가 대화가
+    지워진 뒤에도 같은 전송을 가리키고, 목록의 보낸 시각이 대화와 어긋나지 않는다.
+    """
+    db.add(
+        MemberReceivedReport(
+            id=msg.id,
+            member_id=msg.member_id,
+            trainer_id=msg.trainer_id,
+            week_start=msg.report_week_start or "",
+            body=msg.body,
+            report_snapshot_json=msg.report_snapshot_json,
+            created_at=msg.created_at,
         )
     )
-    db.flush()
 
 
 def send_message(
@@ -269,6 +311,7 @@ def send_message(
     attachment_file_id: str | None = None,
     attachment_file_size: int | None = None,
     report_week_start: str | None = None,
+    report_snapshot: str | None = None,
     emote_id: str | None = None,
     routine_delivery: dict[str, object] | None = None,
     commit: bool = True,
@@ -308,6 +351,8 @@ def send_message(
         # 리포트 전송 안내인가 — 호출자가 정한다. 첨부와 마찬가지로 본문만
         # 보고는 알 수 없고, 리포트는 PDF 없이도 나간다(#1600).
         report_week_start=report_week_start,
+        # 보낸 시점의 리포트 수치(#3349) — 회원이 나중에 열어도 이 값이다.
+        report_snapshot_json=report_snapshot,
         # 이모티콘 메시지(#2020). 본문은 이모티콘을 못 그리는 자리(알림·로스터의
         # 마지막 메시지)가 읽을 글이고, 그림은 이 id 가 고른다.
         emote_id=emote_id,
@@ -333,6 +378,11 @@ def send_message(
             if existing is not None:
                 return _existing_message_out(existing, text=text, viewer=viewer)
         raise
+
+    # 리포트 전송이면 회원 쪽 수신 기록을 같은 트랜잭션에 남긴다(#3348). 대화는
+    # 보낸 트레이너가 탈퇴하면 함께 사라지지만, 받은 리포트는 회원에게 남는다.
+    if sender == "trainer" and report_week_start:
+        _record_received_report(db, msg)
 
     # 전송 안내는 트레이너가 쓴 글이 아니다 — 일정 문구로 읽지 않는다.
     if sender == "trainer" and routine_delivery is None:
@@ -360,24 +410,32 @@ def send_message(
     if notify is not None and sender == "trainer":
         trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
         is_report = notify == notification_service.WEEKLY_REPORT
+        coach_args: dict[str, object] = {
+            "trainer_name": trainer_name or "",
+            "report": is_report,
+            # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
+            # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
+            "photo_only": not text
+            and bool(attachment_file_id)
+            and attachment_type == "image",
+        }
+        if is_report and report_week_start:
+            # 어느 주의 리포트이고 어느 메시지에 실려 왔는지 남긴다(#3344). 회원 앱이
+            # 알림에서 그 리포트를 바로 연다 — 예전에는 대화 맨 아래로만 가서, 그
+            # 뒤로 메시지가 쌓이면 리포트 카드를 찾아 올라가야 했다. 글 메시지의
+            # 인자는 그대로 둔다.
+            coach_args["week_start"] = report_week_start
+            coach_args["message_id"] = msg.id
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notify,
             template=notification_templates.MEMBER_COACH_MESSAGE,
-            template_args={
-                "trainer_name": trainer_name or "",
-                "report": is_report,
-                # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
-                # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
-                "photo_only": not text
-                and bool(attachment_file_id)
-                and attachment_type == "image",
-            },
+            template_args=coach_args,
             body=text,
-            # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다. 목적지는
+            # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다. 목적지 값은
             # 같지만 갈래를 나눠 회원 앱이 리포트를 메시지와 다른 아이콘으로
-            # 그린다(#2085).
+            # 그리고(#2085), 위에서 실은 주·메시지로 리포트를 바로 연다(#3344).
             category=(
                 notification_service.MEMBER_COACH_REPORT
                 if is_report
@@ -408,6 +466,10 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
 
     reader='trainer' → 상대(member)가 보낸 미확인 메시지에 read_at 을 채운다.
     reader='member'  → 상대(trainer)가 보낸 미확인 메시지에 read_at 을 채운다.
+
+    대화를 읽으면 그 대화에서 온 알림도 함께 읽음이 된다 — 트레이너는 그 회원의
+    메시지 알림(#2291), 회원은 메시지·리포트 알림(#3343). 반환값은 메시지 건수만
+    센다.
     """
     other = "member" if reader == "trainer" else "trainer"
     result = db.execute(
@@ -431,6 +493,26 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
                 Notification.user_id == trainer_id,
                 Notification.category == notification_service.TRAINER_MESSAGE_KIND,
                 Notification.subject_id == member_id,
+                Notification.read.is_(False),
+            )
+            .values(read=True)
+        )
+    else:
+        # 회원도 같다(#3343). 트레이너가 메시지를 다섯 번 보내면 알림이 다섯 건
+        # 쌓이는데, 대화를 다 읽어 대화 배지가 꺼져도 종 표시는 그대로 남았다.
+        # 회원의 담당은 한 명이라 보낸 사람을 가리지 않고 갈래 전체를 읽는다 —
+        # 리포트도 대화 스레드로 도착하므로(#2085) 함께 본 것이다. 일정·쿠폰 같은
+        # 다른 갈래는 대화에서 확인한 것이 아니라 건드리지 않는다.
+        db.execute(
+            update(Notification)
+            .where(
+                Notification.user_id == member_id,
+                Notification.category.in_(
+                    (
+                        notification_service.MEMBER_COACH_CHAT,
+                        notification_service.MEMBER_COACH_REPORT,
+                    )
+                ),
                 Notification.read.is_(False),
             )
             .values(read=True)

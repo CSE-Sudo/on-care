@@ -29,7 +29,8 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.week import monday_of
-from app.services import diet_ai_sentence
+from app.db.session import release_connection
+from app.services import diet_ai_sentence, korean_josa
 from app.services import diet_coach_inputs as inputs
 from app.services.diet_advice_copy import SLOT_LABELS_KO, Line, ai_line, line
 from app.services.diet_period_advice import (
@@ -55,7 +56,7 @@ SLOT_SODIUM_SHARE = 0.3
 CARB_HEAVY_PCT = 65
 PROTEIN_LIGHT_PCT = 15
 #: 단백질 목표를 "달성" 으로 볼 비율과, 추세로 말할 최소 차이·반기(2주)별 최소 기록일.
-PROTEIN_MET_RATIO = 0.9
+PROTEIN_MET_RATIO = inputs.COACH_PROTEIN_MET_RATIO
 TREND_MIN_DIFF = 2
 TREND_MIN_DAYS = 3
 #: 자주 먹은 메뉴로 말할 최소 횟수와 이름 길이(카드 45자).
@@ -200,7 +201,8 @@ def frequent(records: dict[date, DayRecord]) -> Finding | None:
     ]
     return Finding(
         "frequent", line("all_frequent_menu", slot=slot, food=name, count=n),
-        f"최근 4주 {SLOT_LABELS_KO[slot]}에 {name}을(를) {n}회 먹었다. 좋아하는 메뉴는 두고 "
+        f"최근 4주 {SLOT_LABELS_KO[slot]}에 {korean_josa.with_particle(name, '을', '를')} {n}회 먹었다. "
+        "좋아하는 메뉴는 두고 "
         "곁들임·양을 바꾸는 대안을 권한다.",
         tuple(samples[:RECORD_LINES]),
     )
@@ -222,8 +224,8 @@ def repeated(records: dict[date, DayRecord]) -> Finding | None:
     )
 
 
-def _last_kind(db: Session, user_id: str, monday: date, lang: str) -> str | None:
-    row = load_state(db, user_id, PERIOD_ALL, (monday - timedelta(days=7)).isoformat(), lang)
+def _last_kind(db: Session, user_id: str, monday: date) -> str | None:
+    row = load_state(db, user_id, PERIOD_ALL, (monday - timedelta(days=7)).isoformat())
     if row is None:
         return None
     try:
@@ -282,7 +284,6 @@ def all_advice(
     db: Session,
     user_id: str,
     *,
-    lang: str = "ko",
     use_llm: bool = True,
     now: datetime | None = None,
 ) -> DietAdvice:
@@ -292,7 +293,7 @@ def all_advice(
     key = monday.isoformat()
     start = today - timedelta(days=WINDOW_DAYS - 1)
 
-    cached = cached_advice(db, user_id, PERIOD_ALL, key, lang, now)
+    cached = cached_advice(db, user_id, PERIOD_ALL, key, now)
     if cached is not None:
         return cached
 
@@ -300,7 +301,7 @@ def all_advice(
     profile = inputs.load_profile(db, user_id)
     targets = inputs.targets_of(profile)
     records, analysis, finding = decide_all(
-        entries, targets, today, _last_kind(db, user_id, monday, lang)
+        entries, targets, today, _last_kind(db, user_id, monday)
     )
     base = dict(period=PERIOD_ALL, from_date=start.isoformat(), to_date=today.isoformat(),
                 days_logged=len(records))
@@ -315,13 +316,16 @@ def all_advice(
     if finding is not None:
         text = None
         if use_llm:
+            notes = inputs.trainer_notes(db, user_id)
+            goal = (profile.conditions if profile else "") or ""
+            # 문장을 기다리는 동안 연결을 쥐지 않는다(#3242). 이번 주 조언과 같다.
+            release_connection(db)
             text = diet_ai_sentence.generate(
-                lang=lang,
                 analysis_text=finding.analysis.text,
                 finding=finding.description,
                 records=list(finding.records),
-                notes=inputs.trainer_notes(db, user_id),
-                goal=(profile.conditions if profile else "") or "",
+                notes=notes,
+                goal=goal,
                 metric="diet_all_advice",
                 task=_TASK,
             )
@@ -331,5 +335,5 @@ def all_advice(
             retry_after = now + RETRY_AFTER
 
     advice = DietAdvice(**base, analysis=analysis, action=action, action_source=source)
-    store_advice(db, user_id, PERIOD_ALL, key, lang, advice, retry_after=retry_after)
+    store_advice(db, user_id, PERIOD_ALL, key, advice, retry_after=retry_after)
     return advice

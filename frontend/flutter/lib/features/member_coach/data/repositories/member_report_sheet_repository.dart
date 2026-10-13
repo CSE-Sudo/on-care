@@ -6,11 +6,16 @@
 /// - 실서버: 트레이너 리포트와 같은 계산을 쓰는 `GET /me/coach/weekly-report` 에서
 ///   그 주와 직전 넉 주를, 회원이 낸 답은 `GET /me/coach/weekly-feedback` 에서,
 ///   여덟 주 운동 추이는 `GET /exercise/weeks` 한 번으로 읽는다.
+///   서버는 **받았거나 산 주만** 연다(#3366). 직전 넉 주는 여는 주를
+///   `compare_for` 로 함께 보내 `4주 평균 대비` 가 쓰는 수치만 받는다.
 /// - 데모: 서버가 없다. 트레이너 웹 데모가 김민수를 그리는 것과 같은 픽스처·같은
 ///   규칙(`demoReportSheetInputs`)으로 세운다 — 두 앱을 나란히 놓고 시연하므로
 ///   각자 세우면 같은 주의 점수가 어긋난다.
 ///
 /// 트레이너만 보는 것(다른 회원·트레이너 메모·자동 초안)은 두 경로 모두 싣지 않는다.
+///
+/// 받았거나 산 주는 서버가 **그때 굳힌 값**을 준다(#3349, 응답의 `snapshot_at`).
+/// 열 때마다 다시 계산하면 보낸 뒤 고친 기록·목표가 지난 리포트를 바꾼다.
 library;
 
 import 'package:demo_fixture/demo_fixture.dart';
@@ -26,16 +31,20 @@ import 'package:oncare_ui/oncare_ui.dart';
 abstract interface class MemberReportSheetRepository {
   /// [weekStart] 가 든 주의 결과지 자료.
   ///
-  /// [languageCode] 는 데모 자료의 회원 답(한 줄 피드백)을 고르는 데 쓴다 — 실서버
-  /// 자료는 회원이 적은 그대로라 언어와 무관하다. [goals] 는 회원이 MY 에서 정한
-  /// 주간 운동 목표다.
+  /// [goals] 는 회원이 MY 에서 정한 주간 운동 목표다.
   ///
   /// 그 주 자체를 읽지 못하면 던진다. 답·추이·직전 주는 못 읽어도 던지지 않고
   /// 그 칸만 `미응답`·`불러올 수 없음`·`미집계` 로 선다 — 트레이너 웹과 같다.
+  ///
+  /// [messageId] 는 트레이너가 보낸 리포트를 열 때 그 전송 메시지다(#3349). 같은
+  /// 주를 두 번 받았어도 누른 전송이 굳힌 값이 열린다. 포인트로 받은 리포트는
+  /// 비운다.
+  ///
+  /// 받지도 사지도 않은 주면 [ForbiddenError] 를 던진다(#3366).
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     ReportSheetGoals goals,
+    String? messageId,
   });
 }
 
@@ -56,8 +65,8 @@ class DioMemberReportSheetRepository implements MemberReportSheetRepository {
   @override
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     ReportSheetGoals goals = const ReportSheetGoals(),
+    String? messageId,
   }) async {
     final DateTime monday = reportWeekStartOf(weekStart);
     final DateTime today = _now();
@@ -72,37 +81,70 @@ class DioMemberReportSheetRepository implements MemberReportSheetRepository {
             _week(
               DateTime(monday.year, monday.month, monday.day - back * 7),
               today,
+              // 직전 주는 여는 주의 비교 칸이 읽는 것이다 — 그 주 자체를 받지
+              // 않았어도 서버가 비교용 수치를 준다(#3366).
+              compareFor: monday,
             ).then<ReportSheetWeek?>(
-              (ReportSheetWeekData w) => w,
+              (_Week w) => w.data,
               onError: (Object _) => null,
             ),
         ]);
-    final ReportSheetWeekData week = await _week(monday, today);
+    final _Week week = await _week(monday, today, messageId: messageId);
     return ReportSheetInputs(
-      week: week.withAnswers(await answers),
+      week: week.data.withAnswers(await answers),
       trend: await trend,
       history: <ReportSheetWeek>[
         for (final ReportSheetWeek? w in await history) ?w,
       ],
+      asOf: week.asOf,
     );
   }
 
-  Future<ReportSheetWeekData> _week(DateTime monday, DateTime today) async {
+  /// [monday] 주 한 건. 굳힌 값이면 [_Week.asOf] 에 그 시각이 온다.
+  ///
+  /// 이번 주인지는 굳힌 시각으로 가른다(#3349) — 수요일에 받은 진행 중인 주를
+  /// 다음 주에 열어도 목·금·토·일은 "아직 오지 않은 날" 이다. 지금을 기준으로
+  /// 읽으면 그 나흘이 기록하지 않은 날로 선다. 직전 주들은 [messageId] 없이
+  /// 묻고, 서버가 그 주가 끝난 뒤에 굳힌 값만 준다.
+  ///
+  /// [compareFor] 를 주면 그 주 결과지의 비교용으로 읽는다 — 응답에는 비교가
+  /// 쓰는 수치만 실린다(#3366).
+  Future<_Week> _week(
+    DateTime monday,
+    DateTime today, {
+    String? messageId,
+    DateTime? compareFor,
+  }) async {
     try {
       final Response<Map<String, dynamic>> res = await _dio
           .get<Map<String, dynamic>>(
             '/me/coach/weekly-report',
-            queryParameters: <String, Object?>{'week_start': wireDate(monday)},
+            queryParameters: <String, Object?>{
+              'week_start': wireDate(monday),
+              'message_id': ?messageId,
+              if (compareFor != null) 'compare_for': wireDate(compareFor),
+            },
           );
       final Map<String, dynamic>? data = res.data;
       if (data == null) throw const FormatException('Missing weekly report.');
-      return reportSheetWeekFromJson(data, today: today);
+      final DateTime? asOf = _snapshotAt(data['snapshot_at']);
+      return (
+        data: reportSheetWeekFromJson(data, today: asOf ?? today),
+        asOf: asOf,
+      );
     } on DioException catch (e) {
       throw AppError.fromDio(e);
     }
   }
 
-  /// 회원이 그 주에 낸 답. 담당 트레이너가 없으면(404) 답도 없다.
+  /// 응답의 `snapshot_at` 을 KST 벽시계로. 없거나 모르는 모양이면 null(지금 값).
+  static DateTime? _snapshotAt(Object? raw) {
+    final DateTime? parsed = DateTime.tryParse(raw is String ? raw : '');
+    return parsed == null ? null : toKst(parsed);
+  }
+
+  /// 회원이 그 주에 낸 답. 담당 트레이너가 없어도 서버는 200(`submitted=false`)
+  /// 으로 답한다 — 읽지 못했을 때만 답이 없는 것으로 본다.
   Future<ReportSheetAnswers?> _answers(DateTime monday) async {
     try {
       final Response<Map<String, dynamic>> res = await _dio
@@ -146,31 +188,54 @@ class DioMemberReportSheetRepository implements MemberReportSheetRepository {
   }
 }
 
+/// 한 주의 자료와, 굳힌 값이면 그 시각.
+typedef _Week = ({ReportSheetWeekData data, DateTime? asOf});
+
+/// 회원이 [monday] 주 리포트를 열 수 있는가 — 받았거나 샀다. (#3366)
+typedef ReportWeekGate = Future<bool> Function(DateTime monday);
+
 /// 데모 경로 — 트레이너 웹 데모와 같은 픽스처·같은 규칙.
+///
+/// 픽스처는 날마다 같은 값이라 굳힐 것이 없다 — [fetch] 의 `messageId` 는 읽지
+/// 않는다.
 class DemoMemberReportSheetRepository implements MemberReportSheetRepository {
   /// Creates the repository.
+  ///
+  /// [canOpen] 은 서버의 열람 판정(`weekly_report_access.can_open`)의 대역이다 —
+  /// 데모 대화가 받은 주와 데모 원장이 산 주만 연다. 주지 않으면 판정 없이 세운다
+  /// (픽스처 값만 보는 테스트).
   DemoMemberReportSheetRepository({
     DemoFixture? fixture,
     DateTime Function() now = nowKst,
+    ReportWeekGate? canOpen,
   }) : _fixture = fixture,
-       _now = now;
+       _now = now,
+       _canOpen = canOpen;
 
   final DemoFixture? _fixture;
   final DateTime Function() _now;
+  final ReportWeekGate? _canOpen;
 
   @override
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     // 데모 목표는 트레이너 웹 데모의 김민수 목표(`kDemoReportGoals`)다. 회원
     // 앱 MY 의 목표로 바꾸면 두 앱의 달성률이 어긋난다.
     ReportSheetGoals goals = const ReportSheetGoals(),
-  }) async => demoReportSheetInputs(
-    fixture: _fixture ?? DemoFixture.load(),
-    weekStart: reportWeekStartOf(weekStart),
-    now: _now(),
-    languageCode: languageCode,
-  );
+    String? messageId,
+  }) async {
+    final DateTime monday = reportWeekStartOf(weekStart);
+    final ReportWeekGate? canOpen = _canOpen;
+    // 서버와 같은 응답이다 — 받지도 사지도 않은 주는 403.
+    if (canOpen != null && !await canOpen(monday)) {
+      throw const ForbiddenError(detail: '아직 받지 않은 주간 리포트예요.');
+    }
+    return demoReportSheetInputs(
+      fixture: _fixture ?? DemoFixture.load(),
+      weekStart: monday,
+      now: _now(),
+    );
+  }
 }
 
 /// [monday] 로 끝나는 [kReportSheetTrendWeeks] 개의 월요일(오래된 주 → 그 주).

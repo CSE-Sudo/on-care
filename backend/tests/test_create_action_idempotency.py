@@ -425,7 +425,7 @@ def test_concurrent_same_key_creates_one_row(client, db_session, operation):
     expected_body = (
         chat_body
         if operation == "chat"
-        else f"2026-12-31 16:00 · {schedule_type}"
+        else f"12월 31일 16:00 · {schedule_type}"
     )
     expected_user = TRAINER if operation == "chat" else MEMBER
     assert (

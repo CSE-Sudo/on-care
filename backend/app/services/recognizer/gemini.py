@@ -24,7 +24,6 @@ from app.services import ai_call_quota
 from app.services.coach.llm import gemini_truncated
 from app.services.coach.llm_base import output_cap
 from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
-from app.services.recognizer.locale_prompt import localized_prompt
 from app.services.recognizer.parse import parse_payload
 
 _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
@@ -74,8 +73,7 @@ class GeminiVisionRecognizer(FoodRecognizer):
         self._model = settings.gemini_model
 
     async def recognize(self, image_bytes: bytes, mime_type: str) -> DietAnalysis:
-        # 요청 언어는 컨텍스트 변수라 작업 스레드로 넘기기 전에 고른다. (#2850)
-        prompt = localized_prompt(_PROMPT)
+        prompt = _PROMPT
         # 서버 전체 하루 상한(#3032). 사진 분석은 규칙형 대안이 없어, 넘으면 라우터가
         # 503 `ai_capacity` 로 답하고 회원의 하루 몫을 돌려준다.
         await asyncio.to_thread(ai_call_quota.acquire, ai_call_quota.FEATURE_DIET_PHOTO)

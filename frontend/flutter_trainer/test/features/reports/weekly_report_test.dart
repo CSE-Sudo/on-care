@@ -3,7 +3,6 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/client_factory.dart';
@@ -159,7 +158,7 @@ void main() {
       );
 
       final message = reportMessage(_ko, report);
-      expect(message, isNot(contains('이행률')));
+      expect(message, isNot(contains('완료율')));
       expect(message, isNot(contains('나트륨')));
     });
 
@@ -218,17 +217,7 @@ void main() {
       expect(workoutLine(_ko, 80), startsWith('운동은 평균 80%로 잘 따라오셨어요.'));
       expect(workoutLine(_ko, 75), startsWith('운동은 평균 75%로 꾸준히 해 주셨어요.'));
       expect(workoutLine(_ko, 60), startsWith('운동은 평균 60%로 꾸준히 해 주셨어요.'));
-      expect(workoutLine(_ko, 59), startsWith('운동 이행률은 평균 59%였어요.'));
-    });
-
-    test('영어도 같은 세 구간으로 말한다', () {
-      final AppLocalizationsEn en = AppLocalizationsEn();
-      expect(workoutLine(en, 85), startsWith('You kept up well'));
-      expect(workoutLine(en, 70), startsWith('You stayed steady — 70%'));
-      expect(
-        workoutLine(en, 40),
-        startsWith('Workout completion came in at 40%'),
-      );
+      expect(workoutLine(_ko, 59), startsWith('운동 완료율은 평균 59%였어요.'));
     });
   });
 
@@ -311,7 +300,7 @@ void main() {
       );
 
       final message = reportMessage(_ko, report);
-      expect(message, isNot(contains('이행률')));
+      expect(message, isNot(contains('완료율')));
       expect(message, isNot(contains('나트륨')));
     });
   });

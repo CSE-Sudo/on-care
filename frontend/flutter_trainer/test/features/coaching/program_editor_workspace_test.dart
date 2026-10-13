@@ -15,7 +15,6 @@ import '../../helpers/fixed_clock.dart';
 
 /// 한국어 문구 — 지표 요약의 단위는 ARB 가 정한다 (#2304).
 final AppLocalizations _ko = lookupAppLocalizations(const Locale('ko'));
-final AppLocalizations _en = lookupAppLocalizations(const Locale('en'));
 
 void main() {
   const duplicateSuggestions = <AiRoutineItem>[
@@ -640,10 +639,8 @@ void main() {
         find
             .descendant(
               of: timeChip,
-              matching: find.text(
-                '${const TimeOfDay(hour: 10, minute: 0).format(tester.element(timeChip))} – '
-                '${const TimeOfDay(hour: 11, minute: 0).format(tester.element(timeChip))}',
-              ),
+              // 시각은 24시간제(#3120).
+              matching: find.text('10:00 – 11:00'),
             )
             .evaluate()
             .isNotEmpty,
@@ -726,6 +723,25 @@ void main() {
       }
     });
 
+    test('버티는 운동은 횟수 대신 초를 보여준다 (#3247)', () {
+      // 나가는 값은 `hold_seconds` 뿐이다 — 화면에 `10회` 가 뜨면 본 것과
+      // 나간 것이 다르다.
+      expect(
+        programExerciseMetrics(
+          _ko,
+          nonStrength.copyWith(
+            type: '근력',
+            sets: 3,
+            reps: 10,
+            holdSeconds: 45,
+            isHold: true,
+            weight: 0,
+          ),
+        ),
+        <String>['3세트', '45초'],
+      );
+    });
+
     test('근력이면 세트와 중량을 보여준다', () {
       final metrics = programExerciseMetrics(
         _ko,
@@ -735,8 +751,8 @@ void main() {
       expect(metrics, contains('60kg'));
     });
 
-    // 예전에는 `korean ?` 분기로 두 언어를 코드에 박아 두었다 (#2304).
-    test('한국어 — 세트·횟수·분 단위가 ARB 문구다', () {
+    // 예전에는 단위 문구를 코드에 박아 두었다 (#2304).
+    test('세트·횟수·분 단위가 ARB 문구다', () {
       expect(
         programExerciseMetrics(
           _ko,
@@ -745,31 +761,6 @@ void main() {
         <String>['1세트', '12회'],
       );
       expect(programExerciseMetrics(_ko, nonStrength), <String>['20분']);
-    });
-
-    test('영어 — 단수·복수를 가려 한글이 남지 않는다', () {
-      expect(
-        programExerciseMetrics(
-          _en,
-          nonStrength.copyWith(type: '근력', sets: 1, reps: 1, weight: 22.5),
-        ),
-        <String>['1 set', '1 rep', '22.5kg'],
-      );
-      expect(
-        programExerciseMetrics(
-          _en,
-          nonStrength.copyWith(type: '근력', sets: 4, reps: 12, weight: 60),
-        ),
-        <String>['4 sets', '12 reps', '60kg'],
-      );
-      expect(programExerciseMetrics(_en, nonStrength), <String>['20 min']);
-      for (final type in <String>['스트레칭', '기타']) {
-        expect(
-          programExerciseMetrics(_en, nonStrength.copyWith(type: type)),
-          <String>['20 min'],
-          reason: type,
-        );
-      }
     });
 
     // 분 한 칸이던 동안에는 45초를 적을 수 없었고 1시간 반은 `90분` 이었다
@@ -788,16 +779,15 @@ void main() {
       );
       expect(
         programExerciseMetrics(
-          _en,
+          _ko,
           nonStrength.copyWith(durationSeconds: 5415),
         ),
-        <String>['1 hr 30 min 15 sec'],
+        <String>['1시간 30분 15초'],
       );
     });
 
-    test('횟수가 0이면 횟수 칸을 빼는 것은 두 언어가 같다', () {
+    test('횟수가 0이면 횟수 칸을 뺀다', () {
       final draft = nonStrength.copyWith(type: '근력', sets: 3, reps: 0);
-      expect(programExerciseMetrics(_en, draft), <String>['3 sets', '20kg']);
       expect(programExerciseMetrics(_ko, draft), <String>['3세트', '20kg']);
     });
   });
@@ -1095,6 +1085,53 @@ void main() {
         (exercise) => exercise.name == '스쿼트',
       );
       expect(squat.durationSeconds, 80 * 60);
+    });
+
+    testWidgets('근력 운동을 초로 바꿔 버티는 시간을 고칠 수 있다 (#3247)', (tester) async {
+      await pumpEditor(tester);
+      await mergeSuggestions(tester);
+
+      await chooseExerciseAction(tester, 'exercise-2', '수정');
+      // 회로 열린다 — 횟수 칸이 있고 초 칸은 없다.
+      expect(
+        find.byKey(const ValueKey<String>('exercise-2-reps-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('exercise-2-hold-field')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('exercise-2-measure-seconds')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('exercise-2-reps-field')),
+        findsNothing,
+      );
+      final holdField = find.byKey(
+        const ValueKey<String>('exercise-2-hold-field'),
+      );
+      expect(holdField, findsOneWidget);
+
+      await tester.enterText(holdField, '45');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('program-editor-send')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('program-editor-send')),
+      );
+      await tester.pump();
+
+      final squat = sent!.sessions.single.exercises.firstWhere(
+        (exercise) => exercise.name == '스쿼트',
+      );
+      expect(squat.isHold, isTrue);
+      expect(squat.holdSeconds, 45);
     });
 
     testWidgets('이름이 비면 추가되지 않는다', (tester) async {

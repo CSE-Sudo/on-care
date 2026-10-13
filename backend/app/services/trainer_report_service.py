@@ -75,7 +75,7 @@ def create_report(
     """회원이 트레이너를 신고한다."""
     trainer = db.get(User, trainer_id)
     if trainer is None or trainer.role != "trainer":
-        raise TrainerNotFound("트레이너를 찾을 수 없습니다.")
+        raise TrainerNotFound("트레이너를 찾을 수 없어요.")
     if _has_open(db, trainer_id, reporter_id):
         raise ReportAlreadyOpen("이미 신고한 트레이너예요. 운영자가 확인하고 있어요.")
 
@@ -138,10 +138,10 @@ def close_report(
         .where(TrainerReport.id == report_id)
     ).first()
     if row is None:
-        raise ReportNotFound("신고를 찾을 수 없습니다.")
+        raise ReportNotFound("신고를 찾을 수 없어요.")
     report, trainer = row
     if report.status != OPEN:
-        raise ReportAlreadyClosed("이미 처리한 신고입니다.")
+        raise ReportAlreadyClosed("이미 처리한 신고예요.")
     report.status = RESOLVED if outcome == RESOLVED else DISMISSED
     report.resolved_at = _now()
     report.resolved_by = admin_id

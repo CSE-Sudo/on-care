@@ -234,22 +234,17 @@ class _RealClientRepository implements ClientRepository {
   @override
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period, {
-    required Locale locale,
-  }) async => ClientDietAnalysis.empty;
+    ClientPeriod period) async => ClientDietAnalysis.empty;
 
   @override
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  }) async => const ClientDietRecommendations();
+    String clientId) async => const ClientDietRecommendations();
 
   @override
   Future<ClientDietRecommendations> confirmDietRecommendation(
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   }) async => const ClientDietRecommendations();
 
   @override
@@ -437,6 +432,7 @@ class _RealAuthRepository implements TrainerAuthRepository {
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async => _tokens;
 
@@ -806,7 +802,7 @@ void main() {
         _Stage(_stay, <ParityEntry>[
           ParityEntry('담당 회원 타일', (l) => find.text(l.dashMyClients)),
           ParityEntry('메시지 타일', (l) => find.text(l.dashMessages)),
-          ParityEntry('주의 회원 타일', (l) => find.text(l.dashAttentionClients)),
+          ParityEntry('관리 필요 타일', (l) => find.text(l.dashAttentionClients)),
           ParityEntry('이탈 위험 타일', (l) => find.text(l.dashChurnRisk)),
           ParityEntry('오늘 일정', (_) => _keyPrefix('dashboard-schedule-')),
           ParityEntry('AI 요약 바로가기', (_) => _keyPrefix('ai-summary-cta-')),
@@ -889,7 +885,6 @@ void main() {
             'profile',
             'clients',
             'notifications',
-            'language',
             'account',
             'support',
           ])

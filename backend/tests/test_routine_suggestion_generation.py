@@ -174,7 +174,7 @@ def test_evidence_does_not_carry_the_trainer_note_verbatim(client, fresh):
     """PT 노트는 트레이너가 자신을 위해 쓴 글이고, 승인하면 이유는 회원이 읽는다."""
     rows = _review_list(client, fresh)
 
-    # 시드 PT 노트("데드리프트 자세 안정적. 다음 세션 60kg 도전.")의 특징적인
+    # 시드 PT 노트("데드리프트 자세 안정적. 다음 PT 60kg 도전.")의 특징적인
     # 조각이 회원용 문구나 근거로 새지 않아야 한다.
     for row in rows:
         assert "데드리프트" not in row["reason"]

@@ -4,9 +4,9 @@
 /// 보려면 그 주의 메시지까지 스크롤을 올려야 한다. MY 에 줄을 하나 두어
 /// 목록으로 가게 한다.
 ///
-/// 단, **담당 트레이너가 있는 회원에게만** 보인다. 담당이 없는 회원에게 이
-/// 줄은 눌러도 늘 비어 있는 화면이고, 그건 없는 기능을 있는 것처럼 보이게
-/// 하는 것이다.
+/// 단, **담당 트레이너가 있거나 받은 리포트가 남아 있는 회원에게만** 보인다
+/// (#3348). 담당도 받은 리포트도 없는 회원에게 이 줄은 눌러도 늘 비어 있는
+/// 화면이고, 그건 없는 기능을 있는 것처럼 보이게 하는 것이다.
 library;
 
 import 'package:flutter/material.dart';
@@ -18,6 +18,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
@@ -40,7 +41,10 @@ Future<void> _pumpMy(
   final GoRouter router = GoRouter(
     initialLocation: AppRoutes.myHealth,
     routes: <RouteBase>[
-      GoRoute(path: AppRoutes.myHealth, builder: (_, _) => const MyHealthPage()),
+      GoRoute(
+        path: AppRoutes.myHealth,
+        builder: (_, _) => const MyHealthPage(),
+      ),
       GoRoute(
         path: AppRoutes.myCoachReports,
         builder: (_, _) => const Scaffold(body: Center(child: Text('리포트 목록'))),
@@ -77,7 +81,7 @@ void main() {
     await _pumpMy(tester, repository: FakeMemberCoachRepository());
 
     expect(find.byKey(_entry), findsOneWidget);
-    expect(find.text('트레이너 리포트'), findsOneWidget);
+    expect(find.text('주간 리포트'), findsOneWidget);
   });
 
   testWidgets('무엇이 있는 줄인지 한 줄로 말한다', (tester) async {
@@ -90,7 +94,44 @@ void main() {
     await _pumpMy(tester, repository: FakeMemberCoachRepository(coach: null));
 
     expect(find.byKey(_entry), findsNothing);
-    expect(find.text('트레이너 리포트'), findsNothing);
+    expect(find.text('주간 리포트'), findsNothing);
+  });
+
+  // 해제·교체 뒤에도 받은 리포트는 남는다(#3348). 입구가 사라지면 받은 리포트로
+  // 갈 길도, 리포트 알림이 데려올 자리도 없다.
+  testWidgets('담당이 없어도 받은 리포트가 있으면 선다', (tester) async {
+    await _pumpMy(
+      tester,
+      repository: FakeMemberCoachRepository(
+        coach: null,
+        chat: <CoachMessage>[reportNotice(DateTime(2026, 8, 10))],
+      ),
+    );
+
+    expect(find.byKey(_entry), findsOneWidget);
+  });
+
+  testWidgets('담당이 없는 회원도 그 줄로 목록에 간다', (tester) async {
+    await _pumpMy(
+      tester,
+      repository: FakeMemberCoachRepository(
+        coach: null,
+        chat: <CoachMessage>[reportNotice(DateTime(2026, 8, 10))],
+      ),
+    );
+
+    await tester.tap(find.byKey(_entry));
+    await tester.pumpAndSettle();
+
+    expect(find.text('리포트 목록'), findsOneWidget);
+  });
+
+  testWidgets('담당이 있는 회원은 입구를 세우려고 목록을 미리 읽지 않는다', (tester) async {
+    final FakeMemberCoachRepository repository = FakeMemberCoachRepository();
+    await _pumpMy(tester, repository: repository);
+
+    expect(find.byKey(_entry), findsOneWidget);
+    expect(repository.reportCursors, isEmpty);
   });
 
   testWidgets('누르면 리포트 목록으로 간다', (tester) async {
@@ -100,12 +141,5 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('리포트 목록'), findsOneWidget);
-  });
-
-  testWidgets('영어에서도 번역되어 있다', (tester) async {
-    await _pumpMy(tester, repository: FakeMemberCoachRepository(), locale: 'en');
-
-    expect(find.text('Trainer reports'), findsOneWidget);
-    expect(find.text('Reports you received and feedback you sent'), findsOneWidget);
   });
 }

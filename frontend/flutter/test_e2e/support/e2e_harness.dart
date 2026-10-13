@@ -904,7 +904,7 @@ Future<void> submitConsultation(
       of: find.byKey(const Key('consult-form')),
       matching: find.byType(AppLoading),
     ),
-    step: '예약 가능한 시간 불러오기',
+    step: '예약 가능 시간 불러오기',
   );
   for (final String key in <String>[
     'consult-slots-empty',
@@ -939,4 +939,47 @@ Future<void> openGymTab(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey<String>('exercise-subtab-1')));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
+  await dismissLocationConsentSheet(tester);
+}
+
+/// 헬스장 찾기 첫 진입의 위치정보 이용 동의 시트를 **거부**로 닫는다(#3136).
+///
+/// 위치 동의가 없는 새 회원이 찾기 화면을 처음 열면 시트가 한 번 뜬다. 상담
+/// 흐름은 위치와 무관하므로 거부하고(기본 위치로 계속 쓸 수 있다) 그 아래 화면을
+/// 이어서 다룬다. 연결된 헬스장이 있어 찾기 화면이 아니면 아무것도 하지 않는다.
+Future<void> dismissLocationConsentSheet(WidgetTester tester) async {
+  final Finder finder = find.byType(GymFinderView);
+  final Finder sheet = find.byKey(
+    const ValueKey<String>('location-consent-sheet'),
+  );
+  // 시트는 서버에서 동의 상태를 읽은 뒤에 뜬다 — 잠깐 기다려 본다. 찾기 화면이
+  // 끝내 보이지 않으면(연결된 헬스장 화면) 일찍 빠진다.
+  final DateTime start = DateTime.now();
+  while (sheet.evaluate().isEmpty) {
+    final Duration waited = DateTime.now().difference(start);
+    if (waited > const Duration(seconds: 6)) break;
+    if (waited > const Duration(seconds: 2) && finder.evaluate().isEmpty) {
+      break;
+    }
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  if (sheet.evaluate().isEmpty) return;
+  // 시트는 아래에서 올라온다. 다 올라오기 전에 누르면 버튼이 화면 밖이라 그
+  // 자리의 다른 위젯이 눌린다 — 버튼이 화면 안에 들어올 때까지 돌린다.
+  final Finder decline = find.byKey(
+    const ValueKey<String>('location-consent-decline'),
+  );
+  final double screenHeight =
+      tester.view.physicalSize.height / tester.view.devicePixelRatio;
+  final DateTime settleBy = DateTime.now().add(const Duration(seconds: 5));
+  while (DateTime.now().isBefore(settleBy) &&
+      (decline.evaluate().isEmpty ||
+          tester.getRect(decline).bottom > screenHeight)) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.tap(decline);
+  // 지도 화면은 settle 하지 않을 수 있어 시트가 닫히는 시간만큼만 돌린다.
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
 }

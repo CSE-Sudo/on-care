@@ -6,6 +6,8 @@
 /// 고른 것마다 탈퇴 말고 무엇으로 풀리는지 답한다.
 library;
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,6 +46,9 @@ class _CountingAccountRepository extends MockAccountRepository {
   int deletes = 0;
   List<String> lastReasons = const <String>[];
 
+  /// 채워 두면 탈퇴 요청이 이것이 끝날 때까지 서버에 머문다(#3245).
+  Completer<void>? gate;
+
   @override
   Future<void> deleteAccount({
     List<String> reasons = const <String>[],
@@ -51,6 +56,7 @@ class _CountingAccountRepository extends MockAccountRepository {
   }) async {
     deletes++;
     lastReasons = reasons;
+    await gate?.future;
     if (fails) throw Exception('offline');
     // 본인 확인 판정은 대역의 것 그대로다 — 틀리면 400 처럼 거절한다.
     await super.deleteAccount(reasons: reasons, reauth: reauth);
@@ -106,7 +112,6 @@ Future<(AppLocalizations, _CountingAccountRepository, AppPrefs)> _pumpWithdraw(
   SharedPreferences.setMockInitialValues(<String, Object>{
     'onboarding_done': true,
     'home_guide_done': true,
-    'locale_code': 'ko',
   });
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   final _CountingAccountRepository repository = hasPassword
@@ -314,8 +319,67 @@ void main() {
     expect(repo.lastReauth?.socialToken, isNull);
     expect(prefs.onboardingDone, isFalse);
     expect(prefs.homeGuideDone, isFalse);
-    // 언어는 기기 설정이라 남는다.
-    expect(prefs.localeCode, 'ko');
+    expect(find.text('로그인 화면'), findsOneWidget);
+  });
+
+  testWidgets('탈퇴 요청이 도는 동안에는 바깥·뒤로 가기로 창이 닫히지 않는다 (#3245)', (
+    WidgetTester tester,
+  ) async {
+    final (
+      AppLocalizations l,
+      _CountingAccountRepository repo,
+      AppPrefs prefs,
+    ) = await _pumpWithdraw(
+      tester,
+    );
+    await _openWithdraw(tester, l);
+    await _reachConfirm(tester);
+    repo.gate = Completer<void>();
+    await _confirmWithPassword(tester);
+    await tester.pump();
+
+    // 바깥을 누르고, 뒤로 가기를 보낸다.
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(AccountReauthDialog), findsOneWidget);
+
+    repo.gate!.complete();
+    await _settleDeletion(tester);
+
+    expect(repo.deletes, 1);
+    expect(prefs.onboardingDone, isFalse);
+    expect(find.text('로그인 화면'), findsOneWidget);
+  });
+
+  testWidgets('요청 중 창이 다른 길로 닫혀도 탈퇴가 끝나면 로그아웃한다 (#3245)', (
+    WidgetTester tester,
+  ) async {
+    final (
+      AppLocalizations l,
+      _CountingAccountRepository repo,
+      AppPrefs prefs,
+    ) = await _pumpWithdraw(
+      tester,
+    );
+    await _openWithdraw(tester, l);
+    await _reachConfirm(tester);
+    repo.gate = Completer<void>();
+    await _confirmWithPassword(tester);
+    await tester.pump();
+
+    // 창만 걷어 낸다 — 결과 없이 닫히면 부른 쪽은 `취소` 로 받는다.
+    Navigator.of(tester.element(find.byType(AccountReauthDialog))).pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(AccountReauthDialog), findsNothing);
+    expect(find.byType(WithdrawPage), findsOneWidget);
+
+    repo.gate!.complete();
+    await _settleDeletion(tester);
+
+    expect(repo.deletes, 1);
+    expect(prefs.onboardingDone, isFalse);
     expect(find.text('로그인 화면'), findsOneWidget);
   });
 
@@ -487,6 +551,31 @@ void main() {
       expect(repo.deletes, 0);
     });
 
+    testWidgets('트레이너가 잡은 PT 일정이 있으면 취소될 수를 한 줄로 말한다 (#3341)', (
+      WidgetTester tester,
+    ) async {
+      final (
+        AppLocalizations l,
+        _CountingAccountRepository repo,
+        _,
+      ) = await _pumpWithdraw(
+        tester,
+        preview: () async => const AccountDeletionPreview(upcomingSessions: 3),
+      );
+      await _openWithdraw(tester, l);
+      await _reachConfirm(tester);
+
+      expect(find.byType(AppDialog), findsOneWidget);
+      final String message = withdrawConfirmMessage(
+        l,
+        const AccountDeletionPreview(upcomingSessions: 3),
+      );
+      expect(find.text(message), findsOneWidget);
+      expect(message, endsWith(l.myWithdrawCancelSessions(3)));
+      expect(message, isNot(contains(l.myWithdrawCancelReservations(0))));
+      expect(repo.deletes, 0);
+    });
+
     testWidgets('잃는 것이 없으면 기본 문구만 띄운다', (WidgetTester tester) async {
       final (AppLocalizations l, _, _) = await _pumpWithdraw(tester);
       await _openWithdraw(tester, l);
@@ -516,25 +605,6 @@ void main() {
       expect(repo.deletes, 1);
     });
 
-    testWidgets('영어 로케일에서도 숫자 줄이 붙는다', (WidgetTester tester) async {
-      final (AppLocalizations l, _, _) = await _pumpWithdraw(
-        tester,
-        locale: const Locale('en'),
-        preview: () async =>
-            const AccountDeletionPreview(points: 300, pendingConsultations: 1),
-      );
-      await _openWithdraw(tester, l);
-      await _reachConfirm(tester);
-
-      final String message = withdrawConfirmMessage(
-        l,
-        const AccountDeletionPreview(points: 300, pendingConsultations: 1),
-      );
-      expect(find.text(message), findsOneWidget);
-      expect(message, contains('300P'));
-      expect(message, contains(l.myWithdrawCancelConsultations(1)));
-    });
-
     testWidgets('작은 화면에서도 확인창이 넘치지 않는다', (WidgetTester tester) async {
       final (AppLocalizations l, _, _) = await _pumpWithdraw(
         tester,
@@ -543,6 +613,7 @@ void main() {
           points: 125000,
           activeCoupons: 12,
           upcomingReservations: 4,
+          upcomingSessions: 16,
           pendingConsultations: 3,
         ),
       );

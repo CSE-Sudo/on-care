@@ -1,9 +1,5 @@
-import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
-import 'package:oncare_trainer/features/reports/domain/weekly_report.dart'
-    show withParticle;
-import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
 import '../../helpers/shared_rule_vectors.dart';
 
@@ -16,8 +12,6 @@ void main() {
     loadSharedRuleVectors('korean_josa'),
     'cases',
   );
-  final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   group('공용 규칙 — 서버 korean_josa 와 같은 답', () {
     for (final Map<String, Object?> c in cases) {
@@ -27,8 +21,8 @@ void main() {
         expect(endsWithHangul(word), c['ends_with_hangul']);
         expect(withObjectJosa(word), '$word${c['obj']}');
         expect(withTopicJosa(word), '$word${c['topic']}');
-        expect(withParticle(ko, word, '이', '가'), '$word${c['subj']}');
-        expect(withParticle(ko, word, '으로', '로'), '$word${c['dir']}');
+        expect(withJosa(word, '이', '가'), '$word${c['subj']}');
+        expect(withJosa(word, '으로', '로'), '$word${c['dir']}');
       });
     }
   });
@@ -39,12 +33,8 @@ void main() {
   });
 
   test('받침 ㄹ 뒤 으로는 로다', () {
-    expect(withParticle(ko, '3일', '으로', '로'), '3일로');
-    expect(withParticle(ko, '덤벨 컬', '으로', '로'), '덤벨 컬로');
-    expect(withParticle(ko, '코어 스트레칭', '으로', '로'), '코어 스트레칭으로');
-  });
-
-  test('영어에는 조사를 붙이지 않는다', () {
-    expect(withParticle(en, 'Squat', '을', '를'), 'Squat');
+    expect(withJosa('3일', '으로', '로'), '3일로');
+    expect(withJosa('덤벨 컬', '으로', '로'), '덤벨 컬로');
+    expect(withJosa('코어 스트레칭', '으로', '로'), '코어 스트레칭으로');
   });
 }

@@ -58,13 +58,13 @@ for app in flutter flutter_trainer; do
   expect "$app 목업 빌드 좁히기" pass bash "$script" narrow "$work/$app-mock.html"
   expect "$app 목업 빌드 확인" pass bash "$script" check "$work/$app-mock.html"
   contains "$app 목업 connect-src" "$work/$app-mock.html" \
-    "connect-src 'self' https://www.gstatic.com https://fonts.gstatic.com https://dapi.kakao.com;"
+    "connect-src 'self' blob: https://www.gstatic.com https://fonts.gstatic.com https://dapi.kakao.com https://accounts.google.com/gsi/;"
   lacks "$app 목업에 localhost 없음" "$work/$app-mock.html" "localhost"
   lacks "$app 목업에 127.0.0.1 없음" "$work/$app-mock.html" "127.0.0.1"
   # 다른 지시어(img-src·media-src 의 https:)는 그대로다.
   contains "$app img-src 유지" "$work/$app-mock.html" "img-src 'self' data: blob: https:;"
   contains "$app script-src 유지" "$work/$app-mock.html" \
-    "script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net;"
+    "script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net https://t1.kakaocdn.net https://accounts.google.com/gsi/client;"
   # meta 밖 본문은 바뀌지 않는다(바뀐 줄은 CSP 한 줄뿐).
   changed=$(diff "$src" "$work/$app-mock.html" | grep -c '^>' || true)
   if [ "$changed" = 1 ]; then
@@ -81,7 +81,7 @@ for app in flutter flutter_trainer; do
   expect "$app 실서버 빌드 확인" pass \
     bash "$script" check "$work/$app-real.html" "https://api.oncare.test/v1"
   contains "$app 실서버 connect-src" "$work/$app-real.html" \
-    "connect-src 'self' https://api.oncare.test https://www.gstatic.com"
+    "connect-src 'self' blob: https://api.oncare.test https://www.gstatic.com"
   # 목업으로 좁힌 산출물은 실서버 API 출처를 요구하면 걸린다.
   expect "$app API 출처가 빠지면 실패" fail \
     bash "$script" check "$work/$app-mock.html" "https://api.oncare.test/v1"
@@ -101,10 +101,33 @@ expect "localhost 는 실패" fail bash "$script" check "$work/case.html"
 make_csp "'self' http://api.oncare.test"
 expect "http 출처는 실패" fail bash "$script" check "$work/case.html"
 make_csp "'self' https://api.oncare.test"
+expect "blob: 이 빠지면 실패" fail bash "$script" check "$work/case.html" "https://api.oncare.test/v1"
+make_csp "'self' blob: https://api.oncare.test"
 expect "좁은 목록은 통과" pass bash "$script" check "$work/case.html" "https://api.oncare.test/v1"
+
+# 운영 헤더 검사(frontend_security_headers.sh)와 같은 차단 기준(#3255). `*` 가 파일 이름으로
+# 펼쳐지면 차단 분기를 지나치므로 파일이 있는 폴더에서 돌린다.
+in_work() { (cd "$work" && "$@"); }
+for source in 'wss:' 'ws:' 'ws://api.oncare.test' 'wss://*' 'https://*' 'http://*'   'https://*:443' 'https://*/v1' 'wss://*:443'; do
+  make_csp "'self' https://api.oncare.test $source"
+  expect "$source 는 실패" fail in_work bash "$script" check "$work/case.html"
+done
+for source in 'https://*.oncare.test' 'wss://*.oncare.test' 'wss://realtime.oncare.test'; do
+  make_csp "'self' blob: https://api.oncare.test $source"
+  expect "$source 는 통과(하위 도메인 묶음·좁은 출처)" pass     in_work bash "$script" check "$work/case.html" "https://api.oncare.test/v1"
+done
 printf '<html></html>\n' > "$work/none.html"
 expect "meta CSP 가 없으면 실패" fail bash "$script" check "$work/none.html"
 expect "http API 주소는 실패" fail bash "$script" narrow "$work/case.html" "http://api.oncare.test/v1"
+
+# local 빌드(PAGES_CSP_ALLOW_LOCAL=1) — 내 컴퓨터 백엔드 출처 하나만 더 받는다.
+cp "$root/frontend/flutter/web/index.html" "$work/local.html"
+expect "local 빌드 좁히기" pass env PAGES_CSP_ALLOW_LOCAL=1 bash "$script" narrow "$work/local.html" "http://localhost:8000/v1"
+expect "local 빌드 확인" pass env PAGES_CSP_ALLOW_LOCAL=1 bash "$script" check "$work/local.html" "http://localhost:8000/v1"
+contains "local 빌드에 localhost 출처" "$work/local.html" "http://localhost:8000"
+expect "local 표시 없이 localhost 주소는 실패" fail bash "$script" narrow "$work/case.html" "http://localhost:8000/v1"
+expect "local 이라도 다른 http 호스트는 실패" fail env PAGES_CSP_ALLOW_LOCAL=1 bash "$script" narrow "$work/case.html" "http://192.168.0.12:8000/v1"
+expect "local 이라도 API 출처가 아닌 localhost 는 실패" fail env PAGES_CSP_ALLOW_LOCAL=1 bash "$script" check "$work/local.html" "http://localhost:9000/v1"
 
 if [ "$failures" -ne 0 ]; then
   echo "$failures 건 실패"

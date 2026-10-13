@@ -11,7 +11,7 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -325,8 +325,9 @@ class StreakShield(Base):
     포인트 사용처에서 300P 로 교환하면 `held` 로 생기고, 회원이 운동을 못 한 어제를
     연속 기록에 이어 붙이면 `used` 가 되며 그 날짜(`protected_on`, KST)를 남긴다.
 
-    - 사용하지 않은 보호권은 회원당 최대 2장이다. 교환이 잔액 행을 잠근 채 세므로
-      같은 회원의 교환이 겹쳐도 넘지 않는다(`streak_shield_service.exchange`).
+    - 사용하지 않은 보호권은 회원당 최대 4장이다(`streak_shield_service.MAX_HELD`).
+      교환이 잔액 행을 잠근 채 세므로 같은 회원의 교환이 겹쳐도 넘지 않는다
+      (`streak_shield_service.exchange`).
     - 한 날짜는 한 번만 보호한다(partial unique index). 같은 날을 다시 보호하려는
       재시도가 보호권을 두 장 쓰지 않게 하는 마지막 방어선이다.
     - 보호한 날은 **연속 일수에만** 운동한 날로 센다. 운동 시간·칼로리·횟수 합계에는
@@ -448,7 +449,7 @@ class DietEntry(Base):
     sugar_g: Mapped[float] = mapped_column(Float, default=0.0)
     engine: Mapped[str] = mapped_column(
         String(20), default=""
-    )  # 인식 엔진(gemini|yolo)
+    )  # 인식 엔진(gemini|litellm|stub)
     # 사진 분석이 만든 식단평(#1932). 앱이 끼니 카드 아래 한 줄로 보여 준다.
     # 손으로 적은 끼니와 이 컬럼 이전 기록은 빈 문자열이다.
     ai_comment: Mapped[str] = mapped_column(Text, default="", server_default="")
@@ -486,7 +487,7 @@ class DietMenuPlan(Base):
     user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    #: 메뉴 이름·키워드의 언어(`ko`|`en`).
+    #: 메뉴 이름·키워드의 언어. 늘 `ko` 다 — 예전 `en` 행은 읽을 때 다시 만든다.
     lang: Mapped[str] = mapped_column(String(5), default="ko")
     #: `llm` — AI 가 만든 리스트, `rules` — 내장 카탈로그로 채운 리스트.
     source: Mapped[str] = mapped_column(String(10))
@@ -584,6 +585,9 @@ class WeeklyReportPurchase(Base):
     쌓은 식단·운동 기록과 감지 기록으로 앱이 그때그때 세운다(트레이너 리포트를
     회원 앱이 여는 방식과 같다). 여기에는 **어느 주를 샀는지**만 남는다.
 
+    #3349 부터는 산 시점의 수치와 감지 기록을 함께 남긴다 — 리포트를 세우는 것은
+    여전히 앱이지만, 재료는 살 때의 값으로 고정된다.
+
     같은 주는 한 번만 산다(`uq_weekly_report_purchase_week`).
     """
 
@@ -599,6 +603,17 @@ class WeeklyReportPurchase(Base):
     cost: Mapped[int] = mapped_column(Integer, default=0)
     #: 재시도가 두 번 사지 않게 하는 멱등키.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: 산 시점의 그 주 리포트(`WeeklyReportOut` JSON). (#3349)
+    #:
+    #: 열 때마다 다시 계산하면 산 뒤에 고친 기록·목표가 지난 리포트를 바꾼다.
+    #: NULL 은 이 컬럼이 생기기 전에 산 주로, 읽는 쪽이 다시 계산한다.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 산 시점의 그 주 감지 기록(`[{kind, body_part, created_at}]` JSON). (#3349)
+    #:
+    #: 감지 기록은 최근 30일 대화에서 매번 계산해, 한 달 뒤에는 살 때 적혀 있던
+    #: 감지가 사라졌다. 빈 목록은 "그 주에 감지가 없었다" 이고 NULL 은 "남겨 둔
+    #: 것이 없다" 다 — 둘을 섞으면 옛 리포트가 "감지 없음" 으로 읽힌다.
+    insights_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1049,10 +1064,9 @@ class Notification(Base):
     subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # 담당 요청 알림이 가리키는 요청. 과거 알림은 연결 정보가 없다. (#1802)
     invite_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    # 문장 틀 코드와 그 인자(#2302). `title`·`body` 는 만든 순간의 한국어 문장이라
-    # 영어 화면에서도 한국어로 보였다. 틀과 인자를 함께 남기면 읽는 쪽이 자기
-    # 언어로 다시 조립한다(`notification_templates`). 틀이 생기기 전의 알림과
-    # 푸시·옛 앱은 `title`·`body` 를 그대로 쓴다.
+    # 문장 틀 코드와 그 인자(#2302). `title`·`body` 는 만든 순간의 문장이고,
+    # 틀과 인자는 앱이 문장을 직접 조립할 때 쓴다(`notification_templates`).
+    # 틀이 생기기 전의 알림과 푸시·옛 앱은 `title`·`body` 를 그대로 쓴다.
     template: Mapped[str | None] = mapped_column(String(40), nullable=True)
     template_args: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # 알림이 가리키는 날짜(`YYYY-MM-DD`, #2292). 트레이너의 예약·상담 알림이
@@ -1165,7 +1179,7 @@ class SocialAccount(Base):
     )
     provider: Mapped[str] = mapped_column(
         String(20), index=True
-    )  # kakao|google|naver|apple
+    )  # kakao|google — 지난 provider 값(naver·apple)도 받는 자유 문자열(#3218)
     provider_user_id: Mapped[str] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -1403,6 +1417,17 @@ class TrainerProfile(Base):
     notify_new_message: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=true(), default=True
     )
+    # 종류별 수신 설정(#2420). 어떤 알림 종류가 어느 칸을 따르는지는
+    # `notification_service._TRAINER_SETTING_COLUMN` 이 정한다.
+    notify_consultation: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=true(), default=True
+    )
+    notify_reservation: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=true(), default=True
+    )
+    notify_member_updates: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=true(), default=True
+    )
     notify_session_reminder: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=true(), default=True
     )
@@ -1562,6 +1587,13 @@ class TrainerClientInvite(Base):
         # 회원 앱이 읽는 질의 그대로 — 나에게 온 대기 중인 요청.
         Index(
             "ix_trainer_client_invites_member_status", "member_id", "status"
+        ),
+        # 마이그레이션 0050 의 제약과 같은 이름·식이다(#3251). 모델에 없으면
+        # `create_all` 로 만드는 테스트 DB 가 잘못된 상태값을 받아 운영과 달라진다.
+        # 운영 DB 에는 이미 있어 새 마이그레이션은 필요 없다.
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'rejected', 'cancelled')",
+            name="ck_trainer_client_invite_status",
         ),
     )
 
@@ -1953,8 +1985,7 @@ class TrainerProgramTemplate(Base):
     개념이 없고 운동 목록 하나만 갖는다. 적용하면 AI 제안 **위에 덧붙는다.**
 
     지금까지 이 목록은 앱 소스의 `const` 였다. 트레이너마다 다른 것이 템플릿의
-    존재 이유인데 모두가 같은 셋을 봤고, 내용도 한국어로 고정돼 영어 화면에
-    그대로 남았다.
+    존재 이유인데 모두가 같은 셋을 봤다.
 
     `exercises_json` 은 `[{name, minutes, duration_seconds, type, sets, reps,
     hold_seconds, weight}]`(`ProgramTemplateExercise`)을 순서 그대로 담는다. 배열
@@ -2219,6 +2250,12 @@ class ChatMessage(Base):
     # 실어 보낸 값을 그대로 들고 있는다. 일반 대화는 NULL 이라 예전 행과 조회
     # 흐름은 그대로다.
     report_week_start: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 리포트를 보낸 시점의 그 주 수치·목표(`WeeklyReportOut` JSON). (#3349)
+    #
+    # 본문으로 보낸 리포트는 회원이 열 때마다 다시 계산해, 보낸 뒤 회원이 기록이나
+    # 목표를 고치면 같은 리포트가 다른 내용이 됐다. 보낼 때의 값을 남기고 회원
+    # 조회가 이것을 먼저 읽는다. 이 컬럼이 생기기 전의 전송과 일반 대화는 NULL 이다.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 이 메시지가 루틴 전송 안내라면 그 전송(종류·운동 이름)의 JSON. (#2672)
     #
     # 운동을 보내면 알림만 가고 채팅에는 남지 않아, 대화 속에서 "어제 보낸
@@ -2244,6 +2281,53 @@ class ChatMessage(Base):
             "client_request_id",
             name="uq_chat_messages_client_request",
         ),
+    )
+
+
+class MemberReceivedReport(Base):
+    """회원이 받은 주간 리포트 한 건 — 회원 쪽에 남는 수신 기록. (#3348)
+
+    리포트 전송의 근거는 대화 메시지(`ChatMessage.report_week_start`)다. 그런데
+    그 행은 보낸 트레이너에게도 달려 있어(`trainer_id` CASCADE), 트레이너가
+    탈퇴하면 대화와 함께 사라진다 — 회원이 받은 주가 닫히고 목록에서도 빠졌다.
+    받은 것은 회원의 것이므로 **회원에게만 달린** 기록을 전송과 함께 남긴다.
+
+    - `id` 는 그 전송의 채팅 메시지 id 와 같다. 회원 앱이 리포트를 열 때 보내는
+      `message_id` 가 대화가 지워진 뒤에도 같은 전송을 가리킨다.
+    - `trainer_id` 는 SET NULL 이다. 트레이너가 탈퇴하면 누가 보냈는지는 비고
+      (이름을 따로 적어 두지 않는다 — 탈퇴한 사람의 이름을 남기지 않는다),
+      받은 주·본문·굳힌 값은 남는다.
+    - PDF 는 여기 두지 않는다. 파일은 대화 메시지에 달려 있고, 대화가 사라지면
+      함께 지워진다(#2817) — 그때는 굳힌 값(`report_snapshot_json`)으로 앱이 같은
+      주의 결과지를 세운다.
+
+    트레이너 화면의 전송 기록(#2288, #2393)은 전처럼 대화 메시지를 읽는다. 이
+    표는 회원이 읽는 길(받은 리포트 목록·열람 판정·굳힌 값)만 받친다.
+    """
+
+    __tablename__ = "member_received_reports"
+
+    #: 그 전송의 `ChatMessage.id`. 대화가 지워져도 남아야 해 FK 를 걸지 않는다.
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    member_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: 리포트가 가리키는 주의 월요일 `YYYY-MM-DD`.
+    week_start: Mapped[str] = mapped_column(String(10))
+    #: 트레이너가 리포트와 함께 보낸 글 — 결과지의 `트레이너 피드백` 칸에 선다.
+    body: Mapped[str] = mapped_column(Text, default="")
+    #: 보낸 시점의 그 주 수치·목표(`WeeklyReportOut` JSON, #3349). 옛 전송은 NULL.
+    report_snapshot_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 보낸 시각 — 메시지의 `created_at` 과 같다.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_member_received_reports_member_week", "member_id", "week_start"),
     )
 
 
@@ -2559,7 +2643,7 @@ class EmailVerificationCode(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     #: 소문자로 정규화한 이메일.
     email: Mapped[str] = mapped_column(String(255))
-    #: `member_signup` | `trainer_signup`.
+    #: `member_signup` | `trainer_signup` | `email_change`(로그인 이메일 변경, #3230).
     purpose: Mapped[str] = mapped_column(String(32))
     code_hash: Mapped[str] = mapped_column(String(64))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
@@ -2630,8 +2714,10 @@ class AiConversation(Base):
 class AiChatUsage(Base):
     """AI 챗봇이 답한 대화 한 번 — 하루 무료 횟수와 포인트 구매를 센다. (#2145)
 
-    **LLM 이 실제로 답했을 때만** 한 줄이 생긴다. 키가 없거나 모델이 실패해 검색 기반
-    대체 답을 준 대화는 세지 않는다 — 회원이 받은 것이 AI 답이 아니다.
+    **LLM 이 실제로 답했을 때만** 한 줄이 남는다. 키가 없거나 모델이 실패해 검색 기반
+    대체 답을 준 대화는 세지 않는다 — 회원이 받은 것이 AI 답이 아니다. 줄은 LLM 을
+    부르기 전에 미리 잡고(`message_id` 가 빈 줄, #3240) 답하지 못하면 지운다 — 동시에
+    보낸 요청이 한도·잔액을 넘지 않게 하려는 것이다.
 
     `paid` 면 그 대화에 포인트를 썼고, 원장(`points_ledger`)의 `ai_chat` 사용 줄이 이
     행의 id 를 근거로 남는다. `balance_after` 는 차감 뒤 잔액으로, 답변 아래의
@@ -2697,6 +2783,14 @@ class AiMessage(Base):
     insight_dismissed: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
+    #: 이 줄을 만든 전송의 멱등키. 한 번의 전송이 남긴 질문과 답이 같은 값을 갖는다. (#3352)
+    #:
+    #: 사용 기록(`ai_chat_usages`)은 AI 가 답했을 때만 남으므로, 대체 답으로 끝난
+    #: 전송은 재전송을 알아볼 근거가 여기뿐이다. 앱도 방금 보낸 말과 저장된 대화를
+    #: 이 값으로 맞춘다. 키 없이 보냈거나 이 칸이 생기기 전의 줄은 NULL 이다.
+    client_request_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -2714,8 +2808,8 @@ class WeeklyChallenge(Base):
 
     - `goal` 은 참가할 때의 주간 운동 횟수 목표 사본이다. 참가 뒤 목표를 바꿔도
       그 주 챌린지는 참가할 때 목표로 판정한다.
-    - `status` 는 active(진행 중)|succeeded|failed. 스케줄러가 없어 **주가 끝난 뒤
-      읽는 쪽이 판정한다**(`weekly_challenge_service.settle_due`).
+    - `status` 는 active(진행 중)|succeeded|failed. 스케줄러가 없어 **주가 끝나고
+      하루의 유예가 지난 뒤 읽는 쪽이 판정한다**(`weekly_challenge_service.settle_due`).
     - `final_days` 는 판정 때 센 운동한 날 수다. 판정 뒤 지난 주 기록이 바뀌어도
       결과 화면이 판정과 어긋나지 않게 남긴다.
     - 포인트 움직임은 `points_ledger` 에 `source_type='weekly_challenge'` 로 남는다 —
@@ -2875,6 +2969,10 @@ class DietAnalysisUsage(Base):
     끼니를 지우고 다시 찍으면 끼니 수로는 하루 상한이 다시 열린다. 같은 멱등키의
     재전송은 모델을 부르지 않으므로 줄이 생기지 않는다. 모델 호출이 실패하면 그 줄을
     지운다 — 회원 탓이 아닌 실패로 하루 상한을 깎지 않는다.
+
+    멱등키와 함께 온 요청의 줄은 `id` 가 회원·키에서 정해진다(`dau-k-…`, #3354). 그
+    줄이 있으면 같은 키가 분석 중이거나 이미 끼니로 저장된 것이라, 진행 중에 겹친
+    재전송이 줄을 하나 더 만들지 못한다(`diet_analysis_quota_service.reserve`).
     """
 
     __tablename__ = "diet_analysis_usages"
@@ -2916,6 +3014,45 @@ class AiCallUsage(Base):
     )
     calls: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0", default=0
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CoachFeedbackState(Base):
+    """회원별 코칭 시트 피드백의 캐시와 하루 생성 횟수. (#3351)
+
+    회원 한 명에 한 행이다. `GET /ai-coach/feedback` 은 호출 한 번에 모델을 최대 두 번
+    부르므로, 만든 카드(`payload_json`)를 잠깐 들고 있다가 같은 날의 다음
+    요청에 그대로 돌려준다. 식단·운동 기록이 바뀌면 카드를 버리고 `revision` 을 올린다
+    — 그 사이에 만들던 응답이 옛 기록으로 캐시를 채우지 못하게 하는 표시다.
+
+    `generations` 는 `kst_date` 하루에 카드를 새로 만든 횟수다. 상한을 넘으면 모델을
+    부르지 않고 규칙 기반 카드로 답한다. 표에 두는 까닭은 태스크가 여럿이어도
+    (`infra/backend-service.yml`) 캐시와 상한이 하나여야 하기 때문이다.
+    """
+
+    __tablename__ = "coach_feedback_states"
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    #: 횟수와 카드가 속한 KST 날짜 `YYYY-MM-DD`. 날이 바뀌면 둘 다 새로 시작한다.
+    kst_date: Mapped[str] = mapped_column(String(10))
+    generations: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    #: 기록이 바뀔 때마다 오른다. 카드를 저장할 때 만들기 시작한 값과 같아야 한다.
+    revision: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    #: 카드의 언어. 늘 `ko` 다 — 예전 `en` 카드는 쓰지 않고 다시 만든다.
+    locale: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    #: 식단·운동 카드 목록(JSON). 비어 있으면 버려진 상태다. 인사말은 담지 않는다.
+    payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    generated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

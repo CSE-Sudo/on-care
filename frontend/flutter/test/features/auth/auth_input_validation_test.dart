@@ -255,7 +255,7 @@ void main() {
         expect(data['password'], passwords[i]);
       }
       // 서버가 거절한 실패는 칸 오류가 아니라 예전처럼 토스트다.
-      expect(find.text('로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요'), findsOneWidget);
+      expect(find.text('로그인하지 못했어요. 이메일·비밀번호를 확인해 주세요'), findsOneWidget);
       expect(find.text(_emailInvalid), findsNothing);
     });
 
@@ -578,7 +578,7 @@ void main() {
 
       expect(server.to('/auth/register'), hasLength(1));
       expect(find.text(_passwordTooLong), findsOneWidget);
-      expect(find.text('회원가입에 실패했어요. 잠시 후 다시 시도해 주세요.'), findsNothing);
+      expect(find.text('회원가입을 하지 못했어요. 잠시 후 다시 시도해 주세요.'), findsNothing);
       // 서버 문장은 로케일을 모르므로 그대로 그리지 않는다.
       expect(find.textContaining('UTF-8'), findsNothing);
     });
@@ -601,7 +601,7 @@ void main() {
       await fillAllBut(tester, 'abcd1234');
       await _submit(tester, submit);
 
-      expect(find.text('회원가입에 실패했어요. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
+      expect(find.text('회원가입을 하지 못했어요. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
       expect(find.text(_passwordWeak), findsNothing);
     });
   });

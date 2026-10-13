@@ -247,7 +247,7 @@ void main() {
           _httpError(
             409,
             '/trainer/consultations/consult-1/accept',
-            body: <String, Object?>{'detail': '이미 다른 트레이너가 담당 중인 회원입니다.'},
+            body: <String, Object?>{'detail': '이미 다른 트레이너가 담당 중인 회원이에요.'},
           ),
         );
 
@@ -259,7 +259,7 @@ void main() {
             isA<ValidationError>().having(
               (e) => e.message,
               'message',
-              '이미 다른 트레이너가 담당 중인 회원입니다.',
+              '이미 다른 트레이너가 담당 중인 회원이에요.',
             ),
           ),
         );

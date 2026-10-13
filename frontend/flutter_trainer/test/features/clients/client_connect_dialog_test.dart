@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,6 +45,9 @@ class _FakeInviteRepository implements ClientInviteRepository {
   /// **연결**에 넘어간 코드들 — 확인 전에는 비어 있어야 한다.
   final List<String> redeemed = <String>[];
 
+  /// 있으면 연결이 이것이 끝날 때까지 기다린다 — 요청 중인 창을 본다.
+  Completer<void>? redeemGate;
+
   @override
   bool get supportsInvites => true;
 
@@ -58,6 +63,7 @@ class _FakeInviteRepository implements ClientInviteRepository {
   @override
   Future<PairedMember> redeemPairingCode(String code) async {
     redeemed.add(code);
+    await redeemGate?.future;
     final result = paired;
     if (result == null) throw const NotFoundError();
     return result;
@@ -89,9 +95,7 @@ PairedMember _paired() => const PairedMember(
 void main() {
   Future<void> pumpDialog(
     WidgetTester tester,
-    _FakeInviteRepository repository, {
-    Locale locale = const Locale('ko'),
-  }) async {
+    _FakeInviteRepository repository) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -104,7 +108,7 @@ void main() {
           // 실제 앱 테마로 띄운다 — 기본 테마에는 없는 입력 채움·테두리가
           // 코드 상자 위에 겹쳐 그려진 적이 있다(#1636).
           theme: AppTheme.light(),
-          locale: locale,
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
@@ -258,6 +262,45 @@ void main() {
     expect(repository.redeemed, <String>['979030']);
   });
 
+  testWidgets('연결을 기다리는 동안에는 배경을 눌러도 닫히지 않는다 (#3245)', (tester) async {
+    final repository = _FakeInviteRepository(paired: _paired())
+      ..redeemGate = Completer<void>();
+    await pumpDialog(tester, repository);
+    await enterCode(tester, '979030');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-connect-register')),
+    );
+    await tester.pump();
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      find.byKey(const ValueKey<String>('client-connect-dialog')),
+      findsOneWidget,
+    );
+
+    repository.redeemGate!.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(repository.redeemed, <String>['979030']);
+  });
+
+  testWidgets('기다리는 요청이 없으면 배경을 눌러 닫는다', (tester) async {
+    final repository = _FakeInviteRepository(paired: _paired());
+    await pumpDialog(tester, repository);
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('client-connect-dialog')),
+      findsNothing,
+    );
+  });
+
   testWidgets('틀렸거나 만료된 코드는 왜인지 갈라 말하지 않는다', (tester) async {
     // 서버도 404 하나로 답한다 — 갈라 주면 어떤 코드가 존재하기는 했는지를
     // 알려 주는 셈이다.
@@ -286,47 +329,22 @@ void main() {
     expect(find.text('이 회원이 맞나요?'), findsNothing);
   });
 
-  group('이미 담당 중인 회원 — 타입 있는 오류를 로케일 문구로 (#2893)', () {
-    for (final (Locale locale, String expected) in <(Locale, String)>[
-      (const Locale('ko'), '이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'),
-      (
-        const Locale('en'),
-        'You already manage this member. Find them in your member list',
-      ),
-    ]) {
-      testWidgets('${locale.languageCode} 화면', (tester) async {
-        final repository = _FakeInviteRepository(
-          failure: const AlreadyManagedError(),
-        );
-        await pumpDialog(tester, repository, locale: locale);
+  testWidgets('이미 담당 중인 회원 — 타입 있는 오류를 ARB 문구로 (#2893)', (tester) async {
+    final repository = _FakeInviteRepository(
+      failure: const AlreadyManagedError(),
+    );
+    await pumpDialog(tester, repository);
 
-        await enterCode(tester, '567812');
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+    await enterCode(tester, '567812');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-        expect(find.text(expected), findsOneWidget);
-        // 확인 화면으로 넘어가지 않는다.
-        expect(
-          find.byKey(const ValueKey<String>('client-connect-result')),
-          findsNothing,
-        );
-      });
-    }
-
-    testWidgets('영어 화면에서 한국어 사유 문장은 새지 않는다', (tester) async {
-      // 실서버가 준 한국어 사유는 영어 화면에서 일반 문구로 물러난다 — 타입
-      // 있는 오류만 자기 문구를 갖는다.
-      final repository = _FakeInviteRepository(
-        failure: const ValidationError(message: '이미 다른 트레이너가 담당 중인 회원이에요.'),
-      );
-      await pumpDialog(tester, repository, locale: const Locale('en'));
-
-      await enterCode(tester, '979030');
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      expect(find.textContaining('이미'), findsNothing);
-    });
+    expect(find.text('이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'), findsOneWidget);
+    // 확인 화면으로 넘어가지 않는다.
+    expect(
+      find.byKey(const ValueKey<String>('client-connect-result')),
+      findsNothing,
+    );
   });
 
   testWidgets('코드 상자 위에 입력창이 겹쳐 그려지지 않는다', (tester) async {
@@ -379,7 +397,6 @@ void main() {
           id: 'tci-1',
           memberId: 'user-8f2a41c9d6e3',
           memberName: '박하늘',
-          memberEmail: '',
           status: ClientInviteStatus.pending,
           createdAt: DateTime(2026, 9, 29, 10),
         ),

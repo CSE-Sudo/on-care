@@ -14,7 +14,13 @@ tokeninfo 는 **구글이 서명한 유효한 토큰인지**만 본다. 그 토�
 - `aud`(발급 대상 client_id)가 `GOOGLE_CLIENT_IDS` 안에 있어야 한다.
 - `iss` 는 `accounts.google.com` 또는 `https://accounts.google.com`.
 - `exp` 는 tokeninfo 가 이미 보지만, 응답 값으로 한 번 더 확인한다.
-- 허용 목록이 비면 Apple 과 같이 **거부**한다(조용히 통과시키지 않는다).
+- 허용 목록이 비면 **거부**한다(조용히 통과시키지 않는다).
+
+이메일은 tokeninfo 의 `email_verified` 가 참일 때만 확인된 것으로 넘긴다(#1551).
+tokeninfo 는 이 값을 문자열 `"true"`/`"false"` 로 준다. 구글 문서는 이 값이 "계정을
+만들 때 구글이 소유를 확인했다"는 뜻이며 gmail 이 아닌 외부 주소는 그 뒤 주인이 바뀌었을
+수 있다고 적는다. 그 차이(`hd`·`@gmail.com`)까지 따지는 것은 이번 범위 밖이다.
+https://developers.google.com/identity/sign-in/web/backend-auth
 """
 from __future__ import annotations
 
@@ -24,7 +30,12 @@ import httpx
 
 from app.core import clock
 from app.core.config import get_settings
-from app.services.social._response import json_object, optional_str, required_id
+from app.services.social._response import (
+    json_object,
+    optional_flag,
+    optional_str,
+    required_id,
+)
 from app.services.social.base import (
     SocialAuthError,
     SocialIdentity,
@@ -103,9 +114,11 @@ class GoogleVerifier(SocialVerifier):
         check_issued_for_us(data, audiences)
         uid = required_id("google", data, "sub")
 
+        email = optional_str("google", data, "email")
         return SocialIdentity(
             provider="google",
             provider_user_id=uid,
-            email=optional_str("google", data, "email"),
+            email=email,
             name=optional_str("google", data, "name"),
+            email_verified=bool(email) and optional_flag("google", data, "email_verified"),
         )

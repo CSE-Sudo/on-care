@@ -6,16 +6,13 @@ DB 없이 규칙만 본다. 보는 것:
    부족분과 4주 평균으로, 지난 끼니 마감이 지났는데 없으면 그 끼니를 말한다.
 2. 이번 주·전체는 회원 앱과 같은 판정 선으로 문제를 두 가지까지 말하고 원인을
    붙인다. 이번 주는 첫 문제를 지난주와 견주고, 모두 합쳐 4문장을 넘지 않는다.
-3. 모든 키에 한국어·영어 틀이 있고, 값이 틀을 빠짐없이 채운다.
+3. 모든 키에 문장 틀이 있고, 값이 틀을 빠짐없이 채운다.
 """
 from __future__ import annotations
 
 import json
-import string
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
-
-import pytest
 
 from app.core import clock
 from app.services import diet_coach_inputs as inputs
@@ -178,7 +175,7 @@ def test_week_breakfast_snack_names_what_replaced_breakfast():
     assert [s.key for s in out[:2]] == [
         "tr_week_skip_breakfast_snack", "tr_week_breakfast_snack_food",
     ]
-    assert out[1].text == "아침 대신 먹은 것은 빵 3번이 가장 많았어요."
+    assert out[1].text == "아침 대신 먹은 것은 빵 3회가 가장 많았어요."
 
 
 def test_week_good_adds_the_daily_average():
@@ -218,9 +215,9 @@ def test_all_slot_sodium_names_the_foods():
     assert logged == 10
     # 회원 앱은 하나만 말하지만, 트레이너 웹은 다음 후보(자주 먹은 메뉴)까지 말한다.
     assert [s.key for s in out] == ["tr_all_slot_sodium", "tr_foods_two", "tr_all_frequent"]
-    assert out[0].text == "최근 4주 동안 점심 나트륨이 10번 목표의 절반을 넘었어요."
-    assert out[1].text == "김치찌개 5번, 짬뽕 3번이 대부분이에요."
-    assert out[2].text == "최근 4주 동안 저녁 메뉴로 닭가슴살 10번이 가장 많았어요."
+    assert out[0].text == "최근 4주 동안 점심 나트륨이 10회 목표의 절반을 넘었어요."
+    assert out[1].text == "김치찌개 5회, 짬뽕 3회가 대부분이에요."
+    assert out[2].text == "최근 4주 동안 저녁 메뉴로 닭가슴살 10회가 가장 많았어요."
 
 
 def test_all_few_records():
@@ -233,20 +230,7 @@ def test_all_few_records():
 # ── 틀 ─────────────────────────────────────────────────────────────────
 
 
-def _fields(template: str) -> set[str]:
-    return {f for _, f, _, _ in string.Formatter().parse(template) if f}
-
-
-@pytest.mark.parametrize("key", svc.KEYS)
-def test_every_key_has_korean_and_english_with_the_same_values(key):
-    assert key in svc._EN
-    # 두 언어가 같은 값(수치·이름)을 쓴다 — 말이 다르면 번역이 뜻을 바꾼 것이다.
-    raw = {"food", "food1", "food2", "count", "count1", "count2", "days", "logged",
-           "snack_days", "pct", "before", "after", "ratio", "prev_logged", "prev_days"}
-    assert _fields(svc._KO[key]) & raw == _fields(svc._EN[key]) & raw
-
-
-def test_english_message_has_no_hangul_except_food_names():
+def test_message_is_korean():
     s = svc.Sentence("tr_week_over", {"scope": "last", "logged": 5, "days": 2,
                                       "nutrient": "sugar"})
-    assert s.text_in("en") == "Sugar went over the goal on 2 of 5 logged days last week."
+    assert "당류" in s.text and "지난주" in s.text

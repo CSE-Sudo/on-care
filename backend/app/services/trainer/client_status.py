@@ -42,8 +42,8 @@ def remove_client(db: Session, link: TrainerClient) -> None:
 
     관계 행이 사라지면 트레이너의 고객 기반 화면과 권한에서 제외된다. 스케줄,
     프로그램·루틴, 리포트, PT 이력과 대화 원본은 삭제하지 않는다. 회원 운동 기록에
-    적재된 PT 는 회원 앱에 계속 보이고, 코치 채팅·일정은 같은 트레이너와 다시
-    연결하면 다시 보인다(`build_member_*` 는 활성 담당 기준이다).
+    적재된 PT 와 완료한 PT 이력·지난 날짜의 배정은 회원 앱에 계속 보이고(#3347),
+    코치 채팅·예정 일정은 같은 트레이너와 다시 연결하면 다시 보인다.
 
     담당이 끝나므로 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787).
 
@@ -97,7 +97,7 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         return
     if data_consent_service.blocks_access(link):
         raise ClientConsentRequired(
-            "회원이 데이터 공유 동의를 철회했습니다. 담당 요청을 보내 회원의 동의를 다시 받아 주세요."
+            "회원이 데이터 공유 동의를 철회했어요. 담당 요청을 보내 회원의 동의를 다시 받아 주세요."
         )
     occupied = db.scalar(
         select(TrainerClient.id).where(
@@ -106,7 +106,7 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         )
     )
     if occupied is not None:
-        raise ClientLinkDetached("이미 다른 트레이너가 담당 중인 회원입니다.")
+        raise ClientLinkDetached("이미 다른 트레이너가 담당 중인 회원이에요.")
     link.active = True
     link.dormant = False
     try:
@@ -117,7 +117,7 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         # 에 걸린 것이다. 500 대신 조회로 막았을 때와 같은 409 로 옮긴다(#2911).
         db.rollback()
         raise ClientLinkDetached(
-            "이미 다른 트레이너가 담당 중인 회원입니다."
+            "이미 다른 트레이너가 담당 중인 회원이에요."
         ) from None
 
 
@@ -139,7 +139,7 @@ def set_client_active(
     아니다.
     """
     if not link.active:
-        raise ClientLinkDetached("담당 관계가 해제된 회원입니다.")
+        raise ClientLinkDetached("담당 관계가 해제된 회원이에요.")
     if link.dormant is not (not active):
         link.dormant = not active
         db.commit()

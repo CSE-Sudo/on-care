@@ -255,15 +255,6 @@ Override _demoOptions() => trainerRoutineOptionsRepositoryProvider
     .overrideWithValue(const MockTrainerRoutineOptionsRepository());
 
 void main() {
-  // 이 파일의 흐름 테스트는 `MaterialApp(locale: ko)` 로 띄운다. 데모 저장소는
-  // 화면 언어를 위젯 밖([trainerResolvedLocaleProvider] — 브라우저 언어)에서
-  // 읽으므로, 테스트 바인딩의 기본값 en 이 새지 않게 브라우저 언어도 한국어로
-  // 둔다. 실제 앱에서는 두 값이 같은 곳에서 나온다. (#2301)
-  final TestPlatformDispatcher dispatcher =
-      TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher;
-  setUp(() => dispatcher.localesTestValue = const <Locale>[Locale('ko')]);
-  tearDown(dispatcher.clearLocalesTestValue);
-
   group('생성 실패 문구 분기', _rateLimitMessageTests);
 
   group('trainerRoutineOptionsRepositoryProvider', () {
@@ -369,7 +360,6 @@ void main() {
       List<RoutineHistoryEntry> history = const <RoutineHistoryEntry>[],
       List<TrainerMemo> memos = const <TrainerMemo>[],
       List<RoutineSuggestion>? suggestions,
-      Locale locale = const Locale('ko'),
       void Function(
         List<RoutineExercise> exercises,
         List<RoutineExercise> personal,
@@ -408,7 +398,7 @@ void main() {
               _demoSuggestions(),
           ],
           child: MaterialApp(
-            locale: locale,
+            locale: const Locale('ko'),
             theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -717,14 +707,13 @@ void main() {
     testWidgets('근거 코드는 화면에 그리지 않는다 — 사유 문장이 말한다 (#2579)', (tester) async {
       await pumpFlow(
         tester,
-        locale: const Locale('en'),
         suggestions: const <RoutineSuggestion>[
           RoutineSuggestion(
             id: 'sug-1',
-            name: 'Light interval run',
+            name: '가벼운 인터벌 러닝',
             minutes: 30,
             type: '유산소',
-            reason: 'None of the 240 min in the last 2 weeks was cardio.',
+            reason: '최근 2주 240분 가운데 유산소가 없었어요.',
             evidence: <String>[
               RoutineEvidence.recentPtFeedback,
               RoutineEvidence.lowCardio,
@@ -738,33 +727,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('None of the 240 min in the last 2 weeks was cardio.'),
+        find.text('최근 2주 240분 가운데 유산소가 없었어요.'),
         findsOneWidget,
       );
       for (final String label in <String>[
-        'Recent PT feedback',
-        'Little cardio lately',
+        '최근 PT 피드백 반영',
+        '최근 유산소 비중 낮음',
         'future_code',
       ]) {
         expect(find.text(label), findsNothing, reason: label);
       }
-    });
-
-    testWidgets('영어 화면의 후보 카드는 강도 계약값을 영어로 그린다 (#2301)', (tester) async {
-      await pumpFlow(
-        tester,
-        locale: const Locale('en'),
-        suggestions: const <RoutineSuggestion>[],
-      );
-      await generate(tester);
-
-      // 서버·데모가 보내는 강도는 번역하지 않는 계약값(`높음`)이다 — 화면이
-      // 옮긴다.
-      expect(
-        find.textContaining('45 min total · High', findRichText: true),
-        findsWidgets,
-      );
-      expect(find.textContaining('높음', findRichText: true), findsNothing);
     });
 
     testWidgets('건너뛴 뒤 조건 설정으로 돌아가 후보를 만들면 다시 PT 흐름이 된다 '
@@ -937,6 +909,75 @@ void main() {
       expect(personal![1].source, 'ai');
       // AI 가 고른 이유는 트레이너만 보는 글이라 고친 뒤에도 남는다.
       expect(personal![0].reason, '숨이 차면 속도를 낮추세요');
+    });
+
+    testWidgets('근력으로 바꾸거나 초로 재면 보이는 기본값이 값으로도 남는다 (#3247)', (tester) async {
+      List<RoutineExercise>? personal;
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+          RoutineSuggestion(
+            id: 'sug-2',
+            name: '코어 스트레칭',
+            minutes: 10,
+            type: '스트레칭',
+            reason: '허리를 편하게',
+          ),
+        ],
+        onReviewCompleted: (exercises, items, kind) => personal = items,
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('routine-category-personal-0-근력')),
+      );
+      await tester.pumpAndSettle();
+      // 두 번째 줄도 근력으로 바꾼 뒤 초로 잰다.
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-edit-1')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('routine-category-personal-1-근력')),
+      );
+      await tester.pumpAndSettle();
+      final seconds = find.byKey(
+        const ValueKey<String>('routine-measure-personal-1-seconds'),
+      );
+      await tester.ensureVisible(seconds);
+      await tester.pumpAndSettle();
+      await tester.tap(seconds);
+      await tester.pumpAndSettle();
+
+      final apply = find.byKey(
+        const ValueKey<String>('complete-personal-routines'),
+      );
+      await tester.ensureVisible(apply);
+      await tester.pumpAndSettle();
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      // 화면이 보여 준 3세트·10회·60초가 저장 값이다 — 0 이면 전송이 세트·
+      // 횟수를 빼고 보낸다.
+      expect(personal, isNotNull);
+      expect(personal![0].sets, 3);
+      expect(personal![0].reps, 10);
+      expect(personal![0].isHold, isFalse);
+      expect(personal![1].sets, 3);
+      expect(personal![1].isHold, isTrue);
+      expect(personal![1].holdSeconds, 60);
     });
 
     testWidgets('접힌 줄에서 효과를 바로 고치고, 비운 줄은 자동 문구에 맡긴다 '
@@ -1129,7 +1170,18 @@ void main() {
       );
       await generate(tester);
 
+      // 화면에는 링크 한 줄만 있고, 누르면 말풍선 창으로 연다.
+      expect(find.text('참고한 대화 1줄'), findsOneWidget);
+      expect(find.textContaining('무릎이 아파요'), findsNothing);
+      final Finder open = find.byKey(
+        const ValueKey<String>('ai-chat-evidence-open'),
+      );
+      await tester.ensureVisible(open);
+      await tester.tap(open);
+      await tester.pumpAndSettle();
       expect(find.text('참고한 최근 대화'), findsOneWidget);
+      // 말한 사람 머리는 떼고 본문만 말풍선에 적는다.
+      expect(find.text('무릎이 아파요'), findsOneWidget);
       expect(find.textContaining('무릎이 아파요'), findsOneWidget);
     });
 
@@ -1197,7 +1249,7 @@ void main() {
               .widget<TextField>(
                 _textFieldUnder(
                   find.byKey(
-                    const ValueKey<String>('generation-minutes-field'),
+                    const ValueKey<String>('generation-minutes-minutes'),
                   ),
                 ),
               )
@@ -1239,7 +1291,7 @@ void main() {
         );
 
         await tester.enterText(
-          find.byKey(const ValueKey<String>('generation-minutes-field')),
+          find.byKey(const ValueKey<String>('generation-minutes-minutes')),
           '60',
         );
         await tester.pump();
@@ -1332,10 +1384,6 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             home: AiRoutineOptionsFlow(
               client: _client,
-              recommendedExercises: const <RoutineExercise>[
-                RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
-              ],
-              recommendedReason: '기존 회원 데이터 기반 추천',
               onReviewCompleted: (exercises, personal, kind) =>
                   reviewed = exercises,
             ),
@@ -1409,7 +1457,7 @@ void main() {
         const ValueKey<String>('generation-minutes'),
       );
       expect(
-        find.descendant(of: generationMinutes, matching: find.text('총 운동시간')),
+        find.descendant(of: generationMinutes, matching: find.text('총 운동 시간')),
         findsOneWidget,
       );
       expect(
@@ -1431,16 +1479,16 @@ void main() {
       await tester.pump(const Duration(milliseconds: 700));
       await tester.pumpAndSettle();
 
-      // A/B + the existing recommendation are shown together. The layout
-      // adapts — side by side when the column is wide enough, stacked
-      // vertically when it isn't — so this asserts the three options
-      // themselves rather than which of the two layouts rendered them.
+      // A/B 가 함께 선다. 옛 세 번째 카드(`기존 AI 추천` — 배정된 개인운동)는
+      // 없다(#3282) — 이 응답에는 C안이 없으니 두 장이다. 레이아웃은 넓으면
+      // 옆으로, 좁으면 아래로 쌓이므로 카드 자체를 본다.
       expect(find.textContaining('회복안 · 회복·지속 중심'), findsOneWidget);
       expect(find.textContaining('강화안 · 강도·운동량 중심'), findsOneWidget);
-      expect(find.textContaining('기존안 · 기존 AI 추천'), findsOneWidget);
-      // 세 번째 후보의 key 는 선택 식별자다 — 화면 문구가 아니라서 로케일과
-      // 무관하게 'recommended' 로 고정돼 있다(#501).
-      final optionHeights = <String>['A', 'B', 'recommended']
+      expect(
+        find.byKey(const ValueKey<String>('routine-option-recommended')),
+        findsNothing,
+      );
+      final optionHeights = <String>['A', 'B']
           .map(
             (key) => tester
                 .getSize(find.byKey(ValueKey<String>('routine-option-$key')))
@@ -1541,14 +1589,12 @@ void main() {
       }
       await tester.pump();
 
-      // 회원에게 함께 보낼 메모는 AI 요청과 **다른 칸**이다 (#1028) — 여기 적은
-      // 것만 회원이 받는 루틴 사유로 나간다.
-      final clientNote = find.byKey(
-        const ValueKey<String>('final-trainer-memo'),
+      // 회원에게 전할 피드백 칸은 위저드에 없다 — 편집기 하단에서 `일정 추가` 와
+      // 함께 쓴다(#2374).
+      expect(
+        find.byKey(const ValueKey<String>('final-trainer-memo')),
+        findsNothing,
       );
-      await tester.ensureVisible(clientNote);
-      await tester.enterText(clientNote, '무릎 충격 주의');
-      await tester.pump();
 
       await tester.ensureVisible(
         find.byKey(const ValueKey<String>('complete-routine-review')),
@@ -1562,6 +1608,15 @@ void main() {
       expect(reviewed, isNull);
       expect(
         find.byKey(const ValueKey<String>('reviewed-routine-list')),
+        findsOneWidget,
+      );
+      // 프로그램 검토에도 피드백 칸·카드가 없고, 구성 요약이 선다(#2374).
+      expect(
+        find.byKey(const ValueKey<String>('final-trainer-memo')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('reviewed-summary')),
         findsOneWidget,
       );
       expect(assigned.memberId, isNull);
@@ -1630,10 +1685,6 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: AiRoutineOptionsFlow(
             client: _client,
-            recommendedExercises: const <RoutineExercise>[
-              RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
-            ],
-            recommendedReason: '기존 회원 데이터 기반 추천',
             onReviewCompleted: (exercises, personal, kind) =>
                 reviewed = exercises,
           ),
@@ -1649,7 +1700,7 @@ void main() {
 
     expect(reviewed, isNotNull);
     expect(repository.attempts, isEmpty);
-    expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+    expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
   });
 
   group('#2587 AI가 참고할 자료', () {
@@ -2013,10 +2064,6 @@ Future<void> _pumpFlowWithOptionsError(
         supportedLocales: AppLocalizations.supportedLocales,
         home: const AiRoutineOptionsFlow(
           client: _client,
-          recommendedExercises: <RoutineExercise>[
-            RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
-          ],
-          recommendedReason: '기존 회원 데이터 기반 추천',
         ),
       ),
     ),
@@ -2037,7 +2084,7 @@ void _rateLimitMessageTests() {
     await _pumpFlowWithOptionsError(tester, const RateLimitedError());
 
     expect(find.text('AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
-    expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+    expect(find.text('AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
   });
 
   testWidgets('하루 상한(429 daily_limit)은 내일 다시라고 안내한다 (#3032)', (tester) async {
@@ -2049,7 +2096,7 @@ void _rateLimitMessageTests() {
 
     expect(find.text('오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요'), findsOneWidget);
     expect(find.text('AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
-    expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+    expect(find.text('AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
   });
 
   testWidgets('코드가 다른 429 는 기존 "잠시 후" 문구다 (#3032)', (tester) async {
@@ -2065,7 +2112,7 @@ void _rateLimitMessageTests() {
   testWidgets('그 밖의 실패는 기존 문구를 그대로 쓴다 (#582)', (tester) async {
     await _pumpFlowWithOptionsError(tester, const ServerError(statusCode: 500));
 
-    expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
     expect(find.text('AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
   });
 }

@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date as date_type
+from datetime import time as time_type
 from datetime import timedelta
 
 from app.core.week import monday_of
@@ -35,6 +36,9 @@ _ASKING = ("어때", "어떠", "괜찮", "가능하", "될까", "될까요", "?"
 _NEGATIVE = ("취소", "미루", "연기", "쉬어", "쉬는", "못 가", "못가", "어렵")
 
 _WEEKDAYS = {"월": 0, "화": 1, "수": 2, "목": 3, "금": 4, "토": 5, "일": 6}
+
+#: "낮 N시" 에서 이 시각 아래는 오후로 읽는다 — "낮 2시" 는 14시, "낮 11시" 는 11시.
+_NOON_MORNING_HOUR = 7
 
 
 @dataclass(frozen=True)
@@ -100,6 +104,9 @@ def _resolve_time(text: str) -> str | None:
 
     "7시" 처럼 오전·오후가 없는 한 자리 시각은 짐작하지 않는다. 저녁일 것
     같다는 이유로 19시로 굳히면, 아침 7시 수업이 12시간 밀린다.
+
+    "낮" 은 한낮이다(#3241). "낮 2시" 는 14시이고, "낮 11시"·"낮 12시" 는 그대로
+    둔다 — 보정이 없으면 "내일 낮 2시" 가 새벽 2시 일정이 된다.
     """
     m = re.search(r"(오전|오후|저녁|아침|낮)?\s*(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분)?", text)
     if m:
@@ -107,6 +114,8 @@ def _resolve_time(text: str) -> str | None:
         hour = int(hour_s)
         minute = int(minute_s or 0)
         if marker in ("오후", "저녁") and hour < 12:
+            hour += 12
+        elif marker == "낮" and hour < _NOON_MORNING_HOUR:
             hour += 12
         elif marker in ("오전", "아침") and hour == 12:
             hour = 0
@@ -126,10 +135,14 @@ def _resolve_time(text: str) -> str | None:
     return None
 
 
-def parse_schedule(text: str, *, sent_on: date_type) -> ParsedSchedule | None:
+def parse_schedule(
+    text: str, *, sent_on: date_type, sent_time: time_type | None = None
+) -> ParsedSchedule | None:
     """[text] 에서 다음 PT 약속을 읽는다. 확실하지 않으면 None.
 
-    [sent_on] 은 그 메시지를 보낸 날(KST)이다.
+    [sent_on] 은 그 메시지를 보낸 날(KST)이고, [sent_time] 은 보낸 시각(KST)이다.
+    보낸 시각을 주면 **이미 지난 시각**은 약속으로 보지 않는다(#3241) — 15시에
+    "오늘 오전 9시 PT" 라고 적은 것은 지난 수업 이야기라 `예정` 으로 만들면 안 된다.
     """
     if not text:
         return None
@@ -146,5 +159,11 @@ def parse_schedule(text: str, *, sent_on: date_type) -> ParsedSchedule | None:
         return None
     at = _resolve_time(text)
     if at is None:
+        return None
+    if (
+        sent_time is not None
+        and when == sent_on
+        and at <= sent_time.strftime("%H:%M")
+    ):
         return None
     return ParsedSchedule(date=when.isoformat(), time=at)

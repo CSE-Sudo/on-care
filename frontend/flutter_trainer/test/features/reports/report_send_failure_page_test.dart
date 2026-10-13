@@ -158,7 +158,7 @@ void main() {
         widget is TextField &&
         widget.decoration?.hintText == '회원에게 전달할 코칭 피드백을 작성하세요.',
   );
-  const String failedToast = '리포트 전송에 실패했어요. 다시 시도해 주세요';
+  const String failedToast = '리포트를 보내지 못했어요. 다시 시도해 주세요';
   const String alreadyToast = '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
 
   Future<void> openAtSend(WidgetTester tester, _FlakyServer server) async {
@@ -287,41 +287,4 @@ void main() {
     );
   });
 
-  testWidgets('영어 화면의 409 안내는 영어다', (tester) async {
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1600, 1200);
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final _FlakyServer server = _FlakyServer(
-      failWith: const ServerError(statusCode: 409),
-      storedAnyway: true,
-    );
-    await pumpTrainerApp(
-      tester,
-      token: 'demo-trainer-token',
-      at: AppRoutes.reportFor(_minsu),
-      locale: const Locale('en'),
-      extraOverrides: <Override>[
-        reportRepositoryProvider.overrideWithValue(server),
-        reportPdfGeneratorProvider.overrideWithValue(_InstantPdf()),
-        reportPdfRasterizerProvider.overrideWithValue(
-          (Uint8List bytes) async => <Uint8List>[bytes],
-        ),
-      ],
-    );
-    await settle(tester);
-    await tester.tap(nextButton);
-    await settle(tester);
-    await tester.tap(nextButton);
-    await settle(tester);
-
-    await tapSend(tester);
-
-    expect(
-      find.text(
-        'This report was already sent. Send history has been refreshed',
-      ),
-      findsOneWidget,
-    );
-  });
 }

@@ -92,11 +92,18 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async =>
       const <CoachRoutine>[];
+
+  @override
+  Future<UpcomingRoutines?> fetchUpcomingRoutines() async => null;
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) async => throw UnsupportedError('not used');
@@ -114,6 +121,9 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
       const <CoachMessage>[];
+  @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async =>
+      const ReceivedReportsPage(reports: <ReceivedReport>[]);
   @override
   Stream<List<CoachMessage>> watchChat() =>
       const Stream<List<CoachMessage>>.empty();
@@ -578,6 +588,79 @@ void main() {
     expect(find.text('실내 자전거 · 1시간 30분'), findsOneWidget);
   });
 
+  testWidgets('같은 날 완료한 PT 가 여러 건이면 모두 그린다 (#3309)', (
+    WidgetTester tester,
+  ) async {
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(
+        <CoachSession>[
+          CoachSession(
+            id: 'completed-pt-morning',
+            date: nowKst(),
+            time: '10:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            program: const <CoachProgramItem>[
+              CoachProgramItem(
+                name: '하체 스트레칭',
+                sets: 0,
+                reps: 0,
+                weight: 0,
+                duration: 10,
+              ),
+            ],
+          ),
+          CoachSession(
+            id: 'completed-pt-evening',
+            date: nowKst(),
+            time: '18:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            program: const <CoachProgramItem>[
+              CoachProgramItem(name: '숄더 프레스', sets: 4, reps: 12, weight: 10),
+            ],
+          ),
+        ],
+        coach: const MemberCoach(
+          trainerId: 'trainer-1',
+          name: '김트레이너',
+          specialty: '근력 운동',
+          career: '5년',
+          intro: '',
+          gymName: '온케어짐',
+          goal: '근력 향상',
+        ),
+      ),
+    );
+
+    // 늦은 시각이 맨 위(기존 키), 이른 시각 PT 도 가려지지 않고 아래에 선다.
+    final Finder latest = find.byKey(const Key('completedPtSessionCard'));
+    await tester.scrollUntilVisible(latest, 400);
+    expect(
+      find.descendant(
+        of: latest,
+        matching: find.text('숄더 프레스 · 4세트 · 12회 · 10kg'),
+      ),
+      findsOneWidget,
+    );
+    final Finder earlier = find.byKey(
+      const Key('completedPtSessionCard-completed-pt-morning'),
+    );
+    await tester.scrollUntilVisible(earlier, 400);
+    expect(
+      find.descendant(of: earlier, matching: find.text('하체 스트레칭 · 10분')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('완료한 PT 의 버티기 종목은 횟수 대신 버틴 초로 읽힌다 (#3138)', (
     WidgetTester tester,
   ) async {
@@ -689,15 +772,15 @@ void main() {
     expect(find.text('12회차'), findsOneWidget);
     expect(find.text('50분'), findsOneWidget);
     // 피드백은 그날 픽스처 트레이너 메모다 — 예전 데모의 고정 문구가 아니다.
-    expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsOneWidget);
+    expect(find.text('무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.'), findsOneWidget);
   });
 
-  testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (
+  testWidgets('담당 트레이너가 없어도 오늘 마친 PT 는 남는다 (#3347)', (
     WidgetTester tester,
   ) async {
-    // 연결을 끊었는데 이 칸이 남으면 트레이너가 있던 흔적만 화면에 서 있게
-    // 된다. 세션 기록은 그대로 두고 담당만 없앤 상태로 확인한다 — 데모는
-    // 픽스처 세션을 연결과 무관하게 읽어 카드를 세우고 있었다.
+    // 받은 수업은 회원의 기록이다. 수업 뒤에 연결을 끊었다고 그날의 일지가
+    // 사라지면 안 된다 — 예전에는 담당이 없으면 이 칸을 걷었다(#2014). 이름은
+    // 지금 담당이 아니라 그 수업의 트레이너다.
     await pumpExercise(
       tester,
       profile: const UserProfile(
@@ -713,12 +796,73 @@ void main() {
           type: '1:1 PT',
           durationMinutes: 50,
           status: '완료',
+          trainerName: '이전 코치',
         ),
       ]),
     );
 
-    expect(find.byKey(const Key('completedPtSessionCard')), findsNothing);
-    expect(find.text('18:00 완료'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+    expect(find.text('18:00 완료'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('completedPtSessionCard')),
+        matching: find.text('이전 코치'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('오늘 PT 카드의 이름은 지금 담당이 아니라 그 수업의 트레이너다 (#3347)', (
+    WidgetTester tester,
+  ) async {
+    // 오전에 한 트레이너와 수업하고 오후에 담당을 바꾼 날이다.
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(
+        <CoachSession>[
+          CoachSession(
+            id: 'completed-pt',
+            date: nowKst(),
+            time: '09:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            trainerName: '이전 코치',
+          ),
+        ],
+        coach: const MemberCoach(
+          trainerId: 'trainer-new',
+          name: '새 코치',
+          specialty: '',
+          career: '',
+          intro: '',
+          gymName: '',
+          goal: '',
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+    final Finder card = find.byKey(const Key('completedPtSessionCard'));
+    expect(
+      find.descendant(of: card, matching: find.text('이전 코치')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: card, matching: find.text('새 코치')),
+      findsNothing,
+    );
   });
 
   testWidgets('담당 조회가 실패해도 오늘 한 PT 기록은 사라지지 않는다 (#2014)', (

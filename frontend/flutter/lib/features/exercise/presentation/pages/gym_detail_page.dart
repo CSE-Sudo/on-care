@@ -12,7 +12,6 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
-import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -27,9 +26,16 @@ const double _trainerDividerIndent =
     OnCareSpacing.s16 + OnCareSize.avatarLarge + OnCareSpacing.s12;
 
 class GymDetailPage extends ConsumerWidget {
-  const GymDetailPage({required this.gymId, super.key});
+  const GymDetailPage({required this.gymId, this.initialGym, super.key});
 
   final String gymId;
+
+  /// 이름 검색 결과에서 눌러 들어왔을 때의 그 헬스장(#3355).
+  ///
+  /// 외부 장소 검색에서만 찾은 헬스장은 서버에 등록돼 있지 않아 id 로 다시 읽을
+  /// 수 없다. 받아 둔 목록 어디에도 없으면 이 값으로 그린다. id 가 다르면 쓰지
+  /// 않는다.
+  final Gym? initialGym;
 
   Gym? _findGym(List<Gym> gyms) {
     for (final Gym gym in gyms) {
@@ -56,20 +62,34 @@ class GymDetailPage extends ConsumerWidget {
       AsyncData<Gym?>(:final value) when value?.id == gymId => value,
       _ => null,
     };
-    final Gym? gym = nearbyGym ?? myGym;
+    final bool listsLoading = nearbyAsync.isLoading || myGymAsync.isLoading;
+    // 목록은 서버가 반경·개수로 잘라 준다. 두 곳 어디에도 없을 때만 이 헬스장
+    // 하나를 따로 읽는다 — 담당 트레이너의 먼 소속 헬스장처럼 목록 밖에서
+    // 들어온 상세가 "찾을 수 없음"이 되지 않게(#3356).
+    // 검색 결과를 들고 들어왔으면 그 값이 있으므로 따로 읽지 않는다(#3355) —
+    // 외부 검색에서만 찾은 헬스장은 읽어도 404 다.
+    final Gym? searched = initialGym?.id == gymId ? initialGym : null;
+    final AsyncValue<Gym?> singleAsync =
+        nearbyGym == null && myGym == null && searched == null && !listsLoading
+        ? ref.watch(gymProvider(gymId))
+        : const AsyncValue<Gym?>.data(null);
+    final Gym? gym = nearbyGym ?? myGym ?? singleAsync.valueOrNull ?? searched;
     final Widget body;
     if (gym != null) {
       body = _GymDetails(gym: gym, isMyGym: myGym != null);
-    } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
+    } else if (listsLoading || singleAsync.isLoading) {
       body = const AppLoading();
-    } else if (nearbyAsync.hasError || myGymAsync.hasError) {
+    } else if (nearbyAsync.hasError ||
+        myGymAsync.hasError ||
+        singleAsync.hasError) {
       body = appErrorStateFor(
         context,
-        error: nearbyAsync.error ?? myGymAsync.error,
+        error: nearbyAsync.error ?? myGymAsync.error ?? singleAsync.error,
         title: l.exGymsLoadError,
         onRetry: () {
           ref.invalidate(gymFinderResultsProvider);
           ref.invalidate(myGymProvider);
+          ref.invalidate(gymProvider(gymId));
         },
       );
     } else {
@@ -103,7 +123,6 @@ class _GymDetails extends ConsumerWidget {
     if (!context.mounted) return;
     final bool removed = await confirmDisconnect(
       context,
-      ref,
       // 담당 트레이너가 있으면 함께 사라진다는 것을 알린다.
       message: trainer == null
           ? l.myGymDisconnectConfirm(gym.name)
@@ -122,7 +141,6 @@ class _GymDetails extends ConsumerWidget {
     final TextStyle bodyStyle = tokens
         .text(OnCareTypography.body)
         .copyWith(color: OnCareColors.textPrimary);
-    final String? myTrainerId = ref.watch(myTrainerProvider).valueOrNull?.id;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(
@@ -279,24 +297,78 @@ class _GymDetails extends ConsumerWidget {
             ],
             if (!isMyGym) ...<Widget>[
               const SizedBox(height: OnCareSpacing.sectionGap),
-              AppButton(
-                key: const Key('gym-consult-start'),
-                label: l.exGymConsultRequest,
-                // 상담은 트레이너 한 사람에게만 간다 — 헬스장에서 시작해도 소속
-                // 트레이너 중 누구에게 보낼지 먼저 고른다. 담당이 있으면 다른
-                // 헬스장 트레이너에게는 낼 수 없다(#2611).
-                onPressed: myTrainerId == null
-                    ? () => _pickTrainerForConsultation(context, gym)
-                    : null,
-                size: OnCareButtonSize.large,
-                fullWidth: true,
-              ),
-              if (myTrainerId != null)
-                ConsultLinkedNotice(myTrainerId: myTrainerId),
+              _GymInquiry(gym: gym),
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 헬스장 상세 맨 아래의 문의 자리 — 상담 신청, 또는 전화 문의. (#3357)
+///
+/// 상담은 소속 트레이너 한 사람에게 간다. 주변 검색·이름 검색으로만 찾은
+/// 헬스장에는 가입한 트레이너가 없어, 예전에는 상담 버튼이 늘 "아직 소속
+/// 트레이너가 없어요" 시트로 끝났다. 소속 트레이너가 없다고 확인되면 버튼 대신
+/// 그 사실을 한 줄로 알리고 전화로 내보낸다. 번호도 모르는 헬스장은 안내만 둔다.
+///
+/// 읽는 중·조회 실패는 '없음' 이 아니다(#2857) — 그때는 상담 버튼을 그대로 두고,
+/// 시트가 로딩·오류와 다시 시도를 보인다.
+class _GymInquiry extends ConsumerWidget {
+  const _GymInquiry({required this.gym});
+
+  final Gym gym;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AsyncValue<List<Trainer>> trainersAsync = ref.watch(
+      gymTrainersProvider(gym.id),
+    );
+    final bool noTrainers =
+        trainersAsync.hasValue &&
+        !trainersAsync.hasError &&
+        trainersAsync.requireValue.isEmpty;
+    if (!noTrainers) {
+      return AppButton(
+        key: const Key('gym-consult-start'),
+        label: l.exGymConsultRequest,
+        // 상담은 트레이너 한 사람에게만 간다 — 헬스장에서 시작해도 소속
+        // 트레이너 중 누구에게 보낼지 먼저 고른다. 담당이 있어도 낼 수
+        // 있다 — 상담은 담당을 바꾸지 않는다(#3358).
+        onPressed: () => _pickTrainerForConsultation(context, gym),
+        size: OnCareButtonSize.large,
+        fullWidth: true,
+      );
+    }
+
+    final String? phone = gym.phone;
+    return Column(
+      key: const Key('gym-inquiry-no-trainers'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          phone == null ? l.exGymNoTrainersHint : l.exGymNoTrainersCallHint,
+          textAlign: TextAlign.center,
+          style: context.oncare
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        if (phone != null) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s12),
+          AppButton(
+            key: const Key('gym-call-inquiry'),
+            label: l.exGymCallInquiry,
+            leadingIcon: AppIcons.phone,
+            // 번호 줄과 같은 시트를 띄운다 — 전화·복사를 회원이 고른다(#1873).
+            onPressed: () => showGymPhoneSheet(context, gym.name, phone),
+            size: OnCareButtonSize.large,
+            fullWidth: true,
+          ),
+        ],
+      ],
     );
   }
 }

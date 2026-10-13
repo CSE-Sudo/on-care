@@ -6,15 +6,11 @@ import 'package:drift/drift.dart';
 import 'package:flutter/widgets.dart' show Locale, immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_core/clock.dart';
-import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
-import 'package:oncare_trainer/core/storage/seed_data.dart'
-    show seedLanguageKey;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
@@ -80,9 +76,7 @@ abstract interface class ReportRepository {
   /// 리포트 본문과 **따로** 가져온다. 실서버는 생성에 몇 초가 걸리는데 한
   /// 응답에 묶으면 고객을 고를 때마다 화면 전체가 그만큼 멈춘다(#755).
   ///
-  /// [l] 은 요약 문장의 언어다. 데모는 이 언어로 규칙 기반 요약을 조립하고,
-  /// 실서버에는 같은 언어를 `Accept-Language` 로 요청한다(#2298) — 캐시 열쇠
-  /// ([ReportSummaryKey])가 가리키는 언어와 받아 온 문장의 언어가 늘 같다.
+  /// 데모는 [l] 의 문구로 규칙 기반 요약을 조립한다.
   Future<ReportSummary> summary({
     required TrainerClient client,
     required DateTime weekStart,
@@ -490,7 +484,7 @@ class LocalReportRepository implements ReportRepository {
   ///
   /// 실서버처럼 줄마다 **보낸 본문의 첫 줄과 PDF 표시**를 싣는다(#2669). 데모
   /// 기록은 본문을 저장하지 않으므로 그 주 수치로 만든 초안([reportMessage])을
-  /// 시드 언어로 채운다 — 수치와 따로 노는 고정 문장을 두지 않는다는 #2423 의
+  /// 채운다 — 수치와 따로 노는 고정 문장을 두지 않는다는 #2423 의
   /// 규칙 그대로다. 공유 메뉴의 기본 전송이 PDF 라서(#1378) 데모의 보낸
   /// 리포트는 모두 PDF 로 나간 것으로 둔다 — 실행 중 기록도 `sendPdf` 가
   /// 남긴 것뿐이다.
@@ -537,9 +531,7 @@ class LocalReportRepository implements ReportRepository {
     final TrainerClient? client = row == null
         ? null
         : trainerClientFromRow(row);
-    final AppLocalizations l = lookupAppLocalizations(
-      Locale(await _db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name),
-    );
+    final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
     return <MemberReportHistoryItem>[
       for (final MemberReportHistoryItem item in items)
         MemberReportHistoryItem(
@@ -672,9 +664,9 @@ class DioReportRepository implements ReportRepository {
   }) async {
     // 회원 주간 피드백은 리포트 본문과 **나란히** 부른다(#2286) — 차례로
     // 부르면 리포트가 뜨는 시간이 두 요청을 더한 만큼 늘어난다. 이 요청은
-    // 실패해도 null 로 끝나므로(아래), 본문이 실패해 먼저 빠져나가도 처리되지
+    // 실패해도 던지지 않으므로(아래), 본문이 실패해 먼저 빠져나가도 처리되지
     // 않은 오류로 남지 않는다.
-    final Future<MemberWeeklyFeedback?> feedback = _memberFeedback(
+    final Future<_FeedbackRead> feedback = _memberFeedback(
       client.id,
       weekStart,
     );
@@ -688,7 +680,13 @@ class DioReportRepository implements ReportRepository {
         // 문구는 화면이 붙인다 — 리포지토리는 로케일을 모른다. (#501)
         throw const ServerError();
       }
-      return weeklyReportFromJson(json, client, memberFeedback: await feedback);
+      final _FeedbackRead read = await feedback;
+      return weeklyReportFromJson(
+        json,
+        client,
+        memberFeedback: read.feedback,
+        memberFeedbackFailed: read.failed,
+      );
     } on DioException catch (e) {
       throw AppError.fromDio(e);
     }
@@ -720,12 +718,14 @@ class DioReportRepository implements ReportRepository {
     }
   }
 
-  /// 회원이 그 주에 낸 세 문항. 안 냈거나 읽지 못하면 null. (#2286)
+  /// 회원이 그 주에 낸 세 문항. 안 냈으면 `feedback` 이 null 이다. (#2286)
   ///
   /// 이 칸 하나 때문에 리포트 전체를 오류 화면으로 바꾸지 않는다 — 수치는
   /// 멀쩡히 왔는데 피드백 요청만 실패했을 때 화면이 통째로 사라지면, 트레이너는
-  /// 읽을 수 있던 한 주를 잃는다. 그때 ① 칸은 "아직 받지 못함" 을 그린다.
-  Future<MemberWeeklyFeedback?> _memberFeedback(
+  /// 읽을 수 있던 한 주를 잃는다. 다만 읽지 못한 것과 안 낸 것은 가른다
+  /// (`failed`, #3246) — 서버는 안 낸 주를 `submitted=false` 로 답하므로, 오류는
+  /// 언제나 `모른다` 이지 `미응답` 이 아니다.
+  Future<_FeedbackRead> _memberFeedback(
     String clientId,
     DateTime weekStart,
   ) async {
@@ -736,12 +736,22 @@ class DioReportRepository implements ReportRepository {
         queryParameters: <String, String>{'week_start': ymd(weekStart)},
       );
       final json = res.data;
-      if (json == null) return null;
-      return memberWeeklyFeedbackFromJson(json, weekStart);
+      if (json == null) return (feedback: null, failed: true);
+      final MemberWeeklyFeedback? feedback = memberWeeklyFeedbackFromJson(
+        json,
+        weekStart,
+      );
+      // 답했다고 왔는데 컨디션·강도를 읽지 못했으면 `미응답` 이 아니라 `불러오지
+      // 못함` 이다 — 미응답으로 그리면 답한 회원의 결과지에 `아직 받지 못했어요`
+      // 가 실린다(#3246).
+      return (
+        feedback: feedback,
+        failed: feedback == null && json['submitted'] == true,
+      );
     } on Object {
       // 네트워크 오류(404·500·끊김)뿐 아니라 모양이 다른 응답도 여기서 멈춘다
-      // — 어느 쪽이든 이 칸만 비우고 리포트는 그대로 그린다.
-      return null;
+      // — 어느 쪽이든 이 칸만 `불러오지 못함` 으로 두고 리포트는 그대로 그린다.
+      return (feedback: null, failed: true);
     }
   }
 
@@ -755,15 +765,6 @@ class DioReportRepository implements ReportRepository {
       final res = await _dio.get<Map<String, dynamic>>(
         '/trainer/clients/${Uri.encodeComponent(client.id)}/report/summary',
         queryParameters: <String, String>{'week_start': ymd(weekStart)},
-        // 화면 언어를 전역 인터셉터에 맡기지 않고 [l] 로 직접 고른다(#2298).
-        // 요약은 언어별로 캐시되므로, 요청 도중 언어를 바꿔도 이 응답은
-        // 요청한 언어의 칸에만 들어가야 한다. 인터셉터는 이미 있는 헤더를
-        // 덮지 않는다.
-        options: Options(
-          headers: <String, String>{
-            AcceptLanguageInterceptor.headerName: summaryLanguageTag(l),
-          },
-        ),
       );
       final json = res.data;
       if (json == null) throw const ServerError();
@@ -909,6 +910,9 @@ class DioReportRepository implements ReportRepository {
   }
 }
 
+/// 회원 피드백 한 번 읽은 결과 — 읽지 못했으면 `failed` 다(#3246).
+typedef _FeedbackRead = ({MemberWeeklyFeedback? feedback, bool failed});
+
 /// Decodes `WeeklyReportOut`. 계열도 함께 온다 — 로스터의 것은 이번 주 것이라
 /// 과거 주 화면에 쓸 수 없다(#752).
 ///
@@ -918,6 +922,7 @@ WeeklyReport weeklyReportFromJson(
   Map<String, dynamic> json,
   TrainerClient client, {
   MemberWeeklyFeedback? memberFeedback,
+  bool memberFeedbackFailed = false,
 }) {
   int? optInt(String key) => (json[key] as num?)?.toInt();
   List<int> ints(String key) =>
@@ -985,6 +990,7 @@ WeeklyReport weeklyReportFromJson(
           ),
     ],
     memberFeedback: memberFeedback,
+    memberFeedbackFailed: memberFeedbackFailed,
     // 직전 4주 칼로리 `평소`(#2863). 기록이 없으면 null 로 온다.
     calorieBaseline: (json['calorie_baseline'] as num?)?.toDouble(),
   );
@@ -1358,27 +1364,17 @@ final reportFeedbackDraftProvider = FutureProvider.autoDispose
           .feedbackDraft(client: key.client, weekStart: key.weekStart);
     });
 
-/// 요약을 요청할 언어 태그 — [l] 의 주 언어(`ko`·`en`). 서버는 주 언어만 본다.
-String summaryLanguageTag(AppLocalizations l) =>
-    AcceptLanguageInterceptor.headerValue(
-      Locale(l.localeName.split('_').first),
-    );
-
 /// 한 주의 리포트 요약. 리포트 본문과 따로 부른다(#755).
 ///
 /// `autoDispose` 다 — 고객·주를 옮겨 다니는 화면이라 남겨 두면 본 적 있는 모든
 /// 주의 요약이 메모리에 쌓인다. 다시 생성하려면 이 provider 를 무효화한다.
 final reportSummaryProvider = FutureProvider.autoDispose
-    .family<ReportSummary, ReportSummaryKey>((ref, key) {
+    .family<ReportSummary, ReportKey>((ref, key) {
       return ref
           .watch(reportRepositoryProvider)
           .summary(
-            client: key.report.client,
-            weekStart: key.report.weekStart,
-            l: lookupAppLocalizations(key.locale),
+            client: key.client,
+            weekStart: key.weekStart,
+            l: lookupAppLocalizations(const Locale('ko')),
           );
     });
-
-/// 요약을 찾는 열쇠 — 어느 주인지와 **어느 언어로** 조립할지. 언어를 바꾸면
-/// 다른 요약이다(#2232).
-typedef ReportSummaryKey = ({ReportKey report, Locale locale});

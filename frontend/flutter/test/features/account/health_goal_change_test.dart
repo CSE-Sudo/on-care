@@ -41,7 +41,6 @@ Dio _answering(Object? body) {
 void main() {
   setUpAll(() async {
     await initializeDateFormatting('ko');
-    await initializeDateFormatting('en');
   });
 
   test('트레이너가 목표를 바꾼 알림은 MY 건강 목표로 가는 알림이다', () async {
@@ -50,7 +49,7 @@ void main() {
         <String, Object?>{
           'id': 'n1',
           'title': '건강 목표가 바뀌었어요',
-          'body': '김트레이너 트레이너님이 건강 목표를 바꿨어요: 자세 교정',
+          'body': '김트레이너 트레이너가 건강 목표를 바꿨어요: 자세 교정',
           'time_ago': '방금',
           'category': 'health_goals',
           'read': false,
@@ -117,7 +116,6 @@ void main() {
         focusChangedAt: DateTime(2026, 9, 3, 10),
       );
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
       expect(
         focusLastChangedLabel(ko, byTrainer, locale: 'ko'),
@@ -126,10 +124,6 @@ void main() {
       expect(
         focusLastChangedLabel(ko, byMe, locale: 'ko'),
         '마지막 변경: 나 · 9월 3일',
-      );
-      expect(
-        focusLastChangedLabel(en, byTrainer, locale: 'en'),
-        'Last changed by your trainer · Sep 16',
       );
     });
   });

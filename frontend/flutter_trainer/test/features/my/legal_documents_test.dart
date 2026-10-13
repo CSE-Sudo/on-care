@@ -111,26 +111,11 @@ void main() {
         at: AppRoutes.legalDocument('terms'),
       );
 
-      // 처리방침만 연락처 변경(#3132)으로 시행일이 올랐다 — 약관은 그대로다.
+      // 처리방침만 연락처 변경(#3132)·위치정보 안내(#3136)로 시행일이 올랐다 — 약관은 그대로다.
       expect(find.text('시행일 2026. 10. 03.'), findsWidgets);
       expect(find.text('시행일 2026. 10. 05.'), findsNothing);
       expect(find.text('시행일 2026. 10. 01.'), findsNothing);
       expect(_bodyText(tester), contains('제13조 (분쟁 해결과 관할)'));
-    });
-
-    testWidgets('영어 로케일에서도 두 문서가 뜬다', (tester) async {
-      await pumpTrainerApp(
-        tester,
-        token: 'demo-trainer-token',
-        at: AppRoutes.legalDocument('terms'),
-        locale: const Locale('en'),
-      );
-      expect(find.text('Terms of Service'), findsWidgets);
-      expect(_bodyText(tester), contains('Handling member information'));
-
-      await goTo(tester, AppRoutes.legalDocument('privacy'));
-      expect(find.text('Privacy Policy'), findsWidgets);
-      expect(_bodyText(tester), contains('Access to and processing'));
     });
 
     testWidgets('로그인 없이도 열린다 — 가입 화면에서 거는 링크라서', (tester) async {

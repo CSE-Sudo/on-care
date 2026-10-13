@@ -31,6 +31,12 @@ def _h(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _unsent(client, token: str) -> list[dict]:
+    """이 테스트가 만든 미전송 줄 — 시드 PT 에 붙은 개인운동(#2616)은 뺀다."""
+    rows = client.get(_UNSENT_URL, headers=_h(token)).json()
+    return [r for r in rows if not r["id"].startswith("seed-")]
+
+
 def _cleanup(db_session) -> None:
     while _MADE:
         row = db_session.get(TrainerSchedule, _MADE.pop())
@@ -102,17 +108,17 @@ def test_unsent_lists_what_is_waiting_on_a_pt(client, db_session):
     token = _tok(client)
     _cleanup(db_session)
     try:
-        assert client.get(_UNSENT_URL, headers=_h(token)).json() == []
+        assert _unsent(client, token) == []
         session_id = _attach(client, token)
         # 아직 예정이라 미전송이 아니다.
-        assert client.get(_UNSENT_URL, headers=_h(token)).json() == []
+        assert _unsent(client, token) == []
 
         client.post(
             f"/v1/trainer/schedule/{session_id}/cancel",
             json={"source": "member", "reason": "몸살"},
             headers=_h(token),
         )
-        rows = client.get(_UNSENT_URL, headers=_h(token)).json()
+        rows = _unsent(client, token)
         assert [r["name"] for r in rows] == [f"{_NAME} 걷기"]
         # 어느 PT 의 것인지 알아야 그 일정으로 데려다줄 수 있다.
         assert rows[0]["schedule_id"] == session_id
@@ -154,7 +160,7 @@ def test_latest_delivery_groups_the_pt_with_its_routines(client, db_session):
         ]
         assert [r["name"] for r in got["routines"]] == [f"{_NAME} 걷기"]
         # 보냈으니 미전송 목록에서는 빠진다.
-        assert client.get(_UNSENT_URL, headers=_h(token)).json() == []
+        assert _unsent(client, token) == []
     finally:
         _cleanup(db_session)
 

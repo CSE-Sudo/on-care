@@ -1,0 +1,9 @@
+// 카카오·구글 로그인 URL 스킴(#330). 이 파일을 Social.xcconfig 로 복사해 값을 채운다.
+// Social.xcconfig 는 커밋하지 않는다(.gitignore). 서명 빌드 워크플로는 빌드 변수로
+// 같은 파일을 만든다. 절차: docs/social_login_setup.md
+//
+// KAKAO_URL_SCHEME  = kakao<KAKAO_NATIVE_APP_KEY>
+// GOOGLE_URL_SCHEME = GOOGLE_IOS_CLIENT_ID 를 뒤집은 값
+//                     (com.googleusercontent.apps.<번호>-<해시>)
+KAKAO_URL_SCHEME = kakao<네이티브 앱 키>
+GOOGLE_URL_SCHEME = com.googleusercontent.apps.<iOS client_id 앞부분>

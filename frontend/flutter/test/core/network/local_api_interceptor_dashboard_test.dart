@@ -361,6 +361,9 @@ void main() {
         );
 
     final res = await dio.get<Map<String, Object?>>('/dashboard/summary');
-    expect(res.data!['sodium_warning'], '오늘 나트륨이 2100mg 으로 권장량(2000mg)을 넘었어요.');
+    expect(
+      res.data!['sodium_warning'],
+      '오늘 나트륨이 2,100mg으로 목표(2,000mg)를 넘었어요.',
+    );
   });
 }

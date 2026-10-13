@@ -7,8 +7,9 @@ import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
+import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart'
-    show ExerciseIntensity, exerciseIntensityFromName;
+    show ExerciseIntensity, ExerciseType, exerciseIntensityFromName;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
     show exerciseAmountLabelOf, exerciseIntensityLabel;
@@ -17,6 +18,7 @@ import 'package:oncare/features/member_coach/presentation/coach_routine_detail.d
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_rules/oncare_rules.dart' show josa;
 // 토스트는 아직 앱의 AppToastHost 를 쓴다 — 패키지 쪽 같은 이름은 가린다.
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -82,13 +84,20 @@ class _AiCoachingCardState extends ConsumerState<AiCoachingCard> {
     // 트레이너가 배정한 운동에 `취소` 까지 붙는다.
     final bool unassigned = coachState.hasValue && coach == null;
 
+    // 아직 시작하지 않은 개인운동(#3106) — **오늘** 화면에서만 목록 아래 한
+    // 줄로 알린다. 지난 날짜는 그날 걸려 있던 것을 보는 자리라 두지 않는다.
+    final UpcomingRoutines? upcoming = past
+        ? null
+        : ref.watch(coachUpcomingRoutinesProvider).valueOrNull;
+
     // 추천이 없으면 카드 자체를 그리지 않는다. 빈 카드는 자리만 차지하고
-    // 아무것도 알려 주지 않는다.
+    // 아무것도 알려 주지 않는다. 다만 예정이 있으면 카드를 남긴다 — 미래
+    // 시작일 알림을 받고 들어와 볼 곳이 없으면 안 된다(#3106).
     //
     // 예전에는 이 카드가 `이번 코칭 포인트` 도 함께 말했다. 지금은 화면 위쪽의
     // AI 맞춤 조언 카드가 그 말을 하므로 여기서는 뺐다 — 같은 말이 한 화면에
     // 두 번 있으면 안 된다. (#1021)
-    if (routines.isEmpty) return const SizedBox.shrink();
+    if (routines.isEmpty && upcoming == null) return const SizedBox.shrink();
 
     return AppCard(
       key: Key(past ? 'aiCoachingCardPast' : 'aiCoachingCard'),
@@ -216,8 +225,86 @@ class _AiCoachingCardState extends ConsumerState<AiCoachingCard> {
             ),
             const SizedBox(height: OnCareSpacing.s8),
           ],
+          if (upcoming != null) ...<Widget>[
+            // 오늘 체크할 목록과 섞이지 않게 선으로 가른다 — 예정 줄은 체크할
+            // 수 없다. 오늘 걸린 게 없으면 선 없이 이 줄만 선다.
+            if (routines.isNotEmpty) ...<Widget>[
+              const AppDivider(),
+              const SizedBox(height: OnCareSpacing.s8),
+            ],
+            UpcomingRoutinesLine(upcoming: upcoming),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// 예정 한 줄 — 달력 아이콘과 `8/22(토)부터 · 빠르게 걷기 · 런지 · 플랭크 외 1개`.
+/// (#3106)
+///
+/// 날짜만 강조색이다. 운동은 앞의 셋까지 적고 나머지는 개수로 접는다. 누르거나
+/// 체크할 수 없다 — 체크는 시작일에 오늘 목록으로 넘어온 뒤다.
+class UpcomingRoutinesLine extends StatelessWidget {
+  const UpcomingRoutinesLine({super.key, required this.upcoming});
+
+  final UpcomingRoutines upcoming;
+
+  /// 이름을 적는 운동 수. 나머지는 `외 N개` 로 접는다.
+  static const int shownNames = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final DateTime starts = upcoming.startsOn;
+    final String date = l.coachUpcomingDate(
+      starts.month,
+      starts.day,
+      switch (starts.weekday) {
+        DateTime.monday => l.dietWeekdayMon,
+        DateTime.tuesday => l.dietWeekdayTue,
+        DateTime.wednesday => l.dietWeekdayWed,
+        DateTime.thursday => l.dietWeekdayThu,
+        DateTime.friday => l.dietWeekdayFri,
+        DateTime.saturday => l.dietWeekdaySat,
+        _ => l.dietWeekdaySun,
+      },
+    );
+    final List<String> names = upcoming.names;
+    final int more = names.length - shownNames;
+    // `플랭크 외 1개` — 접은 개수는 마지막 이름 뒤에 띄어 붙인다.
+    final String rest = <String>[
+      names.take(shownNames).join(' · '),
+      if (more > 0) l.coachUpcomingMore(more),
+    ].join(' ');
+    return Row(
+      key: const Key('coachUpcomingRoutines'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const AppIcon(
+          AppIcons.calendar,
+          size: OnCareSize.iconSmall,
+          color: OnCareColors.textTertiary,
+        ),
+        const SizedBox(width: OnCareSpacing.s4),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: <InlineSpan>[
+                TextSpan(
+                  text: l.coachUpcomingStarts(date),
+                  style: TextStyle(color: tokens.brand.primary),
+                ),
+                TextSpan(text: ' · $rest'),
+              ],
+            ),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -329,7 +416,10 @@ class _RecommendedExerciseRowState
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.coachCardRoutineCancelTitle,
-      message: l.coachRoutineCancelConfirm(routine.name),
+      message: l.coachRoutineCancelConfirm(
+        routine.name,
+        josa(routine.name, '을', '를'),
+      ),
       // 무엇을 지우는지는 제목과 본문이 이름까지 밝힌다 — 확정 버튼까지 긴
       // 문구를 넣으면 좁은 폰에서 잘린다(#2218). 다른 삭제 확인창과 같은 말이다.
       confirmLabel: l.actionDelete,
@@ -433,28 +523,38 @@ class _RecommendedExerciseRowState
     );
     // 강도·피드백을 받는 입력이라 모바일 규격대로 바텀시트다. 탭 페이지의
     // Navigator 가 아니라 루트에서 띄워 하단 바 위를 덮는다 — 예전 다이얼로그와
-    // 같은 층이다.
+    // 같은 층이다. 근력 배정이면 배정된 세트·횟수·중량을 채워 함께 묻는다
+    // (#3364).
+    final _RoutineStrengthAmount? planned = _RoutineStrengthAmount.of(routine);
     final _RoutineCompletionInput? input =
         await showAppSheet<_RoutineCompletionInput>(
           context: Navigator.of(context, rootNavigator: true).context,
-          builder: (_) => const _RoutineCompletionSheet(),
+          builder: (_) => _RoutineCompletionSheet(strength: planned),
         );
     if (input == null || !mounted) return;
+    final _RoutineStrengthAmount? done = input.strength;
 
     setState(() => _saving = true);
     try {
-      final CoachRoutine done = await container
+      final CoachRoutine completed = await container
           .read(memberCoachRepositoryProvider)
           .completeRoutine(
             routine.id,
-            // 시간은 **배정된 값 그대로** 간다 (#1360). 운동의 세부 내용은
-            // 추천이 정하는 것이라 회원이 고쳐 넣을 자리가 아니다. 계획 시간이
-            // 비어 있는 배정만 1분으로 받는다 — 0분짜리 기록은 주간 집계에서
-            // 한 적 없는 운동과 구분되지 않는다.
-            minutes: routine.minutes > 0 ? routine.minutes : 1,
+            // 시간은 **배정된 값 그대로** 간다 (#1360). 세트를 적은 근력은
+            // 분을 싣지 않는다 — 서버가 세트 수에서 환산한다. 계획 시간이
+            // 비어 있는 배정도 분을 비워 서버에 맡긴다. 예전에는 여기서 1분을
+            // 지어내 보내, 근력 배정이 모두 1분짜리 기록이 됐다(#3364).
+            minutes: done == null && routine.minutes > 0
+                ? routine.minutes
+                : null,
             // 초로 배정된 시간은 초로도 보낸다(#2221) — `45초` 가 `1분` 기록이
             // 되지 않게. 근력·옛 응답은 초가 없어 분만 간다.
             durationSeconds: routine.durationSeconds,
+            // 회원이 실제로 한 세트·횟수(또는 버틴 시간)·중량(#3364).
+            sets: done?.sets,
+            reps: done?.reps,
+            holdSeconds: done?.holdSeconds,
+            weight: done?.weight,
             intensity: input.intensity,
             day: widget.day,
           );
@@ -471,7 +571,7 @@ class _RecommendedExerciseRowState
           l.coachRoutineLogged,
           type: AppToastType.success,
           // 받은 포인트가 있으면 ★ +50P. 하루 한도를 넘었으면 저장 알림만.
-          rewardLabel: pointsRewardLabel(l, done.pointsAward),
+          rewardLabel: pointsRewardLabel(l, completed.pointsAward),
         );
       }
     } catch (error, stackTrace) {
@@ -579,14 +679,7 @@ class _RecommendedExerciseRowState
                       if (routine.effect.isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(
-                          // 공용 표의 자동 문구는 화면 언어로 옮긴다(#2725).
-                          // 번역 표는 두 앱이 함께 쓰는 `oncare_ui` 한 벌이다(#2906).
-                          keepWords(
-                            routineEffectText(
-                              routine.effect,
-                              languageCode: l.localeName,
-                            ),
-                          ),
+                          keepWords(routine.effect),
                           key: ValueKey<String>('routine-effect-${routine.id}'),
                           style: detailStyle,
                         ),
@@ -726,16 +819,66 @@ class _RecommendedExerciseRowState
 }
 
 class _RoutineCompletionInput {
-  const _RoutineCompletionInput({required this.intensity});
+  const _RoutineCompletionInput({required this.intensity, this.strength});
 
   final String intensity;
+
+  /// 근력 배정이면 회원이 확인한 세트·횟수·중량. 다른 유형은 null 이다. (#3364)
+  final _RoutineStrengthAmount? strength;
 }
 
-/// 체크했을 때 뜨는 완료 입력. 회원이 정하는 것은 **얼마나 힘들었는지와
-/// 피드백** 뿐이다 (#1360) — 시간·구성 같은 운동의 세부 내용은 추천이 든 값을
-/// 그대로 쓴다.
+/// 근력 한 줄의 양 — 세트 수, 한 세트의 횟수 또는 버틴 시간(초), 중량. (#3364)
+///
+/// 한 세트는 회로든 초로든 **한 번만** 잰다(#1969) — [holdSeconds] 가 있으면
+/// [reps] 는 비어 있다.
+class _RoutineStrengthAmount {
+  const _RoutineStrengthAmount({
+    required this.sets,
+    required this.weight,
+    this.reps,
+    this.holdSeconds,
+  });
+
+  /// 배정에서 읽은 기본값. 근력이 아니거나 세트를 들지 않은 배정(운동 여럿짜리
+  /// 세션)은 null 이다 — 세트로 물을 것이 없어 예전처럼 강도만 묻는다.
+  ///
+  /// 운동 하나짜리 세션은 행이 아니라 그 운동이 값을 든다([_routineAmountLabel]
+  /// 과 같은 자리에서 읽는다).
+  static _RoutineStrengthAmount? of(CoachRoutine routine) {
+    if (exerciseTypeFromLabel(routine.type) != ExerciseType.strength) {
+      return null;
+    }
+    final CoachRoutineExercise? only = routine.exercises.length == 1
+        ? routine.exercises.single
+        : null;
+    final int? sets = routine.sets ?? only?.sets;
+    if (sets == null || sets <= 0) return null;
+    final int? hold = routine.holdSeconds ?? only?.holdSeconds;
+    final int? reps = routine.reps ?? only?.reps;
+    return _RoutineStrengthAmount(
+      sets: sets,
+      // 횟수도 초도 없는 배정은 횟수를 묻지 않는다 — 없는 수를 지어내지 않는다.
+      reps: hold == null && reps != null && reps > 0 ? reps : null,
+      holdSeconds: hold != null && hold > 0 ? hold : null,
+      weight: routine.weight ?? only?.weight ?? 0,
+    );
+  }
+
+  final int sets;
+  final int? reps;
+  final int? holdSeconds;
+  final double weight;
+}
+
+/// 체크했을 때 뜨는 완료 입력. 회원이 정하는 것은 **얼마나 힘들었는지** 와,
+/// 근력이면 **실제로 한 세트·횟수·중량** 이다(#1360, #3364). 근력의 값은 배정된
+/// 값이 채워져 있어 그대로 확인만 눌러도 된다. 시간 같은 나머지 세부 내용은
+/// 추천이 든 값을 그대로 쓴다.
 class _RoutineCompletionSheet extends StatefulWidget {
-  const _RoutineCompletionSheet();
+  const _RoutineCompletionSheet({this.strength});
+
+  /// 근력 배정의 기본값. null 이면 강도만 묻는다.
+  final _RoutineStrengthAmount? strength;
 
   @override
   State<_RoutineCompletionSheet> createState() =>
@@ -743,20 +886,31 @@ class _RoutineCompletionSheet extends StatefulWidget {
 }
 
 class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
-  /// 피드백 길이 상한. 카드에 그대로 펼쳐 보여 주는 글이라 몇 줄 안에서
-  /// 끝나야 한다 (#1360).
-
   String _intensity = 'moderate';
 
-  @override
-  void dispose() {
-    super.dispose();
+  // 휠이 굴리는 값이라 실수다 — 운동 직접 입력 폼과 같다.
+  late double _sets = (widget.strength?.sets ?? 1).toDouble();
+  late double _reps = (widget.strength?.reps ?? 1).toDouble();
+  late double _holdSeconds = (widget.strength?.holdSeconds ?? 1).toDouble();
+  late double _weight = widget.strength?.weight ?? 0;
+
+  /// 확인한 근력 값. 배정에 없던 단위(횟수·초)는 싣지 않는다.
+  _RoutineStrengthAmount? get _strengthInput {
+    final _RoutineStrengthAmount? planned = widget.strength;
+    if (planned == null) return null;
+    return _RoutineStrengthAmount(
+      sets: _sets.round(),
+      reps: planned.reps == null ? null : _reps.round(),
+      holdSeconds: planned.holdSeconds == null ? null : _holdSeconds.round(),
+      weight: _weight,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    final _RoutineStrengthAmount? planned = widget.strength;
     return AppSheet(
       showClose: false,
       title: l.coachRoutineCompleteTitle,
@@ -765,14 +919,72 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
         onCancel: () => Navigator.of(context).pop(),
         confirmKey: const Key('confirmRoutineCompletion'),
         confirmLabel: l.coachRoutineSubmit,
-        onConfirm: () => Navigator.of(
-          context,
-        ).pop(_RoutineCompletionInput(intensity: _intensity)),
+        onConfirm: () => Navigator.of(context).pop(
+          _RoutineCompletionInput(
+            intensity: _intensity,
+            strength: _strengthInput,
+          ),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          if (planned != null) ...<Widget>[
+            Text(
+              planned.holdSeconds != null
+                  ? l.exExerciseStrengthAmountHold
+                  : l.exExerciseStrengthAmount,
+              style: tokens
+                  .text(OnCareTypography.label)
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            // 운동 직접 입력 폼과 같은 휠·같은 범위다(#2545, #3364). 배정 값이
+            // 채워져 있어 굴리지 않고 확인만 눌러도 그 값이 기록된다.
+            AppNumberWheel(
+              key: const Key('routineCompletionStrengthWheel'),
+              columns: <AppNumberWheelColumn>[
+                AppNumberWheelColumn(
+                  key: const Key('routineCompletionSetsWheel'),
+                  value: _sets,
+                  min: 1,
+                  max: kMaxExerciseSets.toDouble(),
+                  unit: l.exUnitSets,
+                  onChanged: (double v) => setState(() => _sets = v),
+                ),
+                if (planned.holdSeconds != null)
+                  AppNumberWheelColumn(
+                    key: const Key('routineCompletionHoldWheel'),
+                    value: _holdSeconds,
+                    min: 1,
+                    max: kMaxExerciseHoldSeconds.toDouble(),
+                    unit: l.exUnitSeconds,
+                    onChanged: (double v) => setState(() => _holdSeconds = v),
+                  )
+                else if (planned.reps != null)
+                  AppNumberWheelColumn(
+                    key: const Key('routineCompletionRepsWheel'),
+                    value: _reps,
+                    min: 1,
+                    max: kMaxExerciseReps.toDouble(),
+                    unit: l.exUnitReps,
+                    onChanged: (double v) => setState(() => _reps = v),
+                  ),
+                AppNumberWheelColumn(
+                  key: const Key('routineCompletionWeightWheel'),
+                  value: _weight,
+                  min: 0,
+                  max: kMaxExerciseWeightKg,
+                  // 원판은 0.5kg 단위로 붙는다.
+                  step: kExerciseWeightStepKg,
+                  unit: l.exUnitKg,
+                  onChanged: (double v) => setState(() => _weight = v),
+                ),
+              ],
+            ),
+            const SizedBox(height: OnCareSpacing.s20),
+          ],
           Text(
             l.coachRoutineIntensity,
             style: tokens
@@ -821,8 +1033,8 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
 /// 수가 갈렸다(#1262, #1901).
 ///
 /// 회원이 실제로 한 시간(`completedMinutes`)이 있으면 그것을 쓴다. 세트·횟수·
-/// 중량은 트레이너가 정한 배정 값이라 완료해도 바뀌지 않는다 — 완료 시트가
-/// 묻는 것은 강도와 피드백뿐이다(#1360).
+/// 중량도 같다 — 완료 시트에서 고쳐 적은 값(`completedSets` …)이 배정 값보다
+/// 앞선다(#3364). 완료하지 않은 줄과, 완료 값을 모르는 옛 응답은 배정 값이다.
 ///
 /// 세트를 들지 않은 루틴은 분으로 둔다. 기록은 분에서 세트를 되짚지만(#1262)
 /// 배정은 적힌 수가 곧 값이라, 없는 세트를 지어내 적지 않는다.
@@ -843,6 +1055,9 @@ String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) {
       (only?.duration != null && only!.duration! > 0
           ? only.duration! * 60
           : null);
+  // 완료 기록이 세트를 들고 있으면 그 기록의 값 한 벌을 읽는다 — 배정 값과
+  // 섞으면 초로 버틴 기록에 배정의 횟수가 따라붙는다.
+  final bool done = routine.completed && routine.completedSets != null;
   return exerciseAmountLabelOf(
     l,
     type: exerciseTypeFromLabel(routine.type),
@@ -852,11 +1067,13 @@ String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) {
         (routine.completedMinutes == null
             ? routine.durationSeconds ?? onlySeconds
             : null),
-    sets: routine.sets ?? only?.sets,
-    reps: routine.reps ?? only?.reps,
+    sets: done ? routine.completedSets : routine.sets ?? only?.sets,
+    reps: done ? routine.completedReps : routine.reps ?? only?.reps,
     // 버티는 운동이면 횟수 대신 초다(#3138) — `3세트 · 60초`.
-    holdSeconds: routine.holdSeconds ?? only?.holdSeconds,
-    weight: routine.weight ?? only?.weight,
+    holdSeconds: done
+        ? routine.completedHoldSeconds
+        : routine.holdSeconds ?? only?.holdSeconds,
+    weight: done ? routine.completedWeight : routine.weight ?? only?.weight,
     setsFromMinutesWhenUnknown: false,
   );
 }

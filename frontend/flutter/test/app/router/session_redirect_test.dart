@@ -79,5 +79,24 @@ void main() {
         AppRoutes.dashboard,
       );
     });
+
+    test('아이디 찾기도 가입처럼 로그아웃 상태에서만 머문다', () {
+      expect(
+        sessionRedirect(SessionStatus.signedOut, AppRoutes.findEmail),
+        isNull,
+      );
+      expect(
+        sessionRedirect(SessionStatus.unknown, AppRoutes.findEmail),
+        AppRoutes.splash,
+      );
+      expect(
+        sessionRedirect(SessionStatus.demo, AppRoutes.findEmail),
+        AppRoutes.dashboard,
+      );
+      expect(
+        sessionRedirect(SessionStatus.authenticated, AppRoutes.findEmail),
+        AppRoutes.dashboard,
+      );
+    });
   });
 }

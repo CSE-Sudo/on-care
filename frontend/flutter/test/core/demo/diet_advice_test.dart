@@ -2,8 +2,7 @@
 ///
 /// 서버(`backend/scripts/gen_diet_advice_cases.py`)가 만든 공유 사례 파일을 읽어
 /// - 데모(`core/demo/diet_advice.dart`)가 같은 입력에 같은 규칙 한 줄·다음 할 일을 내는지,
-/// - 앱 한국어 ARB 가 서버 문장 틀과 글자까지 같은지,
-/// - 영어 ARB 문장에 한글이 새지 않는지 본다.
+/// - 앱 ARB 가 서버 문장 틀과 글자까지 같은지 본다.
 /// 서버 쪽은 `backend/tests/test_diet_advice_cases.py` 가 같은 파일로 본다.
 library;
 
@@ -38,20 +37,18 @@ DemoDietEntry _entry(Map<String, Object?> e) => (
 Map<String, Object?> _params(Object? raw) =>
     Map<String, Object?>.from(raw! as Map<String, Object?>);
 
-final RegExp _hangul = RegExp(r'[가-힣]');
-
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   group('데모 = 서버', () {
     for (final Object? raw in _cases['cases']! as List<Object?>) {
       final Map<String, Object?> c = raw! as Map<String, Object?>;
+      // 공유 사례 파일은 서버 생성기가 만든다. 앱은 한국어 사례만 본다.
+      if (((c['lang'] as String?) ?? 'ko') != 'ko') continue;
       test('${c['name']}', () {
         final Map<String, Object?> t = c['targets']! as Map<String, Object?>;
         final Map<String, Object?> res = demoDietAdvice(
           period: c['period']! as String,
-          lang: (c['lang'] as String?) ?? 'ko',
           now: DateTime.parse(c['now']! as String),
           entries: <DemoDietEntry>[
             for (final Object? e in c['entries']! as List<Object?>)
@@ -96,31 +93,24 @@ void main() {
     test('메뉴 리스트는 서버의 카탈로그 리스트와 같다', () {
       final Map<String, Object?> plan =
           _cases['demo_plan']! as Map<String, Object?>;
-      for (final String lang in <String>['ko', 'en']) {
-        expect(
-          <Map<String, Object?>>[
-            for (final DemoPlanMenu m in kDemoMenuPlan[lang]!)
-              <String, Object?>{
-                'slot': m.slot,
-                'name': m.name,
-                'tag': m.tag,
-                'keyword': m.keyword,
-              },
-          ],
-          <Map<String, Object?>>[
-            for (final Object? m in plan[lang]! as List<Object?>)
-              <String, Object?>{
-                for (final String k in <String>[
-                  'slot',
-                  'name',
-                  'tag',
-                  'keyword',
-                ])
-                  k: (m! as Map<String, Object?>)[k],
-              },
-          ],
-        );
-      }
+      expect(
+        <Map<String, Object?>>[
+          for (final DemoPlanMenu m in kDemoMenuPlan['ko']!)
+            <String, Object?>{
+              'slot': m.slot,
+              'name': m.name,
+              'tag': m.tag,
+              'keyword': m.keyword,
+            },
+        ],
+        <Map<String, Object?>>[
+          for (final Object? m in plan['ko']! as List<Object?>)
+            <String, Object?>{
+              for (final String k in <String>['slot', 'name', 'tag', 'keyword'])
+                k: (m! as Map<String, Object?>)[k],
+            },
+        ],
+      );
     });
   });
 
@@ -135,12 +125,6 @@ void main() {
       };
       test('$key $params', () {
         expect(dietAdviceKeyText(ko, key, params), r['text']);
-        final String english = dietAdviceKeyText(en, key, params)!;
-        final String named = <String>[
-          for (final String k in <String>['menu', 'food', 'food1', 'food2'])
-            if (params[k] case final String v) v,
-        ].fold<String>(english, (String s, String v) => s.replaceAll(v, ''));
-        expect(_hangul.hasMatch(named), isFalse, reason: english);
       });
     }
 
@@ -157,7 +141,7 @@ void main() {
       );
       expect(dietAdviceLineText(ko, broken), '받은 문장');
       const DietAdviceLine ai = DietAdviceLine(text: '**연어**를 드세요.');
-      expect(dietAdviceLineText(en, ai), '**연어**를 드세요.');
+      expect(dietAdviceLineText(ko, ai), '**연어**를 드세요.');
     });
 
     test('두 문장을 잇고, 옛 응답이면 message 를 쓴다', () {
@@ -175,10 +159,6 @@ void main() {
         },
       });
       expect(dietAdviceText(ko, advice), '단백질 **32g** 더 필요해요. 저녁은 **연어** 어때요?');
-      expect(
-        dietAdviceText(en, advice),
-        '**32g** more protein to go. How about **연어** for dinner?',
-      );
       final DietAdvice old = DietAdvice.fromJson(<String, Object?>{
         'message': '예전 한 문장',
       });

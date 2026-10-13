@@ -454,10 +454,8 @@ class _RoutineEffectFieldState extends State<RoutineEffectField> {
       key: ValueKey<String>(widget.keyPrefix),
       controller: _controller,
       label: l.routineFieldEffect,
-      // 자동 문구는 보이는 글만 화면 언어로 옮긴다 — 저장 값은 그대로다(#2737).
-      // 번역 표는 두 앱이 함께 쓰는 `oncare_ui` 한 벌이다(#2906).
       hint: widget.autoEffect.isNotEmpty
-          ? routineEffectText(widget.autoEffect, languageCode: l.localeName)
+          ? widget.autoEffect
           : l.routineFieldEffectHint,
       // 글자 수 표시 없이 막는다 — 회원 카드에서 한 줄로 읽히는 길이다.
       inputFormatters: <TextInputFormatter>[
@@ -498,8 +496,7 @@ class RoutineDateField extends StatelessWidget {
         AppPickerField(
           key: ValueKey<String>(keyPrefix),
           icon: AppIcons.calendar,
-          // 로케일이 정하는 날짜 문구 — 하드코딩하면 영어 화면에도 한국식
-          // 표기가 남는다.
+          // 날짜 문구는 로케일이 정한다.
           value: MaterialLocalizations.of(context).formatFullDate(date),
           onTap: () async {
             final DateTime now = nowKst();
@@ -510,6 +507,8 @@ class RoutineDateField extends StatelessWidget {
               // 프로그램은 앞으로 할 운동도 잡는다 — 회원 기록과 달리 미래를
               // 막지 않는다.
               lastDate: DateTime(now.year + 2),
+              // 오늘 테두리는 기기 시각이 아니라 서울의 오늘이다(#3250).
+              currentDate: now,
             );
             if (picked != null) {
               onChanged(DateTime(picked.year, picked.month, picked.day));
