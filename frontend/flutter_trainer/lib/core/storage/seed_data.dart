@@ -36,10 +36,14 @@ part 'seed_workouts.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v56']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v58']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v58` 은 서유나 대화의 재진 소견서 PDF 를 영문에서 한국어 문서로 바꿨다
+/// (#3416). 올리지 않으면 오늘 이미 시드된 브라우저가 자정까지 영문 소견서를
+/// 연다.
 ///
 /// `_v55` 는 시드 문구의 표기를 정리했다(#3201·#3202) — 운동 이름 `런닝`→`러닝`,
 /// `이행률`→`완료율`, PT 메모의 `수업`·`세션`→`PT`, 알림 제목. 올리지 않으면 오늘
@@ -209,7 +213,7 @@ Future<void> seedIfEmpty(
   // 주간 계열을 요일 자리에 놓기 위한 오늘의 인덱스(월=0).
   final todayIndex = now.weekday - 1;
 
-  if (await db.readValue('trainer_seeded_v57') == today) {
+  if (await db.readValue('trainer_seeded_v58') == today) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
     return;
@@ -586,7 +590,6 @@ Future<void> seedIfEmpty(
             kind: file.kind,
             name: file.name,
             asset: file.asset,
-            lines: file.lines,
           ),
         );
       }
@@ -992,7 +995,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v57', today);
+    await db.putValue('trainer_seeded_v58', today);
   });
 }
 
@@ -1232,7 +1235,7 @@ class _Chat {
   final String timeLabel;
 
   /// 회원이 이 메시지에 붙여 보낸 사진·PDF(#2669). 시딩이 메시지 id 에 표시
-  /// ([demoChatFileKeyPrefix])를 남기고, 대화를 읽을 때 바이트를 만든다.
+  /// ([demoChatFileKeyPrefix])를 남기고, 대화를 읽을 때 번들 파일을 읽는다.
   final _ChatFile? file;
 
   /// 주간 리포트 등록 안내인가. (#1421)
@@ -1253,24 +1256,17 @@ class _Chat {
 
 /// 시드 메시지에 붙는 첨부 한 건(#2669) — [encodeDemoChatFile] 의 인자다.
 class _ChatFile {
-  const _ChatFile.image(this.name, String this.asset)
-    : kind = ChatAttachmentKind.image,
-      lines = const <String>[];
+  const _ChatFile.image(this.name, this.asset)
+    : kind = ChatAttachmentKind.image;
 
-  const _ChatFile.pdf(this.name, this.lines)
-    : kind = ChatAttachmentKind.pdf,
-      asset = null;
-
-  /// 앱 번들에 든 PDF 를 그대로 붙인다 — 트레이너가 보낸 운동 안내처럼 한글
-  /// 문서일 때다(#2663). 회원 앱 데모가 같은 파일을 같은 자리에 둔다.
-  const _ChatFile.pdfAsset(this.name, String this.asset)
-    : kind = ChatAttachmentKind.pdf,
-      lines = const <String>[];
+  /// 앱 번들에 든 PDF 를 그대로 붙인다(#2663, #3416). 문서가 한글이라 미리 만든
+  /// 파일을 쓴다 — 앱이 싣는 글꼴로는 실행 중에 한글 PDF 를 그리지 못한다.
+  const _ChatFile.pdfAsset(this.name, this.asset)
+    : kind = ChatAttachmentKind.pdf;
 
   final ChatAttachmentKind kind;
   final String name;
-  final String? asset;
-  final List<String> lines;
+  final String asset;
 }
 
 /// 데모가 들고 있는 주 수(이번 주 포함). '최근 4주' 카드는 보고 있는 주에서

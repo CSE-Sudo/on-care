@@ -13,6 +13,7 @@
 ///    트레이너가 보낸 첨부 두 건은 실서버 시드도 같은 자리에 둔다(#2788).
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -58,6 +59,45 @@ const List<(ChatSender, String)> kDemoThread = <(ChatSender, String)>[
     '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
   ),
 ];
+
+/// 재진 소견서 PDF 에 적혀 있어야 하는 글(#3416). 만드는 쪽
+/// (`tool/gen_demo_knee_note_pdf.py`)의 `TITLE`·`LINES` 와 같다.
+const List<String> kKneeNoteLines = <String>[
+  '정형외과 재진 소견서',
+  '부위: 오른쪽 무릎',
+  '소견: 부기가 가라앉았고 가동범위는 정상 범위입니다.',
+  '권고: 저강도 걷기를 다시 시작해도 됩니다.',
+  '깊은 스쿼트는 2주 더 피하세요.',
+];
+
+/// PDF 가 글리프마다 적어 둔 유니코드(ToUnicode 표)를 모은다 — 문서에 실린
+/// 글자의 집합이다. 본문은 글리프 번호로 적혀 있어 글을 그대로 읽을 수는 없다.
+Set<String> pdfTextCharacters(List<int> pdf) {
+  final String raw = latin1.decode(pdf);
+  final Set<String> characters = <String>{};
+  for (final RegExpMatch stream in RegExp(
+    r'stream\r?\n([\s\S]*?)endstream',
+  ).allMatches(raw)) {
+    final String text;
+    try {
+      text = latin1.decode(zlib.decode(latin1.encode(stream.group(1)!)));
+    } on FormatException {
+      continue; // 압축하지 않은 스트림(글꼴 등)은 건너뛴다.
+    }
+    for (final RegExpMatch block in RegExp(
+      r'beginbfchar([\s\S]*?)endbfchar',
+    ).allMatches(text)) {
+      for (final RegExpMatch pair in RegExp(
+        r'<[0-9a-fA-F]+>\s*<([0-9a-fA-F]{4})>',
+      ).allMatches(block.group(1)!)) {
+        characters.add(
+          String.fromCharCode(int.parse(pair.group(1)!, radix: 16)),
+        );
+      }
+    }
+  }
+  return characters;
+}
 
 /// 시드가 "오늘" 로 삼을 시각 — 오늘 날짜의 21시.
 ///
@@ -207,5 +247,106 @@ void main() {
       files[1].localBytes,
       File('assets/demo/images/diet-doenjang-rice.jpeg').readAsBytesSync(),
     );
+  });
+
+  // 회원이 보낸 재진 소견서(#2669, #3416) — 제품이 한국어 하나라 서류도 한국어다.
+  group('서유나 시드의 재진 소견서 PDF', () {
+    Future<ChatAttachment> kneeNote() async {
+      final List<ClientChatMessageRow> rows = await (db.select(
+        db.clientChatMessages,
+      )..where((m) => m.clientId.equals('seed-client-10'))).get();
+      final ClientChatMessageRow sent = rows.singleWhere(
+        (r) => r.body == '정형외과 재진 소견서도 보내드려요. 걷기는 괜찮대요',
+      );
+      expect(sent.sender, 'client');
+      final String? stored = await db.readValue(
+        '$demoChatFileKeyPrefix${sent.id}',
+      );
+      expect(stored, isNotNull, reason: '${sent.id} 에 첨부 표시가 없다');
+      final ChatAttachment? file = await decodeDemoChatFile(sent.id, stored!);
+      expect(file, isNotNull, reason: '${sent.id} 의 첨부를 풀지 못했다');
+      return file!;
+    }
+
+    test('한국어 이름의 번들 PDF 로 붙는다', () async {
+      final ChatAttachment file = await kneeNote();
+
+      expect(file.kind, ChatAttachmentKind.pdf);
+      expect(file.fileName, '무릎 재진 소견서.pdf');
+      expect(
+        file.localBytes,
+        File('assets/demo/knee-follow-up-note.pdf').readAsBytesSync(),
+      );
+      expect(file.fileSize, file.localBytes!.length);
+      expect(latin1.decode(file.localBytes!.sublist(0, 5)), '%PDF-');
+    });
+
+    test('문서에 실린 글자는 한국어 소견서의 글자와 같고 영문자가 없다', () async {
+      final Set<String> characters = pdfTextCharacters(
+        (await kneeNote()).localBytes!,
+      );
+
+      expect(characters, kKneeNoteLines.join().split('').toSet());
+      expect(
+        characters.where((String c) => RegExp('[가-힣]').hasMatch(c)),
+        isNotEmpty,
+      );
+      expect(
+        characters.where((String c) => RegExp('[A-Za-z]').hasMatch(c)),
+        isEmpty,
+      );
+    });
+
+    test('문서 글꼴이 파일 안에 들어 있다', () async {
+      // 글꼴을 싣지 않은 PDF 는 뷰어의 기본 글꼴로 그려져 한글이 비거나 깨진다.
+      final String raw = latin1.decode((await kneeNote()).localBytes!);
+
+      expect(RegExp('/FontFile3').allMatches(raw), hasLength(2));
+      expect(raw, contains('Pretendard'));
+    });
+
+    test('만드는 스크립트의 본문이 이 테스트가 기대하는 글과 같다', () {
+      final String script = File(
+        'tool/gen_demo_knee_note_pdf.py',
+      ).readAsStringSync();
+
+      for (final String line in kKneeNoteLines) {
+        expect(script, contains('"$line"'));
+      }
+    });
+
+    test('시드에 영문 소견서 문장이 남아 있지 않다', () {
+      final String seed = File(
+        'lib/core/storage/seed_clients.dart',
+      ).readAsStringSync();
+
+      for (final String english in <String>[
+        'Orthopedic',
+        'Follow-up Note',
+        'Right knee',
+        'Swelling resolved',
+        'Range of motion',
+        'low-impact walking',
+        'deep squats',
+        'knee-follow-up.pdf',
+      ]) {
+        expect(seed, isNot(contains(english)));
+      }
+    });
+
+    test('줄로 그리던 옛 표시는 첨부로 풀리지 않는다', () async {
+      // 시드 키가 오르기 전 브라우저에 남았을 수 있는 모양이다. 영문 문서를
+      // 다시 그리지 않고 말풍선의 글만 남긴다.
+      final ChatAttachment? file = await decodeDemoChatFile(
+        'seed-chat-10-2',
+        jsonEncode(<String, Object?>{
+          'kind': 'pdf',
+          'name': 'knee-follow-up.pdf',
+          'lines': <String>['Orthopedic Follow-up Note'],
+        }),
+      );
+
+      expect(file, isNull);
+    });
   });
 }
