@@ -692,7 +692,6 @@ Map<String, Object?> _lineJson(String prefix, _Line? line) {
 /// [entries] 는 최근 4주(오늘 포함)의 끼니다. [now] 는 KST 시각이다.
 Map<String, Object?> demoDietAdvice({
   required String period,
-  required String lang,
   required DateTime now,
   required List<DemoDietEntry> entries,
   required DemoDietTargets targets,
@@ -721,8 +720,7 @@ Map<String, Object?> demoDietAdvice({
     action = d.action;
     source = action == null ? null : 'rules';
     if (d.slot != null) {
-      final List<DemoPlanMenu> plan =
-          kDemoMenuPlan[lang] ?? kDemoMenuPlan['ko']!;
+      final List<DemoPlanMenu> plan = kDemoMenuPlan['ko']!;
       final DemoPlanMenu? menu = _pickMenu(
         plan.where((DemoPlanMenu m) => m.slot == d.slot).toList(),
         d.needs,

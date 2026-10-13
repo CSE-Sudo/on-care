@@ -26,10 +26,6 @@ extension _LocalApiDashboard on LocalApiInterceptor {
     var totalProtein = 0.0;
     var totalFat = 0.0;
     final sodiumByFoodName = <String, int>{};
-    // 영어 화면이면 음식의 영어 표시 이름으로 짚는다(#3354) — 식단 탭이 같은
-    // 음식을 보여 주는 이름이다. 합산은 저장된 이름으로 한다(실서버와 같다).
-    final bool english = _prefersEnglish(options);
-    final displayNameByFoodName = <String, String>{};
     for (final r in dietRows) {
       totalCalories += r.totalCalories;
       totalSodium += r.sodiumMg;
@@ -49,12 +45,6 @@ extension _LocalApiDashboard on LocalApiInterceptor {
             (total) => total + sodium,
             ifAbsent: () => sodium,
           );
-          final Object? displayName = food['display_name'];
-          if (english &&
-              displayName is String &&
-              displayName.trim().isNotEmpty) {
-            displayNameByFoodName.putIfAbsent(name, displayName.trim);
-          }
         }
       }
     }
@@ -66,9 +56,8 @@ extension _LocalApiDashboard on LocalApiInterceptor {
     // 경고가 짚는 상위 급원 두 개. 서버(`dashboard._SODIUM_SOURCE_COUNT`)와 같다.
     final List<String> sodiumSourceNames = <String>[
       for (final MapEntry<String, int> source in sodiumSources.take(2))
-        displayNameByFoodName[source.key] ?? source.key,
+        source.key,
     ];
-    final String lang = _requestLang(options);
 
     // 데모 시드가 큐레이션 '통합 조언'을 준비해 뒀는지. 있으면 그것을 우선
     // 노출하고, 없으면(시드 없는 테스트 DB, 회원이 기록을 바꿔 거둔 뒤 —
@@ -121,13 +110,11 @@ extension _LocalApiDashboard on LocalApiInterceptor {
         },
     ];
     final String? sodiumWarning = _homeSodiumWarning(
-      lang: lang,
       totalSodium: totalSodium,
       sodiumGoal: sodiumGoal,
       sourceNames: sodiumSourceNames,
     );
     final ({String key, String text}) exerciseFeedback = _homeExerciseFeedback(
-      lang: lang,
       cardioMinutes: exerciseCardioMinutes,
       goalMinutes: _weeklyCardioGoal(profile),
       anyExercise: exerciseMinutes > 0,
@@ -170,7 +157,7 @@ extension _LocalApiDashboard on LocalApiInterceptor {
       // 읽지 않는다(#2646).
       'nutrition_week': nutritionWeek,
       // 시드가 큐레이션한 통합 조언은 **키로** 내려보낸다 — 문장은 ARB 가
-      // ko·en 양쪽으로 갖고 있고 화면이 로케일에 맞게 고른다(#435).
+      // 갖고 있고 화면이 키로 고른다(#435).
       //
       // 시드 조언이 없으면 서버와 같은 순서로 고른다 — 나트륨 경고가 있으면
       // 그것, 없으면 이번 주 운동 되먹임이다. 음식 이름이 든 경고도 키와 음식
@@ -179,7 +166,7 @@ extension _LocalApiDashboard on LocalApiInterceptor {
       'ai_advice_params': <String, Object?>{
         if (adviceKey == 'sodium_over_sources') 'foods': sodiumSourceNames,
       },
-      // 키를 모르는 화면이 읽는 문장. 서버처럼 요청 언어를 따른다.
+      // 키를 모르는 화면이 읽는 문장.
       'sodium_warning': hasSeededAdvice ? null : sodiumWarning,
       'exercise_feedback': exerciseFeedback.text,
     });
@@ -206,27 +193,21 @@ String _thousands(int value) => value.toString().replaceAllMapped(
 );
 
 /// 홈 나트륨 경고 — 서버 `dashboard._build_sodium_warning` 과 같은 문장.
-/// 목표 안이면 null. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
+/// 목표 안이면 null. 음식 이름은 회원이 적은 그대로 쓴다.
 String? _homeSodiumWarning({
-  required String lang,
   required int totalSodium,
   required int sodiumGoal,
   required List<String> sourceNames,
 }) {
   if (totalSodium <= sodiumGoal) return null;
-  final bool en = lang == 'en';
   if (sourceNames.isEmpty) {
-    // 서버 `_build_sodium_warning` 과 같은 모양 — 천 단위 쉼표, 한국어는 단위에
-    // 조사를 붙이고 영어는 단위를 띄운다(#3120).
+    // 서버 `_build_sodium_warning` 과 같은 모양 — 천 단위 쉼표, 단위에 조사를
+    // 붙인다(#3120).
     final String total = _thousands(totalSodium);
     final String goal = _thousands(sodiumGoal);
-    return en
-        ? 'Sodium is at $total mg today, over your goal ($goal mg).'
-        : '오늘 나트륨이 ${total}mg으로 목표(${goal}mg)를 넘었어요.';
+    return '오늘 나트륨이 ${total}mg으로 목표(${goal}mg)를 넘었어요.';
   }
-  return en
-      ? 'Sodium is high from ${sourceNames.join(' and ')}.'
-      : '${sourceNames.join('·')} 섭취로 나트륨이 높아요.';
+  return '${sourceNames.join('·')} 섭취로 나트륨이 높아요.';
 }
 
 /// 회원의 주간 유산소 분 목표. 없으면 기본값 — 서버
@@ -254,42 +235,27 @@ int _dailySodiumGoal(Map<String, Object?> profile) {
 /// 근력만 한 회원에게 "운동을 시작해 보세요" 라고 하지 않는다. 그런 주(유산소
 /// 0분)는 유산소를 권하는 문장(`exercise_cardio_start`)이다.
 ({String key, String text}) _homeExerciseFeedback({
-  required String lang,
   required int cardioMinutes,
   required int goalMinutes,
   required bool anyExercise,
 }) {
-  final bool en = lang == 'en';
   if (!anyExercise) {
-    return (
-      key: 'exercise_start',
-      text: en
-          ? 'Start moving this week — an easy walk is a good beginning.'
-          : '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.',
-    );
+    return (key: 'exercise_start', text: '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.');
   }
   if (cardioMinutes <= 0) {
     return (
       key: 'exercise_cardio_start',
-      text: en
-          ? 'No cardio logged yet this week. How about starting with an easy walk?'
-          : '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?',
+      text: '이번 주 유산소 기록은 아직 없어요. 가볍게 걷기부터 시작해 볼까요?',
     );
   }
   if (cardioMinutes >= goalMinutes) {
     return (
       key: 'exercise_on_track',
-      text: en
-          ? 'You did $cardioMinutes minutes of cardio this week. '
-                'You are on track!'
-          : '이번 주 유산소 $cardioMinutes분 운동했어요. 목표 달성 중이에요!',
+      text: '이번 주 유산소 $cardioMinutes분 운동했어요. 목표 달성 중이에요!',
     );
   }
   return (
     key: 'exercise_more',
-    text: en
-        ? 'You did $cardioMinutes minutes of cardio this week. '
-              'A little more to go!'
-        : '이번 주 유산소 $cardioMinutes분 운동했어요. 조금만 더 힘내요!',
+    text: '이번 주 유산소 $cardioMinutes분 운동했어요. 조금만 더 힘내요!',
   );
 }

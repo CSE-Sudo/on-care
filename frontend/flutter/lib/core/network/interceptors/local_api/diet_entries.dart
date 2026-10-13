@@ -437,7 +437,6 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
       'total_sugar_g': totalSugar,
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
       'ai_coach_message': await _dietDayCoachMessage(
-        options,
         date: date,
         totalSodium: totalSodium,
         empty: rows.isEmpty,

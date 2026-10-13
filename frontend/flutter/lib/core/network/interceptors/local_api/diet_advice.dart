@@ -18,13 +18,6 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
     if (period == null) {
       return _unprocessable(options, 'period must be today, week or all');
     }
-    final Object? rawLang = options.queryParameters['lang'];
-    final String lang = rawLang is String && rawLang.isNotEmpty
-        ? rawLang
-        : 'ko';
-    if (lang != 'ko' && lang != 'en') {
-      return _unprocessable(options, 'lang must be ko or en');
-    }
     final DateTime now = nowKst();
     final DateTime today = DateTime(now.year, now.month, now.day);
     // 전체가 읽는 4주가 가장 길다 — 이번 주의 지난주 회고(최대 13일 전)도 그 안이다.
@@ -50,7 +43,6 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
       options,
       demoDietAdvice(
         period: period,
-        lang: lang,
         now: now,
         entries: entries,
         targets: demoDietTargets(await _mergedProfile()),
@@ -204,7 +196,7 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
       'days_with_data': n,
       'avg_sodium_mg': avgSodium,
       'sodium_limit_mg': sodiumLimit,
-      'trainer_pick': _demoTrainerPick(options),
+      'trainer_pick': _demoTrainerPick(),
     });
   }
 
@@ -212,12 +204,10 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
   /// 모양이다. 4주 추천 메뉴 리스트(`kDemoMenuPlan`)의 저녁 고단백 메뉴를 쓴다 —
   /// 트레이너 웹 데모가 같은 리스트에서 후보를 낸다. 담당이 없는 데모 회원이면
   /// 홈이 담당을 확인해 그리지 않는다.
-  Map<String, Object?> _demoTrainerPick(RequestOptions options) {
-    final String lang = _requestLang(options);
-    final DemoPlanMenu menu = (kDemoMenuPlan[lang] ?? kDemoMenuPlan['ko']!)
-        .firstWhere(
-          (DemoPlanMenu m) => m.slot == 'dinner' && m.tag == 'protein_high',
-        );
+  Map<String, Object?> _demoTrainerPick() {
+    final DemoPlanMenu menu = kDemoMenuPlan['ko']!.firstWhere(
+      (DemoPlanMenu m) => m.slot == 'dinner' && m.tag == 'protein_high',
+    );
     return <String, Object?>{
       'slot': menu.slot,
       'name': menu.name,
@@ -230,23 +220,17 @@ extension _LocalApiDietAdvice on LocalApiInterceptor {
   /// 하루 식단 코치 문장(`ai_coach_message`). 실 서버 `diet_service.build_day`
   /// 와 같은 규칙이다(#2644).
   ///
-  /// - 한국어 화면이면 시드가 정해 둔 그날의 큐레이션 문장을 먼저 쓴다. 픽스처
-  ///   문장이 한국어뿐이라, 영어 화면에서는 건너뛰고 수치 기반 문장을 쓴다.
+  /// - 시드가 정해 둔 그날의 큐레이션 문장을 먼저 쓴다.
   /// - 수치 기반 문장은 지난 날짜면 그날을 되짚고, 나트륨 기준은 회원 목표다.
-  Future<String> _dietDayCoachMessage(
-    RequestOptions options, {
+  Future<String> _dietDayCoachMessage({
     required String date,
     required int totalSodium,
     required bool empty,
   }) async {
-    final String lang = _requestLang(options);
-    if (lang == 'ko') {
-      final String? curated = await _dietDayMessage(date);
-      if (curated != null) return curated;
-    }
+    final String? curated = await _dietDayMessage(date);
+    if (curated != null) return curated;
     final Map<String, Object?> profile = await _mergedProfile();
     return LocalApiInterceptor.derivedDietDayMessage(
-      lang: lang,
       totalSodium: totalSodium,
       empty: empty,
       isPast: date.compareTo(_todayDateString()) < 0,
