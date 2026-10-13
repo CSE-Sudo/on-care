@@ -226,8 +226,7 @@ class _SubTabs extends StatelessWidget {
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
                 // 라벨은 남는 폭 안에서 접힌다. 아이콘·라벨 둘 다 고정 폭이면
-                // 320px 에서 탭 두 개가 화면을 넘겼다 — 영어(`Exercise log`)는
-                // 기본 배율에서도 넘친다(#766). 아이콘은 접지 않는다.
+                // 320px 에서 탭 두 개가 화면을 넘겼다(#766). 아이콘은 접지 않는다.
                 Flexible(
                   child: Text(
                     label,
@@ -514,7 +513,7 @@ class _ExerciseWeekStrip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),
       // 식단 탭과 같은 모양 — 주 라벨·`오늘` 알약과 양옆 원형 꺾쇠(#1778).
       child: AppWeekStrip(
-        // 영어의 날짜 라벨은 한국어보다 훨씬 길어 좁은 화면에서는 말줄임한다(#766).
+        // 날짜 라벨이 길면 좁은 화면에서는 말줄임한다(#766).
         label: weekStripLabel(context, l, selected: selected, today: today),
         todayLabel: l.dietToday,
         onToday: showTodayButton ? onToday : null,
@@ -1121,7 +1120,7 @@ class _PtSessionCard extends StatelessWidget {
           // 서버가 주지 않으면 비운다. (#2666)
           //
           // 배지는 제목 줄에서 제 폭을 고집하므로 `Flexible` 로 감싸 말줄임한다 —
-          // 영어(`Session 12`)·글자 배율 2.0·폭 320 에서 제목 줄이 넘쳤다(#766).
+          // 글자 배율 2.0·폭 320 에서 제목 줄이 넘쳤다(#766).
           AppSectionHeader(
             title: l.exCompletedPtTitle,
             icon: AppIcons.exercise,
@@ -1206,7 +1205,7 @@ class _PtSessionCard extends StatelessWidget {
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       // 이름·라벨 묶음이 고정 폭이면 문구가 길어질 때 줄이 그대로
-                      // 넘친다 — 영어(`Today's feedback`)에서 드러났다(#847, #766).
+                      // 넘친다(#847, #766).
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

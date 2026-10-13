@@ -255,13 +255,5 @@ void main() {
       expect(_drawnEnabled(tester), isTrue);
       expect(find.byKey(const Key('aiChatHeaderButton')), findsNothing);
     });
-
-    test('영어에서도 실패와 로딩 문구가 갈린다', () {
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-
-      expect(en.coachTrainerRetrying, isNot(en.coachTrainerNone));
-      expect(en.coachTrainerRetrying, isNot(en.coachTrainerLoading));
-      expect(en.coachTrainerRetrying, isNot(matches(RegExp('[가-힣]'))));
-    });
   });
 }

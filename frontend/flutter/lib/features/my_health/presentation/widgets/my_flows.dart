@@ -1971,7 +1971,7 @@ class _MacroSuggestionRow extends StatelessWidget {
   /// 버튼의 키. 식단·운동 두 곳이 같은 줄을 쓰므로 각자 다른 키를 준다.
   final Key buttonKey;
 
-  /// 안내 줄의 항목을 나누는 글자. 두 ARB(ko·en)가 같은 글자를 쓴다.
+  /// 안내 줄의 항목을 나누는 글자. ARB 문구가 같은 글자를 쓴다.
   static const String _separator = ' · ';
 
   @override
@@ -1979,7 +1979,7 @@ class _MacroSuggestionRow extends StatelessWidget {
     final TextStyle noteStyle = context.oncare
         .text(OnCareTypography.caption)
         .copyWith(color: OnCareColors.textSecondary);
-    // 안내와 버튼을 한 줄에 두면 좁은 폰·큰 글자에서 영어 버튼 라벨이 넘친다.
+    // 안내와 버튼을 한 줄에 두면 좁은 폰·큰 글자에서 버튼 라벨이 넘친다.
     // 안내를 위에, 버튼을 그 아래 끝에 둔다.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

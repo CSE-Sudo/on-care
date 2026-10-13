@@ -295,24 +295,6 @@ void main() {
       expect(find.text('김트레이너 · 8월 17일 보냄'), findsOneWidget);
     });
 
-    testWidgets('영어에서도 KST 날짜로 적는다', (tester) async {
-      await _pump(
-        tester,
-        FakeMemberCoachRepository(
-          chat: <CoachMessage>[
-            reportNotice(_lastWeek, createdAt: DateTime.utc(2026, 8, 16, 23)),
-          ],
-        ),
-        locale: 'en',
-      );
-
-      expect(
-        _texts(tester).any((String t) => t.contains('8/17')),
-        isTrue,
-        reason: '영어 화면의 보낸 날이 KST 날짜가 아니다',
-      );
-    });
-
     // 받은 리포트는 담당이 해제·교체된 뒤에도 남는다(#3348).
     testWidgets('담당이 없어도 받은 리포트가 그대로 선다', (tester) async {
       await _pump(
@@ -416,21 +398,6 @@ void main() {
       );
     });
 
-    testWidgets('영어에서 더 보기도 번역되어 있다', (tester) async {
-      await _pump(
-        tester,
-        FakeMemberCoachRepository(
-          chat: <CoachMessage>[
-            reportNotice(_lastWeek, id: 'r1'),
-            reportNotice(_twoWeeksAgo, id: 'r2'),
-          ],
-        )..reportPageSize = 1,
-        locale: 'en',
-      );
-
-      expect(find.text('Show earlier reports'), findsOneWidget);
-    });
-
     testWidgets('받은 리포트가 없으면 빈 자리를 설명한다', (tester) async {
       await _pump(tester, FakeMemberCoachRepository());
 
@@ -532,51 +499,6 @@ void main() {
       expect(find.text('받은 리포트'), findsOneWidget);
       expect(find.text('보낸 주간 피드백'), findsOneWidget);
       expect(find.text('주간 리포트'), findsOneWidget);
-    });
-
-    testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
-      await _pump(
-        tester,
-        FakeMemberCoachRepository(
-          chat: <CoachMessage>[reportNotice(_lastWeek)],
-        ),
-        locale: 'en',
-      );
-
-      expect(find.text('Weekly reports'), findsOneWidget);
-      expect(find.text('Reports received'), findsOneWidget);
-      expect(find.text('Weekly feedback you sent'), findsOneWidget);
-    });
-
-    testWidgets('영어에서 빈 목록의 안내도 번역되어 있다', (tester) async {
-      await _pump(tester, FakeMemberCoachRepository(), locale: 'en');
-
-      expect(find.text('No reports yet'), findsOneWidget);
-    });
-
-    testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
-      await _pump(
-        tester,
-        FakeMemberCoachRepository(
-          // 트레이너 이름은 번역이 아니라 자료다 — 줄에 그대로 실린다.
-          coach: const MemberCoach(
-            trainerId: 't1',
-            name: 'Alex Kim',
-            specialty: '',
-            career: '',
-            intro: '',
-            gymName: '',
-            goal: '',
-          ),
-          chat: <CoachMessage>[reportNotice(_lastWeek)],
-        ),
-        locale: 'en',
-      );
-
-      final RegExp hangul = RegExp(r'[가-힣]');
-      for (final String t in _texts(tester)) {
-        expect(hangul.hasMatch(t), isFalse, reason: '영어 화면에 번역되지 않은 글이 있다: $t');
-      }
     });
 
     testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {

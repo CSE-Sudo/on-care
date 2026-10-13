@@ -17,7 +17,6 @@ import 'package:oncare_core/legal_contact.dart';
 
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   group('해제 확인 창 — 한국어', () {
     final List<String> messages = <String>[
@@ -68,38 +67,6 @@ void main() {
     });
   });
 
-  group('해제 확인 창 — 영어', () {
-    final List<String> messages = <String>[
-      en.myTrainerDisconnectConfirm('Coach Kim', 'OnCare Gym'),
-      en.myGymDisconnectWithTrainerConfirm('OnCare Gym', 'Coach Kim'),
-    ];
-
-    test('동의 철회와 기록 보존을 알린다', () {
-      for (final String message in messages) {
-        expect(message, contains('data-sharing consent'));
-        expect(message, contains('withdrawn'));
-        expect(message, contains('new records'));
-        expect(message, contains('Messages and reports'));
-        expect(message, contains('are not deleted'));
-        expect(message, contains('reconnect with the same trainer'));
-        expect(message, isNot(contains('will stay')));
-      }
-    });
-
-    test('한국어가 섞이지 않는다', () {
-      for (final String message in messages) {
-        expect(RegExp(r'[가-힣]').hasMatch(message), isFalse, reason: message);
-      }
-    });
-
-    test('담당이 없는 헬스장 해제에는 동의 안내를 붙이지 않는다', () {
-      expect(
-        en.myGymDisconnectConfirm('OnCare Gym'),
-        isNot(contains('consent')),
-      );
-    });
-  });
-
   group('개인정보 처리방침', () {
     test('한국어본에 트레이너 공유·동의 철회 조항이 있다', () {
       final String body = ko.myLegalPrivacyBody(
@@ -114,38 +81,16 @@ void main() {
       expect(body, contains('트레이너가 담당을 해제한 경우에도'));
     });
 
-    test('영문본에 같은 조항이 있다', () {
-      final String body = en.myLegalPrivacyBody(
-        LegalContact.privacyOfficerEmail,
-      );
-      expect(
-        body,
-        contains('5. Sharing with your trainer and withdrawing consent'),
-      );
-      expect(
-        body,
-        contains('when consent was given and when it was withdrawn'),
-      );
-      expect(body, contains('can no longer see your new records'));
-      expect(body, contains('requires your consent again'));
-      expect(body, contains('are not deleted'));
-      expect(body, contains('when the trainer ends the coaching relationship'));
-    });
-
     List<int> numbers(String body) => RegExp(
       r'^(\d+)\. ',
       multiLine: true,
     ).allMatches(body).map((RegExpMatch m) => int.parse(m.group(1)!)).toList();
 
-    test('조항 번호가 1부터 빠짐없이 이어진다 — 두 언어가 같다', () {
+    test('조항 번호가 1부터 빠짐없이 이어진다', () {
       // 위탁·국외 이전·파기 절차 등이 더해져 16개 조항이다(#2820).
       final List<int> expected = List<int>.generate(16, (int i) => i + 1);
       expect(
         numbers(ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
-        expected,
-      );
-      expect(
-        numbers(en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
         expected,
       );
     });
@@ -159,14 +104,6 @@ void main() {
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('14. 개인정보 보호책임자'),
       );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('13. Rights of the user'),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('14. Personal information protection officer'),
-      );
     });
 
     test('담당 연결 동의 화면과 같은 공유 범위를 말한다', () {
@@ -178,18 +115,6 @@ void main() {
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
-      );
-      expect(
-        en.coachInviteConsentBody('Kim'),
-        contains(
-          'meal records, workout records, body information, health goals, and health notes & cautions',
-        ),
-      );
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains(
-          'meal records, workout records, body information, health goals, and health notes & cautions',
-        ),
       );
     });
   });

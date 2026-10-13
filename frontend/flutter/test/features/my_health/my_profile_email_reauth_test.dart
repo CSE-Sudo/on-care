@@ -332,27 +332,6 @@ void main() {
     await _drainToast(tester);
   });
 
-  testWidgets('영어 화면에서는 영어 문구다', (WidgetTester tester) async {
-    final (AppLocalizations l, _) = await _openProfile(
-      tester,
-      locale: const Locale('en'),
-    );
-
-    await tester.enterText(find.byKey(_email), 'minsu.new@oncare.com');
-    await _tapSave(tester, l);
-    expect(find.text('Verify your new email'), findsOneWidget);
-    await _passCode(tester);
-
-    expect(
-      find.text(
-        'Changing your email changes your sign-in ID and the address '
-        'password reset emails go to.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text("Confirm it's you"), findsOneWidget);
-  });
-
   testWidgets('이메일을 바꾸면 본인 확인보다 먼저 새 주소로 인증 코드를 받는다', (
     WidgetTester tester,
   ) async {

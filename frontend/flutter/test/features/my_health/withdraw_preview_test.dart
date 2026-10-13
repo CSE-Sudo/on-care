@@ -73,7 +73,6 @@ AppConfig _config({required bool mock}) => AppConfig(
 
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   group('AccountDeletionPreview', () {
     test('서버 응답을 읽는다', () {
@@ -194,29 +193,6 @@ void main() {
       );
       expect(message, isNot(contains(ko.myWithdrawCancelSessions(0))));
       expect(message, contains(ko.myWithdrawCancelReservations(2)));
-    });
-
-    test('PT 일정 줄은 영어에서 단수·복수를 가른다 (#3341)', () {
-      final String message = withdrawConfirmMessage(
-        en,
-        const AccountDeletionPreview(upcomingSessions: 2),
-      );
-      expect(message, contains(en.myWithdrawCancelSessions(2)));
-      expect(en.myWithdrawCancelSessions(2), contains('2'));
-      expect(
-        en.myWithdrawCancelSessions(1),
-        isNot(en.myWithdrawCancelSessions(2)),
-      );
-    });
-
-    test('영어 문구도 숫자를 싣는다', () {
-      final String message = withdrawConfirmMessage(
-        en,
-        const AccountDeletionPreview(activeCoupons: 1, upcomingReservations: 3),
-      );
-      expect(message, contains(en.myWithdrawLoseCoupons(1)));
-      expect(message, contains(en.myWithdrawCancelReservations(3)));
-      expect(en.myWithdrawLoseCoupons(1), isNot(en.myWithdrawLoseCoupons(2)));
     });
   });
 

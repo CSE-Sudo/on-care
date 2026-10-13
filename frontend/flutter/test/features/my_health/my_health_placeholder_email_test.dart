@@ -125,24 +125,6 @@ void main() {
     expect(_lineText(tester), '소셜 로그인으로 가입 · 이메일 미등록');
   });
 
-  testWidgets('영어 화면도 주소를 가린다', (tester) async {
-    final AppLocalizations l = await _pumpMyTab(
-      tester,
-      const UserProfile(
-        id: 'user-social',
-        name: 'Minsu',
-        email: 'kakao_4242@social.oncare',
-        emailIsPlaceholder: true,
-        emailPlaceholderProvider: 'kakao',
-      ),
-      locale: const Locale('en'),
-    );
-
-    expect(find.textContaining('social.oncare'), findsNothing);
-    expect(_lineText(tester), l.myEmailUnregistered('kakao'));
-    expect(_lineText(tester), contains('Kakao'));
-  });
-
   testWidgets('실제 이메일이 있는 회원의 줄은 그대로다', (tester) async {
     await _pumpMyTab(
       tester,

@@ -10,34 +10,32 @@ import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// [body] 를 두 로케일로 각각 그려 보고, 그 안에서 만든 라벨을 돌려준다.
-Future<Map<String, String>> _perLocale(
+/// [body] 를 화면 안에서 불러, 그 안에서 만든 라벨을 돌려준다.
+Future<String> _labelOf(
   WidgetTester tester,
   String Function(AppLocalizations l) body,
 ) async {
-  final Map<String, String> out = <String, String>{};
-  for (final String code in <String>['ko', 'en']) {
-    await tester.pumpWidget(
-      MaterialApp(
-        locale: Locale(code),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Builder(
-          builder: (BuildContext context) {
-            out[code] = body(AppLocalizations.of(context));
-            return const SizedBox.shrink();
-          },
-        ),
+  late String out;
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: const Locale('ko'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Builder(
+        builder: (BuildContext context) {
+          out = body(AppLocalizations.of(context));
+          return const SizedBox.shrink();
+        },
       ),
-    );
-    await tester.pump();
-  }
+    ),
+  );
+  await tester.pump();
   return out;
 }
 
 void main() {
   testWidgets('요일별 값을 한 문장으로 모은다', (WidgetTester tester) async {
-    final Map<String, String> labels = await _perLocale(
+    final String label = await _labelOf(
       tester,
       (AppLocalizations l) => chartSemanticsLabel(
         l.chartA11y,
@@ -51,18 +49,16 @@ void main() {
       ),
     );
 
-    for (final String label in labels.values) {
-      expect(label, contains('주간 소모 칼로리'));
-      expect(label, contains('월 300kcal'));
-      expect(label, contains('수 520kcal'));
-      // 0 은 이 앱에서 `기록 없음` 이다. 측정된 0 처럼 읽히면 안 된다.
-      expect(label, isNot(contains('화')));
-    }
+    expect(label, contains('주간 소모 칼로리'));
+    expect(label, contains('월 300kcal'));
+    expect(label, contains('수 520kcal'));
+    // 0 은 이 앱에서 `기록 없음` 이다. 측정된 0 처럼 읽히면 안 된다.
+    expect(label, isNot(contains('화')));
   });
 
   testWidgets('아직 오지 않은 요일은 읽지 않는다', (WidgetTester tester) async {
     // 선은 오늘까지만 그린다 — 그 뒤 칸을 읽으면 화면에 없는 값을 말한다.
-    final Map<String, String> labels = await _perLocale(
+    final String label = await _labelOf(
       tester,
       (AppLocalizations l) => chartSemanticsLabel(
         l.chartA11y,
@@ -77,15 +73,13 @@ void main() {
       ),
     );
 
-    for (final String label in labels.values) {
-      expect(label, contains('월 1800mg'));
-      expect(label, contains('화 1900mg'));
-      expect(label, isNot(contains('2100mg')));
-    }
+    expect(label, contains('월 1800mg'));
+    expect(label, contains('화 1900mg'));
+    expect(label, isNot(contains('2100mg')));
   });
 
   testWidgets('기록이 하나도 없으면 비어 있다고 말한다', (WidgetTester tester) async {
-    final Map<String, String> labels = await _perLocale(
+    final String label = await _labelOf(
       tester,
       (AppLocalizations l) => chartSemanticsLabel(
         l.chartA11y,
@@ -99,8 +93,7 @@ void main() {
       ),
     );
 
-    expect(labels['ko'], '당류. 기록이 없어요');
-    expect(labels['en'], '당류. No records yet');
+    expect(label, '당류. 기록이 없어요');
   });
 
   testWidgets('꺾은선 그래프는 요약 한 문장만 시맨틱 트리에 남긴다', (WidgetTester tester) async {

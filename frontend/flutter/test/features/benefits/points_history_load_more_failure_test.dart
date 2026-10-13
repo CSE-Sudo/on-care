@@ -171,20 +171,6 @@ void main() {
     );
   });
 
-  testWidgets('영어 화면에서도 실패 문구와 다시 시도가 영어다', (WidgetTester tester) async {
-    final FakeBenefitsRepository repo = _repo();
-    final AppLocalizations l = await _pump(
-      tester,
-      repo,
-      locale: const Locale('en'),
-    );
-
-    await _tapMore(tester);
-    expect(find.text("Couldn't load more. Please try again"), findsOneWidget);
-    await _drainToast(tester);
-    expect(_buttonLabel(tester), l.actionRetry);
-  });
-
   testWidgets('첫 쪽이 실패하면 지금처럼 카드 오류 상태를 그리고 토스트는 없다', (
     WidgetTester tester,
   ) async {

@@ -336,9 +336,8 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   /// 45초짜리 운동이 반올림으로 0분이 되어 거절되지도 않는다. 반올림도 서버와
   /// 같은 짝수 쪽이라 2분 30초는 저장 뒤와 같은 2분이다 — 공용 규칙
   /// [minutesFromSeconds] 한 곳을 쓴다(#2860).
-  int get _effectiveMinutes => _isStrength
-      ? _strengthMinutes
-      : minutesFromSeconds(_duration.inSeconds);
+  int get _effectiveMinutes =>
+      _isStrength ? _strengthMinutes : minutesFromSeconds(_duration.inSeconds);
 
   Future<void> _pickDate() async {
     final DateTime now = nowKst();
@@ -970,8 +969,7 @@ class _DateField extends StatelessWidget {
                 const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: Text(
-                    // 로케일이 정하는 날짜 문구. 하드코딩한 'yyyy.MM.dd' 로 적으면
-                    // 영어 화면에도 한국식 표기가 남는다.
+                    // 로케일이 정하는 날짜 문구다.
                     MaterialLocalizations.of(context).formatFullDate(date),
                     style: tokens
                         .text(OnCareTypography.strong(OnCareTypography.body))

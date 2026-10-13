@@ -6,7 +6,7 @@
 
 | 앱 | 한국어(원본) | 영문 |
 | --- | --- | --- |
-| 회원 앱 | `frontend/flutter/lib/l10n/app_ko.arb` | `frontend/flutter/lib/l10n/app_en.arb` |
+| 회원 앱 | `frontend/flutter/lib/l10n/app_ko.arb` | 없음 — 회원 앱은 한국어만 지원한다(#3404) |
 | 트레이너 웹 | `frontend/flutter_trainer/lib/l10n/app_ko.arb` | `frontend/flutter_trainer/lib/l10n/app_en.arb` |
 
 > 이 표와 처리방침 문안은 법률 검토 전의 초안이다. 스토어 제출·정식 출시 전에 법률 검토를 받고,
@@ -132,7 +132,7 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 | --- | --- | --- |
 | 개인정보 처리방침 | `/legal/privacy.html` | 두 앱 ARB `myLegalPrivacyBody`(회원·트레이너, 한국어·영문) |
 | 이용약관 | `/legal/terms.html` | 두 앱 ARB `myLegalTermsBody` |
-| 위치기반서비스 이용약관 | `/legal/location.html` | 회원 앱 ARB `myLegalLocationBody`(한국어·영문, #3136). 위치는 회원 앱만 쓴다 |
+| 위치기반서비스 이용약관 | `/legal/location.html` | 회원 앱 ARB `myLegalLocationBody`(한국어, #3136). 위치는 회원 앱만 쓴다 |
 
 - 랜딩 바닥글의 "개인정보 처리방침" 링크는 다른 링크보다 눈에 띄게(굵게) 둔다.
 - 페이지는 생성물이라 손으로 고치지 않는다. 모양은 랜딩 `index.html` 의 `:root` 토큰·글꼴·로고를

@@ -339,28 +339,6 @@ void main() {
       ]);
       await _drain(tester);
     });
-
-    testWidgets('영어 화면에서도 같은 항목이 선다', (tester) async {
-      await _pump(
-        tester,
-        const SignUpPage(),
-        _Server(<String, (int, Object?)>{}),
-        locale: const Locale('en'),
-      );
-
-      expect(find.text('Agree to all'), findsOneWidget);
-      expect(
-        find.text(
-          '[Required] Processing of health information (sensitive data)',
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.text('[Required] I am 14 years of age or older'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('[Optional]'), findsNothing);
-    });
   });
 
   group('로그인 뒤 동의 화면', () {

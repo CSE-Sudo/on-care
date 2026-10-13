@@ -74,7 +74,6 @@ class _ForbiddenRepository implements MemberReportSheetRepository {
   @override
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     ReportSheetGoals goals = const ReportSheetGoals(),
     String? messageId,
   }) async {
@@ -102,7 +101,6 @@ class _UnusedGenerator extends MemberReportPdfGenerator {
 
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   group('데모의 열람 판정', () {
     test('트레이너가 리포트를 보낸 주는 열린다', () async {
@@ -307,10 +305,6 @@ void main() {
         reportOpenFailureText(ko, const ForbiddenError()),
         ko.coachReportNotReceived,
       );
-      expect(
-        reportOpenFailureText(en, const ForbiddenError()),
-        en.coachReportNotReceived,
-      );
     });
 
     test('그 밖의 실패는 다시 시도를 권한다', () {
@@ -328,11 +322,8 @@ void main() {
       }
     });
 
-    test('두 안내는 서로 다른 문장이고 두 언어 모두 번역돼 있다', () {
+    test('두 안내는 서로 다른 문장이다', () {
       expect(ko.coachReportNotReceived, isNot(ko.coachChatPdfOpenFailed));
-      expect(en.coachReportNotReceived, isNot(en.coachChatPdfOpenFailed));
-      expect(ko.coachReportNotReceived, isNot(en.coachReportNotReceived));
-      expect(RegExp('[가-힣]').hasMatch(en.coachReportNotReceived), isFalse);
     });
 
     test('첨부 없는 리포트가 403 이면 그 오류가 여는 쪽까지 올라온다', () async {

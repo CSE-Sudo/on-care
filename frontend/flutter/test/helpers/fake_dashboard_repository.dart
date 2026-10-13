@@ -79,12 +79,12 @@ class FakeDashboardRepository implements DashboardRepository {
       exerciseMinutes: 45,
       nutritionWeek: nutritionWeek,
       // 홈 '오늘의 AI 통합 조언' 자리. 문구가 아니라 키만 싣는다 — 문장은
-      // ARB 가 ko·en 양쪽으로 갖고 있고, 화면이 로케일에 맞게 고른다(#435).
+      // ARB 에 있고, 화면이 키로 고른다(#435).
       aiAdviceKey: kDailyCombinedAdviceKey,
       sodiumWarning: null,
       // `exerciseFeedback` 은 서버가 만든 문장이 들어오는 자리라 대역에서는
-      // 채우지 않는다(기본값 null). 한국어를 넣어 두면 조언 키가 못 풀렸을 때
-      // 영어 로케일로 한국어가 새고, 그때 ARB 기본 문구로 떨어져야 한다(#435).
+      // 채우지 않는다(기본값 null). 조언 키가 못 풀렸을 때는 ARB 기본 문구로
+      // 떨어져야 한다(#435).
     );
   }
 }

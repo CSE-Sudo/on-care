@@ -66,13 +66,12 @@ void main() {
     );
   }
 
-  Future<ReportSheetInputs> load(WidgetTester tester, String lang) async {
+  Future<ReportSheetInputs> load(WidgetTester tester) async {
     late ReportSheetInputs inputs;
     await tester.runAsync(() async {
       inputs = await loadMemberReportSheet(
         container.read,
         weekStart: notice.reportWeekStart!,
-        languageCode: lang,
       );
     });
     return inputs;
@@ -82,7 +81,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await setUpDemo(tester);
-    final ReportSheetInputs mine = await load(tester, 'ko');
+    final ReportSheetInputs mine = await load(tester);
     final ReportSheetInputs trainer = demoReportSheetInputs(
       fixture: DemoFixture.load(),
       weekStart: reportWeekStartOf(notice.reportWeekStart!),
@@ -131,7 +130,7 @@ void main() {
 
   testWidgets('데모 리포트의 점수가 트레이너 웹 데모와 같다', (WidgetTester tester) async {
     await setUpDemo(tester);
-    final ReportSheetInputs mine = await load(tester, 'ko');
+    final ReportSheetInputs mine = await load(tester);
     final ReportSheetInputs trainer = demoReportSheetInputs(
       fixture: DemoFixture.load(),
       weekStart: reportWeekStartOf(notice.reportWeekStart!),
@@ -160,7 +159,7 @@ void main() {
 
   testWidgets('데모 리포트는 기록이 있는 주를 연다 — 빈 결과지가 아니다', (WidgetTester tester) async {
     await setUpDemo(tester);
-    final ReportSheetInputs mine = await load(tester, 'ko');
+    final ReportSheetInputs mine = await load(tester);
     expect(
       mine.week.caloriesWeek.any((int v) => v > 0) ||
           mine.week.weekCompletion.any((int? v) => (v ?? 0) > 0),
@@ -173,7 +172,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await setUpDemo(tester);
-    final ReportSheetInputs mine = await load(tester, 'ko');
+    final ReportSheetInputs mine = await load(tester);
     final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
     final List<String> lines = const MemberReportPdfGenerator().textContent(
       l: l,
@@ -184,14 +183,5 @@ void main() {
     if (notice.body.trim().isNotEmpty) {
       expect(lines, contains(notice.body.trim()));
     }
-  });
-
-  testWidgets('영어 화면이면 같은 수치에 영어 답이다', (WidgetTester tester) async {
-    await setUpDemo(tester);
-    final ReportSheetInputs ko = await load(tester, 'ko');
-    final ReportSheetInputs en = await load(tester, 'en');
-    expect(en.week.completionAvg, ko.week.completionAvg);
-    expect(en.week.caloriesWeek, ko.week.caloriesWeek);
-    expect(en.week.answers?.conditionWire, ko.week.answers?.conditionWire);
   });
 }

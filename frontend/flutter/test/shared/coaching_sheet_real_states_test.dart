@@ -217,28 +217,6 @@ void main() {
       expect(find.text('오늘 식단을 기록해 보세요'), findsNothing);
       expect(find.text('오늘의 식단 코칭'), findsOneWidget);
     });
-
-    testWidgets('영어에서도 오류 안내가 번역되어 있다', (tester) async {
-      await _open(
-        tester,
-        _container(_real, () => throw Exception('timeout')),
-        locale: 'en',
-      );
-
-      expect(find.text("Couldn't load your advice"), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
-      expect(find.textContaining('jjamppong'), findsNothing);
-    });
-
-    testWidgets('영어에서도 빈 상태 안내가 번역되어 있다', (tester) async {
-      await _open(
-        tester,
-        _container(_real, () => _live(const <String>[])),
-        locale: 'en',
-      );
-
-      expect(find.text('Advice will appear as you log more'), findsOneWidget);
-    });
   });
 
   group('데모', () {

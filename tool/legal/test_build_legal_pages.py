@@ -151,17 +151,17 @@ class BuildTest(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.tmp)
 
-    def test_builds_both_pages_with_four_sections(self) -> None:
+    def test_builds_both_pages_with_a_section_per_source(self) -> None:
         pages = blp.build(self.tmp)
         self.assertEqual(
             sorted(p.name for p in pages),
             ["location.html", "privacy.html", "terms.html"],
         )
         privacy = pages[self.tmp / "legal" / "privacy.html"]
-        for anchor in ("member-ko", "trainer-ko", "member-en", "trainer-en"):
-            self.assertIn(f'id="{anchor}"', privacy)
-            self.assertIn(f'href="#{anchor}"', privacy)
-        self.assertIn('lang="en"', privacy)
+        for source in blp.SOURCES:
+            self.assertIn(f'id="{source.anchor}"', privacy)
+            self.assertIn(f'href="#{source.anchor}"', privacy)
+        self.assertEqual(privacy.count('<section class="doc"'), len(blp.SOURCES))
 
     def test_placeholder_is_filled_with_the_contact(self) -> None:
         privacy = blp.build(self.tmp)[self.tmp / "legal" / "privacy.html"]
@@ -195,8 +195,8 @@ class BuildTest(unittest.TestCase):
     def test_location_terms_carry_only_the_member_app(self) -> None:
         """위치를 쓰는 것은 회원 앱뿐이다 — 트레이너 웹 절은 없다(#3136)."""
         location = blp.build(self.tmp)[self.tmp / "legal" / "location.html"]
-        for anchor in ("member-ko", "member-en"):
-            self.assertIn(f'id="{anchor}"', location)
+        self.assertIn('id="member-ko"', location)
+        self.assertNotIn('id="member-en"', location)
         for anchor in ("trainer-ko", "trainer-en"):
             self.assertNotIn(f'id="{anchor}"', location)
         self.assertNotIn("{contact}", location)
@@ -211,7 +211,7 @@ class BuildTest(unittest.TestCase):
     def test_doc_sources_keep_the_source_order(self) -> None:
         doc = next(d for d in blp.DOCS if d.slug == "location")
         self.assertEqual(
-            [s.anchor for s in doc.sources()], ["member-ko", "member-en"]
+            [s.anchor for s in doc.sources()], ["member-ko"]
         )
         privacy = next(d for d in blp.DOCS if d.slug == "privacy")
         self.assertEqual(privacy.sources(), blp.SOURCES)
@@ -275,7 +275,6 @@ class RepositoryPagesTest(unittest.TestCase):
                     )
         privacy = (blp.OUT_DIR / "privacy.html").read_text(encoding="utf-8")
         self.assertIn("소셜 로그인(카카오·구글)", privacy)
-        self.assertIn("social login (Kakao or Google)", privacy)
 
     def test_every_source_document_is_published(self) -> None:
         pages = blp.build()
