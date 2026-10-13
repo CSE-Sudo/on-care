@@ -23,12 +23,12 @@ check() {
 # --- classify: 진입 파일은 폴더와 무관하게 no-cache, 나머지는 짧은 max-age
 for path in index.html member/index.html trainer/flutter_bootstrap.js \
   member/main.dart.js trainer/version.json member/version.txt version.txt \
-  trainer/manifest.json member/drift_worker.js; do
+  trainer/manifest.json member/drift_worker.js assets/landing/manifest.json; do
   check "classify $path" "no-cache" "$(bash "$script" classify "$path")"
 done
 for path in member/canvaskit/canvaskit.wasm trainer/assets/AssetManifest.bin \
   member/assets/fonts/MaterialIcons-Regular.otf trainer/favicon.png \
-  member/main.dart.js.map member/index.html.bak; do
+  member/main.dart.js.map member/index.html.bak assets/landing/apple-touch-icon.png   assets/landing/icon-maskable-512.png; do
   check "classify $path" "public,max-age=300" "$(bash "$script" classify "$path")"
 done
 

@@ -47,8 +47,34 @@ expect_check fail '회원 앱 바로가기 없음' "$head_ok<a href=\"trainer/\"
 expect_check fail '트레이너 웹 바로가기 없음' "$head_ok<a href=\"member/#/dashboard\">회원</a>"
 expect_check fail '처리방침 링크 없음' "$head_ok<a href=\"member/\">회원</a><a href=\"trainer/\">트레이너</a>"
 expect_check fail '처리방침 절대 주소' "$head_ok<a href=\"member/\">회원</a><a href=\"trainer/\">트레이너</a><a href=\"https://cse-sudo.github.io/on-care/legal/privacy.html\">처리방침</a>"
+expect_check pass '상대 경로 아이콘·manifest' "<head><!-- SITE_URL_META --><link rel=\"apple-touch-icon\" href=\"assets/landing/apple-touch-icon.png\" /><link rel=\"manifest\" href=\"assets/landing/manifest.json\" /></head>$links_ok"
+expect_check pass '프로토콜 상대 주소는 외부' "$head_ok$links_ok<script src=\"//cdn.example.com/a.js\"></script>"
+expect_check fail '루트 절대 경로 manifest' "<head><!-- SITE_URL_META --><link rel=\"manifest\" href=\"/docs/assets/landing/manifest.json\" /></head>$links_ok"
+expect_check fail '루트 절대 경로 이미지' "$head_ok$links_ok<img src=\"/assets/landing/icon-192.png\" />"
+expect_check fail '루트 자체 링크' "$head_ok$links_ok<a href=\"/\">처음</a>"
 expect_check fail '표시 줄 없음' "<head></head>$links_ok"
 expect_check fail '표시 줄 두 번' "<head><!-- SITE_URL_META --><!-- SITE_URL_META --></head>$links_ok"
+
+# check-manifest: 저장소 manifest 는 통과하고, 루트 절대 경로가 있으면 실패한다.
+if bash "$tool" check-manifest "$repo_root/docs/assets/landing/manifest.json" > /dev/null 2>&1; then got=pass; else got=fail; fi
+record pass "$got" "check-manifest: 저장소 manifest"
+
+expect_manifest() {
+  local want="$1" label="$2" body="$3" file got
+  file="$work/manifest.json"
+  printf '%s
+' "$body" > "$file"
+  if bash "$tool" check-manifest "$file" > /dev/null 2>&1; then got=pass; else got=fail; fi
+  record "$want" "$got" "check-manifest: $label"
+}
+
+manifest_ok='{ "start_url": "../../", "scope": "../../", "icons": [ { "src": "icon-192.png" } ] }'
+expect_manifest pass '상대 경로' "$manifest_ok"
+expect_manifest fail '루트 start_url' '{ "start_url": "/", "icons": [ { "src": "icon-192.png" } ] }'
+expect_manifest fail '루트 scope' '{ "start_url": "../../", "scope": "/", "icons": [] }'
+expect_manifest fail '루트 id' '{ "id": "/", "start_url": "../../", "icons": [] }'
+expect_manifest fail '루트 아이콘' '{ "start_url": "../../", "icons": [ { "src": "/docs/assets/landing/icon-192.png" } ] }'
+expect_manifest fail 'start_url 없음' '{ "icons": [ { "src": "icon-192.png" } ] }'
 
 # stamp: 표시 줄이 사이트 주소의 og:url·canonical 로 바뀐다.
 expect_stamp() {
@@ -81,10 +107,15 @@ record fail "$got" "stamp: 절대 주소가 남은 파일"
 # verify: 로컬 정적 서버로 배포된 사이트를 흉내 낸다(python3 가 있을 때만).
 if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
   site="$work/site"
-  mkdir -p "$site/member" "$site/trainer" "$site/legal"
+  mkdir -p "$site/member" "$site/trainer" "$site/legal" "$site/assets/landing"
   echo ok > "$site/member/index.html"
   echo ok > "$site/trainer/index.html"
   echo ok > "$site/legal/privacy.html"
+  for icon in apple-touch-icon icon-192 icon-512 icon-maskable-512; do
+    echo ok > "$site/assets/landing/$icon.png"
+  done
+  printf '%s
+' "$manifest_ok" > "$site/assets/landing/manifest.json"
   port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
   python3 -m http.server "$port" --bind 127.0.0.1 --directory "$site" > /dev/null 2>&1 &
   server=$!
@@ -109,6 +140,15 @@ if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
   expect_verify fail '표시 줄이 남은 랜딩' "$head_ok$links_ok"
   expect_verify fail '다른 canonical' "<head><link rel=\"canonical\" href=\"https://other.example/\" /></head>$links_ok"
   expect_verify fail '절대 주소 바로가기' "$canonical<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"trainer/\">트레이너</a>"
+  printf '%s
+' '{ "start_url": "/", "icons": [ { "src": "icon-192.png" } ] }' > "$site/assets/landing/manifest.json"
+  expect_verify fail '배포된 manifest 루트 절대 경로' "$canonical$links_ok"
+  printf '%s
+' "$manifest_ok" > "$site/assets/landing/manifest.json"
+  rm -f "$site/assets/landing/apple-touch-icon.png"
+  expect_verify fail '랜딩 아이콘 없음' "$canonical$links_ok"
+  rm -rf "$site/assets"
+  expect_verify fail '랜딩 manifest 없음' "$canonical$links_ok"
   rm -rf "$site/legal"
   expect_verify fail '처리방침 경로 없음' "$canonical$links_ok"
   rm -rf "$site/trainer"
