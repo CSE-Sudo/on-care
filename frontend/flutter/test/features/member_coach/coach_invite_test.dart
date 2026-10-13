@@ -115,8 +115,12 @@ class _FakeCoachRepository implements MemberCoachRepository {
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) async => throw UnimplementedError();
@@ -133,8 +137,9 @@ class _FakeCoachRepository implements MemberCoachRepository {
   // 주간 피드백은 이 대역이 서는 화면의 관심사가 아니다 — 안 낸 주로 답한다.
   // (#2232)
   @override
-  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({DateTime? weekStart}) async =>
-      MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
+  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({
+    DateTime? weekStart,
+  }) async => MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
 
   @override
   Future<MemberWeeklyFeedback> saveWeeklyFeedback({

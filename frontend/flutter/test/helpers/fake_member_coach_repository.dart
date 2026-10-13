@@ -130,8 +130,12 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) => throw UnimplementedError();

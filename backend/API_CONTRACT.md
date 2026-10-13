@@ -1264,7 +1264,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/me/coach/trainer` | 204 — 담당 트레이너만 해제, 헬스장 연결은 남는다. 위와 같이 멱등·동의 철회 |
 | GET | `/me/coach/routines?date=` | `RoutineOut[]` — 그날 걸린 추천 개인운동과 그날 완료(#2161). 날짜 형식이 깨지면 422 |
 | GET | `/me/coach/routines/upcoming` | `{ starts_on, sent_on, names[] }` 또는 `null` — 지금 담당이 미래 시작일로 보낸 승인된 `개인운동만` 중 아직 시작하지 않은 가장 최근 묶음(#3106). 시작일부터는 위 그날 목록에 들고 여기서 빠진다 |
-| POST | `/me/coach/routines/{routine_id}/complete` | `{ minutes?, duration_seconds?, sets?, reps?, weight?, hold_seconds?, intensity? }` → `RoutineCompleteOut`(루틴 + 남긴 운동 기록·포인트). 없는 루틴 404 |
+| POST | `/me/coach/routines/{routine_id}/complete` | `{ minutes?, duration_seconds?, sets?, reps?, weight?, hold_seconds?, intensity? }` → `RoutineCompleteOut`(루틴 + 남긴 운동 기록·포인트). 없는 루틴 404. 근력은 `sets`·`reps`(또는 `hold_seconds`)·`weight` 가 기록에 남고 비운 값은 배정 값이다. `minutes` 를 비우면 근력은 세트 수 × 3분, 나머지는 `duration_seconds`·배정 시간에서 채운다(#3364). 응답의 `completed_sets`·`completed_reps`·`completed_hold_seconds`·`completed_weight` 가 그 기록의 값이다 |
 | DELETE | `/me/coach/routines/{routine_id}/complete` | `RoutineOut` — 완료 표시를 되돌리고 그 완료로 남은 운동 기록을 지운다(#1131) |
 | DELETE | `/me/coach/routines/{routine_id}` | 204 — 내 개인운동 취소. **담당 트레이너가 있으면 403**(취소는 트레이너의 일), 없는 루틴 404 (#1020) |
 | GET | `/me/coach/sessions` | `ScheduleSessionOut[]` — 담당 트레이너 일정 중 나와 매칭된 것과 지난 담당과 완료한 PT, 최신순(완료 회차 `session_number`, 수업한 트레이너 `trainer_name`) |
