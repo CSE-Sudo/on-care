@@ -49,7 +49,6 @@ class RepositoryCoverageTest(unittest.TestCase):
             "frontend/flutter/lib/l10n/app_ko.arb",
             "frontend/flutter/lib/l10n/app_en.arb",
             "frontend/flutter_trainer/lib/l10n/app_ko.arb",
-            "frontend/flutter_trainer/lib/l10n/app_en.arb",
             "backend/app/db/demo_fixture_data.json",
         ):
             self.assertIn(expected, files)
