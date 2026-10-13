@@ -58,6 +58,15 @@ abstract class ExerciseRepository {
   /// 돌려주는 기록은 요청과 같은 순서다. 필드의 뜻은 [ExerciseSessionDraft].
   Future<ExerciseSessionsAdded> addSessions(List<ExerciseSessionDraft> drafts);
 
+  /// POST /exercise/sessions/move — 기록 [ids] 의 날짜를 **한 번에** [date] 로
+  /// 옮긴다. (#3365)
+  ///
+  /// 상세 화면의 `날짜 변경` 이 그날 기록을 통째로 옮길 때 쓴다. 서버는 목록
+  /// 하나를 한 트랜잭션으로 옮긴다 — 전부 옮겨지거나 하나도 옮겨지지 않는다.
+  /// 기록마다 [updateSession] 을 부르면 중간에 하나가 실패했을 때 하루치가 두
+  /// 날로 갈린 채 남는다. 날짜 말고는 아무것도 바뀌지 않는다.
+  Future<void> moveSessions(List<String> ids, DateTime date);
+
   /// DELETE /exercise/sessions/{id} — remove a workout session.
   Future<void> deleteSession(String id);
 
