@@ -2144,6 +2144,12 @@ abstract class AppLocalizations {
   /// **'Nearby gyms'**
   String get exNearbyGyms;
 
+  /// No description provided for @exGymSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Search results'**
+  String get exGymSearchResults;
+
   /// Hides the gym result list so the map fills the space
   ///
   /// In en, this message translates to:
@@ -2161,6 +2167,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load gyms.'**
   String get exGymsLoadError;
+
+  /// No description provided for @exGymSearchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search gyms.'**
+  String get exGymSearchError;
 
   /// No description provided for @exGymWeekdayHours.
   ///

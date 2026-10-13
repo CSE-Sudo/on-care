@@ -26,9 +26,16 @@ const double _trainerDividerIndent =
     OnCareSpacing.s16 + OnCareSize.avatarLarge + OnCareSpacing.s12;
 
 class GymDetailPage extends ConsumerWidget {
-  const GymDetailPage({required this.gymId, super.key});
+  const GymDetailPage({required this.gymId, this.initialGym, super.key});
 
   final String gymId;
+
+  /// 이름 검색 결과에서 눌러 들어왔을 때의 그 헬스장(#3355).
+  ///
+  /// 외부 장소 검색에서만 찾은 헬스장은 서버에 등록돼 있지 않아 id 로 다시 읽을
+  /// 수 없다. 받아 둔 목록 어디에도 없으면 이 값으로 그린다. id 가 다르면 쓰지
+  /// 않는다.
+  final Gym? initialGym;
 
   Gym? _findGym(List<Gym> gyms) {
     for (final Gym gym in gyms) {
@@ -59,11 +66,14 @@ class GymDetailPage extends ConsumerWidget {
     // 목록은 서버가 반경·개수로 잘라 준다. 두 곳 어디에도 없을 때만 이 헬스장
     // 하나를 따로 읽는다 — 담당 트레이너의 먼 소속 헬스장처럼 목록 밖에서
     // 들어온 상세가 "찾을 수 없음"이 되지 않게(#3356).
+    // 검색 결과를 들고 들어왔으면 그 값이 있으므로 따로 읽지 않는다(#3355) —
+    // 외부 검색에서만 찾은 헬스장은 읽어도 404 다.
+    final Gym? searched = initialGym?.id == gymId ? initialGym : null;
     final AsyncValue<Gym?> singleAsync =
-        nearbyGym == null && myGym == null && !listsLoading
+        nearbyGym == null && myGym == null && searched == null && !listsLoading
         ? ref.watch(gymProvider(gymId))
         : const AsyncValue<Gym?>.data(null);
-    final Gym? gym = nearbyGym ?? myGym ?? singleAsync.valueOrNull;
+    final Gym? gym = nearbyGym ?? myGym ?? singleAsync.valueOrNull ?? searched;
     final Widget body;
     if (gym != null) {
       body = _GymDetails(gym: gym, isMyGym: myGym != null);

@@ -28,6 +28,7 @@ import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/search_match.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 // 타입을 적어 둔다 — 목업 코치 저장소와 서로를 읽어(추천 개인운동, #2161)
@@ -298,6 +299,21 @@ Gym _gymFromPlace(Place p, {required bool allowDemoProfile}) {
 
 String _gymNameKey(String name) => name.replaceAll(RegExp(r'\s+'), '');
 
+/// 등록된 헬스장 뒤에 주변 장소 검색으로 찾은 헬스장을 잇는다.
+///
+/// 등록된 헬스장이 장소 검색에도 잡히면 중복이므로, 등록 쪽(정보가 더 많다)을
+/// 남긴다.
+List<Gym> _mergeDiscovered(List<Gym> registered, List<Gym> discovered) {
+  final Set<String> seen = registered
+      .map((Gym g) => _gymNameKey(g.name))
+      .toSet();
+  return <Gym>[
+    ...registered,
+    for (final Gym g in discovered)
+      if (seen.add(_gymNameKey(g.name))) g,
+  ];
+}
+
 /// 헬스장 찾기 전용 목록 — 제휴 헬스장(평점·트레이너 보유)을 앞에 두고,
 /// 카카오 Local 의 주변 헬스장을 뒤에 이어 붙인다.
 ///
@@ -321,14 +337,45 @@ final gymFinderResultsProvider = FutureProvider<List<Gym>>((ref) async {
     // 카카오가 실패해도 제휴 목록은 그대로 보여준다(#329 폴백 요건).
   }
 
-  // 제휴 헬스장이 카카오에도 잡히면 중복이므로, 제휴 쪽(정보가 더 많다)을 남긴다.
-  final Set<String> seen = partners.map((Gym g) => _gymNameKey(g.name)).toSet();
-  return <Gym>[
-    ...partners,
-    for (final Gym g in discovered)
-      if (seen.add(_gymNameKey(g.name))) g,
-  ];
+  return _mergeDiscovered(partners, discovered);
 }, name: 'gymFinderResults');
+
+/// 헬스장 이름 검색 결과. 키는 [gymSearchQueryOf] 를 거친 검색어다. (#3355)
+///
+/// 검색창은 예전에 받아 둔 주변 목록만 걸렀다 — 목록 밖의 헬스장은 이름을 정확히
+/// 쳐도 나오지 않았다. 이제 서버에 묻는다. 등록된 헬스장과 외부 장소 검색을
+/// 합치는 일은 서버가 한다.
+///
+/// 목업에는 그 서버가 없다. 등록된 헬스장은 저장소가 거르고, 외부 검색 몫은
+/// 주변 장소 목업에서 이름·주소로 걸러 잇는다 — 데모에서 주변 목록에 보이던
+/// 헬스장이 검색에서만 빠지지 않게.
+///
+/// 검색어마다 따로 들고, 그 검색어를 보는 화면이 없으면 버린다.
+final gymSearchProvider = FutureProvider.autoDispose.family<List<Gym>, String>((
+  ref,
+  String query,
+) async {
+  final List<Gym> found = await ref
+      .watch(gymRepositoryProvider)
+      .searchGyms(query);
+  if (!ref.watch(appConfigProvider).useMockApi) return found;
+
+  List<Gym> discovered = const <Gym>[];
+  try {
+    final List<Place> places = await ref
+        .watch(placeRepositoryProvider)
+        .nearbyPlaces(ref.watch(gymSearchAreaProvider).query);
+    discovered = places
+        .where(
+          (Place p) => matchesSearchQuery(query, <String>[p.name, p.address]),
+        )
+        .map((Place p) => _gymFromPlace(p, allowDemoProfile: true))
+        .toList();
+  } on Object {
+    // 외부 검색이 실패해도 등록된 헬스장 결과는 보여준다.
+  }
+  return _mergeDiscovered(found, discovered);
+}, name: 'gymSearch');
 
 /// 담당 트레이너. 헬스장과 별도 provider 라, 트레이너만 해제해도 헬스장
 /// 카드는 그대로 남는다.

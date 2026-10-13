@@ -1132,6 +1132,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exNearbyGyms => '주변 헬스장';
 
   @override
+  String get exGymSearchResults => '검색 결과';
+
+  @override
   String get exGymListCollapse => '목록 접기';
 
   @override
@@ -1139,6 +1142,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exGymsLoadError => '헬스장을 불러오지 못했어요.';
+
+  @override
+  String get exGymSearchError => '헬스장을 검색하지 못했어요.';
 
   @override
   String exGymWeekdayHours(String hours) {

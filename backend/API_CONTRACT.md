@@ -945,6 +945,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/gyms?lat=&lng=&partner_only=&radius_m=&limit=` | `[GymOut]` — 좌표를 주면 반경 안에서 거리순, 없으면 이름순 |
+| GET | `/gyms/search?q=&lat=&lng=` | `[GymOut]` — 이름·주소 검색. 등록된 헬스장과 카카오 결과를 합친다(#3355) |
 | GET | `/gyms/{gym_id}?lat=&lng=` | 단건(없으면 404). 목록의 반경·상한과 무관 |
 | GET | `/gyms/{gym_id}/trainers` | 그 헬스장 소속 트레이너 |
 | GET | `/me/gym?lat=&lng=` | 내 헬스장(`member_gyms`) — `GymOut`. 연결이 없으면 404 |
@@ -964,6 +965,23 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   디렉터리(#2811)와 같은 목록(`app/db/demo_ids.py`)을 본다. 데모 서버의 응답은 그대로다.
   **`/me/gym` 에는 걸지 않는다** — 찾기가 아니라 회원이 이미 연결한 링크라, 가상 헬스장과의
   옛 링크가 남은 회원도 내 헬스장·쿠폰의 `has_gym`·`/me/coach` 의 `gym` 을 그대로 받는다.
+- **`/gyms/search` 는 이름으로 찾는다**(#3355). `q`(1~100자, 앞뒤 공백을 뺀 뒤 비면 422)의 모든
+  단어가 이름이나 주소에 있는 등록 헬스장을 찾고 — 띄어쓰기·단어 순서·대소문자는 보지 않는다
+  (`/trainer/gyms/search` 와 같은 조건) — 카카오 이름 검색에서 헬스장으로 판별된 결과를 합친다.
+  **반경은 걸지 않는다** — 주변 목록에 없는 헬스장, 다른 동네의 헬스장도 나온다. 상한과 데모 제외는
+  목록과 같다: 한 번에 50곳까지이고, 데모 시드가 꺼진 서버는 가상 헬스장을 내지 않는다(카카오 결과가
+  그 행을 가리켜도 싣지 않는다).
+  - 정렬: 좌표를 주면 가까운 순(좌표를 모르는 헬스장은 맨 뒤). 좌표가 없으면 등록된 헬스장을
+    이름순으로 먼저 두고 카카오 결과를 그 뒤에 잇는다. 이때 `distance_km` 는 `0` 이다.
+  - 같은 헬스장은 한 줄이다. 카카오 결과가 이미 등록된 곳(`places.id` 또는 `kakao_place_id` 일치)이면
+    등록된 행을 싣고, 등록된 헬스장과 이름이 같은(띄어쓰기 무시) 카카오 결과는 뺀다.
+  - **카카오에서만 찾은 헬스장은 `places` 에 넣지 않는다.** 그 줄의 `id` 는 카카오 장소 id 이고
+    `rating` 은 `0`, `tags` 는 빈 배열, 영업시간은 `null` 이다. `/gyms/{gym_id}`·
+    `/gyms/{gym_id}/trainers` 로는 404 다 — `/places/nearby` 가 준 헬스장과 같다. 회원 앱은 검색
+    결과에서 받은 값으로 상세를 그린다.
+  - 카카오 키가 없거나 호출이 실패하면 등록된 헬스장만 준다(오류로 답하지 않는다).
+  - `429` — 한 회원의 분당 검색 한도(`GYM_SEARCH_PER_MINUTE`, 기본 30) 초과. `Retry-After` 헤더가
+    붙는다. 회원 id 로 센다. 검증에서 떨어진 요청(422)은 세지 않는다.
 - **`is_partner` 는 표시 값이다.** `GymOut` 으로 내려가고 `partner_only=true` 로 목록을
   좁히는 기준이 된다(현재 두 앱은 이 값을 읽지 않는다). **접근 제어가 아니다** — 상담 대상 검증과
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을
