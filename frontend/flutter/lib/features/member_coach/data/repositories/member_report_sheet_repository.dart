@@ -147,7 +147,8 @@ class DioMemberReportSheetRepository implements MemberReportSheetRepository {
     return parsed == null ? null : toKst(parsed);
   }
 
-  /// 회원이 그 주에 낸 답. 담당 트레이너가 없으면(404) 답도 없다.
+  /// 회원이 그 주에 낸 답. 담당 트레이너가 없어도 서버는 200(`submitted=false`)
+  /// 으로 답한다 — 읽지 못했을 때만 답이 없는 것으로 본다.
   Future<ReportSheetAnswers?> _answers(DateTime monday) async {
     try {
       final Response<Map<String, dynamic>> res = await _dio

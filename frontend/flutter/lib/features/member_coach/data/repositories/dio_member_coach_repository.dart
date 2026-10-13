@@ -358,8 +358,9 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       }
       return memberWeeklyFeedbackFromJson(data);
     } on DioException catch (e) {
-      // 담당 트레이너가 없으면 404 다. 그건 오류가 아니라 이 기능이 없는
-      // 상태라, 화면이 칸을 통째로 숨기면 된다.
+      // 서버는 담당 트레이너가 없어도 조회를 200(`submitted=false`)으로 답한다 —
+      // 404 로 막는 것은 저장(PUT)뿐이다. 그래도 404 가 오면 오류가 아니라 낸
+      // 답이 없는 상태로 받는다.
       if (e.response?.statusCode == 404) {
         return MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
       }
