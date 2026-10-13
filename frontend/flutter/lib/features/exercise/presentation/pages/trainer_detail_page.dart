@@ -188,27 +188,22 @@ class _TrainerDetails extends ConsumerWidget {
             ],
             const SizedBox(height: OnCareSpacing.s24),
             // 추천 목록에서 골라 들어온 흐름이라, **왜 추천됐는지**가 소개보다
-            // 먼저다(#1445). 소개가 없는 트레이너도 이 박스는 늘 있어 소속·
-            // 상담 CTA 와의 순서가 흔들리지 않는다.
-            _DetailSection(
-              key: const Key('trainer-detail-reason'),
-              icon: AppIcons.ai,
-              title: l.exRecommendationReason,
-              // 근거는 찾기 줄·목록 카드와 같은 알약으로 적는다 (#1881).
-              // 근거가 없을 때만 기본 문구를 문장으로 둔다.
-              child: trainer.reasons.isEmpty
-                  ? Text(
-                      l.exTrainerRecommendationReason,
-                      style: tokens
-                          .text(OnCareTypography.strong(OnCareTypography.body))
-                          .copyWith(color: tokens.brand.primary),
-                    )
-                  : TrainerReasonBadges(
-                      reasons: trainer.reasons,
-                      keyPrefix: 'trainer-detail',
-                    ),
-            ),
-            const SizedBox(height: OnCareSpacing.cardGap),
+            // 먼저다(#1445). 서버가 준 근거가 있을 때만 그린다(#3357) — 헬스장
+            // 목록·담당 카드로 들어온 트레이너는 추천된 적이 없는데, 예전에는
+            // 고정 문구로 칸을 채워 모든 트레이너가 추천된 것처럼 보였다.
+            if (trainer.reasons.isNotEmpty) ...<Widget>[
+              _DetailSection(
+                key: const Key('trainer-detail-reason'),
+                icon: AppIcons.ai,
+                title: l.exRecommendationReason,
+                // 근거는 찾기 줄·목록 카드와 같은 알약으로 적는다 (#1881).
+                child: TrainerReasonBadges(
+                  reasons: trainer.reasons,
+                  keyPrefix: 'trainer-detail',
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.cardGap),
+            ],
             // 트레이너 앱 프로필(소개·경력·자격증)과 같은 값을 보여준다.
             if (hasProfile) ...<Widget>[
               _DetailSection(

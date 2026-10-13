@@ -662,7 +662,7 @@ joined_at, settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id, template, args }]` (배열, 최신순, 기본 50건) |
+| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id, template, args, report }]` (배열, 최신순, 기본 50건) |
 | GET | `/notifications/unread-count` | `{ unread(int) }` — 세기 전에 때가 된 알림을 만든다(아래) |
 | POST | `/notifications/{id}/read` | 단건 읽음 → `{ id, read: true }` |
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
@@ -707,6 +707,13 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
   일정과 같은 알림을 한 건 보냅니다(#3345) — 틀 `member_schedule_added`(인자 `date`·`time`·`type`), 본문
   `10월 1일 20:00 · 1:1 PT` / `10/1 20:00 · 1:1 PT`. 같은 메시지의 재전송(`client_request_id`)이나 같은 약속을 다시
   적은 메시지, 다른 일정과 겹쳐 일정이 만들어지지 않은 메시지에는 일정 알림이 없습니다.
+- **리포트 알림이 가리키는 리포트(#3344)**: `coach_report` 알림은 `report: { week_start(YYYY-MM-DD, 월요일), message_id }` 를
+  함께 줍니다 — 어느 주의 리포트이고 어느 대화 메시지에 실려 왔는지입니다. 리포트를 보낼 때(`/report/send`·`/report/send-pdf`)
+  문장 틀 인자에 `week_start`·`message_id` 로 남겨, 칼럼을 더하지 않습니다. `action.target` 은 **`coach_chat` 그대로**입니다 —
+  목적지 값을 새로 만들면 이미 배포된 앱이 모르는 값이라 눌러도 아무 데도 가지 않습니다. 옛 앱은 `report` 를 읽지 않고
+  지금처럼 대화로 가고, 새 앱은 그 주 리포트를 바로 엽니다(첨부가 있으면 그 PDF, 없으면 결과지). 담당이 끊겼거나 그
+  메시지가 대화에 없으면 받은 리포트 화면으로 갑니다. 다른 갈래와, 이 칸이 생기기 전에 쌓인 리포트 알림·데모 시드 알림은
+  `report: null` 이고 대화로 갑니다(백필하지 않음). 목 모드는 데모 리포트 알림 한 건에 데모 대화의 리포트 안내를 싣습니다.
 - **PT 완료·피드백(#3027)**: 트레이너가 회원 PT 를 완료(`POST /trainer/schedule/{session_id}/complete`)하면
   `pt_done` 알림 한 건 — 틀 `member_pt_completed`(인자 `trainer_name`·`session_number`(회원 앱 PT 카드와 같은 회차,
   없으면 생략)·`has_note`·`date`), 본문은 트레이너 피드백이 있으면 그 글, 없으면 "운동 기록에 남겼어요". 완료 뒤 PT 메모가
@@ -793,7 +800,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 |---|---|---|
 | `reminder`·`health_check`·`achievement` | 기록·점검·성취 | `dashboard` |
 | `coach_chat` | 트레이너 메시지·피드백 | `coach_chat` |
-| `coach_report` | **트레이너가 등록한 주간 리포트**(#2085) | `coach_chat` |
+| `coach_report` | **트레이너가 등록한 주간 리포트**(#2085) | `coach_chat` — `report` 가 있으면 그 주 리포트를 바로 연다(#3344) |
 | `routine` | 루틴 배정 | `exercise` |
 | `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
 | `coach_invite` | 담당 요청 도착 — `invite_id`로 수락·거절 창 열기 | `exercise`(처리·취소 시 이동) |
@@ -808,7 +815,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 알림을 눌러도 운동 탭으로 가서, 사유를 보려면 내 상담 요청을 따로 찾아가야 했습니다. 이미 저장된
 옛 결과 알림은 `consultation_result` 그대로라 운동 탭으로 갑니다(백필하지 않음).
 
-`coach_report` 는 #2085 에서 `coach_chat` 에서 떼어 냈습니다. 목적지는 같은 코치 대화이고, 회원 앱 알림함이 갈래로 아이콘을 고르기 때문에(#2084) 리포트는 문서, 메시지는 말풍선으로 보이게 나눴습니다. 이미 `coach_chat` 으로 저장된 옛 리포트 알림은 그대로 둡니다(백필하지 않음).
+`coach_report` 는 #2085 에서 `coach_chat` 에서 떼어 냈습니다. 목적지 값은 같은 코치 대화이고(그 주 리포트를 바로 여는 값은 응답의 `report` 칸, #3344), 회원 앱 알림함이 갈래로 아이콘을 고르기 때문에(#2084) 리포트는 문서, 메시지는 말풍선으로 보이게 나눴습니다. 이미 `coach_chat` 으로 저장된 옛 리포트 알림은 그대로 둡니다(백필하지 않음).
 
 회원 앱은 갈래를 접지 않고 갈래마다 알림함 아이콘을 고릅니다(#2084). 보내는 곳이 없는 `health_check` 는 `reminder` 와 같게, 모르는 갈래는 `system` 과 같게 그립니다.
 
@@ -926,7 +933,7 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/places/nearby?lat=&lng=&category=&radius_m=` | `[{ id, name, category, address, distance_meters, lat, lng }]` (거리순 배열) |
+| GET | `/places/nearby?lat=&lng=&category=&radius_m=` | `[{ id, name, category, address, distance_meters, lat, lng, phone }]` (거리순 배열) |
 
 category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **공급자**: `places_provider` 설정에 따라 **카카오 Local 실검색**(서버가 키를 쥐고 프록시,
@@ -937,6 +944,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   실서버는 데모 시드 장소(가상 헬스장·데모 장소 id)를 뺀다.
 - **무카테고리**: `category` 생략 시 네 카테고리를 **모두 검색·병합**하고 각 결과를 해당
   카테고리로 태깅한다(공급자 간 의미 일치, 빈 category 없음).
+- **`phone`**(#3357): 카카오가 준 전화번호, DB 장소는 헬스장 부가 정보(`gym_profiles`)의 번호다.
+  모르면 `null`. 가입한 트레이너가 없는 헬스장은 상담을 걸 대상이 없어, 회원 앱이 헬스장 상세에서
+  이 번호로 전화 문의를 연다.
+- **헬스장 판별**(#3357): `fitness` 는 카카오 `category_name` 에 `스포츠시설` 이 든 장소만 싣는다 —
+  트레이너 소속 헬스장 찾기·`/gyms/search` 와 같은 기준이다. "헬스장" 검색어에 걸린 다른 업종
+  (용품점 등)은 빠진다. 다른 카테고리는 검색 결과를 그대로 싣는다.
 - **검증**: `lat`(-90~90)·`lng`(-180~180)·`category`(허용값)는 위반 시 **422**.
 
 ### 헬스장 (`fitness` 장소 + 프로필)
@@ -944,6 +957,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/gyms?lat=&lng=&partner_only=&radius_m=&limit=` | `[GymOut]` — 좌표를 주면 반경 안에서 거리순, 없으면 이름순 |
+| GET | `/gyms/search?q=&lat=&lng=` | `[GymOut]` — 이름·주소 검색. 등록된 헬스장과 카카오 결과를 합친다(#3355) |
 | GET | `/gyms/{gym_id}?lat=&lng=` | 단건(없으면 404). 목록의 반경·상한과 무관 |
 | GET | `/gyms/{gym_id}/trainers` | 그 헬스장 소속 트레이너 |
 | GET | `/me/gym?lat=&lng=` | 내 헬스장(`member_gyms`) — `GymOut`. 연결이 없으면 404 |
@@ -963,6 +977,23 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   디렉터리(#2811)와 같은 목록(`app/db/demo_ids.py`)을 본다. 데모 서버의 응답은 그대로다.
   **`/me/gym` 에는 걸지 않는다** — 찾기가 아니라 회원이 이미 연결한 링크라, 가상 헬스장과의
   옛 링크가 남은 회원도 내 헬스장·쿠폰의 `has_gym`·`/me/coach` 의 `gym` 을 그대로 받는다.
+- **`/gyms/search` 는 이름으로 찾는다**(#3355). `q`(1~100자, 앞뒤 공백을 뺀 뒤 비면 422)의 모든
+  단어가 이름이나 주소에 있는 등록 헬스장을 찾고 — 띄어쓰기·단어 순서·대소문자는 보지 않는다
+  (`/trainer/gyms/search` 와 같은 조건) — 카카오 이름 검색에서 헬스장으로 판별된 결과를 합친다.
+  **반경은 걸지 않는다** — 주변 목록에 없는 헬스장, 다른 동네의 헬스장도 나온다. 상한과 데모 제외는
+  목록과 같다: 한 번에 50곳까지이고, 데모 시드가 꺼진 서버는 가상 헬스장을 내지 않는다(카카오 결과가
+  그 행을 가리켜도 싣지 않는다).
+  - 정렬: 좌표를 주면 가까운 순(좌표를 모르는 헬스장은 맨 뒤). 좌표가 없으면 등록된 헬스장을
+    이름순으로 먼저 두고 카카오 결과를 그 뒤에 잇는다. 이때 `distance_km` 는 `0` 이다.
+  - 같은 헬스장은 한 줄이다. 카카오 결과가 이미 등록된 곳(`places.id` 또는 `kakao_place_id` 일치)이면
+    등록된 행을 싣고, 등록된 헬스장과 이름이 같은(띄어쓰기 무시) 카카오 결과는 뺀다.
+  - **카카오에서만 찾은 헬스장은 `places` 에 넣지 않는다.** 그 줄의 `id` 는 카카오 장소 id 이고
+    `rating` 은 `0`, `tags` 는 빈 배열, 영업시간은 `null` 이다. `/gyms/{gym_id}`·
+    `/gyms/{gym_id}/trainers` 로는 404 다 — `/places/nearby` 가 준 헬스장과 같다. 회원 앱은 검색
+    결과에서 받은 값으로 상세를 그린다.
+  - 카카오 키가 없거나 호출이 실패하면 등록된 헬스장만 준다(오류로 답하지 않는다).
+  - `429` — 한 회원의 분당 검색 한도(`GYM_SEARCH_PER_MINUTE`, 기본 30) 초과. `Retry-After` 헤더가
+    붙는다. 회원 id 로 센다. 검증에서 떨어진 요청(422)은 세지 않는다.
 - **`is_partner` 는 표시 값이다.** `GymOut` 으로 내려가고 `partner_only=true` 로 목록을
   좁히는 기준이 된다(현재 두 앱은 이 값을 읽지 않는다). **접근 제어가 아니다** — 상담 대상 검증과
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을
@@ -1270,7 +1301,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/me/coach/trainer` | 204 — 담당 트레이너만 해제, 헬스장 연결은 남는다. 위와 같이 멱등·동의 철회 |
 | GET | `/me/coach/routines?date=` | `RoutineOut[]` — 그날 걸린 추천 개인운동과 그날 완료(#2161). 날짜 형식이 깨지면 422 |
 | GET | `/me/coach/routines/upcoming` | `{ starts_on, sent_on, names[] }` 또는 `null` — 지금 담당이 미래 시작일로 보낸 승인된 `개인운동만` 중 아직 시작하지 않은 가장 최근 묶음(#3106). 시작일부터는 위 그날 목록에 들고 여기서 빠진다 |
-| POST | `/me/coach/routines/{routine_id}/complete` | `{ minutes?, duration_seconds?, sets?, reps?, weight?, hold_seconds?, intensity? }` → `RoutineCompleteOut`(루틴 + 남긴 운동 기록·포인트). 없는 루틴 404 |
+| POST | `/me/coach/routines/{routine_id}/complete` | `{ minutes?, duration_seconds?, sets?, reps?, weight?, hold_seconds?, intensity? }` → `RoutineCompleteOut`(루틴 + 남긴 운동 기록·포인트). 없는 루틴 404. 근력은 `sets`·`reps`(또는 `hold_seconds`)·`weight` 가 기록에 남고 비운 값은 배정 값이다. `minutes` 를 비우면 근력은 세트 수 × 3분, 나머지는 `duration_seconds`·배정 시간에서 채운다(#3364). 응답의 `completed_sets`·`completed_reps`·`completed_hold_seconds`·`completed_weight` 가 그 기록의 값이다 |
 | DELETE | `/me/coach/routines/{routine_id}/complete` | `RoutineOut` — 완료 표시를 되돌리고 그 완료로 남은 운동 기록을 지운다(#1131) |
 | DELETE | `/me/coach/routines/{routine_id}` | 204 — 내 개인운동 취소. **담당 트레이너가 있으면 403**(취소는 트레이너의 일), 없는 루틴 404 (#1020) |
 | GET | `/me/coach/sessions` | `ScheduleSessionOut[]` — 담당 트레이너 일정 중 나와 매칭된 것과 지난 담당과 완료한 PT, 최신순(완료 회차 `session_number`, 수업한 트레이너 `trainer_name`) |
