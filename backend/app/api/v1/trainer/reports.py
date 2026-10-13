@@ -20,7 +20,6 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireTrainer
 from app.core.config import get_settings
-from app.core.locale import RequestLocale
 from app.core.pagination import MAX_PAGE
 from app.core.rate_limit import (
     limiter,
@@ -103,15 +102,12 @@ def trainer_client_report_summary(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    locale: RequestLocale,
     week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
 ) -> ReportSummaryOut:
     """그 주의 리포트 요약.
 
     리포트 본문과 **따로** 부른다. 생성에 몇 초가 걸리는데 한 응답에 묶으면
     고객을 고를 때마다 화면 전체가 그만큼 멈춘다.
-
-    문장은 `Accept-Language` 언어로 만든다(#2298). 헤더가 없으면 한국어다.
 
     **하루 상한(#3032)** — 이 트레이너의 AI 호출 합이 `trainer_ai_calls_per_day` 를
     넘으면 429 `daily_limit` + `Retry-After` 다(규칙형으로 덮지 않는다). 서버 전체
@@ -132,7 +128,6 @@ def trainer_client_report_summary(
         trainer.id,
         member_id,
         _report_week(week_start or trainer_common_service.today_iso()),
-        locale,
     )
 
 
@@ -376,9 +371,8 @@ def trainer_send_report_pdf(
 ) -> ChatMessageOut:
     """현재 리포트에서 생성한 PDF만 담당 고객 채팅으로 전송한다.
 
-    `message` 는 필수이고 공백뿐이면 422 다(#2771). 서버가 대신 채우던 한국어
-    기본 문장은 트레이너·회원의 언어를 몰라, 영어로 쓰는 회원에게도 한국어가
-    나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+    `message` 는 필수이고 공백뿐이면 422 다(#2771). 서버는 기본 문장을 대신
+    채우지 않는다 — 회원이 받을 글은 앱이 만든다.
 
     동기 라우트다(#2835). 멱등 조회·PDF 저장(`os.fsync`)·메시지 커밋이 모두 동기라
     `async def` 로 두면 이벤트 루프를 막는다. 업로드도 `UploadFile.file` 로 읽는다.

@@ -23,7 +23,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
-from app.core.locale import Locale
 from app.core.week import monday_of
 from app.models.models import ExerciseSession, TrainerSchedule
 from app.services import (
@@ -730,13 +729,9 @@ def period_coach_message(
     days: list[ExerciseDayTotals],
     period: str,
     routine_days: Sequence[routine_advice.RoutineDayLike] = (),
-    locale: Locale | None = None,
 ) -> str:
-    """[period_advice] 의 문장 — 키를 모르는 옛 앱과 트레이너웹이 읽는다.
-
-    언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어). (#2299)
-    """
-    return period_advice(days, period, routine_days).text_for(locale)
+    """[period_advice] 의 문장 — 키를 모르는 옛 앱과 트레이너웹이 읽는다."""
+    return period_advice(days, period, routine_days).text
 
 
 def period_days(

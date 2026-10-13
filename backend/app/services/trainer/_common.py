@@ -18,7 +18,6 @@ from sqlalchemy.orm import Session, object_session
 from pydantic import ValidationError
 
 from app.core import clock
-from app.core.locale import current_locale, localized
 from app.models.models import (
     ChatMessage, ConsultationRequest, DietEntry, ExerciseSession, HealthProfile,
     TrainerClient, TrainerReservation, TrainerRoutine, TrainerSchedule,
@@ -82,9 +81,8 @@ def _meal_kr(meal_type: str) -> str:
 def relative_day_label(day: str) -> str:
     """YYYY-MM-DD → 오늘/어제/N일 전 (마지막 루틴 전송 라벨용).
 
-    화면 언어를 따르는 앱은 이 문장 대신 원래 날짜(`last_routine_date`)를 받아
-    직접 그린다(#2300). 이 라벨은 그 필드를 모르는 옛 앱을 위해 남았고, 요청
-    언어가 영어면 영어로 만든다 — 헤더가 없으면 지금까지와 같은 한국어다.
+    앱은 이 문장 대신 원래 날짜(`last_routine_date`)를 받아 직접 그린다(#2300).
+    이 라벨은 그 필드를 모르는 옛 앱을 위해 남았다.
     """
     try:
         then = date.fromisoformat(day)
@@ -92,10 +90,10 @@ def relative_day_label(day: str) -> str:
         return day
     delta = (_today() - then).days
     if delta <= 0:
-        return localized("오늘", "Today")
+        return "오늘"
     if delta == 1:
-        return localized("어제", "Yesterday")
-    return localized(f"{delta}일 전", f"{delta} days ago")
+        return "어제"
+    return f"{delta}일 전"
 
 
 def history_date_label(day: str) -> str:
@@ -111,9 +109,9 @@ def history_date_label(day: str) -> str:
     label = f"{then.month}/{then.day}"
     delta = (_today() - then).days
     if delta == 0:
-        label += localized(" (오늘)", " (Today)")
+        label += " (오늘)"
     elif delta == 1:
-        label += localized(" (어제)", " (Yesterday)")
+        label += " (어제)"
     return label
 
 
@@ -477,10 +475,7 @@ def _week_days(
             continue
         # 이름이 빈 기록은 그 컬럼이 생기기 전(#1276)의 것이다. 유형 라벨이라도
         # 적어야 그날 무엇을 했는지가 칸에서 통째로 사라지지 않는다.
-        # 라벨은 요청 언어로 고른다(#2885) — 영어 리포트에 `근력` 이 남지 않게.
-        name = (row.name or "").strip() or exercise_types.normalize_label(
-            row.type, current_locale()
-        )
+        name = (row.name or "").strip() or exercise_types.normalize_ko(row.type)
         by_weekday.setdefault(
             exercise_service.WEEKDAY_LABELS.index(row.day_label), []
         ).append(name)
@@ -584,7 +579,7 @@ def _roster_preview(msg: ChatMessage | None) -> str:
     if msg is None:
         return ""
     if not msg.body and msg.attachment_type == "image" and msg.attachment_file_id:
-        return localized("사진", "Photo")
+        return "사진"
     return msg.body
 
 
@@ -1419,7 +1414,7 @@ def suggestion_evidence(evidence_json: str) -> list[str]:
     자체가 안 뜨면, 트레이너는 검토할 것이 있는지조차 알 수 없다.
 
     자동 후보의 근거는 코드다(#2301). 코드로 바꾸기 전에 문장으로 저장된 행은
-    여기서 코드로 되돌려, 이미 쌓인 검토 대기 후보도 화면 언어로 표시되게 한다.
+    여기서 코드로 되돌려, 이미 쌓인 검토 대기 후보도 같은 문구로 표시되게 한다.
     """
     try:
         raw = json.loads(evidence_json) if evidence_json else []
@@ -1572,7 +1567,7 @@ def _routine_notification_args(
 ) -> dict[str, Any]:
     """루틴 배정 알림의 틀 인자(#2302). 양은 [_amount_label] 과 같은 규칙으로 읽는다.
 
-    문장 대신 값을 남긴다 — 회원이 영어 화면이면 `15 min`·`3 sets` 로 조립된다.
+    문장과 함께 값도 남긴다 — 앱이 틀로 직접 조립할 때 쓴다.
     근력인지는 여기서 정해 둔다. 유형이 두 어휘(`근력`·`strength`)로 들어오는데,
     읽는 쪽마다 정규화 규칙을 다시 갖게 하면 한쪽이 어긋난다.
     """
