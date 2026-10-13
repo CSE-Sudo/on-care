@@ -1252,6 +1252,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/me/coach/routines/{routine_id}` | 204 — 내 개인운동 취소. **담당 트레이너가 있으면 403**(취소는 트레이너의 일), 없는 루틴 404 (#1020) |
 | GET | `/me/coach/sessions` | `ScheduleSessionOut[]` — 담당 트레이너 일정 중 나와 매칭된 것과 지난 담당과 완료한 PT, 최신순(완료 회차 `session_number`, 수업한 트레이너 `trainer_name`) |
 | GET | `/me/coach/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, `sender` 는 `me`\|`trainer`). 담당이 없으면 404 |
+| GET | `/me/coach/reports?limit=&before=` | `{ reports, next_before }` — 받은 주간 리포트, 주별 최신순. 담당이 없어도 200 (#3348) |
 | POST | `/me/coach/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지 400, 이모티콘 규칙은 위 "채팅 이모티콘" |
 | GET | `/me/coach/chat/unread` | `{ unread }` — 트레이너가 보낸 안 읽은 메시지 수 |
 | POST | `/me/coach/chat/read` | `{ marked_read }` — 트레이너 메시지를 읽음 처리. 내 미읽음 메시지·리포트 알림(`coach_chat`·`coach_report`)도 함께 읽음이 된다. `marked_read` 는 메시지 수만 센다(#3343) |
@@ -1509,11 +1510,53 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 - **받았거나 산 주만 연다 (#3366).** 트레이너가 리포트를 보낸 주(대화에 남은 안내의 `report_week_start`)와 포인트로 산
   주(`GET /me/weekly-reports`)가 아니면 **403** 이다. 보낸 트레이너가 지금의 담당인지는 묻지 않는다 — 담당이 바뀌거나
   끊긴 뒤에도 이미 받은 주는 열린다. 주 형식·미래 주 검사(422)가 이 판정보다 먼저다.
+  - 보낸 트레이너가 **탈퇴해 대화가 지워진 뒤에도** 받은 주는 열린다(#3348). 전송은 회원 쪽 수신 기록
+    (`member_received_reports`)을 함께 남기고, 판정과 굳힌 값(①·③)은 대화 메시지가 없을 때 그 기록을 읽는다.
+    `message_id` 는 대화가 지워진 뒤에도 같은 전송을 가리킨다.
 - **`compare_for`**: 결과지의 `4주 평균 대비` 가 읽는 직전 주를 받는 길이다. 여는 주를 `compare_for` 에, 읽을 직전 주를
   `week_start` 에 보낸다. `compare_for` 주가 열 수 없는 주면 403, `week_start` 가 그 **직전 4주** 밖이면 422 다. 응답은
   같은 모양에 비교가 쓰는 값(`week_start`·`week_end`·`calories_week`·`completion_avg`·`sodium_avg`·`meal_counts`)만
   채우고 나머지는 비운다(`sessions_*`·`sodium_over_days` 는 0, 요일 계열·`days` 는 빈 목록, 목표·`calorie_baseline` 은
   null). 직전 주가 그 자체로 받은 주여도 `compare_for` 로 물으면 같은 축약 응답이다.
+
+**받은 리포트 목록 (#3348)**: 회원이 받은 리포트를 한 번에 읽는 경로다. 예전에는 앱이 대화 전체를 읽어 리포트
+안내를 추렸다 — 대화가 길수록 느렸고, 대화 조회는 지금의 담당 것만 주므로 담당이 끊기거나 바뀌면 목록이 비었다.
+
+| 메서드 | 경로 | 쓰는 쪽 |
+|---|---|---|
+| `GET` | `/me/coach/reports?limit=&before=` | 회원 앱 — MY 의 받은 리포트 |
+
+```json
+{
+  "reports": [
+    {
+      "id": "chat-1a2b3c4d5e6f",
+      "week_start": "2026-10-05",
+      "sent_at": "2026-10-12T01:20:00+00:00",
+      "trainer_name": "김코치",
+      "body": "이번 주 수고했어요",
+      "attachment": null
+    }
+  ],
+  "next_before": null
+}
+```
+
+- **담당 트레이너가 없어도 200 이다.** 받은 적이 없으면 빈 목록이다. 보낸 트레이너가 지금의 담당인지 묻지 않는다 —
+  담당을 해제하거나 바꾼 뒤에도, 이전 트레이너가 보낸 리포트까지 모두 나온다.
+- 한 주에 한 줄, **최신 주부터**다. 같은 주를 여러 번 받았으면 가장 최근 전송 하나만 싣는다.
+- 쪽은 **주** 단위다. `limit` 기본 52·최대 100, `next_before`(그 쪽의 가장 오래된 주)를 `before` 로 되돌려 주면 그
+  앞 주가 온다. 더 없으면 `next_before` 는 null 이다. `before` 가 `YYYY-MM-DD` 가 아니면 422, 주 중간 날짜는 그 주
+  월요일로 접는다.
+- `id` 는 그 전송의 채팅 메시지 id 다. 리포트를 열 때 `GET /me/coach/weekly-report` 의 `message_id` 로 보낸다.
+- `attachment` 는 PDF 로 받았고 파일이 남아 있을 때만 온다(`ChatMessageOut.attachment` 와 같은 모양,
+  `download_path` 로 받는다). null 이면 앱이 `weekly-report` 로 결과지를 세우고 `body` 를 트레이너 피드백 칸에 싣는다.
+- 근거는 회원 쪽 수신 기록(`member_received_reports`)이다. 리포트 전송(`report/send`·`report/send-pdf`)이 대화 메시지와
+  같은 id·같은 시각으로 함께 남긴다. 이 기록은 회원에게만 달려 있어, **보낸 트레이너가 탈퇴해 대화가 지워져도**
+  남는다. 그때 `trainer_name` 은 null 이고(탈퇴한 사람의 이름은 남기지 않는다), PDF 는 대화와 함께 지워져
+  `attachment` 도 null 이다 — 그 주는 굳힌 값으로 결과지가 열린다.
+- 포인트로 산 리포트는 싣지 않는다(`GET /me/weekly-reports`).
+- 트레이너 화면의 전송 기록(`/trainer/reports/sent`, `/trainer/clients/{id}/reports/sent`)은 전처럼 대화 메시지를 읽는다.
 
 **다음 주 목표 (#2232)**: 트레이너가 리포트 ② 에서 고른 목표다. 다음 주 리포트의
 `③ 지난 주 목표 달성` 이 그대로 회수한다 — 목표는 **다음 주에 확인될 때** 비로소 목표이고,
