@@ -973,7 +973,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietSamplePhotoSub.
   ///
   /// In ko, this message translates to:
-  /// **'준비된 음식 사진을 골라 분석 결과 보기'**
+  /// **'준비된 음식 사진으로 분석해 보기'**
   String get dietSamplePhotoSub;
 
   /// No description provided for @dietSamplePhotoBack.

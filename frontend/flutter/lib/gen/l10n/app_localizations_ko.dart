@@ -494,7 +494,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietSamplePhoto => '샘플 사진으로 체험';
 
   @override
-  String get dietSamplePhotoSub => '준비된 음식 사진을 골라 분석 결과 보기';
+  String get dietSamplePhotoSub => '준비된 음식 사진으로 분석해 보기';
 
   @override
   String get dietSamplePhotoBack => '다른 방법으로 추가';
