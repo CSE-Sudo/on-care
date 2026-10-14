@@ -119,7 +119,7 @@ void main() {
   test('시행일이 자리표시자가 아니고 개정 이력이 있다', () {
     expect(
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-      contains('시행일: 2026년 10월 5일'),
+      contains('시행일: 2026년 10월 14일'),
     );
     expect(
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
@@ -129,13 +129,27 @@ void main() {
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
       contains('2026년 10월 1일: 제정'),
     );
-    expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
+    expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 14.');
   });
 
-  test('보호책임자 연락처 변경이 개정 이력의 맨 위에 있다 (#3132)', () {
+  test('개정 이력은 최신순이고 맨 위가 메일 발송 위탁이다 (#3132·#3443)', () {
     final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
     expect(k, contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'));
+    expect(k.indexOf('2026년 10월 14일:'), lessThan(k.indexOf('2026년 10월 5일:')));
     expect(k.indexOf('2026년 10월 5일:'), lessThan(k.indexOf('2026년 10월 3일:')));
+  });
+
+  test('메일 발송(Gmail)을 위탁과 국외 이전에 함께 적는다 (#3443)', () {
+    // 트레이너는 가입 인증 코드와 비밀번호 재설정 메일을 받는다. 로그인 이메일
+    // 변경은 회원 앱에만 있어 변경 안내는 적지 않는다.
+    final String body = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+    expect(body, contains('- Google LLC: 가입 인증 코드, 비밀번호 재설정 메일 발송(Gmail)'));
+    expect(
+      body,
+      contains('⑤ Google LLC(Gmail) / 미국 등 Google이 운영하는 데이터센터 소재 국가 / '),
+    );
+    expect(body, contains('그 메일을 보내기 위해 ⑤로 전송됩니다'));
+    expect(body, isNot(contains('이메일 변경 안내')));
   });
 
   test('보호책임자 연락처가 팀 수신 주소로 채워진다 (#3132)', () {

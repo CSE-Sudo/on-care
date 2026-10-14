@@ -81,9 +81,10 @@ def test_naver_apple_removal_is_folded_into_the_unreleased_revision():
 
     같은 날짜 안에서 두 번째 버전을 만들 수 없고(버전이 날짜 문자열), 그 판은 아직
     배포 전이라 재동의를 다시 요구할 실익이 없다. 그래서 동의 버전은 그대로이고,
-    회원 앱 처리방침의 같은 날짜 개정 이력에 제외 사실을 덧붙였다.
+    회원 앱 처리방침의 같은 날짜 개정 이력에 제외 사실을 덧붙였다. 그 뒤 메일 발송 위탁
+    추가(#3443)로 버전이 2026-10-14 로 올랐지만, 제외 사실은 2026-10-05 줄에 그대로 있다.
     """
-    assert _privacy_version() == date(2026, 10, 5)
+    assert _privacy_version() >= date(2026, 10, 5)
     ko = _privacy_body("flutter", "ko")
     # 같은 날짜 개정(위치정보 동의 안내, #3136)과 한 줄로 합쳐져 있다.
     assert "- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경," in ko
@@ -110,3 +111,80 @@ def test_contact_placeholder_is_kept_in_every_body():
         body = _privacy_body(app, "ko")
         assert "{contact}" in body
         assert "@" not in body.replace("{contact}", "")
+
+
+_MAIL_RETENTION = "발송일로부터 30일(발신 계정 보낸편지함의 사본을 30일이 지나면 삭제)"
+_CLEANUP_SCRIPT = _ROOT / "tool" / "ops" / "gmail_sent_cleanup.gs"
+
+
+@pytest.mark.parametrize("app", _APPS)
+def test_mail_processor_is_disclosed_as_trust_and_overseas_transfer(app: str):
+    """운영 메일(Gmail SMTP, #480)의 위탁(6항)과 국외 이전(7항)을 함께 알린다(#3443).
+
+    `docs/privacy_processing.md` 1절 Google LLC(Gmail) 행과 같은 사실이다. 이전 항목은
+    받는 사람 주소와 메일 내용뿐이다 — 이름은 메일에 넣지 않는다(아래 테스트).
+    """
+    body = _privacy_body(app, "ko")
+    trust, _, rest = body.partition("\n7. 개인정보의 국외 이전\n")
+    transfer = rest.split("\n8. ", 1)[0]
+    assert "- Google LLC: 가입 인증 코드, 비밀번호 재설정" in trust
+    assert "메일 발송(Gmail)" in trust
+    mail_lines = [
+        line for line in transfer.splitlines() if line.startswith("⑤ Google LLC(Gmail) / ")
+    ]
+    assert len(mail_lines) == 1
+    country, items, purpose, period = mail_lines[0].split(" / ")[1:]
+    assert country == "미국 등 Google이 운영하는 데이터센터 소재 국가"
+    assert items.startswith(
+        "받는 사람의 이메일 주소와 메일 내용(인증 코드, 비밀번호 재설정 코드와 재설정 링크"
+    )
+    assert "메일 발송" in purpose
+    assert period == _MAIL_RETENTION
+    assert "그 메일을 보내기 위해 ⑤로 전송됩니다" in transfer
+    assert (
+        "- 2026년 10월 14일: 메일 발송 업체(Google LLC, Gmail)의 처리 위탁과 국외 이전 추가"
+        in body
+    )
+
+
+def test_outgoing_mail_carries_only_the_disclosed_items():
+    """처리방침이 적은 이전 항목(주소·코드·링크·가린 새 주소) 밖의 개인정보를 메일에 싣지 않는다."""
+    from types import SimpleNamespace
+
+    from app.services import account_notice, password_reset, signup_email_code
+
+    settings = SimpleNamespace(mail_support_contact="")
+    user = SimpleNamespace(email="member@example.com", name="홍길동", phone="01012345678")
+    mails = [
+        password_reset._compose(user, "123456", 30, "https://example.test/#/r?token=123456"),
+        signup_email_code._compose_code("member@example.com", "123456", 10, settings),
+        signup_email_code._compose_code(
+            "new@example.com", "123456", 10, settings, purpose=signup_email_code.EMAIL_CHANGE
+        ),
+        signup_email_code._compose_already_registered("member@example.com", settings),
+        account_notice.compose_email_changed(
+            "member@example.com", "new@example.com", settings=settings
+        ),
+    ]
+    for mail in mails:
+        assert "홍길동" not in mail.body
+        assert "01012345678" not in mail.body
+        # Gmail 사본 정리 스크립트(tool/ops/gmail_sent_cleanup.gs)는 이 제목 머리로 서버가
+        # 보낸 메일을 고른다. 머리가 바뀌면 사본이 30일 뒤에도 남는다.
+        assert mail.subject.startswith("[On-Care] "), mail.subject
+    # 이메일 변경 안내는 새 주소를 가려 적는다.
+    assert "new@example.com" not in mails[-1].body
+
+
+@pytest.mark.skipif(not _CLEANUP_SCRIPT.exists(), reason="운영 스크립트가 없는 체크아웃")
+def test_cleanup_script_matches_the_disclosed_retention():
+    """처리방침의 30일과 정리 스크립트의 기간·제목 머리가 같다(#3443)."""
+    script = _CLEANUP_SCRIPT.read_text(encoding="utf-8")
+    assert "var RETENTION_DAYS = 30;" in script
+    assert "var SUBJECT_PREFIX = '[On-Care] ';" in script
+    assert "labelIds: ['SENT']" in script
+    # 휴지통(30일 더 보관)을 거치지 않는 영구 삭제여야 30일 약속이 맞는다.
+    assert "Gmail.Users.Messages.batchDelete" in script
+    assert "moveThreadsToTrash(" not in script
+    assert "Messages.trash(" not in script
+    assert _MAIL_RETENTION.startswith("발송일로부터 30일")
