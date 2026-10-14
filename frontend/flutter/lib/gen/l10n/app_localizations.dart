@@ -5446,6 +5446,12 @@ abstract class AppLocalizations {
   /// **'회원 체험하기'**
   String get authDemoAction;
 
+  /// No description provided for @authDemoNote.
+  ///
+  /// In ko, this message translates to:
+  /// **'체험판은 예시 데이터로 동작해요.\n회원 앱과 트레이너 웹의 기록은 서로 이어지지 않아요.'**
+  String get authDemoNote;
+
   /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///
   /// In ko, this message translates to:

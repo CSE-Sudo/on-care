@@ -50,6 +50,7 @@ void main() {
 
     expect(find.byKey(const Key('demoEnterButton')), findsNothing);
     expect(find.text('회원 체험하기'), findsNothing);
+    expect(find.byKey(const Key('demoEntryNote')), findsNothing);
     // 감춘 것은 이 버튼뿐이다 — 로그인 화면 자체는 그대로다.
     expect(find.text('회원가입'), findsWidgets);
   });
@@ -59,6 +60,8 @@ void main() {
 
     expect(find.byKey(const Key('demoEnterButton')), findsOneWidget);
     expect(find.text('회원 체험하기'), findsOneWidget);
+    // 두 앱의 기록이 이어지지 않는다는 안내가 함께 뜬다(#3423).
+    expect(find.byKey(const Key('demoEntryNote')), findsOneWidget);
   });
 
   // 처음 온 사람이 계정 없이 들어가는 문이라 로그인 칸보다 위에 둔다(#3423).

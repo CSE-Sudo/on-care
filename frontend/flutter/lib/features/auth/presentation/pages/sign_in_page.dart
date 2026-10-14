@@ -264,6 +264,17 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 size: OnCareButtonSize.large,
                 fullWidth: true,
               ),
+              // 배포 데모는 두 앱이 각자 브라우저 안의 예시 데이터로 돈다 —
+              // 한쪽에서 남긴 기록이 다른 쪽에 보이지 않는 것을 미리 알린다(#3423).
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.authDemoNote,
+                key: const Key('demoEntryNote'),
+                textAlign: TextAlign.center,
+                style: context.oncare
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
               const SizedBox(height: OnCareSpacing.s16),
             ],
             AppTextField(
