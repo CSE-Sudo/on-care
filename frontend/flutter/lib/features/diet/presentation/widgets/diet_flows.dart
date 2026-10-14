@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/demo/demo_sample_meals.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/errors/app_error_message.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';

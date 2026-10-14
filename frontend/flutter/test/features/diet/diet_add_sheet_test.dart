@@ -1,14 +1,17 @@
 import 'dart:async';
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/demo/demo_sample_meals.dart';
 
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
+import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -398,6 +401,147 @@ void main() {
     expect(repository.calls, 2);
     expect(find.text('분석 완료!'), findsOneWidget);
   });
+
+  // 데모는 사진을 볼 수 없어, 고르면 결과가 사진과 맞는 샘플 사진을 따로
+  // 내놓는다(#3423). 기본값은 없음이고 앱 기동이 목업 설정에서만 채운다.
+  group('데모 샘플 사진', () {
+    Future<void> pumpWithSamples(
+      WidgetTester tester, {
+      required List<FixtureMeal> samples,
+      DietRepository? repository,
+    }) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            mealPhotoPickerProvider.overrideWithValue(
+              _FakeMealPhotoPicker(photo: MealPhoto.fromBytes(_jpegBytes)!),
+            ),
+            mealPhotoChoiceLayoutProvider.overrideWithValue(
+              MealPhotoChoiceLayout.separate,
+            ),
+            dietRepositoryProvider.overrideWithValue(
+              repository ?? FakeDietRepository(),
+            ),
+            demoSampleMealsProvider.overrideWithValue(samples),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            locale: const Locale('ko'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Builder(
+              builder: (BuildContext context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => showDietAddSheet(context),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('샘플이 없으면 샘플 갈래도 없다', (WidgetTester tester) async {
+      await pumpWithSamples(tester, samples: const <FixtureMeal>[]);
+
+      expect(find.byKey(const Key('dietSamplePhotoOption')), findsNothing);
+      expect(find.text('사진 찍기'), findsOneWidget);
+    });
+
+    testWidgets('샘플 갈래를 누르면 사진 목록이 펼쳐지고 되돌아갈 수 있다', (
+      WidgetTester tester,
+    ) async {
+      await pumpWithSamples(tester, samples: demoSampleMeals);
+
+      await tester.tap(find.byKey(const Key('dietSamplePhotoOption')));
+      await tester.pump();
+
+      expect(find.byKey(const Key('dietSamplePhotos')), findsOneWidget);
+      expect(find.byKey(const Key('dietAddOptions')), findsNothing);
+      expect(
+        find.byKey(const Key('dietSamplePhoto-lunch-bibimbap')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('dietSamplePhotosBack')));
+      await tester.pump();
+
+      expect(find.byKey(const Key('dietSamplePhotos')), findsNothing);
+      expect(find.text('사진 찍기'), findsOneWidget);
+    });
+
+    testWidgets('사진을 보지 않은 예시 결과에만 안내가 붙는다', (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(500, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await pumpWithSamples(
+        tester,
+        samples: const <FixtureMeal>[],
+        repository: _EngineDietRepository('stub'),
+      );
+      await tester.tap(find.text('사진 찍기'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('diet-result-example-notice')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('사진을 읽은 결과에는 예시 안내가 없다', (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(500, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await pumpWithSamples(
+        tester,
+        samples: const <FixtureMeal>[],
+        repository: _EngineDietRepository('demo-sample'),
+      );
+      await tester.tap(find.text('사진 찍기'));
+      await tester.pumpAndSettle();
+      expect(find.text('분석 완료!'), findsOneWidget);
+      expect(find.byKey(const Key('diet-result-example-notice')), findsNothing);
+    });
+  });
+}
+
+/// 분석 결과의 인식 엔진만 바꿔 돌려주는 저장소(#3423).
+class _EngineDietRepository extends FakeDietRepository {
+  _EngineDietRepository(this.engine);
+
+  final String engine;
+
+  @override
+  Future<DietAnalysisResult> analyze({
+    required MealPhoto photo,
+    required String mealType,
+    String? idempotencyKey,
+    String? date,
+  }) async {
+    final DietAnalysisResult r = await super.analyze(
+      photo: photo,
+      mealType: mealType,
+      idempotencyKey: idempotencyKey,
+    );
+    return DietAnalysisResult(
+      entryId: r.entryId,
+      foods: r.foods,
+      totalCalories: r.totalCalories,
+      totalSodiumMg: r.totalSodiumMg,
+      totalSugarG: r.totalSugarG,
+      coachComment: r.coachComment,
+      totalCarbsG: r.totalCarbsG,
+      totalProteinG: r.totalProteinG,
+      totalFatG: r.totalFatG,
+      timeLabel: r.timeLabel,
+      points: r.points,
+      engine: engine,
+    );
+  }
 }
 
 class _FailingOnceDietRepository extends FakeDietRepository {

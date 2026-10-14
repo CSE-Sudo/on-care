@@ -342,6 +342,11 @@
   "dietTakePhotoSub": "카메라로 음식 촬영",
   "dietAddPhoto": "사진 추가",
   "dietAddPhotoSub": "앨범·카메라·파일에서 음식 사진 선택",
+  "dietSamplePhoto": "샘플 사진으로 체험",
+  "dietSamplePhotoSub": "준비된 음식 사진으로 분석해 보기",
+  "dietSamplePhotoBack": "뒤로",
+  "dietExampleResultTitle": "사진을 분석하지 않은 예시 결과예요",
+  "dietExampleResultMessage": "체험 버전은 샘플 사진을 골라야 사진에 맞는 결과가 나와요",
   "dietPhotoLoadError": "사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
   "dietCameraPermissionDenied": "음식 사진을 촬영하려면 카메라 권한이 필요해요. 사진 찍기를 눌러 다시 시도해 주세요",
   "dietCameraPermissionPermanentlyDenied": "카메라 접근이 꺼져 있어요. 설정에서 카메라를 켜면 음식 사진을 촬영할 수 있어요",
@@ -2181,7 +2186,8 @@
   "authSignInAction": "로그인",
   "authNoAccountQuestion": "계정이 없으신가요?",
   "authSignUpAction": "회원가입",
-  "authDemoAction": "로그인 없이 데모 둘러보기",
+  "authDemoAction": "회원 체험하기",
+  "authDemoNote": "체험판은 예시 데이터로 동작해요.\n회원 앱과 트레이너 웹의 기록은 서로 이어지지 않아요.",
   "authSocialDivider": "SNS 계정으로 로그인",
   "@authSocialDivider": {
     "description": "Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783)."

@@ -508,6 +508,13 @@ class DemoFixture {
     );
   }
 
+  /// 끼니 템플릿 전부 — 날짜에 놓이기 전의 원본이다(#3423). 데모 식단 인식이
+  /// 샘플 사진의 결과와 끼니별 예시 결과를 여기서 고른다.
+  List<FixtureMeal> get mealTemplates => <FixtureMeal>[
+    for (final String slug in _meals.keys)
+      _mealFrom(<String, Object?>{'meal': slug}),
+  ];
+
   FixtureMeal _mealFrom(Map<String, Object?> entry) {
     final String slug = entry['meal']! as String;
     final Map<String, Object?> template = _meals[slug]!;
