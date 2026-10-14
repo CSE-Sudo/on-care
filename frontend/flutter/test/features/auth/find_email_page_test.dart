@@ -1,4 +1,4 @@
-/// 로그인 화면의 `아이디 찾기` 와 아이디 찾기 화면.
+/// 로그인 화면의 `이메일 찾기` 와 이메일 찾기 화면.
 ///
 /// 입구·뒤로 가기·입력 검사와, 찾은 결과(찾음·소셜 가입·없음)·실패 안내·결과에서
 /// 로그인·비밀번호 재설정으로 가는 길을 본다(#3337). 요청은 대역 저장소가 받는다.
@@ -116,7 +116,7 @@ String? _errorOf(WidgetTester tester, String key) =>
     tester.widget<AppTextField>(_key(key)).errorText;
 
 void main() {
-  testWidgets('로그인 화면의 아이디 찾기가 비밀번호 찾기 옆에서 화면을 연다', (tester) async {
+  testWidgets('로그인 화면의 이메일 찾기가 비밀번호 찾기 옆에서 화면을 연다', (tester) async {
     final AppLocalizations l = await _pump(tester);
 
     expect(find.text(l.authFindEmail), findsOneWidget);
@@ -345,7 +345,7 @@ void main() {
     await _tap(tester, _key('member-login-find-email'));
     await _tap(tester, _key('findEmail-to-password-reset'));
     expect(find.byType(PasswordResetPage), findsOneWidget);
-    // 재설정에서 뒤로 가면 아이디 찾기를 거치지 않고 로그인 화면이다.
+    // 재설정에서 뒤로 가면 이메일 찾기를 거치지 않고 로그인 화면이다.
     await _tap(tester, find.byType(AppBackButton));
     expect(find.byType(SignInPage), findsOneWidget);
   });

@@ -80,7 +80,7 @@ void main() {
       );
     });
 
-    test('아이디 찾기도 가입처럼 로그아웃 상태에서만 머문다', () {
+    test('이메일 찾기도 가입처럼 로그아웃 상태에서만 머문다', () {
       expect(
         sessionRedirect(SessionStatus.signedOut, AppRoutes.findEmail),
         isNull,
