@@ -13,7 +13,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -23,6 +23,7 @@ from app.core import clock
 from app.db.session import SessionLocal
 from app.models.models import (
     AiConversation,
+    ChatMessage,
     ExerciseSession,
     TrainerClient,
     TrainerRoutine,
@@ -61,6 +62,32 @@ def _cleanup(routine_ids: list[str]) -> None:
             row = db.get(TrainerRoutine, routine_id)
             if row is not None:
                 db.delete(row)
+        db.commit()
+    finally:
+        db.close()
+
+
+@pytest.fixture(autouse=True)
+def _drop_future_chat(client):
+    """시계를 옮겨 둔 채 남긴 채팅 안내를 지운다. (#3452)
+
+    트레이너가 운동을 배정·수정하면 채팅에 전송 안내가 남는데, 그 시각은 서버의
+    '지금'(`clock.now_utc()`)이다. 이 파일은 '지금' 을 오늘 정오·내일로 옮겨 두므로,
+    새벽에 돌면 안내가 **실제보다 미래 시각**으로 공유 DB 에 남는다. 그러면 뒤에 도는
+    다른 파일의 "마지막 메시지는 방금 보낸 것" 검사(`test_member_coach.py`)가 이 안내를
+    마지막으로 읽는다. 실제 시각보다 뒤에 찍힌 이 회원의 메시지만 지운다.
+    """
+    yield
+    real_now = datetime.now(timezone.utc)
+    db = SessionLocal()
+    try:
+        for row in db.scalars(
+            select(ChatMessage).where(
+                ChatMessage.member_id == MEMBER_ID,
+                ChatMessage.created_at > real_now,
+            )
+        ).all():
+            db.delete(row)
         db.commit()
     finally:
         db.close()
