@@ -12,6 +12,7 @@ import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/auth/domain/social_login_rejection.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/auth/presentation/demo_site_entry.dart';
 import 'package:oncare/features/auth/presentation/member_social_login.dart';
 import 'package:oncare/features/auth/presentation/sign_in_failure.dart';
 import 'package:oncare/features/auth/presentation/trainer_web_address.dart';
@@ -30,7 +31,8 @@ enum _Field { email, password }
 ///
 /// 로그인 없이 들어가는 `체험하기` 진입은 [AppConfig.showDemoEntry] 로 감춰
 /// 두었다(#1526). `--dart-define=SHOW_DEMO_ENTRY=true` 로 빌드하면 화면 맨 아래에
-/// 뜬다 — 데모 배포가 그렇게 빌드한다(#3423, #3432).
+/// 뜬다 — 데모 배포가 그렇게 빌드한다(#3423, #3432). 운영 웹 빌드는 대신
+/// `DEMO_SITE_URL` 을 받아 같은 버튼이 둘러보기 데모 사이트로 옮긴다(#3437).
 class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
 
@@ -92,7 +94,14 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     if (_errors.isWatching) setState(() {});
   }
 
-  void _enterDemo() {
+  /// 체험하기. 데모 사이트 주소([demoSite])가 있으면(운영 웹 빌드) 같은 탭에서
+  /// 그리로 옮긴다 — 운영 서버에는 데모 폴백이 없어 앱 안 데모가 비기 때문이다
+  /// (#3437). 없으면 지금처럼 이 앱 안에서 데모로 들어간다.
+  void _enterDemo(Uri? demoSite) {
+    if (demoSite != null) {
+      unawaited(ref.read(demoSiteLauncherProvider)(demoSite));
+      return;
+    }
     ref.read(sessionControllerProvider.notifier).enterDemo();
     context.go(AppRoutes.dashboard);
   }
@@ -226,6 +235,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final MemberSocialLogin social = ref.watch(memberSocialLoginProvider);
+    final AppConfig config = ref.watch(appConfigProvider);
+    final Uri? demoSite = demoSiteEntryAddress(config.demoSiteUrl);
     return AppAuthLayout(
       // 브랜드 — On-Care 로고 (테두리 없이 크게)
       logo: Image.asset(
@@ -403,13 +414,14 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
             // 데모 배포는 이 플래그를 켠다(#3423). 로그인이 이 화면의 주 동작이라
             // 맨 아래 알약 버튼으로 두어 꽉 찬 로그인 버튼과 구별한다(#3432).
-            if (ref.watch(appConfigProvider).showDemoEntry) ...<Widget>[
+            // 운영 웹 빌드는 데모 사이트 주소를 받아 같은 버튼을 띄운다(#3437).
+            if (config.showDemoEntry || demoSite != null) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s16),
               Center(
                 child: AppButton(
                   key: const Key('demoEnterButton'),
                   label: l.authDemoAction,
-                  onPressed: _loading ? null : _enterDemo,
+                  onPressed: _loading ? null : () => _enterDemo(demoSite),
                   variant: AppButtonVariant.brandOutline,
                   pill: true,
                 ),

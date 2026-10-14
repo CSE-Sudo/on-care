@@ -302,7 +302,13 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 - 운영은 #1552 이후 커밋만 배포한다. 그 전 커밋에는 백업 스크립트·작업 정의가 없어, 옛 커밋으로 수동 되돌리기를
   하면 백업 단계가 실패한다(운영 스택은 이 변경 뒤에 처음 만들므로 되돌릴 지점도 모두 그 뒤 커밋이다).
 - 백업은 AWS 계정(배포 담당) 안에서 끝난다. Neon 계정은 다른 팀원 소유라 Neon 콘솔 조작에 기대지 않는다.
-  Neon 의 기본 시점 복구(PITR)는 덤이다 — 보관 기간은 요금제에 따른다.
+  Neon 의 기본 시점 복구(PITR)는 덤이다 — 운영 DB(Neon `oncare` 프로젝트 `production` 브랜치, Free 요금제)의
+  보관 기간은 **6시간**이다(2026-10-14 확인). 배포 다음 날 데이터 문제를 찾으면 PITR 로는 되돌릴 수 없으므로
+  **복구의 기준은 S3 덤프**다.
+- **운영 DB 를 바꾸는 일은 그 직전에 덤프를 받는다.** 배포는 워크플로가 자동으로 받는다. 손으로 하는
+  마이그레이션·`alembic downgrade`·데이터 정리 스크립트(`purge_*`, `migrate_attachments` 등)는 먼저
+  `bash .github/scripts/backend_db_backup.sh run oncare-backend-production <운영 커밋 SHA>` 로 덤프를 받고
+  출력된 키를 기록한 뒤 실행한다.
 - 복구는 S3 덤프를 `pg_restore` 로 새 DB(로컬 docker Postgres·staging·새 Neon 브랜치)에 푼 뒤 필요한
   표·행만 옮기거나 `DATABASE_URL` 을 바꾼다. 리허설을 한 번 하기 전까지는 복구 가능하다고 보지 않는다.
 
@@ -327,13 +333,18 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 - [x] 백엔드 `Dockerfile` 에 `postgresql-client` 를 설치한다(PGDG, `PG_CLIENT_MAJOR=18`).
 - [x] `.github/workflows/backend-deploy-service.yml` 에서 production 일 때만 `Record rollback point` 다음,
       `Deploy image` 전에 백업 단계를 둔다. 잡 요약에 덤프 객체 키를 남긴다.
-- [ ] Neon 운영 DB 에서 `SELECT version();` 으로 주 버전을 확인한다. 18 보다 높으면 `PG_CLIENT_MAJOR` 를 올린다.
-- [ ] 첫 복구 리허설(배포 담당이 직접): 첫 운영 배포가 남긴 S3 덤프를 위 절차로 로컬 docker Postgres(운영과 같은
+- [x] Neon 운영 DB 에서 `SELECT version();` 으로 주 버전을 확인한다. 18 보다 높으면 `PG_CLIENT_MAJOR` 를 올린다.
+      — Postgres 17.11(2026-10-14). 클라이언트 18 이라 그대로 둔다.
+- [x] 첫 복구 리허설(배포 담당이 직접): 첫 운영 배포가 남긴 S3 덤프를 위 절차로 로컬 docker Postgres(운영과 같은
       주 버전)나 staging DB 에 `pg_restore` 하고, `alembic current` 가 운영과 같은지·주요 표의 행 수가 맞는지 본다.
       걸린 시간을 이 절에 적는다.
+      — 2026-10-14, 배포 전 백업 `db/20261014T123036Z-7d5d4d6b9475.dump`(548KB)를 `pgvector/pgvector:pg17` 에
+      복원. 오류 없음, 복원 3초. 운영과 비교해 revision `0155_member_received_reports`·표 64개·`users` 0행·
+      `food_nutrients` 2,139행이 같았다(pgvector 확장 버전은 복원한 서버의 것을 쓴다 — 운영 0.8.0, 로컬 0.8.7).
 - [x] `docs/privacy_processing.md` 의 위탁·보관 표에 S3 백업 보관을 더한다(같은 싱가포르 리전, 30일, 탈퇴한 회원의
       정보가 보관 기간 동안 백업에 남는다는 점).
-- [ ] Neon 계정 주인 팀원에게 지금 요금제의 시점 복구 가능 기간을 확인해 이 절에 적는다.
+- [x] Neon 계정 주인 팀원에게 지금 요금제의 시점 복구 가능 기간을 확인해 이 절에 적는다.
+      — Free 요금제, 6시간(2026-10-14). 위 "백업·복구" 에 적었다.
 
 ## 3) 처음 만들기 (#480)
 
@@ -490,7 +501,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `MAIL_PROVIDER`·`SMTP_STARTTLS`·`SMTP_SSL` | `smtp`·`true`·`false` — `MailFrom` 파라미터를 채웠을 때만 들어간다(#3033). `smtp` 라 서버·발신 주소가 비면 기동이 거부돼 빠뜨린 것이 바로 드러난다. 587 STARTTLS 기준 |
 | `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값). **비우면 그 로그인은 401 로 거부**. 네이버·애플 로그인은 제공하지 않아 설정이 없다(#3218). 형식이 틀리면(숫자가 아닌 앱 ID, `.apps.googleusercontent.com` 으로 끝나지 않는 client_id) 기동 거부(#330) |
 | `KAKAO_LOGIN_REST_API_KEY` | 스택 파라미터 `KakaoLoginRestApiKey`(#330). 회원 웹·트레이너 웹 카카오 로그인의 client_id — 같은 카카오 앱의 REST API 키. 웹이 받은 인가 코드를 서버가 이 키로 교환한다(`POST /v1/auth/social/kakao/code`). 브라우저에 보이는 값이라 비밀이 아니며, 프런트 웹 빌드 변수 `KAKAO_LOGIN_REST_API_KEY` 와 같은 값이다. 비우면 웹 카카오 로그인만 401(기동 경고) |
-| `AI_GLOBAL_CALLS_PER_DAY`·`TRAINER_AI_CALLS_PER_DAY`·`LLM_MAX_OUTPUT_TOKENS` | `0`·`200`·`4096`(#3032) — 서버 전체 하루 AI 호출 합(DB 에서 KST 날짜로 셈, 0 이면 끔, 넘으면 폴백이 있는 기능은 규칙형 폴백·AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After`)·트레이너 한 계정 하루 AI 호출(넘으면 429 `daily_limit`)·호출 한 번의 출력 토큰 천장. 출시 전 `AI_GLOBAL_CALLS_PER_DAY` 를 공급자 하루 예산 ÷ 호출당 비용으로 바꾼다(#480) |
+| `AI_GLOBAL_CALLS_PER_DAY`·`TRAINER_AI_CALLS_PER_DAY`·`LLM_MAX_OUTPUT_TOKENS` | `0`·`200`·`4096`(#3032) — 서버 전체 하루 AI 호출 합(DB 에서 KST 날짜로 셈, 0 이면 끔, 넘으면 폴백이 있는 기능은 규칙형 폴백·AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After`)·트레이너 한 계정 하루 AI 호출(넘으면 429 `daily_limit`)·호출 한 번의 출력 토큰 천장. `AI_GLOBAL_CALLS_PER_DAY` 는 고정값이 아니라 스택 파라미터 `AiGlobalCallsPerDay`(기본 0)로 넣는다 — 공급자 하루 예산 ÷ 호출당 비용. 운영은 **100**(2026-10-14 결정: Gemini 크레딧 약 ₩55,000 을 12월 말까지 79일로 나눠 하루 약 ₩700, 30% 여유를 빼고 호출당 약 ₩3~6 로 계산). 며칠 운영한 뒤 실제 하루 비용과 `ai_calls.rejected{reason=global_cap}` 로 다시 맞춘다(#480) |
 | `COACH_FEEDBACK_CACHE_SECONDS`·`COACH_FEEDBACK_PER_DAY` | `1800`·`20`(#3351) — 코칭 시트 피드백(`GET /ai-coach/feedback`)의 회원별 캐시 시간(초)과 회원 한 명이 하루에 카드를 새로 만드는 횟수. 호출 한 번에 모델을 최대 두 번 부르므로 회원 한 명의 하루 모델 호출은 상한 × 2 이하다. 캐시는 식단·운동 기록이 바뀌거나 KST 날짜가 바뀌면 먼저 버린다. 상한을 넘으면 오류가 아니라 규칙 기반 카드로 답한다. 둘 다 DB(`coach_feedback_states`)에 두어 태스크 수와 무관하다. 0 이면 각각 캐시 없음·상한 끔 |
 
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로

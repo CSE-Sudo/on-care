@@ -94,6 +94,7 @@ Future<ProviderContainer> pumpTrainerApp(
   String? bootAt,
   List<Override> extraOverrides = const <Override>[],
   bool demoEntry = false,
+  AppConfig? config,
   DateTime? seedClock,
   Stream<DateTime>? kstClock,
 }) async {
@@ -133,8 +134,10 @@ Future<ProviderContainer> pumpTrainerApp(
 
   final container = ProviderContainer(
     overrides: <Override>[
+      // [config] 를 주면 그 설정을 쓴다 — 데모 사이트 주소(#3437)처럼 두 기본 설정에
+      // 없는 값을 보는 테스트용이다.
       appConfigProvider.overrideWithValue(
-        demoEntry ? kTestAppConfigWithDemoEntry : kTestAppConfig,
+        config ?? (demoEntry ? kTestAppConfigWithDemoEntry : kTestAppConfig),
       ),
       sharedPreferencesProvider.overrideWithValue(prefs),
       appDatabaseProvider.overrideWithValue(db),
@@ -294,11 +297,12 @@ class _StillClientRepository implements ClientRepository {
   @override
   Future<ClientDietAnalysis> fetchDietAdvice(
     String clientId,
-    ClientPeriod period) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+    ClientPeriod period,
+  ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
-  Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+  Future<ClientDietRecommendations> fetchDietRecommendations(String clientId) =>
+      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
   Future<ClientDietRecommendations> confirmDietRecommendation(

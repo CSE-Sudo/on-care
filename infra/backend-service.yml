@@ -103,6 +103,13 @@ Parameters:
     Type: String
     Default: ''
     AllowedPattern: '^(https://\S+)?$'
+  # 서버 전체 하루 AI 호출 상한(AI_GLOBAL_CALLS_PER_DAY, #3032). 공급자 예산 ÷ 호출당 비용으로 정한다
+  # (backend/docs/DEPLOY.md 5절). 0 이면 끔. 예산이 바뀌면 코드 없이 이 파라미터만 바꿔 스택을 다시 적용한다(#480).
+  AiGlobalCallsPerDay:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    MaxValue: 100000
   SubnetIds:
     Type: CommaDelimitedList
     Default: ''
@@ -215,7 +222,7 @@ Resources:
           - Name: EMBED_DIM
             Value: '768'
           - Name: AI_GLOBAL_CALLS_PER_DAY
-            Value: '0'
+            Value: !Ref AiGlobalCallsPerDay
           - Name: TRAINER_AI_CALLS_PER_DAY
             Value: '200'
           # 코칭 시트 피드백의 회원별 캐시(초)·하루 생성 상한(#3351).

@@ -50,6 +50,20 @@ expect fail '데모 진입 노출(두 칸 모양)' "${GOOD[@]}" --dart-define SH
 expect fail 'REAL_API 한 기능' "${GOOD[@]}" --dart-define=REAL_API=ai-coach
 expect fail 'REAL_API 여러 기능' "${GOOD[@]}" --dart-define=REAL_API=ai-coach,auth
 
+# 기동하면 곧장 데모 — 데모 Pages 목업 빌드 전용(#3437)
+expect fail '곧장 데모 진입' "${GOOD[@]}" --dart-define=DEMO_AUTO_ENTER=true
+expect pass '곧장 데모 진입 꺼짐' "${GOOD[@]}" --dart-define=DEMO_AUTO_ENTER=false
+
+# 체험하기가 옮겨 갈 둘러보기 데모 주소(#3437)
+expect pass '데모 사이트 주소' "${GOOD[@]}" --dart-define=DEMO_SITE_URL=https://cse-sudo.github.io/on-care/member/
+expect pass '데모 사이트 주소(두 칸 모양)' "${GOOD[@]}" --dart-define DEMO_SITE_URL=https://cse-sudo.github.io/on-care/trainer/
+expect pass '데모 사이트 주소 빈 값' "${GOOD[@]}" --dart-define=DEMO_SITE_URL=
+expect fail '데모 사이트 주소 평문' "${GOOD[@]}" --dart-define=DEMO_SITE_URL=http://cse-sudo.github.io/on-care/member/
+expect fail '데모 사이트 주소 질의' "${GOOD[@]}" '--dart-define=DEMO_SITE_URL=https://cse-sudo.github.io/on-care/member/?demo=1'
+expect fail '데모 사이트 주소 조각' "${GOOD[@]}" '--dart-define=DEMO_SITE_URL=https://cse-sudo.github.io/on-care/member/#/dashboard'
+expect fail '데모 사이트 주소 로컬' "${GOOD[@]}" --dart-define=DEMO_SITE_URL=https://localhost:8080/member/
+expect fail '데모 사이트 주소 상대 경로' "${GOOD[@]}" --dart-define=DEMO_SITE_URL=/demo/member/
+
 # 모바일 검사와 같은 나머지 규칙
 expect fail '데모 빌드 표시' "${GOOD[@]}" --dart-define=DEMO_BUILD=true
 expect fail 'ENV 누락' --release --dart-define=USE_MOCK_API=false

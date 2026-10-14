@@ -252,6 +252,11 @@ jobs:
     env:
       # workflow_run 에서는 GITHUB_SHA 가 main 의 최신 커밋이다. 배포 대상은 gate 가 고른 커밋이다.
       RELEASE_SHA: ${{ needs.gate.outputs.sha }}
+      # 로그인 화면 `체험하기` 가 같은 탭에서 옮겨 갈 둘러보기 데모(#3437). 운영 서버는 데모 폴백이
+      # 꺼져 있어(ENV=prod) 앱 안 데모로는 화면이 비므로, GitHub Pages 데모(deploy.yml 의 목업
+      # 빌드)의 같은 앱으로 보낸다. 끝에 각 앱 폴더(member/·trainer/)를 붙여 넘긴다. Pages 주소가
+      # 바뀌면(저장소 Settings → Pages) 저장소 변수 DEMO_SITE_URL 로 덮는다.
+      DEMO_SITE_URL: ${{ vars.DEMO_SITE_URL || 'https://cse-sudo.github.io/on-care/' }}
 
     steps:
       - name: Checkout repository
@@ -404,7 +409,8 @@ jobs:
         # 운영 빌드: 실서버(USE_MOCK_API=false)·운영 환경(ENV=prod — 라우터 진단 로그와
         # provider 로그가 꺼진다). 주소는 저장소 변수에서만 읽고 여기 적지 않는다.
         # 데모 표시·데모 진입·부분 실연동 값은 넘기지 않는다 — 빌드 전 검사와 앱의 릴리스
-        # 가드가 목업·개발·데모 설정을 거부한다(#3022, #3147).
+        # 가드가 목업·개발·데모 설정을 거부한다(#3022, #3147). 체험하기는 앱 안 데모 대신
+        # 데모 Pages 의 회원 앱으로 보낸다(DEMO_SITE_URL, #3437).
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
@@ -427,6 +433,7 @@ jobs:
             --dart-define=API_BASE_URL="$API_BASE_URL"
             --dart-define=ENV=prod
             --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=DEMO_SITE_URL="${DEMO_SITE_URL%/}/member/"
           )
           # 데모 진입·부분 실연동·데모 표시·목업 값이 섞이지
           # 않았는지 빌드 전에 본다(#3147). 검사한 인자 그대로 빌드한다.
@@ -457,7 +464,7 @@ jobs:
         # 소속 헬스장 찾기 지도(#2543). 회원 앱과 같은 카카오맵 JS 키를 쓰고, 카카오
         # 콘솔에 트레이너 웹 도메인이 등록돼 있어야 뜬다. 키가 없으면 목록만 보인다.
         # 회원 앱과 같은 운영 설정이다 — 두 앱이 한 백엔드를 봐야 회원 기록이 트레이너에게
-        # 보인다.
+        # 보인다. 체험하기는 데모 Pages 의 트레이너 웹으로 보낸다(DEMO_SITE_URL, #3437).
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
@@ -480,6 +487,7 @@ jobs:
             --dart-define=API_BASE_URL="$API_BASE_URL"
             --dart-define=ENV=prod
             --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=DEMO_SITE_URL="${DEMO_SITE_URL%/}/trainer/"
           )
           # 데모 진입·부분 실연동·데모 표시·목업 값이 섞이지
           # 않았는지 빌드 전에 본다(#3147). 검사한 인자 그대로 빌드한다.
