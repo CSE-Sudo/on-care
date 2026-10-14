@@ -286,7 +286,7 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 
 - **운영 배포 직전마다** 백업 작업이 돈다. `backend-deploy-service.yml` 의 `Back up production database` 단계가
   서비스 스택의 백업 작업 정의(`BackupTaskDefinition`, 패밀리 `oncare-backend-production-db-backup`)를 서비스와
-  같은 클러스터·서브넷·보안 그룹으로 한 번 띄운다(`.github/scripts/backend_db_backup.sh`). 작업은 지금 떠 있는
+  같은 클러스터·서브넷(지금 배포의 네트워크 설정 — Express Mode 는 서비스 최상위 값이 비어 있다)으로 한 번 띄운다(`.github/scripts/backend_db_backup.sh`). 작업은 지금 떠 있는
   이미지로 `python -m scripts.backup_db` 를 실행해 `pg_dump --format=custom` → `pg_restore --list` 확인 →
   `s3://oncare-db-backups-<계정>-<리전>-production/db/<UTC 시각>-<커밋 앞 12자>.dump` 업로드를 한다.
 - 작업은 서비스와 같은 Secrets Manager 비밀의 `DATABASE_URL` 만 받는다 — 운영 DB 자격 증명을 GitHub 에 따로
@@ -338,6 +338,21 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 ## 3) 처음 만들기 (#480)
 
 순서대로 한 번씩. 1~2 와 4 는 비용이 없고, **5 부터 과금된다.**
+
+0. **처음 쓰는 계정이면 서비스 연결 역할을 먼저 만든다.** ECS·로드밸런서·오토스케일링을 한 번도 쓰지 않은
+   계정은 이 역할들이 없다. ECS 역할이 없으면 서비스 생성이 "Unable to assume the service linked role" 로
+   멈추고, 나머지 둘은 Express Mode 가 만들자마자 쓰려다 IAM 반영 지연으로 `CreateLoadBalancer`·
+   `RegisterScalableTarget` 이 거부된다(2026-10-14 첫 운영 생성에서 두 번 실패). 이미 있으면 오류가 나고 넘어가면 된다.
+
+   ```bash
+   aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com
+   aws iam create-service-linked-role --aws-service-name elasticloadbalancing.amazonaws.com
+   aws iam create-service-linked-role --aws-service-name ecs.application-autoscaling.amazonaws.com
+   ```
+
+   서비스 스택 생성이 실패해 `ROLLBACK_COMPLETE` 가 되면 스택을 지운 뒤 다시 만든다. 이때 Express 서비스가
+   `ACTIVE`(태스크 0개)로 남을 수 있으니 `aws ecs describe-services --cluster default --services oncare-backend-<environment>`
+   로 보고, 남았으면 `aws ecs delete-express-gateway-service --service-arn <ARN>` 으로 지운 뒤 다시 만든다.
 
 1. **bootstrap 스택**(계정에 한 번):
 

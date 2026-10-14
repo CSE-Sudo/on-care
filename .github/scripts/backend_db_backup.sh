@@ -64,8 +64,11 @@ cluster="${BASH_REMATCH[1]}"
 service="${BASH_REMATCH[2]}"
 
 # 서비스가 쓰는 서브넷·보안 그룹·공인 IP 설정을 그대로 쓴다 — 서비스와 같은 길로 DB 에 닿는다.
+# Express Mode 서비스는 최상위 networkConfiguration 이 비어(null) 있고 지금 배포(PRIMARY)에만
+# 들어 있다. 보안 그룹은 빈 목록일 수 있다 — 그러면 VPC 기본 보안 그룹으로 나간다(밖으로 나가는
+# 연결만 쓰므로 충분하다).
 network="$(aws ecs describe-services --cluster "$cluster" --services "$service" \
-  --query 'services[0].networkConfiguration' --output json)"
+  --query "services[0].deployments[?status=='PRIMARY'] | [0].networkConfiguration" --output json)"
 if ! grep -q '"subnet-' <<< "$network"; then
   echo "::error::서비스 $service 의 네트워크 설정(서브넷)을 읽지 못했습니다." >&2
   exit 1

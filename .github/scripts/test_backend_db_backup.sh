@@ -86,6 +86,8 @@ expect_log "서비스 클러스터에서 띄움" "ecs run-task --cluster default
 expect_log "서비스 네트워크 설정을 그대로 넘김" "--network-configuration $NETWORK"
 expect_log "객체 키를 컨테이너 환경변수로 넘김" '"name":"BACKUP_OBJECT_KEY","value":"db/'
 expect_log "서비스 이름으로 네트워크 조회" "ecs describe-services --cluster default --services oncare-backend-production"
+# Express Mode 는 최상위 networkConfiguration 이 null 이라 지금 배포(PRIMARY)의 값을 읽어야 한다.
+expect_log "PRIMARY 배포의 네트워크 설정을 읽음" "deployments[?status=='PRIMARY'] | [0].networkConfiguration"
 
 # 실패 — 모두 0 이 아니어야 운영 배포가 멈춘다
 FAKE_EXIT_CODE=1 check "백업 컨테이너 종료 코드 1" 1 "" run oncare-backend-production "$SHA"
