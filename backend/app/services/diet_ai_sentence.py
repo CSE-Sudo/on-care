@@ -27,6 +27,7 @@ from app.core import metrics
 from app.services import ai_call_quota
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.coach.llm_base import is_truncated, output_cap
+from app.services.coach.prompt_rules import MEMBER_AUDIENCE
 from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
 from app.services.diet_advice_copy import plain
 from app.services.ai_log import log_ai_fallback
@@ -132,7 +133,7 @@ def build_prompt(
     task: str = "다음 할 일 한 문장",
 ) -> tuple[str, str]:
     system = (
-        "너는 PT(개인 트레이닝)를 받는 회원의 식단을 돕는 영양 코치다. 규칙이 찾아낸 "
+        f"너는 {MEMBER_AUDIENCE}의 식단을 돕는 영양 코치다. 규칙이 찾아낸 "
         f"[분석] 한 가지를 보고, 그 뒤에 붙일 **{task}**을 쓴다.\n"
         "규칙:\n"
         "1. [기록]에서 원인이 된 메뉴를 짚거나, 바꿔 먹을 구체적인 음식을 권한다"

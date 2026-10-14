@@ -34,6 +34,7 @@ from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services import ai_call_quota, diet_coach_inputs, goal_defaults, health_focus
 from app.services.ai_log import log_ai_fallback
 from app.services.coach.llm_base import is_truncated, output_cap
+from app.services.coach.prompt_rules import MEMBER_AUDIENCE
 
 logger = logging.getLogger(__name__)
 
@@ -291,12 +292,12 @@ def _build_prompt(ctx: NutritionContext) -> tuple[str, str]:
     # 이유 짝은 카탈로그에 고정돼 있으므로 서버가 붙이고, LLM 은 순서와 개인화 문구만
     # 담당한다(출력 토큰이 줄어 응답도 빨라진다).
     system = (
-        "너는 한국인 식단을 코칭하는 영양 코치다. 사용자의 최근 섭취 요약을 보고 "
+        f"너는 {MEMBER_AUDIENCE}의 식단을 돕는 영양 코치다. 회원의 최근 섭취 요약을 보고 "
         "**주어진 카탈로그 안에서만** 오늘 추천할 식단의 우선순위를 정한다.\n"
         "규칙:\n"
         "1. 카탈로그에 없는 요리를 지어내지 마라. key 는 반드시 목록에 있는 값이어야 한다.\n"
         f"2. 카탈로그의 {RECOMMENDATION_COUNT}개 key 를 모두, 중복 없이, 추천 순서대로 나열한다.\n"
-        "3. reason_text 는 사용자의 수치를 근거로 든 한 문장(공백 포함 24자 이내)이다. "
+        "3. reason_text 는 회원의 수치를 근거로 든 한 문장(공백 포함 24자 이내)이다. "
         "카드에 들어가므로 짧아야 한다. 근거가 약하면 생략(null)한다.\n"
         "4. 의학적 진단·치료를 단정하지 마라. 식단 제안에 그친다.\n"
         'JSON 만 출력한다: {"items":[{"key":"...","reason_text":"..."}]}'
