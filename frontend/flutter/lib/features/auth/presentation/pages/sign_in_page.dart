@@ -28,9 +28,9 @@ enum _Field { email, password }
 
 /// 로그인 화면 — 이메일/비밀번호 로그인 + 소셜 로그인.
 ///
-/// 로그인 없이 들어가는 `회원 체험하기` 진입은 [AppConfig.showDemoEntry] 로 감춰
-/// 두었다(#1526). `--dart-define=SHOW_DEMO_ENTRY=true` 로 빌드하면 로그인 칸 위에
-/// 뜬다 — 데모 배포가 그렇게 빌드한다(#3423).
+/// 로그인 없이 들어가는 `체험하기` 진입은 [AppConfig.showDemoEntry] 로 감춰
+/// 두었다(#1526). `--dart-define=SHOW_DEMO_ENTRY=true` 로 빌드하면 화면 맨 아래에
+/// 뜬다 — 데모 배포가 그렇게 빌드한다(#3423, #3432).
 class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
 
@@ -251,32 +251,6 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               _TrainerAccountNotice(address: trainerWebAddress()),
               const SizedBox(height: OnCareSpacing.s16),
             ],
-            // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
-            // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
-            // 데모 배포는 이 플래그를 켠다(#3423). 처음 온 사람이 계정 없이
-            // 바로 들어가는 문이라 로그인 칸보다 위에 크게 둔다.
-            if (ref.watch(appConfigProvider).showDemoEntry) ...<Widget>[
-              AppButton(
-                key: const Key('demoEnterButton'),
-                label: l.authDemoAction,
-                onPressed: _loading ? null : _enterDemo,
-                variant: AppButtonVariant.brandOutline,
-                size: OnCareButtonSize.large,
-                fullWidth: true,
-              ),
-              // 배포 데모는 두 앱이 각자 브라우저 안의 예시 데이터로 돈다 —
-              // 한쪽에서 남긴 기록이 다른 쪽에 보이지 않는 것을 미리 알린다(#3423).
-              const SizedBox(height: OnCareSpacing.s8),
-              Text(
-                l.authDemoNote,
-                key: const Key('demoEntryNote'),
-                textAlign: TextAlign.center,
-                style: context.oncare
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textSecondary),
-              ),
-              const SizedBox(height: OnCareSpacing.s16),
-            ],
             AppTextField(
               key: const ValueKey<String>('member-login-email'),
               controller: _email,
@@ -425,6 +399,33 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 ),
               ],
             ),
+            // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
+            // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
+            // 데모 배포는 이 플래그를 켠다(#3423). 로그인이 이 화면의 주 동작이라
+            // 맨 아래 알약 버튼으로 두어 꽉 찬 로그인 버튼과 구별한다(#3432).
+            if (ref.watch(appConfigProvider).showDemoEntry) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s16),
+              Center(
+                child: AppButton(
+                  key: const Key('demoEnterButton'),
+                  label: l.authDemoAction,
+                  onPressed: _loading ? null : _enterDemo,
+                  variant: AppButtonVariant.brandOutline,
+                  pill: true,
+                ),
+              ),
+              // 배포 데모는 두 앱이 각자 브라우저 안의 예시 데이터로 돈다 —
+              // 한쪽에서 남긴 기록이 다른 쪽에 보이지 않는 것을 미리 알린다(#3423).
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.authDemoNote,
+                key: const Key('demoEntryNote'),
+                textAlign: TextAlign.center,
+                style: context.oncare
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ],
           ],
         ),
       ),

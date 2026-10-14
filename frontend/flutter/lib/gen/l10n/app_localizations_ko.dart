@@ -3037,11 +3037,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSignUpAction => '회원가입';
 
   @override
-  String get authDemoAction => '회원 체험하기';
+  String get authDemoAction => '체험하기';
 
   @override
-  String get authDemoNote =>
-      '체험판은 예시 데이터로 동작해요.\n회원 앱과 트레이너 웹의 기록은 서로 이어지지 않아요.';
+  String get authDemoNote => '예시 데이터 사용 · 트레이너 연동은 로그인 후';
 
   @override
   String get authSocialDivider => 'SNS 계정으로 로그인';

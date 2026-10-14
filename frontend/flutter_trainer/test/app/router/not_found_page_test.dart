@@ -390,9 +390,9 @@ void main() {
       );
       expect(AppRoutes.resumeTarget(currentLocation(tester)), path);
 
-      await tester.ensureVisible(find.text('트레이너 체험하기'));
+      await tester.ensureVisible(find.text('체험하기'));
       await tester.pump();
-      await tester.tap(find.text('트레이너 체험하기'));
+      await tester.tap(find.text('체험하기'));
       await settle(tester);
 
       expect(
