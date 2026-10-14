@@ -249,6 +249,8 @@ member_analysis.recommendation_status 에 따라 두 계획의 성격을 다르�
     + prompt_safety.TRAINER_RECORD_GUARD
     + "\n"
     + prompt_safety.MEMBER_FEEDBACK_GUARD
+    + "\n"
+    + prompt_safety.HEALTH_NOTE_GUARD
     + """
 
 반드시 설명이나 마크다운 없이 아래 JSON 객체만 반환하세요.

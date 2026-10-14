@@ -46,7 +46,9 @@ _SYSTEM = (
     # '내 건강 기록'에는 트레이너와 주고받은 대화도 섞여 들어온다(#580).
     + prompt_safety.UNTRUSTED_QUOTE_GUARD + " "
     # 식단 기록 줄에는 회원이 적은 음식 이름이 들어 있다(#3090).
-    + prompt_safety.FOOD_NAME_GUARD
+    + prompt_safety.FOOD_NAME_GUARD + " "
+    # 프로필의 `건강 상태` 에는 회원·트레이너가 적은 주의사항 글이 들어 있다(#1642).
+    + prompt_safety.HEALTH_NOTE_GUARD
 )
 
 logger = logging.getLogger(__name__)
