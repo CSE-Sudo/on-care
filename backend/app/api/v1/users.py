@@ -1368,6 +1368,8 @@ def find_signup_email(
 ) -> FindEmailResult:
     """이름과 전화번호로 가입 계정을 찾아 **가려진 이메일**만 돌려준다. 회원 계정용.
 
+    트레이너 계정은 `/auth/trainer/find-email` 이 찾는다(#3439).
+
     **전체 이메일은 어떤 경우에도 싣지 않는다.** 번호의 주인을 확인할 수단이 없어,
     주인이 떠올릴 만큼만(`ab***@example.com`) 보여 준다. 찾지 못해도 오류가 아니라
     같은 200 에 빈 목록이다. 소셜 로그인 전용 계정은 이메일 없이 가입 수단만 준다.
@@ -1377,17 +1379,60 @@ def find_signup_email(
     이름을 바꿔 가며 대어 보는 것을 막는다 — 계정이 없는 번호도 똑같이 세므로 429 로
     가입 여부가 드러나지 않는다.
     """
+    return _find_signup_email(
+        payload, request, db, role="member", event="auth.find_email"
+    )
+
+
+@router.post(
+    "/auth/trainer/find-email",
+    response_model=FindEmailResult,
+    # 회원 경로와 같은 IP 버킷 — 두 경로를 오가며 한도를 두 배로 쓰지 못한다(#3439).
+    dependencies=[Depends(rate_limit("auth-find-email"))],
+)
+def find_trainer_signup_email(
+    payload: FindEmailRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> FindEmailResult:
+    """트레이너 웹의 이메일 찾기(#3439). 트레이너 계정만 찾는다.
+
+    번호는 `TrainerProfile.phone` 에서 읽는다. 그 밖의 규칙은 회원 경로와 같다 —
+    가려진 이메일만, 찾지 못해도 200 에 빈 목록, 소셜 전용 계정은 가입 수단만 준다.
+    `/auth/register` 와 `/auth/trainer/register` 처럼 경로를 나눈 것은 요청 필드
+    하나로 찾는 역할이 바뀌지 않게 하려는 것이다.
+
+    시도 제한도 회원 경로와 **같은 버킷**을 쓴다(IP `auth-find-email`, 번호
+    `FIND_EMAIL_PHONE_PER_WINDOW`). 한 번호를 두 경로에 나눠 대어 보아도 함께 센다.
+    """
+    return _find_signup_email(
+        payload, request, db, role="trainer", event="auth.trainer_find_email"
+    )
+
+
+def _find_signup_email(
+    payload: FindEmailRequest,
+    request: Request,
+    db: Session,
+    *,
+    role: find_email.Role,
+    event: str,
+) -> FindEmailResult:
+    """두 이메일 찾기 경로가 함께 쓰는 본문 — 번호 한도, 조회, 감사 로그(#3337, #3439)."""
     settings = get_settings()
     if settings.rate_limit_enabled:
+        # 역할을 키에 넣지 않는다 — 회원·트레이너 경로가 한 번호 한도를 나눠 쓴다.
         limiter.check(
             f"find-email-phone:{payload.phone}",
             settings.find_email_phone_per_window,
             settings.find_email_phone_window_minutes * 60.0,
         )
-    found = find_email.find_accounts(db, name=payload.name, phone=payload.phone)
+    found = find_email.find_accounts(
+        db, name=payload.name, phone=payload.phone, role=role
+    )
     audit(
         db,
-        event="auth.find_email",
+        event=event,
         ip=client_ip(request),
         # 감사 로그에는 찾았는지만 남긴다. 이름·번호·이메일은 적지 않는다.
         success=bool(found),

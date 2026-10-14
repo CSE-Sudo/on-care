@@ -1,4 +1,7 @@
-"""아이디(가입 이메일) 찾기 `POST /auth/find-email`(#3337) — DB 필요(로컬 skip, CI 실행)."""
+"""아이디(가입 이메일) 찾기 `POST /auth/find-email`(#3337) — DB 필요(로컬 skip, CI 실행).
+
+트레이너 웹의 `POST /auth/trainer/find-email`(#3439)도 여기서 본다.
+"""
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
@@ -272,3 +275,164 @@ def test_audit_log_records_outcome_without_personal_data(client, db_session, sig
     assert row.success is True
     assert phone not in (row.detail or "")
     assert "김찾기" not in (row.detail or "")
+
+
+# ---- 트레이너 웹 `POST /auth/trainer/find-email` (#3439) ----
+
+
+def _find_trainer(client, name: str, phone: str):
+    return client.post(
+        "/v1/auth/trainer/find-email", json={"name": name, "phone": phone}
+    )
+
+
+@pytest.fixture
+def trainer_signup(client, db_session) -> Iterator[Callable[..., str]]:
+    """트레이너를 가입시키고 이메일을 돌려준다. 끝나면 만든 계정을 지운다."""
+    from app.services.trainer import profile as trainer_profile_service
+
+    created: list[str] = []
+
+    def _signup(name: str, phone: str, *, local: str | None = None) -> str:
+        email = f"{local or 'ft' + uuid4().hex[:10]}@find-{uuid4().hex[:6]}.oncare.com"
+        res = client.post(
+            "/v1/auth/trainer/register",
+            json={"email": email, "password": _PW, "name": name, "phone": phone},
+        )
+        assert res.status_code == 201, res.text
+        created.append(res.json()["id"])
+        return email
+
+    yield _signup
+    db_session.expire_all()
+    for user_id in created:
+        row = db_session.get(models.User, user_id)
+        if row is not None:
+            trainer_profile_service.delete_trainer_account(db_session, row)
+
+
+def test_trainer_matching_name_and_phone_returns_masked_email(client, trainer_signup):
+    phone = _phone()
+    email = trainer_signup("김코치", phone, local="coachkim")
+    res = _find_trainer(client, "김코치", phone.replace("-", ""))
+    assert res.status_code == 200, res.text
+    assert res.json() == {
+        "accounts": [{"masked_email": f"co***@{email.split('@')[1]}", "providers": []}]
+    }
+    assert email not in res.text
+    assert "coachkim" not in res.text
+
+
+def test_trainer_unknown_person_gets_200_with_empty_list(client):
+    res = _find_trainer(client, "없는코치", _phone())
+    assert res.status_code == 200
+    assert res.json() == {"accounts": []}
+
+
+def test_trainer_route_does_not_find_members(client, signup):
+    """트레이너 웹에서 회원 계정이 걸리지 않는다 — 같은 이름·번호여도."""
+    phone = _phone()
+    signup("김겹침", phone)
+    assert _find_trainer(client, "김겹침", phone).json() == {"accounts": []}
+
+
+def test_member_route_does_not_find_trainers(client, trainer_signup):
+    """회원 앱에서 트레이너 계정이 걸리지 않는다 — 번호가 `TrainerProfile` 에 있어도."""
+    phone = _phone()
+    trainer_signup("김겹침", phone)
+    assert _find(client, "김겹침", phone).json() == {"accounts": []}
+
+
+def test_each_route_finds_only_its_role_when_both_share_a_phone(
+    client, signup, trainer_signup
+):
+    phone = _phone()
+    member = signup("김겹침", phone, local="member")
+    trainer = trainer_signup("김겹침", phone, local="trainer")
+    assert _find(client, "김겹침", phone).json()["accounts"] == [
+        {"masked_email": f"me***@{member.split('@')[1]}", "providers": []}
+    ]
+    assert _find_trainer(client, "김겹침", phone).json()["accounts"] == [
+        {"masked_email": f"tr***@{trainer.split('@')[1]}", "providers": []}
+    ]
+
+
+def test_trainer_profile_with_member_role_is_not_found(
+    client, db_session, trainer_signup
+):
+    """`TrainerProfile` 행이 있어도 역할이 트레이너가 아니면 찾지 않는다."""
+    phone = _phone()
+    email = trainer_signup("김코치", phone)
+    user = _user(db_session, email)
+    user.role = "member"
+    db_session.commit()
+    try:
+        assert _find_trainer(client, "김코치", phone).json() == {"accounts": []}
+    finally:
+        user.role = "trainer"
+        db_session.commit()
+
+
+def test_inactive_trainer_is_not_found(client, db_session, trainer_signup):
+    phone = _phone()
+    email = trainer_signup("김코치", phone)
+    user = _user(db_session, email)
+    user.is_active = False
+    db_session.commit()
+    assert _find_trainer(client, "김코치", phone).json() == {"accounts": []}
+
+
+def test_social_only_trainer_returns_provider_without_email(
+    client, db_session, trainer_signup
+):
+    phone = _phone()
+    email = trainer_signup("김소셜코치", phone, local="socialcoach")
+    user = _user(db_session, email)
+    user.hashed_password = ""
+    db_session.commit()
+    _link_social(db_session, user, "google")
+    res = _find_trainer(client, "김소셜코치", phone)
+    assert res.json() == {"accounts": [{"masked_email": None, "providers": ["google"]}]}
+    assert "socialcoach" not in res.text
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"name": "김코치", "phone": ""},
+        {"name": "김코치", "phone": "0101234"},
+        {"name": "", "phone": "010-1234-5678"},
+        {"phone": "010-1234-5678"},
+    ],
+)
+def test_trainer_malformed_input_is_422(client, body):
+    assert client.post("/v1/auth/trainer/find-email", json=body).status_code == 422
+
+
+def test_phone_limit_is_shared_between_member_and_trainer_routes(client, monkeypatch):
+    """한 번호를 두 경로에 나눠 대어 보아도 함께 센다."""
+    monkeypatch.setattr(get_settings(), "find_email_phone_per_window", 1)
+    phone = _phone()
+    assert _find(client, "없는사람", phone).status_code == 200
+    blocked = _find_trainer(client, "없는사람", phone)
+    assert blocked.status_code == 429
+    assert "accounts" not in blocked.text
+
+
+def test_trainer_audit_log_records_outcome_without_personal_data(
+    client, db_session, trainer_signup
+):
+    phone = _phone()
+    trainer_signup("김코치", phone)
+    _find_trainer(client, "김코치", phone)
+    db_session.expire_all()
+    row = (
+        db_session.query(models.AuditLog)
+        .filter(models.AuditLog.event == "auth.trainer_find_email")
+        .order_by(models.AuditLog.id.desc())
+        .first()
+    )
+    assert row is not None
+    assert row.success is True
+    assert phone not in (row.detail or "")
+    assert "김코치" not in (row.detail or "")

@@ -8303,13 +8303,13 @@ abstract class AppLocalizations {
   /// Text button next to 'Forgot your password?' on sign-in that opens the find-email screen.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get authFindEmail;
 
   /// No description provided for @findEmailTitle.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get findEmailTitle;
 
   /// No description provided for @findEmailSubtitle.
@@ -8321,7 +8321,7 @@ abstract class AppLocalizations {
   /// No description provided for @findEmailAction.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get findEmailAction;
 
   /// No description provided for @findEmailFoundSubtitle.

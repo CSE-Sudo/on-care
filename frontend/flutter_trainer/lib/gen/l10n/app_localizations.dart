@@ -10058,13 +10058,13 @@ abstract class AppLocalizations {
   /// Text button next to 'Forgot password?' on sign-in that opens the find-email screen.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get authFindEmail;
 
   /// No description provided for @findEmailTitle.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get findEmailTitle;
 
   /// No description provided for @findEmailSubtitle.
@@ -10076,14 +10076,68 @@ abstract class AppLocalizations {
   /// No description provided for @findEmailAction.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get findEmailAction;
 
-  /// Toast shown when the find-email button is pressed while the lookup is not available yet.
+  /// No description provided for @findEmailFoundSubtitle.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기는 준비 중이에요.'**
-  String get findEmailComingSoon;
+  /// **'입력한 정보로 가입한 계정이에요.'**
+  String get findEmailFoundSubtitle;
+
+  /// No description provided for @findEmailMaskedNote.
+  ///
+  /// In ko, this message translates to:
+  /// **'개인정보 보호를 위해 이메일 일부를 가렸어요.'**
+  String get findEmailMaskedNote;
+
+  /// Find-email result for an account that signs in through a social provider only. provider is findEmailProviderKakao / Google / Other.
+  ///
+  /// In ko, this message translates to:
+  /// **'{provider} 계정으로 가입했어요'**
+  String findEmailSocialTitle(String provider);
+
+  /// No description provided for @findEmailSocialBody.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인 화면에서 가입한 방법으로 로그인해 주세요.'**
+  String get findEmailSocialBody;
+
+  /// No description provided for @findEmailProviderKakao.
+  ///
+  /// In ko, this message translates to:
+  /// **'카카오'**
+  String get findEmailProviderKakao;
+
+  /// No description provided for @findEmailProviderGoogle.
+  ///
+  /// In ko, this message translates to:
+  /// **'구글'**
+  String get findEmailProviderGoogle;
+
+  /// No description provided for @findEmailProviderOther.
+  ///
+  /// In ko, this message translates to:
+  /// **'소셜'**
+  String get findEmailProviderOther;
+
+  /// No description provided for @findEmailNotFoundTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'일치하는 계정을 찾지 못했어요'**
+  String get findEmailNotFoundTitle;
+
+  /// No description provided for @findEmailNotFoundBody.
+  ///
+  /// In ko, this message translates to:
+  /// **'이름과 휴대폰 번호를 다시 확인해 주세요. 가입할 때 번호를 넣지 않았거나 나중에 바꿨다면 찾을 수 없어요.'**
+  String get findEmailNotFoundBody;
+
+  /// No description provided for @findEmailRetry.
+  ///
+  /// In ko, this message translates to:
+  /// **'다시 찾기'**
+  String get findEmailRetry;
 
   /// Placeholder of the phone field on trainer sign-up and find-email.
   ///

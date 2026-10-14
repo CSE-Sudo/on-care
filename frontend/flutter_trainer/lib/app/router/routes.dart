@@ -25,8 +25,8 @@ class AppRoutes {
   /// 잃지 않는다.
   static const String passwordReset = '/auth/password-reset';
 
-  /// 아이디(가입 이메일) 찾기. 로그인 화면이 연다. 가입 화면처럼 로그아웃
-  /// 상태에서만 머문다 — 로그인한 채 열면 대시보드로 간다. 찾기는 아직 준비 중이다.
+  /// 이메일(가입 이메일) 찾기(#3439). 로그인 화면이 연다. 가입 화면처럼 로그아웃
+  /// 상태에서만 머문다 — 로그인한 채 열면 대시보드로 간다.
   static const String findEmail = '/auth/find-email';
 
   // --- Main navigation (StatefulShellRoute branches) ---

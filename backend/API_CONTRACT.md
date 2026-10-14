@@ -1842,6 +1842,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | POST | `/auth/password-reset/request` | `{ email }` → **202** `{ status: "requested", expires_in_minutes }` — 계정 유무와 무관하게 같은 응답(#2824). 아래 [비밀번호 재설정](#비밀번호-재설정-2824) |
 | POST | `/auth/password-reset/confirm` | `{ token, new_password }` → `{ status: "reset" }`. 코드 없음·만료·사용됨은 400 `invalid_reset_token`(#2824) |
 | POST | `/auth/find-email` | `{ name, phone }` → `{ accounts: [{ masked_email, providers }] }`. 가려진 이메일만 주고, 찾지 못해도 200 에 빈 목록(#3337). 아래 [아이디(가입 이메일) 찾기](#아이디가입-이메일-찾기-3337) |
+| POST | `/auth/trainer/find-email` | 위와 같은 요청·응답으로 **트레이너 계정만** 찾는다(번호는 `TrainerProfile`). 시도 제한 버킷을 회원 경로와 함께 쓴다(#3439) |
 
 인증 엔드포인트는 IP·엔드포인트당 분당 한도(`RATE_LIMIT_AUTH_PER_MINUTE`)를 받는다. 비밀번호·연락처·이름 규칙은
 아래 절들에 있다.
@@ -2577,8 +2578,9 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 
 ### 아이디(가입 이메일) 찾기 (#3337)
 
-로그아웃 상태에서 이름과 전화번호로 가입 이메일을 떠올리는 길. **회원 계정용**이다(트레이너 웹의
-아이디 찾기는 범위 밖). 인증 없이 부른다.
+로그아웃 상태에서 이름과 전화번호로 가입 이메일을 떠올리는 길. 회원 앱은 `POST /auth/find-email`
+(회원 계정), 트레이너 웹은 `POST /auth/trainer/find-email`(트레이너 계정, #3439)을 부른다. 인증 없이
+부른다. 두 경로는 요청·응답·규칙이 같고 찾는 역할만 다르다 — 아래 [트레이너 웹](#트레이너-웹-authtrainerfind-email-3439).
 
 `POST /auth/find-email`
 
@@ -2608,7 +2610,7 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 - **소셜 로그인 전용 계정**(비밀번호 없음, 또는 대체 이메일 `…@social.oncare`)은 `masked_email` 이
   `null` 이고 `providers` 로 가입 수단(`kakao`·`google`)만 알려 준다. 비밀번호로 가입한 뒤 소셜을
   연결한 계정은 가려진 이메일과 `providers` 를 함께 준다.
-- 쉬는 계정과 트레이너 계정은 찾지 않는다.
+- 쉬는 계정과 트레이너 계정은 찾지 않는다(트레이너는 아래 트레이너 경로).
 - 이름이 비었거나 전화번호가 비었거나 형식(`010` + 8자리)에 맞지 않으면 **422**. 빈 번호를 받지 않는
   것은 번호 없이 가입한 계정이 이름만으로 걸리지 않게 하려는 것이다.
 - 시도 제한: IP 별 분당 한도(버킷 `auth-find-email`) + 전화번호 하나당
@@ -2616,6 +2618,19 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
   계정이 없는 번호도 똑같이 세므로 429 로 가입 여부가 드러나지 않는다. 넘으면 **429** + `Retry-After`.
 - 감사 로그 `auth.find_email` 에는 찾았는지(`success`)와 IP 만 남는다. 이름·번호·이메일은 적지 않는다.
 - 데모(앱 mock)는 데모 회원(김민수 · `010-1234-5678`)과 그 기기에서 가입한 계정을 같은 규칙으로 찾는다.
+
+#### 트레이너 웹 `/auth/trainer/find-email` (#3439)
+
+요청·응답·422·가림·소셜 전용 규칙은 위와 같다. 다른 점만 적는다.
+
+- **트레이너 계정만** 찾는다. 번호는 `TrainerProfile.phone`(가입·`PUT /trainer/me` 가 같은 정규화로
+  저장)에서 읽고, `role='trainer'` 인 계정만 본다. 회원 계정은 이름·번호가 같아도 나오지 않고, 회원
+  경로에서도 트레이너는 나오지 않는다. `/auth/register`·`/auth/trainer/register` 처럼 경로로 역할을
+  나눠, 요청 필드 하나로 찾는 역할이 바뀌지 않게 했다.
+- 시도 제한은 회원 경로와 **같은 버킷**이다 — IP 버킷 `auth-find-email`, 번호 버킷
+  `FIND_EMAIL_PHONE_PER_WINDOW`. 한 번호를 두 경로에 나눠 대어 보아도 함께 센다.
+- 감사 로그 이벤트는 `auth.trainer_find_email`. 찾았는지와 IP 만 남는다.
+- 데모(트레이너 웹 mock)는 데모 트레이너(김태오 · `010-1234-5678`)만 같은 규칙으로 찾는다.
 
 접근 토큰 수명은 기본 **60분**(`ACCESS_TOKEN_EXPIRE_MINUTES`, #2913), refresh 는 30일이다. 두 앱은
 401 을 받으면 `POST /auth/refresh` 로 새 쌍을 받아 요청을 다시 보내므로 수명이 짧아도 화면은 끊기지
@@ -2637,7 +2652,7 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/login` | **이메일(대소문자 무시) 연속 실패** | `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `LOGIN_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 잠긴 동안에는 비밀번호를 확인하지 않는다. 성공하면 실패 기록을 지운다. 없는 이메일도 같이 센다 |
 | `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | IP + **트레이너 id** | 각각 분당 10, 트레이너 id 는 하루 `PAIRING_REDEEM_PER_DAY`(30) 도 함께. 두 엔드포인트가 한 버킷 |
 | `POST /auth/register/email-code` | IP + **이메일** + (이메일, 용도) | IP 는 분당 10. 같은 이메일은 `SIGNUP_EMAIL_CODE_WINDOW_MINUTES`(60분) 안에 `SIGNUP_EMAIL_CODE_PER_WINDOW`(5)번, 같은 (이메일, 용도)는 `SIGNUP_EMAIL_CODE_RESEND_SECONDS`(60초)에 한 번. 가입된 주소도 똑같이 센다(#3038) |
-| `POST /auth/find-email` | IP + **전화번호** | IP 는 분당 10. 같은 번호는 `FIND_EMAIL_PHONE_WINDOW_MINUTES`(15분) 안에 `FIND_EMAIL_PHONE_PER_WINDOW`(5)번까지 — 계정이 없는 번호도 센다(#3337) |
+| `POST /auth/find-email`·`POST /auth/trainer/find-email` | IP + **전화번호** | 두 경로가 한 버킷(#3439). IP 는 분당 10. 같은 번호는 `FIND_EMAIL_PHONE_WINDOW_MINUTES`(15분) 안에 `FIND_EMAIL_PHONE_PER_WINDOW`(5)번까지 — 계정이 없는 번호도 센다(#3337) |
 | `POST /users/me/email/code` | IP + **회원 id** + **이메일** + (이메일, 용도) | 위 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230). 이메일 버킷은 가입 코드 요청과 함께 센다(#3230) |
 | `DELETE /users/me`·`DELETE /trainer/me`·이메일을 바꾸는 `PUT /users/me` | **사용자 id 연속 실패** | 본인 확인을 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 값을 아예 보내지 않은 400 은 세지 않는다(#3039) |
 | `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
