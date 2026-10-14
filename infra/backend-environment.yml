@@ -44,6 +44,17 @@ Parameters:
     Default: chat-attachments
     AllowedPattern: '^[a-z0-9][a-z0-9-]*$'
     Description: Same value as ATTACHMENT_S3_PREFIX (backend/docs/DEPLOY.md 5-1)
+  # 운영 배포 직전 DB 백업(#1552)을 지우기까지의 일수. 탈퇴한 회원의 정보가 이 기간 동안 백업에
+  # 남으므로 docs/privacy_processing.md 의 보관 기간과 함께 바꾼다.
+  BackupRetentionDays:
+    Type: Number
+    Default: 30
+    MinValue: 7
+    MaxValue: 90
+
+Conditions:
+  # DB 백업은 운영만 한다. staging(데모)은 백업하지 않는다(DEPLOY.md 2-1).
+  IsProduction: !Equals [!Ref EnvironmentName, production]
 
 Resources:
   # 채팅 사진·리포트 PDF 바이트(#2817). 공개하지 않는다 — 다운로드는 늘 백엔드가 권한을
@@ -89,6 +100,92 @@ Resources:
             Condition:
               Bool:
                 aws:SecureTransport: 'false'
+
+  # 운영 DB 덤프(#1552). 배포 직전마다 일회성 ECS 작업(infra/backend-service.yml
+  # BackupTaskDefinition)이 `db/` 아래에 올린다. 공개하지 않고, 보관 기간이 지나면 지운다.
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsProduction
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub 'oncare-db-backups-${AWS::AccountId}-${AWS::Region}-${EnvironmentName}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-db-backups
+            Status: Enabled
+            ExpirationInDays: !Ref BackupRetentionDays
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      Tags:
+        - Key: Project
+          Value: OnCare
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  BackupBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: IsProduction
+    Properties:
+      Bucket: !Ref BackupBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt BackupBucket.Arn
+              - !Sub '${BackupBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  # 백업 작업 로그. 실행 역할의 관리형 정책은 로그 스트림 생성·쓰기만 하므로 그룹을 여기서 만든다.
+  BackupLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsProduction
+    Properties:
+      LogGroupName: !Sub '/oncare/backend/${EnvironmentName}/db-backup'
+      RetentionInDays: 30
+
+  # 백업 작업이 쓰는 권한 — 백업 버킷 `db/` 아래에 올리기만. 읽기·지우기는 없다.
+  BackupTaskRole:
+    Type: AWS::IAM::Role
+    Condition: IsProduction
+    Properties:
+      Description: !Sub 'OnCare backend ${EnvironmentName} database backup task (upload only)'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: upload-db-backups
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: UploadBackups
+                Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:PutObject
+                Resource: !Sub '${BackupBucket.Arn}/db/*'
 
   # 이미지 pull·로그·비밀 주입. 비밀은 이 환경 이름으로 시작하는 Secrets Manager 비밀만 읽는다.
   TaskExecutionRole:
@@ -189,6 +286,7 @@ Resources:
                   - ecs:DescribeServices
                   - ecs:DescribeServiceDeployments
                   - ecs:DescribeServiceRevisions
+                  - ecs:DeregisterTaskDefinition
                   - ecs:DescribeTaskDefinition
                   - ecs:ListServiceDeployments
                   - ecs:ListTagsForResource
@@ -203,6 +301,8 @@ Resources:
                   - !GetAtt TaskExecutionRole.Arn
                   - !GetAtt TaskRole.Arn
                   - !GetAtt InfrastructureRole.Arn
+                  # 운영만: 백업 작업 정의(infra/backend-service.yml BackupTaskDefinition)
+                  - !If [IsProduction, !GetAtt BackupTaskRole.Arn, !Ref AWS::NoValue]
               - Sid: ReadImports
                 Effect: Allow
                 Action:
@@ -259,6 +359,55 @@ Resources:
                 Condition:
                   StringEquals:
                     iam:PassedToService: cloudformation.amazonaws.com
+              # 운영 배포 직전 DB 백업(#1552). 서비스 스택이 정의한 백업 작업 하나만 띄우고, 끝날
+              # 때까지 보고, 덤프가 올라왔는지 목록만 본다(덤프 내용은 읽지 못한다).
+              - !If
+                - IsProduction
+                - Sid: RunBackupTask
+                  Effect: Allow
+                  Action: ecs:RunTask
+                  Resource: !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/oncare-backend-${EnvironmentName}-db-backup:*'
+                - !Ref AWS::NoValue
+              - !If
+                - IsProduction
+                - Sid: WatchBackupTask
+                  Effect: Allow
+                  Action:
+                    - ecs:DescribeServices
+                    - ecs:DescribeTasks
+                  Resource:
+                    - !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:service/*/oncare-backend-${EnvironmentName}'
+                    - !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task/*'
+                - !Ref AWS::NoValue
+              - !If
+                - IsProduction
+                - Sid: PassBackupTaskRoles
+                  Effect: Allow
+                  Action: iam:PassRole
+                  Resource:
+                    - !GetAtt TaskExecutionRole.Arn
+                    - !GetAtt BackupTaskRole.Arn
+                  Condition:
+                    StringEquals:
+                      iam:PassedToService: ecs-tasks.amazonaws.com
+                - !Ref AWS::NoValue
+              - !If
+                - IsProduction
+                - Sid: CheckBackupObject
+                  Effect: Allow
+                  Action: s3:ListBucket
+                  Resource: !GetAtt BackupBucket.Arn
+                  Condition:
+                    StringLike:
+                      s3:prefix: 'db/*'
+                - !Ref AWS::NoValue
+              - !If
+                - IsProduction
+                - Sid: ReadBackupLogs
+                  Effect: Allow
+                  Action: logs:GetLogEvents
+                  Resource: !GetAtt BackupLogGroup.Arn
+                - !Ref AWS::NoValue
 
 Outputs:
   AttachmentBucketName:
@@ -290,3 +439,19 @@ Outputs:
   SecretName:
     Description: Secrets Manager secret the service stack reads (create it with the JSON keys in DEPLOY.md)
     Value: !Sub 'oncare/backend/${EnvironmentName}'
+  BackupBucketName:
+    Condition: IsProduction
+    Description: Database backup bucket (DEPLOY.md 2-1)
+    Value: !Ref BackupBucket
+    Export:
+      Name: !Sub 'oncare-backend-${EnvironmentName}-BackupBucket'
+  BackupTaskRoleArn:
+    Condition: IsProduction
+    Value: !GetAtt BackupTaskRole.Arn
+    Export:
+      Name: !Sub 'oncare-backend-${EnvironmentName}-BackupTaskRoleArn'
+  BackupLogGroupName:
+    Condition: IsProduction
+    Value: !Ref BackupLogGroup
+    Export:
+      Name: !Sub 'oncare-backend-${EnvironmentName}-BackupLogGroup'

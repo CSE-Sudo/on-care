@@ -227,21 +227,66 @@ def test_github_deploy_role_trusts_only_its_environment() -> None:
     assert ":ref:" not in sub
 
 
-def test_github_deploy_role_has_no_direct_service_permissions() -> None:
+def _deploy_role_statements() -> tuple[list[dict], dict[str, dict]]:
+    """배포 역할 문장을 (늘 있는 것, 운영에만 있는 것 Sid→문장) 으로 나눈다."""
+    always: list[dict] = []
+    production: dict[str, dict] = {}
     for stmt in statements(_role("GitHubBackendDeployRole")):
+        if "Fn::If" in stmt:
+            condition, then, otherwise = stmt["Fn::If"]
+            assert condition == "IsProduction"
+            assert otherwise == {"Ref": "AWS::NoValue"}
+            production[then["Sid"]] = then
+        else:
+            always.append(stmt)
+    return always, production
+
+
+def test_github_deploy_role_has_no_direct_service_permissions() -> None:
+    # 서비스 변경은 CloudFormation 이 한다. 운영 배포 직전 백업(#1552)만 예외로 아래에서 본다.
+    always, _ = _deploy_role_statements()
+    for stmt in always:
         for action in as_list(stmt["Action"]):
             assert action.startswith(("cloudformation:", "iam:PassRole")), action
 
 
+def test_github_deploy_role_backup_permissions_are_production_only_and_narrow() -> None:
+    # 운영 배포 직전 DB 백업(#1552): 백업 작업 하나를 띄우고 지켜보고 덤프 목록만 본다.
+    _, production = _deploy_role_statements()
+    assert set(production) == {
+        "RunBackupTask", "WatchBackupTask", "PassBackupTaskRoles", "CheckBackupObject", "ReadBackupLogs",
+    }
+    run = production["RunBackupTask"]
+    assert run["Action"] == "ecs:RunTask"
+    assert run["Resource"]["Fn::Sub"].endswith(":task-definition/oncare-backend-${EnvironmentName}-db-backup:*")
+    assert sorted(as_list(production["WatchBackupTask"]["Action"])) == ["ecs:DescribeServices", "ecs:DescribeTasks"]
+    passes = production["PassBackupTaskRoles"]
+    assert passes["Resource"] == [
+        {"Fn::GetAtt": ["TaskExecutionRole", "Arn"]},
+        {"Fn::GetAtt": ["BackupTaskRole", "Arn"]},
+    ]
+    assert passes["Condition"] == {"StringEquals": {"iam:PassedToService": "ecs-tasks.amazonaws.com"}}
+    # 덤프 내용은 읽지 못한다 — 목록(크기)만.
+    check = production["CheckBackupObject"]
+    assert check["Action"] == "s3:ListBucket"
+    assert check["Condition"]["StringLike"]["s3:prefix"] == "db/*"
+    assert production["ReadBackupLogs"]["Action"] == "logs:GetLogEvents"
+    for stmt in production.values():
+        for action in as_list(stmt["Action"]):
+            assert action != "s3:GetObject" and not action.endswith("*"), action
+
+
 def test_github_deploy_role_passes_only_the_cloudformation_role() -> None:
-    passes = [s for s in statements(_role("GitHubBackendDeployRole")) if s["Action"] == "iam:PassRole"]
+    always, _ = _deploy_role_statements()
+    passes = [s for s in always if s["Action"] == "iam:PassRole"]
     (stmt,) = passes
     assert stmt["Resource"] == {"Fn::GetAtt": ["CloudFormationDeployRole", "Arn"]}
     assert stmt["Condition"] == {"StringEquals": {"iam:PassedToService": "cloudformation.amazonaws.com"}}
 
 
 def test_github_deploy_role_changes_only_its_service_stack() -> None:
-    by_sid = {s["Sid"]: s for s in statements(_role("GitHubBackendDeployRole"))}
+    always, _ = _deploy_role_statements()
+    by_sid = {s["Sid"]: s for s in always}
     resources = as_list(by_sid["ApplyServiceStack"]["Resource"])
     assert [r["Fn::Sub"] for r in resources] == [
         "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/oncare-backend-${EnvironmentName}/*"
@@ -256,7 +301,104 @@ def test_cloudformation_role_passes_only_service_roles() -> None:
         {"Fn::GetAtt": ["TaskExecutionRole", "Arn"]},
         {"Fn::GetAtt": ["TaskRole", "Arn"]},
         {"Fn::GetAtt": ["InfrastructureRole", "Arn"]},
+        {"Fn::If": ["IsProduction", {"Fn::GetAtt": ["BackupTaskRole", "Arn"]}, {"Ref": "AWS::NoValue"}]},
     ]
+
+
+# ── 운영 DB 백업(#1552) ───────────────────────────────────────────────────
+
+
+def test_backup_resources_exist_only_in_production() -> None:
+    production = {"Fn::Equals": [{"Ref": "EnvironmentName"}, "production"]}
+    assert ENVIRONMENT["Conditions"]["IsProduction"] == production
+    assert SERVICE["Conditions"]["IsProduction"] == production
+    for name in ("BackupBucket", "BackupBucketPolicy", "BackupLogGroup", "BackupTaskRole"):
+        assert ENVIRONMENT["Resources"][name]["Condition"] == "IsProduction", name
+    assert SERVICE["Resources"]["BackupTaskDefinition"]["Condition"] == "IsProduction"
+
+
+def test_backup_bucket_is_private_encrypted_and_expires() -> None:
+    bucket = ENVIRONMENT["Resources"]["BackupBucket"]
+    assert bucket["DeletionPolicy"] == "Retain"
+    props = bucket["Properties"]
+    assert all(props["PublicAccessBlockConfiguration"].values())
+    (encryption,) = props["BucketEncryption"]["ServerSideEncryptionConfiguration"]
+    assert encryption["ServerSideEncryptionByDefault"]["SSEAlgorithm"] == "AES256"
+    (rule,) = props["LifecycleConfiguration"]["Rules"]
+    assert rule["Status"] == "Enabled"
+    assert rule["ExpirationInDays"] == {"Ref": "BackupRetentionDays"}
+    retention = ENVIRONMENT["Parameters"]["BackupRetentionDays"]
+    assert retention["Default"] == 30
+    assert retention["MaxValue"] <= 90
+    # 버전 관리를 켜면 만료된 덤프가 이전 버전으로 남는다.
+    assert "VersioningConfiguration" not in props
+    (deny,) = ENVIRONMENT["Resources"]["BackupBucketPolicy"]["Properties"]["PolicyDocument"]["Statement"]
+    assert deny["Effect"] == "Deny"
+    assert deny["Condition"] == {"Bool": {"aws:SecureTransport": "false"}}
+
+
+def test_backup_task_role_only_uploads_under_db_prefix() -> None:
+    (stmt,) = statements(_role("BackupTaskRole"))
+    assert sorted(as_list(stmt["Action"])) == ["s3:AbortMultipartUpload", "s3:PutObject"]
+    assert stmt["Resource"] == {"Fn::Sub": "${BackupBucket.Arn}/db/*"}
+
+
+def _backup_container() -> dict:
+    (container,) = SERVICE["Resources"]["BackupTaskDefinition"]["Properties"]["ContainerDefinitions"]
+    return container
+
+
+def test_backup_task_uses_service_image_and_database_secret_only() -> None:
+    props = SERVICE["Resources"]["BackupTaskDefinition"]["Properties"]
+    # 워크플로(backend_db_backup.sh)·배포 역할 RunTask 범위와 같은 이름이어야 한다.
+    assert props["Family"] == {"Fn::Sub": "oncare-backend-${EnvironmentName}-db-backup"}
+    assert props["TaskRoleArn"] == {
+        "Fn::ImportValue": {"Fn::Sub": "oncare-backend-${EnvironmentName}-BackupTaskRoleArn"}
+    }
+    container = _backup_container()
+    assert container["Name"] == "db-backup"
+    assert container["Image"] == {"Ref": "ImageIdentifier"}
+    assert container["Command"] == ["python", "-m", "scripts.backup_db"]
+    # 백업 작업에는 DB 주소만 넘긴다(JWT·AI 키 등은 쓰지 않는다).
+    assert container["Secrets"] == [
+        {"Name": "DATABASE_URL", "ValueFrom": {"Fn::Sub": "${SecretArn}:DATABASE_URL::"}}
+    ]
+    env = {item["Name"]: item["Value"] for item in container["Environment"]}
+    assert env["BACKUP_S3_PREFIX"] == "db"
+    assert container["LogConfiguration"]["Options"]["awslogs-stream-prefix"] == "db-backup"
+
+
+def test_backup_outputs_feed_the_workflow() -> None:
+    outputs = SERVICE["Outputs"]
+    for name in ("BackupTaskDefinitionArn", "BackupBucketName", "BackupLogGroupName"):
+        assert outputs[name]["Condition"] == "IsProduction", name
+    assert outputs["ServiceArn"]["Value"] == {"Fn::GetAtt": ["BackendService", "ServiceArn"]}
+    # 서비스 스택 출력의 이름은 환경 스택이 만든 리소스 이름과 같아야 한다.
+    env = ENVIRONMENT["Resources"]
+    assert outputs["BackupBucketName"]["Value"] == env["BackupBucket"]["Properties"]["BucketName"]
+    assert outputs["BackupLogGroupName"]["Value"] == env["BackupLogGroup"]["Properties"]["LogGroupName"]
+    script = (INFRA_DIR.parent / ".github" / "scripts" / "backend_db_backup.sh").read_text(encoding="utf-8")
+    for name in ("BackupTaskDefinitionArn", "ServiceArn", "BackupBucketName", "BackupLogGroupName"):
+        assert f" {name})" in script, name
+    assert "CONTAINER=db-backup" in script
+
+
+def test_backup_imports_exist_in_environment_stack() -> None:
+    exported = {
+        output["Export"]["Name"]["Fn::Sub"]
+        for output in ENVIRONMENT["Outputs"].values()
+        if "Export" in output
+    }
+    props = SERVICE["Resources"]["BackupTaskDefinition"]["Properties"]
+    container = _backup_container()
+    env = {item["Name"]: item["Value"] for item in container["Environment"]}
+    imported = {
+        props["ExecutionRoleArn"]["Fn::ImportValue"]["Fn::Sub"],
+        props["TaskRoleArn"]["Fn::ImportValue"]["Fn::Sub"],
+        env["BACKUP_S3_BUCKET"]["Fn::ImportValue"]["Fn::Sub"],
+        container["LogConfiguration"]["Options"]["awslogs-group"]["Fn::ImportValue"]["Fn::Sub"],
+    }
+    assert imported <= exported
 
 
 def test_stack_name_output_matches_deploy_role_scope() -> None:
