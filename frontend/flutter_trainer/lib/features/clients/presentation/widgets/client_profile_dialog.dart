@@ -737,8 +737,9 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           Expanded(
             child: Text(
               name,
+              // 값을 보러 여는 창이라 목록 행 제목 크기로 읽힌다(#3427).
               style: tokens
-                  .text(OnCareTypography.body)
+                  .text(OnCareTypography.bodyLarge)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
@@ -782,7 +783,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           textAlign: TextAlign.end,
           style:
               OnCareTypography.numeric(
-                context.oncare.text(OnCareTypography.body),
+                context.oncare.text(OnCareTypography.bodyLarge),
               ).copyWith(
                 color: text.isEmpty
                     ? OnCareColors.textTertiary
@@ -941,7 +942,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                       ),
                       textAlign: TextAlign.end,
                       style: tokens
-                          .text(OnCareTypography.body)
+                          .text(OnCareTypography.bodyLarge)
                           .copyWith(
                             color: _gender.isEmpty
                                 ? OnCareColors.textTertiary
