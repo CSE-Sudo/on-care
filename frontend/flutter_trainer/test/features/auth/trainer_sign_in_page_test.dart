@@ -416,7 +416,7 @@ void main() {
       // 노출만 SHOW_DEMO_ENTRY 로 막았다. (#1526)
       await pumpTrainerApp(tester);
 
-      expect(find.text('트레이너 체험하기'), findsNothing);
+      expect(find.text('체험하기'), findsNothing);
       // 로그인 화면 자체는 그대로다 — 감춘 것이 이 버튼뿐임을 함께 못 박는다.
       expect(find.widgetWithText(InkWell, '로그인'), findsOneWidget);
     });
@@ -430,9 +430,9 @@ void main() {
 
       // The demo link sits below the fold on the (taller, redesigned)
       // login screen — scroll it into view before tapping.
-      await tester.ensureVisible(find.text('트레이너 체험하기'));
+      await tester.ensureVisible(find.text('체험하기'));
       await tester.pump();
-      await tester.tap(find.text('트레이너 체험하기'));
+      await tester.tap(find.text('체험하기'));
       await settle(tester);
 
       expect(
@@ -440,8 +440,24 @@ void main() {
         SessionStatus.demo,
       );
       // Left the login screen (no more login button / demo link).
-      expect(find.text('트레이너 체험하기'), findsNothing);
+      expect(find.text('체험하기'), findsNothing);
       expect(find.text('회원가입'), findsNothing);
+    });
+
+    testWidgets('데모 진입은 로그인 버튼보다 아래에 안내와 함께 뜬다', (tester) async {
+      // 로그인이 이 화면의 주 동작이라 체험하기는 맨 아래에 둔다(#3432).
+      await pumpTrainerApp(tester, demoEntry: true);
+
+      final double entry = tester
+          .getTopLeft(find.byKey(const Key('demoEnterButton')))
+          .dy;
+      final double submit = tester
+          .getTopLeft(
+            find.byKey(const ValueKey<String>('trainer-login-submit')),
+          )
+          .dy;
+      expect(entry, greaterThan(submit));
+      expect(find.text('예시 데이터 사용 · 회원 연동은 로그인 후'), findsOneWidget);
     });
 
     testWidgets('login with credentials authenticates and navigates away', (
