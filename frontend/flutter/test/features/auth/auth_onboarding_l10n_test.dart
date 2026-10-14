@@ -18,7 +18,7 @@ const Map<String, String> _koBefore = <String, String>{
   'authSignInAction': '로그인',
   'authNoAccountQuestion': '계정이 없으신가요?',
   'authSignUpAction': '회원가입',
-  'authDemoAction': '회원 체험하기',
+  'authDemoAction': '체험하기',
   // 소셜 로그인이 원형 버튼이 되며 구분선 문구가 "또는" 에서 바뀌었다(#1783).
   'authSocialDivider': 'SNS 계정으로 로그인',
   'authKakaoAction': '카카오로 시작하기',
