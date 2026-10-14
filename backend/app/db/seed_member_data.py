@@ -33,7 +33,7 @@ import time
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import TypeVar
 
 from sqlalchemy import or_, select
@@ -1031,7 +1031,7 @@ def _seed_chat(db: Session, member_id: str) -> None:
     #
     # 묶음 안의 최대 간격이 38분이라 정오 기준이면 어떤 시각에 시드해도 자정을 넘지
     # 않는다. 오늘 정오가 아직 오지 않았으면 하루 뒤로 물러 미래 시각을 만들지 않는다.
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     span = timedelta(minutes=(len(thread) - 1) * 2)
     base = now.replace(hour=12, minute=0, second=0, microsecond=0)
     if base + span > now:

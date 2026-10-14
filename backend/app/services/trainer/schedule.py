@@ -5,7 +5,7 @@ import hashlib
 import json
 import uuid
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import exists, func, or_, select, text, update
@@ -1042,7 +1042,7 @@ def _add_scheduled_routines(
             TrainerRoutine.member_id == member_id,
         )
     ) or 0
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     created: list[TrainerRoutine] = []
     for index, item in enumerate(items):
         rt = TrainerRoutine(
@@ -1537,7 +1537,7 @@ def _rewrite_scheduled_routines(
                     if base.client_request_id
                     else None
                 ),
-                created_at=datetime.now(timezone.utc),
+                created_at=clock.now_utc(),
             )
             db.add(row)
         strength = item.type == "근력"
@@ -2614,7 +2614,7 @@ def send_session_program(
     )
     # 배정이 커밋된 뒤에만 보낸 것으로 남긴다. 반대 순서면 배정에 실패한 세션이
     # 화면에서 '전송됨' 이 되어 다시 보낼 수 없다.
-    s.program_sent_at = datetime.now(timezone.utc)
+    s.program_sent_at = clock.now_utc()
     db.commit()
     db.refresh(s)
     return _schedule_out(s)
@@ -2785,7 +2785,7 @@ def cancel_session(
         )
         .values(
             status=SCHEDULE_CANCELLED,
-            cancelled_at=datetime.now(timezone.utc),
+            cancelled_at=clock.now_utc(),
             cancellation_source=source,
             cancellation_reason=reason[:200],
         )
@@ -2854,7 +2854,7 @@ def mark_session_no_show(
             TrainerSchedule.id == session_id,
             TrainerSchedule.status == SCHEDULE_UPCOMING,
         )
-        .values(status=SCHEDULE_NO_SHOW, no_show_at=datetime.now(timezone.utc))
+        .values(status=SCHEDULE_NO_SHOW, no_show_at=clock.now_utc())
     ).rowcount
     db.commit()
     db.refresh(s)

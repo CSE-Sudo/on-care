@@ -84,7 +84,7 @@ _CATEGORY: dict[str, str] = {
 
 def time_ago(dt: datetime, *, now: datetime | None = None) -> str:
     """알림 목록의 상대 시각 문구. 회원·트레이너 알림함이 함께 쓴다. (#503)"""
-    now = now or datetime.now(timezone.utc)
+    now = now or clock.now_utc()
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     sec = (now - dt).total_seconds()

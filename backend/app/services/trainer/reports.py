@@ -6,12 +6,13 @@ import re
 import uuid
 from collections.abc import Callable, Sequence
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.core.week import monday_of
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, HealthProfile,
@@ -467,7 +468,7 @@ def save_report_feedback(
     "저장한 적 없음" 으로 되돌리면 다음에 열 때 지운 문구가 되살아난다.
     """
     row = _report_feedback_row(db, trainer_id, member_id, week)
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     if row is None:
         row = TrainerReportFeedback(
             id=f"rfb-{uuid.uuid4().hex[:12]}",
@@ -728,7 +729,7 @@ def save_report_goals(
     if len(cleaned) > _MAX_REPORT_GOALS:
         raise HTTPException(status_code=422, detail="목표가 너무 많아요.")
 
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     row = db.scalar(
         select(TrainerReportGoal).where(
             TrainerReportGoal.member_id == member_id,

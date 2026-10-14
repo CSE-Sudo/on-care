@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.api.deps import RequireMember, RequireTrainer
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
 from app.db import seed_slots
@@ -58,7 +58,7 @@ def member_trainer_slots(
 ) -> list[TrainerSlotOut]:
     # 헬스장 탭의 예약 가능 시간도 상담 폼과 같은 자리를 본다 — 데모 트레이너의
     # 자리가 떨어졌으면 같은 규칙으로 다시 깐다(#2067).
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     if seed_slots.top_up_demo_slots(
         db,
         trainer_id,

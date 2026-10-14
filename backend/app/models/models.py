@@ -11,7 +11,7 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -2948,10 +2948,10 @@ class TrainerReportGoal(Base):
     #: 순서를 따로 들고 있어야 하는데, 이 목록은 언제나 통째로 읽고 통째로 쓴다.
     goals_json: Mapped[str] = mapped_column(Text, default="[]", server_default="[]")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: clock.now_utc()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: clock.now_utc()
     )
 
     __table_args__ = (

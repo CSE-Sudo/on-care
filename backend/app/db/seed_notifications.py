@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.core.clock import SEOUL
 from app.db.seed_trainer import TRAINER_NAME
 from app.models import models
@@ -176,7 +177,7 @@ def seed_demo_notifications(db: Session, user_id: str, *, now: datetime | None =
             )
         db.commit()
         return 0
-    base = now or datetime.now(timezone.utc)
+    base = now or clock.now_utc()
     for item in DEMO_NOTIFICATIONS:
         db.add(
             models.Notification(
@@ -238,7 +239,7 @@ def slide_demo_notifications(
     newest = next((r for r in rows if r.id == DEMO_NOTIFICATIONS[0].id), None)
     if newest is None:
         return False
-    now = now or datetime.now(timezone.utc)
+    now = now or clock.now_utc()
     created = newest.created_at
     if created.tzinfo is None:
         created = created.replace(tzinfo=timezone.utc)

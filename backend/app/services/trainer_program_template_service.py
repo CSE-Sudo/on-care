@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.models.models import TrainerProgramTemplate
 from app.schemas.trainer_api import (
     ProgramTemplateExercise,
@@ -75,7 +76,7 @@ class TemplateLimitReached(Exception):
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return clock.now_utc()
 
 
 def _exercises(raw: str) -> list[ProgramTemplateExercise]:

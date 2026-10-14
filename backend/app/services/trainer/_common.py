@@ -698,7 +698,7 @@ def _cancel_sessions_on_detach(
     rows = sessions_cancelled_on_detach(db, trainer_id, member_id)
     if not rows:
         return 0
-    cancelled_at = datetime.now(timezone.utc)
+    cancelled_at = clock.now_utc()
     for s in rows:
         s.status = SCHEDULE_CANCELLED
         s.cancelled_at = cancelled_at
@@ -756,7 +756,7 @@ def clear_sessions_on_withdrawal(db: Session, member_id: str) -> int:
       그 수업에 적은 메모는 지운다 — 가리는 것이 아니라 행에서 없앤다.
     """
     upcoming = sessions_cancelled_on_withdrawal(db, member_id)
-    cancelled_at = datetime.now(timezone.utc)
+    cancelled_at = clock.now_utc()
     for s in upcoming:
         s.status = SCHEDULE_CANCELLED
         s.cancelled_at = cancelled_at

@@ -9,6 +9,7 @@ from sqlalchemy import func, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.core.clock import SEOUL
 from app.core.config import get_settings
 from app.core.pagination import DEFAULT_PAGE
@@ -1441,7 +1442,7 @@ _GOAL_LABELS: dict[str, str] = {
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return clock.now_utc()
 
 
 def trainer_gym_id(db: Session, trainer_id: str) -> str | None:

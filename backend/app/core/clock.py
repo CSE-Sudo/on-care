@@ -27,6 +27,19 @@ def now() -> datetime:
     return datetime.now(SEOUL)
 
 
+def now_utc() -> datetime:
+    """지금 이 순간(UTC, tz-aware). 저장·만료 비교용 시각이다. (#3452)
+
+    [now] 를 거친다. 테스트가 `clock.now` 를 바꿔 끼우면 도메인 날짜와 순간이
+    함께 움직인다 — 예전에는 서비스가 `datetime.now(timezone.utc)` 를 직접 읽어,
+    날짜는 고정한 날인데 순간은 실제 시각인 채로 검증됐다.
+
+    인증 토큰의 발급·만료·폐기는 예외다. JWT 라이브러리가 `exp` 를 실제 시계로
+    검증하므로 그쪽(`core/security.py` 등)은 실제 시각을 직접 읽는다.
+    """
+    return now().astimezone(timezone.utc)
+
+
 def today() -> date:
     """KST 기준 오늘 날짜."""
     return now().date()
