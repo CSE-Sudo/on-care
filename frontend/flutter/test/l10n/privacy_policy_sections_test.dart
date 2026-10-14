@@ -100,6 +100,25 @@ void main() {
         contains('저장할 때마다'),
       );
     });
+
+    test('메일 발송(Gmail)을 위탁과 국외 이전에 함께 적는다 (#3443)', () {
+      // 운영 메일은 Gmail SMTP 로 나간다(#480). 가입 인증 코드·비밀번호 재설정·
+      // 로그인 이메일 변경 안내가 모두 같은 경로다.
+      final String body = ko.myLegalPrivacyBody(
+        LegalContact.privacyOfficerEmail,
+      );
+      expect(
+        body,
+        contains(
+          '- Google LLC: 가입 인증 코드, 비밀번호 재설정, 로그인 이메일 변경 인증·안내 메일 발송(Gmail)',
+        ),
+      );
+      expect(
+        body,
+        contains('⑤ Google LLC(Gmail) / 미국 등 Google이 운영하는 데이터센터 소재 국가 / '),
+      );
+      expect(body, contains('그 메일을 보내기 위해 ⑤로 전송됩니다'));
+    });
   });
 
   group('수집 항목이 실제와 맞다', () {
@@ -137,14 +156,15 @@ void main() {
       expect(koLines, <String>[koRevision]);
     });
 
-    test('미배포 판에 합쳐 시행일은 그대로다', () {
+    test('제외 사실은 2026-10-05 개정 이력에 남는다', () {
       // 2026-10-05 판(#3132)이 아직 배포되지 않아 같은 날짜 개정에 합쳤다.
-      // 시행일과 서버 동의 버전(`CURRENT_VERSIONS`)이 함께 2026-10-05 로 남는다.
+      // 그 뒤 메일 발송 위탁(#3443)으로 시행일이 2026-10-14 로 올랐지만
+      // 제외 사실은 2026-10-05 줄에 그대로 있다.
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('시행일: 2026년 10월 5일'),
+        contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'),
       );
-      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
+      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 14.');
     });
 
     test('이용약관에는 소셜 로그인 수단으로 네이버·애플이 없다', () {
@@ -192,13 +212,13 @@ void main() {
     test('시행일이 자리표시자(2026년 1월 1일)가 아니다', () {
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('시행일: 2026년 10월 5일'),
+        contains('시행일: 2026년 10월 14일'),
       );
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         isNot(contains('2026년 1월 1일')),
       );
-      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
+      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 14.');
     });
 
     test('개정 이력이 있다', () {
@@ -208,10 +228,11 @@ void main() {
       );
     });
 
-    test('보호책임자 연락처 변경이 개정 이력의 맨 위에 있다 (#3132)', () {
+    test('개정 이력은 최신순이고 맨 위가 메일 발송 위탁이다 (#3132·#3443)', () {
       final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
       expect(k, contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'));
       // 새 항목이 옛 항목보다 앞에 온다 — 개정 이력은 최신순이다.
+      expect(k.indexOf('2026년 10월 14일:'), lessThan(k.indexOf('2026년 10월 5일:')));
       expect(k.indexOf('2026년 10월 5일:'), lessThan(k.indexOf('2026년 10월 3일:')));
     });
 

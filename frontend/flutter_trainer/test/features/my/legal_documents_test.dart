@@ -96,7 +96,7 @@ void main() {
       }
       expect(body, isNot(contains('2026년 1월 1일')));
       // 머리글 부제와 본문 아래 두 곳 모두 처리방침의 시행일이다.
-      expect(find.text('시행일 2026. 10. 05.'), findsWidgets);
+      expect(find.text('시행일 2026. 10. 14.'), findsWidgets);
       // 보호책임자 연락처 자리에 팀 수신 주소가 채워진다(#3132).
       expect(body, contains('연락처: sudo.capstone@gmail.com'));
       expect(body, isNot(contains('{contact}')));
@@ -111,9 +111,10 @@ void main() {
         at: AppRoutes.legalDocument('terms'),
       );
 
-      // 처리방침만 연락처 변경(#3132)·위치정보 안내(#3136)로 시행일이 올랐다 — 약관은 그대로다.
+      // 처리방침만 연락처 변경(#3132)·위치정보 안내(#3136)·메일 발송 위탁(#3443)으로
+      // 시행일이 올랐다 — 약관은 그대로다.
       expect(find.text('시행일 2026. 10. 03.'), findsWidgets);
-      expect(find.text('시행일 2026. 10. 05.'), findsNothing);
+      expect(find.text('시행일 2026. 10. 14.'), findsNothing);
       expect(find.text('시행일 2026. 10. 01.'), findsNothing);
       expect(_bodyText(tester), contains('제13조 (분쟁 해결과 관할)'));
     });
