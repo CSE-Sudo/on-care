@@ -14,7 +14,7 @@
 [![소개 페이지](https://img.shields.io/badge/INTRO_PAGE-소개_페이지-6B7280?style=for-the-badge&logo=googlechrome&logoColor=white)](https://cse-sudo.github.io/on-care/)
 [![사용자 앱](https://img.shields.io/badge/APP-사용자-3eafdf?style=for-the-badge&logo=flutter&logoColor=white)](https://cse-sudo.github.io/on-care/member/#/dashboard)
 [![트레이너 웹](https://img.shields.io/badge/WEB-트레이너-235C88?style=for-the-badge&logo=safari&logoColor=white)](https://cse-sudo.github.io/on-care/trainer/)
-[![데모 영상](https://img.shields.io/badge/YOUTUBE-데모_영상-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/C4ivM_dlAww?si=8iOWmOpSxcpQmlU3)
+[![소개 영상](https://img.shields.io/badge/YOUTUBE-소개_영상-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/UjQv-CDadok)
 
 <br/>
 
@@ -28,7 +28,7 @@
 
 **On-Care**는 헬스 트레이너와 회원 사이의 식단·운동 관리 소통을 자동화하는 플랫폼입니다. 회원이 음식 사진 한 장·간단한 입력만 하면 앱이 식단과 운동을 회원별·날짜별로 정리해 트레이너에게 전달하고, 트레이너는 흩어진 메시지를 뒤지는 대신 정리된 리포트 위에서 코칭합니다.
 
-**타깃 유저**는 **PT를 이용하는 회원과 이들을 관리하는 트레이너**입니다. PT의 성과는 주 1~2회 대면 세션이 아니라 **세션과 세션 사이의 식단·운동 관리**에서 갈리지만, 정작 그 구간은 개인 메신저에 맡겨져 있습니다. On-Care는 트레이너의 관리를 세션 밖으로 확장하는 것을 목표로 합니다.
+**타깃 유저**는 **PT를 이용하는 회원과 이들을 관리하는 트레이너**입니다. PT의 성과는 주 1~2회 대면 수업이 아니라 **수업과 수업 사이의 식단·운동 관리**에서 갈리지만, 정작 그 구간은 개인 메신저에 맡겨져 있습니다. On-Care는 트레이너의 관리를 수업 밖으로 확장하는 것을 목표로 합니다.
 
 | 구성 | 내용 |
 | --- | --- |
@@ -80,7 +80,7 @@
 
 **회원의 식단·운동 기록 → 자동 정리 → 트레이너 확인 및 코칭 → 회원에게 피드백·프로그램 반영**
 
-트레이너를 AI로 대체하는 것이 아니라, **대면 세션에서 끝나던 트레이너의 관리를 회원의 일상 기록과 연결해 세션 사이까지 이어지게 하는 것**이 On-Care의 핵심입니다.
+트레이너를 AI로 대체하는 것이 아니라, **대면 수업에서 끝나던 트레이너의 관리를 회원의 일상 기록과 연결해 수업 사이까지 이어지게 하는 것**이 On-Care의 핵심입니다.
 
 <sub>
 Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) ·
@@ -113,11 +113,11 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 <tbody>
 <tr>
 <td>📷 <b>간편 식단 기록</b></td>
-<td>음식 사진을 찍으면 AI(VLM)가 음식과 양을 추정하고, 식약처 공공 DB의 영양성분 참고값을 조회해 나트륨·칼로리·당 추정치를 제공합니다. 완벽한 자동 계산이 아니라 기록 부담을 없애는 것이 목적이며, <b>최종 값은 회원·트레이너가 확인·보정</b>해 신뢰도를 높입니다.</td>
+<td>음식 사진을 찍으면 AI(VLM)가 음식과 양을 추정하고, <b>공공 영양성분 DB</b>(농촌진흥청 국가표준식품성분표 우선 · 식약처 식품영양성분 DB)에서 정리한 공공 표준 음식 2,130개와 맞춰 칼로리·단백질·나트륨·당류 추정치를 보정합니다. 확신할 만한 짝이 없으면 억지로 맞추지 않고 AI 추정을 그대로 둡니다. 완벽한 자동 계산이 아니라 기록 부담을 없애는 것이 목적이며, <b>최종 값은 회원·트레이너가 확인·보정</b>해 신뢰도를 높입니다.</td>
 </tr>
 <tr>
 <td>🏋️ <b>운동 기록 자동 연동</b></td>
-<td>트레이너가 배정한 루틴이 회원 앱에 그대로 뜨고, 수행·완료가 다시 트레이너에게 돌아갑니다. 회원이 일일이 적지 않아도 데이터가 쌓입니다.</td>
+<td>트레이너가 배정한 루틴과 추천 개인운동이 회원 앱에 그대로 뜨고, 수행·완료가 다시 트레이너에게 돌아갑니다. 회원이 직접 남기는 운동은 한국건강증진개발원 운동 MET 데이터(376개 종목)로 <b>MET × 체중 × 시간</b>을 계산해 소모 칼로리를 채웁니다.</td>
 </tr>
 <tr>
 <td>📊 <b>자동 요약 리포트</b></td>
@@ -150,7 +150,7 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 
 ## Diet Recognition Pipeline
 
-사진에서 시작해 Vision AI가 음식과 양을 추정하고, **식약처 공공 영양성분 참고값**으로 추정치를 보정한 뒤, 구조화된 기록과 트레이너 리포트로 이어집니다. 마지막 값을 확정하는 것은 AI가 아니라 **회원과 트레이너**입니다.
+사진에서 시작해 Vision AI가 음식과 양을 추정하고, **공공 영양성분 DB**(농촌진흥청 국가표준식품성분표 우선 · 식약처 식품영양성분 DB, 공공 표준 음식 2,130개)로 칼로리·단백질·나트륨·당류 추정치를 보정한 뒤, 구조화된 기록과 트레이너 리포트로 이어집니다. 확신할 만한 짝이 없으면 AI 추정을 그대로 둡니다(오탐보다 폴백). 마지막 값을 확정하는 것은 AI가 아니라 **회원과 트레이너**입니다.
 
 <div align="center">
 <img src="docs/assets/diagram-diet-pipeline.svg" alt="Diet Recognition Pipeline" width="100%" />
@@ -178,9 +178,9 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 <tr><td><b>Frontend</b></td><td>Flutter · Dart · Riverpod · GoRouter (회원 앱(모바일) · 트레이너 웹 — 분리된 코드베이스, 아키텍처 패턴 미러링)</td></tr>
 <tr><td><b>Backend</b></td><td>FastAPI · SQLAlchemy · Alembic · JWT · Docker</td></tr>
 <tr><td><b>Database</b></td><td>PostgreSQL (Neon) · pgvector (식단 사진 축소본도 DB 에 저장) · 첨부 저장소 S3(운영) · 로컬 디스크(개발) (채팅 이미지, 주간 리포트 PDF)</td></tr>
-<tr><td><b>AI</b></td><td>Vision AI(VLM) 식단 인식 · LLM 코칭 · 임베딩 모델(768차원) + pgvector 벡터 검색 기반 RAG · 식약처 공공 영양성분 DB 매칭</td></tr>
+<tr><td><b>AI</b></td><td>Vision AI(VLM) 식단 인식 · LLM 코칭 · 임베딩 모델(768차원) + pgvector 벡터 검색 기반 RAG · 공공 영양성분 DB(농진청·식약처) 매칭 · 운동 MET 기반 칼로리 계산</td></tr>
 <tr><td><b>Infra</b></td><td>백엔드 AWS ECR + ECS Express Mode(Fargate, staging·production) · 프론트 GitHub Pages(데모, 커스텀 도메인) · 프론트 AWS S3 + CloudFront(<code>aws-frontend-deploy.yml</code>, 저장소 변수로 켬) · GitHub Actions (CI/CD)</td></tr>
-<tr><td><b>External API</b></td><td>카카오 (지도 JS SDK · 로컬 장소 검색) · 소셜 로그인 (카카오 · 구글) · 공공데이터포털 (식약처 영양성분 · 한국건강증진개발원 운동 MET — KOGL 제4유형)</td></tr>
+<tr><td><b>External API</b></td><td>카카오 (지도 JS SDK · 로컬 장소 검색) · 소셜 로그인 (카카오 · 구글) · 공공데이터 (농촌진흥청 국가표준식품성분표 · 식약처 식품영양성분 DB · 한국건강증진개발원 운동 MET — KOGL 제4유형)</td></tr>
 </tbody>
 </table>
 
@@ -201,7 +201,8 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 <tr><td><code>infra/</code></td><td>배포용 CloudFormation 템플릿</td></tr>
 <tr><td><code>docs/</code></td><td>현행 문서</td></tr>
 <tr><td><code>docs/archive/</code></td><td>캡스톤 스타트 단계 보존용 기록 — <b>현재 기준이 아님</b></td></tr>
-<tr><td><code>index.html</code></td><td>소개 페이지 (GitHub Pages)</td></tr>
+<tr><td><code>index.html</code></td><td>소개 페이지 (GitHub Pages · AWS 프론트 배포 공통) — 이미지는 <code>docs/assets/landing/</code></td></tr>
+<tr><td><code>legal/</code></td><td>공개 개인정보 처리방침·약관 — 두 앱 문서에서 <code>tool/legal/</code> 생성기로 만듦</td></tr>
 </tbody>
 </table>
 
@@ -209,15 +210,15 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 
 ## Competitive Analysis
 
-| 항목 | 필라이즈 | 밀리그램·인아웃 | **On-Care** |
-| --- | :---: | :---: | :---: |
-| **식단 기록** | 사진 AI 인식 | 사진·빠른 입력 | **사진 → 공공 영양 DB 매칭** |
-| **트레이너 연동** | 앱 내 AI 코치만 | 없음 | **회원 데이터 자동 정리 → 트레이너 전달** |
-| **회원 관리 확장성** | 없음 | 없음 | **1인이 다수 회원을 데이터로 관리** |
-| **세션 밖 코칭** | AI 응답만 | 없음 | **담당 트레이너의 실제 코칭이 앱으로 연장** |
-| **데이터 흐름** | 개인 앱 내 완결 | 개인 앱 내 완결 | **회원 ↔ 트레이너 양방향** |
+| 항목 | 필라이즈 | 바디코디 | 운동닥터 | 카카오톡 | **On-Care** |
+| --- | :---: | :---: | :---: | :---: | :---: |
+| **대상과 형태** | 개인 앱 | 센터·강사·회원 웹과 앱 | 트레이너·회원 앱 | 누구나 앱·PC | **PT 회원·트레이너 앱과 웹** |
+| **사진 식단 분석** | ○ AI 분석 | ○ AI 분석 | × 식단 기능 없음 | × 사진만 전송 | **○ AI 인식 + 식약처·농진청 DB 보정** |
+| **트레이너와 기록 공유** | × 개인용 기록 | ○ 식단·루틴 공유 | △ 수업 일지만 | △ 대화 속에 흩어짐 | **○ 회원별·날짜별 정리** |
+| **관리 필요 회원 알림** | × 개인 목표 중심 | △ AI 브리핑: 만료·미출석 | × 수업 일정 알림 | × 직접 찾아 확인 | **○ 기록 중단·목표 이탈** |
+| **AI 추천과 트레이너 승인** | × AI가 회원에게 직접 | × 강사가 직접 작성 | × AI 기능 없음 | × AI는 개인 대화용 | **○ AI 추천 → 트레이너 승인 후 회원에게** |
 
-> 기존 서비스는 회원 개인의 기록에서 끝납니다. On-Care는 그 기록을 **트레이너의 코칭 자원으로 연결**하는 흐름 자체가 차별점입니다.
+> 같은 기능도 관리 기준과 코칭 전달 방식에 따라 다르게 작동합니다. On-Care는 기록 중단과 목표 이탈을 먼저 발견하고, **트레이너가 승인한 루틴으로 연결**합니다.
 
 ---
 
@@ -258,7 +259,7 @@ On-Care의 **핵심 타깃**은 **PT를 이용하는 회원과 이들을 관리�
 
 <div align="center">
 
-<img src="docs/assets/oncare-logo.png" alt="On-Care" width="56" />
+<img src="docs/assets/oncare-logo-navy.png" alt="On-Care" width="56" />
 
 **2026 이화여자대학교 캡스톤디자인**
 
