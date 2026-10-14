@@ -964,6 +964,36 @@ abstract class AppLocalizations {
   /// **'앨범·카메라·파일에서 음식 사진 선택'**
   String get dietAddPhotoSub;
 
+  /// No description provided for @dietSamplePhoto.
+  ///
+  /// In ko, this message translates to:
+  /// **'샘플 사진으로 체험'**
+  String get dietSamplePhoto;
+
+  /// No description provided for @dietSamplePhotoSub.
+  ///
+  /// In ko, this message translates to:
+  /// **'준비된 음식 사진을 골라 분석 결과 보기'**
+  String get dietSamplePhotoSub;
+
+  /// No description provided for @dietSamplePhotoBack.
+  ///
+  /// In ko, this message translates to:
+  /// **'다른 방법으로 추가'**
+  String get dietSamplePhotoBack;
+
+  /// No description provided for @dietExampleResultTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진을 분석하지 않은 예시 결과예요'**
+  String get dietExampleResultTitle;
+
+  /// No description provided for @dietExampleResultMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'체험 버전은 샘플 사진을 골라야 사진에 맞는 결과가 나와요'**
+  String get dietExampleResultMessage;
+
   /// No description provided for @dietPhotoLoadError.
   ///
   /// In ko, this message translates to:
@@ -5413,7 +5443,7 @@ abstract class AppLocalizations {
   /// No description provided for @authDemoAction.
   ///
   /// In ko, this message translates to:
-  /// **'로그인 없이 데모 둘러보기'**
+  /// **'회원 체험하기'**
   String get authDemoAction;
 
   /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).

@@ -22,6 +22,7 @@ import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_accounts.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
+import 'package:oncare/core/demo/demo_sample_meals.dart';
 import 'package:oncare/core/demo/diet_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
@@ -134,7 +135,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   List<RoutineAdviceDay> Function(DateTime from, DateTime to)? routineDays;
 
   /// 데모 인식기가 이 사진에서 음식을 찾았는지(#2848). 목업은 사진을 볼 수
-  /// 없어 기본은 "찾았다"(고정 요거트 볼)다. 실서버처럼 음식이 없는 사진을
+  /// 없어 기본은 "찾았다"(샘플 사진의 끼니나 끼니별 예시, #3423)다. 실서버처럼 음식이 없는 사진을
   /// 흉내 낼 때(테스트·시연) false 를 돌려주면 끼니·포인트 없이
   /// 422 `no_food_detected` 로 거절한다.
   bool Function(Uint8List? photoBytes)? demoPhotoHasFood;

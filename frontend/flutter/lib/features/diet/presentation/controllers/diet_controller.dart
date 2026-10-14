@@ -1,8 +1,10 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/demo/demo_sample_meals.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart';
 import 'package:oncare/features/diet/data/sources/image_picker_meal_photo_picker.dart';
@@ -37,6 +39,26 @@ final mealPhotoPickerProvider = Provider<MealPhotoPicker>((ref) {
 final mealPhotoChoiceLayoutProvider = Provider<MealPhotoChoiceLayout>((ref) {
   return MealPhotoChoiceLayout.forPlatform(isWeb: kIsWeb);
 }, name: 'mealPhotoChoiceLayout');
+
+/// 식단 추가 시트가 내놓는 데모 샘플 사진의 끼니(#3423). 비어 있으면(기본값)
+/// 시트에 샘플 갈래가 없다. 앱이 기동할 때 [demoSampleMealsFor] 의 값으로 덮는다.
+final demoSampleMealsProvider = Provider<List<FixtureMeal>>((ref) {
+  return const <FixtureMeal>[];
+}, name: 'demoSampleMeals');
+
+/// 이 설정에서 내놓을 데모 샘플 사진의 끼니(#3423).
+///
+/// 목업은 사진을 볼 수 없어, 고르면 결과가 사진과 맞는 사진을 따로 내놓는다.
+/// 사진 분석이 실서버로 가는 설정(실서버 모드·`REAL_API=diet`)에는 없다 —
+/// 거기서는 올린 사진을 실제로 읽는다. 운영 빌드는 [kDemoCodeIncluded] 가
+/// 상수 false 라 픽스처째 번들에서 빠진다(#3157).
+List<FixtureMeal> demoSampleMealsFor(AppConfig config) {
+  if (!kDemoCodeIncluded) return const <FixtureMeal>[];
+  if (!config.useMockApi || config.isRealApi('POST', '/diet/analyze')) {
+    return const <FixtureMeal>[];
+  }
+  return demoSampleMeals;
+}
 
 final dietTodayProvider = FutureProvider<DietDay>((ref) {
   return ref.watch(dietRepositoryProvider).fetchToday();

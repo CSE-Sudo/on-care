@@ -17,6 +17,7 @@ import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 import 'package:oncare/core/storage/seed_data.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_core/licenses.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -107,6 +108,7 @@ Future<void> bootstrap() async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         appDatabaseProvider.overrideWithValue(db),
         demoBenefitsStoreProvider.overrideWithValue(benefits),
+        demoSampleMealsProvider.overrideWithValue(demoSampleMealsFor(config)),
         sessionFeatureResetOverride(),
         // 최소 지원 버전 확인(#3045)은 모바일 빌드만 — 웹은 배포하면 곧 새 빌드다.
         appVersionCheckEnabledProvider.overrideWithValue(

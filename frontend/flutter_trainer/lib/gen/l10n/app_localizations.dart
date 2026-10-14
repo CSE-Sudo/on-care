@@ -487,7 +487,7 @@ abstract class AppLocalizations {
   /// No description provided for @authDemoAction.
   ///
   /// In ko, this message translates to:
-  /// **'로그인 없이 데모 둘러보기'**
+  /// **'트레이너 체험하기'**
   String get authDemoAction;
 
   /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).

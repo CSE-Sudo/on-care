@@ -491,6 +491,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddPhotoSub => '앨범·카메라·파일에서 음식 사진 선택';
 
   @override
+  String get dietSamplePhoto => '샘플 사진으로 체험';
+
+  @override
+  String get dietSamplePhotoSub => '준비된 음식 사진을 골라 분석 결과 보기';
+
+  @override
+  String get dietSamplePhotoBack => '다른 방법으로 추가';
+
+  @override
+  String get dietExampleResultTitle => '사진을 분석하지 않은 예시 결과예요';
+
+  @override
+  String get dietExampleResultMessage => '체험 버전은 샘플 사진을 골라야 사진에 맞는 결과가 나와요';
+
+  @override
   String get dietPhotoLoadError => '사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
@@ -3022,7 +3037,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSignUpAction => '회원가입';
 
   @override
-  String get authDemoAction => '로그인 없이 데모 둘러보기';
+  String get authDemoAction => '회원 체험하기';
 
   @override
   String get authSocialDivider => 'SNS 계정으로 로그인';

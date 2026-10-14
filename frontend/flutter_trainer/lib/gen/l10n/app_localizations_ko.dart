@@ -219,7 +219,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSignUpAction => '회원가입';
 
   @override
-  String get authDemoAction => '로그인 없이 데모 둘러보기';
+  String get authDemoAction => '트레이너 체험하기';
 
   @override
   String get authSocialDivider => 'SNS 계정으로 로그인';
