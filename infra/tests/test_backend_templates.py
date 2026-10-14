@@ -254,12 +254,25 @@ def test_github_deploy_role_backup_permissions_are_production_only_and_narrow() 
     # 운영 배포 직전 DB 백업(#1552): 백업 작업 하나를 띄우고 지켜보고 덤프 목록만 본다.
     _, production = _deploy_role_statements()
     assert set(production) == {
-        "RunBackupTask", "WatchBackupTask", "PassBackupTaskRoles", "CheckBackupObject", "ReadBackupLogs",
+        "RunBackupTask", "WatchBackupTask", "StopBackupTask", "PassBackupTaskRoles", "CheckBackupObject",
+        "ReadBackupLogs",
     }
+    cluster = {"ArnEquals": {"ecs:cluster": {
+        "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${ServiceClusterName}"
+    }}}
     run = production["RunBackupTask"]
     assert run["Action"] == "ecs:RunTask"
     assert run["Resource"]["Fn::Sub"].endswith(":task-definition/oncare-backend-${EnvironmentName}-db-backup:*")
-    assert sorted(as_list(production["WatchBackupTask"]["Action"])) == ["ecs:DescribeServices", "ecs:DescribeTasks"]
+    # 서비스 클러스터에서만 띄우고 멈출 수 있다.
+    assert run["Condition"] == cluster
+    stop = production["StopBackupTask"]
+    assert stop["Action"] == "ecs:StopTask"
+    assert stop["Condition"] == cluster
+    watch = production["WatchBackupTask"]
+    assert sorted(as_list(watch["Action"])) == ["ecs:DescribeServices", "ecs:DescribeTasks"]
+    for resource in as_list(watch["Resource"]) + [stop["Resource"]]:
+        assert ":${ServiceClusterName}/" in resource["Fn::Sub"].replace("service/", ":").replace("task/", ":")
+    assert ENVIRONMENT["Parameters"]["ServiceClusterName"]["Default"] == "default"
     passes = production["PassBackupTaskRoles"]
     assert passes["Resource"] == [
         {"Fn::GetAtt": ["TaskExecutionRole", "Arn"]},

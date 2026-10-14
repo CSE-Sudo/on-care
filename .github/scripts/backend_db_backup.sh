@@ -87,21 +87,35 @@ fi
 task_id="${task_arn##*/}"
 echo "백업 작업 시작: $task_arn → s3://$bucket/$key" >&2
 
+# 시간 초과·조회 오류·잡 취소로 여기서 끝나면 작업을 멈춘다 — 다시 돌릴 때 백업이 겹쳐 DB 부하와
+# Fargate 요금이 쌓이지 않게.
+task_stopped=0
+stop_task() {
+  [ "$task_stopped" = "1" ] && return 0
+  echo "백업 작업을 멈춥니다: $task_arn" >&2
+  aws ecs stop-task --cluster "$cluster" --task "$task_arn" \
+    --reason "deploy backup step ended" > /dev/null 2>&1 || true
+}
+trap stop_task EXIT
+
+# 마감은 실제 경과 시간으로 잰다(AWS 호출 시간 포함).
 wait_seconds="${BACKUP_WAIT_SECONDS:-1800}"
 poll="${BACKUP_POLL_SECONDS:-10}"
-elapsed=0
+deadline=$((SECONDS + wait_seconds))
 while :; do
   state="$(aws ecs describe-tasks --cluster "$cluster" --tasks "$task_arn" \
     --query "tasks[0].[lastStatus, containers[?name=='$CONTAINER'] | [0].exitCode, stoppedReason]" \
     --output text)"
   IFS=$'\t' read -r status exit_code reason <<< "$state"
-  [ "$status" = "STOPPED" ] && break
-  if [ "$elapsed" -ge "$wait_seconds" ]; then
+  if [ "$status" = "STOPPED" ]; then
+    task_stopped=1
+    break
+  fi
+  if [ "$SECONDS" -ge "$deadline" ]; then
     echo "::error::백업 작업이 ${wait_seconds}초 안에 끝나지 않았습니다(상태 ${status:-알 수 없음}). 배포를 멈춥니다." >&2
     exit 1
   fi
   sleep "$poll"
-  elapsed=$((elapsed + poll))
 done
 
 if [ "$exit_code" != "0" ]; then

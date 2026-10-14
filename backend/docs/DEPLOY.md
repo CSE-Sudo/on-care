@@ -69,7 +69,7 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 | 주체 | 믿는 OIDC subject | 할 수 있는 일 |
 |---|---|---|
 | 이미지 푸시 역할(bootstrap) | `repo:…:ref:refs/heads/main` | ECR `oncare-backend` 에 이미지 푸시·digest 조회만 |
-| 배포 역할(env, 환경마다) | `repo:…:environment:<environment>` | 그 환경 서비스 스택의 변경 세트 생성·실행, CloudFormation 서비스 역할 넘기기만. 운영만: 백업 작업 띄우기·조회, 백업 버킷 `db/` 목록, 백업 로그 읽기(#1552) |
+| 배포 역할(env, 환경마다) | `repo:…:environment:<environment>` | 그 환경 서비스 스택의 변경 세트 생성·실행, CloudFormation 서비스 역할 넘기기만. 운영만: 서비스 클러스터에서 백업 작업 띄우기·조회·멈추기, 백업 버킷 `db/` 목록, 백업 로그 읽기(#1552) |
 | CloudFormation 서비스 역할(env) | — (cloudformation.amazonaws.com) | ECS Express 서비스 갱신, 태스크·실행·인프라 역할 넘기기 |
 | 태스크 역할(env) | — (ecs-tasks) | 그 환경 첨부 버킷의 `<접두사>/*` 읽기·쓰기·지우기와 접두사 목록 |
 | 실행 역할(env) | — (ecs-tasks) | 이미지 pull, 로그, `oncare/backend/<environment>-*` 비밀 읽기 |
@@ -292,7 +292,7 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 - 작업은 서비스와 같은 Secrets Manager 비밀의 `DATABASE_URL` 만 받는다 — 운영 DB 자격 증명을 GitHub 에 따로
   두지 않는다. 작업 역할은 백업 버킷 `db/*` 에 올리기만 할 수 있다.
 - **백업이 실패하면 production 배포를 멈춘다** — 작업을 못 띄움, 종료 코드가 0 이 아님, 30분 안에 끝나지 않음,
-  S3 에 덤프가 없거나 0바이트. 잡 요약에 덤프 키나 실패가 남고, 실패하면 작업 로그 끝부분을 잡 로그에 붙인다
+  S3 에 덤프가 없거나 0바이트. 시간 초과·잡 취소면 띄운 작업을 멈춘다. 잡 요약에 덤프 키나 실패가 남고, 실패하면 작업 로그 끝부분을 잡 로그에 붙인다
   (로그 그룹 `/oncare/backend/production/db-backup`, 30일 보관). staging 은 백업하지 않는다.
 - 백업 버킷은 퍼블릭 차단·SSE-S3·TLS 전용이고, 덤프는 `BackupRetentionDays`(환경 스택 파라미터, 기본 30일) 뒤
   자동으로 지운다. 버전 관리는 켜지 않는다(켜면 만료된 덤프가 이전 버전으로 남는다).
@@ -322,7 +322,7 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 - [x] `infra/backend-environment.yml` 에 백업 S3 버킷을 더한다 — SSE-S3, 퍼블릭 액세스 전부 차단, TLS 만 허용하는
       버킷 정책, 30일(`BackupRetentionDays`) 뒤 자동 삭제. 리전은 백엔드·Neon 과 같은 `ap-southeast-1`.
 - [x] 백업 작업 역할(`BackupTaskRole`)에 백업 버킷 `db/*` 의 `s3:PutObject` 만 준다. 운영 배포 역할에는 그 작업을
-      띄우는 `ecs:RunTask`(백업 작업 정의만)·`ecs:DescribeTasks`·`ecs:DescribeServices` 와 실행·백업 작업 역할
+      띄우고 멈추는 `ecs:RunTask`(백업 작업 정의만)·`ecs:StopTask`·`ecs:DescribeTasks`·`ecs:DescribeServices`(모두 서비스 클러스터 `ServiceClusterName`, 기본 `default` 한정) 와 실행·백업 작업 역할
       `iam:PassRole`, 덤프 확인용 `s3:ListBucket`(`db/*`), 실패 로그용 `logs:GetLogEvents` 를 더한다.
 - [x] 백엔드 `Dockerfile` 에 `postgresql-client` 를 설치한다(PGDG, `PG_CLIENT_MAJOR=18`).
 - [x] `.github/workflows/backend-deploy-service.yml` 에서 production 일 때만 `Record rollback point` 다음,

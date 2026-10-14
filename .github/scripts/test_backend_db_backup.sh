@@ -95,6 +95,15 @@ FAKE_SIZE=None check "작업은 끝났지만 덤프가 없음" 1 "" run oncare-b
 FAKE_SIZE=0 check "빈 덤프" 1 "" run oncare-backend-production "$SHA"
 FAKE_RUN_FAILURES=1 FAKE_RUN_REASON=RESOURCE:ENI FAKE_TASK_ARN=None check "작업을 띄우지 못함" 1 "" run oncare-backend-production "$SHA"
 FAKE_RUNNING_POLLS=100 BACKUP_WAIT_SECONDS=0 check "시간 안에 끝나지 않음" 1 "" run oncare-backend-production "$SHA"
+expect_log "시간 초과면 작업을 멈춤" "ecs stop-task --cluster default --task $TASK_ARN"
+
+# 끝난 작업은 멈추지 않는다
+FAKE_RUNNING_POLLS=1 check "성공(멈춤 호출 확인용)" 0 "$KEY_RE" run oncare-backend-production "$SHA"
+if grep -q "ecs stop-task" "$work/log"; then
+  echo "FAIL: 이미 끝난 작업에 stop-task 를 불렀습니다"; failures=$((failures + 1))
+else
+  echo "ok:   끝난 작업은 멈추지 않음"
+fi
 FAKE_NETWORK='null' check "서비스 네트워크를 못 읽음" 1 "" run oncare-backend-production "$SHA"
 FAKE_SERVICE_ARN='None' check "서비스 ARN 을 못 읽음" 1 "" run oncare-backend-production "$SHA"
 FAKE_TASK_DEF='None' check "백업 작업 정의 없는 스택은 종료 코드 3" 3 "" run oncare-backend-production "$SHA"
