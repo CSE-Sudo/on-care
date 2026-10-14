@@ -43,8 +43,12 @@ from app.services import ai_call_quota
 from app.services import diet_coach_inputs as inputs
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.coach.llm_base import is_truncated, output_cap
-from app.services.coach.prompt_rules import MEMBER_AUDIENCE
-from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
+from app.services.coach.prompt_rules import MEDICAL_GUARD, MEMBER_AUDIENCE
+from app.services.coach.prompt_safety import (
+    FOOD_NAME_GUARD,
+    HEALTH_NOTE_GUARD,
+    TRAINER_DIET_GUARD,
+)
 from app.services.ai_log import log_ai_fallback
 
 logger = logging.getLogger(__name__)
@@ -468,9 +472,9 @@ def build_prompt(
         f"{tags}\n"
         f"5. keyword 는 추천 이유를 한눈에 보여 주는 말(예: 저나트륨, 고단백), {KEYWORD_MAX}자 이내.\n"
         "6. kcal·protein_g·sodium_mg 는 1인분 기준 추정 정수다.\n"
-        "7. 의학적 진단·치료를 단정하지 않는다. 식단 제안에 그친다.\n"
+        f"7. {MEDICAL_GUARD} 식단 제안에 그친다.\n"
         "8. name 과 keyword 는 한국어로 쓴다.\n"
-        f"{TRAINER_DIET_GUARD}\n{FOOD_NAME_GUARD}\n"
+        f"{TRAINER_DIET_GUARD}\n{FOOD_NAME_GUARD}\n{HEALTH_NOTE_GUARD}\n"
         'JSON 만 출력한다: {"items":[{"slot":"breakfast","name":"...","tag":"...",'
         '"keyword":"...","kcal":0,"protein_g":0,"sodium_mg":0}]}'
     )

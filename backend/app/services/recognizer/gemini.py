@@ -23,37 +23,12 @@ from app.schemas.diet import DietAnalysis
 from app.services import ai_call_quota
 from app.services.coach.llm import gemini_truncated
 from app.services.coach.llm_base import output_cap
-from app.services.coach.prompt_rules import MEMBER_AUDIENCE
 from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
 from app.services.recognizer.parse import parse_payload
+from app.services.recognizer.prompt import RECOGNITION_PROMPT
 
-_PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
-설명, 마크다운, 코드블록 없이 순수 JSON만 출력합니다.
-
-{
-  "foods": [
-    {
-      "name": "음식 이름(한국어)",
-      "amount_g": 사진에 담긴 양(g),
-      "calories": 예상 칼로리 정수(kcal),
-      "carbs_g": 예상 탄수화물(g),
-      "protein_g": 예상 단백질(g),
-      "fat_g": 예상 지방(g),
-      "sodium_mg": 예상 나트륨 정수(mg),
-      "sugar_g": 예상 당류 정수(g),
-      "confidence": 0.0~1.0 인식 확신도
-    }
-  ],
-  "coach_comment": \"""" + MEMBER_AUDIENCE + """의 식단 목표(칼로리·단백질·나트륨·당류) 관점의 식단평. 넘치거나 모자란 영양을 짚고, 장단점과 구체적 개선 제안(예: '국물을 남기세요', '단백질 반찬을 더하세요')을 2~3문장으로 친절하게 한국어로. 질환 이름을 꺼내거나 진단하지 마세요."
-}
-
-음식이 여러 개면 foods 에 모두 넣으세요. 모르는 값은 null 로 두세요.
-사진에 음식이 보이지 않으면(풍경·사람·빈 그릇 등) 음식을 지어내지 말고 foods 를
-빈 배열 [] 로 두세요.
-amount_g 는 **사진에 실제로 담긴 양**을 그램으로 추정하세요(그릇 크기·조각 수를
-근거로). 공공 영양 DB 가 100g 당 값을 갖고 있어 이 값으로 환산합니다 — 영양
-수치보다 이쪽이 더 중요합니다.
-나트륨·당류는 회원의 일일 목표와 비교하는 값이니 신중히 추정하세요."""
+#: 인식 프롬프트는 엔진과 무관하게 하나다(#1642).
+_PROMPT = RECOGNITION_PROMPT
 
 
 class GeminiVisionRecognizer(FoodRecognizer):

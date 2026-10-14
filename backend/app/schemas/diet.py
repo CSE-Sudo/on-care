@@ -56,7 +56,7 @@ class DietAnalysis(BaseModel):
     total_fat_g: float = 0.0
     total_sodium_mg: int = 0
     total_sugar_g: float = 0.0
-    # 나트륨·당류를 중심으로 한 식단평
+    # 식단을 보는 네 축(칼로리·단백질·나트륨·당류) 관점의 식단평
     coach_comment: str = ""
     latency_ms: Optional[int] = None
     raw_model_output: Optional[str] = None

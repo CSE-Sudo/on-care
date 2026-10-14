@@ -21,8 +21,8 @@ enum _Field { email, password }
 /// Trainer login screen — email/password login. Layout follows the shared
 /// [AppAuthLayout]. Wired to [SessionController].
 ///
-/// "로그인 없이 데모 둘러보기" 진입은 화면에서 내렸다. 코드는 지우지 않고
-/// [AppConfig.showDemoEntry] 로 감춰 두었으므로, 다시 열려면
+/// 로그인 없이 들어가는 `트레이너 체험하기` 진입은 화면에서 내렸다. 코드는 지우지
+/// 않고 [AppConfig.showDemoEntry] 로 감춰 두었으므로, 다시 열려면
 /// `--dart-define=SHOW_DEMO_ENTRY=true` 로 빌드한다. (#1526)
 class TrainerSignInPage extends ConsumerStatefulWidget {
   /// Creates the trainer login screen.
@@ -246,6 +246,32 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
+            // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
+            // 데모 배포는 이 플래그를 켠다(#3423). 처음 온 사람이 계정 없이
+            // 바로 들어가는 문이라 로그인 칸보다 위에 크게 둔다.
+            if (ref.watch(appConfigProvider).showDemoEntry) ...<Widget>[
+              AppButton(
+                key: const Key('demoEnterButton'),
+                label: l.authDemoAction,
+                onPressed: _loading ? null : _enterDemo,
+                variant: AppButtonVariant.brandOutline,
+                size: OnCareButtonSize.large,
+                fullWidth: true,
+              ),
+              // 배포 데모는 두 앱이 각자 브라우저 안의 예시 데이터로 돈다 —
+              // 한쪽에서 남긴 기록이 다른 쪽에 보이지 않는 것을 미리 알린다(#3423).
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.authDemoNote,
+                key: const Key('demoEntryNote'),
+                textAlign: TextAlign.center,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+              const SizedBox(height: OnCareSpacing.s16),
+            ],
             AppTextField(
               key: const ValueKey<String>('trainer-login-email'),
               controller: _email,
@@ -394,17 +420,6 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
                     size: OnCareButtonSize.small,
                   ),
                 ],
-              ),
-            // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
-            // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
-            if (ref.watch(appConfigProvider).showDemoEntry)
-              Center(
-                child: AppButton(
-                  key: const Key('demoEnterButton'),
-                  label: l.authDemoAction,
-                  onPressed: _loading ? null : _enterDemo,
-                  variant: AppButtonVariant.text,
-                ),
               ),
           ],
         ),

@@ -274,7 +274,7 @@ void main() {
       );
 
       // 세션이 없으니 로그인 화면이지만, 가려던 자리는 URL 에 남아 있다.
-      expect(find.text('로그인 없이 데모 둘러보기'), findsOneWidget);
+      expect(find.text('트레이너 체험하기'), findsOneWidget);
       expect(
         AppRoutes.resumeTarget(currentLocation(tester)),
         AppRoutes.clientDetail('seed-client-1'),

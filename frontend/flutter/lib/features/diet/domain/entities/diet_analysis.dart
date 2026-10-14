@@ -75,6 +75,7 @@ class DietAnalysisResult {
     this.totalFatG = 0,
     this.timeLabel = '',
     this.points,
+    this.engine = '',
   });
 
   final String entryId;
@@ -100,6 +101,13 @@ class DietAnalysisResult {
 
   final String coachComment;
 
+  /// 인식 엔진 이름(`gemini`·`stub` …). 이 필드를 모르는 응답이면 빈 문자열이다.
+  final String engine;
+
+  /// 사진을 보지 않고 만든 예시 결과인가(#3423). 개발용 고정 식단 인식기(`stub`)
+  /// 와, 사진을 볼 수 없는 데모가 직접 올린 사진에 답할 때다.
+  bool get isExample => engine == 'stub';
+
   factory DietAnalysisResult.fromResponse(Map<String, Object?> json) {
     final analysis =
         (json['analysis'] as Map<String, Object?>?) ??
@@ -119,6 +127,7 @@ class DietAnalysisResult {
       coachComment: (analysis['coach_comment'] as String?) ?? '',
       timeLabel: (json['time_label'] as String?) ?? '',
       points: PointsAward.fromJson(json['points']),
+      engine: (analysis['engine'] as String?) ?? '',
     );
   }
 }

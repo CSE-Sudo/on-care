@@ -67,8 +67,8 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
   }
 
   /// POST /diet/analyze — the mock can't see the uploaded image, so it
-  /// returns a deterministic "recognized" meal (nutrition from the same
-  /// public DB the real backend maps to) and persists a diet entry to
+  /// returns a deterministic "recognized" meal (the sample photo's meal, or
+  /// an example for the meal type — #3423) and persists a diet entry to
   /// drift so it shows up in GET /diet/days/today. `diet-` id (not
   /// `seed-`) means seedIfEmpty never wipes it.
   Future<Response<Object?>> _dietAnalyze(RequestOptions options) async {
@@ -100,7 +100,7 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
         return _ok(options, <String, Object?>{
           'entry_id': existing.id,
           'analysis': <String, Object?>{
-            'engine': 'stub',
+            'engine': _demoEngineOf(photoBytes),
             'foods': storedFoods,
             'total_calories': existing.totalCalories,
             'total_sodium_mg': existing.sodiumMg,
@@ -144,54 +144,23 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
       );
     }
 
-    // 데모 인식 결과 — 무엇을 찍든 요거트 아이스크림 볼로 읽는다(#1564).
-    // 백엔드 스텁 인식기(`recognizer/stub.py`)·영양 시드와 같은 값이다. 한쪽만
-    // 고치면 로컬 데모와 서버 데모가 다른 수치를 보여 준다.
+    // 데모 인식 결과(#3423). 목업은 사진을 볼 수 없다 — 식단 추가 시트의 샘플
+    // 사진이면 그 사진의 끼니를, 직접 올린 사진이면 끼니 종류에 맞는 예시를
+    // 돌려준다. 음식·영양·코멘트는 시드 끼니와 같은 픽스처 템플릿이다.
     //
-    // 당류는 오늘 시드된 하루(17.8g)에 더해도 목표 50g 을 넘지 않게 잡았다 —
-    // 넘기면 시연 중 식단 탭의 당류 카드가 경고색으로 뒤집힌다.
+    // 실서버 스텁 인식기(`recognizer/stub.py`)는 지금도 요거트 아이스크림 볼
+    // 하나다 — 스텁은 개발용이고, 방문자가 보는 것은 이 목업이다.
+    final FixtureMeal meal =
+        demoSampleMealOf(photoBytes) ??
+        demoExampleMealFor(mealType, photoBytes);
     final foods = <Map<String, Object?>>[
-      <String, Object?>{
-        'name': '요거트 아이스크림',
-        // 양은 공공 DB 시드의 1회 섭취량이다 — 실서버 스텁과 같은 값(#2090).
-        'amount_g': 110,
-        'calories': 135,
-        'sodium_mg': 55,
-        'sugar_g': 14.5,
-        'carbs_g': 26.0,
-        'protein_g': 3.0,
-        'fat_g': 2.0,
-        'source': 'db',
-      },
-      <String, Object?>{
-        'name': '과일 토핑',
-        'amount_g': 90,
-        'calories': 55,
-        'sodium_mg': 5,
-        'sugar_g': 9.0,
-        'carbs_g': 13.0,
-        'protein_g': 1.0,
-        'fat_g': 0.5,
-        'source': 'db',
-      },
-      <String, Object?>{
-        'name': '그래놀라 토핑',
-        'amount_g': 50,
-        'calories': 205,
-        'sodium_mg': 125,
-        'sugar_g': 6.0,
-        'carbs_g': 20.0,
-        'protein_g': 5.0,
-        'fat_g': 11.5,
-        'source': 'db',
-      },
+      for (final FixtureFood food in meal.foods)
+        <String, Object?>{...food.toJson(), 'source': 'db'},
     ];
-    const int totalCal = 395;
-    const int totalNa = 185;
-    const double totalSugar = 29.5;
-    const String coach =
-        '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
-        '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
+    final int totalCal = meal.calories;
+    final int totalNa = meal.sodiumMg;
+    final double totalSugar = meal.sugarG;
+    final String coach = meal.aiComment;
 
     // 지난 날짜 화면에서 연 추가는 그 날짜로 남긴다(#2849). 실서버와 같은
     // 규칙으로 걸러 낸다 — 데모에서만 통과하면 실연동에서 처음 실패한다.
@@ -214,14 +183,14 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
             timeLabel: timeLabel,
             foodsJson: jsonEncode(foods),
             totalCalories: totalCal,
-            sodiumMg: const Value(totalNa),
-            sugarG: const Value(totalSugar),
+            sodiumMg: Value(totalNa),
+            sugarG: Value(totalSugar),
             // 인식 결과의 코멘트를 행에 남긴다 — 목록으로 돌아갔을 때도 끼니
             // 카드에 그대로 보인다.
-            aiComment: const Value(coach),
-            // 방금 찍은/고른 그 사진을 함께 남긴다. 인식 결과는 데모라 무엇을
-            // 찍든 같지만, 카드에 보이는 사진까지 남의 것이면 자기가 방금
-            // 올린 끼니라는 게 화면에서 사라진다.
+            aiComment: Value(coach),
+            // 방금 찍은/고른 그 사진을 함께 남긴다. 직접 올린 사진의 인식 결과는
+            // 예시지만, 카드에 보이는 사진까지 남의 것이면 자기가 방금 올린
+            // 끼니라는 게 화면에서 사라진다.
             photoBytes: photoBytes == null
                 ? const Value.absent()
                 : Value(photoBytes),
@@ -233,7 +202,7 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
     return _ok(options, <String, Object?>{
       'entry_id': id,
       'analysis': <String, Object?>{
-        'engine': 'stub',
+        'engine': _demoEngineOf(photoBytes),
         'foods': foods,
         'total_calories': totalCal,
         'total_sodium_mg': totalNa,
@@ -249,6 +218,13 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
       'points': _points.award(PointsRule.dietEntry, id).toJson(),
     });
   }
+
+  /// 응답의 `engine`(#3423). 샘플 사진은 그 사진의 끼니라 `demo-sample`, 직접
+  /// 올린 사진은 사진을 보지 않은 예시라 실서버 스텁과 같은 `stub` 이다 — 결과
+  /// 화면이 `stub` 에만 예시 안내를 단다. 다시 보낸 요청도 같은 사진이라 같은
+  /// 값이 나온다.
+  String _demoEngineOf(Uint8List? photoBytes) =>
+      demoSampleMealOf(photoBytes) == null ? 'stub' : 'demo-sample';
 
   /// 업로드한 사진 원본. multipart 본문이 아니라 [kMealPhotoBytesExtra] 에서
   /// 꺼낸다 — 이유는 그 상수의 주석에 적어 두었다.

@@ -655,6 +655,18 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
         // 수정 모드에서는 `인식된 음식` 을 감추고, 음식별 수정 칸이 아래
         // 기록 날짜·끼니 다음에 선다(#2097). 식단 상세의 수정 모드처럼
         // "언제·어느 끼니" 를 먼저 두고 "무엇을 먹었나" 를 그 아래에 둔다.
+        // 사진을 보지 않고 만든 예시 결과다(#3423) — 데모에 직접 올린 사진과
+        // 개발용 고정 식단 인식기. 사진과 다른 음식이 나와도 인식이 틀린 것이
+        // 아님을 알린다.
+        if (r.isExample) ...<Widget>[
+          AppBanner(
+            key: const Key('diet-result-example-notice'),
+            title: l.dietExampleResultTitle,
+            message: l.dietExampleResultMessage,
+            density: AppBannerDensity.compact,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         if (!_editing) ...<Widget>[
           // 이 시트에서 강조할 것은 AI 가 무엇으로 읽었는지 하나다 — 거기에만
           // 옅은 브랜드 채움을 준다. `0389e572` 가 걷어낸 것은 구획을 여럿

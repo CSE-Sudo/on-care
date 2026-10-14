@@ -27,8 +27,12 @@ from app.core import metrics
 from app.services import ai_call_quota
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.coach.llm_base import is_truncated, output_cap
-from app.services.coach.prompt_rules import MEMBER_AUDIENCE
-from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
+from app.services.coach.prompt_rules import MEDICAL_GUARD, MEMBER_AUDIENCE, MEMBER_VOICE
+from app.services.coach.prompt_safety import (
+    FOOD_NAME_GUARD,
+    HEALTH_NOTE_GUARD,
+    TRAINER_DIET_GUARD,
+)
 from app.services.diet_advice_copy import plain
 from app.services.ai_log import log_ai_fallback
 
@@ -138,12 +142,12 @@ def build_prompt(
         "규칙:\n"
         "1. [기록]에서 원인이 된 메뉴를 짚거나, 바꿔 먹을 구체적인 음식을 권한다"
         "(예: 짬뽕 국물은 반만, 건더기 위주로요 / 요거트나 삶은 달걀이라도 드세요).\n"
-        f"2. 한 문장, 한국어, 공백 포함 {limit}자 이내. 존댓말(해요체).\n"
+        f"2. 한 문장, 한국어, 공백 포함 {limit}자 이내. {MEMBER_VOICE}\n"
         "3. **수치를 쓰지 않는다.** mg·kcal·g·% 같은 양은 이미 [분석]이 말했다. "
         "'주 3회', '달걀 2개' 같은 작은 횟수만 쓸 수 있다.\n"
         "4. 메뉴·음식 이름은 **로 감쌀 수 있다(두 곳까지).\n"
-        "5. 의학적 진단·치료를 단정하지 않는다.\n"
-        f"{TRAINER_DIET_GUARD}\n{FOOD_NAME_GUARD}\n"
+        f"5. {MEDICAL_GUARD}\n"
+        f"{TRAINER_DIET_GUARD}\n{FOOD_NAME_GUARD}\n{HEALTH_NOTE_GUARD}\n"
         'JSON 만 출력한다: {"sentence":"..."}'
     )
     lines = [f"[분석] {finding}", f"[목표] {goal or '정보 없음'}", "", "[기록]"]

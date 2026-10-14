@@ -416,7 +416,7 @@ void main() {
       // 노출만 SHOW_DEMO_ENTRY 로 막았다. (#1526)
       await pumpTrainerApp(tester);
 
-      expect(find.text('로그인 없이 데모 둘러보기'), findsNothing);
+      expect(find.text('트레이너 체험하기'), findsNothing);
       // 로그인 화면 자체는 그대로다 — 감춘 것이 이 버튼뿐임을 함께 못 박는다.
       expect(find.widgetWithText(InkWell, '로그인'), findsOneWidget);
     });
@@ -430,9 +430,9 @@ void main() {
 
       // The demo link sits below the fold on the (taller, redesigned)
       // login screen — scroll it into view before tapping.
-      await tester.ensureVisible(find.text('로그인 없이 데모 둘러보기'));
+      await tester.ensureVisible(find.text('트레이너 체험하기'));
       await tester.pump();
-      await tester.tap(find.text('로그인 없이 데모 둘러보기'));
+      await tester.tap(find.text('트레이너 체험하기'));
       await settle(tester);
 
       expect(
@@ -440,7 +440,7 @@ void main() {
         SessionStatus.demo,
       );
       // Left the login screen (no more login button / demo link).
-      expect(find.text('로그인 없이 데모 둘러보기'), findsNothing);
+      expect(find.text('트레이너 체험하기'), findsNothing);
       expect(find.text('회원가입'), findsNothing);
     });
 

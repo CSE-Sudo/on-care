@@ -118,9 +118,7 @@ void main() {
   });
 
   group('signed in', () {
-    testWidgets('an unknown path shows the 404, URL untouched', (
-      tester,
-    ) async {
+    testWidgets('an unknown path shows the 404, URL untouched', (tester) async {
       await pumpTrainerApp(tester, token: _token, at: '/nope');
 
       expect(_page, findsOneWidget);
@@ -392,9 +390,9 @@ void main() {
       );
       expect(AppRoutes.resumeTarget(currentLocation(tester)), path);
 
-      await tester.ensureVisible(find.text('로그인 없이 데모 둘러보기'));
+      await tester.ensureVisible(find.text('트레이너 체험하기'));
       await tester.pump();
-      await tester.tap(find.text('로그인 없이 데모 둘러보기'));
+      await tester.tap(find.text('트레이너 체험하기'));
       await settle(tester);
 
       expect(
@@ -481,7 +479,6 @@ void main() {
       await settle(tester);
       expect(find.text('sign-in-stub'), findsOneWidget);
     });
-
   });
 
   test('every 404 string is filled in', () {

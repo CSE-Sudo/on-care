@@ -964,6 +964,36 @@ abstract class AppLocalizations {
   /// **'앨범·카메라·파일에서 음식 사진 선택'**
   String get dietAddPhotoSub;
 
+  /// No description provided for @dietSamplePhoto.
+  ///
+  /// In ko, this message translates to:
+  /// **'샘플 사진으로 체험'**
+  String get dietSamplePhoto;
+
+  /// No description provided for @dietSamplePhotoSub.
+  ///
+  /// In ko, this message translates to:
+  /// **'준비된 음식 사진으로 분석해 보기'**
+  String get dietSamplePhotoSub;
+
+  /// No description provided for @dietSamplePhotoBack.
+  ///
+  /// In ko, this message translates to:
+  /// **'뒤로'**
+  String get dietSamplePhotoBack;
+
+  /// No description provided for @dietExampleResultTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진을 분석하지 않은 예시 결과예요'**
+  String get dietExampleResultTitle;
+
+  /// No description provided for @dietExampleResultMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'체험 버전은 샘플 사진을 골라야 사진에 맞는 결과가 나와요'**
+  String get dietExampleResultMessage;
+
   /// No description provided for @dietPhotoLoadError.
   ///
   /// In ko, this message translates to:
@@ -5413,8 +5443,14 @@ abstract class AppLocalizations {
   /// No description provided for @authDemoAction.
   ///
   /// In ko, this message translates to:
-  /// **'로그인 없이 데모 둘러보기'**
+  /// **'회원 체험하기'**
   String get authDemoAction;
+
+  /// No description provided for @authDemoNote.
+  ///
+  /// In ko, this message translates to:
+  /// **'체험판은 예시 데이터로 동작해요.\n회원 앱과 트레이너 웹의 기록은 서로 이어지지 않아요.'**
+  String get authDemoNote;
 
   /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///

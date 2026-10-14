@@ -222,7 +222,7 @@ class AppConfig {
   /// 카카오·구글 로그인 키(`KAKAO_NATIVE_APP_KEY` 등, #330). 모두 공개 식별자다.
   final SocialLoginConfig socialLogin;
 
-  /// 로그인 화면에 "로그인 없이 데모 둘러보기" 진입을 노출할지. (#1526)
+  /// 로그인 화면에 로그인 없이 들어가는 `회원 체험하기` 진입을 노출할지. (#1526)
   ///
   /// 기본은 꺼짐 — 로그인 없이 앱 안으로 들어가는 경로를 화면에서 내렸다. 코드와
   /// 문구·`SessionController.enterDemo` 는 그대로 살려 두고 노출만 막는다.

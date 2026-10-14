@@ -5,7 +5,7 @@ LiteLLM 프록시 경유 식단 인식기(`RECOGNIZER=litellm`).
 LiteLLM 이 OpenAI 호환이므로, OpenAI SDK 의 vision 형식(base64 image_url)을 사용합니다.
 결과는 Gemini 인식기와 동일한 DietAnalysis 로 변환 → 프론트 계약 동일.
 
-Gemini 인식기와 같은 방향(전문 영양사 + 회원의 식단 목표 관점 + 나트륨·당류).
+프롬프트는 Gemini 인식기와 같은 문자열이다(`recognizer/prompt.py`).
 """
 from __future__ import annotations
 
@@ -16,25 +16,12 @@ import time
 
 from app.core.config import get_settings
 from app.schemas.diet import DietAnalysis
-from app.services.coach.prompt_rules import MEMBER_AUDIENCE
 from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
 from app.services.recognizer.parse import parse_payload
+from app.services.recognizer.prompt import RECOGNITION_PROMPT
 
-_PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
-설명, 마크다운, 코드블록 없이 순수 JSON만 출력합니다.
-
-{
-  "foods": [
-    {"name":"음식명(한국어)","amount_g":추정섭취량g,"calories":정수kcal,"carbs_g":탄수화물g,"protein_g":단백질g,"fat_g":지방g,"sodium_mg":정수mg,"sugar_g":정수g,"confidence":0.0~1.0}
-  ],
-  "coach_comment": \"""" + MEMBER_AUDIENCE + """의 식단 목표(칼로리·단백질·나트륨·당류) 관점 식단평. 넘치거나 모자란 영양을 짚고 개선 제안을 2~3문장 한국어로. 질환 이름을 꺼내거나 진단하지 마세요."
-}
-음식이 여러 개면 foods 에 모두. 모르는 값은 null.
-사진에 음식이 보이지 않으면(풍경·사람·빈 그릇 등) 지어내지 말고 foods 를 빈 배열 [] 로.
-
-amount_g 는 **사진에 실제로 담긴 양**을 그램으로 추정하세요(그릇 크기·조각 수를
-근거로). 공공 영양 DB 가 100g 당 값을 갖고 있어 이 값으로 환산합니다 — 영양
-수치보다 이쪽이 더 중요합니다. 나트륨·당류도 함께 신중히 추정하세요."""
+#: 인식 프롬프트는 엔진과 무관하게 하나다(#1642).
+_PROMPT = RECOGNITION_PROMPT
 
 
 class LiteLLMVisionRecognizer(FoodRecognizer):
