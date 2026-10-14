@@ -111,8 +111,10 @@ class ClientProfileDialog extends StatelessWidget {
         key: const ValueKey<String>('client-memo-dialog'),
         title: l.clientMemoDialogTitle,
         size: AppDialogSize.medium,
-        // 창은 내용만큼만 차지하고, 탭을 오갈 때 높이 변화는 이어 그린다(#3425).
+        // 창은 내용만큼만 차지하고, 높이 변화는 이어 그린다(#3425). 두 탭 가운데
+        // 긴 쪽이 창 높이를 정하도록 스크롤은 탭마다 본문이 맡는다.
         animateHeight: true,
+        scrollBody: false,
         child: _MemoDialogBody(
           clientId: clientId,
           clientName: clientName,
@@ -835,7 +837,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       key: const ValueKey<String>('client-profile-dialog'),
       title: l.clientProfileSectionTitle,
       size: AppDialogSize.medium,
-      // 창은 내용만큼만 차지하고, 탭을 오갈 때 높이 변화는 이어 그린다(#3425).
+      // 창은 내용만큼만 차지하고, 높이 변화는 이어 그린다(#3425). 탭 사이 높이는
+      // 본문의 [_healthTabBodyMinHeight] 가 지킨다.
       animateHeight: true,
       trailing: _editing || !_profileLoaded
           ? null
@@ -1305,6 +1308,7 @@ class _MemoDialogBodyState extends State<_MemoDialogBody> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         AppSegmentedToggle<_MemoTab>(
@@ -1326,13 +1330,25 @@ class _MemoDialogBodyState extends State<_MemoDialogBody> {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s16),
-        switch (_tab) {
-          _MemoTab.memo => _MemoSection(
-            clientId: widget.clientId,
-            clientName: widget.clientName,
+        // 두 탭을 겹쳐 두어 긴 쪽이 창 높이를 정한다 — 탭을 오가도 창 크기가
+        // 그대로다(#2955). 화면 85% 를 넘는 탭은 제 안에서 스크롤한다(#3425).
+        Flexible(
+          child: IndexedStack(
+            index: _tab.index,
+            alignment: Alignment.topCenter,
+            children: <Widget>[
+              SingleChildScrollView(
+                child: _MemoSection(
+                  clientId: widget.clientId,
+                  clientName: widget.clientName,
+                ),
+              ),
+              SingleChildScrollView(
+                child: ClientFeedbackSection(clientId: widget.clientId),
+              ),
+            ],
           ),
-          _MemoTab.feedback => ClientFeedbackSection(clientId: widget.clientId),
-        },
+        ),
       ],
     );
   }

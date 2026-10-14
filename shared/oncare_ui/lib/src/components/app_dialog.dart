@@ -37,6 +37,7 @@ class AppDialog extends StatelessWidget {
     this.bodyPadding,
     this.trailing,
     this.animateHeight = false,
+    this.scrollBody = true,
   });
 
   final String? title;
@@ -65,6 +66,10 @@ class AppDialog extends StatelessWidget {
   /// 적은 창도 화면을 다 차지해 내용에 맞추고 변화만 잇는다(#3425).
   final bool animateHeight;
 
+  /// 본문을 창이 스크롤할지. 끄면 본문이 남은 높이 안에서 제 스크롤을 맡는다 —
+  /// 탭을 겹쳐 두고 가장 긴 탭만큼 창 높이를 잡는 창이 쓴다(#3425).
+  final bool scrollBody;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -79,6 +84,21 @@ class AppDialog extends StatelessWidget {
     final bool showClose = this.showClose ?? true;
     final bool hasHeader = title != null || showClose || trailing != null;
     final double maxHeight = screen.height * OnCareLayout.dialogMaxHeightFactor;
+
+    final EdgeInsetsGeometry padding =
+        bodyPadding ??
+        EdgeInsets.fromLTRB(
+          OnCareSpacing.dialogPadding,
+          hasHeader ? OnCareSpacing.s12 : OnCareSpacing.dialogPadding,
+          OnCareSpacing.dialogPadding,
+          footer == null ? OnCareSpacing.dialogPadding : 0,
+        );
+    final Widget body = DefaultTextStyle.merge(
+      style: tokens
+          .text(OnCareTypography.body)
+          .copyWith(color: OnCareColors.textSecondary),
+      child: child,
+    );
 
     final Widget content = Column(
       mainAxisSize: MainAxisSize.min,
@@ -110,22 +130,9 @@ class AppDialog extends StatelessWidget {
             ),
           ),
         Flexible(
-          child: SingleChildScrollView(
-            padding:
-                bodyPadding ??
-                EdgeInsets.fromLTRB(
-                  OnCareSpacing.dialogPadding,
-                  hasHeader ? OnCareSpacing.s12 : OnCareSpacing.dialogPadding,
-                  OnCareSpacing.dialogPadding,
-                  footer == null ? OnCareSpacing.dialogPadding : 0,
-                ),
-            child: DefaultTextStyle.merge(
-              style: tokens
-                  .text(OnCareTypography.body)
-                  .copyWith(color: OnCareColors.textSecondary),
-              child: child,
-            ),
-          ),
+          child: scrollBody
+              ? SingleChildScrollView(padding: padding, child: body)
+              : Padding(padding: padding, child: body),
         ),
         if (footer != null)
           Padding(
