@@ -57,6 +57,8 @@ MEMBER_PROMPTS = {
     "diet_sentence": _diet_sentence,
     "diet_menu_plan": _diet_menu_plan,
     "diet_recommendation": _diet_recommendation,
+    # 두 엔진은 같은 문자열을 쓴다(`recognizer/prompt.py`). 엔진 모듈을 거쳐 읽어야
+    # 한쪽이 다시 자기 프롬프트를 들었을 때 잡힌다.
     "recognizer_gemini": lambda: gemini_recognizer._PROMPT,
     "recognizer_litellm": lambda: litellm_vision._PROMPT,
 }
