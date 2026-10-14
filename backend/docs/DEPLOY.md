@@ -47,8 +47,8 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 | 스택 | 템플릿 | 개수 | 비용 | 내용 |
 |---|---|---|---|---|
 | `oncare-backend-bootstrap` | `infra/backend-bootstrap.yml` | 계정에 1개 | 없음(이미지 저장량만) | ECR `oncare-backend`(불변 태그, 최근 20개 유지), 이미지 푸시 역할 |
-| `oncare-backend-env-<environment>` | `infra/backend-environment.yml` | 환경마다 1개 | 없음 | 첨부 버킷, 태스크·실행·인프라 역할, CloudFormation 서비스 역할, GitHub 배포 역할 |
-| `oncare-backend-<environment>` | `infra/backend-service.yml` | 환경마다 1개 | **생성 순간부터 과금** | ECS Express Mode 서비스(Fargate 태스크 1~4개, 기본 1 + ALB) |
+| `oncare-backend-env-<environment>` | `infra/backend-environment.yml` | 환경마다 1개 | 없음(백업 저장량만) | 첨부 버킷, 태스크·실행·인프라 역할, CloudFormation 서비스 역할, GitHub 배포 역할. 운영만: DB 백업 버킷·백업 작업 역할·로그 그룹(#1552) |
+| `oncare-backend-<environment>` | `infra/backend-service.yml` | 환경마다 1개 | **생성 순간부터 과금** | ECS Express Mode 서비스(Fargate 태스크 1~4개, 기본 1 + ALB). 운영만: 배포 직전 DB 백업 작업 정의(돌 때만 과금, #1552) |
 
 `<environment>` 는 `production`·`staging` 이다. staging 은 데모 시연용이고 **운영과 다른 DB·비밀·버킷**을
 쓴다(#3020). staging 이 필요 없으면 staging 스택을 만들지 않고 `BACKEND_STAGING_DEPLOY_ENABLED` 를 비워 둔다.
@@ -69,14 +69,16 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 | 주체 | 믿는 OIDC subject | 할 수 있는 일 |
 |---|---|---|
 | 이미지 푸시 역할(bootstrap) | `repo:…:ref:refs/heads/main` | ECR `oncare-backend` 에 이미지 푸시·digest 조회만 |
-| 배포 역할(env, 환경마다) | `repo:…:environment:<environment>` | 그 환경 서비스 스택의 변경 세트 생성·실행, CloudFormation 서비스 역할 넘기기만 |
+| 배포 역할(env, 환경마다) | `repo:…:environment:<environment>` | 그 환경 서비스 스택의 변경 세트 생성·실행, CloudFormation 서비스 역할 넘기기만. 운영만: 백업 작업 띄우기·조회, 백업 버킷 `db/` 목록, 백업 로그 읽기(#1552) |
 | CloudFormation 서비스 역할(env) | — (cloudformation.amazonaws.com) | ECS Express 서비스 갱신, 태스크·실행·인프라 역할 넘기기 |
 | 태스크 역할(env) | — (ecs-tasks) | 그 환경 첨부 버킷의 `<접두사>/*` 읽기·쓰기·지우기와 접두사 목록 |
 | 실행 역할(env) | — (ecs-tasks) | 이미지 pull, 로그, `oncare/backend/<environment>-*` 비밀 읽기 |
+| 백업 작업 역할(env, 운영만) | — (ecs-tasks) | 백업 버킷 `db/*` 에 올리기만(읽기·지우기 없음, #1552) |
 
 - 배포 역할은 **GitHub Environment 에서 돈 job 만** 맡을 수 있다. 브랜치 형식 토큰으로는 서비스를
   바꿀 수 없으므로 Environment 의 승인 규칙을 건너뛰는 길이 없다.
-- 배포 역할에는 ECS·IAM 권한이 없다. 서비스 변경은 CloudFormation 이 서비스 역할로 한다.
+- 배포 역할에는 서비스를 바꾸는 ECS·IAM 권한이 없다. 서비스 변경은 CloudFormation 이 서비스 역할로 한다.
+  운영 배포 역할만 배포 직전 백업 작업 하나(`oncare-backend-production-db-backup`)를 띄우고 지켜볼 수 있다(2-1).
 - Environment 이름이 곧 배포 경계다. 워크플로의 `environment:` 와 템플릿의 신뢰 조건이 같은 이름을
   써야 한다(아래 표). `infra/tests/test_deploy_workflows.py` 가 둘이 어긋나지 않는지 PR 마다 본다.
 
@@ -162,6 +164,7 @@ staging → `staging`).
   실패·취소되면 운영으로 가지 않는다. 두 환경은 같은 digest 를 쓴다.
 - 각 환경 배포(`backend-deploy-service.yml`)는
   1. 스택이 지금 선언한 이미지(되돌릴 지점)를 기록하고,
+  1-1. **production 만** 지금 DB 를 S3 백업 버킷에 덤프한다(2-1 "백업·복구"). 실패하면 여기서 멈추고 배포하지 않는다.
   2. `aws cloudformation deploy --role-arn <서비스 역할>` 로 `ImageIdentifier` 만 바꾸고,
   3. `/v1/healthz` 가 그 환경의 기대 설정인지(아래 표), `/v1/readyz` 로 **DB 까지 닿는지**, `/v1/version`
      의 `commit_sha` 가 배포한 커밋과 같은지 확인한다(`.github/scripts/backend_verify_service.sh`). healthz·
@@ -279,40 +282,57 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 - `downgrade()` 는 **스키마만** 되돌린다. 지운 칸·행은 빈 칸으로 다시 생길 뿐 값은 돌아오지 않는다
   (`0016` 의 downgrade 가 그렇고, `0147` 은 아무것도 하지 않는다). 데이터가 필요하면 백업에서 복구한다.
 
-### 백업·복구 — 배포 재개 시 도입
+### 백업·복구
 
-운영 배포는 지금 멈춰 둔 상태라 백업 단계는 아직 없다. 배포를 다시 켤 때 아래 방식으로 넣는다
-(체크리스트는 다음 절).
-
-- **운영 배포 직전마다** 백엔드 이미지로 일회성 ECS 작업을 띄워 `pg_dump --format=custom` 을 실행하고
-  S3 백업 버킷에 올린다. 작업은 서비스와 같은 Secrets Manager 비밀의 `DATABASE_URL`
-  (`infra/backend-service.yml` 의 `Secrets`)을 쓴다 — 운영 DB 자격 증명을 GitHub 에 따로 두지 않는다.
-- **백업이 실패하면 production 배포를 멈춘다.** staging 은 백업하지 않는다.
+- **운영 배포 직전마다** 백업 작업이 돈다. `backend-deploy-service.yml` 의 `Back up production database` 단계가
+  서비스 스택의 백업 작업 정의(`BackupTaskDefinition`, 패밀리 `oncare-backend-production-db-backup`)를 서비스와
+  같은 클러스터·서브넷·보안 그룹으로 한 번 띄운다(`.github/scripts/backend_db_backup.sh`). 작업은 지금 떠 있는
+  이미지로 `python -m scripts.backup_db` 를 실행해 `pg_dump --format=custom` → `pg_restore --list` 확인 →
+  `s3://oncare-db-backups-<계정>-<리전>-production/db/<UTC 시각>-<커밋 앞 12자>.dump` 업로드를 한다.
+- 작업은 서비스와 같은 Secrets Manager 비밀의 `DATABASE_URL` 만 받는다 — 운영 DB 자격 증명을 GitHub 에 따로
+  두지 않는다. 작업 역할은 백업 버킷 `db/*` 에 올리기만 할 수 있다.
+- **백업이 실패하면 production 배포를 멈춘다** — 작업을 못 띄움, 종료 코드가 0 이 아님, 30분 안에 끝나지 않음,
+  S3 에 덤프가 없거나 0바이트. 잡 요약에 덤프 키나 실패가 남고, 실패하면 작업 로그 끝부분을 잡 로그에 붙인다
+  (로그 그룹 `/oncare/backend/production/db-backup`, 30일 보관). staging 은 백업하지 않는다.
+- 백업 버킷은 퍼블릭 차단·SSE-S3·TLS 전용이고, 덤프는 `BackupRetentionDays`(환경 스택 파라미터, 기본 30일) 뒤
+  자동으로 지운다. 버전 관리는 켜지 않는다(켜면 만료된 덤프가 이전 버전으로 남는다).
+- `pg_dump` 는 서버보다 옛 주 버전이면 덤프를 거부한다. 이미지는 PostgreSQL 공식 apt 저장소의
+  `postgresql-client-<PG_CLIENT_MAJOR>`(`backend/Dockerfile`, 지금 18)를 깔고, Backend CI 가 그 이미지로 CI DB 를
+  덤프해 본다. Neon 을 더 새 주 버전으로 올리면 이 값을 먼저 올린다.
+- 운영은 #1552 이후 커밋만 배포한다. 그 전 커밋에는 백업 스크립트·작업 정의가 없어, 옛 커밋으로 수동 되돌리기를
+  하면 백업 단계가 실패한다(운영 스택은 이 변경 뒤에 처음 만들므로 되돌릴 지점도 모두 그 뒤 커밋이다).
 - 백업은 AWS 계정(배포 담당) 안에서 끝난다. Neon 계정은 다른 팀원 소유라 Neon 콘솔 조작에 기대지 않는다.
   Neon 의 기본 시점 복구(PITR)는 덤이다 — 보관 기간은 요금제에 따른다.
 - 복구는 S3 덤프를 `pg_restore` 로 새 DB(로컬 docker Postgres·staging·새 Neon 브랜치)에 푼 뒤 필요한
   표·행만 옮기거나 `DATABASE_URL` 을 바꾼다. 리허설을 한 번 하기 전까지는 복구 가능하다고 보지 않는다.
 
+  ```bash
+  aws s3 cp s3://oncare-db-backups-<계정>-ap-southeast-1-production/db/<키>.dump ./restore.dump
+  docker run -d --name restore -e POSTGRES_PASSWORD=restore -p 55432:5432 pgvector/pgvector:pg<운영 주 버전>
+  docker exec restore psql -U postgres -c 'CREATE DATABASE oncare'
+  pg_restore --no-owner --no-privileges -d postgresql://postgres:restore@localhost:55432/oncare ./restore.dump
+  ```
+
+  덤프를 받는 사람에게는 백업 버킷 `s3:GetObject` 가 따로 필요하다(배포·작업 역할에는 없다).
+
 ### 배포 재개 체크리스트
 
 운영 배포(`BACKEND_DEPLOY_ENABLED=true`)를 다시 켜기 전에 끝낸다. 남은 일은 #1552 에서 추적한다.
 
-- [ ] `infra/backend-environment.yml` 에 백업 S3 버킷을 더한다 — 서버 측 암호화(SSE-S3 또는 KMS),
-      퍼블릭 액세스 전부 차단, TLS 만 허용하는 버킷 정책, 보관 기간(예: 30일) 뒤 자동 삭제 수명 주기 규칙.
-      리전은 백엔드·Neon 과 같은 `ap-southeast-1`.
-- [ ] 백업 작업이 쓰는 역할(`TaskRole` 또는 백업 전용 역할)에 그 버킷의 백업 접두사 `s3:PutObject` 만 준다.
-      배포 역할(`GitHubBackendDeployRole`)에는 그 작업을 띄우는 `ecs:RunTask`·`ecs:DescribeTasks` 와 역할
-      `iam:PassRole` 을 더한다.
-- [ ] 백엔드 `Dockerfile` 에 Neon 의 Postgres 주 버전과 같은(또는 더 새) `postgresql-client` 를 설치한다.
-      `pg_dump` 는 서버보다 옛 버전이면 거부한다 — Neon 버전은 `SELECT version();` 으로 확인한다.
-- [ ] `.github/workflows/backend-deploy-service.yml` 에서 production 일 때만 `Record rollback point` 다음,
-      `Deploy image` 전에 백업 단계를 둔다. 일회성 ECS 작업의 종료 코드가 0 이 아니거나 S3 에 객체가 없으면
-      잡을 실패시켜 배포하지 않는다. 잡 요약에 덤프 객체 키를 남긴다.
-- [ ] 첫 복구 리허설(배포 담당이 직접): S3 의 덤프를 받아 로컬 docker Postgres(`pgvector/pgvector` 이미지,
-      운영과 같은 주 버전)나 staging DB 에 `pg_restore` 하고, `alembic current` 가 운영과 같은지·주요 표의
-      행 수가 맞는지 본다. 걸린 시간을 이 절에 적는다.
-- [ ] `docs/privacy_processing.md` 의 위탁·보관 표에 S3 백업 보관을 더한다(같은 싱가포르 리전, 보관 기간,
-      탈퇴한 회원의 정보가 보관 기간 동안 백업에 남는다는 점).
+- [x] `infra/backend-environment.yml` 에 백업 S3 버킷을 더한다 — SSE-S3, 퍼블릭 액세스 전부 차단, TLS 만 허용하는
+      버킷 정책, 30일(`BackupRetentionDays`) 뒤 자동 삭제. 리전은 백엔드·Neon 과 같은 `ap-southeast-1`.
+- [x] 백업 작업 역할(`BackupTaskRole`)에 백업 버킷 `db/*` 의 `s3:PutObject` 만 준다. 운영 배포 역할에는 그 작업을
+      띄우는 `ecs:RunTask`(백업 작업 정의만)·`ecs:DescribeTasks`·`ecs:DescribeServices` 와 실행·백업 작업 역할
+      `iam:PassRole`, 덤프 확인용 `s3:ListBucket`(`db/*`), 실패 로그용 `logs:GetLogEvents` 를 더한다.
+- [x] 백엔드 `Dockerfile` 에 `postgresql-client` 를 설치한다(PGDG, `PG_CLIENT_MAJOR=18`).
+- [x] `.github/workflows/backend-deploy-service.yml` 에서 production 일 때만 `Record rollback point` 다음,
+      `Deploy image` 전에 백업 단계를 둔다. 잡 요약에 덤프 객체 키를 남긴다.
+- [ ] Neon 운영 DB 에서 `SELECT version();` 으로 주 버전을 확인한다. 18 보다 높으면 `PG_CLIENT_MAJOR` 를 올린다.
+- [ ] 첫 복구 리허설(배포 담당이 직접): 첫 운영 배포가 남긴 S3 덤프를 위 절차로 로컬 docker Postgres(운영과 같은
+      주 버전)나 staging DB 에 `pg_restore` 하고, `alembic current` 가 운영과 같은지·주요 표의 행 수가 맞는지 본다.
+      걸린 시간을 이 절에 적는다.
+- [x] `docs/privacy_processing.md` 의 위탁·보관 표에 S3 백업 보관을 더한다(같은 싱가포르 리전, 30일, 탈퇴한 회원의
+      정보가 보관 기간 동안 백업에 남는다는 점).
 - [ ] Neon 계정 주인 팀원에게 지금 요금제의 시점 복구 가능 기간을 확인해 이 절에 적는다.
 
 ## 3) 처음 만들기 (#480)
@@ -347,6 +367,8 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
      --region ap-southeast-1
    ```
 
+   production 환경 스택은 DB 백업 버킷·백업 작업 역할·로그 그룹도 만든다(2-1). 보관 일수를 바꾸려면
+   `BackupRetentionDays=<7~90>` 를 더한다(기본 30, 바꾸면 `docs/privacy_processing.md` 도 고친다).
    출력 `GitHubDeployRoleArn`·`CloudFormationDeployRoleArn`·`ServiceStackName` → 그 Environment 의 변수
    `AWS_BACKEND_DEPLOY_ROLE_ARN`·`AWS_BACKEND_CFN_ROLE_ARN`·`BACKEND_STACK_NAME`.
 3. **비밀**: Secrets Manager 에 `oncare/backend/<environment>` 이름으로 JSON 비밀을 만든다(아래 5절 "비밀 키").
