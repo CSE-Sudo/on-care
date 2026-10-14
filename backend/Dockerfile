@@ -18,6 +18,25 @@ ENV TZ=Asia/Seoul
 COPY requirements.txt .
 RUN pip install --no-cache-dir --require-hashes -r requirements.txt
 
+# 운영 배포 직전 DB 백업(scripts/backup_db.py, #1552)이 쓰는 pg_dump·pg_restore.
+# pg_dump 는 서버보다 옛 주 버전이면 덤프를 거부하므로 Neon 의 Postgres 주 버전과 같거나
+# 더 새 클라이언트를 PostgreSQL 공식 apt 저장소(PGDG)에서 깐다. Neon 버전은
+# `SELECT version();` 으로 확인한다(backend/docs/DEPLOY.md 2-1). 새 클라이언트는 옛 서버를 덤프할 수 있다.
+ARG PG_CLIENT_MAJOR=18
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && install -d /usr/share/postgresql-common/pgdg \
+ && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+      https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+ && . /etc/os-release \
+ && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends "postgresql-client-${PG_CLIENT_MAJOR}" \
+ && apt-get purge -y --auto-remove curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && pg_dump --version
+
 # 앱 + 마이그레이션 자산(운영은 Alembic 이 스키마의 정답이므로 반드시 포함).
 COPY app ./app
 COPY migrations ./migrations

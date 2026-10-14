@@ -311,6 +311,19 @@ jobs:
           docker logs oncare-backend || true
           exit 1
 
+      - name: Image pg_dump backs up the migrated database
+        # 운영 배포 직전 DB 백업(scripts/backup_db.py, #1552)은 이 이미지의 pg_dump 로 돈다. 위에서
+        # 마이그레이션이 끝난 DB 를 같은 옵션으로 덤프하고 pg_restore 가 목록을 읽는지 본다.
+        # pg_dump 가 서버보다 옛 주 버전이면 여기서 버전 불일치로 실패한다(Dockerfile PG_CLIENT_MAJOR).
+        run: |
+          set -euo pipefail
+          docker run --rm --network host --entrypoint sh oncare-backend:ci -c '
+            set -e
+            pg_dump --format=custom --no-owner --no-privileges --file=/tmp/ci.dump \
+              --dbname=postgresql://oncare:oncare@localhost:5432/oncare
+            pg_restore --list /tmp/ci.dump | grep -q "TABLE public alembic_version"
+          '
+
       - name: Request logs carry no coordinates or client IP
         # uvicorn 기본 액세스 로그는 쿼리(헬스장 찾기 lat·lng)와 사용자 IP 를 남긴다(#3031).
         # start.sh 가 그 로그를 끄고 app.access 만 남기는지 실제 컨테이너 출력으로 본다.
