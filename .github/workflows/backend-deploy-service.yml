@@ -83,6 +83,21 @@ jobs:
           echo "image=$PREVIOUS" >> "$GITHUB_OUTPUT"
           echo "Rollback point: $PREVIOUS"
 
+      # 운영만: 새 이미지를 올리기 전에 지금 DB 를 S3 에 덤프한다(#1552, DEPLOY.md 2-1). 백업 작업은
+      # 지금 떠 있는 이미지로 돌고, 실패하면 이 잡이 여기서 멈춰 배포하지 않는다(되돌릴 것도 없다).
+      # 이 단계가 마이그레이션보다 앞이라, 새 이미지의 마이그레이션이 데이터를 망쳐도 직전 덤프가 남는다.
+      - name: Back up production database
+        id: backup
+        if: ${{ inputs.environment == 'production' }}
+        run: |
+          set -euo pipefail
+          if [ ! -f .github/scripts/backend_db_backup.sh ]; then
+            echo "::error::배포 대상 커밋에 백업 스크립트가 없습니다. 운영은 #1552 이후 커밋만 배포합니다."
+            exit 1
+          fi
+          KEY=$(bash .github/scripts/backend_db_backup.sh run "$STACK_NAME" "$SHA")
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+
       - name: Deploy image
         id: deploy
         run: |
@@ -138,6 +153,8 @@ jobs:
           OUTCOME: ${{ job.status }}
           ROLLED_BACK: ${{ steps.rollback.outputs.done }}
           ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
+          BACKUP_KEY: ${{ steps.backup.outputs.key }}
+          BACKUP_OUTCOME: ${{ steps.backup.outcome }}
         run: |
           {
             echo "### Backend deploy: $ENVIRONMENT"
@@ -149,6 +166,11 @@ jobs:
             echo "| 직전 이미지 | \`${PREVIOUS:-없음}\` |"
             echo "| 주소 | ${URL:-확인 전} |"
             echo "| 결과 | $OUTCOME |"
+            if [ -n "$BACKUP_KEY" ]; then
+              echo "| 배포 전 DB 백업 | \`$BACKUP_KEY\` |"
+            elif [ "$BACKUP_OUTCOME" = "failure" ]; then
+              echo "| 배포 전 DB 백업 | **실패 — 배포하지 않음** |"
+            fi
             if [ "$ROLLED_BACK" = "true" ]; then
               echo "| 되돌리기 | 직전 이미지로 복구·검증 완료 |"
             elif [ "$ROLLBACK_OUTCOME" = "failure" ]; then

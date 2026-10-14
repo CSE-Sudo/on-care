@@ -122,6 +122,8 @@ Mappings:
 
 Conditions:
   IsStaging: !Equals [!Ref EnvironmentName, staging]
+  # DB 백업 작업은 운영만(#1552). 백업 버킷·역할도 운영 환경 스택에만 있다.
+  IsProduction: !Equals [!Ref EnvironmentName, production]
   HasGoogleClientIds: !Not [!Equals [!Ref GoogleClientIds, '']]
   HasKakaoAppId: !Not [!Equals [!Ref KakaoAppId, '']]
   HasKakaoLoginRestApiKey: !Not [!Equals [!Ref KakaoLoginRestApiKey, '']]
@@ -349,6 +351,62 @@ Resources:
         - Key: Environment
           Value: !Ref EnvironmentName
 
+  # 운영 배포 직전 DB 백업(#1552, backend/docs/DEPLOY.md 2-1). 배포 워크플로가 새 이미지를 올리기
+  # 전에 이 작업을 한 번 띄우고(.github/scripts/backend_db_backup.sh), 실패하면 배포를 멈춘다.
+  # 서비스와 같은 이미지·같은 비밀의 DATABASE_URL 을 쓴다 — 이미지를 바꾸면 이 작업 정의도 새
+  # 리비전이 되므로, 배포 직전 백업은 지금 떠 있는 이미지로 돈다. 네트워크는 워크플로가 서비스의
+  # 서브넷·보안 그룹을 그대로 넘긴다(서비스와 같은 길로 DB 에 닿는다).
+  BackupTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Condition: IsProduction
+    Properties:
+      Family: !Sub 'oncare-backend-${EnvironmentName}-db-backup'
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: '512'
+      Memory: '1024'
+      RuntimePlatform:
+        OperatingSystemFamily: LINUX
+        CpuArchitecture: X86_64
+      ExecutionRoleArn: !ImportValue
+        Fn::Sub: 'oncare-backend-${EnvironmentName}-TaskExecutionRoleArn'
+      TaskRoleArn: !ImportValue
+        Fn::Sub: 'oncare-backend-${EnvironmentName}-BackupTaskRoleArn'
+      ContainerDefinitions:
+        - Name: db-backup
+          Image: !Ref ImageIdentifier
+          Essential: true
+          Command:
+            - python
+            - -m
+            - scripts.backup_db
+          Environment:
+            - Name: TZ
+              Value: Asia/Seoul
+            - Name: BACKUP_S3_BUCKET
+              Value: !ImportValue
+                Fn::Sub: 'oncare-backend-${EnvironmentName}-BackupBucket'
+            - Name: BACKUP_S3_PREFIX
+              Value: db
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
+          Secrets:
+            - Name: DATABASE_URL
+              ValueFrom: !Sub '${SecretArn}:DATABASE_URL::'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !ImportValue
+                Fn::Sub: 'oncare-backend-${EnvironmentName}-BackupLogGroup'
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: db-backup
+      Tags:
+        - Key: Project
+          Value: OnCare
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
 Outputs:
   ServiceArn:
     Value: !GetAtt BackendService.ServiceArn
@@ -358,3 +416,15 @@ Outputs:
   ImageIdentifier:
     Description: Image currently declared by this stack (used for rollback)
     Value: !Ref ImageIdentifier
+  BackupTaskDefinitionArn:
+    Condition: IsProduction
+    Description: Task definition the deploy workflow runs before each production deploy
+    Value: !Ref BackupTaskDefinition
+  # 아래 둘은 환경 스택이 만든 이름과 같다(출력에서 import 를 다시 내보내지 않으려고 이름을 그대로
+  # 적는다 — infra/tests 가 두 템플릿의 이름이 같은지 본다).
+  BackupBucketName:
+    Condition: IsProduction
+    Value: !Sub 'oncare-db-backups-${AWS::AccountId}-${AWS::Region}-${EnvironmentName}'
+  BackupLogGroupName:
+    Condition: IsProduction
+    Value: !Sub '/oncare/backend/${EnvironmentName}/db-backup'
