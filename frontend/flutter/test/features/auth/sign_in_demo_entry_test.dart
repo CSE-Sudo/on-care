@@ -1,4 +1,4 @@
-/// 로그인 화면의 "회원 체험하기" 진입 노출 — #1526, #3423.
+/// 로그인 화면의 "체험하기" 진입 노출 — #1526, #3423, #3432.
 ///
 /// 진입은 화면에서 내렸다. 다만 되돌릴 여지를 남겨야 해서 코드를 지우거나 주석
 /// 처리하지 않고 [AppConfig.showDemoEntry] 로 감췄다. 그래서 이 테스트는 두
@@ -49,7 +49,7 @@ void main() {
     await _pumpSignIn(tester, showDemo: false);
 
     expect(find.byKey(const Key('demoEnterButton')), findsNothing);
-    expect(find.text('회원 체험하기'), findsNothing);
+    expect(find.text('체험하기'), findsNothing);
     expect(find.byKey(const Key('demoEntryNote')), findsNothing);
     // 감춘 것은 이 버튼뿐이다 — 로그인 화면 자체는 그대로다.
     expect(find.text('회원가입'), findsWidgets);
@@ -59,21 +59,28 @@ void main() {
     await _pumpSignIn(tester, showDemo: true);
 
     expect(find.byKey(const Key('demoEnterButton')), findsOneWidget);
-    expect(find.text('회원 체험하기'), findsOneWidget);
+    expect(find.text('체험하기'), findsOneWidget);
     // 두 앱의 기록이 이어지지 않는다는 안내가 함께 뜬다(#3423).
     expect(find.byKey(const Key('demoEntryNote')), findsOneWidget);
   });
 
-  // 처음 온 사람이 계정 없이 들어가는 문이라 로그인 칸보다 위에 둔다(#3423).
-  testWidgets('데모 진입은 이메일 칸보다 위에 있다', (WidgetTester tester) async {
+  // 로그인이 이 화면의 주 동작이라 체험하기는 로그인 버튼보다 아래, 맨 아래에
+  // 둔다(#3432).
+  testWidgets('데모 진입은 로그인 버튼보다 아래에 있다', (WidgetTester tester) async {
     await _pumpSignIn(tester, showDemo: true);
 
     final double entry = tester
         .getTopLeft(find.byKey(const Key('demoEnterButton')))
         .dy;
-    final double email = tester
-        .getTopLeft(find.byKey(const ValueKey<String>('member-login-email')))
+    final double submit = tester
+        .getTopLeft(find.byKey(const ValueKey<String>('member-login-submit')))
         .dy;
-    expect(entry, lessThan(email));
+    expect(entry, greaterThan(submit));
+  });
+
+  testWidgets('안내는 상대 앱과의 연동이 로그인 후라고 알린다', (WidgetTester tester) async {
+    await _pumpSignIn(tester, showDemo: true);
+
+    expect(find.text('예시 데이터 사용 · 트레이너 연동은 로그인 후'), findsOneWidget);
   });
 }
