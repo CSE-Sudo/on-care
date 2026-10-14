@@ -14,69 +14,11 @@ from __future__ import annotations
 
 import pytest
 
-from app.services import (
-    diet_ai_sentence,
-    diet_coach_inputs,
-    diet_menu_plan,
-    diet_recommendation_service,
-    trainer_report_summary_service,
-    trainer_routine_options_service,
-)
+from app.services import trainer_routine_options_service
 from app.services.coach import chat as coach_chat
-from app.services.coach import domain_coaches, grounding, prompt_rules
-from app.services.exercise_catalog import name_ai
-from app.services.recognizer import gemini as gemini_recognizer
-from app.services.recognizer import litellm_vision
-
-
-def _diet_sentence() -> str:
-    system, _ = diet_ai_sentence.build_prompt(
-        limit=40, finding="이번 주 나트륨을 3일 넘겼다.",
-        records=["월 점심: 짬뽕"], notes=[], goal="체중 감량",
-    )
-    return system
-
-
-def _diet_menu_plan() -> str:
-    system, _ = diet_menu_plan.build_prompt(
-        profile=None,
-        targets=diet_coach_inputs.DietTargets(2000, 80, 2000, 50),
-        recent=diet_coach_inputs.DietDigest(0, 0, 0, 0, 0, {}, []),
-        needs=[], notes=[], previous=(),
-    )
-    return system
-
-
-def _diet_recommendation() -> str:
-    ctx = diet_recommendation_service.NutritionContext(
-        days_with_data=3, avg_sodium_mg=2850, avg_sugar_g=10.0,
-        avg_calories=1500, avg_protein_g=60.0, sodium_limit_mg=2000,
-        sugar_limit_g=50, calorie_limit=2000, conditions="", goals="",
-        signals=("sodium_high",),
-    )
-    system, _ = diet_recommendation_service._build_prompt(ctx)
-    return system
-
-
-#: 회원에게 가는 답을 만드는 프롬프트. 담당 트레이너가 있든 없든 나간다.
-_MEMBER_PROMPTS = {
-    "diet_coach": lambda: domain_coaches._DIET_SYSTEM,
-    "exercise_coach": lambda: domain_coaches._EXERCISE_SYSTEM,
-    "diet_sentence": _diet_sentence,
-    "diet_menu_plan": _diet_menu_plan,
-    "diet_recommendation": _diet_recommendation,
-    "recognizer_gemini": lambda: gemini_recognizer._PROMPT,
-    "recognizer_litellm": lambda: litellm_vision._PROMPT,
-}
-
-#: LLM 을 부르는 프롬프트 전부. 새 프롬프트를 만들면 여기에 더한다.
-_ALL_PROMPTS = {
-    **_MEMBER_PROMPTS,
-    "coach_chat": lambda: coach_chat._SYSTEM,
-    "routine_options": lambda: trainer_routine_options_service._SYSTEM_PROMPT,
-    "report_summary": lambda: trainer_report_summary_service._SYSTEM_PROMPT,
-    "exercise_name": lambda: name_ai._PROMPT,
-}
+from app.services.coach import grounding, prompt_rules
+from tests.prompt_registry import ALL_PROMPTS as _ALL_PROMPTS
+from tests.prompt_registry import MEMBER_PROMPTS as _MEMBER_PROMPTS
 
 
 @pytest.mark.parametrize("name", sorted(_ALL_PROMPTS))
