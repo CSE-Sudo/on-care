@@ -3,7 +3,9 @@
 /// 운영 서버는 데모 폴백이 꺼져 있어 운영 빌드에서 앱 안 데모로 들어가면 화면이
 /// 비었다. 운영 웹 빌드는 `DEMO_SITE_URL` 로 받은 데모 Pages 의 회원 앱으로 같은 탭을
 /// 옮기고, 주소에 `?demo=1` 을 붙인다. 데모 Pages 는 그 표시를 보고 로그인 화면 대신
-/// 데모로 들어간다. 여기서는 주소 만들기·표시 읽기·기동 판단·세션 복원을 고정한다.
+/// 데모로 들어간다. 데모 Pages 목업 빌드는 `DEMO_AUTO_ENTER=true` 로 표시 없이도
+/// 방문마다 곧장 데모로 들어간다. 여기서는 주소 만들기·표시 읽기·기동 판단·세션
+/// 복원을 고정한다.
 library;
 
 import 'package:dio/dio.dart';
@@ -134,7 +136,7 @@ void main() {
               ),
           ),
           sessionFeatureResetOverride(),
-          demoEntryLinkProvider.overrideWithValue(demoEntryLink),
+          demoEntryOnLaunchProvider.overrideWithValue(demoEntryLink),
         ],
       );
       addTearDown(c.dispose);
@@ -159,6 +161,76 @@ void main() {
       expect(
         await settle(container(demoEntryLink: false)),
         SessionStatus.signedOut,
+      );
+    });
+
+    test('곧장 들어간 데모에서 로그아웃하면 같은 페이지에서는 다시 들이지 않는다', () async {
+      final ProviderContainer c = container(demoEntryLink: true);
+      expect(await settle(c), SessionStatus.demo);
+
+      await c.read(sessionControllerProvider.notifier).signOut();
+      for (var i = 0; i < 10; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+    });
+  });
+
+  group('곧장 데모(DEMO_AUTO_ENTER)', () {
+    const AppConfig autoEnter = AppConfig(
+      environment: Environment.dev,
+      apiBaseUrl: 'https://dev.api.test',
+      useMockApi: true,
+      showDemoEntry: true,
+      demoBuild: true,
+      demoAutoEnter: true,
+    );
+
+    test('데모 Pages 목업 빌드는 표시 없이 방문해도 곧장 데모', () {
+      expect(autoEnter.autoEntersDemo, isTrue);
+      expect(
+        shouldEnterDemoOnLaunch(autoEnter, isWeb: true, page: _plainVisit),
+        isTrue,
+      );
+    });
+
+    test('데모 Pages 의 local·real 빌드는 값이 섞여 와도 로그인 화면', () {
+      const AppConfig localBackend = AppConfig(
+        environment: Environment.dev,
+        apiBaseUrl: 'http://localhost:8000/v1',
+        useMockApi: false,
+        showDemoEntry: true,
+        demoBuild: true,
+        demoAutoEnter: true,
+      );
+      expect(localBackend.autoEntersDemo, isFalse);
+      expect(
+        shouldEnterDemoOnLaunch(localBackend, isWeb: true, page: _plainVisit),
+        isFalse,
+      );
+      // 운영 앱의 체험하기로 왔으면 그 빌드에서도 데모로 들인다.
+      expect(
+        shouldEnterDemoOnLaunch(localBackend, isWeb: true, page: _arrived),
+        isTrue,
+      );
+    });
+
+    test('데모 빌드 표시가 없거나 웹이 아니면 따르지 않는다', () {
+      const AppConfig noDemoBuild = AppConfig(
+        environment: Environment.dev,
+        apiBaseUrl: 'https://dev.api.test',
+        useMockApi: true,
+        demoAutoEnter: true,
+      );
+      expect(noDemoBuild.autoEntersDemo, isFalse);
+      expect(
+        shouldEnterDemoOnLaunch(noDemoBuild, isWeb: true, page: _plainVisit),
+        isFalse,
+      );
+      expect(
+        shouldEnterDemoOnLaunch(autoEnter, isWeb: false, page: _plainVisit),
+        isFalse,
       );
     });
   });

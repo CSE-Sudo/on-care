@@ -97,6 +97,7 @@ class ProductionWebBuildTest(unittest.TestCase):
                 self.assertIn('--dart-define=SENTRY_DSN="$SENTRY_DSN"', step)
                 self.assertNotIn("DEMO_BUILD", step.split("run:", 1)[1])
                 self.assertNotIn("SHOW_DEMO_ENTRY", step)
+                self.assertNotIn("DEMO_AUTO_ENTER", step)
                 self.assertNotIn("REAL_API", step)
 
     def test_builds_check_defines_before_building(self) -> None:
@@ -160,6 +161,16 @@ class DemoWebBuildTest(unittest.TestCase):
             with self.subTest(step=step.splitlines()[0]):
                 self.assertIn("--dart-define=SHOW_DEMO_ENTRY=true", step)
                 self.assertNotIn("DEMO_SITE_URL", step)
+
+    def test_only_mock_demo_builds_enter_demo_on_launch(self) -> None:
+        """목업 데모는 방문마다 곧장 데모로 들어가고, real·local 빌드는 로그인 화면이다(#3437)."""
+        for step in web_build_steps(DEMO_DEPLOY):
+            with self.subTest(step=step.splitlines()[0]):
+                mock = step.split('if [ "$WEB_USE_MOCK_API" = "true" ]; then', 1)
+                self.assertEqual(len(mock), 2)
+                branch = re.split(r"(?m)^\s*fi\s*$", mock[1], maxsplit=1)[0]
+                self.assertIn("args+=(--dart-define=DEMO_AUTO_ENTER=true)", branch)
+                self.assertEqual(step.count("DEMO_AUTO_ENTER"), 1)
 
     def test_social_login_ids_only_reach_real_server_builds(self) -> None:
         """목업 데모는 기기 안 토큰으로 로그인한다 — 로그인 값은 실서버 분기에서만 넘긴다."""

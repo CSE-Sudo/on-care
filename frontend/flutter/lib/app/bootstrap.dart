@@ -112,7 +112,7 @@ Future<void> bootstrap() async {
         demoSampleMealsProvider.overrideWithValue(demoSampleMealsFor(config)),
         sessionFeatureResetOverride(),
         // 운영 앱의 체험하기로 온 데모 사이트 방문이면 곧장 데모로 들인다(#3437).
-        demoEntryLinkProvider.overrideWithValue(
+        demoEntryOnLaunchProvider.overrideWithValue(
           shouldEnterDemoOnLaunch(config),
         ),
         // 최소 지원 버전 확인(#3045)은 모바일 빌드만 — 웹은 배포하면 곧 새 빌드다.

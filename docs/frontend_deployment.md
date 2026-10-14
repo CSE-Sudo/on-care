@@ -76,6 +76,7 @@
 - 백엔드를 켠 그 컴퓨터에서만 동작합니다. 다른 기기·방문자에게는 앱이 서버에 닿지 않습니다. Safari 는 https 페이지의 `http://localhost` 요청을 막습니다.
 - 데모 사이트 전체가 이 빌드로 바뀝니다. 확인이 끝나면 `mock` 으로 다시 배포합니다(`main` push 도 `mock` 으로 되돌립니다).
 - 앱의 릴리스 가드는 `DEMO_BUILD=true` 이고 API 주소가 localhost·127.0.0.1 일 때만 `http`·`ENV=dev` 를 허용합니다. CSP 는 `PAGES_CSP_ALLOW_LOCAL=1` 일 때만 그 출처 하나를 더 엽니다.
+- 목업 데모와 달리 열면 로그인 화면이 뜹니다 — 곧장 데모 진입(`DEMO_AUTO_ENTER`, #3437)은 목업 빌드에만 넘깁니다([운영 앱의 체험하기는 데모 Pages 로 보냅니다](#운영-앱의-체험하기는-데모-pages-로-보냅니다)).
 
 ## 랜딩 바로가기와 og:url·canonical
 
@@ -107,7 +108,7 @@
 | 배포 | 랜딩 앱 바로가기 | 같은 도메인의 `/member/`·`/trainer/` |
 | --- | --- | --- |
 | AWS(운영) | 상대 경로 → 운영 회원 앱·트레이너 웹 | 운영 앱 |
-| GitHub Pages | `PRODUCTION_FRONTEND_URL` 의 `/member/#/dashboard`·`/trainer/`(변수가 비면 상대 경로) | 목업 데모 앱 — 운영 앱 로그인 화면의 `체험하기` 가 엽니다([아래 절](#운영-앱의-체험하기는-데모-pages-로-보냅니다)) |
+| GitHub Pages | `PRODUCTION_FRONTEND_URL` 의 `/member/#/dashboard`·`/trainer/`(변수가 비면 상대 경로) | 목업 데모 앱 — 열면 로그인 화면 없이 곧장 데모, 운영 앱 로그인 화면의 `체험하기` 가 엽니다([아래 절](#운영-앱의-체험하기는-데모-pages-로-보냅니다)) |
 
 처리방침(`legal/privacy.html`)·아이콘은 Pages 에서도 상대 경로 그대로입니다.
 
@@ -242,13 +243,18 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 
 ### 운영 앱의 체험하기는 데모 Pages 로 보냅니다
 
-운영 서버는 데모 폴백이 꺼져 있어(`ENV=prod`) 운영 빌드에서 앱 안 데모로 들어가면 화면이 모두 401 로 빕니다. 그래서 운영 웹 빌드(`aws-frontend-deploy.yml`)는 `--dart-define=DEMO_SITE_URL=<데모 Pages 의 같은 앱 주소>` 를 넘기고, 두 앱의 로그인 화면은 이 값이 있으면 `체험하기` 를 띄워 **같은 탭에서 그 주소로 옮깁니다**(#3437). 주소 끝에 진입 표시 `?demo=1` 을 붙이고(해시 라우트 `#/…` 앞의 질의라 라우터 위치에는 섞이지 않음), 데모 Pages 는 그 표시로 왔고 저장된 토큰이 없으면 로그인 화면 대신 곧장 데모로 들어갑니다.
+운영 서버는 데모 폴백이 꺼져 있어(`ENV=prod`) 운영 빌드에서 앱 안 데모로 들어가면 화면이 모두 401 로 빕니다. 그래서 운영 웹 빌드(`aws-frontend-deploy.yml`)는 `--dart-define=DEMO_SITE_URL=<데모 Pages 의 같은 앱 주소>` 를 넘기고, 두 앱의 로그인 화면은 이 값이 있으면 `체험하기` 를 띄워 **같은 탭에서 그 주소로 옮깁니다**(#3437). 데모 Pages 의 목업 빌드는 `--dart-define=DEMO_AUTO_ENTER=true` 를 받아 **방문할 때마다** 저장된 토큰이 없으면 로그인 화면 없이 곧장 데모로 들어갑니다 — 소개 페이지의 앱 바로가기는 운영으로 가므로 이 사이트의 앱은 둘러보기 전용입니다. 운영 앱이 붙이는 진입 표시 `?demo=1`(해시 라우트 `#/…` 앞의 질의라 라우터 위치에는 섞이지 않음)도 그대로 둡니다 — `DEMO_AUTO_ENTER` 를 받지 않는 Pages 실서버(`real`·`local`) 빌드에서 체험하기가 곧장 데모로 이어지게 하는 몫입니다.
 
-| 빌드 | 로그인 화면 `체험하기` | `?demo=1` 로 열었을 때 |
-| --- | --- | --- |
-| 운영 웹(AWS) | `DEMO_SITE_URL` 이 있으면 뜸 → 데모 Pages 의 같은 앱(`…/member/?demo=1`, `…/trainer/?demo=1`)으로 이동 | 무시(데모 진입이 닫힌 빌드) |
-| 데모 Pages(`SHOW_DEMO_ENTRY=true`) | 지금처럼 앱 안 데모로 진입 | 로그인 화면 없이 곧장 데모 |
-| 로컬 개발(`flutter run`) | `SHOW_DEMO_ENTRY` 를 주면 지금처럼 앱 안 데모 | 웹이고 `SHOW_DEMO_ENTRY` 를 주면 곧장 데모 |
+| 빌드 | 그냥 열었을 때 | `?demo=1` 로 열었을 때 | 로그인 화면 `체험하기` |
+| --- | --- | --- | --- |
+| 운영 웹(AWS) | 로그인 화면 | 무시 — 로그인 화면(데모 진입이 닫힌 빌드) | `DEMO_SITE_URL` 이 있으면 뜸 → 데모 Pages 의 같은 앱(`…/member/?demo=1`, `…/trainer/?demo=1`)으로 이동 |
+| 데모 Pages `mock`(main push 기본, `DEMO_AUTO_ENTER=true`) | 로그인 화면 없이 곧장 데모 | 곧장 데모 | 앱 안 데모로 진입(로그아웃한 뒤 보임) |
+| 데모 Pages `real`·`local`(수동 실행) | 로그인 화면 | 로그인 화면 없이 곧장 데모 | 앱 안 데모로 진입 |
+| 로컬 개발(`flutter run`) | 로그인 화면 | 웹이고 `SHOW_DEMO_ENTRY` 를 주면 곧장 데모 | `SHOW_DEMO_ENTRY` 를 주면 앱 안 데모 |
+| 모바일 스토어 빌드 | 로그인 화면 | 해당 없음 | 숨김 |
+
+- 곧장 들어가는 판단은 **페이지를 열 때 한 번**입니다(세션 복원). 데모에서 로그아웃하면 그 페이지에서는 로그인 화면에 머물러 데모 계정 로그인 등을 해 볼 수 있고, 다시 데모로 끌려가지 않습니다. 새로 고치면(토큰이 없으면) 다시 데모로 들어갑니다. 데모 계정으로 로그인했으면 새로 고쳐도 그 세션이 복원됩니다.
+- `DEMO_AUTO_ENTER` 는 `deploy.yml` 이 목업(`mock`) 빌드에만 넘기고, 앱도 데모 빌드 표시(`DEMO_BUILD=true`)가 있는 목업 빌드에서만 따릅니다(`AppConfig.autoEntersDemo`) — `local`(내 컴퓨터 백엔드)·`real`(staging) 빌드는 실서버 로그인을 보려고 쓰는 빌드라 로그인 화면이 그대로입니다. 운영 웹 빌드 검사(`check_web_release_defines.sh`)는 `DEMO_AUTO_ENTER=true` 가 섞이면 멈춥니다.
 
 - 데모 사이트 주소는 job 환경 변수 `DEMO_SITE_URL`(기본 `https://cse-sudo.github.io/on-care/`)에 앱 폴더를 붙여 넘깁니다. Pages 주소가 바뀌면 저장소 변수 `DEMO_SITE_URL` 로 덮습니다.
 - `https://` 가 아닌 값은 앱이 버리고 버튼도 띄우지 않습니다. 빌드 전 검사(`check_web_release_defines.sh`)는 질의·조각이 붙었거나 평문·로컬 주소면 멈춥니다.
@@ -264,7 +270,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 - 데모 빌드 표시 없이 로그인 화면의 데모 진입 `SHOW_DEMO_ENTRY=true` 가 켜짐(두 앱, #3147)
 - 데모 빌드 표시 없이 부분 실연동 스위치 `REAL_API` 가 남음(회원 앱, #3147)
 
-데모 Pages 빌드(`deploy.yml`)는 두 앱 모두 `--dart-define=DEMO_BUILD=true` 를 넘겨 지금처럼 목업으로 뜹니다. 운영 웹 빌드는 이 표시를 넘기지 않습니다. 운영 웹 빌드(`aws-frontend-deploy.yml`)는 빌드 전에 `.github/scripts/check_web_release_defines.sh` 로 넘길 dart-define 을 검사해, `ENV` 가 prod·staging 이 아니거나 `USE_MOCK_API=false` 가 없거나 `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남아 있으면 배포 전에 멈춥니다(모바일 스토어 빌드의 `tool/check_release_defines.sh` 와 같은 규칙). 체험하기 주소 `DEMO_SITE_URL` 은 운영 웹 빌드가 넘기는 값이라 허용하되, 질의·조각 없는 `https://` 주소여야 합니다([위 절](#운영-앱의-체험하기는-데모-pages-로-보냅니다)). `flutter run`(디버그)과 테스트에는 가드가 적용되지 않습니다.
+데모 Pages 빌드(`deploy.yml`)는 두 앱 모두 `--dart-define=DEMO_BUILD=true` 를 넘겨 지금처럼 목업으로 뜹니다. 운영 웹 빌드는 이 표시를 넘기지 않습니다. 운영 웹 빌드(`aws-frontend-deploy.yml`)는 빌드 전에 `.github/scripts/check_web_release_defines.sh` 로 넘길 dart-define 을 검사해, `ENV` 가 prod·staging 이 아니거나 `USE_MOCK_API=false` 가 없거나 `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`DEMO_AUTO_ENTER`·`REAL_API` 가 남아 있으면 배포 전에 멈춥니다(모바일 스토어 빌드의 `tool/check_release_defines.sh` 와 같은 규칙). 체험하기 주소 `DEMO_SITE_URL` 은 운영 웹 빌드가 넘기는 값이라 허용하되, 질의·조각 없는 `https://` 주소여야 합니다([위 절](#운영-앱의-체험하기는-데모-pages-로-보냅니다)). `flutter run`(디버그)과 테스트에는 가드가 적용되지 않습니다.
 
 ### `ENV=prod` 로 띄울 때 걸리는 것
 

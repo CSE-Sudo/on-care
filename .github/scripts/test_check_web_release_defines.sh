@@ -50,6 +50,10 @@ expect fail '데모 진입 노출(두 칸 모양)' "${GOOD[@]}" --dart-define SH
 expect fail 'REAL_API 한 기능' "${GOOD[@]}" --dart-define=REAL_API=ai-coach
 expect fail 'REAL_API 여러 기능' "${GOOD[@]}" --dart-define=REAL_API=ai-coach,auth
 
+# 기동하면 곧장 데모 — 데모 Pages 목업 빌드 전용(#3437)
+expect fail '곧장 데모 진입' "${GOOD[@]}" --dart-define=DEMO_AUTO_ENTER=true
+expect pass '곧장 데모 진입 꺼짐' "${GOOD[@]}" --dart-define=DEMO_AUTO_ENTER=false
+
 # 체험하기가 옮겨 갈 둘러보기 데모 주소(#3437)
 expect pass '데모 사이트 주소' "${GOOD[@]}" --dart-define=DEMO_SITE_URL=https://cse-sudo.github.io/on-care/member/
 expect pass '데모 사이트 주소(두 칸 모양)' "${GOOD[@]}" --dart-define DEMO_SITE_URL=https://cse-sudo.github.io/on-care/trainer/

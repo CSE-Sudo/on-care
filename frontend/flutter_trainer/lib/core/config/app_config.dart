@@ -109,6 +109,7 @@ class AppConfig {
     required bool useMockApi,
     this.showDemoEntry = false,
     this.demoSiteUrl,
+    this.demoAutoEnter = false,
     this.sentryDsn,
     this.demoBuild = false,
     this.socialLogin = const SocialLoginConfig(),
@@ -152,6 +153,16 @@ class AppConfig {
   /// 만 본다. `https://` 가 아닌 값은 버리고 버튼도 띄우지 않는다
   /// (`demoSiteEntryAddress`). 회원 앱과 같은 이름이다.
   final String? demoSiteUrl;
+
+  /// 기동하면 로그인 화면 없이 곧장 데모로 들어가 달라는 빌드 값(#3437) —
+  /// `--dart-define=DEMO_AUTO_ENTER=true`. 데모 Pages 의 목업 빌드(`deploy.yml`)만
+  /// 넘긴다. 실제로 쓰이는지는 [autoEntersDemo] 가 정한다. 회원 앱과 같은 이름이다.
+  final bool demoAutoEnter;
+
+  /// 곧장 데모로 들어가는가 — 데모 빌드 표시([demoBuild])가 있는 목업 빌드에서
+  /// [demoAutoEnter] 를 받았을 때만 참이다. 데모 Pages 의 실서버(`real`·`local`)
+  /// 빌드나 운영 빌드에서는 값이 섞여 와도 거짓이다.
+  bool get autoEntersDemo => demoAutoEnter && demoBuild && useMockApi;
 
   /// 에러 추적(Sentry) 수신 주소. 비어 있으면 보내지 않는다 (#2839).
   ///
@@ -219,6 +230,8 @@ class AppConfig {
     const showDemoEntry = bool.fromEnvironment('SHOW_DEMO_ENTRY');
     // 운영 웹 빌드만 넘긴다(#3437). 예: --dart-define=DEMO_SITE_URL=https://…/trainer/
     const demoSiteUrl = String.fromEnvironment('DEMO_SITE_URL');
+    // 데모 Pages 목업 빌드만 넘긴다(#3437). 기동하면 곧장 데모로 들어간다.
+    const demoAutoEnter = bool.fromEnvironment('DEMO_AUTO_ENTER');
     const sentryDsn = String.fromEnvironment('SENTRY_DSN');
     // 데모 Pages 빌드만 넘긴다(#3022). 릴리스 가드가 목업을 허용하는 근거다.
     const demoBuild = kDemoBuild;
@@ -231,6 +244,8 @@ class AppConfig {
       // ignore: avoid_redundant_argument_values
       showDemoEntry: showDemoEntry,
       demoSiteUrl: demoSiteUrl.trim().isEmpty ? null : demoSiteUrl.trim(),
+      // ignore: avoid_redundant_argument_values
+      demoAutoEnter: demoAutoEnter,
       sentryDsn: sentryDsn.isEmpty ? null : sentryDsn,
       // ignore: avoid_redundant_argument_values
       demoBuild: demoBuild,

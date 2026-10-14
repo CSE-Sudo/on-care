@@ -157,6 +157,12 @@ jobs:
             --dart-define=DEMO_BUILD=true
             --dart-define=SHOW_DEMO_ENTRY=true
           )
+          # 목업 데모는 둘러보기 전용이라 방문마다 로그인 화면 없이 곧장 데모로 들어간다(#3437) —
+          # 소개 페이지의 앱 바로가기는 운영으로 간다. 실서버(real·local) 빌드는 로그인이 그
+          # 빌드를 쓰는 이유라 넘기지 않는다(앱도 목업 데모 빌드에서만 이 값을 따른다).
+          if [ "$WEB_USE_MOCK_API" = "true" ]; then
+            args+=(--dart-define=DEMO_AUTO_ENTER=true)
+          fi
           if [ "$WEB_USE_MOCK_API" = "false" ]; then
             args+=(--dart-define=API_BASE_URL="$WEB_API_BASE_URL")
             args+=(--dart-define=KAKAO_LOGIN_REST_API_KEY="$KAKAO_LOGIN_REST_API_KEY")
@@ -202,6 +208,12 @@ jobs:
             --dart-define=DEMO_BUILD=true
             --dart-define=SHOW_DEMO_ENTRY=true
           )
+          # 목업 데모는 둘러보기 전용이라 방문마다 로그인 화면 없이 곧장 데모로 들어간다(#3437) —
+          # 소개 페이지의 앱 바로가기는 운영으로 간다. 실서버(real·local) 빌드는 로그인이 그
+          # 빌드를 쓰는 이유라 넘기지 않는다(앱도 목업 데모 빌드에서만 이 값을 따른다).
+          if [ "$WEB_USE_MOCK_API" = "true" ]; then
+            args+=(--dart-define=DEMO_AUTO_ENTER=true)
+          fi
           if [ "$WEB_USE_MOCK_API" = "false" ]; then
             args+=(--dart-define=API_BASE_URL="$WEB_API_BASE_URL")
             args+=(--dart-define=KAKAO_LOGIN_REST_API_KEY="$KAKAO_LOGIN_REST_API_KEY")

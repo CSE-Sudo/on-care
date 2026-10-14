@@ -160,6 +160,7 @@ class AppConfig {
     this.realApiFeatures = const <String>{},
     this.showDemoEntry = false,
     this.demoSiteUrl,
+    this.demoAutoEnter = false,
     this.iosAppStoreId,
     this.demoBuild = false,
     this.socialLogin = const SocialLoginConfig(),
@@ -244,6 +245,20 @@ class AppConfig {
   /// (`demoSiteEntryAddress`).
   final String? demoSiteUrl;
 
+  /// 기동하면 로그인 화면 없이 곧장 데모로 들어가 달라는 빌드 값(#3437) —
+  /// `--dart-define=DEMO_AUTO_ENTER=true`.
+  ///
+  /// 데모 Pages 의 목업 빌드(`deploy.yml`)만 넘긴다. 그 사이트의 앱은 둘러보기
+  /// 전용이라(소개 페이지의 앱 바로가기는 운영으로 간다) 방문마다 로그인 화면을 거칠
+  /// 이유가 없다. 실제로 쓰이는지는 [autoEntersDemo] 가 정한다.
+  final bool demoAutoEnter;
+
+  /// 곧장 데모로 들어가는가 — 데모 빌드 표시([demoBuild])가 있는 목업 빌드에서
+  /// [demoAutoEnter] 를 받았을 때만 참이다. 데모 Pages 의 실서버(`real`·`local`)
+  /// 빌드나 운영·모바일 빌드에서는 값이 섞여 와도 거짓이다 — 실서버 빌드는 로그인
+  /// 화면이 그 빌드를 쓰는 이유다.
+  bool get autoEntersDemo => demoAutoEnter && demoBuild && useMockApi;
+
   /// App Store 의 앱 ID(숫자, `https://apps.apple.com/app/id<ID>`). (#3045)
   ///
   /// 앱을 App Store Connect 에 등록해야 정해지므로 `--dart-define=IOS_APP_STORE_ID`
@@ -312,6 +327,8 @@ class AppConfig {
     const showDemoEntry = bool.fromEnvironment('SHOW_DEMO_ENTRY');
     // 운영 웹 빌드만 넘긴다(#3437). 예: --dart-define=DEMO_SITE_URL=https://…/member/
     const demoSiteUrl = String.fromEnvironment('DEMO_SITE_URL');
+    // 데모 Pages 목업 빌드만 넘긴다(#3437). 기동하면 곧장 데모로 들어간다.
+    const demoAutoEnter = bool.fromEnvironment('DEMO_AUTO_ENTER');
     const iosAppStoreId = String.fromEnvironment('IOS_APP_STORE_ID');
     // 데모 Pages 빌드만 넘긴다(#3022). 릴리스 가드가 목업을 허용하는 근거다.
     const demoBuild = kDemoBuild;
@@ -329,6 +346,8 @@ class AppConfig {
       // ignore: avoid_redundant_argument_values
       showDemoEntry: showDemoEntry,
       demoSiteUrl: demoSiteUrl.trim().isEmpty ? null : demoSiteUrl.trim(),
+      // ignore: avoid_redundant_argument_values
+      demoAutoEnter: demoAutoEnter,
       iosAppStoreId: iosAppStoreId.trim().isEmpty ? null : iosAppStoreId.trim(),
       // ignore: avoid_redundant_argument_values
       demoBuild: demoBuild,

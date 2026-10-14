@@ -74,7 +74,7 @@ Future<void> bootstrap() async {
         appDatabaseProvider.overrideWithValue(db),
         errorReporterProvider.overrideWithValue(errorReporter),
         // 운영 웹의 체험하기로 온 데모 사이트 방문이면 곧장 데모로 들인다(#3437).
-        demoEntryLinkProvider.overrideWithValue(
+        demoEntryOnLaunchProvider.overrideWithValue(
           shouldEnterDemoOnLaunch(config),
         ),
       ],

@@ -127,7 +127,7 @@ class SessionController extends StateNotifier<SessionState>
       // 운영 웹의 체험하기로 데모 사이트에 왔다(#3437) — 로그인 화면 대신 곧장
       // 데모로 들인다. 버튼을 누른 것과 같은 길이다. 저장된 토큰이 있으면 아래
       // 복원이 먼저다.
-      if (_ref.read(demoEntryLinkProvider)) {
+      if (_ref.read(demoEntryOnLaunchProvider)) {
         enterDemo();
         return;
       }

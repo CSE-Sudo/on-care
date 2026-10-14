@@ -70,6 +70,47 @@ void main() {
         isFalse,
       );
     });
+
+    test('데모 Pages 목업 빌드(DEMO_AUTO_ENTER)는 표시 없이 방문해도 곧장 데모', () {
+      const AppConfig autoEnter = AppConfig(
+        environment: Environment.dev,
+        apiBaseUrl: 'http://localhost/v1',
+        useMockApi: true,
+        showDemoEntry: true,
+        demoBuild: true,
+        demoAutoEnter: true,
+      );
+      final Uri plain = Uri.parse('$_site#/login');
+      expect(autoEnter.autoEntersDemo, isTrue);
+      expect(
+        shouldEnterDemoOnLaunch(autoEnter, isWeb: true, page: plain),
+        isTrue,
+      );
+      expect(
+        shouldEnterDemoOnLaunch(autoEnter, isWeb: false, page: plain),
+        isFalse,
+      );
+    });
+
+    test('데모 Pages 의 local·real 빌드는 DEMO_AUTO_ENTER 가 섞여 와도 로그인 화면', () {
+      const AppConfig localBackend = AppConfig(
+        environment: Environment.dev,
+        apiBaseUrl: 'http://localhost:8000/v1',
+        useMockApi: false,
+        showDemoEntry: true,
+        demoBuild: true,
+        demoAutoEnter: true,
+      );
+      expect(localBackend.autoEntersDemo, isFalse);
+      expect(
+        shouldEnterDemoOnLaunch(
+          localBackend,
+          isWeb: true,
+          page: Uri.parse('$_site#/login'),
+        ),
+        isFalse,
+      );
+    });
   });
 
   group('로그인 화면 체험하기', () {
@@ -142,7 +183,7 @@ void main() {
         tester,
         demoEntry: true,
         extraOverrides: <Override>[
-          demoEntryLinkProvider.overrideWithValue(true),
+          demoEntryOnLaunchProvider.overrideWithValue(true),
         ],
       );
 
@@ -151,6 +192,29 @@ void main() {
         SessionStatus.demo,
       );
       expect(find.byType(TrainerSignInPage), findsNothing);
+    });
+
+    testWidgets('곧장 들어간 데모에서 로그아웃하면 같은 페이지에서는 로그인 화면에 머문다', (tester) async {
+      final container = await pumpTrainerApp(
+        tester,
+        demoEntry: true,
+        extraOverrides: <Override>[
+          demoEntryOnLaunchProvider.overrideWithValue(true),
+        ],
+      );
+      expect(
+        container.read(sessionControllerProvider).status,
+        SessionStatus.demo,
+      );
+
+      await container.read(sessionControllerProvider.notifier).signOut();
+      await settle(tester);
+
+      expect(
+        container.read(sessionControllerProvider).status,
+        SessionStatus.signedOut,
+      );
+      expect(find.byType(TrainerSignInPage), findsOneWidget);
     });
 
     testWidgets('표시가 없으면 지금처럼 로그인 화면', (tester) async {
