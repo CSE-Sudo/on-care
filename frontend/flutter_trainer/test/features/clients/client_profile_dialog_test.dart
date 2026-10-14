@@ -1765,6 +1765,21 @@ void main() {
       );
     });
 
+    testWidgets('창은 긴 탭만큼만 차지하고 탭을 오가도 높이가 그대로다 (#3425)', (tester) async {
+      await _pumpDialog(tester, _FakeMemoRepository(), feedbacks: sample);
+      final Finder surface = find
+          .descendant(of: find.byType(Dialog), matching: find.byType(Material))
+          .first;
+
+      // 화면(1600) 의 85% 를 다 채우지 않는다 — 내용이 그만큼 길지 않다.
+      final double memoTab = tester.getSize(surface).height;
+      expect(memoTab, lessThan(1600 * 0.85));
+
+      await openFeedbackTab(tester);
+      expect(tester.getSize(surface).height, memoTab);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('피드백 검색은 본문·출처·방향으로 거른다', (tester) async {
       await _pumpDialog(tester, _FakeMemoRepository(), feedbacks: sample);
       await openFeedbackTab(tester);
