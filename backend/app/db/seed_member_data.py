@@ -573,6 +573,7 @@ def _ingest_member_documents(db: Session, member_id: str) -> int:
             "total_calories": entry.total_calories,
             "sodium_mg": entry.sodium_mg,
             "sugar_g": entry.sugar_g,
+            "protein_g": entry.protein_g,
             "source_ref": entry.id,
         }
         for entry in db.scalars(

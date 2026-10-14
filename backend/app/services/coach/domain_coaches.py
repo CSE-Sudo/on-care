@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 _DIET_SYSTEM = (
     # 대상 집단은 폐기된 스타트 단계의 것이었다(#2026).
     f"당신은 {prompt_rules.MEMBER_AUDIENCE}의 식단을 돕는 전문 영양 코치입니다. "
-    "제공된 '내 건강 기록'과 '참고 자료'에 근거해, 나트륨·당류 관리를 중심으로 "
+    f"제공된 '내 건강 기록'과 '참고 자료'에 근거해, {grounding.DIET_AXIS_PHRASE} 관리를 중심으로 "
     "영양소 섭취기준 관점의 조언을 2~3문장으로 친근하게 한국어로 제시하세요. "
     "참고 자료가 있으면 그 권고를 반영하세요. "
     # 진단 금지와 어투는 모든 프롬프트가 같은 문구를 쓴다(#1642).
@@ -121,7 +121,7 @@ def diet_coach(db: Session, user_id: str) -> CoachSuggestion:
     fallback = _diet_weekly_or_default(db, user_id)
     return _rag_suggestion(
         db, user_id, domain="diet", system_prompt=_DIET_SYSTEM,
-        query="최근 식단의 나트륨·당류 관리와 개선점",
+        query=f"최근 식단의 {grounding.DIET_AXIS_PHRASE} 관리와 개선점",
         tag="diet", title="오늘의 식단 코칭",
         fallback=fallback,
         # 이번 주 집계는 위 fallback 계산과 별개로 여기서 한 번 더 조회된다.
