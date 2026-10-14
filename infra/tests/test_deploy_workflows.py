@@ -257,7 +257,7 @@ def test_frontend_freshness_fallback_runs_only_when_gate_could_not_judge() -> No
     # 변수가 비었거나 응답이 없으면(unknown) 승인 뒤 배포 단계가 CloudFront origin path 로 다시 본다.
     creds = _step("aws-frontend-deploy.yml", "build-and-deploy", "Configure AWS credentials (live release check)")
     assert creds.get("if") == "github.event_name == 'workflow_run' && needs.gate.outputs.live_state == 'unknown'"
-    step = _step("aws-frontend-deploy.yml", "build-and-deploy", "Skip a release that is already live or older")
+    step = _step("aws-frontend-deploy.yml", "build-and-deploy", "Recheck the live release on CloudFront")
     assert step["env"]["GATE_STATE"] == "${{ needs.gate.outputs.live_state }}"
     assert '"$GATE_STATE" != "unknown"' in step["run"]
     assert 'bash "$tool" frontend "$DISTRIBUTION_ID" "$RELEASE_SHA"' in step["run"]

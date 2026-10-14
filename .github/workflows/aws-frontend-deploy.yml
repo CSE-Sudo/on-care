@@ -277,7 +277,8 @@ jobs:
 
       # 판정 스크립트는 이 워크플로와 같은 main 커밋(GITHUB_SHA)의 것을 쓴다 — 대상이 이 가드보다
       # 옛 커밋이면 그 checkout 에는 스크립트가 없다. 종료 코드 20 이 건너뜀이다(`|| code=$?`, #3235).
-      - name: Skip a release that is already live or older
+      # 이름을 gate 의 가드와 다르게 둔다 — 워크플로 단계 검사(tool/ci)가 이름으로 run 블록을 찾는다.
+      - name: Recheck the live release on CloudFront
         id: live
         env:
           EVENT_NAME: ${{ github.event_name }}

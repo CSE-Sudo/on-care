@@ -325,7 +325,7 @@ aws cloudfront get-distribution-config --id <DISTRIBUTION_ID> \
 **옛 커밋 재배포 가드**(#3254) — 취소된 `main` E2E CI 를 나중에 Re-run 하면 그 완료가 옛 커밋 배포를 부릅니다. 그래서 배포 전에 지금 서비스 중인 릴리스를 읽어([`deploy_freshness.sh`](../.github/scripts/deploy_freshness.sh)) 대상과 비교합니다. 두 곳에서 봅니다(#3269).
 
 1. **`gate`(승인 전)** — 저장소 변수 `PRODUCTION_FRONTEND_URL` 의 공개 `version.txt`(릴리스 루트에 넣는 커밋 SHA)를 읽습니다. 자격 증명이 필요 없어 CI 판정보다 먼저 돌고, 건너뛰면 `build-and-deploy` 가 skipped 라 production 승인 요청이 올라오지 않습니다.
-2. **`build-and-deploy`(승인 뒤, 예비)** — 1번이 판정하지 못했을 때(변수 비어 있음·응답 없음 — `unknown`)만 운영 AWS 역할로 CloudFront origin path(`/releases/<SHA>`)를 읽습니다. 그 릴리스의 `version.txt` 와 같은 커밋입니다. `gate` 는 운영 AWS 역할을 받을 수 없어(Environment 형식 OIDC) 이 확인은 승인 뒤에 돕니다.
+2. **`build-and-deploy`(승인 뒤, 예비 — `Recheck the live release on CloudFront` 단계)** — 1번이 판정하지 못했을 때(변수 비어 있음·응답 없음 — `unknown`)만 운영 AWS 역할로 CloudFront origin path(`/releases/<SHA>`)를 읽습니다. 그 릴리스의 `version.txt` 와 같은 커밋입니다. `gate` 는 운영 AWS 역할을 받을 수 없어(Environment 형식 OIDC) 이 확인은 승인 뒤에 돕니다.
 
 | 운영 릴리스와 비교 | 자동 실행(`workflow_run`) | 수동 실행 |
 | --- | --- | --- |
