@@ -18,7 +18,7 @@
 
 | 수탁자 | 위탁 업무 | 이전 국가 | 이전 항목 | 보유 기간 | 근거(코드·설정) |
 | --- | --- | --- | --- | --- | --- |
-| Amazon Web Services, Inc. | 서버 운영(ECS Express Mode), 채팅 사진·리포트 PDF 보관(S3) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF | 탈퇴 또는 위탁 계약 종료 시까지 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·리전 |
+| Amazon Web Services, Inc. | 서버 운영(ECS Express Mode), 채팅 사진·리포트 PDF 보관(S3), 운영 DB 백업 사본 보관(S3, #1552) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF, DB 전체의 백업 사본 | 탈퇴 또는 위탁 계약 종료 시까지. DB 백업 사본은 만든 날부터 30일 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·2-1·리전, `infra/backend-environment.yml` `BackupBucket`·`BackupRetentionDays` |
 | Neon | 데이터베이스 운영(Postgres + pgvector) | 싱가포르(서버와 같은 리전) | 계정·프로필·식단(음식 사진 축소본 포함)·운동·건강 기록, 대화 기록, 검색 색인 | 탈퇴 또는 위탁 계약 종료 시까지 | `backend/docs/DEPLOY.md` 4·5절, `backend/.env.aws.example` `DATABASE_URL` |
 | Google LLC (Gemini API) | 음식 사진 인식, AI 코치 답변·추천, 개인 기록 검색 색인(임베딩), 트레이너 AI 프로그램·루틴 후보·리포트 요약 | 미국 등 Google 데이터센터 소재 국가 | 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치 대화, 트레이너가 입력한 코칭 조건과 담당 회원 운동 기록·주간 리포트 수치 | 요청 처리 후 수탁자 약관에서 정한 기간. **유료 등급 키 사용 전제**(#3032) — 무료 등급은 입력이 제공자의 서비스 개선에 쓰일 수 있어 이 표의 위탁 범위를 넘는다 | `config.py` `recognizer`·`coach_llm`·`embedder` 기본값 `gemini`, `backend/docs/DEPLOY.md` 5절 `GEMINI_API_KEY`, `rag_auto_ingest=True`(식단·운동 저장 때마다 색인), `services/trainer_report_summary_service.py`, `services/trainer_routine_options_service.py` |
 | Functional Software, Inc. (Sentry) | 앱·서버 오류 수집 | 미국 | 오류 내용, 기기·브라우저·운영체제 종류, 앱 버전. 이름·이메일·IP·헤더·쿠키·요청 본문·지역 변수는 보내기 전에 지운다 | 수탁자 보관 기간 | `backend/app/core/error_tracking.py`(`send_default_pii=False`, `scrub_event`), `frontend/flutter/lib/core/observability/error_reporter.dart`, 화면이 잡아서 처리한 오류도 같은 항목·같은 정리로 보낸다(`source=handled`, `frontend/flutter/lib/core/observability/handled_error.dart`, 연결 끊김·이미 지워진 항목 같은 예상된 실패는 보내지 않음), 트레이너 웹 `sentry_flutter` |
@@ -48,6 +48,7 @@
 | 트레이너 열람 기록, 데이터 공유 동의·철회, 탈퇴 기록 | 2년 | 「개인정보의 안전성 확보조치 기준」 처리 기록 | `config.py` `audit_sensitive_retention_days=730`, `services/audit.py` `SENSITIVE_EVENTS` |
 | 탈퇴 사유 | 회원과 잇지 않은 사유 코드·시각만 | 개인정보 아님 | `account_deletion_reasons` |
 | 위치정보 이용 동의·철회 기록 | 탈퇴 시까지(철회해도 행은 남고 철회 시각만 적는다) | 위치기반서비스 이용약관 제5조 ③ | `user_consents` (`kind=location`) |
+| 운영 DB 백업 사본(S3) | 만든 날부터 30일 뒤 자동 삭제. 탈퇴한 회원의 정보도 이 기간 동안 백업에 남는다 | 장애·데이터 손상 복구 | `infra/backend-environment.yml` `BackupRetentionDays`, `backend/docs/DEPLOY.md` 2-1 |
 
 기간이 지난 감사 기록은 서버가 기동할 때와 그 뒤 하루마다 지운다(`services/retention.py` `run_purge`,
 `app/main.py` lifespan, #3144). 재시작 없이 오래 도는 서버에서도 고지한 보관 기간을 하루 넘게 넘기지 않는다.
@@ -75,7 +76,7 @@
 
 **방법**: 운영 DB 에서 행을 지우고 파일 저장소에서 객체를 지운다. S3 버킷에 버전 관리를 켜면 지운
 객체가 이전 버전으로 남으므로, 켤 때는 이전 버전 만료 규칙을 함께 건다(`backend/docs/DEPLOY.md` 5-1).
-DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 지나면 사라진다. 첨부 삭제가 실패하면
+DB 복구용 기록(Neon 의 복원 기간, 운영 배포 직전마다 뜨는 S3 백업 30일)에 남은 사본은 그 기간이 지나면 사라진다. 첨부 삭제가 실패하면
 `탈퇴 첨부 삭제 실패` 경고 로그로 남아 다시 지울 수 있다.
 
 ## 4. 수집 항목 — 실제와 대조
