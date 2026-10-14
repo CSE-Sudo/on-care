@@ -509,7 +509,7 @@ def save_analyzed_entry(
         record_diet(
             db, user_id, date=entry.date, foods=foods_for_storage,
             total_calories=entry.total_calories, sodium_mg=entry.sodium_mg,
-            sugar_g=entry.sugar_g, source_ref=entry.id,
+            sugar_g=entry.sugar_g, protein_g=entry.protein_g, source_ref=entry.id,
         )
     except Exception as exc:  # noqa: BLE001 — 개인 RAG 적재는 best-effort
         db.rollback()
@@ -593,7 +593,7 @@ def save_manual_entry(
         record_diet(
             db, user_id, date=out_date, foods=foods_for_storage,
             total_calories=out.total_calories, sodium_mg=out.sodium_mg,
-            sugar_g=out.sugar_g, source_ref=out.id,
+            sugar_g=out.sugar_g, protein_g=out.protein_g, source_ref=out.id,
         )
     except Exception as exc:  # noqa: BLE001 — 개인 RAG 적재는 best-effort
         db.rollback()

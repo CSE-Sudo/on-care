@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.db.session import release_connection
 from app.models.models import HealthProfile
-from app.services.coach import grounding, insights, prompt_safety
+from app.services.coach import grounding, insights, prompt_rules, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve
 from app.services.coach_service import diet_period_context
@@ -31,8 +31,11 @@ _SYSTEM = (
     "회원의 식단·운동을 돕습니다. "
     "제공된 '내 건강 기록'과 '참고 자료(공공 가이드라인)'에 근거해 "
     f"{grounding.GROUNDED_TOPIC_PHRASE} 관리를 "
-    "중심으로 친근하고 구체적으로 한국어로 답하세요. 2~4문장으로 간결하게, 근거 없는 단정이나 의학적 "
-    "진단은 피하고, 증상이 심각해 보이면 전문의 상담을 권하세요. "
+    "중심으로 친근하고 구체적으로 한국어로 답하세요. 2~4문장으로 간결하게 쓰세요. "
+    # 진단 금지와 어투는 모든 프롬프트가 같은 문구를 쓴다(#1642).
+    + prompt_rules.MEMBER_VOICE + " "
+    + prompt_rules.MEDICAL_GUARD + " "
+    "증상이 심각해 보이면 전문의 상담을 권하세요. "
     # 감지 요약을 어떻게 쓸지 적어 둔다(#1973). 없으면 요약을 넣어도 모델이
     # 그냥 지나친다 — 통증을 알고도 그 부위 운동을 그대로 권하게 된다.
     "'최근 이야기한 불편'이 있으면 그 부위에 힘이 실리는 동작은 권하지 말고 대안을 "
@@ -43,7 +46,9 @@ _SYSTEM = (
     # '내 건강 기록'에는 트레이너와 주고받은 대화도 섞여 들어온다(#580).
     + prompt_safety.UNTRUSTED_QUOTE_GUARD + " "
     # 식단 기록 줄에는 회원이 적은 음식 이름이 들어 있다(#3090).
-    + prompt_safety.FOOD_NAME_GUARD
+    + prompt_safety.FOOD_NAME_GUARD + " "
+    # 프로필의 `건강 상태` 에는 회원·트레이너가 적은 주의사항 글이 들어 있다(#1642).
+    + prompt_safety.HEALTH_NOTE_GUARD
 )
 
 logger = logging.getLogger(__name__)
