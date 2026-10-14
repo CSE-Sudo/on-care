@@ -91,7 +91,7 @@ class AppTestShardTest(unittest.TestCase):
     def test_result_job_always_runs_and_needs_both(self) -> None:
         for found, _, _ in self.each():
             job = found["analyze-and-test"]
-            self.assertIn("    needs: [analyze, test]\n", job)
+            self.assertIn("    needs: [analyze, test, test-midnight]\n", job)
             self.assertIn("    if: always()\n", job)
 
     def test_result_job_fails_unless_both_succeeded(self) -> None:
@@ -99,9 +99,49 @@ class AppTestShardTest(unittest.TestCase):
             job = found["analyze-and-test"]
             self.assertIn("ANALYZE_RESULT: ${{ needs.analyze.result }}", job)
             self.assertIn("TEST_RESULT: ${{ needs.test.result }}", job)
-            self.assertIn('[ "${ANALYZE_RESULT}" != success ] || [ "${TEST_RESULT}" != success ]', job)
+            self.assertIn("MIDNIGHT_RESULT: ${{ needs.test-midnight.result }}", job)
+            self.assertIn(
+                '[ "${ANALYZE_RESULT}" != success ] || [ "${TEST_RESULT}" != success ]'
+                ' || [ "${MIDNIGHT_RESULT}" != success ]',
+                job,
+            )
             self.assertIn("exit 1", job)
             self.assertNotIn("|| true", job)
+
+    def test_midnight_runs_start_just_before_and_after_midnight(self) -> None:
+        # 자정 직전·직후에 시작한 실행에서만 깨지는 테스트를 PR 에서 잡는다(#3448).
+        for found, _, _ in self.each():
+            job = found["test-midnight"]
+            self.assertIn("        kst_time: ['23:59', '00:01']\n", job)
+            self.assertIn("          KST_TIME: ${{ matrix.kst_time }}\n", job)
+            self.assertIn('"--dart-define=ONCARE_TEST_KST_TIME=$KST_TIME"', job)
+
+    def test_midnight_shards_cover_every_file(self) -> None:
+        # 자정 실행은 `strategy.job-total` 에 시각 수까지 곱해지므로 묶음 수를 직접 적는다.
+        # 목록 길이와 어긋나면 어떤 파일은 자정 실행에서 빠진다.
+        for found, _, _ in self.each():
+            job = found["test-midnight"]
+            matrix = re.search(r"(?m)^        shard: \[([0-9, ]+)\]$", job)
+            self.assertIsNotNone(matrix, "test-midnight 잡에 shard 매트릭스가 없습니다")
+            shards = [int(n) for n in matrix.group(1).split(",")]
+            self.assertGreaterEqual(len(shards), 2)
+            self.assertEqual(shards, list(range(1, len(shards) + 1)))
+            self.assertIn(f"          TOTAL_SHARDS: {len(shards)}\n", job)
+            self.assertIn(f"${{{{ matrix.shard }}}}/{len(shards)})", job)
+            commands = re.findall(r"(?m)^          (bash .*flutter_test_shard\.sh.*)$", job)
+            self.assertEqual(
+                commands,
+                ['bash ../../.github/scripts/flutter_test_shard.sh "$SHARD" "$TOTAL_SHARDS"'],
+            )
+            self.assertNotIn("--total-shards", job)
+
+    def test_midnight_shards_run_like_the_daytime_shards(self) -> None:
+        for found, app_dir, _ in self.each():
+            job = found["test-midnight"]
+            self.assertIn("      fail-fast: false\n", job)
+            self.assertIn(f"        working-directory: {app_dir}\n", job)
+            analyze_sdk = set(re.findall(r"flutter-version: '([0-9.]+)'", found["analyze"]))
+            self.assertEqual(set(re.findall(r"flutter-version: '([0-9.]+)'", job)), analyze_sdk)
 
     def test_trainer_web_build_still_waits_for_analysis(self) -> None:
         self.assertIn("    needs: analyze\n", jobs("trainer-ci.yml")["web-build"])

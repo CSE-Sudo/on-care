@@ -17,6 +17,13 @@ import 'package:oncare_core/clock.dart';
 /// 김트레이너의 내일 07:00 `1:1 PT` 자리.
 const String _slotId = 'slot-kim-1';
 
+/// 신청하는 '지금' — 평일 오전 9시. (#3448)
+///
+/// 실제 시계로 신청하면 테스트가 실행 시각에 매인다. 요청은 자리 두 시간 전
+/// (내일 05:00)과 신청 하루 뒤 중 이른 쪽에 만료되는데, KST 00:00~04:59 에
+/// 신청하면 하루 뒤가 먼저 와서 "자리 두 시간 전 직전" 에도 이미 만료다.
+final DateTime _base = DateTime(2026, 8, 20, 9);
+
 ConsultationDraft _draft({String slotId = _slotId}) => ConsultationDraft(
   trainerId: 'trainer-kim',
   exerciseGoal: ExerciseGoal.bloodPressure,
@@ -37,6 +44,8 @@ void main() {
   late MockConsultationRepository repository;
 
   setUp(() {
+    // 자리 시드도 '오늘' 을 읽으므로 저장소보다 먼저 고정한다.
+    debugNowKstOverride = () => _base;
     gym = MockGymRepository();
     repository = MockConsultationRepository(gym);
   });
@@ -69,12 +78,10 @@ void main() {
   });
 
   test('신청 뒤 하루가 지나면 자리 시각과 무관하게 만료다', () async {
-    final DateTime base = nowKst();
-    debugNowKstOverride = () => base;
     await repository.create(_draft());
 
     // 내일 07:00 자리라 두 시간 전 규칙이 먼저 올 수도 있다 — 어느 쪽이든 만료다.
-    debugNowKstOverride = () => base.add(kConsultationHold);
+    debugNowKstOverride = () => _base.add(kConsultationHold);
 
     expect(
       (await repository.fetchMine()).single.status,
@@ -109,12 +116,10 @@ void main() {
   });
 
   test('접수도 지난 대기 요청을 먼저 만료로 내려 대기 중복에 걸리지 않는다', () async {
-    final DateTime base = nowKst();
-    debugNowKstOverride = () => base;
     await repository.create(_draft());
 
     // 하루가 지나 첫 요청이 만료됐다. 그 뒤의 다른 자리로 다시 신청한다.
-    debugNowKstOverride = () => base.add(kConsultationHold);
+    debugNowKstOverride = () => _base.add(kConsultationHold);
     final List<TrainerSlot> open = await repository.fetchSlots('trainer-kim');
     final TrainerSlot next = open.firstWhere(
       (TrainerSlot slot) => slot.id != _slotId,
