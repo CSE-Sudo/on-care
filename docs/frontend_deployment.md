@@ -128,7 +128,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 2. 남아 있는 트레이너 웹 수정이 머지되었다.
 3. GitHub Pages 에서 랜딩페이지·회원 앱·트레이너 웹 전체를 아래 [배포 확인](#배포-확인) 절차로 확인했다.
 
-되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다. 취소된 E2E CI 를 나중에 다시 돌려도 운영에 떠 있는 릴리스보다 옛 커밋은 올라가지 않습니다 — 그 자동 실행은 빌드 전에 건너뜁니다(#3254). 일부러 옛 커밋으로 되돌릴 때는 수동 실행에 그 SHA 를 넣습니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
+되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다. 취소된 E2E CI 를 나중에 다시 돌려도 운영에 떠 있는 릴리스보다 옛 커밋은 올라가지 않습니다 — 그 자동 실행은 빌드 전에 건너뜁니다(#3254). [`PRODUCTION_FRONTEND_URL`](#production_frontend_url-저장소-변수) 이 있으면 `gate` 에서 판정해 production 승인 요청도 올라오지 않습니다(#3269). 일부러 옛 커밋으로 되돌릴 때는 수동 실행에 그 SHA 를 넣습니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
 
 배포 스크립트(`.github/scripts/*`, `tool/ci/check_prod_web_bundle.py` 등)는 백엔드와 같은 원칙으로 **배포하는 커밋의 것**을 씁니다 — 워크플로 YAML 만 `main` 의 것입니다([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 2절). 옛 커밋을 수동으로 배포할 때는 그 사이에 스크립트의 인자·종료 코드 약속이 바뀌지 않았는지 먼저 봅니다(`git diff <대상>..main -- .github/scripts tool/ci .github/workflows/aws-frontend-deploy.yml`). 바뀌었으면 `main` 의 YAML 이 옛 스크립트를 다른 뜻으로 부를 수 있습니다. 예외는 옛 커밋 재배포 가드(`deploy_freshness.sh`)로, 옛 커밋 트리에는 없어 `main` 의 것을 씁니다.
 
@@ -179,6 +179,16 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 검사 규칙 자체는 `bash .github/scripts/test_check_web_api_base_url.sh` 로 확인합니다.
 
 운영 백엔드가 이 프론트 주소의 요청을 받으려면 백엔드 `CORS_ALLOW_ORIGINS` 에 프론트 배포 도메인이 들어 있어야 합니다(아래 [`ENV=prod` 로 띄울 때 걸리는 것](#envprod-로-띄울-때-걸리는-것)).
+
+### `PRODUCTION_FRONTEND_URL` 저장소 변수
+
+옛 커밋 재배포 가드(#3254)가 지금 서비스 중인 릴리스를 읽는 운영 프런트 공개 주소입니다(#3269).
+
+- 위치: 저장소 `Settings` → `Secrets and variables` → `Actions` → `Variables`
+- 형식: `https://<운영 프런트 도메인>` — **출처만 적고 경로와 끝의 `/` 를 붙이지 않습니다.** 운영 도메인이 정해지기 전(#2000)에는 CloudFront 기본 도메인(`https://d8pns4fmdsepp.cloudfront.net`)이고, 도메인을 붙이면 그 주소로 바꿉니다.
+- 가드 위치: [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) 의 `gate` job `Skip a release that is already live or older` 단계. 자동 실행(`workflow_run`)에서 `<PRODUCTION_FRONTEND_URL>/version.txt`(배포가 릴리스 루트에 넣는 커밋 SHA)를 읽어([`deploy_freshness.sh`](../.github/scripts/deploy_freshness.sh) `frontend-site`), 대상이 그 커밋과 같거나 조상이면 CI·백엔드 확인과 `build-and-deploy` 를 모두 건너뜁니다. `gate` 는 production Environment 밖이라 **승인 요청이 올라오기 전에** 끝납니다.
+- 변수가 비어 있거나 `version.txt` 를 읽지 못하면(`unknown`) 배포를 막지 않고, 승인 뒤 `build-and-deploy` 가 운영 AWS 역할로 CloudFront origin path 를 읽어 같은 판정을 한 번 더 합니다 — 변수를 두기 전과 같은 동작입니다. 그래서 변수가 없어도 옛 커밋은 올라가지 않지만, 그 자동 실행은 승인 요청까지는 올라옵니다(승인하면 그때 건너뜀).
+- 수동 실행(`Run workflow`)은 일부러 되돌리는 경우라 두 곳 모두 보지 않습니다.
 
 ### 데모 데이터와 실서버
 
@@ -293,7 +303,7 @@ Flutter 웹 산출물의 진입 파일은 이름에 해시가 없습니다. 모�
 AWS 이전은 Vercel 정리와 별도 이슈 및 PR로 진행합니다. 인프라 생성·배포 설정·검증 절차는 [`aws-frontend-deployment.md`](aws-frontend-deployment.md)를 따릅니다.
 
 1. S3, CloudFront, OIDC 인프라를 준비하고 CloudFront 기본 도메인으로 랜딩페이지와 두 Flutter 앱을 검증합니다.
-2. 운영 도메인이 정해지면(#2000) `us-east-1` ACM 인증서를 발급해 스택 파라미터 `AlternateDomainName`·`AcmCertificateArn` 으로 붙이고, 카카오 SDK 허용 도메인·백엔드 CORS 를 함께 바꿉니다([운영 도메인 연결](aws-frontend-deployment.md#6-운영-도메인-연결)).
+2. 운영 도메인이 정해지면(#2000) `us-east-1` ACM 인증서를 발급해 스택 파라미터 `AlternateDomainName`·`AcmCertificateArn` 으로 붙이고, 카카오 SDK 허용 도메인·백엔드 CORS·[`PRODUCTION_FRONTEND_URL`](#production_frontend_url-저장소-변수) 을 함께 바꿉니다([운영 도메인 연결](aws-frontend-deployment.md#6-운영-도메인-연결)).
 3. 데모 사이트(Pages)는 그대로 둡니다.
 
 현재는 1번 검증 단계에 있습니다. 회원 앱 UI 정리와 트레이너 웹 수정이 끝날 때까지 [AWS 배포 스위치](#aws-배포-스위치)를 꺼 둔 상태로 멈춰 있습니다.
