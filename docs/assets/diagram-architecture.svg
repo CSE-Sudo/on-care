@@ -35,7 +35,7 @@
   <text x="382" y="496" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">1:1 상담 · 피드백</text>
   <rect x="208" y="522" width="348" height="56" rx="10" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.4"/>
   <text x="382" y="547" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">일정 · PT 예약 · 알림</text>
-  <text x="382" y="566" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">예약 · 세션 · 알림</text>
+  <text x="382" y="566" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">예약 · 수업 · 알림</text>
   <rect x="574" y="382" width="348" height="56" rx="10" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.4"/>
   <text x="748" y="407" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">식단 기록</text>
   <text x="748" y="426" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">사진 한 장으로 자동 인식</text>

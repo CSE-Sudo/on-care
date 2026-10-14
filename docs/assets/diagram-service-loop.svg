@@ -27,7 +27,7 @@
 
   <rect x="940" y="150" width="220" height="110" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
   <text x="1050" y="196" font-size="19" font-weight="700" fill="#17435F" text-anchor="middle">트레이너</text>
-  <text x="1050" y="220" font-size="11.5" font-weight="400" fill="#5A7A90" text-anchor="middle">세션 · 루틴 · 피드백</text>
+  <text x="1050" y="220" font-size="11.5" font-weight="400" fill="#5A7A90" text-anchor="middle">수업 · 루틴 · 피드백</text>
 
   <text x="472" y="190" font-size="10.5" font-weight="600" fill="#2E7DAB" text-anchor="middle">식단 · 운동 기록</text>
   <path d="M 414,205 H 531" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#sl)"/>
