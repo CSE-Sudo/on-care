@@ -152,6 +152,7 @@ def _production_values() -> dict[str, object]:
         "SMTP_PASSWORD": "smtp-password",
         "PASSWORD_RESET_MEMBER_URL": "https://app.example.com/reset",
         "PASSWORD_RESET_TRAINER_URL": "https://trainer.example.com/reset",
+        "AI_GLOBAL_CALLS_PER_DAY": "100",
     }
     values: dict[str, object] = {}
     for item in _entries("Environment"):
