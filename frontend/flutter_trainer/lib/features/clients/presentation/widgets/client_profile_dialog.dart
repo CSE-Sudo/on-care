@@ -111,8 +111,8 @@ class ClientProfileDialog extends StatelessWidget {
         key: const ValueKey<String>('client-memo-dialog'),
         title: l.clientMemoDialogTitle,
         size: AppDialogSize.medium,
-        // 메모·피드백 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
-        fixedHeight: true,
+        // 창은 내용만큼만 차지하고, 탭을 오갈 때 높이 변화는 이어 그린다(#3425).
+        animateHeight: true,
         child: _MemoDialogBody(
           clientId: clientId,
           clientName: clientName,
@@ -835,8 +835,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       key: const ValueKey<String>('client-profile-dialog'),
       title: l.clientProfileSectionTitle,
       size: AppDialogSize.medium,
-      // 신체·목표 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
-      fixedHeight: true,
+      // 창은 내용만큼만 차지하고, 탭을 오갈 때 높이 변화는 이어 그린다(#3425).
+      animateHeight: true,
       trailing: _editing || !_profileLoaded
           ? null
           : AppIconButton(

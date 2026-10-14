@@ -5,6 +5,7 @@ import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/layout.dart';
+import 'package:oncare_ui/src/tokens/motion.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
 import 'package:oncare_ui/src/tokens/typography.dart';
@@ -35,7 +36,7 @@ class AppDialog extends StatelessWidget {
     this.showClose,
     this.bodyPadding,
     this.trailing,
-    this.fixedHeight = false,
+    this.animateHeight = false,
   });
 
   final String? title;
@@ -59,9 +60,10 @@ class AppDialog extends StatelessWidget {
   /// 생기는 목록 끝 가운데에 둔다(#2476).
   final Widget? trailing;
 
-  /// 창 높이를 최대 높이로 고정할지. 탭으로 본문이 바뀌는 창에서 탭을 오갈 때
-  /// 창 크기가 덜컹거리지 않게 한다(#2955).
-  final bool fixedHeight;
+  /// 창 높이가 바뀔 때 이어 그릴지. 탭으로 본문이 바뀌는 창에서 탭을 오갈 때
+  /// 창 크기가 덜컹거리지 않게 한다(#2955). 한때 최대 높이로 고정했는데, 내용이
+  /// 적은 창도 화면을 다 차지해 내용에 맞추고 변화만 잇는다(#3425).
+  final bool animateHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -78,71 +80,77 @@ class AppDialog extends StatelessWidget {
     final bool hasHeader = title != null || showClose || trailing != null;
     final double maxHeight = screen.height * OnCareLayout.dialogMaxHeightFactor;
 
+    final Widget content = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (hasHeader)
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              OnCareSpacing.dialogPadding,
+              showClose ? OnCareSpacing.s12 : OnCareSpacing.dialogPadding,
+              showClose ? OnCareSpacing.s12 : OnCareSpacing.dialogPadding,
+              0,
+            ),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: title == null
+                      ? const SizedBox.shrink()
+                      : Text(
+                          title!,
+                          style: tokens
+                              .text(OnCareTypography.titleMedium)
+                              .copyWith(color: OnCareColors.textPrimary),
+                        ),
+                ),
+                ?trailing,
+                if (showClose) const AppCloseButton(),
+              ],
+            ),
+          ),
+        Flexible(
+          child: SingleChildScrollView(
+            padding:
+                bodyPadding ??
+                EdgeInsets.fromLTRB(
+                  OnCareSpacing.dialogPadding,
+                  hasHeader ? OnCareSpacing.s12 : OnCareSpacing.dialogPadding,
+                  OnCareSpacing.dialogPadding,
+                  footer == null ? OnCareSpacing.dialogPadding : 0,
+                ),
+            child: DefaultTextStyle.merge(
+              style: tokens
+                  .text(OnCareTypography.body)
+                  .copyWith(color: OnCareColors.textSecondary),
+              child: child,
+            ),
+          ),
+        ),
+        if (footer != null)
+          Padding(
+            padding: const EdgeInsets.all(OnCareSpacing.dialogPadding),
+            child: footer,
+          ),
+      ],
+    );
+
     return Dialog(
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: maxWidth,
           minWidth: tokens.density.isWeb ? maxWidth : 0,
-          minHeight: fixedHeight ? maxHeight : 0,
           maxHeight: maxHeight,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            if (hasHeader)
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  OnCareSpacing.dialogPadding,
-                  showClose ? OnCareSpacing.s12 : OnCareSpacing.dialogPadding,
-                  showClose ? OnCareSpacing.s12 : OnCareSpacing.dialogPadding,
-                  0,
-                ),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: title == null
-                          ? const SizedBox.shrink()
-                          : Text(
-                              title!,
-                              style: tokens
-                                  .text(OnCareTypography.titleMedium)
-                                  .copyWith(color: OnCareColors.textPrimary),
-                            ),
-                    ),
-                    ?trailing,
-                    if (showClose) const AppCloseButton(),
-                  ],
-                ),
-              ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding:
-                    bodyPadding ??
-                    EdgeInsets.fromLTRB(
-                      OnCareSpacing.dialogPadding,
-                      hasHeader
-                          ? OnCareSpacing.s12
-                          : OnCareSpacing.dialogPadding,
-                      OnCareSpacing.dialogPadding,
-                      footer == null ? OnCareSpacing.dialogPadding : 0,
-                    ),
-                child: DefaultTextStyle.merge(
-                  style: tokens
-                      .text(OnCareTypography.body)
-                      .copyWith(color: OnCareColors.textSecondary),
-                  child: child,
-                ),
-              ),
-            ),
-            if (footer != null)
-              Padding(
-                padding: const EdgeInsets.all(OnCareSpacing.dialogPadding),
-                child: footer,
-              ),
-          ],
-        ),
+        child: animateHeight
+            ? AnimatedSize(
+                duration: OnCareMotion.normal,
+                curve: Curves.easeOut,
+                alignment: Alignment.topCenter,
+                child: content,
+              )
+            : content,
       ),
     );
   }
