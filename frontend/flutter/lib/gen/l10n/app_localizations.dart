@@ -979,7 +979,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietSamplePhotoBack.
   ///
   /// In ko, this message translates to:
-  /// **'다른 방법으로 추가'**
+  /// **'뒤로'**
   String get dietSamplePhotoBack;
 
   /// No description provided for @dietExampleResultTitle.

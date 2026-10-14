@@ -344,7 +344,7 @@
   "dietAddPhotoSub": "앨범·카메라·파일에서 음식 사진 선택",
   "dietSamplePhoto": "샘플 사진으로 체험",
   "dietSamplePhotoSub": "준비된 음식 사진으로 분석해 보기",
-  "dietSamplePhotoBack": "다른 방법으로 추가",
+  "dietSamplePhotoBack": "뒤로",
   "dietExampleResultTitle": "사진을 분석하지 않은 예시 결과예요",
   "dietExampleResultMessage": "체험 버전은 샘플 사진을 골라야 사진에 맞는 결과가 나와요",
   "dietPhotoLoadError": "사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
