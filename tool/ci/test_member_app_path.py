@@ -43,6 +43,27 @@ class MemberAppPathTest(unittest.TestCase):
         self.assertIn('href="member/#/dashboard"', self.landing)
         self.assertIsNone(re.search(r'href="(\./)?frontend/', self.landing))
 
+    def test_pages_points_landing_apps_to_production_after_stamping(self) -> None:
+        """데모 Pages 랜딩의 앱 바로가기는 운영 사이트로 간다(#3437). 원본은 상대 경로 그대로다.
+
+        stamp 가 치환 전에 상대 경로 규칙을 보므로 바꾸기는 그 뒤여야 하고, 배포 후 확인도 같은
+        주소를 받아야 바꾼 랜딩을 실패로 보지 않는다. AWS 배포는 바꾸지 않는다.
+        """
+        stamp = self.pages.index("landing_site_url.sh stamp public/index.html")
+        point = self.pages.index(
+            'landing_site_url.sh point-apps public/index.html "$PRODUCTION_FRONTEND_URL"'
+        )
+        self.assertLess(stamp, point)
+        self.assertEqual(
+            self.pages.count("PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}"), 2
+        )
+        self.assertIn(
+            'landing_site_url.sh verify "$SITE_URL" "$site" 600 "$PRODUCTION_FRONTEND_URL"',
+            self.pages,
+        )
+        self.assertNotIn("point-apps", self.aws)
+        self.assertIsNone(re.search(r'href="https?://[^"]*/(member|trainer)/', self.landing))
+
 
 if __name__ == "__main__":
     unittest.main()
