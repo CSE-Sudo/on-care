@@ -43,6 +43,7 @@ from app.services import ai_call_quota
 from app.services import diet_coach_inputs as inputs
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.coach.llm_base import is_truncated, output_cap
+from app.services.coach.prompt_rules import MEMBER_AUDIENCE
 from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
 from app.services.ai_log import log_ai_fallback
 
@@ -455,7 +456,7 @@ def build_prompt(
     )
     tags = "\n".join(f"- {t}: {_TAG_LABELS[t]} 메뉴" for t in catalog.TAGS)
     system = (
-        "너는 PT(개인 트레이닝)를 받는 회원의 식단을 돕는 영양 코치다. 회원의 최근 4주 "
+        f"너는 {MEMBER_AUDIENCE}의 식단을 돕는 영양 코치다. 회원의 최근 4주 "
         "식단 기록과 목표를 보고, 앞으로 4주 동안 끼니별로 추천할 메뉴 리스트를 만든다.\n"
         "규칙:\n"
         f"1. {counts}. 모든 메뉴 이름이 서로 달라야 한다.\n"

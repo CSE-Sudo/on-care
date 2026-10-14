@@ -16,6 +16,7 @@ import time
 
 from app.core.config import get_settings
 from app.schemas.diet import DietAnalysis
+from app.services.coach.prompt_rules import MEMBER_AUDIENCE
 from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
 from app.services.recognizer.parse import parse_payload
 
@@ -26,7 +27,7 @@ _PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해
   "foods": [
     {"name":"음식명(한국어)","amount_g":추정섭취량g,"calories":정수kcal,"carbs_g":탄수화물g,"protein_g":단백질g,"fat_g":지방g,"sodium_mg":정수mg,"sugar_g":정수g,"confidence":0.0~1.0}
   ],
-  "coach_comment": "운동하는 회원의 식단 목표(칼로리·단백질·나트륨·당류) 관점 식단평. 넘치거나 모자란 영양을 짚고 개선 제안을 2~3문장 한국어로. 질환 이름을 꺼내거나 진단하지 마세요."
+  "coach_comment": \"""" + MEMBER_AUDIENCE + """의 식단 목표(칼로리·단백질·나트륨·당류) 관점 식단평. 넘치거나 모자란 영양을 짚고 개선 제안을 2~3문장 한국어로. 질환 이름을 꺼내거나 진단하지 마세요."
 }
 음식이 여러 개면 foods 에 모두. 모르는 값은 null.
 사진에 음식이 보이지 않으면(풍경·사람·빈 그릇 등) 지어내지 말고 foods 를 빈 배열 [] 로.

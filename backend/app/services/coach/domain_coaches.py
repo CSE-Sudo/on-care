@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.db.session import release_connection
 from app.schemas.misc_api import CoachSuggestion
 from app.services import ai_call_quota
-from app.services.coach import grounding, prompt_safety
+from app.services.coach import grounding, prompt_rules, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve_context
 # 규칙 기반(폴백)
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 _DIET_SYSTEM = (
     # 대상 집단은 폐기된 스타트 단계의 것이었다(#2026).
-    "당신은 온케어 회원의 식단을 돕는 전문 영양 코치입니다. "
+    f"당신은 {prompt_rules.MEMBER_AUDIENCE}의 식단을 돕는 전문 영양 코치입니다. "
     "제공된 '내 건강 기록'과 '참고 자료'에 근거해, 나트륨·당류 관리를 중심으로 "
     "영양소 섭취기준 관점의 조언을 2~3문장으로 친근하게 한국어로 제시하세요. "
     "근거 없는 단정은 피하고, 참고 자료가 있으면 그 권고를 반영하세요. "
@@ -47,7 +47,7 @@ _DIET_SYSTEM = (
 )
 _EXERCISE_SYSTEM = (
     # 위와 같은 이유로 대상 집단을 고쳤다(#2026).
-    "당신은 온케어 회원의 운동을 돕는 코치입니다. "
+    f"당신은 {prompt_rules.MEMBER_AUDIENCE}의 운동을 돕는 코치입니다. "
     "제공된 '내 건강 기록'과 '참고 자료'에 근거해, 최근 운동량과 생활 습관에 맞는 "
     "운동 조언을 2~3문장으로 친근하게 한국어로 제시하세요. "
     # 예전에는 "혈압·혈당 관리에 도움이 되는" 이라고 지시했다. 그 수치를 재지

@@ -23,6 +23,7 @@ from app.schemas.diet import DietAnalysis
 from app.services import ai_call_quota
 from app.services.coach.llm import gemini_truncated
 from app.services.coach.llm_base import output_cap
+from app.services.coach.prompt_rules import MEMBER_AUDIENCE
 from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
 from app.services.recognizer.parse import parse_payload
 
@@ -43,7 +44,7 @@ _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 
       "confidence": 0.0~1.0 인식 확신도
     }
   ],
-  "coach_comment": "운동하는 회원의 식단 목표(칼로리·단백질·나트륨·당류) 관점의 식단평. 넘치거나 모자란 영양을 짚고, 장단점과 구체적 개선 제안(예: '국물을 남기세요', '단백질 반찬을 더하세요')을 2~3문장으로 친절하게 한국어로. 질환 이름을 꺼내거나 진단하지 마세요."
+  "coach_comment": \"""" + MEMBER_AUDIENCE + """의 식단 목표(칼로리·단백질·나트륨·당류) 관점의 식단평. 넘치거나 모자란 영양을 짚고, 장단점과 구체적 개선 제안(예: '국물을 남기세요', '단백질 반찬을 더하세요')을 2~3문장으로 친절하게 한국어로. 질환 이름을 꺼내거나 진단하지 마세요."
 }
 
 음식이 여러 개면 foods 에 모두 넣으세요. 모르는 값은 null 로 두세요.
