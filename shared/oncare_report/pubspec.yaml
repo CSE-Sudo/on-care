@@ -25,6 +25,9 @@ dependencies:
   # 결과지는 두 앱의 색·서체 토큰으로 그린다.
   oncare_ui:
     path: ../oncare_ui
+  # 기준일이 없을 때의 '지금' 은 두 앱과 같은 KST 시계로 읽는다(#3448).
+  oncare_core:
+    path: ../oncare_core
 
 dev_dependencies:
   flutter_test:
