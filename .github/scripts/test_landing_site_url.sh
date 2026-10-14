@@ -104,6 +104,51 @@ printf '%s\n' "$head_ok<a href=\"https://cse-sudo.github.io/on-care/member/\">�
 if bash "$tool" stamp "$file" 'https://cse-sudo.github.io/on-care/' > /dev/null 2>&1; then got=pass; else got=fail; fi
 record fail "$got" "stamp: 절대 주소가 남은 파일"
 
+# point-apps(#3437): 데모 Pages 랜딩의 앱 바로가기를 운영 사이트로 바꾼다. 처리방침·아이콘은 그대로다.
+prod='https://d111111abcdef8.cloudfront.net/'
+expect_point() {
+  local want="$1" label="$2" body="$3" app_site="$4" file got
+  file="$work/point.html"
+  printf '%s\n' "$body" > "$file"
+  if bash "$tool" point-apps "$file" "$app_site" > /dev/null 2>&1; then got=pass; else got=fail; fi
+  record "$want" "$got" "point-apps: $label"
+}
+
+file="$work/point-repo.html"
+cp "$repo_root/index.html" "$file"
+if bash "$tool" point-apps "$file" "$prod" > /dev/null 2>&1 \
+  && grep -qF "href=\"${prod}member/#/dashboard\"" "$file" \
+  && grep -qF "href=\"${prod}trainer/\"" "$file" \
+  && ! grep -qE 'href="(\./)?(member|trainer)/' "$file" \
+  && grep -qF 'href="legal/privacy.html"' "$file"; then
+  got=pass
+else
+  got=fail
+fi
+record pass "$got" "point-apps: 저장소 index.html 의 앱 바로가기 전부"
+
+file="$work/point-slash.html"
+printf '%s\n' "$head_ok$links_ok" > "$file"
+if bash "$tool" point-apps "$file" 'https://d111111abcdef8.cloudfront.net' > /dev/null 2>&1 \
+  && grep -qF "href=\"${prod}member/#/dashboard\"" "$file"; then got=pass; else got=fail; fi
+record pass "$got" "point-apps: 끝 슬래시 없는 주소"
+
+file="$work/point-empty.html"
+printf '%s\n' "$head_ok$links_ok" > "$file"
+if bash "$tool" point-apps "$file" '' > /dev/null 2>&1 \
+  && grep -qF 'href="member/#/dashboard"' "$file" && grep -qF 'href="trainer/"' "$file"; then
+  got=pass
+else
+  got=fail
+fi
+record pass "$got" "point-apps: 빈 주소는 상대 경로 그대로"
+
+expect_point pass './ 로 시작하는 상대 경로' "$head_ok<a href=\"./member/\">회원</a><a href=\"./trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>" "$prod"
+expect_point fail 'https 아님' "$head_ok$links_ok" 'http://d111111abcdef8.cloudfront.net/'
+expect_point fail '따옴표 섞인 주소' "$head_ok$links_ok" 'https://a.example/"x'
+expect_point fail '이미 다른 절대 주소가 있는 원본' "$head_ok<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a>$links_ok" "$prod"
+expect_point fail '처리방침 링크 없음' "$head_ok<a href=\"member/\">회원</a><a href=\"trainer/\">트레이너</a>" "$prod"
+
 # verify: 로컬 정적 서버로 배포된 사이트를 흉내 낸다(python3 가 있을 때만).
 if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
   site="$work/site"
@@ -140,6 +185,20 @@ if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
   expect_verify fail '표시 줄이 남은 랜딩' "$head_ok$links_ok"
   expect_verify fail '다른 canonical' "<head><link rel=\"canonical\" href=\"https://other.example/\" /></head>$links_ok"
   expect_verify fail '절대 주소 바로가기' "$canonical<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"trainer/\">트레이너</a>"
+  # 앱 사이트 주소를 준 verify(#3437): 앱 바로가기만 그 주소여야 하고, 같은 도메인의 데모 앱도 응답해야 한다.
+  expect_verify_app() {
+    local want="$1" label="$2" body="$3" got
+    printf '%s\n' "$body" > "$site/index.html"
+    if bash "$tool" verify "$base" "$stamped" 0 "$prod" > /dev/null 2>&1; then got=pass; else got=fail; fi
+    record "$want" "$got" "verify(앱 사이트): $label"
+  }
+  pointed="<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+  expect_verify_app pass '운영으로 바꾼 바로가기' "$canonical$pointed"
+  expect_verify_app fail '상대 경로 그대로' "$canonical$links_ok"
+  expect_verify_app fail '트레이너 웹만 상대 경로' "$canonical<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+  expect_verify_app fail '다른 도메인 바로가기' "$canonical<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+  expect_verify fail '앱 사이트 없이 운영 바로가기' "$canonical$pointed"
+
   printf '%s
 ' '{ "start_url": "/", "icons": [ { "src": "icon-192.png" } ] }' > "$site/assets/landing/manifest.json"
   expect_verify fail '배포된 manifest 루트 절대 경로' "$canonical$links_ok"

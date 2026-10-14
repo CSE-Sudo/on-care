@@ -53,9 +53,10 @@
 4. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다(`local` 은 [아래 절](#데모-웹을-내-컴퓨터-백엔드에-붙이기-local)). `real` 이면 **staging 백엔드**(`STAGING_API_BASE_URL` 저장소 변수)를 보며, 그 값을 먼저 검사합니다. 운영 주소(`API_BASE_URL`)와 같으면 멈춥니다(#3020).
 5. 회원 앱을 `/on-care/member/`, 트레이너 웹을 `/on-care/trainer/` base path로 빌드합니다(Pages 설정의 `base_path` + 앱 경로).
 6. 루트 `index.html`, 공개 정책 페이지 `legal/*.html`, 랜딩 아이콘·manifest(`docs/assets/landing/` → `assets/landing/`), 두 앱의 빌드 결과를 `public/` 아래에 모으고, 랜딩의 og:url·canonical 을 Pages 주소(`base_url`)로 채웁니다.
-7. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
-8. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
-9. 배포된 랜딩을 받아 앱 바로가기·canonical·같은 도메인의 `/member/`·`/trainer/`·`/legal/privacy.html`·`/assets/landing/` 아이콘·manifest 응답을 확인합니다.
+7. 랜딩의 앱 바로가기를 운영 사이트(저장소 변수 [`PRODUCTION_FRONTEND_URL`](#production_frontend_url-저장소-변수))의 `/member/`·`/trainer/` 로 바꿉니다(#3437, [아래 절](#데모-pages-랜딩은-운영-앱으로-보냅니다)). 변수가 비어 있으면 상대 경로 그대로 둡니다.
+8. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
+9. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
+10. 배포된 랜딩을 받아 앱 바로가기·canonical·같은 도메인의 `/member/`·`/trainer/`(데모 앱)·`/legal/privacy.html`·`/assets/landing/` 아이콘·manifest 응답을 확인합니다.
 
 두 앱 화면에 보이는 버전(`… · 버전 <이름>`)은 각 앱 `pubspec.yaml` 의 `version` 에서 옵니다. 워크플로는 버전을 주입하지 않으므로, 버전을 바꾸려면 `pubspec.yaml` 을 올리는 커밋을 main 에 넣습니다([mobile_release.md 1절](mobile_release.md#1-버전빌드-번호-규칙)). `version.txt` 는 배포한 커밋 SHA 로, 화면의 버전과 다릅니다.
 
@@ -94,9 +95,21 @@
 - `check` — 앱 바로가기·처리방침 링크에 `http(s)://…/member`·`…/trainer`·`…/legal` 절대 주소와 루트 절대 경로(`href="/…"`·`src="/…"`)가 없고, 상대 경로 바로가기·`legal/privacy.html` 링크와 표시 줄이 있는지. PR Gate 와 두 배포 워크플로의 빌드 전에 돕니다.
 - `check-manifest` — 랜딩 manifest 의 아이콘·`start_url`·`scope`·`id` 가 `/` 로 시작하지 않는지. PR Gate 에서 돕니다.
 - `stamp` — 표시 줄을 og:url·canonical 태그로 바꿉니다(https 주소만 받음).
-- `verify` — 배포된 랜딩을 받아 바로가기가 상대 경로인지, canonical 이 그 배포 주소인지, 같은 도메인의 `/member/`·`/trainer/`·`/legal/privacy.html`·`/assets/landing/` 아이콘·manifest 가 응답하고 manifest 가 루트 절대 경로를 쓰지 않는지 확인합니다. AWS 배포에서 실패하면 직전 릴리스로 되돌립니다.
+- `point-apps` — 데모 Pages 전용(#3437). 배포용 랜딩의 회원 앱·트레이너 웹 바로가기를 앱 사이트 주소(운영)의 `member/`·`trainer/` 로 바꿉니다. 주소가 비면 그대로 둡니다. `stamp` 다음에 부릅니다(`stamp` 는 상대 경로 규칙을 먼저 봅니다).
+- `verify` — 배포된 랜딩을 받아 바로가기가 상대 경로인지(넷째 인자로 앱 사이트 주소를 주면 앱 바로가기만 그 주소의 `member/`·`trainer/` 인지), canonical 이 그 배포 주소인지, 같은 도메인의 `/member/`·`/trainer/`·`/legal/privacy.html`·`/assets/landing/` 아이콘·manifest 가 응답하고 manifest 가 루트 절대 경로를 쓰지 않는지 확인합니다. AWS 배포에서 실패하면 직전 릴리스로 되돌립니다.
 
 경계 검사는 `bash .github/scripts/test_landing_site_url.sh` 로 돌립니다.
+
+### 데모 Pages 랜딩은 운영 앱으로 보냅니다
+
+소개 페이지를 보고 앱을 여는 방문자는 실서비스로 가야 하므로, 데모 Pages 배포는 올리기 전에 랜딩의 앱 바로가기를 운영 사이트로 바꿉니다(#3437). 원본 `index.html` 은 상대 경로 그대로라 AWS 랜딩은 자기 도메인의 앱으로 갑니다.
+
+| 배포 | 랜딩 앱 바로가기 | 같은 도메인의 `/member/`·`/trainer/` |
+| --- | --- | --- |
+| AWS(운영) | 상대 경로 → 운영 회원 앱·트레이너 웹 | 운영 앱 |
+| GitHub Pages | `PRODUCTION_FRONTEND_URL` 의 `/member/#/dashboard`·`/trainer/`(변수가 비면 상대 경로) | 목업 데모 앱 — 운영 앱 로그인 화면의 `체험하기` 가 엽니다([아래 절](#운영-앱의-체험하기는-데모-pages-로-보냅니다)) |
+
+처리방침(`legal/privacy.html`)·아이콘은 Pages 에서도 상대 경로 그대로입니다.
 
 ## AWS 배포 스위치
 
@@ -186,6 +199,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 
 - 위치: 저장소 `Settings` → `Secrets and variables` → `Actions` → `Variables`
 - 형식: `https://<운영 프런트 도메인>` — **출처만 적고 경로와 끝의 `/` 를 붙이지 않습니다.** 운영 도메인이 정해지기 전(#2000)에는 CloudFront 기본 도메인(`https://d8pns4fmdsepp.cloudfront.net`)이고, 도메인을 붙이면 그 주소로 바꿉니다.
+- 데모 Pages 배포(`deploy.yml`)도 이 값을 읽어 랜딩의 앱 바로가기를 운영 사이트로 바꿉니다(#3437, [데모 Pages 랜딩은 운영 앱으로 보냅니다](#데모-pages-랜딩은-운영-앱으로-보냅니다)). 비면 상대 경로(데모 앱) 그대로입니다.
 - 가드 위치: [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) 의 `gate` job `Skip a release that is already live or older` 단계. 자동 실행(`workflow_run`)에서 `<PRODUCTION_FRONTEND_URL>/version.txt`(배포가 릴리스 루트에 넣는 커밋 SHA)를 읽어([`deploy_freshness.sh`](../.github/scripts/deploy_freshness.sh) `frontend-site`), 대상이 그 커밋과 같거나 조상이면 CI·백엔드 확인과 `build-and-deploy` 를 모두 건너뜁니다. `gate` 는 production Environment 밖이라 **승인 요청이 올라오기 전에** 끝납니다.
 - 변수가 비어 있거나 `version.txt` 를 읽지 못하면(`unknown`) 배포를 막지 않고, 승인 뒤 `build-and-deploy` 가 운영 AWS 역할로 CloudFront origin path 를 읽어 같은 판정을 한 번 더 합니다 — 변수를 두기 전과 같은 동작입니다. 그래서 변수가 없어도 옛 커밋은 올라가지 않지만, 그 자동 실행은 승인 요청까지는 올라옵니다(승인하면 그때 건너뜀).
 - 수동 실행(`Run workflow`)은 일부러 되돌리는 경우라 두 곳 모두 보지 않습니다.
@@ -226,6 +240,20 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 
 사용자 식별·요청 본문·헤더·쿼리·화면 캡처·터치 기록·print 로그는 싣지 않고, 태그는 오류 출처·화면 경로 패턴·환경입니다(`lib/core/observability/error_reporter.dart`). Sentry 프로젝트·DSN 발급과 비밀 등록, 웹 소스맵 업로드 여부는 #480 에서 정합니다.
 
+### 운영 앱의 체험하기는 데모 Pages 로 보냅니다
+
+운영 서버는 데모 폴백이 꺼져 있어(`ENV=prod`) 운영 빌드에서 앱 안 데모로 들어가면 화면이 모두 401 로 빕니다. 그래서 운영 웹 빌드(`aws-frontend-deploy.yml`)는 `--dart-define=DEMO_SITE_URL=<데모 Pages 의 같은 앱 주소>` 를 넘기고, 두 앱의 로그인 화면은 이 값이 있으면 `체험하기` 를 띄워 **같은 탭에서 그 주소로 옮깁니다**(#3437). 주소 끝에 진입 표시 `?demo=1` 을 붙이고(해시 라우트 `#/…` 앞의 질의라 라우터 위치에는 섞이지 않음), 데모 Pages 는 그 표시로 왔고 저장된 토큰이 없으면 로그인 화면 대신 곧장 데모로 들어갑니다.
+
+| 빌드 | 로그인 화면 `체험하기` | `?demo=1` 로 열었을 때 |
+| --- | --- | --- |
+| 운영 웹(AWS) | `DEMO_SITE_URL` 이 있으면 뜸 → 데모 Pages 의 같은 앱(`…/member/?demo=1`, `…/trainer/?demo=1`)으로 이동 | 무시(데모 진입이 닫힌 빌드) |
+| 데모 Pages(`SHOW_DEMO_ENTRY=true`) | 지금처럼 앱 안 데모로 진입 | 로그인 화면 없이 곧장 데모 |
+| 로컬 개발(`flutter run`) | `SHOW_DEMO_ENTRY` 를 주면 지금처럼 앱 안 데모 | 웹이고 `SHOW_DEMO_ENTRY` 를 주면 곧장 데모 |
+
+- 데모 사이트 주소는 job 환경 변수 `DEMO_SITE_URL`(기본 `https://cse-sudo.github.io/on-care/`)에 앱 폴더를 붙여 넘깁니다. Pages 주소가 바뀌면 저장소 변수 `DEMO_SITE_URL` 로 덮습니다.
+- `https://` 가 아닌 값은 앱이 버리고 버튼도 띄우지 않습니다. 빌드 전 검사(`check_web_release_defines.sh`)는 질의·조각이 붙었거나 평문·로컬 주소면 멈춥니다.
+- 운영과 데모 Pages 는 출처가 달라(`d8pns4fmdsepp.cloudfront.net` ↔ `cse-sudo.github.io`) 브라우저 저장소(토큰·설정·drift DB)를 나눠 씁니다 — 체험하기를 오가도 운영 세션이 데모 값에 덮이지 않습니다.
+
 ### 릴리스 기본값 가드 (#3022)
 
 두 앱의 컴파일 타임 기본값은 로컬 개발용(`ENV=dev`·`USE_MOCK_API=true`·예시 주소)입니다. 릴리스 빌드(`--release`, 웹 배포 빌드 포함)는 기동할 때 `AppConfig.releaseProblems()` 로 설정을 검사하고, 아래 중 하나면 기능 화면 대신 **"이 빌드는 잘못 구성됐어요"** 안내와 고칠 설정 목록을 띄웁니다.
@@ -236,7 +264,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 - 데모 빌드 표시 없이 로그인 화면의 데모 진입 `SHOW_DEMO_ENTRY=true` 가 켜짐(두 앱, #3147)
 - 데모 빌드 표시 없이 부분 실연동 스위치 `REAL_API` 가 남음(회원 앱, #3147)
 
-데모 Pages 빌드(`deploy.yml`)는 두 앱 모두 `--dart-define=DEMO_BUILD=true` 를 넘겨 지금처럼 목업으로 뜹니다. 운영 웹 빌드는 이 표시를 넘기지 않습니다. 운영 웹 빌드(`aws-frontend-deploy.yml`)는 빌드 전에 `.github/scripts/check_web_release_defines.sh` 로 넘길 dart-define 을 검사해, `ENV` 가 prod·staging 이 아니거나 `USE_MOCK_API=false` 가 없거나 `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남아 있으면 배포 전에 멈춥니다(모바일 스토어 빌드의 `tool/check_release_defines.sh` 와 같은 규칙). `flutter run`(디버그)과 테스트에는 가드가 적용되지 않습니다.
+데모 Pages 빌드(`deploy.yml`)는 두 앱 모두 `--dart-define=DEMO_BUILD=true` 를 넘겨 지금처럼 목업으로 뜹니다. 운영 웹 빌드는 이 표시를 넘기지 않습니다. 운영 웹 빌드(`aws-frontend-deploy.yml`)는 빌드 전에 `.github/scripts/check_web_release_defines.sh` 로 넘길 dart-define 을 검사해, `ENV` 가 prod·staging 이 아니거나 `USE_MOCK_API=false` 가 없거나 `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남아 있으면 배포 전에 멈춥니다(모바일 스토어 빌드의 `tool/check_release_defines.sh` 와 같은 규칙). 체험하기 주소 `DEMO_SITE_URL` 은 운영 웹 빌드가 넘기는 값이라 허용하되, 질의·조각 없는 `https://` 주소여야 합니다([위 절](#운영-앱의-체험하기는-데모-pages-로-보냅니다)). `flutter run`(디버그)과 테스트에는 가드가 적용되지 않습니다.
 
 ### `ENV=prod` 로 띄울 때 걸리는 것
 
@@ -261,7 +289,8 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 - 사용자 앱 `https://cse-sudo.github.io/on-care/member/`이 정상 응답하는지 확인
 - 트레이너 웹 `https://cse-sudo.github.io/on-care/trainer/`이 정상 응답하는지 확인
 - `https://cse-sudo.github.io/on-care/version.txt`의 값이 배포한 전체 커밋 SHA와 일치하는지 확인
-- 랜딩의 '회원 앱 바로가기'·'트레이너 웹 바로가기'가 **같은 도메인**의 `/member/`·`/trainer/` 로 열리고, 페이지 소스의 `canonical` 이 그 배포 주소인지 확인(워크플로의 `Verify landing app links` 단계가 같은 내용을 자동으로 봅니다)
+- 랜딩의 '회원 앱 바로가기'·'트레이너 웹 바로가기'가 운영(AWS)은 **같은 도메인**의 `/member/`·`/trainer/` 로, 데모(Pages)는 **운영 사이트**의 `/member/`·`/trainer/` 로 열리고(#3437, `PRODUCTION_FRONTEND_URL` 이 비면 같은 도메인), 페이지 소스의 `canonical` 이 그 배포 주소인지 확인(워크플로의 `Verify landing app links` 단계가 같은 내용을 자동으로 봅니다)
+- 운영 앱 로그인 화면의 `체험하기` 가 데모 Pages 의 같은 앱으로 옮겨 가고, 로그인 화면 없이 데모 대시보드가 뜨는지 확인(#3437)
 
 운영(AWS) 배포는 위 응답 확인에 더해 다음을 봅니다.
 
