@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/storage/seed_insight_memos.dart';
 import 'package:oncare_trainer/core/storage/seed_trainer_notes.dart';
+import 'package:oncare_trainer/features/auth/presentation/demo_site_entry.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -72,6 +73,10 @@ Future<void> bootstrap() async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         appDatabaseProvider.overrideWithValue(db),
         errorReporterProvider.overrideWithValue(errorReporter),
+        // 운영 웹의 체험하기로 온 데모 사이트 방문이면 곧장 데모로 들인다(#3437).
+        demoEntryLinkProvider.overrideWithValue(
+          shouldEnterDemoOnLaunch(config),
+        ),
       ],
       child: const OncareTrainerApp(),
     ),

@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/auth/presentation/demo_site_entry.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 
 /// Owns the trainer session lifecycle: restore-on-launch (with token
@@ -123,6 +124,13 @@ class SessionController extends StateNotifier<SessionState>
     }
     if (!mounted || _userActionStarted) return;
     if (access == null || access.isEmpty) {
+      // 운영 웹의 체험하기로 데모 사이트에 왔다(#3437) — 로그인 화면 대신 곧장
+      // 데모로 들인다. 버튼을 누른 것과 같은 길이다. 저장된 토큰이 있으면 아래
+      // 복원이 먼저다.
+      if (_ref.read(demoEntryLinkProvider)) {
+        enterDemo();
+        return;
+      }
       state = const SessionState(status: SessionStatus.signedOut);
       return;
     }

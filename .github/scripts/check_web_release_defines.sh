@@ -18,6 +18,9 @@
 #  - SHOW_DEMO_ENTRY=true 금지 — 운영 로그인 화면에 데모 진입 버튼이 생긴다
 #  - REAL_API 는 비어 있어야 함 — 목업 빌드에서 일부 기능만 실서버로 여는 데모 스위치
 #  - --dart-define-from-file 금지 — 파일 안의 값은 여기서 보지 못한다
+#  - DEMO_SITE_URL 은 비어 있거나 https://호스트/경로 여야 함(#3437) — 로그인 화면 `체험하기` 가
+#    같은 탭에서 옮겨 갈 둘러보기 데모 주소다. 앱이 진입 표시(`?demo=1`)를 붙이므로 질의·조각은
+#    받지 않고, 평문(http)·로컬 주소도 받지 않는다
 set -euo pipefail
 
 # 받은 KEY=VALUE 를 순서대로 둔다. 같은 키가 여러 번 오면 flutter 처럼 마지막 값을 쓴다.
@@ -88,6 +91,15 @@ done
 real_api="$(value_of REAL_API)"
 if [ -n "${real_api//[[:space:],]/}" ]; then
   errors+=("REAL_API 는 목업 빌드에서 일부 기능만 실서버로 여는 데모 스위치입니다. 운영 웹 빌드 인자에서 지우세요(지금: '${real_api}').")
+fi
+
+demo_site="$(value_of DEMO_SITE_URL)"
+if [ -n "$demo_site" ]; then
+  if ! printf '%s' "$demo_site" | grep -Eq '^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?$'; then
+    errors+=("DEMO_SITE_URL 은 질의·조각 없는 https://호스트/경로 여야 합니다(지금: '${demo_site}').")
+  elif printf '%s' "$demo_site" | grep -Eiq '^https://(localhost|127\.0\.0\.1)([:/]|$)'; then
+    errors+=("DEMO_SITE_URL 에 로컬 주소를 넣지 않습니다(지금: '${demo_site}').")
+  fi
 fi
 
 if [ "${#errors[@]}" -gt 0 ]; then

@@ -108,6 +108,7 @@ class AppConfig {
     required this.apiBaseUrl,
     required bool useMockApi,
     this.showDemoEntry = false,
+    this.demoSiteUrl,
     this.sentryDsn,
     this.demoBuild = false,
     this.socialLogin = const SocialLoginConfig(),
@@ -140,6 +141,17 @@ class AppConfig {
   ///
   /// 다시 열 때: `--dart-define=SHOW_DEMO_ENTRY=true`
   final bool showDemoEntry;
+
+  /// 로그인 화면 `체험하기` 가 옮겨 갈 둘러보기 데모 주소(#3437) —
+  /// `--dart-define=DEMO_SITE_URL=https://…/trainer/`.
+  ///
+  /// 운영 웹 빌드(`aws-frontend-deploy.yml`)만 넘긴다. 운영 서버는 데모 폴백이
+  /// 꺼져 있어 앱 안 데모([showDemoEntry])로는 화면이 비므로, 체험하기를 누르면
+  /// 같은 탭에서 이 주소(GitHub Pages 데모의 트레이너 웹)로 간다. 값이 있으면
+  /// [showDemoEntry] 가 꺼져 있어도 버튼이 뜬다. 비우면 지금처럼 [showDemoEntry]
+  /// 만 본다. `https://` 가 아닌 값은 버리고 버튼도 띄우지 않는다
+  /// (`demoSiteEntryAddress`). 회원 앱과 같은 이름이다.
+  final String? demoSiteUrl;
 
   /// 에러 추적(Sentry) 수신 주소. 비어 있으면 보내지 않는다 (#2839).
   ///
@@ -205,6 +217,8 @@ class AppConfig {
     // real web build opts in with USE_MOCK_API=false.
     const useMockApi = bool.fromEnvironment('USE_MOCK_API', defaultValue: true);
     const showDemoEntry = bool.fromEnvironment('SHOW_DEMO_ENTRY');
+    // 운영 웹 빌드만 넘긴다(#3437). 예: --dart-define=DEMO_SITE_URL=https://…/trainer/
+    const demoSiteUrl = String.fromEnvironment('DEMO_SITE_URL');
     const sentryDsn = String.fromEnvironment('SENTRY_DSN');
     // 데모 Pages 빌드만 넘긴다(#3022). 릴리스 가드가 목업을 허용하는 근거다.
     const demoBuild = kDemoBuild;
@@ -216,6 +230,7 @@ class AppConfig {
       // 여기서 값이 갈린다.
       // ignore: avoid_redundant_argument_values
       showDemoEntry: showDemoEntry,
+      demoSiteUrl: demoSiteUrl.trim().isEmpty ? null : demoSiteUrl.trim(),
       sentryDsn: sentryDsn.isEmpty ? null : sentryDsn,
       // ignore: avoid_redundant_argument_values
       demoBuild: demoBuild,

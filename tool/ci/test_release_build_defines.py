@@ -8,6 +8,8 @@ define 하나를 빠뜨려도 빌드는 성공한다. 그래서 빌드를 만드
   SENTRY_DSN 이 모두 있고, DSN 은 앱마다 다른 비밀이며, DEMO_BUILD 는 없다.
 * 데모 Pages(deploy.yml) 두 빌드: DEMO_BUILD=true 가 있다 — 빠지면 앱의 릴리스 가드가
   데모를 구성 오류 화면으로 띄운다.
+* 체험하기 데모 사이트 주소(#3437): 운영 웹 두 빌드는 DEMO_SITE_URL 을 자기 앱 폴더
+  (member/·trainer/)로 넘기고, 데모 Pages 빌드는 넘기지 않는다(앱 안 데모 진입을 그대로 쓴다).
 * 스토어 릴리스 문서 두 곳의 빌드 명령은 같은 define 파일(--dart-define-from-file)을 쓰고,
   예시 파일이 필수 키를 모두 갖는다.
 
@@ -125,6 +127,18 @@ class ProductionWebBuildTest(unittest.TestCase):
                     self.assertIn(f"{key}: ${{{{ vars.{key} }}}}", step)
                     self.assertIn(f'--dart-define={key}="${key}"', step)
 
+    def test_builds_send_demo_entry_to_the_same_app_on_the_demo_site(self) -> None:
+        """체험하기는 데모 Pages 의 같은 앱으로 간다(#3437) — 회원은 member/, 트레이너는 trainer/."""
+        text = AWS_DEPLOY.read_text(encoding="utf-8")
+        self.assertRegex(
+            text,
+            r"(?m)^      DEMO_SITE_URL: \$\{\{ vars\.DEMO_SITE_URL \|\| 'https://[^']+/' \}\}$",
+        )
+        for step in self.builds:
+            app = "member" if '"/member/"' in step else "trainer"
+            with self.subTest(app=app):
+                self.assertIn(f'--dart-define=DEMO_SITE_URL="${{DEMO_SITE_URL%/}}/{app}/"', step)
+
     def test_missing_dsn_only_warns(self) -> None:
         check = [step for step in steps(AWS_DEPLOY) if "Check Sentry DSN secrets" in step]
         self.assertEqual(len(check), 1)
@@ -139,6 +153,13 @@ class DemoWebBuildTest(unittest.TestCase):
         for step in builds:
             with self.subTest(step=step.splitlines()[0]):
                 self.assertIn("--dart-define=DEMO_BUILD=true", step)
+
+    def test_demo_builds_keep_in_app_demo_entry(self) -> None:
+        """데모 Pages 는 체험하기가 앱 안 데모로 들어간다 — 데모 사이트 주소를 넘기지 않는다(#3437)."""
+        for step in web_build_steps(DEMO_DEPLOY):
+            with self.subTest(step=step.splitlines()[0]):
+                self.assertIn("--dart-define=SHOW_DEMO_ENTRY=true", step)
+                self.assertNotIn("DEMO_SITE_URL", step)
 
     def test_social_login_ids_only_reach_real_server_builds(self) -> None:
         """목업 데모는 기기 안 토큰으로 로그인한다 — 로그인 값은 실서버 분기에서만 넘긴다."""
