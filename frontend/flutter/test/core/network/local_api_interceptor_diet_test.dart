@@ -110,13 +110,14 @@ void main() {
       final entries = (today.data!['entries']! as List<Object?>);
       expect(entries, isNotEmpty);
       final entry = entries.single as Map<String, Object?>;
-      expect(entry['carbs_g'], 59.0);
-      expect(entry['protein_g'], 9.0);
-      expect(entry['fat_g'], 14.0);
+      // 사진 바이트 없이 올린 저녁은 저녁 예시(연어구이·현미밥)다(#3423).
+      expect(entry['carbs_g'], 38.9);
+      expect(entry['protein_g'], 29.9);
+      expect(entry['fat_g'], 14.1);
       final macros = today.data!['macros']! as Map<String, Object?>;
-      expect(macros['carbs_g'], 59.0);
-      expect(macros['protein_g'], 9.0);
-      expect(macros['fat_g'], 14.0);
+      expect(macros['carbs_g'], 38.9);
+      expect(macros['protein_g'], 29.9);
+      expect(macros['fat_g'], 14.1);
     },
   );
 
