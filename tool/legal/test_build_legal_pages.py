@@ -135,7 +135,9 @@ def _fake_repo(root: Path, *, contact: str = "dpo@team.example") -> None:
     contact_file.write_text(
         f"static const String privacyOfficerEmail = '{contact}';\n", encoding="utf-8"
     )
-    (root / "index.html").write_text(
+    look = root / "tool" / "legal" / "look.html"
+    look.parent.mkdir(parents=True, exist_ok=True)
+    look.write_text(
         "<link href=\"https://fonts.googleapis.com/css2?family=X\" rel=\"stylesheet\" />\n"
         "<style>\n  :root {\n    --brand: #1580bd;\n  }\n</style>\n"
         '<img src="data:image/png;base64,AAAA" alt="On-Care" />\n',
@@ -220,7 +222,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(blp.build(self.tmp), blp.build(self.tmp))
 
     def test_landing_without_tokens_is_an_error(self) -> None:
-        (self.tmp / "index.html").write_text("<html></html>", encoding="utf-8")
+        (self.tmp / "tool" / "legal" / "look.html").write_text("<html></html>", encoding="utf-8")
         with self.assertRaises(ValueError):
             blp.build(self.tmp)
 
