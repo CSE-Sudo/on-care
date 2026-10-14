@@ -28,7 +28,11 @@ from app.services import ai_call_quota
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.coach.llm_base import is_truncated, output_cap
 from app.services.coach.prompt_rules import MEDICAL_GUARD, MEMBER_AUDIENCE, MEMBER_VOICE
-from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
+from app.services.coach.prompt_safety import (
+    FOOD_NAME_GUARD,
+    HEALTH_NOTE_GUARD,
+    TRAINER_DIET_GUARD,
+)
 from app.services.diet_advice_copy import plain
 from app.services.ai_log import log_ai_fallback
 
@@ -143,7 +147,7 @@ def build_prompt(
         "'주 3회', '달걀 2개' 같은 작은 횟수만 쓸 수 있다.\n"
         "4. 메뉴·음식 이름은 **로 감쌀 수 있다(두 곳까지).\n"
         f"5. {MEDICAL_GUARD}\n"
-        f"{TRAINER_DIET_GUARD}\n{FOOD_NAME_GUARD}\n"
+        f"{TRAINER_DIET_GUARD}\n{FOOD_NAME_GUARD}\n{HEALTH_NOTE_GUARD}\n"
         'JSON 만 출력한다: {"sentence":"..."}'
     )
     lines = [f"[분석] {finding}", f"[목표] {goal or '정보 없음'}", "", "[기록]"]

@@ -35,6 +35,7 @@ from app.services import ai_call_quota, diet_coach_inputs, goal_defaults, health
 from app.services.ai_log import log_ai_fallback
 from app.services.coach.llm_base import is_truncated, output_cap
 from app.services.coach.prompt_rules import MEDICAL_GUARD, MEMBER_AUDIENCE, MEMBER_VOICE
+from app.services.coach.prompt_safety import HEALTH_NOTE_GUARD
 
 logger = logging.getLogger(__name__)
 
@@ -300,6 +301,8 @@ def _build_prompt(ctx: NutritionContext) -> tuple[str, str]:
         "3. reason_text 는 회원의 수치를 근거로 든 한 문장(공백 포함 24자 이내)이다. "
         f"카드에 들어가므로 짧아야 한다. {MEMBER_VOICE} 근거가 약하면 생략(null)한다.\n"
         f"4. {MEDICAL_GUARD} 식단 제안에 그친다.\n"
+        # `건강 상태` 에는 회원·트레이너가 적은 주의사항 글이 들어 있다(#1642).
+        f"{HEALTH_NOTE_GUARD}\n"
         'JSON 만 출력한다: {"items":[{"key":"...","reason_text":"..."}]}'
     )
     user = (
