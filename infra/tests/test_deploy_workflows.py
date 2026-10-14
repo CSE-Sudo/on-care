@@ -229,3 +229,41 @@ def test_frontend_prune_script_normalizes_to_release_root() -> None:
 def test_frontend_prune_script_is_tested_in_ci() -> None:
     gate = (WORKFLOWS / "pr-gate.yml").read_text(encoding="utf-8")
     assert "bash .github/scripts/test_frontend_release_prune.sh" in gate
+
+
+def test_frontend_freshness_guard_runs_in_gate_before_approval() -> None:
+    # 옛 커밋 재배포 가드(#3254)는 production 승인 전의 gate 에서 공개 version.txt 로 판정한다
+    # (#3269). gate 는 Environment 밖이라 운영 AWS 역할 없이 읽을 수 있는 주소만 쓴다.
+    jobs = _workflow("aws-frontend-deploy.yml")["jobs"]
+    gate = jobs["gate"]
+    assert "environment" not in gate
+    step = _step("aws-frontend-deploy.yml", "gate", "Skip a release that is already live or older")
+    assert step["env"]["PRODUCTION_FRONTEND_URL"] == "${{ vars.PRODUCTION_FRONTEND_URL }}"
+    assert 'bash "$tool" frontend-site "$PRODUCTION_FRONTEND_URL" "$SHA"' in step["run"]
+    assert '"$EVENT_NAME" != "workflow_run"' in step["run"]
+    assert gate["outputs"]["deploy"] == "${{ steps.live.outputs.deploy }}"
+    assert gate["outputs"]["live_state"] == "${{ steps.live.outputs.live_state }}"
+    # 가드는 오래 기다리는 CI·백엔드 확인보다 앞에 있고, 건너뛰면 그 확인도 돌지 않는다.
+    names = [step.get("name") for step in gate["steps"]]
+    guard = names.index("Skip a release that is already live or older")
+    for later in ("Check CI results for the commit", "Check backend deploy order"):
+        assert names.index(later) > guard, later
+        assert _step("aws-frontend-deploy.yml", "gate", later).get("if") == "steps.live.outputs.deploy == 'true'"
+    # 건너뛰면 배포 job 자체가 skipped — production 승인 요청이 올라오지 않는다.
+    assert jobs["build-and-deploy"].get("if") == "needs.gate.outputs.deploy == 'true'"
+
+
+def test_frontend_freshness_fallback_runs_only_when_gate_could_not_judge() -> None:
+    # 변수가 비었거나 응답이 없으면(unknown) 승인 뒤 배포 단계가 CloudFront origin path 로 다시 본다.
+    creds = _step("aws-frontend-deploy.yml", "build-and-deploy", "Configure AWS credentials (live release check)")
+    assert creds.get("if") == "github.event_name == 'workflow_run' && needs.gate.outputs.live_state == 'unknown'"
+    step = _step("aws-frontend-deploy.yml", "build-and-deploy", "Recheck the live release on CloudFront")
+    assert step["env"]["GATE_STATE"] == "${{ needs.gate.outputs.live_state }}"
+    assert '"$GATE_STATE" != "unknown"' in step["run"]
+    assert 'bash "$tool" frontend "$DISTRIBUTION_ID" "$RELEASE_SHA"' in step["run"]
+
+
+def test_production_frontend_url_is_documented() -> None:
+    root = WORKFLOWS.parents[1]
+    for doc in ("docs/frontend_deployment.md", "docs/aws-frontend-deployment.md"):
+        assert "PRODUCTION_FRONTEND_URL" in (root / doc).read_text(encoding="utf-8"), doc

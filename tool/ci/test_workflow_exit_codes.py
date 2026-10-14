@@ -232,18 +232,24 @@ class StepUnderErrexitTest(unittest.TestCase):
         env.update(extra)
         return env
 
-    def frontend_guard(self, event: str, outputs: list[tuple[int, str]]) -> subprocess.CompletedProcess:
+    def fake_freshness_tool(self, outputs: list[tuple[int, str]]) -> None:
         # 판정 스크립트는 `git show $GITHUB_SHA:…` 로 꺼낸다. 가짜 git 이 가짜 스크립트를 내준다.
         tool = self.work / "_fake_tool.sh"
         self.sequenced_stub(tool, outputs)
+        self.tool_calls = Path(str(tool) + ".count")
         self.git_calls = self.work / "git.calls"
         self.stub(self.bin / "git", f'echo "$*" >> "{self.git_calls.as_posix()}"\n'
                   f'[ "$1" = show ] && cat "{tool.as_posix()}"\n')
+
+    # gate: 공개 version.txt 로 승인 전에 판정한다(#3269).
+    def frontend_guard(self, event: str, outputs: list[tuple[int, str]],
+                       url: str = "https://d1example.cloudfront.net") -> subprocess.CompletedProcess:
+        self.fake_freshness_tool(outputs)
         script = step_script(AWS_DEPLOY, "Skip a release that is already live or older")
         env = self.guard_env({
             "EVENT_NAME": event,
-            "DISTRIBUTION_ID": "E2EXAMPLE",
-            "RELEASE_SHA": "c" * 40,
+            "PRODUCTION_FRONTEND_URL": url,
+            "SHA": "c" * 40,
             "GITHUB_SHA": "d" * 40,
         })
         return self.run_step(script, env)
@@ -252,6 +258,7 @@ class StepUnderErrexitTest(unittest.TestCase):
         result = self.frontend_guard("workflow_run", [(20, "live_sha=" + "e" * 40 + "\nstate=older\n")])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.outputs().get("deploy"), "false")
+        self.assertEqual(self.outputs().get("live_state"), "older")
         summary = self.summary.read_text(encoding="utf-8")
         self.assertIn("deployment skipped", summary)
         self.assertIn("e" * 40, summary)
@@ -263,7 +270,14 @@ class StepUnderErrexitTest(unittest.TestCase):
         result = self.frontend_guard("workflow_run", [(0, "live_sha=" + "e" * 40 + "\nstate=newer\n")])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.outputs().get("deploy"), "true")
+        self.assertEqual(self.outputs().get("live_state"), "newer")
         self.assertEqual(self.summary.read_text(encoding="utf-8"), "")
+
+    def test_frontend_guard_passes_unknown_to_the_fallback(self) -> None:
+        result = self.frontend_guard("workflow_run", [(0, "live_sha=none\nstate=unknown\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "true")
+        self.assertEqual(self.outputs().get("live_state"), "unknown")
 
     def test_frontend_guard_fails_on_usage_error(self) -> None:
         result = self.frontend_guard("workflow_run", [(1, "")])
@@ -272,6 +286,61 @@ class StepUnderErrexitTest(unittest.TestCase):
 
     def test_frontend_guard_ignores_manual_runs(self) -> None:
         result = self.frontend_guard("workflow_dispatch", [(20, "state=older\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "true")
+        self.assertEqual(self.outputs().get("live_state"), "manual")
+        self.assertFalse(self.git_calls.exists())
+
+    def test_frontend_guard_without_url_defers_to_the_fallback(self) -> None:
+        result = self.frontend_guard("workflow_run", [(20, "state=older\n")], url="")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "true")
+        self.assertEqual(self.outputs().get("live_state"), "unknown")
+        self.assertIn("PRODUCTION_FRONTEND_URL", result.stdout)
+        self.assertFalse(self.git_calls.exists())
+
+    # build-and-deploy: gate 가 판정하지 못한(unknown) 자동 실행만 CloudFront 로 다시 본다.
+    def frontend_fallback(self, event: str, gate_state: str,
+                          outputs: list[tuple[int, str]]) -> subprocess.CompletedProcess:
+        self.fake_freshness_tool(outputs)
+        script = step_script(AWS_DEPLOY, "Recheck the live release on CloudFront")
+        env = self.guard_env({
+            "EVENT_NAME": event,
+            "GATE_STATE": gate_state,
+            "DISTRIBUTION_ID": "E2EXAMPLE",
+            "RELEASE_SHA": "c" * 40,
+            "GITHUB_SHA": "d" * 40,
+        })
+        return self.run_step(script, env)
+
+    def test_frontend_fallback_skips_an_older_release(self) -> None:
+        result = self.frontend_fallback("workflow_run", "unknown", [(20, "live_sha=" + "e" * 40 + "\nstate=older\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "false")
+        summary = self.summary.read_text(encoding="utf-8")
+        self.assertIn("deployment skipped", summary)
+        self.assertIn("(older)", summary)
+        self.assertIn("show " + "d" * 40 + ":.github/scripts/deploy_freshness.sh",
+                      self.git_calls.read_text(encoding="utf-8"))
+
+    def test_frontend_fallback_deploys_a_newer_release(self) -> None:
+        result = self.frontend_fallback("workflow_run", "unknown", [(0, "live_sha=" + "e" * 40 + "\nstate=newer\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "true")
+
+    def test_frontend_fallback_fails_on_usage_error(self) -> None:
+        result = self.frontend_fallback("workflow_run", "unknown", [(1, "")])
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("deploy", self.outputs())
+
+    def test_frontend_fallback_trusts_a_gate_decision(self) -> None:
+        result = self.frontend_fallback("workflow_run", "newer", [(20, "state=older\n")])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.outputs().get("deploy"), "true")
+        self.assertFalse(self.git_calls.exists())
+
+    def test_frontend_fallback_ignores_manual_runs(self) -> None:
+        result = self.frontend_fallback("workflow_dispatch", "manual", [(20, "state=older\n")])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.outputs().get("deploy"), "true")
         self.assertFalse(self.git_calls.exists())

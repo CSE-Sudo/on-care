@@ -192,6 +192,7 @@ GitHub 저장소의 `Settings` → `Secrets and variables` → `Actions` → `Va
 | `AWS_FRONTEND_BUCKET` | `BucketName` 출력값 |
 | `AWS_FRONTEND_DISTRIBUTION_ID` | `DistributionId` 출력값 |
 | `API_BASE_URL` | 운영 백엔드 주소 + `/v1` (예: `https://<운영 API 도메인>/v1`). 두 웹 앱이 이 주소로 실서버를 봅니다 |
+| `PRODUCTION_FRONTEND_URL` | 운영 프런트 출처, 끝 `/` 없이(지금은 CloudFront 기본 도메인 `https://d8pns4fmdsepp.cloudfront.net`, 운영 도메인을 붙이면 그 주소). 옛 커밋 재배포 가드가 승인 전에 `version.txt` 를 읽습니다([8절](#8-배포-순서--ci-판정과-백엔드-선후-3018), #3269) |
 
 `API_BASE_URL` 이 없거나 형식이 틀리면 `Deploy Frontend to AWS` 가 빌드 전에 실패합니다. 규칙은 [`frontend_deployment.md`](frontend_deployment.md#api_base_url-저장소-변수) 에 있습니다.
 
@@ -266,6 +267,7 @@ https://<DistributionDomainName>/version.txt
 | 카카오 개발자 콘솔 JavaScript SDK 도메인 | `https://<운영 도메인>` 추가, 옛 주소·임시 주소 제거([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) "프론트 연결" 체크리스트) | #480 |
 | 백엔드 `CORS_ALLOW_ORIGINS` | `https://<운영 도메인>` | #480 |
 | 이 스택 `AlternateDomainName`·`AcmCertificateArn` | 위 2번 | #480 |
+| 저장소 변수 `PRODUCTION_FRONTEND_URL` | `https://<운영 도메인>`(끝 `/` 없이) — 옛 커밋 재배포 가드가 승인 전에 읽는 주소([8절](#8-배포-순서--ci-판정과-백엔드-선후-3018)). 비워 두거나 옛 주소로 남아도 배포는 막히지 않고 승인 뒤 단계에서 판정합니다 | #3269 |
 | 응답 헤더 CSP | 바꿀 것 없음 — 앱이 같은 출처에서 서빙되므로 `'self'` 로 충분합니다. API 주소가 바뀌면 `ApiOrigin` 을 바꿉니다 | #480 |
 | 랜딩 og:url·canonical | 바꿀 것 없음 — 배포가 대체 도메인을 읽어 채웁니다 | 자동 |
 | 비밀번호 재설정 메일 링크(쓰는 경우) | 백엔드 `PASSWORD_RESET_*_URL` | #480 |
@@ -320,7 +322,10 @@ aws cloudfront get-distribution-config --id <DISTRIBUTION_ID> \
 
 수동 실행(`Run workflow`)은 배포할 `main` 커밋 SHA 를 받아 같은 확인을 거칩니다. 결과(확인한 CI, 백엔드 커밋, 선후 상태)는 실행의 Step Summary 에 남습니다.
 
-**옛 커밋 재배포 가드**(#3254) — 취소된 `main` E2E CI 를 나중에 Re-run 하면 그 완료가 옛 커밋 배포를 부릅니다. 그래서 `build-and-deploy` 는 빌드 전에 지금 서비스 중인 릴리스를 읽어([`deploy_freshness.sh`](../.github/scripts/deploy_freshness.sh)) 대상과 비교합니다. 서비스 중인 릴리스는 CloudFront origin path(`/releases/<SHA>`)에서 읽습니다 — 그 릴리스의 `version.txt` 와 같은 커밋이고, 운영 도메인이 정해지기 전에도 배포 ID 만으로 읽을 수 있습니다. `gate` 는 운영 AWS 역할을 받을 수 없어(Environment 형식 OIDC) 이 확인은 Environment 승인 뒤에 돕니다.
+**옛 커밋 재배포 가드**(#3254) — 취소된 `main` E2E CI 를 나중에 Re-run 하면 그 완료가 옛 커밋 배포를 부릅니다. 그래서 배포 전에 지금 서비스 중인 릴리스를 읽어([`deploy_freshness.sh`](../.github/scripts/deploy_freshness.sh)) 대상과 비교합니다. 두 곳에서 봅니다(#3269).
+
+1. **`gate`(승인 전)** — 저장소 변수 `PRODUCTION_FRONTEND_URL` 의 공개 `version.txt`(릴리스 루트에 넣는 커밋 SHA)를 읽습니다. 자격 증명이 필요 없어 CI 판정보다 먼저 돌고, 건너뛰면 `build-and-deploy` 가 skipped 라 production 승인 요청이 올라오지 않습니다.
+2. **`build-and-deploy`(승인 뒤, 예비 — `Recheck the live release on CloudFront` 단계)** — 1번이 판정하지 못했을 때(변수 비어 있음·응답 없음 — `unknown`)만 운영 AWS 역할로 CloudFront origin path(`/releases/<SHA>`)를 읽습니다. 그 릴리스의 `version.txt` 와 같은 커밋입니다. `gate` 는 운영 AWS 역할을 받을 수 없어(Environment 형식 OIDC) 이 확인은 승인 뒤에 돕니다.
 
 | 운영 릴리스와 비교 | 자동 실행(`workflow_run`) | 수동 실행 |
 | --- | --- | --- |
