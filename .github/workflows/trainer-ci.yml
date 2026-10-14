@@ -170,8 +170,53 @@ jobs:
           TOTAL_SHARDS: ${{ strategy.job-total }}
         run: bash ../../.github/scripts/flutter_test_shard.sh "$SHARD" "$TOTAL_SHARDS"
 
+  test-midnight:
+    # 같은 테스트를 KST 자정 직전·직후에 시작한 것처럼 한 번 더 돌린다(#3448). CI 가 대부분 낮에
+    # 돌아서, "실제 시각으로 만들고 그 뒤 시각을 옮겨 보는" 테스트가 PR 에서는 통과하고 밤에 main 을
+    # 깨뜨린 뒤에야 드러났다(#1607·#1762·#3448). 날짜는 실행일 그대로 두고 시·분만 옮기며, 시계는
+    # 멈추지 않고 흐른다 — `test/helpers/kst_date_pin.dart` 의 `runStartKstClock` 이
+    # `ONCARE_TEST_KST_TIME` 을 읽는다.
+    #
+    # 낮 실행보다 묶음을 하나 줄였다. 러너 수를 아끼려는 것이고, 파일 나눔은 위 `test` 와 같은
+    # 스크립트가 한다. 묶음 수를 바꿀 때는 `shard` 목록과 `TOTAL_SHARDS` 를 함께 고친다.
+    name: Test (trainer web, KST ${{ matrix.kst_time }}, ${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kst_time: ['23:59', '00:01']
+        shard: [1, 2, 3]
+    defaults:
+      run:
+        working-directory: frontend/flutter_trainer
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          # analyze 잡과 같은 이유로 고정한다(#659).
+          flutter-version: '3.44.9'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Test
+        env:
+          SHARD: ${{ matrix.shard }}
+          TOTAL_SHARDS: 3
+          KST_TIME: ${{ matrix.kst_time }}
+        run: >-
+          bash ../../.github/scripts/flutter_test_shard.sh "$SHARD" "$TOTAL_SHARDS"
+          "--dart-define=ONCARE_TEST_KST_TIME=$KST_TIME"
+
   analyze-and-test:
-    # 분석 잡과 모든 테스트 묶음이 성공해야만 성공한다(#3321). 묶음으로 나누기 전의 잡 이름을
+    # 분석 잡과 모든 테스트 묶음(자정 실행 #3448 포함)이 성공해야만 성공한다(#3321). 묶음으로 나누기 전의 잡 이름을
     # 그대로 써서, PR 화면에서 보던 체크 하나로 결과를 읽을 수 있다.
     #
     # `if: always()` 가 없으면 앞 잡이 실패했을 때 이 잡이 건너뛰어지고, 건너뛴 체크는
@@ -179,18 +224,20 @@ jobs:
     # 하나라도 있으면 실패한다.
     name: Analyze and test
     runs-on: ubuntu-latest
-    needs: [analyze, test]
+    needs: [analyze, test, test-midnight]
     if: always()
     steps:
       - name: Require the analysis and every test shard to pass
         env:
           ANALYZE_RESULT: ${{ needs.analyze.result }}
           TEST_RESULT: ${{ needs.test.result }}
+          MIDNIGHT_RESULT: ${{ needs.test-midnight.result }}
         run: |
           set -euo pipefail
           echo "analyze: ${ANALYZE_RESULT}"
           echo "test shards: ${TEST_RESULT}"
-          if [ "${ANALYZE_RESULT}" != success ] || [ "${TEST_RESULT}" != success ]; then
+          echo "midnight test shards: ${MIDNIGHT_RESULT}"
+          if [ "${ANALYZE_RESULT}" != success ] || [ "${TEST_RESULT}" != success ] || [ "${MIDNIGHT_RESULT}" != success ]; then
             echo "::error::분석 또는 테스트 묶음이 통과하지 못했습니다. 위 잡의 로그를 확인하세요."
             exit 1
           fi
