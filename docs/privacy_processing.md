@@ -21,6 +21,7 @@
 | Amazon Web Services, Inc. | 서버 운영(ECS Express Mode), 채팅 사진·리포트 PDF 보관(S3), 운영 DB 백업 사본 보관(S3, #1552) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF, DB 전체의 백업 사본 | 탈퇴 또는 위탁 계약 종료 시까지. DB 백업 사본은 만든 날부터 30일 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·2-1·리전, `infra/backend-environment.yml` `BackupBucket`·`BackupRetentionDays` |
 | Neon | 데이터베이스 운영(Postgres + pgvector) | 싱가포르(서버와 같은 리전) | 계정·프로필·식단(음식 사진 축소본 포함)·운동·건강 기록, 대화 기록, 검색 색인 | 탈퇴 또는 위탁 계약 종료 시까지 | `backend/docs/DEPLOY.md` 4·5절, `backend/.env.aws.example` `DATABASE_URL` |
 | Google LLC (Gemini API) | 음식 사진 인식, AI 코치 답변·추천, 개인 기록 검색 색인(임베딩), 트레이너 AI 프로그램·루틴 후보·리포트 요약 | 미국 등 Google 데이터센터 소재 국가 | 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치 대화, 트레이너가 입력한 코칭 조건과 담당 회원 운동 기록·주간 리포트 수치 | 요청 처리 후 수탁자 약관에서 정한 기간. **유료 등급 키 사용 전제**(#3032) — 무료 등급은 입력이 제공자의 서비스 개선에 쓰일 수 있어 이 표의 위탁 범위를 넘는다 | `config.py` `recognizer`·`coach_llm`·`embedder` 기본값 `gemini`, `backend/docs/DEPLOY.md` 5절 `GEMINI_API_KEY`, `rag_auto_ingest=True`(식단·운동 저장 때마다 색인), `services/trainer_report_summary_service.py`, `services/trainer_routine_options_service.py` |
+| Google LLC (Gmail) | 메일 발송 — 가입 인증 코드(회원·트레이너, #3038), 비밀번호 재설정 코드·링크(회원·트레이너, #3033), 로그인 이메일 변경 인증 코드와 옛 주소로 보내는 변경 안내(회원만, #3039) | 미국 등 Google 데이터센터 소재 국가 | 받는 사람 이메일 주소와 메일 내용 — 인증 코드, 재설정 코드와 재설정 링크(링크에 같은 코드), 변경 안내의 일부를 가린 새 이메일 주소(`mask_email`). 이름·전화번호 등 다른 항목은 메일에 넣지 않는다(`tests/test_privacy_policy_version.py`) | 발신 계정의 보낸편지함에서 삭제하거나 위탁 계약(Google 서비스 약관)이 끝날 때까지. Gmail 은 SMTP 로 보낸 메일도 발신 계정 보낸편지함에 사본을 남기고 서버가 이를 막을 수 없다. 사본을 지우는 주기는 아직 정하지 않았다(#3443) | 운영 `SMTP_HOST=smtp.gmail.com`·`SMTP_PORT=587`(STARTTLS), 발신 계정 `MAIL_FROM` 은 팀 Google 계정(보호책임자 연락처와 같은 주소, 5절). `backend/app/services/mailer.py`, `services/signup_email_code.py`, `services/password_reset.py`, `services/account_notice.py`, `backend/.env.aws.example` 메일 블록 |
 | Functional Software, Inc. (Sentry) | 앱·서버 오류 수집 | 미국 | 오류 내용, 기기·브라우저·운영체제 종류, 앱 버전. 이름·이메일·IP·헤더·쿠키·요청 본문·지역 변수는 보내기 전에 지운다 | 수탁자 보관 기간 | `backend/app/core/error_tracking.py`(`send_default_pii=False`, `scrub_event`), `frontend/flutter/lib/core/observability/error_reporter.dart`, 화면이 잡아서 처리한 오류도 같은 항목·같은 정리로 보낸다(`source=handled`, `frontend/flutter/lib/core/observability/handled_error.dart`, 연결 끊김·이미 지워진 항목 같은 예상된 실패는 보내지 않음), 트레이너 웹 `sentry_flutter` |
 | 주식회사 카카오 | 헬스장·장소 검색, 지도 표시 | 대한민국(국외 이전 아님) | 장소 검색 좌표(회원이 위치정보 이용에 동의하고 현재 위치를 허용한 경우 그 좌표), 검색어 | 수탁자 보관 기간 | `backend/app/services/places/kakao.py`, `services/trainer_gym_search.py`, `shared/oncare_kakao_map`, 두 앱 `web/index.html` CSP |
 
@@ -34,10 +35,8 @@
 - 공공 식품영양성분 DB: 서버에 적재한 참조표(`food_nutrients`)를 조회할 뿐 외부로 보내지 않는다.
 - OpenAI·LiteLLM: 설정으로 고를 수 있지만 운영 기본값과 `backend/.env.aws.example` 은 Gemini 다.
   운영에서 바꾸면 이 표와 처리방침에 수탁자를 더한다.
-- 메일 발송(비밀번호 재설정): `mail_provider` 의 실제 발송 업체가 아직 정해지지 않았다(#480). 정해지면 표에 더한다.
-  미리 정해 둔 행 — 위탁 업무 "비밀번호 재설정 메일 발송", 이전 항목 **수신 이메일 주소·재설정 코드(재설정 링크)**,
-  근거 `backend/app/services/mailer.py`·`services/password_reset.py`, `backend/.env.aws.example` 메일 블록(#3033).
-  업체 이름·이전 국가·보유 기간만 채우면 된다.
+- 받는 사람의 메일 업체: 메일이 Gmail 을 떠나 받는 사람의 메일함(받는 사람이 고른 업체)에 들어가는 것은
+  회원 본인에게 보내는 것이라 위탁이 아니다. 메일 발송 위탁(Gmail)은 위 표에 있다(#3443).
 
 ## 2. 보관 기간
 
@@ -112,7 +111,8 @@ DB 복구용 기록(Neon 의 복원 기간, 운영 배포 직전마다 뜨는 S3
 - [ ] Sentry 데이터 보관 지역(미국/EU)과 보관 기간 — `SENTRY_DSN` 을 만들 때 정해진다.
 - [ ] 수탁자 정식 법인명·연락처(특히 Neon), Gemini API 의 입력 보관 기간 — 계약·약관 확인.
 - [ ] Gemini 결제 연결 확인 — 운영 `GEMINI_API_KEY` 가 결제가 연결된 프로젝트(유료 등급)의 키인지 본다(#3032). 무료 등급이면 1절 Gemini 행의 전제가 깨진다.
-- [ ] 메일 발송 업체.
+- [x] 메일 발송 업체. (#480·#3443, Google LLC Gmail SMTP `smtp.gmail.com`, 팀 Google 계정에서 발송 — 1절 표와 처리방침 6항·7항 ⑤에 반영, 처리방침 시행일 2026-10-14)
+- [ ] Gmail 보낸편지함에 남는 발송 사본을 지우는 주기(#3443). 정하면 1절 Gmail 행의 보유 기간과 처리방침 7항 ⑤를 함께 고친다.
 
 ## 7. 본문을 고칠 때
 
