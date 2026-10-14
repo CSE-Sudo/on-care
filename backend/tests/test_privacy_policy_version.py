@@ -113,7 +113,8 @@ def test_contact_placeholder_is_kept_in_every_body():
         assert "@" not in body.replace("{contact}", "")
 
 
-_MAIL_RETENTION = "발신 계정의 보낸편지함에서 삭제하거나 위탁 계약이 끝날 때까지"
+_MAIL_RETENTION = "발송일로부터 30일(발신 계정 보낸편지함의 사본을 30일이 지나면 삭제)"
+_CLEANUP_SCRIPT = _ROOT / "tool" / "ops" / "gmail_sent_cleanup.gs"
 
 
 @pytest.mark.parametrize("app", _APPS)
@@ -168,5 +169,22 @@ def test_outgoing_mail_carries_only_the_disclosed_items():
     for mail in mails:
         assert "홍길동" not in mail.body
         assert "01012345678" not in mail.body
+        # Gmail 사본 정리 스크립트(tool/ops/gmail_sent_cleanup.gs)는 이 제목 머리로 서버가
+        # 보낸 메일을 고른다. 머리가 바뀌면 사본이 30일 뒤에도 남는다.
+        assert mail.subject.startswith("[On-Care] "), mail.subject
     # 이메일 변경 안내는 새 주소를 가려 적는다.
     assert "new@example.com" not in mails[-1].body
+
+
+@pytest.mark.skipif(not _CLEANUP_SCRIPT.exists(), reason="운영 스크립트가 없는 체크아웃")
+def test_cleanup_script_matches_the_disclosed_retention():
+    """처리방침의 30일과 정리 스크립트의 기간·제목 머리가 같다(#3443)."""
+    script = _CLEANUP_SCRIPT.read_text(encoding="utf-8")
+    assert "var RETENTION_DAYS = 30;" in script
+    assert "var SUBJECT_PREFIX = '[On-Care] ';" in script
+    assert "labelIds: ['SENT']" in script
+    # 휴지통(30일 더 보관)을 거치지 않는 영구 삭제여야 30일 약속이 맞는다.
+    assert "Gmail.Users.Messages.batchDelete" in script
+    assert "moveThreadsToTrash(" not in script
+    assert "Messages.trash(" not in script
+    assert _MAIL_RETENTION.startswith("발송일로부터 30일")
