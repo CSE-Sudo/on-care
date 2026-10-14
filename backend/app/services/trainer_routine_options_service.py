@@ -56,7 +56,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import exercise_types, routine_ai, routine_next_pt
 from app.services.exercise_activity import activity_date_of
-from app.services.coach import prompt_safety
+from app.services.coach import prompt_rules, prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.ai_log import log_ai_fallback
 from app.services.coach.llm_base import is_truncated, output_cap
@@ -194,8 +194,10 @@ _WEEKLY_INTENSITY_LABELS = {
 
 # JSON 예시의 중괄호가 본문에 그대로 들어가므로 f-string 을 쓰지 않고 이어 붙인다.
 _SYSTEM_PROMPT = (
-    """\
-당신은 만성질환 위험군을 돕는 전문 운동 코치입니다.
+    # 대상 집단을 폐기된 스타트 단계의 `만성질환 위험군` 으로 소개하고 있었다(#1642).
+    # 회원 코치 프롬프트는 같은 이유로 먼저 고쳤고(#2026) 여기만 남아 있었다.
+    "당신은 " + prompt_rules.PT_MEMBER_AUDIENCE + "의 운동을 짜는 전문 운동 코치입니다.\n"
+    + """\
 제공된 회원 분석과 트레이너 조건만 사용해 서로 다른 맞춤 루틴 두 개를 만드세요.
 의학적 진단이나 치료를 단정하지 말고, 통증·부상 메모가 있으면 저충격 대안을 우선하세요.
 
