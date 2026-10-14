@@ -15,769 +15,478 @@
        태그로 바꾸고, 바꾸지 않는 배포에서는 태그가 없어 미리보기·검색엔진이 접속한 주소를 그대로 쓴다. -->
   <!-- SITE_URL_META -->
   <meta name="twitter:card" content="summary" />
-  <meta name="theme-color" content="#f5f9fc" />
+  <meta name="theme-color" content="#000000" />
   <link rel="icon" type="image/png" href="data:image/png;base64,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" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/landing/apple-touch-icon.png" />
   <link rel="manifest" href="assets/landing/manifest.json" />
   <meta name="apple-mobile-web-app-title" content="On-Care" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap"
-    rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap">
+<style>
+/* 제품 홍보 페이지처럼 어두운 한 가지 화면으로 고정 */
+:root{
+  --bg:#000;--surface:#161617;--surface2:#1d1d1f;--ink:#f5f5f7;--sub:#86868b;--line:#2c2c2e;
+  --link:#2997ff;--btn:#0071e3;--glow1:#2997ff;--glow2:#64d2ff;--warm:#ff9f0a;
+  --nav:rgb(22 22 23 / .8);color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  font-size:17px;line-height:1.47;letter-spacing:-.022em;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-x:hidden}
+img{max-width:100%;height:auto;display:block}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+.tn{font-variant-numeric:tabular-nums}
+.wrap{max-width:980px;margin-inline:auto;padding-inline:22px}
+.wide{max-width:1260px;margin-inline:auto;padding-inline:22px}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+.grad{background:linear-gradient(90deg,var(--glow2),var(--glow1) 45%,#7d7aff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.grad-warm{background:linear-gradient(90deg,#ffd60a,var(--warm) 50%,#ff6b35);-webkit-background-clip:text;background-clip:text;color:transparent}
 
-    :root {
-      --brand: #1580bd;
-      --brand-2: #3eafdf;
-      --brand-3: #0c5f97;
-      --brand-soft: #e8f5fc;
-      --brand-tint: #f1f9fe;
-      --ink: #0b1f30;
-      --ink-soft: #12314a;
-      --text: #1c3346;
-      --muted: #5f778a;
-      --faint: #8395a4;
-      --line: #e3ecf3;
-      --line-soft: #eef4f8;
-      --bg: #f5f9fc;
-      --card: #ffffff;
-      --amber: #e79433;
-      --amber-soft: #fdf1e0;
-      --violet: #635cd0;
-      --violet-soft: #ecebfa;
-      --green: #12a150;
-      --green-soft: #e5f6ed;
-      --radius: 18px;
-      --radius-sm: 12px;
-      --shadow: 0 1px 2px rgba(11,31,48,.04), 0 10px 30px rgba(11,31,48,.06);
-      --shadow-lg: 0 24px 60px rgba(11,31,48,.14);
-      --maxw: 1140px;
-      --font: 'Plus Jakarta Sans', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
-    }
+/* 로컬 내비게이션 */
+.lnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--nav);
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgb(255 255 255/.08)}
+.lnav .wrap{display:flex;align-items:center;justify-content:space-between;height:52px;gap:16px}
+.lnav .name{display:flex;align-items:center;gap:8px;font-size:21px;font-weight:600;color:var(--ink)}
+.lnav .name img{width:24px;height:24px;border-radius:6px}
+.lnav ul{display:flex;align-items:center;gap:20px;list-style:none;margin:0;padding:0;font-size:12.5px}
+.lnav ul a{color:var(--ink);opacity:.82}
+.lnav ul a.buy{background:var(--btn);color:#fff;opacity:1;padding:4px 12px;border-radius:980px;font-size:12px}
+.lnav ul a.buy.alt{background:transparent;border:1px solid var(--link);color:var(--link);padding:3px 11px}
+.lnav ul a.buy:hover{text-decoration:none;filter:brightness(1.1)}
+@media (max-width:700px){.lnav li.h{display:none}}
 
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.7;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-    }
-    a { color: inherit; text-decoration: none; }
-    img { max-width: 100%; display: block; }
-    section { position: relative; }
-    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+/* 버튼 */
+.ctas{display:flex;gap:14px 32px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:28px;font-size:17px}
+.btn{background:var(--btn);color:#fff;padding:12px 23px;border-radius:980px;font-weight:500}
+.btn:hover{text-decoration:none;filter:brightness(1.1)}
+.btn2{border:1px solid var(--link);color:var(--link);padding:11px 22px;border-radius:980px;font-weight:500}
+.btn2:hover{text-decoration:none;background:var(--link);color:#fff}
+.more::after{content:"";display:inline-block;width:7px;height:7px;border:solid currentColor;border-width:1.6px 1.6px 0 0;transform:rotate(45deg);margin-left:6px;vertical-align:1px}
 
-    /* ── shared ── */
-    .eyebrow {
-      display: inline-flex; align-items: center; gap: 7px;
-      font-size: .74rem; font-weight: 800; letter-spacing: .14em;
-      text-transform: uppercase; color: var(--brand);
-    }
-    .eyebrow::before { content: ''; width: 18px; height: 2px; border-radius: 2px; background: var(--brand-2); }
-    .section-head { max-width: 720px; margin-bottom: 44px; }
-    .section-head h2 {
-      font-size: clamp(1.7rem, 3.4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em;
-      color: var(--ink); line-height: 1.22; margin: 16px 0 12px;
-    }
-    .section-head p { color: var(--muted); font-size: 1.02rem; }
-    .pad { padding: 92px 0; }
-    .pad-sm { padding: 72px 0; }
-    .center { text-align: center; margin-left: auto; margin-right: auto; }
-    .lead { max-width: 800px; margin: 0 auto; text-align: center; color: var(--muted); font-size: 1.05rem; }
-    .lead p + p { margin-top: 18px; }
-    .lead b { color: var(--ink-soft); font-weight: 700; }
+/* 등장 효과: 스크립트가 켜졌을 때만 숨긴다 */
+.js .rv{opacity:0;transform:translateY(48px);transition:opacity 1.1s ease,transform 1.1s cubic-bezier(.2,.7,.2,1)}
+.js .rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}}
 
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-family: var(--font); font-weight: 700; font-size: .95rem;
-      padding: 13px 22px; border-radius: 999px; border: 1px solid transparent;
-      cursor: pointer; transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
-      white-space: nowrap;
-    }
-    .btn svg { width: 17px; height: 17px; }
-    .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 8px 20px rgba(21,128,189,.28); }
-    .btn-primary:hover { background: var(--brand-3); transform: translateY(-2px); box-shadow: 0 12px 26px rgba(21,128,189,.34); }
-    .btn-ghost { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.25); }
-    .btn-ghost:hover { background: rgba(255,255,255,.16); transform: translateY(-2px); }
-    /* light-background counterpart of .btn-ghost — used in the nav and on cards */
-    .btn-outline { background: #fff; color: var(--brand-3); border-color: #c3deef; }
-    .btn-outline:hover { background: var(--brand-tint); border-color: var(--brand-2); transform: translateY(-2px); }
+/* 히어로 */
+.hero{text-align:center;padding-top:88px;position:relative}
+.hero .eyebrow{font-size:clamp(21px,2.4vw,28px);font-weight:600;color:var(--ink)}
+.hero h1{font-size:clamp(72px,15vw,190px);font-weight:900;letter-spacing:-.05em;line-height:.95;margin-top:6px}
+.hero .tag{font-size:clamp(24px,3.4vw,40px);font-weight:700;letter-spacing:-.03em;line-height:1.15;margin-top:22px}
+.stage{position:relative;margin:72px auto 0;max-width:1180px;padding-inline:22px}
+.stage::before{content:"";position:absolute;inset:8% 6% 0;background:radial-gradient(closest-side,rgb(41 151 255/.38),transparent 72%);filter:blur(40px);z-index:0}
+.stage .dev{position:relative;z-index:1;transform-origin:50% 100%;will-change:transform}
+.stage .ipad{width:82%;margin-right:auto}
+.stage .phone{position:absolute;z-index:2;left:67%;bottom:-6%;width:27%;filter:drop-shadow(0 40px 60px rgb(0 0 0/.7))}
+.hero .sub2{font-size:clamp(17px,1.8vw,21px);color:var(--sub);margin-top:14px;font-weight:500}
+.hero-foot{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:96px;padding-bottom:40px;color:var(--sub);font-size:14px;text-align:center}
+.hero-foot b{display:block;color:var(--ink);font-size:21px;font-weight:600;margin-bottom:2px}
 
-    .pill { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 800; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
-    .pill-green { background: var(--green-soft); color: var(--green); }
-    .pill-amber { background: var(--amber-soft); color: var(--amber); }
+/* 하이라이트 캐러셀 */
+.hl{padding-block:120px 80px}
+.sec-title{font-size:clamp(40px,5.6vw,64px);font-weight:700;letter-spacing:-.035em;line-height:1.06}
+.hl .sec-title{margin-bottom:44px}
+.rail{display:grid;grid-auto-flow:column;grid-auto-columns:min(760px,84vw);gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;
+  padding-inline:max(22px,calc((100vw - 1260px)/2 + 22px));scrollbar-width:none;padding-bottom:8px}
+.rail::-webkit-scrollbar{display:none}
+.card{scroll-snap-align:center;border-radius:28px;background:var(--surface);overflow:hidden;position:relative;aspect-ratio:16/10;min-width:0}
+.card img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(0 0 0/.72),rgb(0 0 0/0) 52%)}
+.card > p{position:absolute;z-index:1;left:36px;right:36px;top:32px;font-size:clamp(19px,2.2vw,28px);font-weight:600;line-height:1.25;letter-spacing:-.02em}
+.card > p span{color:#c7c7cc}
+.card.plain::after{display:none}
+.card.plain .center{position:absolute;inset:0;display:grid;place-items:center;padding-top:60px}
+.card.plain .center img{width:44%}
+@media (max-width:640px){.card{aspect-ratio:4/5}.card p{left:24px;right:24px;top:24px}.card.plain .center{padding-top:90px!important}.card.plain .center img{width:70%}}
+.card.link .duo{position:relative;width:64%;margin-bottom:6%}
+.card.link .center .duo img:first-child{width:84%}
+.card.link .center .duo img:last-child{position:absolute;left:70%;bottom:-8%;width:28%;filter:drop-shadow(0 20px 30px rgb(0 0 0/.6))}
+.card.link .center{padding-top:120px;place-items:center}
+.rail-ctl{display:flex;justify-content:flex-end;gap:12px;margin-top:20px}
+.rail-ctl button{width:44px;height:44px;border-radius:50%;border:0;background:var(--surface2);color:var(--ink);cursor:pointer;display:grid;place-items:center}
+.rail-ctl button:hover{background:#333336}
+.rail-ctl svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
 
-    /* ── NAV ── */
-    nav { position: sticky; top: 0; z-index: 50; background: rgba(245,249,252,.82); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line-soft); }
-    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 66px; }
-    .nav-logo { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 1.12rem; color: var(--ink); letter-spacing: -.01em; }
-    .nav-logo img { width: 30px; height: 30px; }
-    .nav-links { display: flex; align-items: center; gap: 28px; }
-    .nav-links a { font-size: .92rem; font-weight: 600; color: var(--muted); transition: color .15s; }
-    .nav-links a:hover { color: var(--brand-3); }
-    .nav-cta { display: flex; align-items: center; gap: 10px; }
-    .nav-cta .btn { padding: 9px 16px; font-size: .86rem; }
-    .icon-link { display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 10px; color: var(--ink); border: 1px solid var(--line); background: #fff; transition: .15s; }
-    .icon-link:hover { border-color: var(--brand-2); color: var(--brand-3); }
-    .icon-link svg { width: 19px; height: 19px; }
-    .nav-toggle { display: none; background: none; border: none; cursor: pointer; color: var(--ink); }
+.chat{display:flex;flex-direction:column;gap:12px;width:min(420px,86%)}
+.chat .b{padding:12px 18px;font-size:clamp(15px,1.6vw,18px);font-weight:500;line-height:1.4;max-width:82%}
+.chat .tr{background:var(--btn);color:#fff;border-radius:20px 20px 20px 6px;align-self:flex-start}
+.chat .me{background:#3a3a3c;color:var(--ink);border-radius:20px 20px 6px 20px;align-self:flex-end}
+.center-chat{display:grid;place-items:center;height:100%}
+/* 큰 문장 장 */
+.chapter{padding-block:140px;text-align:center}
+.chapter .k{font-size:clamp(19px,2vw,24px);font-weight:600;color:var(--sub);margin-bottom:12px}
+.chapter h2{font-size:clamp(44px,7vw,96px);font-weight:800;letter-spacing:-.045em;line-height:1.02}
+.chapter .lead{font-size:clamp(19px,2vw,24px);color:var(--sub);max-width:720px;margin:28px auto 0;line-height:1.4;font-weight:500}
+.chapter .lead b{color:var(--ink);font-weight:600}
 
-    /* ── HERO ── */
-    .hero { background: radial-gradient(1200px 600px at 15% -10%, #143a56 0%, transparent 55%), radial-gradient(1000px 500px at 100% 0%, #0f5f8f 0%, transparent 50%), linear-gradient(160deg, #0b2236 0%, #0a1c2c 100%); color: #fff; overflow: hidden; }
-    .hero::after { content:''; position:absolute; inset:0; background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 46px 46px; -webkit-mask-image: radial-gradient(900px 500px at 30% 20%, #000 0%, transparent 75%); mask-image: radial-gradient(900px 500px at 30% 20%, #000 0%, transparent 75%); pointer-events:none; }
-    .hero-grid { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; text-align: center; padding: 96px 0 104px; }
-    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(62,175,223,.14); border: 1px solid rgba(62,175,223,.32); color: #a9e0f4; font-size: .76rem; font-weight: 700; letter-spacing: .04em; padding: 6px 14px; border-radius: 999px; margin-bottom: 24px; }
-    .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: #4fd08a; box-shadow: 0 0 0 3px rgba(79,208,138,.22); }
-    .hero h1 { font-size: clamp(2.3rem, 5.2vw, 3.6rem); font-weight: 800; line-height: 1.12; letter-spacing: -.03em; margin-bottom: 22px; }
-    .hero h1 .accent { background: linear-gradient(100deg, #4fc3ea, #7ee0c0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero-tag { font-size: 1.12rem; font-weight: 700; color: #dbecf6; margin-bottom: 14px; line-height: 1.5; }
-    .hero-sub { font-size: 1rem; color: #a7c0d1; max-width: 640px; margin: 0 auto 32px; }
-    .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 40px; justify-content: center; }
-    .hero-meta { display: flex; flex-wrap: wrap; gap: 40px; justify-content: center; }
-    .hero-meta div { display: flex; flex-direction: column; }
-    .hero-meta b { font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -.01em; }
-    .hero-meta small { font-size: .78rem; color: #8fabbd; font-weight: 600; }
+/* 숫자 격자 */
+.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:56px 40px;margin-top:96px;text-align:left}
+.num .n{font-size:clamp(72px,9vw,120px);font-weight:800;letter-spacing:-.05em;line-height:.95}
+.num .n small{font-size:.42em;margin-left:2px}
+.num p{font-size:19px;font-weight:600;margin-top:14px;line-height:1.35}
+.num span{display:block;font-size:14px;color:var(--sub);margin-top:6px}
+.fine{font-size:12px;color:var(--sub);margin-top:56px;text-align:center;line-height:1.6}
+@media (max-width:760px){.nums{grid-template-columns:1fr;gap:48px;text-align:center}}
 
-    /* ── STAT STRIP ── */
-    .stats { background: #fff; border-bottom: 1px solid var(--line); }
-    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); }
-    .stat { padding: 26px 22px; border-left: 1px solid var(--line-soft); }
-    .stat:first-child { border-left: none; }
-    .stat small { font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--brand); }
-    .stat b { display: block; margin-top: 6px; font-size: 1.0rem; font-weight: 700; color: var(--ink); letter-spacing: -.01em; }
+/* 제품 장: 텍스트 + 기기 */
+.prod{padding-block:140px 0;overflow:hidden}
+.prod .head{text-align:center}
+.prod .head h2{font-size:clamp(44px,6.4vw,80px);font-weight:800;letter-spacing:-.045em;line-height:1.04}
+.prod .head p{font-size:clamp(19px,2vw,24px);color:var(--sub);margin-top:22px;font-weight:500}
+.prod .shot{margin-top:72px;display:flex;justify-content:center;position:relative}
+.prod .shot::before{content:"";position:absolute;left:50%;top:40%;width:70%;height:60%;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgb(100 210 255/.28),transparent);filter:blur(30px)}
+.prod.app .shot img{width:min(360px,70%);position:relative}
+.prod.web .shot img{width:min(1040px,100%);position:relative}
+.specs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:32px;padding-block:96px 140px;border-bottom:1px solid var(--line)}
+.spec h3{font-size:19px;font-weight:600;margin-bottom:8px;line-height:1.3}
+.spec p{font-size:15px;color:var(--sub);line-height:1.5}
+.spec .ic{width:40px;height:40px;margin-bottom:18px;stroke:var(--glow2);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:860px){.specs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.specs{grid-template-columns:1fr}}
 
-    /* ── cards ── */
-    .grid { display: grid; gap: 22px; }
-    .g-2 { grid-template-columns: repeat(2, 1fr); }
-    .g-3 { grid-template-columns: repeat(3, 1fr); }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); transition: transform .18s ease, box-shadow .2s ease, border-color .2s; }
-    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: #d4e6f1; }
-    .ico { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 18px; font-size: 22px; }
-    .ico svg { width: 23px; height: 23px; }
-    .ico.b { background: var(--brand-soft); color: var(--brand); }
-    .ico.a { background: var(--amber-soft); color: var(--amber); }
-    .ico.v { background: var(--violet-soft); color: var(--violet); }
-    .ico.g { background: var(--green-soft); color: var(--green); }
-    .card h3 { font-size: 1.12rem; font-weight: 800; color: var(--ink); letter-spacing: -.01em; margin-bottom: 9px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-    .card p { color: var(--muted); font-size: .94rem; }
+/* 작동 순서 */
+.flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:80px;text-align:left}
+.fcard{background:var(--surface);border-radius:28px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.fcard .t{padding:36px 36px 0}
+.fcard .no{font-size:14px;font-weight:600;color:var(--glow2)}
+.fcard h3{font-size:clamp(26px,3vw,34px);font-weight:700;letter-spacing:-.03em;margin:8px 0 10px;line-height:1.15}
+.fcard p{font-size:17px;color:var(--sub);line-height:1.5}
+.fcard .v{margin-top:32px;aspect-ratio:16/10;position:relative;overflow:hidden}
+.fcard .v img.ph{width:100%;height:100%;object-fit:cover}
+.chip{position:absolute;left:24px;bottom:24px;background:rgb(29 29 31/.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgb(255 255 255/.12);
+  border-radius:16px;padding:12px 16px;font-size:13px;color:#d1d1d6;line-height:1.4}
+.chip b{display:block;font-size:22px;color:#fff;font-weight:700;letter-spacing:-.02em}
+.week{display:grid;place-items:center;height:100%;gap:18px;align-content:center}
+.week .d{display:flex;gap:10px}
+.week .d span{width:34px;height:34px;border-radius:10px;background:linear-gradient(180deg,var(--glow2),var(--glow1))}
+.week .d span.off{background:#3a3a3c}
+.week em{font-style:normal;color:var(--sub);font-size:15px;text-align:center}
+.coach{display:grid;place-items:center;height:100%;gap:14px;align-content:center}
+.coach .bubble{background:var(--btn);color:#fff;padding:12px 18px;border-radius:20px 20px 20px 6px;font-size:17px;font-weight:500}
+.coach img{width:150px}
+@media (max-width:760px){.flow{grid-template-columns:1fr}.fcard .t{padding:28px 26px 0}}
 
-    /* ── app entry cards (회원 앱 / 트레이너 웹) ── */
-    .apps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
-    .app-card {
-      position: relative; overflow: hidden;
-      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-      padding: 32px 30px 30px; box-shadow: var(--shadow);
-      display: flex; flex-direction: column; gap: 14px;
-      transition: transform .18s ease, box-shadow .2s ease, border-color .2s;
-    }
-    .app-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: #d4e6f1; }
-    .app-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
-    .app-card.trainer::before { background: linear-gradient(90deg, var(--amber), #f3c081); }
-    .app-role { font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
-    .app-card.trainer .app-role { color: var(--amber); }
-    .app-card h3 { font-size: 1.22rem; font-weight: 800; color: var(--ink); letter-spacing: -.01em; }
-    .app-card > p { color: var(--muted); font-size: .94rem; }
-    .app-card ul { list-style: none; display: grid; gap: 8px; }
-    .app-card li { position: relative; padding-left: 21px; font-size: .92rem; color: var(--text); }
-    .app-card li::before { content: '✓'; position: absolute; left: 0; top: 0; color: var(--green); font-weight: 800; }
-    .app-card .btn { align-self: flex-start; margin-top: 8px; }
+/* 근거 */
+.ev{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:80px;text-align:left}
+.panel{background:var(--surface);border-radius:28px;padding:44px 40px;min-width:0}
+.panel h3{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.panel .who{font-size:14px;color:var(--sub);margin:6px 0 40px}
+.row{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:6px 12px;margin-bottom:26px}
+.row b{font-weight:500;font-size:16px;color:#d1d1d6}
+.row .v{font-size:40px;font-weight:800;letter-spacing:-.04em}
+.row i{grid-column:1/-1;height:8px;border-radius:8px;background:linear-gradient(90deg,var(--glow1),var(--glow2));transform-origin:left;transition:transform 1.4s cubic-bezier(.2,.7,.2,1)}
+.row.mid i{background:var(--glow1)}
+.row.dim i{background:#48484a}.row.dim .v{color:var(--sub)}
+.js .panel:not(.in) .row i{transform:scaleX(0)}
+.drop{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:end;height:240px}
+.drop div{display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:10px}
+.drop strong{font-size:30px;font-weight:800;letter-spacing:-.04em}
+.drop i{display:block;border-radius:12px 12px 4px 4px;background:linear-gradient(180deg,var(--glow2),var(--glow1));min-height:6px;transform-origin:bottom;transition:transform 1.4s cubic-bezier(.2,.7,.2,1)}
+.js .panel:not(.in) .drop i{transform:scaleY(0)}
+.drop span{font-size:14px;color:var(--sub)}
+.take{font-size:17px;color:var(--sub);margin-top:30px;line-height:1.5}.take b{color:var(--ink);font-weight:600}
+@media (max-width:760px){.ev{grid-template-columns:1fr}.panel{padding:36px 26px}}
 
-    .alt { background: linear-gradient(180deg, #fff 0%, var(--brand-tint) 100%); border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
-    .callout { margin-top: 24px; background: var(--ink); color: #cfe0ec; border-radius: 16px; padding: 24px 28px; box-shadow: var(--shadow-lg); font-size: .98rem; }
-    .callout b { color: #7ee0c0; }
+/* 비교 */
+.cmp{overflow-x:auto;margin-top:80px}
+.cmp table{width:100%;min-width:680px;border-collapse:collapse;font-size:16px}
+.cmp th,.cmp td{padding:22px 16px;text-align:center;border-bottom:1px solid var(--line);vertical-align:top;color:var(--sub)}
+.cmp thead th{font-size:19px;font-weight:600;color:var(--ink);border-bottom:none;padding-bottom:28px;vertical-align:bottom}
+.cmp td:first-child{text-align:left;color:var(--ink);font-weight:600}
+.cmp .us{color:var(--ink);font-weight:500;background:rgb(41 151 255/.07)}
+.cmp thead .us{border-radius:20px 20px 0 0;background:rgb(41 151 255/.12)}
+.cmp thead .us img{width:48px;height:48px;border-radius:12px;margin:0 auto 12px}
 
-    /* evidence stats */
-    .evi { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
-    .estat { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 24px 18px; text-align: center; box-shadow: var(--shadow); }
-    .estat b { display: block; font-size: 1.9rem; font-weight: 800; color: var(--brand-3); letter-spacing: -.02em; line-height: 1.1; }
-    .estat .lbl { display: block; margin-top: 10px; font-size: .88rem; font-weight: 700; color: var(--ink); }
-    .estat .sub { display: block; margin-top: 4px; font-size: .78rem; color: var(--muted); }
-    .fineprint { margin-top: 20px; font-size: .82rem; color: var(--faint); text-align: center; max-width: 900px; margin-left: auto; margin-right: auto; }
-    .fineprint a { color: var(--brand-3); font-weight: 600; }
+.cmp table{min-width:860px;table-layout:fixed}
+.cmp th:first-child{width:19%}
+.cmp th.us{width:23%}
+.cmp td{vertical-align:middle}
+.cmp td span{display:block;font-size:14px;margin-top:6px;line-height:1.35}
+.cmp td.txt{font-size:15px;line-height:1.5}
+.cmp td.us span{color:var(--ink);font-weight:600}
+.mk{width:26px;height:26px;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto}
+.mk.o{stroke:var(--glow2)}.mk.t{stroke:#a1a1a6}.mk.x{stroke:#5a5a5e}
+.cmp .us .mk.o{stroke:var(--glow1);stroke-width:3}
+.cmp tbody tr:last-child .us{border-radius:0 0 20px 20px}
+.sum{margin-top:48px;font-size:clamp(21px,2.4vw,30px);font-weight:700;letter-spacing:-.03em;line-height:1.3}
+.dbflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:80px;text-align:left}
+.dbs{background:var(--surface);border-radius:28px;padding:36px 32px;display:flex;flex-direction:column;min-width:0}
+.dbs .no{width:32px;height:32px;border-radius:50%;background:var(--surface2);color:var(--glow2);display:grid;place-items:center;font-weight:700;font-size:15px}
+.dbs h3{font-size:24px;letter-spacing:-.02em;margin:18px 0 8px}
+.dbs p{font-size:16px;color:var(--sub);line-height:1.5}
+.dbs .ex{margin-top:auto;padding-top:28px;display:flex;flex-direction:column;gap:4px}
+.dbs .ex s{color:var(--sub);font-size:20px}
+.dbs .ex b{font-size:28px;font-weight:800;letter-spacing:-.03em}
+.dbs .ex em{font-style:normal;font-size:13px;color:var(--sub)}
+.dbsrc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:20px;text-align:left}
+.src-card{border:1px solid var(--line);border-radius:28px;padding:36px 32px;min-width:0}
+.src-card .lab{font-size:14px;font-weight:600;color:var(--sub)}
+.src-card .big{font-size:clamp(40px,4.6vw,56px);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin:10px 0 16px;white-space:nowrap}
+.src-card .big small{font-size:.4em;margin-left:4px;letter-spacing:-.02em}
+.src-card p:last-child{font-size:15px;color:var(--sub);line-height:1.55}
+@media (max-width:860px){.dbsrc{grid-template-columns:1fr}}
+@media (max-width:860px){.dbflow{grid-template-columns:1fr}}
+/* 마무리 */
+.end{text-align:center;padding-block:160px 140px}
+.end img{width:170px;margin:0 auto 28px}
+.end h2{font-size:clamp(48px,8vw,104px);font-weight:900;letter-spacing:-.05em;line-height:1}
+.end p{font-size:clamp(19px,2vw,24px);color:var(--sub);margin-top:22px;font-weight:500}
 
-    /* diagram */
-    .diagram { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow); overflow-x: auto; }
-    .diagram img { margin: 0 auto; }
-    .note { margin-top: 22px; background: var(--brand-tint); border: 1px solid var(--line); border-left: 3px solid var(--brand-2); border-radius: 12px; padding: 18px 22px; color: var(--ink-soft); font-size: .94rem; }
-    .note b { color: var(--brand-3); }
+footer{background:var(--surface);font-size:12px;color:var(--sub);padding-block:28px 44px;line-height:1.7}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px 32px}
+footer b{color:#d1d1d6;font-weight:600}
 
-    /* tech chips */
-    .tech-group { margin-bottom: 24px; }
-    .tech-group h4 { font-size: .8rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-bottom: 12px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 10px; }
-    .chip { display: inline-flex; align-items: center; gap: 7px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 9px 15px; font-size: .88rem; font-weight: 700; color: var(--ink-soft); box-shadow: var(--shadow); }
-    .chip i { width: 8px; height: 8px; border-radius: 3px; flex: none; }
-
-    /* table */
-    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--line); box-shadow: var(--shadow); background: #fff; }
-    table { border-collapse: collapse; width: 100%; min-width: 720px; }
-    th, td { padding: 16px 18px; text-align: left; font-size: .9rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
-    thead th { background: #fbfdfe; font-weight: 800; color: var(--ink); font-size: .86rem; }
-    tbody td:first-child { font-weight: 700; color: var(--ink-soft); }
-    td.oc, th.oc { background: var(--brand-tint); }
-    thead th.oc { background: var(--brand); color: #fff; }
-    td.oc { font-weight: 700; color: var(--ink); }
-    tbody tr:last-child td { border-bottom: none; }
-
-    /* team */
-    .team { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-    .member { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 34px 26px; text-align: center; box-shadow: var(--shadow); transition: transform .18s, box-shadow .2s; }
-    .member:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-    .member b { display: block; font-size: 1.22rem; font-weight: 800; color: var(--ink); margin-bottom: 12px; }
-    .member a.gh { display: inline-flex; align-items: center; gap: 6px; font-size: .95rem; font-weight: 700; color: var(--brand-3); }
-    .member a.gh:hover { color: var(--brand); }
-    .member a.gh svg { width: 15px; height: 15px; }
-    .advisor { text-align: center; margin-top: 26px; font-size: .9rem; color: var(--muted); }
-
-    /* CTA band */
-    .cta-band { background: radial-gradient(900px 400px at 80% 0%, #0f5f8f 0%, transparent 55%), linear-gradient(150deg, #0b2236, #0a1c2c); color: #fff; border-radius: 26px; padding: 56px; text-align: center; box-shadow: var(--shadow-lg); }
-    .cta-band h2 { font-size: clamp(1.6rem, 3.2vw, 2.2rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: 12px; }
-    .cta-band p { color: #a7c0d1; max-width: 540px; margin: 0 auto 28px; }
-    .cta-band .hero-cta { justify-content: center; margin: 0; }
-
-    /* footer */
-    footer { background: var(--ink); color: #9db4c4; padding: 56px 0 30px; }
-    .foot-grid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 30px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,.08); }
-    .foot-brand { max-width: 360px; }
-    .foot-brand .nav-logo { color: #fff; margin-bottom: 12px; }
-    .foot-brand p { font-size: .88rem; color: #7f98a9; }
-    .foot-col h5 { color: #fff; font-size: .82rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
-    .foot-col a { display: block; font-size: .9rem; color: #9db4c4; margin-bottom: 9px; transition: color .15s; }
-    .foot-col a:hover { color: var(--brand-2); }
-    .foot-col a.foot-strong { color: #fff; font-weight: 700; }
-    .foot-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-top: 24px; font-size: .84rem; color: #7f98a9; }
-
-    /* reveal — visible by default; the hidden state is applied only after JS
-       confirms IntersectionObserver support (via .reveal-ready on <html>), so
-       content never stays invisible when JS is blocked or the API is missing. */
-    [data-reveal] { opacity: 1; transform: none; }
-    .reveal-ready [data-reveal] { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
-    .reveal-ready [data-reveal].in { opacity: 1; transform: none; }
-
-    /* responsive */
-    @media (max-width: 960px) {
-      .hero-grid { padding: 64px 0 72px; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .stat:nth-child(odd) { border-left: none; }
-      .g-3 { grid-template-columns: repeat(2, 1fr); }
-      .team { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 680px) {
-      .nav-links {
-        display: none; position: absolute; top: 66px; left: 0; right: 0;
-        flex-direction: column; background: #fff; padding: 18px 24px;
-        border-bottom: 1px solid var(--line); gap: 16px;
-      }
-      .nav-links.open { display: flex; }
-      /* Two app buttons do not fit next to the logo on phones. The trainer entry
-         stays reachable through the "앱" menu item and the #apps section. */
-      .nav-cta .btn-outline { display: none; }
-      .nav-toggle { display: inline-flex; }
-      .g-2, .g-3, .stats-grid, .apps { grid-template-columns: 1fr; }
-      .cta-band { padding: 40px 24px; }
-      .foot-grid { flex-direction: column; }
-      .pad { padding: 68px 0; }
-    }
-  </style>
+footer .legal{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px}
+footer .legal a{color:inherit;text-decoration:none}
+footer .legal a:hover{text-decoration:underline}
+</style>
 </head>
-
 <body>
 
-  <!-- NAV -->
-  <nav>
-    <div class="wrap nav-inner">
-      <a href="#top" class="nav-logo"><img src="data:image/png;base64,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" alt="On-Care" />On-Care</a>
-      <div class="nav-links" id="navLinks">
-        <a href="#overview">개요</a>
-        <a href="#problem">문제</a>
-        <a href="#apps">서비스</a>
-        <a href="#features">기능</a>
-        <a href="#architecture">구조</a>
-        <a href="#business">비즈니스</a>
-        <a href="#team">팀</a>
-      </div>
-      <div class="nav-cta">
-        <a href="https://github.com/CSE-Sudo/on-care" target="_blank" rel="noopener" class="icon-link" aria-label="GitHub">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.5 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.4-5.25 5.69.42.36.8 1.08.8 2.18v3.23c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z"/></svg>
-        </a>
-        <a href="trainer/" target="_blank" rel="noopener" class="btn btn-outline">트레이너 웹</a>
-        <a href="member/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
-          <span>회원 앱</span>
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
-        <button class="nav-toggle" id="navToggle" aria-label="메뉴" aria-controls="navLinks" aria-expanded="false">
-          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </button>
-      </div>
+<script>document.documentElement.classList.add('js')</script>
+
+<nav class="lnav" aria-label="On-Care 메뉴"><div class="wrap">
+  <a class="name" href="#top"><img src="assets/landing/img/logo.png" alt="">On-Care</a>
+  <ul>
+    <li class="h"><a href="#highlights">개요</a></li>
+    <li class="h"><a href="#how">작동 방식</a></li>
+    <li class="h"><a href="#member">회원 앱</a></li>
+    <li class="h"><a href="#trainer">트레이너 웹</a></li>
+    <li class="h"><a href="#compare">비교</a></li>
+    <li class="h"><a href="#db">공공 데이터</a></li>
+    <li><a class="buy" href="member/#/dashboard">회원 앱</a></li>
+    <li><a class="buy" href="trainer/">트레이너 웹</a></li>
+  </ul>
+</div></nav>
+
+<main>
+<header class="hero" id="top">
+  <div class="wrap">
+    <p class="eyebrow rv">회원과 트레이너를 잇는 식단·운동 관리</p>
+    <h1 class="grad rv">On-Care</h1>
+    <p class="tag rv">흩어지던 기록을,<br>한눈에.</p>
+    <p class="sub2 rv">회원이 남긴 식단과 운동이 트레이너 화면에 바로 모입니다.</p>
+    <div class="ctas rv">
+      <a class="btn" href="member/#/dashboard">회원 앱 열기</a>
+      <a class="btn" href="trainer/">트레이너 웹 열기</a>
+      <a class="more" href="https://youtu.be/UjQv-CDadok">소개 영상 보기</a>
     </div>
-  </nav>
-
-  <!-- HERO -->
-  <header class="hero" id="top">
-    <div class="wrap hero-grid">
-      <div class="hero-badge"><span></span>2026 이화여자대학교 캡스톤디자인 · Team 02 Sudo</div>
-      <h1>회원의 기록을<br /><span class="accent">트레이너의 코칭</span>으로 잇다</h1>
-      <p class="hero-tag">HealthMate AI: 회원·트레이너 연동 식단·운동 관리 서비스 “On-Care”</p>
-      <p class="hero-sub">회원이 음식 사진 한 장·간단한 입력만 하면, 앱이 식단과 운동을 회원별·날짜별로 정리해 트레이너에게 전달합니다. 트레이너는 흩어진 메시지 대신 정리된 리포트 위에서 코칭하고, 그 코칭은 다시 회원에게 돌아옵니다.</p>
-      <div class="hero-cta">
-        <a href="member/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
-          회원 앱 바로가기
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
-        <a href="trainer/" target="_blank" rel="noopener" class="btn btn-ghost">
-          트레이너 웹 바로가기
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
-        <a href="https://youtu.be/C4ivM_dlAww?si=8iOWmOpSxcpQmlU3" target="_blank" rel="noopener" class="btn btn-ghost">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          데모 영상
-        </a>
-        <a href="https://github.com/CSE-Sudo/on-care" target="_blank" rel="noopener" class="btn btn-ghost">GitHub</a>
-      </div>
-      <div class="hero-meta">
-        <div><b>사진 1장</b><small>간편 식단 기록</small></div>
-        <div><b>자동 리포트</b><small>회원별·날짜별 정리</small></div>
-        <div><b>양방향</b><small>회원 ↔ 트레이너 연동</small></div>
-      </div>
+  </div>
+  <div class="stage">
+    <div class="dev" id="heroDev">
+      <img class="ipad" src="assets/landing/img/trainer-web.png" alt="트레이너 웹 대시보드: 담당 회원, 오늘의 일정, 활동 피드백" width="735" height="571">
+      <img class="phone" src="assets/landing/img/member-app.png" alt="회원 앱 홈: 오늘의 AI 통합 조언과 식단 영양" width="476" height="1000">
     </div>
-  </header>
+  </div>
+  <div class="wrap hero-foot">
+    <div><b>연동</b>회원 앱과 트레이너 웹</div>
+    <div><b>한 화면</b>담당 회원 전체 기록</div>
+    <div><b>양방향</b>코멘트와 루틴</div>
+    <div><b>공공 데이터</b>식단과 운동 수치 보정</div>
+  </div>
+</header>
 
-  <!-- STAT STRIP -->
-  <section class="stats">
-    <div class="wrap stats-grid">
-      <div class="stat"><small>Target</small><b>PT 회원 + 트레이너</b></div>
-      <div class="stat"><small>Frontend</small><b>Flutter · 회원/트레이너 이중 모드</b></div>
-      <div class="stat"><small>Backend</small><b>FastAPI · PostgreSQL(pgvector)</b></div>
-      <div class="stat"><small>AI</small><b>Vision(VLM) 식단 인식 · 공공 영양 DB</b></div>
-      <div class="stat"><small>Infra</small><b>AWS · GitHub Actions</b></div>
+<section class="hl" id="highlights">
+  <div class="wide"><h2 class="sec-title rv">하이라이트 살펴보기</h2></div>
+  <div class="rail" id="rail" tabindex="0" aria-label="하이라이트">
+    <div class="card plain link"><p>회원 앱과 트레이너 웹이<br><span>같은 기록을 함께 봅니다.</span></p><div class="center"><div class="duo"><img src="assets/landing/img/trainer-web.png" alt="트레이너 웹 화면"><img src="assets/landing/img/member-app.png" alt="회원 앱 화면"></div></div></div>
+    <div class="card plain"><p>메신저에 흩어지던 기록이<br><span>회원별, 날짜별로 한 줄에.</span></p><div class="center"><div class="week"><div class="d"><span></span><span></span><span class="off"></span><span></span><span></span><span></span><span class="off"></span></div><em>이번 주 식단 기록 5일, 나트륨 과다 3일</em></div></div></div>
+    <div class="card plain"><p>수업이 없는 날도<br><span>트레이너의 코칭이 돌아옵니다.</span></p><div class="center"><div class="chat"><p class="b tr">점심 국물은 반만 드세요. 내일 하체 끝나고 유산소 20분 더!</p><p class="b me">네, 코치님!</p></div></div></div>
+    <div class="card"><img class="bg" src="assets/landing/img/diet-chicken-salad-sweet-potato.jpg" alt="닭가슴살 샐러드"><p>내 기록을 아는 AI 코치.<br><span>공식 지침을 근거로 답합니다.</span></p></div>
+    <div class="card"><img class="bg" src="assets/landing/img/lunch-jjamppong.jpg" alt="짬뽕 한 그릇"><p>기록은 사진 한 장으로.<br><span>수치는 공공 데이터로 보정합니다.</span></p></div>
+  </div>
+  <div class="wide rail-ctl">
+    <button type="button" aria-label="이전" data-d="-1"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
+    <button type="button" aria-label="다음" data-d="1"><svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button>
+  </div>
+</section>
+
+<section class="chapter" id="why"><div class="wrap">
+  <p class="k rv">문제</p>
+  <h2 class="rv">사진은 매일 오가는데,<br><span class="grad-warm">기록으로 남지 않습니다.</span></h2>
+  <p class="lead rv">PT 회원 대부분은 메신저로 식단 사진을 보냅니다. <b>사진은 대화에 묻히고,</b> 트레이너는 회원 수만큼 대화방을 거슬러 올라갑니다.</p>
+  <div class="nums">
+    <div class="num rv"><div class="n grad tn">86<small>%</small></div><p>수업 밖 소통을<br>개인 메신저로 합니다.</p><span>PT 경험자 37명 중. 전용 앱은 8%</span></div>
+    <div class="num rv"><div class="n grad tn">78<small>%</small></div><p>수업 없는 날 관리가<br>부족하다고 느낍니다.</p><span>5점 척도 3점 이하, 평균 2.6점</span></div>
+    <div class="num rv"><div class="n grad tn">79<small>%</small></div><p>트레이너와 공유되는<br>서비스라면 쓰겠습니다.</p><span>응답자 57명 중 4점 이상</span></div>
+  </div>
+  <p class="fine">On-Care 팀 자체 온라인 설문, 2026년, 응답 57명(PT 경험자 37명)</p>
+</div></section>
+
+<section class="chapter" id="evidence" style="padding-top:40px"><div class="wrap">
+  <p class="k rv">근거</p>
+  <h2 class="rv">누군가 지켜볼 때<br><span class="grad">운동은 이어집니다.</span></h2>
+  <p class="lead rv">감독이 붙으면 순응도가 오르고, <b>피드백을 받으면 기록이 행동으로</b> 이어졌습니다.</p>
+  <div class="ev">
+    <div class="panel rv">
+      <h3>감독 방식별 운동 순응도</h3>
+      <p class="who">저항운동 10주 무작위 대조 연구 (Gavanda 외, 2025)</p>
+      <div class="row"><b>트레이너 대면 감독</b><span class="v tn">88.2%</span><i style="width:88.2%"></i></div>
+      <div class="row mid"><b>앱으로 감독</b><span class="v tn">81.2%</span><i style="width:81.2%"></i></div>
+      <div class="row dim"><b>혼자 자율로</b><span class="v tn">52.2%</span><i style="width:52.2%"></i></div>
+      <p class="take"><b>앱 감독도 대면에 가깝습니다.</b> 혼자보다 29%p 높았습니다.</p>
     </div>
-  </section>
-
-  <!-- OVERVIEW -->
-  <section class="pad" id="overview">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Overview</span>
-        <h2>흩어진 대화를, 데이터 기반 코칭으로</h2>
+    <div class="panel rv">
+      <h3>헬스장 신규 회원 잔존율</h3>
+      <p class="who">신규 회원 5,240명, 최대 12개월 추적 (Sperandei 외, 2016)</p>
+      <div class="drop" role="img" aria-label="등록 100%, 3개월 37%, 12개월 4% 미만">
+        <div><strong class="tn">100%</strong><i style="height:100%"></i><span>등록</span></div>
+        <div><strong class="tn">37%</strong><i style="height:37%"></i><span>3개월</span></div>
+        <div><strong class="tn">4% 미만</strong><i style="height:4%"></i><span>12개월</span></div>
       </div>
-      <div class="lead" data-reveal>
-        <p><b>On-Care</b>는 헬스 트레이너와 회원 사이의 식단·운동 관리 소통을 자동화하는 플랫폼입니다. 회원이 음식 사진 한 장·간단한 입력만 하면 앱이 식단과 운동을 회원별·날짜별로 정리해 트레이너에게 전달하고, 트레이너는 흩어진 메시지를 뒤지는 대신 정리된 리포트 위에서 코칭합니다.</p>
-        <p>타깃은 <b>PT를 이용하는 회원과 이들을 관리하는 트레이너</b>입니다. PT의 성과는 주 1~2회 대면 세션이 아니라 <b>세션과 세션 사이의 식단·운동 관리</b>에서 갈리지만, 정작 그 구간은 개인 메신저에 맡겨져 있습니다. On-Care는 트레이너의 관리를 세션 밖으로 확장합니다.</p>
-      </div>
+      <p class="take"><b>63%가 석 달 안에 그만둡니다.</b> 1년을 넘긴 회원은 4%가 되지 않았습니다.</p>
     </div>
-  </section>
+  </div>
+  <p class="fine">헬스는 규칙적 체육활동 참여자가 두 번째로 많이 하는 종목입니다(17.5%, <a href="https://www.mcst.go.kr/site/s_policy/subPolicy/sportstour/sportstour29.jsp">2025 국민생활체육조사</a>). 자기기록은 10주가 지나면 절반 아래로 줄지만, 피드백을 받은 집단에서만 의미 있는 체중 감소가 나타났습니다(<a href="https://pubmed.ncbi.nlm.nih.gov/22704741/">Burke 외 2012</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/31155473/">Turner-McGrievy 외 2019</a>). 원문: <a href="https://pubmed.ncbi.nlm.nih.gov/40728831/">Gavanda 2025</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/26874647/">Sperandei 2016</a>.</p>
+</div></section>
 
-  <!-- PROBLEM -->
-  <section class="pad alt" id="problem">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Problem</span>
-        <h2>기록은 하는데, 관리로 이어지지 않는다</h2>
-        <p>트레이너와 회원 모두 “기록은 하는데 그 기록이 관리로 이어지지 않는” 같은 벽에 부딪힙니다.</p>
-      </div>
-      <div class="grid g-2">
-        <div class="card" data-reveal>
-          <div class="ico a" aria-hidden="true">🏋️</div>
-          <h3>트레이너</h3>
-          <p>회원 30~40명의 식사·운동을 개별 메신저로 일일이 확인하느라 하루 한 시간 넘게 쓰지만, 대화가 흩어져 회원별 흐름이 한눈에 보이지 않습니다. 회원이 늘수록 관리 품질이 떨어져 <b>확장이 어렵습니다.</b></p>
-        </div>
-        <div class="card" data-reveal>
-          <div class="ico a" aria-hidden="true">🧍</div>
-          <h3>회원</h3>
-          <p>매 끼 검색·입력하는 번거로움에 기록을 며칠 만에 포기하고, 어렵게 남긴 기록도 <b>“그래서 무엇을 바꿔야 하는지”</b>로 이어지지 않습니다.</p>
-        </div>
-      </div>
-      <div class="callout" data-reveal>회원용 기록 앱과 트레이너용 도구가 <b>서로 분리되어</b>, 회원의 데이터가 트레이너에게 정리된 형태로 닿지 않습니다. 결국 관리는 다시 메신저로 돌아옵니다. On-Care는 바로 이 <b>끊어진 연결</b>을 잇습니다.</div>
+<section class="chapter" id="how" style="padding-top:40px"><div class="wide">
+  <p class="k rv">작동 방식</p>
+  <h2 class="rv">찍고. 정리하고.<br><span class="grad">보고. 돌려줍니다.</span></h2>
+  <p class="lead rv">트레이너를 AI로 대신하지 않습니다. 대면 수업에서 끝나던 관리를 <b>회원의 하루와 이어 줍니다.</b></p>
+  <div class="flow">
+    <article class="fcard rv">
+      <div class="t"><span class="no">회원</span><h3>사진을 찍는다</h3><p>먹기 전에 한 장. 운동은 배정받은 루틴에서 끝낸 세트만 체크합니다.</p></div>
+      <div class="v"><img class="ph" src="assets/landing/img/lunch-jjamppong.jpg" alt="회원이 찍은 짬뽕 사진"><div class="chip"><b class="tn">1,050 kcal</b>나트륨 약 3,900mg</div></div>
+    </article>
+    <article class="fcard rv">
+      <div class="t"><span class="no">On-Care</span><h3>알아서 정리한다</h3><p>열량, 나트륨, 당을 채우고 회원별, 날짜별로 묶습니다. 틀린 값은 고칠 수 있습니다.</p></div>
+      <div class="v"><img class="ph" src="assets/landing/img/diet-vegetable-bibimbap.jpg" alt="채소 비빔밥 사진"><div class="chip">AI 추정 후<b>공공 영양 DB로 보정</b></div></div>
+    </article>
+    <article class="fcard rv">
+      <div class="t"><span class="no">트레이너</span><h3>한 화면에서 본다</h3><p>담당 회원 전체의 기록과 루틴 완료를 주 단위로 비교하고, 먼저 연락할 회원을 고릅니다.</p></div>
+      <div class="v"><div class="week" aria-label="일주일 중 5일 기록"><div class="d"><span></span><span></span><span class="off"></span><span></span><span></span><span></span><span class="off"></span></div><em>이번 주 식단 기록 5일, 나트륨 과다 3일</em></div></div>
+    </article>
+    <article class="fcard rv">
+      <div class="t"><span class="no">다시 회원에게</span><h3>코칭이 돌아간다</h3><p>코멘트와 바뀐 루틴이 회원 앱에 바로 뜨고, 회원은 채팅으로 답합니다.</p></div>
+      <div class="v"><div class="center-chat"><div class="chat"><p class="b tr">내일 하체 끝나고 유산소 20분 더!</p><p class="b me">네, 코치님! 저녁은 샐러드로 할게요.</p></div></div></div>
+    </article>
+  </div>
+</div></section>
+
+<section class="chapter" id="db" style="padding-top:40px"><div class="wrap">
+  <p class="k rv">공공 데이터</p>
+  <h2 class="rv">AI는 알아보고,<br><span class="grad">숫자는 공공 데이터로.</span></h2>
+  <p class="lead rv">사진 인식은 이미 많은 앱에 있습니다. On-Care는 AI가 추정한 숫자를 그대로 쓰지 않습니다. <b>식단은 공공 영양성분 DB로, 운동은 공공 운동 강도 데이터로</b> 다시 계산합니다.</p>
+  <div class="dbflow">
+    <div class="dbs rv"><span class="no">1</span><h3>AI가 알아본다</h3><p>사진에서 음식 이름과 양을 추정합니다.</p><div class="ex"><b>짬뽕 1그릇</b><em>음식 이름과 양</em></div></div>
+    <div class="dbs rv"><span class="no">2</span><h3>공공 DB와 맞춘다</h3><p>식약처 식품영양성분 DB(K-FIND)와 농촌진흥청 국가표준식품성분표에서 같은 음식을 찾습니다.</p><div class="ex"><b>짬뽕</b><em>식약처 음식 DB 분석값</em></div></div>
+    <div class="dbs rv"><span class="no">3</span><h3>측정값으로 바꾼다</h3><p>열량, 나트륨, 당, 탄단지를 측정값으로 채우고, 틀린 값은 회원이 고칠 수 있습니다.</p><div class="ex"><b class="grad tn">1,050 kcal</b><em>나트륨 약 3,900mg</em></div></div>
+  </div>
+  <div class="dbsrc">
+    <div class="src-card rv">
+      <p class="lab">식단</p>
+      <div class="big grad tn">2,130<small>개 음식</small></div>
+      <p>식약처 식품영양성분 DB(K-FIND) 약 34만 행에서 자주 먹는 음식의 대표값을 골랐습니다. 조리 상태까지 맞춘 농촌진흥청 국가표준식품성분표가 우선입니다.</p>
     </div>
-  </section>
-
-  <!-- EVIDENCE -->
-  <section class="pad" id="evidence">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Evidence · 근거</span>
-        <h2>차이를 만드는 건 감독인데, 그게 세션에서 끊긴다</h2>
-        <p>헬스장 등록의 대부분은 몇 달 안에 사라집니다. 무엇이 남는 사람과 사라지는 사람을 가르는지는 이미 연구로 밝혀져 있습니다 — 트레이너의 감독입니다. 문제는 그 감독이 주 1~2회 대면 세션에서 끊긴다는 것입니다.</p>
-      </div>
-      <div class="evi" data-reveal>
-        <div class="estat"><b>63%</b><span class="lbl">3개월 내 이탈</span><span class="sub">헬스장 신규 회원 5,240명 생존분석 · 12개월 지속 4% 미만</span></div>
-        <div class="estat"><b>88% vs 52%</b><span class="lbl">순응도: 감독 vs 자율</span><span class="sub">10주 RCT · 대면 88.2% · 앱 코칭 81.2% · 자율 52.2%</span></div>
-        <div class="estat"><b>43%</b><span class="lbl">앱 단독 개입 이탈률</span><span class="sub">메타분석 17편 · 앱만으로는 지속되지 않음</span></div>
-        <div class="estat"><b>10주</b><span class="lbl">식단 기록이 끊기는 시점</span><span class="sub">10주차에 절반 미만만 기록 지속 · 순응도가 성과 분산의 27% 설명</span></div>
-        <div class="estat"><b>97.5%</b><span class="lbl">PT·헬스장 피해 중 계약 관련</span><span class="sub">실내체육시설 피해구제 최근 3년 14,857건 (한국소비자원)</span></div>
-      </div>
-      <p class="fineprint" data-reveal>Sources — <a href="https://pubmed.ncbi.nlm.nih.gov/26874647/" target="_blank" rel="noopener">Sperandei et al., J Sci Med Sport 2016</a> · <a href="https://pubmed.ncbi.nlm.nih.gov/40728831/" target="_blank" rel="noopener">Gavanda et al., J Strength Cond Res 2025</a> · <a href="https://pubmed.ncbi.nlm.nih.gov/32990635/" target="_blank" rel="noopener">Meyerowitz-Katz et al., JMIR 2020</a> · <a href="https://pubmed.ncbi.nlm.nih.gov/31155473/" target="_blank" rel="noopener">Turner-McGrievy et al., JAND 2019</a> · <a href="https://www.kca.go.kr/home/sub.do?menukey=4005&amp;mode=view&amp;no=1003959737" target="_blank" rel="noopener">한국소비자원 2025</a></p>
+    <div class="src-card rv">
+      <p class="lab">운동</p>
+      <div class="big grad tn">376<small>개 종목</small></div>
+      <p>한국건강증진개발원 운동 강도(MET) 공공데이터를 씁니다. 운동 강도에 회원의 체중과 시간을 곱해, 같은 30분이라도 사람마다 다른 소모 열량을 냅니다.</p>
     </div>
-  </section>
-
-  <!-- SOLUTION -->
-  <section class="pad alt" id="solution">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Solution</span>
-        <h2>회원 ↔ 트레이너, 데이터로 연결된 관리 루프</h2>
-        <p>회원의 기록은 앱 안에서 자동으로 정리되어 트레이너에게 넘어가고, 트레이너의 코칭은 다시 회원에게 돌아옵니다. 회원은 최소한의 노력으로 관리받고, 트레이너는 더 많은 회원을 더 높은 품질로 관리하며, 그 사이의 모든 판단은 감이 아닌 <b>데이터</b>를 근거로 이루어집니다.</p>
-      </div>
-      <div class="diagram" data-reveal>
-        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NjAgNDMwIiB3aWR0aD0iOTYwIiBoZWlnaHQ9IjQzMCI+CiAgPHN0eWxlPgogICAgdGV4dCB7IGZvbnQtZmFtaWx5OiAnSGVsdmV0aWNhIE5ldWUnLCBIZWx2ZXRpY2EsIEFyaWFsLCAnQXBwbGUgU0QgR290aGljIE5lbycsICdNYWxndW4gR290aGljJywgc2Fucy1zZXJpZjsgfQogICAgLnRpdGxlIHsgZm9udC1zaXplOiAyM3B4OyBmb250LXdlaWdodDogNzAwOyBmaWxsOiAjMTExODI3OyB9CiAgICAubm9kZS10IHsgZm9udC1zaXplOiAxN3B4OyBmb250LXdlaWdodDogNzAwOyBmaWxsOiAjMTExODI3OyB9CiAgICAubm9kZS1zIHsgZm9udC1zaXplOiAxMi41cHg7IGZpbGw6ICM2YjcyODA7IH0KICAgIC5sYmwgeyBmb250LXNpemU6IDEyLjVweDsgZm9udC13ZWlnaHQ6IDYwMDsgZmlsbDogIzM3NDE1MTsgfQogICAgLmxlZyB7IGZvbnQtc2l6ZTogMTJweDsgZmlsbDogIzZiNzI4MDsgfQogIDwvc3R5bGU+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhLWJsdWUiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+PHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjMjU2M2ViIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhLWdyZWVuIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPjxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzE2YTM0YSIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYS1wdXJwbGUiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+PHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjOTMzM2VhIi8+PC9tYXJrZXI+CiAgICA8ZmlsdGVyIGlkPSJzb2Z0IiB4PSItOCUiIHk9Ii04JSIgd2lkdGg9IjExNiUiIGhlaWdodD0iMTE2JSI+PGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjEuNSIgc3RkRGV2aWF0aW9uPSIyLjUiIGZsb29kLWNvbG9yPSIjMGYxNzJhIiBmbG9vZC1vcGFjaXR5PSIwLjEwIi8+PC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8cmVjdCB3aWR0aD0iOTYwIiBoZWlnaHQ9IjQzMCIgZmlsbD0iI2ZmZmZmZiIvPgogIDx0ZXh0IHg9IjQ4MCIgeT0iNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJ0aXRsZSI+U2VydmljZSBEYXRhIEZsb3c8L3RleHQ+CgogIDwhLS0gTWVtYmVyIC0tPgogIDxyZWN0IHg9IjcwIiB5PSIxMzAiIHdpZHRoPSIyMTUiIGhlaWdodD0iMTIwIiByeD0iMTIiIGZpbGw9IiNmMGZkZmEiIHN0cm9rZT0iIzVlZWFkNCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbHRlcj0idXJsKCNzb2Z0KSIvPgogIDx0ZXh0IHg9IjE3NyIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZS10Ij7tmozsm5A8L3RleHQ+CiAgPHRleHQgeD0iMTc3IiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJub2RlLXMiPuyLneuLqCDsgqzsp4QgJiMxODM7IOqwhOuLqCDsnoXroKU8L3RleHQ+CgogIDwhLS0gT24tQ2FyZSBodWIgLS0+CiAgPHJlY3QgeD0iMzcyIiB5PSIxMjIiIHdpZHRoPSIyMTYiIGhlaWdodD0iMTM2IiByeD0iMTIiIGZpbGw9IiNlZmY2ZmYiIHN0cm9rZT0iIzkzYzVmZCIgc3Ryb2tlLXdpZHRoPSIxLjgiIGZpbHRlcj0idXJsKCNzb2Z0KSIvPgogIDx0ZXh0IHg9IjQ4MCIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZS10Ij5Pbi1DYXJlPC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMjA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZS1zIj5BSSDsnpDrj5kg7J247IudICYjMTgzOyDsoJXrpqw8L3RleHQ+CiAgPHRleHQgeD0iNDgwIiB5PSIyMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJub2RlLXMiPu2ajOybkOuzhCAmIzE4Mzsg64Kg7Kec67OEIOumrO2PrO2KuDwvdGV4dD4KCiAgPCEtLSBUcmFpbmVyIC0tPgogIDxyZWN0IHg9IjY3NSIgeT0iMTMwIiB3aWR0aD0iMjE1IiBoZWlnaHQ9IjEyMCIgcng9IjEyIiBmaWxsPSIjZjBmZGY0IiBzdHJva2U9IiM4NmVmYWMiIHN0cm9rZS13aWR0aD0iMS41IiBmaWx0ZXI9InVybCgjc29mdCkiLz4KICA8dGV4dCB4PSI3ODIiIHk9IjE4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im5vZGUtdCI+7Yq466CI7J2064SIPC90ZXh0PgogIDx0ZXh0IHg9Ijc4MiIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZS1zIj7shLjshZggJiMxODM7IO2UhOuhnOq3uOueqCDquLDroZ08L3RleHQ+CgogIDwhLS0gTWVtYmVyIC0+IE9uLUNhcmUgLS0+CiAgPGxpbmUgeDE9IjI4NSIgeTE9IjE5MCIgeDI9IjM2OCIgeTI9IjE5MCIgc3Ryb2tlPSIjMjU2M2ViIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYS1ibHVlKSIvPgogIDxyZWN0IHg9IjI4OCIgeT0iMTYzIiB3aWR0aD0iNzgiIGhlaWdodD0iMjAiIHJ4PSI0IiBmaWxsPSIjZmZmZmZmIiBvcGFjaXR5PSIwLjk1Ii8+CiAgPHRleHQgeD0iMzI3IiB5PSIxNzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYmwiPuyLneuLqCYjMTgzO+yatOuPmSDquLDroZ08L3RleHQ+CgogIDwhLS0gT24tQ2FyZSAtPiBUcmFpbmVyIC0tPgogIDxsaW5lIHgxPSI1ODgiIHkxPSIxOTAiIHgyPSI2NzEiIHkyPSIxOTAiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2EtZ3JlZW4pIi8+CiAgPHJlY3QgeD0iNTk2IiB5PSIxNjMiIHdpZHRoPSI2NiIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOTUiLz4KICA8dGV4dCB4PSI2MjkiIHk9IjE3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxibCI+7JqU7JW9IOumrO2PrO2KuDwvdGV4dD4KCiAgPCEtLSBUcmFpbmVyIC0+IE1lbWJlciAoY29hY2hpbmcgbG9vcCkgLS0+CiAgPHBhdGggZD0iTTc4MiAyNTAgTDc4MiAzMzggUTc4MiAzNTIgNzY4IDM1MiBMMTkxIDM1MiBRMTc3IDM1MiAxNzcgMzM4IEwxNzcgMjUwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5MzMzZWEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhLXB1cnBsZSkiLz4KICA8cmVjdCB4PSIzOTgiIHk9IjM0MiIgd2lkdGg9IjE2NCIgaGVpZ2h0PSIyMSIgcng9IjQiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOTUiLz4KICA8dGV4dCB4PSI0ODAiIHk9IjM1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxibCIgc3R5bGU9ImZpbGw6IzdjM2FlZCI+642w7J207YSwIOq4sOuwmCDrp57stqQg7L2U7LmtPC90ZXh0PgoKICA8IS0tIGxlZ2VuZCAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg3MiwzOTIpIj4KICAgIDxsaW5lIHgxPSIwIiB5MT0iNyIgeDI9IjI2IiB5Mj0iNyIgc3Ryb2tlPSIjMjU2M2ViIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYS1ibHVlKSIvPgogICAgPHRleHQgeD0iMzIiIHk9IjExIiBjbGFzcz0ibGVnIj7quLDroZ0g7IiY7KeRPC90ZXh0PgogICAgPGxpbmUgeDE9IjE1MCIgeTE9IjciIHgyPSIxNzYiIHkyPSI3IiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhLWdyZWVuKSIvPgogICAgPHRleHQgeD0iMTgyIiB5PSIxMSIgY2xhc3M9ImxlZyI+7Yq466CI7J2064SIIOyghOuLrDwvdGV4dD4KICAgIDxsaW5lIHgxPSIzMjAiIHkxPSI3IiB4Mj0iMzQ2IiB5Mj0iNyIgc3Ryb2tlPSIjOTMzM2VhIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYS1wdXJwbGUpIi8+CiAgICA8dGV4dCB4PSIzNTIiIHk9IjExIiBjbGFzcz0ibGVnIj7rp57stqQg7L2U7LmtIO2UvOuTnOuwsTwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=" alt="회원 ↔ On-Care ↔ 트레이너 데이터 흐름" loading="lazy" />
-      </div>
+    <div class="src-card rv">
+      <p class="lab">원칙</p>
+      <div class="big grad">추정 유지</div>
+      <p>확실히 맞는 음식이 없으면 비슷한 이름에 억지로 붙이지 않습니다. 틀린 측정값보다 AI 추정값을 그대로 두는 편이 낫기 때문입니다.</p>
     </div>
-  </section>
+  </div>
+</div></section>
 
-  <!-- APPS -->
-  <section class="pad" id="apps">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Apps</span>
-        <h2>회원 앱과 트레이너 웹, 하나의 서비스</h2>
-        <p>On-Care는 회원 앱과 트레이너 웹이 같은 백엔드를 공유합니다. 회원이 남긴 기록은 트레이너 웹의 리포트로, 트레이너의 코칭은 회원 앱의 알림·채팅으로 이어집니다. 둘 다 설치 없이 웹에서 바로 열어볼 수 있습니다.</p>
-      </div>
-      <div class="apps">
-        <div class="app-card" data-reveal>
-          <span class="app-role">For members · 회원</span>
-          <h3>회원 앱</h3>
-          <p>기록은 최소한으로, 관리는 트레이너와 함께.</p>
-          <ul>
-            <li>사진 한 장으로 끝내는 식단 기록과 영양 추정</li>
-            <li>운동·활동·목표를 한 화면에서 확인하는 홈 대시보드</li>
-            <li>트레이너·헬스장 찾기와 상담 요청, 담당 트레이너 연결</li>
-            <li>담당 트레이너와의 채팅, AI 코치 추천</li>
-          </ul>
-          <a href="member/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
-            회원 앱 열기
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-        </div>
-        <div class="app-card trainer" data-reveal>
-          <span class="app-role">For trainers · 트레이너</span>
-          <h3>트레이너 웹</h3>
-          <p>흩어진 메시지 대신, 정리된 리포트 위에서 코칭.</p>
-          <ul>
-            <li>담당 회원의 식단·운동·활동 요약 리포트</li>
-            <li>회원별·날짜별 기록 열람과 피드백 작성</li>
-            <li>세션 일정과 운동 프로그램 관리, 회원 기록에 자동 반영</li>
-            <li>상담 요청 수락·거절과 회원 채팅</li>
-          </ul>
-          <a href="trainer/" target="_blank" rel="noopener" class="btn btn-outline">
-            트레이너 웹 열기
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
+<section class="prod app" id="member"><div class="wrap">
+  <div class="head">
+    <h2 class="rv">회원 앱.<br><span class="grad">기록은 가볍게.</span></h2>
+    <p class="rv">찍고 체크하면 끝. 나머지는 트레이너와 앱이 합니다.</p>
+    <div class="ctas rv"><a class="btn" href="member/#/dashboard">회원 앱 열기</a></div>
+  </div>
+  <div class="shot rv"><img src="assets/landing/img/member-app.png" alt="회원 앱 홈 화면: AI 통합 조언, 식단 영양, 주간 칼로리 추이" loading="lazy" width="476" height="1000"></div>
+</div></section>
+<div class="wrap"><div class="specs">
+  <div class="spec rv"><svg class="ic" viewBox="0 0 40 40"><rect x="5" y="10" width="30" height="22" rx="5"/><circle cx="20" cy="21" r="6"/><path d="M14 10l2-4h8l2 4"/></svg><h3>사진으로 식단 기록</h3><p>사진 속 음식과 양을 추정해 열량, 나트륨, 당을 채웁니다.</p></div>
+  <div class="spec rv"><svg class="ic" viewBox="0 0 40 40"><path d="M6 20h4M30 20h4M10 14v12M30 14v12M14 17v6M26 17v6M14 20h12"/></svg><h3>트레이너가 짜 준 루틴</h3><p>그날 할 운동이 뜨고, 끝낸 세트를 체크하면 체중을 반영한 소모 열량과 함께 트레이너에게 전달됩니다.</p></div>
+  <div class="spec rv"><svg class="ic" viewBox="0 0 40 40"><path d="M7 10h26v16H18l-7 6v-6H7z"/><path d="M14 18h12"/></svg><h3>내 기록을 아는 AI 코치</h3><p>신체활동 지침과 영양소 섭취기준 원문, 내 기록을 근거로 답합니다. 의료 판단은 하지 않습니다.</p></div>
+  <div class="spec rv"><svg class="ic" viewBox="0 0 40 40"><path d="M20 35s11-10 11-19a11 11 0 0 0-22 0c0 9 11 19 11 19z"/><circle cx="20" cy="16" r="4"/></svg><h3>트레이너와 헬스장 찾기</h3><p>목표와 지역, 시간에 맞는 트레이너를 찾고 상담까지 연결합니다.</p></div>
+</div></div>
 
-  <!-- FEATURES -->
-  <section class="pad alt" id="features">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Features</span>
-        <h2>핵심 기능</h2>
-      </div>
-      <div class="grid g-3">
-        <div class="card" data-reveal>
-          <div class="ico b" aria-hidden="true">📷</div>
-          <h3>간편 식단 기록</h3>
-          <p>음식 사진을 찍으면 Vision(VLM)이 음식과 양을 추정하고, 식약처 공공 DB의 영양성분 참고값으로 나트륨·칼로리·당 추정치를 제공합니다. 완벽한 자동 계산이 아니라 기록 부담을 없애는 것이 목적이며, 최종 값은 회원·트레이너가 확인·보정합니다.</p>
-        </div>
-        <div class="card" data-reveal>
-          <div class="ico b" aria-hidden="true">🏋️</div>
-          <h3>운동 기록 자동 연동</h3>
-          <p>트레이너가 세션에서 입력한 프로그램·수행이 회원 기록에 자동 반영되어, 회원이 일일이 적지 않아도 데이터가 쌓입니다.</p>
-        </div>
-        <div class="card" data-reveal>
-          <div class="ico b" aria-hidden="true">📊</div>
-          <h3>자동 요약 리포트</h3>
-          <p>식단·운동·활동을 회원별·날짜별로 묶어 트레이너에게 전달합니다. “이 회원, 이번 주 나트륨 과다 · 유산소 부족”을 한눈에 파악합니다.</p>
-        </div>
-        <div class="card" data-reveal>
-          <div class="ico b" aria-hidden="true">🔗</div>
-          <h3>데이터 기반 매칭</h3>
-          <p>회원의 목표와 조건(위치·시간·성향)에 맞춰 트레이너·헬스장을 추천하고 앱 안에서 연결합니다.</p>
-        </div>
-        <div class="card" data-reveal>
-          <div class="ico b" aria-hidden="true">🎯</div>
-          <h3>목표·미션 관리</h3>
-          <p>회원의 목표에 맞춘 영양·활동량 목표와 일일 미션. 많이 먹은 날은 활동량을, 적게 먹은 날은 식단을 조정하는 <b>식단↔운동 연동 코칭</b>을 제공합니다.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+<section class="prod web" id="trainer"><div class="wide">
+  <div class="head">
+    <h2 class="rv">트레이너 웹.<br><span class="grad">담당 회원 전체를 한눈에.</span></h2>
+    <p class="rv">누가 기록을 멈췄는지, 누구에게 먼저 연락할지 바로 보입니다.</p>
+    <div class="ctas rv"><a class="btn" href="trainer/">트레이너 웹 열기</a></div>
+  </div>
+  <div class="shot rv"><img src="assets/landing/img/trainer-web.png" alt="트레이너 웹 대시보드: 담당 회원, 주의 회원, 이탈 위험, 오늘의 일정, 활동 피드백" loading="lazy" width="735" height="571"></div>
+</div></section>
+<div class="wrap"><div class="specs">
+  <div class="spec rv"><svg class="ic" viewBox="0 0 40 40"><rect x="6" y="6" width="12" height="12" rx="3"/><rect x="22" y="6" width="12" height="12" rx="3"/><rect x="6" y="22" width="12" height="12" rx="3"/><rect x="22" y="22" width="12" height="12" rx="3"/></svg><h3>담당 회원 대시보드</h3><p>회원별 기록 일수, 섭취량, 루틴 완료를 한 화면에서 비교합니다.</p></div>
+  <div class="spec rv"><svg class="ic" viewBox="0 0 40 40"><path d="M8 32V20M16 32V12M24 32V22M32 32V8"/></svg><h3>주간 리포트</h3><p>한 주의 식단과 운동을 회원별로 묶어 상담 자료로 씁니다.</p></div>
+  <div class="spec rv"><svg class="ic" viewBox="0 0 40 40"><rect x="8" y="6" width="24" height="28" rx="4"/><path d="M14 15h12M14 21h12M14 27h7"/></svg><h3>루틴 배정</h3><p>회원마다 운동을 짜서 보내고, 수행 결과를 그대로 돌려받습니다.</p></div>
+  <div class="spec rv"><svg class="ic" viewBox="0 0 40 40"><path d="M5 9h20v13H13l-5 4v-4H5z"/><path d="M29 15h6v12h-3v4l-5-4h-8v-3"/></svg><h3>1:1 코칭 채팅</h3><p>같은 기록을 보면서 사진과 이모티콘까지 주고받습니다.</p></div>
+</div></div>
 
-  <!-- DIET PIPELINE -->
-  <section class="pad" id="pipeline">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Pipeline</span>
-        <h2>식단 인식 파이프라인</h2>
-        <p>사진에서 시작해 Vision(VLM)이 음식과 양을 추정하고, <b>공공 영양성분 DB 참고값</b>으로 추정치를 보정한 뒤, 구조화된 기록과 트레이너 리포트로 이어집니다. 최종 값은 회원·트레이너가 확인·수정할 수 있습니다.</p>
-      </div>
-      <div class="diagram" data-reveal>
-        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMzAwIDI4MCIgd2lkdGg9IjEzMDAiIGhlaWdodD0iMjgwIj4KICA8c3R5bGU+CiAgICB0ZXh0IHsgZm9udC1mYW1pbHk6ICdIZWx2ZXRpY2EgTmV1ZScsIEhlbHZldGljYSwgQXJpYWwsICdBcHBsZSBTRCBHb3RoaWMgTmVvJywgJ01hbGd1biBHb3RoaWMnLCBzYW5zLXNlcmlmOyB9CiAgICAudGl0bGUgeyBmb250LXNpemU6IDIzcHg7IGZvbnQtd2VpZ2h0OiA3MDA7IGZpbGw6ICMxMTE4Mjc7IH0KICAgIC5ub2RlIHsgZm9udC1zaXplOiAxNHB4OyBmb250LXdlaWdodDogNzAwOyBmaWxsOiAjMTExODI3OyB9CiAgICAuc3ViICB7IGZvbnQtc2l6ZTogMTEuNXB4OyBmaWxsOiAjNmI3MjgwOyB9CiAgICAubGJsICB7IGZvbnQtc2l6ZTogMTJweDsgZm9udC13ZWlnaHQ6IDYwMDsgZmlsbDogIzI1NjNlYjsgfQogIDwvc3R5bGU+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJwLWIiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+PHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjMjU2M2ViIi8+PC9tYXJrZXI+CiAgICA8ZmlsdGVyIGlkPSJzMyIgeD0iLTYlIiB5PSItNiUiIHdpZHRoPSIxMTIlIiBoZWlnaHQ9IjExMiUiPjxmZURyb3BTaGFkb3cgZHg9IjAiIGR5PSIxLjUiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2QtY29sb3I9IiMwZjE3MmEiIGZsb29kLW9wYWNpdHk9IjAuMTAiLz48L2ZpbHRlcj4KICA8L2RlZnM+CgogIDxyZWN0IHdpZHRoPSIxMzAwIiBoZWlnaHQ9IjI4MCIgZmlsbD0iI2ZmZmZmZiIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJ0aXRsZSI+RGlldCBSZWNvZ25pdGlvbiBQaXBlbGluZTwvdGV4dD4KCiAgPCEtLSAxLiDsgqzsp4QgLS0+CiAgPHJlY3QgeD0iMzAiIHk9Ijk2IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjEwNCIgcng9IjEwIiBmaWxsPSIjZWZmNmZmIiBzdHJva2U9IiM5M2M1ZmQiIHN0cm9rZS13aWR0aD0iMS41IiBmaWx0ZXI9InVybCgjczMpIi8+CiAgPHRleHQgeD0iMTI1IiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJub2RlIj7sgqzsp4Qg7JeF66Gc65OcPC90ZXh0PgogIDx0ZXh0IHg9IjEyNSIgeT0iMTY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ic3ViIj7snYzsi50g7IKs7KeEIDHsnqU8L3RleHQ+CgogIDwhLS0gMi4gVkxNIC0tPgogIDxyZWN0IHg9IjI5MCIgeT0iOTYiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTA0IiByeD0iMTAiIGZpbGw9IiNmYWY1ZmYiIHN0cm9rZT0iI2Q4YjRmZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbHRlcj0idXJsKCNzMykiLz4KICA8dGV4dCB4PSIzODUiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im5vZGUiPuyLneuLqCDsnbjsi50gKFZMTSk8L3RleHQ+CiAgPHRleHQgeD0iMzg1IiB5PSIxNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzdWIiPuydjOyLnSAmIzE4Mzsg7LaU7KCVIOyErey3qOufiTwvdGV4dD4KCiAgPCEtLSAzLiBQdWJsaWMgREIgbWF0Y2ggKGtleSBzdGVwKSAtLT4KICA8cmVjdCB4PSI1NTAiIHk9IjkwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjExNiIgcng9IjEwIiBmaWxsPSIjZjBmZGZhIiBzdHJva2U9IiMyZGQ0YmYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3MzKSIvPgogIDx0ZXh0IHg9IjY0NSIgeT0iMTMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZSI+6rO16rO1IOyYgeyWkSBEQiDrp6Tsua08L3RleHQ+CiAgPHRleHQgeD0iNjQ1IiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzdWIiPuuCmO2KuOulqCYjMTgzO+y5vOuhnOumrCYjMTgzO+uLuSDrs7TsoJU8L3RleHQ+CiAgPHRleHQgeD0iNjQ1IiB5PSIxNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzdWIiIHN0eWxlPSJmaWxsOiMwZDk0ODg7Zm9udC13ZWlnaHQ6NjAwIj5BSSDstpTsoJUg4oaSIOywuOqzoOqwkiDrs7TsoJU8L3RleHQ+CgogIDwhLS0gNC4gU3RvcmUgLS0+CiAgPHJlY3QgeD0iODEwIiB5PSI5NiIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxMDQiIHJ4PSIxMCIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjZDFkNWRiIiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsdGVyPSJ1cmwoI3MzKSIvPgogIDx0ZXh0IHg9IjkwNSIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZSI+6rWs7KGw7ZmUIOq4sOuhnSDsoIDsnqU8L3RleHQ+CiAgPHRleHQgeD0iOTA1IiB5PSIxNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzdWIiPu2ajOybkOuzhCAmIzE4Mzsg64Kg7Kec67OEPC90ZXh0PgoKICA8IS0tIDUuIFRyYWluZXIgcmVwb3J0IC0tPgogIDxyZWN0IHg9IjEwNzAiIHk9Ijk2IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjEwNCIgcng9IjEwIiBmaWxsPSIjZjBmZGY0IiBzdHJva2U9IiM4NmVmYWMiIHN0cm9rZS13aWR0aD0iMS41IiBmaWx0ZXI9InVybCgjczMpIi8+CiAgPHRleHQgeD0iMTE2NSIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZSI+7Yq466CI7J2064SIIOumrO2PrO2KuDwvdGV4dD4KICA8dGV4dCB4PSIxMTY1IiB5PSIxNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJzdWIiPuuNsOydtO2EsCDquLDrsJgg7L2U7LmtPC90ZXh0PgoKICA8IS0tIGFycm93cyAo6ri0IOqwhOqyqTog652867Ko7J20IOuwleyKpOyZgCDqsrnsuZjsp4Ag7JWK7J2MKSAtLT4KICA8bGluZSB4MT0iMjIyIiB5MT0iMTQ4IiB4Mj0iMjg4IiB5Mj0iMTQ4IiBzdHJva2U9IiMyNTYzZWIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNwLWIpIi8+CiAgPHJlY3QgeD0iMjI4IiB5PSIxMjYiIHdpZHRoPSI1NCIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9IiNmZmZmZmYiLz4KICA8dGV4dCB4PSIyNTUiIHk9IjEzOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxibCI+7J2066+47KeAPC90ZXh0PgoKICA8bGluZSB4MT0iNDgyIiB5MT0iMTQ4IiB4Mj0iNTQ4IiB5Mj0iMTQ4IiBzdHJva2U9IiMyNTYzZWIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNwLWIpIi8+CiAgPHJlY3QgeD0iNDg0IiB5PSIxMjYiIHdpZHRoPSI2MiIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9IiNmZmZmZmYiLz4KICA8dGV4dCB4PSI1MTUiIHk9IjEzOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxibCI+7J247IudIOqysOqzvDwvdGV4dD4KCiAgPGxpbmUgeDE9Ijc0MiIgeTE9IjE0OCIgeDI9IjgwOCIgeTI9IjE0OCIgc3Ryb2tlPSIjMjU2M2ViIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjcC1iKSIvPgogIDxyZWN0IHg9Ijc0NCIgeT0iMTI2IiB3aWR0aD0iNjIiIGhlaWdodD0iMTgiIHJ4PSI0IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHRleHQgeD0iNzc1IiB5PSIxMzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYmwiPuuztOyglSDsiJjsuZg8L3RleHQ+CgogIDxsaW5lIHgxPSIxMDAyIiB5MT0iMTQ4IiB4Mj0iMTA2OCIgeTI9IjE0OCIgc3Ryb2tlPSIjMjU2M2ViIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjcC1iKSIvPgogIDxyZWN0IHg9IjEwMDQiIHk9IjEyNiIgd2lkdGg9IjYyIiBoZWlnaHQ9IjE4IiByeD0iNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDx0ZXh0IHg9IjEwMzUiIHk9IjEzOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9ImxibCI+7J2867OEIOynkeqzhDwvdGV4dD4KPC9zdmc+Cg==" alt="식단 인식 파이프라인" loading="lazy" />
-      </div>
-    </div>
-  </section>
+<section class="chapter" id="compare" style="padding-top:40px"><div class="wide">
+  <p class="k rv">비교</p>
+  <h2 class="rv">먼저 챙길 회원을 찾고,<br><span class="grad">다음 실천까지 연결합니다.</span></h2>
+  <p class="lead rv">같은 기능도 <b>관리 기준과 코칭 전달 방식</b>에 따라 다르게 작동합니다.</p>
+  <div class="cmp rv"><table>
+    <thead><tr><th></th><th>필라이즈</th><th>바디코디</th><th>운동닥터</th><th>카카오톡</th><th class="us"><img src="assets/landing/img/logo.png" alt="">On-Care</th></tr></thead>
+    <tbody>
+<tr><td>대상과 형태</td><td class="txt">개인<br>앱</td><td class="txt">센터, 강사, 회원<br>웹과 앱</td><td class="txt">트레이너, 회원<br>앱</td><td class="txt">누구나<br>앱, PC</td><td class="us txt">PT 회원, 트레이너<br>앱과 웹</td></tr>
+<tr><td>사진 식단 분석</td><td><svg class="mk o" viewBox="0 0 24 24" aria-label="지원"><circle cx="12" cy="12" r="8"/></svg><span>AI 분석</span></td><td><svg class="mk o" viewBox="0 0 24 24" aria-label="지원"><circle cx="12" cy="12" r="8"/></svg><span>AI 분석</span></td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>식단 기능 없음</span></td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>사진만 전송</span></td><td class="us"><svg class="mk o" viewBox="0 0 24 24" aria-label="지원"><circle cx="12" cy="12" r="8"/></svg><span>AI 인식 + 식약처·농진청 DB 보정</span></td></tr>
+<tr><td>트레이너와 기록 공유</td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>개인용 기록</span></td><td><svg class="mk o" viewBox="0 0 24 24" aria-label="지원"><circle cx="12" cy="12" r="8"/></svg><span>식단, 루틴 공유</span></td><td><svg class="mk t" viewBox="0 0 24 24" aria-label="일부 지원"><path d="M12 4 21 20H3z"/></svg><span>수업 일지만</span></td><td><svg class="mk t" viewBox="0 0 24 24" aria-label="일부 지원"><path d="M12 4 21 20H3z"/></svg><span>대화 속에 흩어짐</span></td><td class="us"><svg class="mk o" viewBox="0 0 24 24" aria-label="지원"><circle cx="12" cy="12" r="8"/></svg><span>회원별, 날짜별 정리</span></td></tr>
+<tr><td>관리 필요 회원 알림</td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>개인 목표 중심</span></td><td><svg class="mk t" viewBox="0 0 24 24" aria-label="일부 지원"><path d="M12 4 21 20H3z"/></svg><span>AI 브리핑: 만료, 미출석</span></td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>수업 일정 알림</span></td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>직접 찾아 확인</span></td><td class="us"><svg class="mk o" viewBox="0 0 24 24" aria-label="지원"><circle cx="12" cy="12" r="8"/></svg><span>기록 중단, 목표 이탈</span></td></tr>
+<tr><td>AI 추천과 트레이너 승인</td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>AI가 회원에게 직접</span></td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>강사가 직접 작성</span></td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>AI 기능 없음</span></td><td><svg class="mk x" viewBox="0 0 24 24" aria-label="미지원"><path d="M5 5l14 14M19 5 5 19"/></svg><span>AI는 개인 대화용</span></td><td class="us"><svg class="mk o" viewBox="0 0 24 24" aria-label="지원"><circle cx="12" cy="12" r="8"/></svg><span>AI 추천, 트레이너 승인 후 회원에게</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="sum rv">기록 중단과 목표 이탈을 먼저 발견하고, <span class="grad">트레이너가 승인한 루틴으로 연결합니다.</span></p>
+</div></section>
 
-  <!-- ARCHITECTURE -->
-  <section class="pad alt" id="architecture">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Architecture</span>
-        <h2>시스템 구조</h2>
-        <p>Flutter 앱(회원·트레이너 이중 모드) ↔ FastAPI 백엔드(REST·JWT) ↔ PostgreSQL(pgvector) · AI 엔진(Vision(VLM) 인식·공공 영양 DB 매칭) · 외부 API.</p>
-      </div>
-      <div class="diagram" data-reveal>
-        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NjAgNTgwIiB3aWR0aD0iOTYwIiBoZWlnaHQ9IjU4MCI+CiAgPHN0eWxlPgogICAgdGV4dCB7IGZvbnQtZmFtaWx5OiAnSGVsdmV0aWNhIE5ldWUnLCBIZWx2ZXRpY2EsIEFyaWFsLCAnQXBwbGUgU0QgR290aGljIE5lbycsICdNYWxndW4gR290aGljJywgc2Fucy1zZXJpZjsgfQogICAgLnRpdGxlIHsgZm9udC1zaXplOiAyM3B4OyBmb250LXdlaWdodDogNzAwOyBmaWxsOiAjMTExODI3OyB9CiAgICAubGF5ZXIgeyBmb250LXNpemU6IDEyLjVweDsgZm9udC13ZWlnaHQ6IDcwMDsgZmlsbDogIzZiNzI4MDsgbGV0dGVyLXNwYWNpbmc6IDAuM3B4OyB9CiAgICAubm9kZSB7IGZvbnQtc2l6ZTogMTMuNXB4OyBmb250LXdlaWdodDogNjAwOyBmaWxsOiAjMTExODI3OyB9CiAgICAubGJsIHsgZm9udC1zaXplOiAxMnB4OyBmb250LXdlaWdodDogNjAwOyBmaWxsOiAjMzc0MTUxOyB9CiAgPC9zdHlsZT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyLWIiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+PHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjMjU2M2ViIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhci1nIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPjxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzE2YTM0YSIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXIteSIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj48cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiNlYTU4MGMiLz48L21hcmtlcj4KICAgIDxmaWx0ZXIgaWQ9InMyIiB4PSItNiUiIHk9Ii02JSIgd2lkdGg9IjExMiUiIGhlaWdodD0iMTEyJSI+PGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjEuNSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1jb2xvcj0iIzBmMTcyYSIgZmxvb2Qtb3BhY2l0eT0iMC4xMCIvPjwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPHJlY3Qgd2lkdGg9Ijk2MCIgaGVpZ2h0PSI1ODAiIGZpbGw9IiNmZmZmZmYiLz4KICA8dGV4dCB4PSI0ODAiIHk9IjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0idGl0bGUiPlN5c3RlbSBBcmNoaXRlY3R1cmU8L3RleHQ+CgogIDwhLS0gTGF5ZXIgMTogQ2xpZW50IC0tPgogIDxyZWN0IHg9IjI1MCIgeT0iNjgiIHdpZHRoPSI0NjAiIGhlaWdodD0iOTIiIHJ4PSIxMiIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEuNCIgc3Ryb2tlLWRhc2hhcnJheT0iNSw0Ii8+CiAgPHRleHQgeD0iMjY2IiB5PSI4OCIgY2xhc3M9ImxheWVyIj5GTFVUVEVSIOyVsSAoaU9TICYjMTgzOyBBbmRyb2lkKTwvdGV4dD4KICA8cmVjdCB4PSIyNzgiIHk9Ijk4IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iI2VmZjZmZiIgc3Ryb2tlPSIjOTNjNWZkIiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsdGVyPSJ1cmwoI3MyKSIvPgogIDx0ZXh0IHg9IjM2OCIgeT0iMTI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZSI+7ZqM7JuQIOuqqOuTnDwvdGV4dD4KICA8cmVjdCB4PSI1MDIiIHk9Ijk4IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iI2VmZjZmZiIgc3Ryb2tlPSIjOTNjNWZkIiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsdGVyPSJ1cmwoI3MyKSIvPgogIDx0ZXh0IHg9IjU5MiIgeT0iMTI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZSI+7Yq466CI7J2064SIIOuqqOuTnDwvdGV4dD4KCiAgPCEtLSBDbGllbnQgLT4gQmFja2VuZCAtLT4KICA8bGluZSB4MT0iNDgwIiB5MT0iMTYwIiB4Mj0iNDgwIiB5Mj0iMjIyIiBzdHJva2U9IiMyNTYzZWIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhci1iKSIvPgogIDxyZWN0IHg9IjQyNCIgeT0iMTgwIiB3aWR0aD0iMTEyIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC45NiIvPgogIDx0ZXh0IHg9IjQ4MCIgeT0iMTk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGJsIj5IVFRQUyBSRVNUICYjMTgzOyBKV1Q8L3RleHQ+CgogIDwhLS0gTGF5ZXIgMjogQmFja2VuZCAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMjI0IiB3aWR0aD0iODAwIiBoZWlnaHQ9IjEwNCIgcng9IjEyIiBmaWxsPSIjZjhmYWZjIiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMS40IiBzdHJva2UtZGFzaGFycmF5PSI1LDQiLz4KICA8dGV4dCB4PSI5NiIgeT0iMjQ0IiBjbGFzcz0ibGF5ZXIiPkZBU1RBUEkg67Cx7JeU65OcPC90ZXh0PgogIDxyZWN0IHg9IjExMiIgeT0iMjU2IiB3aWR0aD0iMjE2IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iI2YwZmRmYSIgc3Ryb2tlPSIjNWVlYWQ0IiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsdGVyPSJ1cmwoI3MyKSIvPgogIDx0ZXh0IHg9IjIyMCIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZSI+UkVTVCBBUEkgJiMxODM7IEpXVCDsnbjspp08L3RleHQ+CiAgPHJlY3QgeD0iMzcyIiB5PSIyNTYiIHdpZHRoPSIyMTYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjZjBmZGZhIiBzdHJva2U9IiM1ZWVhZDQiIHN0cm9rZS13aWR0aD0iMS41IiBmaWx0ZXI9InVybCgjczIpIi8+CiAgPHRleHQgeD0iNDgwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJub2RlIj7smpTslb0g66as7Y+s7Yq4IOyDneyEsTwvdGV4dD4KICA8cmVjdCB4PSI2MzIiIHk9IjI1NiIgd2lkdGg9IjIxNiIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiNmMGZkZmEiIHN0cm9rZT0iIzVlZWFkNCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbHRlcj0idXJsKCNzMikiLz4KICA8dGV4dCB4PSI3NDAiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im5vZGUiPu2KuOugiOydtOuEiCYjMTgzO+2XrOyKpOyepSDrp6Tsua08L3RleHQ+CgogIDwhLS0gQmFja2VuZCAtPiBBSSAvIERhdGEgLyBFeHRlcm5hbCAtLT4KICA8bGluZSB4MT0iMjE1IiB5MT0iMzI4IiB4Mj0iMjE1IiB5Mj0iMzkyIiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhci1nKSIvPgogIDxyZWN0IHg9IjE4MCIgeT0iMzUwIiB3aWR0aD0iNzAiIGhlaWdodD0iMjAiIHJ4PSI0IiBmaWxsPSIjZmZmZmZmIiBvcGFjaXR5PSIwLjk2Ii8+CiAgPHRleHQgeD0iMjE1IiB5PSIzNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsYmwiPuyduOyLnSYjMTgzO+u2hOyEnTwvdGV4dD4KCiAgPGxpbmUgeDE9IjQ3NSIgeTE9IjMyOCIgeDI9IjQ3NSIgeTI9IjM5MiIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXItZykiLz4KICA8cmVjdCB4PSI0NDIiIHk9IjM1MCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC45NiIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMzY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGJsIj7soIDsnqUmIzE4MzvsobDtmow8L3RleHQ+CgogIDxsaW5lIHgxPSI3NDAiIHkxPSIzMjgiIHgyPSI3NDAiIHkyPSIzOTIiIHN0cm9rZT0iI2VhNTgwYyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI1LDMiIG1hcmtlci1lbmQ9InVybCgjYXIteSkiLz4KICA8cmVjdCB4PSI3MTgiIHk9IjM1MCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC45NiIvPgogIDx0ZXh0IHg9Ijc0MCIgeT0iMzY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibGJsIj7sl7Drj5k8L3RleHQ+CgogIDwhLS0gTGF5ZXIgM2E6IEFJIGVuZ2luZSAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMzkyIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE1MCIgcng9IjEyIiBmaWxsPSIjZmFmNWZmIiBzdHJva2U9IiNkOGI0ZmUiIHN0cm9rZS13aWR0aD0iMS40IiBzdHJva2UtZGFzaGFycmF5PSI1LDQiLz4KICA8dGV4dCB4PSI5NiIgeT0iNDEyIiBjbGFzcz0ibGF5ZXIiPkFJIOyXlOynhDwvdGV4dD4KICA8cmVjdCB4PSIxMDQiIHk9IjQyNCIgd2lkdGg9IjIyMiIgaGVpZ2h0PSI0NiIgcng9IjgiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iI2QxZDVkYiIgc3Ryb2tlLXdpZHRoPSIxLjQiIGZpbHRlcj0idXJsKCNzMikiLz4KICA8dGV4dCB4PSIyMTUiIHk9IjQ1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im5vZGUiPuyLneuLqCDsnbjsi50gKFZMTSk8L3RleHQ+CiAgPHJlY3QgeD0iMTA0IiB5PSI0ODIiIHdpZHRoPSIyMjIiIGhlaWdodD0iNDYiIHJ4PSI4IiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiNkMWQ1ZGIiIHN0cm9rZS13aWR0aD0iMS40IiBmaWx0ZXI9InVybCgjczIpIi8+CiAgPHRleHQgeD0iMjE1IiB5PSI1MTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJub2RlIj7qs7Xqs7Ug7JiB7JaR7ISx67aEIERCIOunpOy5rTwvdGV4dD4KCiAgPCEtLSBMYXllciAzYjogRGF0YSAtLT4KICA8cmVjdCB4PSIzNjgiIHk9IjM5MiIgd2lkdGg9IjIxNiIgaGVpZ2h0PSIxNTAiIHJ4PSIxMiIgZmlsbD0iI2YwZmRmNCIgc3Ryb2tlPSIjODZlZmFjIiBzdHJva2Utd2lkdGg9IjEuNCIgc3Ryb2tlLWRhc2hhcnJheT0iNSw0Ii8+CiAgPHRleHQgeD0iMzg0IiB5PSI0MTIiIGNsYXNzPSJsYXllciI+642w7J207YSwPC90ZXh0PgogIDxwYXRoIGQ9Ik00MTAgNDQ4IGE2NiAxMiAwIDAgMSAxMzIgMCBsMCA1MiBhNjYgMTIgMCAwIDEgLTEzMiAwIFoiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8ZWxsaXBzZSBjeD0iNDc2IiBjeT0iNDQ4IiByeD0iNjYiIHJ5PSIxMiIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjQ3NiIgeT0iNDgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZSI+UG9zdGdyZVNRTDwvdGV4dD4KICA8dGV4dCB4PSI0NzYiIHk9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im5vZGUiIHN0eWxlPSJmb250LXdlaWdodDo0MDA7ZmlsbDojNmI3MjgwIj4rIHBndmVjdG9yPC90ZXh0PgoKICA8IS0tIExheWVyIDNjOiBFeHRlcm5hbCAtLT4KICA8cmVjdCB4PSI2MDIiIHk9IjM5MiIgd2lkdGg9IjI3OCIgaGVpZ2h0PSIxNTAiIHJ4PSIxMiIgZmlsbD0iI2ZmZjdlZCIgc3Ryb2tlPSIjZmRiYTc0IiBzdHJva2Utd2lkdGg9IjEuNCIgc3Ryb2tlLWRhc2hhcnJheT0iNSw0Ii8+CiAgPHRleHQgeD0iNjE4IiB5PSI0MTIiIGNsYXNzPSJsYXllciI+7Jm467aAIEFQSTwvdGV4dD4KICA8cmVjdCB4PSI2MjQiIHk9IjQyNCIgd2lkdGg9IjIzNCIgaGVpZ2h0PSIzMiIgcng9IjciIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iI2QxZDVkYiIgc3Ryb2tlLXdpZHRoPSIxLjMiLz4KICA8dGV4dCB4PSI3NDEiIHk9IjQ0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im5vZGUiIHN0eWxlPSJmb250LXNpemU6MTIuNXB4Ij7subTsubTsmKTrp7UgQVBJPC90ZXh0PgogIDxyZWN0IHg9IjYyNCIgeT0iNDYzIiB3aWR0aD0iMjM0IiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjZDFkNWRiIiBzdHJva2Utd2lkdGg9IjEuMyIvPgogIDx0ZXh0IHg9Ijc0MSIgeT0iNDg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibm9kZSIgc3R5bGU9ImZvbnQtc2l6ZToxMi41cHgiPuqzteqzteuNsOydtO2EsO2PrO2EuCAo7Iud7ZKI7JiB7JaR7ISx67aEKTwvdGV4dD4KICA8cmVjdCB4PSI2MjQiIHk9IjUwMiIgd2lkdGg9IjIzNCIgaGVpZ2h0PSIzMiIgcng9IjciIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iI2QxZDVkYiIgc3Ryb2tlLXdpZHRoPSIxLjMiLz4KICA8dGV4dCB4PSI3NDEiIHk9IjUyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgY2xhc3M9Im5vZGUiIHN0eWxlPSJmb250LXNpemU6MTIuNXB4Ij5GaXJlYmFzZSBDbG91ZCBNZXNzYWdpbmc8L3RleHQ+Cjwvc3ZnPgo=" alt="On-Care 시스템 아키텍처" loading="lazy" />
-      </div>
-    </div>
-  </section>
+<section class="end"><div class="wrap">
+  <h2 class="rv">수업이 끝나도,<br><span class="grad">관리는 이어집니다.</span></h2>
+  <p class="rv">두 앱 모두 브라우저에서 바로 열 수 있습니다.</p>
+  <div class="ctas rv">
+    <a class="btn" href="member/#/dashboard">회원 앱 열기</a>
+    <a class="btn" href="trainer/">트레이너 웹 열기</a>
+    <a class="more" href="https://youtu.be/UjQv-CDadok">소개 영상 보기</a>
+  </div>
+</div></section>
+</main>
 
-  <!-- TECH -->
-  <section class="pad" id="tech">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Tech Stack</span>
-        <h2>기술 스택</h2>
-      </div>
-      <div class="grid g-2">
-        <div data-reveal>
-          <div class="tech-group">
-            <h4>Frontend</h4>
-            <div class="chips">
-              <span class="chip"><i style="background:#02569B"></i>Flutter</span>
-              <span class="chip"><i style="background:#0175C2"></i>Dart</span>
-              <span class="chip"><i style="background:#00AAFF"></i>Riverpod</span>
-              <span class="chip"><i style="background:#027DFD"></i>GoRouter · 이중 모드</span>
-            </div>
-          </div>
-          <div class="tech-group">
-            <h4>Backend</h4>
-            <div class="chips">
-              <span class="chip"><i style="background:#009688"></i>FastAPI</span>
-              <span class="chip"><i style="background:#D71F00"></i>SQLAlchemy</span>
-              <span class="chip"><i style="background:#6BA539"></i>Alembic</span>
-              <span class="chip"><i style="background:#000"></i>JWT</span>
-              <span class="chip"><i style="background:#2496ED"></i>Docker</span>
-            </div>
-          </div>
-          <div class="tech-group">
-            <h4>Database</h4>
-            <div class="chips">
-              <span class="chip"><i style="background:#4169E1"></i>PostgreSQL</span>
-              <span class="chip"><i style="background:#4169E1"></i>pgvector</span>
-            </div>
-          </div>
-        </div>
-        <div data-reveal>
-          <div class="tech-group">
-            <h4>AI</h4>
-            <div class="chips">
-              <span class="chip"><i style="background:#635cd0"></i>Vision(VLM) 식단 인식</span>
-              <span class="chip"><i style="background:#0066CC"></i>식약처 공공 영양성분 DB 매칭</span>
-              <span class="chip"><i style="background:#12a150"></i>RAG 코치</span>
-            </div>
-          </div>
-          <div class="tech-group">
-            <h4>Infra</h4>
-            <div class="chips">
-              <span class="chip"><i style="background:#FF9900"></i>AWS</span>
-              <span class="chip"><i style="background:#2088FF"></i>GitHub Actions (CI/CD)</span>
-            </div>
-          </div>
-          <div class="tech-group">
-            <h4>External API</h4>
-            <div class="chips">
-              <span class="chip"><i style="background:#FFCD00"></i>카카오맵</span>
-              <span class="chip"><i style="background:#0066CC"></i>공공데이터포털</span>
-              <span class="chip"><i style="background:#FFCA28"></i>Firebase Cloud Messaging</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+<footer><div class="wrap">
+  <div><b>On-Care</b> 2026 이화여자대학교 캡스톤디자인 Team 02 Sudo</div>
+  <div>최지수, 박서연, 신수빈 · 지도교수 황의원, 컴퓨터공학전공</div>
+  <nav class="legal" aria-label="약관"><a href="legal/privacy.html"><b>개인정보 처리방침</b></a><a href="legal/terms.html">이용약관</a><a href="legal/location.html">위치기반서비스 이용약관</a></nav>
+</div></footer>
 
-  <!-- COMPETITIVE -->
-  <section class="pad alt" id="compare">
-    <div class="wrap">
-      <div class="section-head" data-reveal>
-        <span class="eyebrow">Positioning</span>
-        <h2>기존 서비스가 못 채운 연결</h2>
-        <p>기존 서비스는 회원 개인의 기록에서 끝납니다. On-Care는 그 기록을 <b>트레이너의 코칭 자원으로 연결</b>하는 흐름 자체가 차별점입니다.</p>
-      </div>
-      <div class="table-wrap" data-reveal>
-        <table>
-          <thead>
-            <tr><th scope="col">항목</th><th scope="col">필라이즈</th><th scope="col">밀리그램·인아웃</th><th scope="col" class="oc">On-Care</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>식단 기록</td><td>사진 AI 인식</td><td>사진·빠른 입력</td><td class="oc">사진 → 공공 영양 DB 매칭</td></tr>
-            <tr><td>트레이너 연동</td><td>앱 내 AI 코치만</td><td>없음</td><td class="oc">회원 데이터 자동 정리 → 트레이너 전달</td></tr>
-            <tr><td>회원 관리 확장성</td><td>없음</td><td>없음</td><td class="oc">1인이 다수 회원을 데이터로 관리</td></tr>
-            <tr><td>세션 밖 코칭</td><td>AI 응답만</td><td>없음</td><td class="oc">담당 트레이너의 실제 코칭이 앱으로 연장</td></tr>
-            <tr><td>데이터 흐름</td><td>개인 앱 내 완결</td><td>개인 앱 내 완결</td><td class="oc">회원 ↔ 트레이너 양방향</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- BUSINESS -->
-  <section class="pad" id="business">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Business</span>
-        <h2>타깃 &amp; 비즈니스 모델</h2>
-        <p>핵심 타깃은 <b>PT를 이용하는 회원과 이들을 관리하는 트레이너</b>입니다. 회원은 이미 PT에 비용을 지불하는 층이라 관리 품질에 대한 지불 의사가 높고, 트레이너는 담당 회원 수가 곧 수익이라 관리 효율 도구에 직접적인 구매 동기를 가집니다.</p>
-      </div>
-      <div class="grid g-3">
-        <div class="card" data-reveal>
-          <div class="ico g" aria-hidden="true">💳</div>
-          <h3>메인</h3>
-          <p>트레이너·헬스장 <b>중개 수수료 / 구매 전환 커미션</b>, 트레이너용 고도화 기능 <b>구독</b>.</p>
-        </div>
-        <div class="card" data-reveal>
-          <div class="ico b" aria-hidden="true">✨</div>
-          <h3>프리미엄</h3>
-          <p>기본 기능은 무료로 진입장벽을 낮추고, 가치를 체감한 사용자가 고도화 기능을 결제합니다.</p>
-        </div>
-        <div class="card" data-reveal>
-          <div class="ico a" aria-hidden="true">📣</div>
-          <h3>부수</h3>
-          <p>광고(상위 노출 등)는 보조 수입으로만 활용합니다.</p>
-        </div>
-      </div>
-      <div class="callout" data-reveal><b>확장 방향</b> — 서비스가 자리 잡은 뒤에는 구매력이 크고 편의성을 중시하는 <b>40대+</b>로 타깃을 넓혀, 같은 제품을 프리미엄 제안으로 확장할 수 있습니다.</div>
-    </div>
-  </section>
-
-  <!-- TEAM -->
-  <section class="pad alt" id="team">
-    <div class="wrap">
-      <div class="section-head center" data-reveal>
-        <span class="eyebrow">Team</span>
-        <h2>Team 02 · Sudo</h2>
-        <p>2026 이화여자대학교 컴퓨터공학전공 캡스톤디자인</p>
-      </div>
-      <div class="team">
-        <div class="member" data-reveal>
-          <b>최지수</b>
-          <a class="gh" href="https://github.com/aJISUa" target="_blank" rel="noopener">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.5 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.4-5.25 5.69.42.36.8 1.08.8 2.18v3.23c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z"/></svg>@aJISUa
-          </a>
-        </div>
-        <div class="member" data-reveal>
-          <b>박서연</b>
-          <a class="gh" href="https://github.com/seoyeon0516" target="_blank" rel="noopener">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.5 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.4-5.25 5.69.42.36.8 1.08.8 2.18v3.23c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z"/></svg>@seoyeon0516
-          </a>
-        </div>
-        <div class="member" data-reveal>
-          <b>신수빈</b>
-          <a class="gh" href="https://github.com/subin21cc" target="_blank" rel="noopener">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.5 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.4-5.25 5.69.42.36.8 1.08.8 2.18v3.23c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z"/></svg>@subin21cc
-          </a>
-        </div>
-      </div>
-      <p class="advisor" data-reveal>지도교수 — 황의원 교수님 (이화여자대학교 · 컴퓨터공학전공)</p>
-    </div>
-  </section>
-
-  <!-- CTA -->
-  <section class="pad-sm">
-    <div class="wrap">
-      <div class="cta-band" data-reveal>
-        <h2>지금, On-Care를 직접 사용해 보세요</h2>
-        <p>별도 설치 없이 웹에서 바로 체험할 수 있습니다. 체험판은 회원 앱과 트레이너 웹이 각각 예시 데이터로 동작해, 한쪽에서 남긴 기록이 다른 쪽에 이어지지는 않습니다.</p>
-        <div class="hero-cta">
-          <a href="member/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">회원 앱 바로가기
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-          <a href="trainer/" target="_blank" rel="noopener" class="btn btn-ghost">트레이너 웹 바로가기
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-          <a href="https://youtu.be/C4ivM_dlAww?si=8iOWmOpSxcpQmlU3" target="_blank" rel="noopener" class="btn btn-ghost">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>데모 영상
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <footer>
-    <div class="wrap">
-      <div class="foot-grid">
-        <div class="foot-brand">
-          <div class="nav-logo"><img src="data:image/png;base64,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" alt="On-Care" style="width:30px;height:30px" />On-Care</div>
-          <p>헬스 트레이너와 회원 사이의 식단·운동 관리 소통을 자동화하는 회원·트레이너 연동 식단·운동 관리 서비스. PT 회원과 트레이너 대상.</p>
-        </div>
-        <div class="foot-col">
-          <h5>Product</h5>
-          <a href="member/#/dashboard" target="_blank" rel="noopener">회원 앱</a>
-          <a href="trainer/" target="_blank" rel="noopener">트레이너 웹</a>
-          <a href="https://youtu.be/C4ivM_dlAww?si=8iOWmOpSxcpQmlU3" target="_blank" rel="noopener">데모 영상</a>
-          <a href="#features">기능</a>
-          <a href="#architecture">시스템 구조</a>
-        </div>
-        <div class="foot-col">
-          <h5>Project</h5>
-          <a href="https://github.com/CSE-Sudo/on-care" target="_blank" rel="noopener">GitHub 저장소</a>
-          <a href="#compare">경쟁 분석</a>
-          <a href="#business">비즈니스 모델</a>
-          <a href="#team">팀 소개</a>
-        </div>
-        <div class="foot-col">
-          <h5>Legal</h5>
-          <!-- 처리방침은 다른 안내와 구분되게 굵게 둔다(개인정보 보호법 시행령 제31조). -->
-          <a href="legal/privacy.html" class="foot-strong">개인정보 처리방침</a>
-          <a href="legal/terms.html">이용약관</a>
-          <a href="legal/location.html">위치기반서비스 이용약관</a>
-        </div>
-      </div>
-      <div class="foot-bottom">
-        <span>© 2026 On-Care Team · MIT License</span>
-        <span>2026 이화여자대학교 캡스톤디자인 · Team 02 Sudo — 최지수 · 박서연 · 신수빈</span>
-      </div>
-    </div>
-  </footer>
-
-  <script>
-    // Reveal-on-scroll is a progressive enhancement: content is visible by
-    // default and only gated behind the fade/slide once IntersectionObserver is
-    // confirmed, so nothing is hidden when JS is blocked or the API is missing.
-    if ('IntersectionObserver' in window) {
-      document.documentElement.classList.add('reveal-ready');
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-      document.querySelectorAll('[data-reveal]').forEach((el, i) => {
-        el.style.transitionDelay = (i % 3) * 60 + 'ms';
-        io.observe(el);
-      });
-    }
-    // Mobile nav: toggle an `.open` class only — no inline styles that could
-    // leak onto the desktop layout when the viewport grows back past 680px.
-    const t = document.getElementById('navToggle');
-    const l = document.getElementById('navLinks');
-    if (t && l) {
-      const setMenuOpen = (open) => {
-        l.classList.toggle('open', open);
-        t.setAttribute('aria-expanded', String(open));
-      };
-      t.addEventListener('click', () => setMenuOpen(!l.classList.contains('open')));
-      l.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setMenuOpen(false)));
-      window.addEventListener('resize', () => { if (window.innerWidth > 680) setMenuOpen(false); });
-    }
-  </script>
-
+<script>
+(function(){
+  var els=document.querySelectorAll('.rv');
+  function showAll(){els.forEach(function(e){e.classList.add('in')})}
+  if(!('IntersectionObserver' in window)){showAll()}else{
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.15,rootMargin:'0px 0px -60px 0px'});
+    els.forEach(function(e){io.observe(e)});
+  }
+  // 히어로 기기: 스크롤에 따라 살짝 커지며 다가온다
+  var dev=document.getElementById('heroDev');
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function onScroll(){
+    if(reduce||!dev)return;
+    var r=dev.getBoundingClientRect(),vh=innerHeight;
+    var p=Math.min(1,Math.max(0,(vh-r.top)/(vh+r.height*.4)));
+    dev.style.transform='scale('+(0.88+0.12*p).toFixed(4)+')';
+  }
+  addEventListener('scroll',onScroll,{passive:true});onScroll();
+  // 하이라이트 넘기기
+  var rail=document.getElementById('rail');
+  document.querySelectorAll('.rail-ctl button').forEach(function(b){
+    b.addEventListener('click',function(){var c=rail.querySelector('.card');rail.scrollBy({left:(c.offsetWidth+20)*+b.dataset.d,behavior:'smooth'})});
+  });
+})();
+</script>
 </body>
-
 </html>
