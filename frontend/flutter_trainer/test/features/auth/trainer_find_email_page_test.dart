@@ -1,4 +1,4 @@
-/// 트레이너 웹 로그인의 `아이디 찾기` 와 아이디 찾기 화면.
+/// 트레이너 웹 로그인의 `이메일 찾기` 와 이메일 찾기 화면.
 ///
 /// 회원 앱과 같은 화면이다. 찾는 경로가 생기기 전이라 입력만 검사하고 준비 중이라고
 /// 토스트로 알린다(리포지토리·네트워크를 쓰지 않는다).
@@ -33,7 +33,7 @@ AppLocalizations _l(WidgetTester tester) =>
     AppLocalizations.of(tester.element(find.byType(Navigator).first));
 
 void main() {
-  testWidgets('로그인 화면의 아이디 찾기가 비밀번호 찾기 옆에서 화면을 연다', (tester) async {
+  testWidgets('로그인 화면의 이메일 찾기가 비밀번호 찾기 옆에서 화면을 연다', (tester) async {
     await pumpTrainerApp(tester);
     await settle(tester);
     final AppLocalizations l = _l(tester);
@@ -86,7 +86,7 @@ void main() {
     expect(find.byType(TrainerPasswordResetPage), findsOneWidget);
   });
 
-  test('아이디 찾기는 가입처럼 로그아웃 상태에서만 머문다', () {
+  test('이메일 찾기는 가입처럼 로그아웃 상태에서만 머문다', () {
     expect(
       sessionRedirect(SessionStatus.signedOut, AppRoutes.findEmail),
       isNull,

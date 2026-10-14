@@ -10058,13 +10058,13 @@ abstract class AppLocalizations {
   /// Text button next to 'Forgot password?' on sign-in that opens the find-email screen.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get authFindEmail;
 
   /// No description provided for @findEmailTitle.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get findEmailTitle;
 
   /// No description provided for @findEmailSubtitle.
@@ -10076,13 +10076,13 @@ abstract class AppLocalizations {
   /// No description provided for @findEmailAction.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기'**
+  /// **'이메일 찾기'**
   String get findEmailAction;
 
   /// Toast shown when the find-email button is pressed while the lookup is not available yet.
   ///
   /// In ko, this message translates to:
-  /// **'아이디 찾기는 준비 중이에요.'**
+  /// **'이메일 찾기는 준비 중이에요.'**
   String get findEmailComingSoon;
 
   /// Placeholder of the phone field on trainer sign-up and find-email.

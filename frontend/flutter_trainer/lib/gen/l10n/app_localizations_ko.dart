@@ -5940,19 +5940,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authForgotPassword => '비밀번호 찾기';
 
   @override
-  String get authFindEmail => '아이디 찾기';
+  String get authFindEmail => '이메일 찾기';
 
   @override
-  String get findEmailTitle => '아이디 찾기';
+  String get findEmailTitle => '이메일 찾기';
 
   @override
   String get findEmailSubtitle => '가입할 때 입력한 이름과 휴대폰 번호로 가입 이메일을 찾아요.';
 
   @override
-  String get findEmailAction => '아이디 찾기';
+  String get findEmailAction => '이메일 찾기';
 
   @override
-  String get findEmailComingSoon => '아이디 찾기는 준비 중이에요.';
+  String get findEmailComingSoon => '이메일 찾기는 준비 중이에요.';
 
   @override
   String get signUpPhoneHint => '010-0000-0000';
