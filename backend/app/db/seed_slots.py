@@ -33,6 +33,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.core.clock import SEOUL
 from app.core.config import get_settings
 from app.db.seed_gyms import TRAINER_IDS as GYM_TRAINER_IDS
@@ -118,7 +119,7 @@ def top_up_demo_slots(
     if trainer is None or trainer.role != "trainer":
         return 0
 
-    current = now or datetime.now(timezone.utc)
+    current = now or clock.now_utc()
     taken = set(
         db.scalars(
             select(TrainerReservationSlot.starts_at).where(
@@ -170,7 +171,7 @@ def seed_demo_slots() -> None:
 
     db: Session = SessionLocal()
     try:
-        now = datetime.now(timezone.utc)
+        now = clock.now_utc()
         created = sum(
             top_up_demo_slots(
                 db, trainer_id, after=slot_visibility_cutoff(now), now=now

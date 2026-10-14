@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date
 
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
@@ -208,7 +208,7 @@ def create_memo(
             ref_id=ref_id, ref_date=ref_date, ref_kind=ref_kind,
         )
 
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     memo = TrainerClientMemo(
         id=f"memo-{uuid.uuid4().hex[:12]}",
         trainer_id=trainer_id,
@@ -287,7 +287,7 @@ def update_memo(
         memo.category = fields["category"]
     if "body" in fields:
         memo.body = fields["body"]
-    memo.updated_at = datetime.now(timezone.utc)
+    memo.updated_at = clock.now_utc()
     db.commit()
     db.refresh(memo)
     return _memo_out(memo)

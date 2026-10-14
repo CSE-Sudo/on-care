@@ -127,3 +127,15 @@ def test_trainer_labels_use_kst_dates():
     created_at = datetime(2026, 8, 9, 15, 30)
     assert trainer_chat_service._hhmm(created_at) == "00:30"
     assert trainer_common_service._local_date_iso(created_at) == "2026-08-10"
+
+
+def test_now_utc_follows_patched_now(monkeypatch):
+    """`clock.now` 를 바꿔 끼우면 순간(now_utc)도 함께 움직인다 (#3452)."""
+    frozen = datetime(2026, 10, 15, 0, 1, tzinfo=clock.SEOUL)
+    monkeypatch.setattr(clock, "now", lambda: frozen)
+
+    moment = clock.now_utc()
+
+    assert moment.tzinfo is timezone.utc
+    assert moment == frozen
+    assert moment == datetime(2026, 10, 14, 15, 1, tzinfo=timezone.utc)

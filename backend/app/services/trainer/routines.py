@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -711,7 +711,7 @@ def assign_routine(
         source=source,
         sort_order=(max_order or 0) + 1,
         client_request_id=client_request_id,
-        created_at=datetime.now(timezone.utc),
+        created_at=clock.now_utc(),
     )
     db.add(rt)
     # 알림을 붙이기 **전에** 삽입을 flush 한다. 같은 키의 동시 요청 둘이 나란히 위

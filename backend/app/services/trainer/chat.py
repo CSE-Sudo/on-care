@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import func, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
@@ -362,7 +362,7 @@ def send_message(
             if routine_delivery
             else None
         ),
-        created_at=datetime.now(timezone.utc),
+        created_at=clock.now_utc(),
     )
     db.add(msg)
     # 알림을 넣기 전에 DB 유니크 제약을 확인한다. 동시 재시도 중 진 요청이 여기서
@@ -480,7 +480,7 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
             ChatMessage.sender == other,
             ChatMessage.read_at.is_(None),
         )
-        .values(read_at=datetime.now(timezone.utc))
+        .values(read_at=clock.now_utc())
     )
     if reader == "trainer":
         # 대화를 읽었으면 그 회원이 보낸 메시지 알림도 확인한 것이다(#2291).

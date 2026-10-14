@@ -229,6 +229,26 @@ class TriggerAndPinTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(text.count(f'- "{path}"'), 2)
 
+    def test_main_runs_just_before_and_after_kst_midnight(self) -> None:
+        # 실제 KST 23:55·00:05 에 main 을 돈다(#3453). cron 은 UTC 로 적는다.
+        text = workflow_text()
+        self.assertIn("  schedule:\n", text)
+        self.assertIn('    - cron: "55 14 * * *" # KST 23:55\n', text)
+        self.assertIn('    - cron: "5 15 * * *" # KST 00:05\n', text)
+
+    def test_scheduled_runs_do_not_share_the_main_push_group(self) -> None:
+        # 같은 그룹이면 예약 실행이 대기 중인 병합 커밋 실행을 밀어내 취소할 수 있다.
+        group = re.search(r"(?m)^  group: (.+)$", workflow_text())
+        self.assertIsNotNone(group)
+        self.assertIn("github.event_name == 'schedule'", group.group(1))
+        self.assertIn("github.event.schedule", group.group(1))
+        self.assertIn("github.ref", group.group(1))
+
+    def test_deploy_ignores_scheduled_runs(self) -> None:
+        # 백엔드 배포는 push 로 끝난 CI 만 받는다 — 예약 실행이 배포를 일으키지 않는다.
+        deploy = (REPO_ROOT / ".github" / "workflows" / "backend-deploy.yml").read_text(encoding="utf-8")
+        self.assertIn("github.event.workflow_run.event == 'push'", deploy)
+
     def test_actions_are_pinned(self) -> None:
         out = io.StringIO()
         with redirect_stdout(out), redirect_stderr(io.StringIO()):

@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -76,7 +76,7 @@ class InviteAlreadyDecided(InviteError):
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return clock.now_utc()
 
 
 def _active_trainer_id(db: Session, member_id: str) -> str | None:

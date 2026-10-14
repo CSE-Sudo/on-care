@@ -12,12 +12,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.models.models import TrainerReport, User
 from app.schemas.admin_ops import (
     AdminTrainerReportOut,
@@ -53,7 +54,7 @@ class ReportAlreadyClosed(Exception):
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return clock.now_utc()
 
 
 def _has_open(db: Session, trainer_id: str, reporter_id: str) -> bool:

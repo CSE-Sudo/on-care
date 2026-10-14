@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.models.models import (
     MemberWeeklyFeedback,
     Notification,
@@ -88,7 +89,7 @@ def save_member_weekly_feedback(
     if on:
         _ensure_pain_day_in_week(on, week)
     row = _member_weekly_feedback_row(db, member_id, week)
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     fresh: MemberWeeklyFeedback | None = None
     if row is None:
         fresh = MemberWeeklyFeedback(

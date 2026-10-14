@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -156,7 +155,7 @@ def create_follow_up(
         if existing is not None:
             return _follow_up_out(existing, _member_name(db, existing.member_id))
 
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     task = TrainerFollowUpTask(
         id=f"followup-{uuid.uuid4().hex[:12]}",
         trainer_id=trainer_id,
@@ -218,7 +217,7 @@ def update_follow_up(
         task.title = fields["title"]
     if "due_date" in fields:
         task.due_date = fields["due_date"]
-    task.updated_at = datetime.now(timezone.utc)
+    task.updated_at = clock.now_utc()
     db.commit()
     db.refresh(task)
     return _follow_up_out(task, _member_name(db, task.member_id))
@@ -235,7 +234,7 @@ def complete_follow_up(
     """
     task = _owned_follow_up(db, trainer_id, task_id)
     if task.status != "completed":
-        now = datetime.now(timezone.utc)
+        now = clock.now_utc()
         task.status = "completed"
         task.completed_at = now
         task.updated_at = now

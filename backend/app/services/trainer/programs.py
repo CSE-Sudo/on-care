@@ -4,11 +4,11 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.models.models import (
     TrainerProgramDraft,
 )
@@ -171,7 +171,7 @@ def create_program_draft(
     [member_id] 가 있으면 코칭 화면이 그 회원에게 짜던 내용을 자동 보관한
     것이다(#2873). 담당 회원인지는 라우터가 먼저 확인한다.
     """
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     draft = TrainerProgramDraft(
         id=f"pgm-{uuid.uuid4().hex[:12]}",
         trainer_id=trainer_id,
@@ -214,7 +214,7 @@ def update_program_draft(
         )
     if "workspace" in fields:
         draft.workspace_json = _dump_workspace(fields["workspace"])
-    draft.updated_at = datetime.now(timezone.utc)
+    draft.updated_at = clock.now_utc()
     db.commit()
     db.refresh(draft)
     return _draft_out(draft)
