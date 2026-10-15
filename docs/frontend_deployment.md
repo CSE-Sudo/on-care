@@ -200,7 +200,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 옛 커밋 재배포 가드(#3254)가 지금 서비스 중인 릴리스를 읽는 운영 프런트 공개 주소입니다(#3269).
 
 - 위치: 저장소 `Settings` → `Secrets and variables` → `Actions` → `Variables`
-- 형식: `https://<운영 프런트 도메인>` — **출처만 적고 경로와 끝의 `/` 를 붙이지 않습니다.** 운영 도메인이 정해지기 전(#2000)에는 CloudFront 기본 도메인(`https://d8pns4fmdsepp.cloudfront.net`)이고, 도메인을 붙이면 그 주소로 바꿉니다.
+- 형식: `https://<운영 프런트 도메인>` — **출처만 적고 경로와 끝의 `/` 를 붙이지 않습니다.** 지금 값은 운영 도메인 `https://oncarefit.com` 입니다(#3463).
 - 데모 Pages 배포(`deploy.yml`)도 이 값을 읽어 랜딩의 앱 바로가기를 운영 사이트로 바꿉니다(#3437, [데모 Pages 랜딩은 운영 앱으로 보냅니다](#데모-pages-랜딩은-운영-앱으로-보냅니다)). 비면 상대 경로(데모 앱) 그대로입니다.
 - 가드 위치: [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) 의 `gate` job `Skip a release that is already live or older` 단계. 자동 실행(`workflow_run`)에서 `<PRODUCTION_FRONTEND_URL>/version.txt`(배포가 릴리스 루트에 넣는 커밋 SHA)를 읽어([`deploy_freshness.sh`](../.github/scripts/deploy_freshness.sh) `frontend-site`), 대상이 그 커밋과 같거나 조상이면 CI·백엔드 확인과 `build-and-deploy` 를 모두 건너뜁니다. `gate` 는 production Environment 밖이라 **승인 요청이 올라오기 전에** 끝납니다.
 - 같은 단계에서 대상이 더 새 커밋이어도, 운영 릴리스와 대상 사이에 배포 산출물에 닿는 경로가 하나도 바뀌지 않았으면(문서만 바뀐 커밋 등) 자동 실행을 건너뜁니다(#3459). 경로 목록과 규칙은 [배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)에 있습니다.
@@ -260,7 +260,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 
 - 데모 사이트 주소는 job 환경 변수 `DEMO_SITE_URL`(기본 `https://cse-sudo.github.io/on-care/`)에 앱 폴더를 붙여 넘깁니다. Pages 주소가 바뀌면 저장소 변수 `DEMO_SITE_URL` 로 덮습니다.
 - `https://` 가 아닌 값은 앱이 버리고 버튼도 띄우지 않습니다. 빌드 전 검사(`check_web_release_defines.sh`)는 질의·조각이 붙었거나 평문·로컬 주소면 멈춥니다.
-- 운영과 데모 Pages 는 출처가 달라(`d8pns4fmdsepp.cloudfront.net` ↔ `cse-sudo.github.io`) 브라우저 저장소(토큰·설정·drift DB)를 나눠 씁니다 — 체험하기를 오가도 운영 세션이 데모 값에 덮이지 않습니다.
+- 운영과 데모 Pages 는 출처가 달라(`oncarefit.com` ↔ `cse-sudo.github.io`) 브라우저 저장소(토큰·설정·drift DB)를 나눠 씁니다 — 체험하기를 오가도 운영 세션이 데모 값에 덮이지 않습니다.
 
 ### 릴리스 기본값 가드 (#3022)
 
