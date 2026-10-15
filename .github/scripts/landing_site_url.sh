@@ -12,6 +12,9 @@
 # `point-apps`). 소개 페이지를 보고 앱을 여는 방문자가 데모(목업)가 아니라 실서비스로 가게 하려는
 # 것이다 — 데모는 운영 앱 로그인 화면의 `체험하기` 가 연다. 원본 index.html 은 그대로 상대 경로다.
 # 운영 주소 변수(PRODUCTION_FRONTEND_URL)가 비어 있으면 바꾸지 않는다.
+# 데모 Pages 소개 페이지 자체도 운영 소개 페이지로 넘긴다(#3465, `redirect`). Pages 주소로 들어온
+# 방문자도 첫 화면은 운영 사이트여야 하기 때문이다. 같은 도메인의 데모 앱(member/·trainer/)과
+# 처리방침은 그대로 둔다. 본문은 남겨 두므로 스크립트가 꺼져 있어도 버튼은 운영으로 간다.
 # 루트 절대 경로(`href="/…"`·`src="/…"`)도 막는다. Pages 는 /on-care/ 아래에서 서비스되므로 `/` 로
 # 시작하는 경로는 저장소 경로 밖(도메인 루트)을 가리킨다. 홈 화면 아이콘·manifest 는 배포가
 # docs/assets/landing/ 을 assets/landing/ 으로 올리고 랜딩이 그 상대 경로로 부른다.
@@ -26,9 +29,12 @@
 #   bash landing_site_url.sh point-apps <배포용 index.html> [앱 사이트 주소]
 #       회원 앱·트레이너 웹 바로가기를 앱 사이트 주소(운영 https://도메인/)의 member/·trainer/ 로
 #       바꿈(#3437, 데모 Pages 전용). 주소가 비면 바꾸지 않는다. stamp 다음에 부른다.
+#   bash landing_site_url.sh redirect <배포용 index.html> [앱 사이트 주소]
+#       소개 페이지가 열리자마자 앱 사이트 주소(운영 https://도메인/)로 넘어가게 하고 og:url·canonical 을
+#       그 주소로 바꿈(#3465, 데모 Pages 전용). 주소가 비면 바꾸지 않는다. point-apps 다음에 부른다.
 #   bash landing_site_url.sh verify <배포 주소> <사이트 주소> [대기 초] [앱 사이트 주소]
 #       배포된 랜딩을 받아 바로가기가 상대 경로인지(앱 사이트 주소를 주면 앱 바로가기만 그 주소의
-#       member/·trainer/ 인지), canonical 이 사이트 주소인지,
+#       member/·trainer/ 이고 그 주소로 넘기는지), canonical 이 사이트 주소(앱 사이트 주소를 주면 그 주소)인지,
 #       같은 도메인의 /member/·/trainer/·/legal/privacy.html·랜딩 아이콘이 응답하고 manifest 가
 #       루트 절대 경로를 쓰지 않는지 확인(캐시가 바뀔 때까지 재시도)
 set -euo pipefail
@@ -55,7 +61,7 @@ fail() {
 }
 
 usage() {
-  echo "사용: $0 check <index.html> | check-manifest <manifest.json> | stamp <index.html> <site_url> | point-apps <index.html> [app_site_url] | verify <base_url> <site_url> [wait_seconds] [app_site_url]" >&2
+  echo "사용: $0 check <index.html> | check-manifest <manifest.json> | stamp <index.html> <site_url> | point-apps <index.html> [app_site_url] | redirect <index.html> [app_site_url] | verify <base_url> <site_url> [wait_seconds] [app_site_url]" >&2
   exit 2
 }
 
@@ -234,6 +240,41 @@ cmd_point_apps() {
   echo "앱 바로가기 → ${app_site}member/, ${app_site}trainer/"
 }
 
+# 넘김 태그. redirect 가 넣고 verify 가 찾는다.
+redirect_meta() {
+  printf '<meta http-equiv="refresh" content="0; url=%s" />' "$1"
+}
+
+# 데모 Pages 소개 페이지를 앱 사이트(운영) 소개 페이지로 넘긴다(#3465). 주소가 비면 그대로 둔다.
+# stamp·point-apps 를 거친 파일을 받는다 — 앱 바로가기가 이미 운영을 가리켜야 한다.
+cmd_redirect() {
+  local file="$1" app_site reason tags tmp
+  [ -f "$file" ] || fail "파일이 없습니다: $file"
+  if [ -z "${2:-}" ]; then
+    echo "앱 사이트 주소가 비어 있어 소개 페이지를 넘기지 않습니다."
+    return 0
+  fi
+  validate_site_url "$2"
+  app_site=$(normalize_site_url "$2")
+  if ! reason=$(inspect_html "$file" "$app_site"); then
+    fail "$file: point-apps 를 먼저 거쳐야 합니다 — $reason"
+  fi
+  if grep -qF 'http-equiv="refresh"' "$file"; then
+    fail "$file: 이미 넘김 태그가 있습니다."
+  fi
+  grep -qF 'rel="canonical"' "$file" || fail "$file: canonical 이 없습니다. stamp 를 먼저 부르세요."
+  [ "$(grep -cF '<head>' "$file")" = "1" ] || fail "$file: <head> 가 정확히 한 번 있어야 합니다."
+  tags="$(redirect_meta "$app_site")<script>location.replace(\"${app_site}\")</script>"
+  tmp="$(mktemp)"
+  awk -v tags="$tags" '{ sub(/<head>/, "<head>" tags); print }' "$file" \
+    | sed -E "s|(property=\"og:url\" content=\")[^\"]*\"|\1${app_site}\"|; s|(rel=\"canonical\" href=\")[^\"]*\"|\1${app_site}\"|" \
+    > "$tmp"
+  mv "$tmp" "$file"
+  grep -qF "$(redirect_meta "$app_site")" "$file" || fail "넘김 태그를 넣지 못했습니다."
+  grep -qF "rel=\"canonical\" href=\"${app_site}\"" "$file" || fail "canonical 치환 결과를 찾지 못했습니다."
+  echo "소개 페이지 → ${app_site}"
+}
+
 cmd_verify() {
   local base="${1%/}" site_url wait_seconds deadline page manifest reason path app_site=""
   validate_site_url "$2"
@@ -251,8 +292,10 @@ cmd_verify() {
         "$base/?landingcheck=$(date +%s)" -o "$page"; then
       if ! reason=$(inspect_html "$page" "$app_site"); then
         :
-      elif ! grep -qF "rel=\"canonical\" href=\"${site_url}\"" "$page"; then
-        reason="canonical 이 ${site_url} 이 아닙니다."
+      elif ! grep -qF "rel=\"canonical\" href=\"${app_site:-$site_url}\"" "$page"; then
+        reason="canonical 이 ${app_site:-$site_url} 이 아닙니다."
+      elif [ -n "$app_site" ] && ! grep -qF "$(redirect_meta "$app_site")" "$page"; then
+        reason="소개 페이지가 ${app_site} 로 넘기지 않습니다."
       fi
     else
       reason="$base/ 응답 없음"
@@ -281,7 +324,7 @@ cmd_verify() {
     fail "배포된 랜딩 manifest 확인 실패($base): $reason"
   fi
   rm -f "$manifest"
-  echo "배포된 랜딩 확인 완료: $base/ → $base/member/, $base/trainer/, $base/legal/privacy.html, $base/assets/landing/ (canonical ${site_url}${app_site:+, 앱 바로가기 ${app_site}})"
+  echo "배포된 랜딩 확인 완료: $base/ → $base/member/, $base/trainer/, $base/legal/privacy.html, $base/assets/landing/ (canonical ${app_site:-$site_url}${app_site:+, 앱 바로가기·넘김 ${app_site}})"
 }
 
 [ $# -ge 1 ] || usage
@@ -292,6 +335,7 @@ case "$command" in
   check-manifest) [ $# -eq 1 ] || usage; cmd_check_manifest "$1" ;;
   stamp) [ $# -eq 2 ] || usage; cmd_stamp "$1" "$2" ;;
   point-apps) [ $# -ge 1 ] && [ $# -le 2 ] || usage; cmd_point_apps "$@" ;;
+  redirect) [ $# -ge 1 ] && [ $# -le 2 ] || usage; cmd_redirect "$@" ;;
   verify) [ $# -ge 2 ] && [ $# -le 4 ] || usage; cmd_verify "$@" ;;
   *) usage ;;
 esac
