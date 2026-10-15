@@ -106,8 +106,9 @@ h1,h2,h3{text-wrap:balance}
 .card.plain .center img{width:44%}
 @media (max-width:640px){.card{aspect-ratio:4/5}.card p{left:24px;right:24px;top:24px}.card.plain .center{padding-top:90px!important}.card.plain .center img{width:70%}}
 .card.link .duo{position:relative;width:64%;margin-bottom:6%}
-.card.link .center .duo img:first-child{width:84%}
-.card.link .center .duo img:last-child{position:absolute;left:70%;bottom:-8%;width:28%;filter:drop-shadow(0 20px 30px rgb(0 0 0/.6))}
+.card.link .center .duo img{display:block;height:auto}
+.card.link .center .duo .tab{width:84%}
+.card.link .center .duo .ph{position:absolute;left:70%;bottom:-8%;width:28%;filter:drop-shadow(0 20px 30px rgb(0 0 0/.6))}
 .card.link .center{padding-top:120px;place-items:center}
 .rail-ctl{display:flex;justify-content:flex-end;gap:12px;margin-top:20px}
 .rail-ctl button{width:44px;height:44px;border-radius:50%;border:0;background:var(--surface2);color:var(--ink);cursor:pointer;display:grid;place-items:center}
@@ -296,7 +297,7 @@ footer .legal a:hover{text-decoration:underline}
 <section class="hl" id="highlights">
   <div class="wide"><h2 class="sec-title rv">하이라이트 살펴보기</h2></div>
   <div class="rail" id="rail" tabindex="0" aria-label="하이라이트">
-    <div class="card plain link"><p>회원 앱과 트레이너 웹이<br><span>같은 기록을 함께 봅니다.</span></p><div class="center"><div class="duo"><img src="assets/landing/img/trainer-web.png" alt="트레이너 웹 화면"><img src="assets/landing/img/member-app.png" alt="회원 앱 화면"></div></div></div>
+    <div class="card plain link"><p>회원 앱과 트레이너 웹이<br><span>같은 기록을 함께 봅니다.</span></p><div class="center"><div class="duo"><img class="tab" src="assets/landing/img/trainer-web.png" alt="트레이너 웹 화면" width="735" height="571"><img class="ph" src="assets/landing/img/member-app.png" alt="회원 앱 화면" width="475" height="1000"></div></div></div>
     <div class="card plain"><p>메신저에 흩어지던 기록이<br><span>회원별, 날짜별로 한 줄에.</span></p><div class="center"><div class="week"><div class="d"><span></span><span></span><span class="off"></span><span></span><span></span><span></span><span class="off"></span></div><em>이번 주 식단 기록 5일, 나트륨 과다 3일</em></div></div></div>
     <div class="card plain"><p>수업이 없는 날도<br><span>트레이너의 코칭이 돌아옵니다.</span></p><div class="center"><div class="chat"><p class="b tr">점심 국물은 반만 드세요. 내일 하체 끝나고 유산소 20분 더!</p><p class="b me">네, 코치님!</p></div></div></div>
     <div class="card"><img class="bg" src="assets/landing/img/diet-chicken-salad-sweet-potato.jpg" alt="닭가슴살 샐러드"><p>내 기록을 아는 AI 코치.<br><span>공식 지침을 근거로 답합니다.</span></p></div>
