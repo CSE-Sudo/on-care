@@ -192,7 +192,7 @@ GitHub 저장소의 `Settings` → `Secrets and variables` → `Actions` → `Va
 | `AWS_FRONTEND_BUCKET` | `BucketName` 출력값 |
 | `AWS_FRONTEND_DISTRIBUTION_ID` | `DistributionId` 출력값 |
 | `API_BASE_URL` | 운영 백엔드 주소 + `/v1` (예: `https://<운영 API 도메인>/v1`). 두 웹 앱이 이 주소로 실서버를 봅니다 |
-| `PRODUCTION_FRONTEND_URL` | 운영 프런트 출처, 끝 `/` 없이(지금은 CloudFront 기본 도메인 `https://d8pns4fmdsepp.cloudfront.net`, 운영 도메인을 붙이면 그 주소). 옛 커밋 재배포 가드가 승인 전에 `version.txt` 를 읽습니다([8절](#8-배포-순서--ci-판정과-백엔드-선후-3018), #3269). 데모 Pages 배포는 이 주소로 랜딩의 앱 바로가기를 바꿉니다(#3437) |
+| `PRODUCTION_FRONTEND_URL` | 운영 프런트 출처, 끝 `/` 없이(지금은 운영 도메인 `https://oncarefit.com`). 옛 커밋 재배포 가드가 승인 전에 `version.txt` 를 읽습니다([8절](#8-배포-순서--ci-판정과-백엔드-선후-3018), #3269). 데모 Pages 배포는 이 주소로 랜딩의 앱 바로가기를 바꿉니다(#3437) |
 | `DEMO_SITE_URL`(선택) | 운영 앱 로그인 화면 `체험하기` 가 옮겨 갈 데모 Pages 주소, 끝 `/` 포함(비우면 `https://cse-sudo.github.io/on-care/`). 워크플로가 `member/`·`trainer/` 를 붙여 두 앱에 넘깁니다([`frontend_deployment.md`](frontend_deployment.md#운영-앱의-체험하기는-데모-pages-로-보냅니다), #3437) |
 
 `API_BASE_URL` 이 없거나 형식이 틀리면 `Deploy Frontend to AWS` 가 빌드 전에 실패합니다. 규칙은 [`frontend_deployment.md`](frontend_deployment.md#api_base_url-저장소-변수) 에 있습니다.
