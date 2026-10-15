@@ -11,9 +11,9 @@
 
 <br/><br/>
 
-[![소개 페이지](https://img.shields.io/badge/INTRO_PAGE-소개_페이지-6B7280?style=for-the-badge&logo=googlechrome&logoColor=white)](https://d8pns4fmdsepp.cloudfront.net/)
-[![사용자 앱](https://img.shields.io/badge/APP-사용자-3eafdf?style=for-the-badge&logo=flutter&logoColor=white)](https://d8pns4fmdsepp.cloudfront.net/member/)
-[![트레이너 웹](https://img.shields.io/badge/WEB-트레이너-235C88?style=for-the-badge&logo=safari&logoColor=white)](https://d8pns4fmdsepp.cloudfront.net/trainer/)
+[![소개 페이지](https://img.shields.io/badge/INTRO_PAGE-소개_페이지-6B7280?style=for-the-badge&logo=googlechrome&logoColor=white)](https://oncarefit.com/)
+[![사용자 앱](https://img.shields.io/badge/APP-사용자-3eafdf?style=for-the-badge&logo=flutter&logoColor=white)](https://oncarefit.com/member/)
+[![트레이너 웹](https://img.shields.io/badge/WEB-트레이너-235C88?style=for-the-badge&logo=safari&logoColor=white)](https://oncarefit.com/trainer/)
 [![소개 영상](https://img.shields.io/badge/YOUTUBE-소개_영상-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/UjQv-CDadok)
 
 <br/>
