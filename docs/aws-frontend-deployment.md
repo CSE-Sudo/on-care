@@ -4,7 +4,7 @@ Flutter 회원 앱과 트레이너 웹을 하나의 private S3 버킷에 올리�
 
 이 변경을 `main`에 병합해도 AWS 배포는 즉시 시작되지 않습니다. `AWS_FRONTEND_DEPLOY_ENABLED` 저장소 변수가 정확히 `true`일 때만 별도 AWS 워크플로가 실행됩니다. GitHub Pages 데모 사이트는 이 배포와 별개로 계속 운영됩니다 — **데모와 운영은 서로 다른 도메인**입니다([5절](#5-데모pages와-운영cloudfront)).
 
-> **현재 상태(2026-09-16): AWS 배포는 꺼져 있습니다.** 아래 1~3단계(인프라 생성·변수 등록)와 4단계(첫 활성화)는 이미 끝냈습니다. 지금은 회원 앱 UI 정리와 트레이너 웹 수정이 진행 중이라 작업 기간의 배포 비용을 줄이려고 `AWS_FRONTEND_DEPLOY_ENABLED` 를 `false` 로 되돌려 둔 상태입니다. 다시 켜는 기준은 [`frontend_deployment.md`](frontend_deployment.md#aws-배포-스위치) 에 정리했습니다.
+> **현재 상태(2026-10-14~): AWS 배포는 켜져 있습니다.** 아래 1~4단계(인프라 생성·변수 등록·첫 활성화)는 끝났고 `AWS_FRONTEND_DEPLOY_ENABLED` 는 `true` 입니다. 끄는 경우와 다시 켜는 기준은 [`frontend_deployment.md`](frontend_deployment.md#aws-배포-스위치) 에 정리했습니다.
 
 ## 사전 조건
 
@@ -269,6 +269,7 @@ https://<DistributionDomainName>/version.txt
 | 백엔드 `CORS_ALLOW_ORIGINS` | `https://<운영 도메인>` | #480 |
 | 이 스택 `AlternateDomainName`·`AcmCertificateArn` | 위 2번 | #480 |
 | 저장소 변수 `PRODUCTION_FRONTEND_URL` | `https://<운영 도메인>`(끝 `/` 없이) — 옛 커밋 재배포 가드가 승인 전에 읽는 주소([8절](#8-배포-순서--ci-판정과-백엔드-선후-3018)). 비워 두거나 옛 주소로 남아도 배포는 막히지 않고 승인 뒤 단계에서 판정합니다. 데모 Pages 랜딩의 앱 바로가기도 이 주소로 갑니다 — 바꾼 뒤 데모 Pages 를 한 번 다시 배포합니다(#3437) | #3269 |
+| `README.md` 상단 배지 | 소개 페이지·사용자 앱·트레이너 웹 배지 주소를 `https://<운영 도메인>/`·`/member/`·`/trainer/` 로(데모 배지는 그대로, #3455) | #3457 |
 | 응답 헤더 CSP | 바꿀 것 없음 — 앱이 같은 출처에서 서빙되므로 `'self'` 로 충분합니다. API 주소가 바뀌면 `ApiOrigin` 을 바꿉니다 | #480 |
 | 랜딩 og:url·canonical | 바꿀 것 없음 — 배포가 대체 도메인을 읽어 채웁니다 | 자동 |
 | 비밀번호 재설정 메일 링크(쓰는 경우) | 백엔드 `PASSWORD_RESET_*_URL` | #480 |
