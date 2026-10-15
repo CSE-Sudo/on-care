@@ -288,6 +288,14 @@ jobs:
           PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}
         run: bash .github/scripts/landing_site_url.sh point-apps public/index.html "$PRODUCTION_FRONTEND_URL"
 
+      # 소개 페이지 자체도 운영 소개 페이지로 넘긴다(#3465) — Pages 주소(About·예전 제출물)로 들어온
+      # 방문자도 첫 화면은 운영 사이트다. 데모 앱(member/·trainer/)·처리방침은 이 사이트에 그대로 남아
+      # 운영 앱의 `체험하기` 가 계속 연다. 변수가 비면 넘기지 않는다.
+      - name: Redirect landing to the production site
+        env:
+          PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}
+        run: bash .github/scripts/landing_site_url.sh redirect public/index.html "$PRODUCTION_FRONTEND_URL"
+
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -346,7 +354,8 @@ jobs:
           exit 1
 
       # 배포 후 링크 확인(#2841): 실제로 서빙되는 랜딩의 바로가기가 상대 경로이고(운영 주소 변수가
-      # 있으면 앱 바로가기만 운영 사이트, #3437), canonical 이 이 배포 도메인이며, 같은 도메인의
+      # 있으면 앱 바로가기가 운영 사이트이고 소개 페이지가 운영으로 넘기며 canonical 도 운영, #3437·#3465),
+      # 변수가 없으면 canonical 이 이 배포 도메인이며, 같은 도메인의
       # /member/·/trainer/(데모 앱)가 응답하는지 본다.
       - name: Check out landing scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
