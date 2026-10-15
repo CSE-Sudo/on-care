@@ -249,17 +249,19 @@ https://<DistributionDomainName>/version.txt
 
    ```bash
    bash .github/scripts/frontend_hosting_stack.sh deploy oncare-frontend \
-     AlternateDomainName=<운영 도메인> \
+     AlternateDomainName=<운영 도메인>      AdditionalDomainName=www.<운영 도메인> \
      AcmCertificateArn=arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<ID> \
      --no-execute-changeset
    ```
+
+   `AdditionalDomainName` 은 선택이며 www 처럼 같은 배포에 함께 붙일 두 번째 이름입니다. 인증서가 이 이름도 덮어야 하고, `AlternateDomainName` 없이 채우면 템플릿 `Rules` 가 막습니다(#3458).
 
    변경 세트에서 `FrontendDistribution` 의 `Aliases`·`ViewerCertificate` 만 바뀌는지 확인한 뒤 실행합니다.
 3. `<운영 도메인>` 의 DNS 를 스택 출력 `DistributionDomainName` 으로 향하게 합니다(CNAME 또는 별칭 레코드).
 4. 아래 "함께 바꾸는 곳" 을 모두 반영합니다.
 5. 다음 배포를 돌려 랜딩·두 앱·SPA 새로고침·카카오맵을 운영 도메인에서 확인합니다. 랜딩의 og:url·canonical 은 대체 도메인을 자동으로 씁니다([랜딩 바로가기와 og:url·canonical](frontend_deployment.md#랜딩-바로가기와-ogurlcanonical)).
 
-되돌리려면 두 파라미터를 빈 값으로 다시 적용합니다(`... deploy oncare-frontend AlternateDomainName= AcmCertificateArn=`). CloudFront 기본 도메인·기본 인증서로 돌아갑니다.
+되돌리려면 두 파라미터를 빈 값으로 다시 적용합니다(`... deploy oncare-frontend AlternateDomainName= AdditionalDomainName= AcmCertificateArn=`). CloudFront 기본 도메인·기본 인증서로 돌아갑니다.
 
 ### 운영 도메인을 바꿀 때 함께 바꾸는 곳
 
@@ -267,7 +269,7 @@ https://<DistributionDomainName>/version.txt
 | --- | --- | --- |
 | 카카오 개발자 콘솔 JavaScript SDK 도메인 | `https://<운영 도메인>` 추가, 옛 주소·임시 주소 제거([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) "프론트 연결" 체크리스트) | #480 |
 | 백엔드 `CORS_ALLOW_ORIGINS` | `https://<운영 도메인>` | #480 |
-| 이 스택 `AlternateDomainName`·`AcmCertificateArn` | 위 2번 | #480 |
+| 이 스택 `AlternateDomainName`·`AdditionalDomainName`·`AcmCertificateArn` | 위 2번 | #480 |
 | 저장소 변수 `PRODUCTION_FRONTEND_URL` | `https://<운영 도메인>`(끝 `/` 없이) — 옛 커밋 재배포 가드가 승인 전에 읽는 주소([8절](#8-배포-순서--ci-판정과-백엔드-선후-3018)). 비워 두거나 옛 주소로 남아도 배포는 막히지 않고 승인 뒤 단계에서 판정합니다. 데모 Pages 랜딩의 앱 바로가기도 이 주소로 갑니다 — 바꾼 뒤 데모 Pages 를 한 번 다시 배포합니다(#3437) | #3269 |
 | `README.md` 상단 배지 | 소개 페이지·사용자 앱·트레이너 웹 배지 주소를 `https://<운영 도메인>/`·`/member/`·`/trainer/` 로(데모 배지는 그대로, #3455) | #3457 |
 | 응답 헤더 CSP | 바꿀 것 없음 — 앱이 같은 출처에서 서빙되므로 `'self'` 로 충분합니다. API 주소가 바뀌면 `ApiOrigin` 을 바꿉니다 | #480 |

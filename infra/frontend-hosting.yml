@@ -22,6 +22,12 @@ Parameters:
     Default: ''
     AllowedPattern: '^([a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+)?$'
     Description: Optional production domain for the distribution (leave empty to use the CloudFront domain)
+  # 같은 배포에 함께 붙이는 두 번째 도메인(예: www). 인증서가 이 이름도 덮어야 한다(#3458).
+  AdditionalDomainName:
+    Type: String
+    Default: ''
+    AllowedPattern: '^([a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+)?$'
+    Description: Optional second alias (e.g. www) served alongside AlternateDomainName
   AcmCertificateArn:
     Type: String
     Default: ''
@@ -91,9 +97,16 @@ Rules:
             - !Not [!Equals [!Ref AlternateDomainName, '']]
             - !Not [!Equals [!Ref AcmCertificateArn, '']]
         AssertDescription: AlternateDomainName and AcmCertificateArn must be set together
+  AdditionalDomainNeedsPrimary:
+    Assertions:
+      - Assert: !Or
+          - !Equals [!Ref AdditionalDomainName, '']
+          - !Not [!Equals [!Ref AlternateDomainName, '']]
+        AssertDescription: AdditionalDomainName requires AlternateDomainName
 
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref AlternateDomainName, '']]
+  HasAdditionalDomain: !Not [!Equals [!Ref AdditionalDomainName, '']]
   CreateGitHubOidcProvider: !Equals [!Ref ExistingGitHubOidcProviderArn, '']
   AllowBranchOidcSubjectCondition: !Equals [!Ref AllowBranchOidcSubject, 'true']
 
@@ -278,7 +291,11 @@ Resources:
         Comment: OnCare frontend
         Aliases: !If
           - HasCustomDomain
-          - - !Ref AlternateDomainName
+          - !If
+            - HasAdditionalDomain
+            - - !Ref AlternateDomainName
+              - !Ref AdditionalDomainName
+            - - !Ref AlternateDomainName
           - !Ref AWS::NoValue
         # 두 앱 경로는 앱 헤더 정책을 쓴다. 캐시·함수는 기본 동작과 같다.
         CacheBehaviors:
