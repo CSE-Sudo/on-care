@@ -7,7 +7,7 @@
 | 배포 경로 | 워크플로 | 주소 | 두 웹이 보는 백엔드 | 비용 | 실행 조건 |
 | --- | --- | --- | --- | --- | --- |
 | GitHub Pages (**데모**) | [`deploy.yml`](../.github/workflows/deploy.yml) | GitHub Pages 기본 주소 `cse-sudo.github.io/on-care` | 목업(브라우저 drift DB). 수동 실행에서만 실서버 선택 가능 | 무료 | 조건 없음 — 항상 실행 |
-| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만. 같은 커밋의 E2E CI 성공 뒤 앱 CI·운영 백엔드 선후를 확인하고 배포. 운영에 떠 있는 릴리스와 같거나 그보다 옛 커밋이면 자동 실행은 건너뜀([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)) |
+| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만. 같은 커밋의 E2E CI 성공 뒤 앱 CI·운영 백엔드 선후를 확인하고 배포. 운영에 떠 있는 릴리스와 같거나 그보다 옛 커밋이거나, 운영 릴리스 이후 배포 산출물에 닿는 경로가 바뀌지 않았으면(#3459) 자동 실행은 건너뜀([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)) |
 
 두 웹 앱의 백엔드 설정은 [아래 절](#운영-빌드는-실서버를-봅니다)에 정리했습니다.
 
@@ -202,6 +202,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 - 형식: `https://<운영 프런트 도메인>` — **출처만 적고 경로와 끝의 `/` 를 붙이지 않습니다.** 운영 도메인이 정해지기 전(#2000)에는 CloudFront 기본 도메인(`https://d8pns4fmdsepp.cloudfront.net`)이고, 도메인을 붙이면 그 주소로 바꿉니다.
 - 데모 Pages 배포(`deploy.yml`)도 이 값을 읽어 랜딩의 앱 바로가기를 운영 사이트로 바꿉니다(#3437, [데모 Pages 랜딩은 운영 앱으로 보냅니다](#데모-pages-랜딩은-운영-앱으로-보냅니다)). 비면 상대 경로(데모 앱) 그대로입니다.
 - 가드 위치: [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) 의 `gate` job `Skip a release that is already live or older` 단계. 자동 실행(`workflow_run`)에서 `<PRODUCTION_FRONTEND_URL>/version.txt`(배포가 릴리스 루트에 넣는 커밋 SHA)를 읽어([`deploy_freshness.sh`](../.github/scripts/deploy_freshness.sh) `frontend-site`), 대상이 그 커밋과 같거나 조상이면 CI·백엔드 확인과 `build-and-deploy` 를 모두 건너뜁니다. `gate` 는 production Environment 밖이라 **승인 요청이 올라오기 전에** 끝납니다.
+- 같은 단계에서 대상이 더 새 커밋이어도, 운영 릴리스와 대상 사이에 배포 산출물에 닿는 경로가 하나도 바뀌지 않았으면(문서만 바뀐 커밋 등) 자동 실행을 건너뜁니다(#3459). 경로 목록과 규칙은 [배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)에 있습니다.
 - 변수가 비어 있거나 `version.txt` 를 읽지 못하면(`unknown`) 배포를 막지 않고, 승인 뒤 `build-and-deploy` 가 운영 AWS 역할로 CloudFront origin path 를 읽어 같은 판정을 한 번 더 합니다 — 변수를 두기 전과 같은 동작입니다. 그래서 변수가 없어도 옛 커밋은 올라가지 않지만, 그 자동 실행은 승인 요청까지는 올라옵니다(승인하면 그때 건너뜀).
 - 수동 실행(`Run workflow`)은 일부러 되돌리는 경우라 두 곳 모두 보지 않습니다.
 

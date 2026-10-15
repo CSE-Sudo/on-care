@@ -334,6 +334,8 @@ aws cloudfront get-distribution-config --id <DISTRIBUTION_ID> \
 | 같은 커밋(`same`)·대상이 조상(`older`) | **건너뜀**(실패 아님) — 이유가 Step Summary 에 남음 | 배포(일부러 되돌리는 경우) |
 | 읽지 못함(`unknown` — 첫 배포·origin path 가 릴리스 경로가 아님·조회 실패, `not-found`, `diverged`) | 경고만 남기고 배포 | 배포 |
 
+**배포 대상 경로 가드**(#3459) — `gate` 의 같은 단계에서, 운영 릴리스(`newer` 판정의 `live_sha`)와 대상 사이에 배포 산출물에 닿는 경로(`frontend/`·`shared/`·`index.html`·`legal/`·`docs/assets/landing/`·`.github/scripts/`·`tool/ci/`·이 워크플로·`infra/frontend-hosting.yml`)가 하나도 바뀌지 않았으면 자동 실행을 건너뜁니다(README·문서만 바뀐 커밋 등). 승인 요청이 올라오지 않아 뒤 배포를 막지 않습니다. 직전 커밋이 아니라 운영 릴리스와 비교하므로 건너뛴 커밋이 쌓여도 다음 배포에 모두 담깁니다. `live_sha` 를 모르는 경우와 수동 실행은 지금처럼 배포합니다.
+
 E2E CI·Backend CI 의 `main` 실행 그룹은 커밋별로 나누지 않습니다(가운데 커밋의 대기 실행은 여전히 취소됩니다). 가드가 생겨 취소된 실행을 다시 돌려도 운영이 뒤로 가지 않습니다.
 
 > `commit_sha` 는 백엔드가 빌드 인자 `GIT_SHA` 로 받아 `/v1/version` 에 싣는 값입니다(백엔드 기동 검증 이슈 #3029). 그 변경이 운영 백엔드에 올라가기 전에는 상태가 `unknown` 이라 자동 배포가 멈춥니다.
