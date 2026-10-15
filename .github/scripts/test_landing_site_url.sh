@@ -149,6 +149,60 @@ expect_point fail '따옴표 섞인 주소' "$head_ok$links_ok" 'https://a.examp
 expect_point fail '이미 다른 절대 주소가 있는 원본' "$head_ok<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a>$links_ok" "$prod"
 expect_point fail '처리방침 링크 없음' "$head_ok<a href=\"member/\">회원</a><a href=\"trainer/\">트레이너</a>" "$prod"
 
+# redirect(#3465): 데모 Pages 소개 페이지가 운영 소개 페이지로 넘어간다. stamp·point-apps 다음에 부른다.
+refresh="<meta http-equiv=\"refresh\" content=\"0; url=${prod}\" />"
+file="$work/redirect-repo.html"
+cp "$repo_root/index.html" "$file"
+if bash "$tool" stamp "$file" 'https://cse-sudo.github.io/on-care/' > /dev/null 2>&1 \
+  && bash "$tool" point-apps "$file" "$prod" > /dev/null 2>&1 \
+  && bash "$tool" redirect "$file" "$prod" > /dev/null 2>&1 \
+  && grep -qF "$refresh" "$file" \
+  && grep -qF "location.replace(\"${prod}\")" "$file" \
+  && grep -qF "rel=\"canonical\" href=\"${prod}\"" "$file" \
+  && grep -qF "property=\"og:url\" content=\"${prod}\"" "$file" \
+  && ! grep -qF 'cse-sudo.github.io' "$file" \
+  && grep -qF "href=\"${prod}member/#/dashboard\"" "$file" \
+  && grep -qF 'href="legal/privacy.html"' "$file"; then
+  got=pass
+else
+  got=fail
+fi
+record pass "$got" "redirect: 저장소 index.html 을 운영으로 넘김"
+
+stamped_head="<head><meta property=\"og:url\" content=\"https://cse-sudo.github.io/on-care/\" /><link rel=\"canonical\" href=\"https://cse-sudo.github.io/on-care/\" /></head>"
+pointed_links="<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+expect_redirect() {
+  local want="$1" label="$2" body="$3" app_site="$4" file got
+  file="$work/redirect.html"
+  printf '%s\n' "$body" > "$file"
+  if bash "$tool" redirect "$file" "$app_site" > /dev/null 2>&1; then got=pass; else got=fail; fi
+  record "$want" "$got" "redirect: $label"
+}
+
+file="$work/redirect-empty.html"
+printf '%s\n' "$stamped_head$links_ok" > "$file"
+cp "$file" "$work/redirect-empty.orig"
+if bash "$tool" redirect "$file" '' > /dev/null 2>&1 && cmp -s "$file" "$work/redirect-empty.orig"; then
+  got=pass
+else
+  got=fail
+fi
+record pass "$got" "redirect: 빈 주소는 그대로"
+
+file="$work/redirect-slash.html"
+printf '%s\n' "$stamped_head$pointed_links" > "$file"
+if bash "$tool" redirect "$file" 'https://d111111abcdef8.cloudfront.net' > /dev/null 2>&1 \
+  && grep -qF "$refresh" "$file"; then got=pass; else got=fail; fi
+record pass "$got" "redirect: 끝 슬래시 없는 주소"
+
+expect_redirect pass '운영으로 바꾼 바로가기' "$stamped_head$pointed_links" "$prod"
+expect_redirect fail 'point-apps 를 거치지 않은 파일' "$stamped_head$links_ok" "$prod"
+expect_redirect fail 'stamp 를 거치지 않은 파일' "$head_ok$pointed_links" "$prod"
+expect_redirect fail '이미 넘김 태그가 있음' "<head>$refresh<link rel=\"canonical\" href=\"$prod\" /></head>$pointed_links" "$prod"
+expect_redirect fail '<head> 없음' "<link rel=\"canonical\" href=\"https://cse-sudo.github.io/on-care/\" />$pointed_links" "$prod"
+expect_redirect fail 'https 아님' "$stamped_head$pointed_links" 'http://d111111abcdef8.cloudfront.net/'
+expect_redirect fail '따옴표 섞인 주소' "$stamped_head$pointed_links" 'https://a.example/"x'
+
 # verify: 로컬 정적 서버로 배포된 사이트를 흉내 낸다(python3 가 있을 때만).
 if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
   site="$work/site"
@@ -185,7 +239,8 @@ if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
   expect_verify fail '표시 줄이 남은 랜딩' "$head_ok$links_ok"
   expect_verify fail '다른 canonical' "<head><link rel=\"canonical\" href=\"https://other.example/\" /></head>$links_ok"
   expect_verify fail '절대 주소 바로가기' "$canonical<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"trainer/\">트레이너</a>"
-  # 앱 사이트 주소를 준 verify(#3437): 앱 바로가기만 그 주소여야 하고, 같은 도메인의 데모 앱도 응답해야 한다.
+  # 앱 사이트 주소를 준 verify(#3437, #3465): 앱 바로가기가 그 주소이고 소개 페이지가 그 주소로 넘기며
+  # canonical 도 그 주소여야 한다. 같은 도메인의 데모 앱도 응답해야 한다.
   expect_verify_app() {
     local want="$1" label="$2" body="$3" got
     printf '%s\n' "$body" > "$site/index.html"
@@ -193,10 +248,14 @@ if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
     record "$want" "$got" "verify(앱 사이트): $label"
   }
   pointed="<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
-  expect_verify_app pass '운영으로 바꾼 바로가기' "$canonical$pointed"
-  expect_verify_app fail '상대 경로 그대로' "$canonical$links_ok"
-  expect_verify_app fail '트레이너 웹만 상대 경로' "$canonical<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
-  expect_verify_app fail '다른 도메인 바로가기' "$canonical<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+  redirected="<head>$refresh<meta property=\"og:url\" content=\"$prod\" /><link rel=\"canonical\" href=\"$prod\" /></head>"
+  expect_verify_app pass '운영으로 넘기는 소개 페이지' "$redirected$pointed"
+  expect_verify_app fail '넘김 태그 없음' "<head><link rel=\"canonical\" href=\"$prod\" /></head>$pointed"
+  expect_verify_app fail '다른 주소로 넘김' "<head><meta http-equiv=\"refresh\" content=\"0; url=https://other.example/\" /><link rel=\"canonical\" href=\"$prod\" /></head>$pointed"
+  expect_verify_app fail 'canonical 이 Pages 주소' "$canonical$refresh$pointed"
+  expect_verify_app fail '상대 경로 그대로' "$redirected$links_ok"
+  expect_verify_app fail '트레이너 웹만 상대 경로' "$redirected<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+  expect_verify_app fail '다른 도메인 바로가기' "$redirected<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
   expect_verify fail '앱 사이트 없이 운영 바로가기' "$canonical$pointed"
 
   printf '%s

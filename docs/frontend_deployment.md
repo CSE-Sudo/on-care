@@ -97,18 +97,19 @@
 - `check-manifest` — 랜딩 manifest 의 아이콘·`start_url`·`scope`·`id` 가 `/` 로 시작하지 않는지. PR Gate 에서 돕니다.
 - `stamp` — 표시 줄을 og:url·canonical 태그로 바꿉니다(https 주소만 받음).
 - `point-apps` — 데모 Pages 전용(#3437). 배포용 랜딩의 회원 앱·트레이너 웹 바로가기를 앱 사이트 주소(운영)의 `member/`·`trainer/` 로 바꿉니다. 주소가 비면 그대로 둡니다. `stamp` 다음에 부릅니다(`stamp` 는 상대 경로 규칙을 먼저 봅니다).
-- `verify` — 배포된 랜딩을 받아 바로가기가 상대 경로인지(넷째 인자로 앱 사이트 주소를 주면 앱 바로가기만 그 주소의 `member/`·`trainer/` 인지), canonical 이 그 배포 주소인지, 같은 도메인의 `/member/`·`/trainer/`·`/legal/privacy.html`·`/assets/landing/` 아이콘·manifest 가 응답하고 manifest 가 루트 절대 경로를 쓰지 않는지 확인합니다. AWS 배포에서 실패하면 직전 릴리스로 되돌립니다.
+- `redirect` — 데모 Pages 전용(#3465). 배포용 랜딩 `<head>` 에 앱 사이트 주소(운영)로 가는 `meta refresh`(0초)·`location.replace` 를 넣고 og:url·canonical 을 그 주소로 바꿉니다. 본문은 남깁니다. 주소가 비면 그대로 둡니다. `point-apps` 다음에 부릅니다.
+- `verify` — 배포된 랜딩을 받아 바로가기가 상대 경로인지(넷째 인자로 앱 사이트 주소를 주면 앱 바로가기가 그 주소의 `member/`·`trainer/` 이고 소개 페이지가 그 주소로 넘기는지), canonical 이 그 배포 주소(앱 사이트 주소를 주면 그 주소)인지, 같은 도메인의 `/member/`·`/trainer/`·`/legal/privacy.html`·`/assets/landing/` 아이콘·manifest 가 응답하고 manifest 가 루트 절대 경로를 쓰지 않는지 확인합니다. AWS 배포에서 실패하면 직전 릴리스로 되돌립니다.
 
 경계 검사는 `bash .github/scripts/test_landing_site_url.sh` 로 돌립니다.
 
 ### 데모 Pages 랜딩은 운영 앱으로 보냅니다
 
-소개 페이지를 보고 앱을 여는 방문자는 실서비스로 가야 하므로, 데모 Pages 배포는 올리기 전에 랜딩의 앱 바로가기를 운영 사이트로 바꿉니다(#3437). 원본 `index.html` 은 상대 경로 그대로라 AWS 랜딩은 자기 도메인의 앱으로 갑니다.
+사람들이 처음 보는 소개 페이지는 운영 사이트 하나입니다. 데모 Pages 배포는 올리기 전에 랜딩의 앱 바로가기를 운영 사이트로 바꾸고(#3437), 소개 페이지 자체도 열리자마자 운영 소개 페이지로 넘깁니다(#3465). 저장소 About·예전 제출물처럼 Pages 주소로 들어온 방문자도 첫 화면은 운영 사이트입니다. 원본 `index.html` 은 상대 경로 그대로라 AWS 랜딩은 자기 도메인의 앱으로 가고, 넘김도 없습니다.
 
-| 배포 | 랜딩 앱 바로가기 | 같은 도메인의 `/member/`·`/trainer/` |
-| --- | --- | --- |
-| AWS(운영) | 상대 경로 → 운영 회원 앱·트레이너 웹 | 운영 앱 |
-| GitHub Pages | `PRODUCTION_FRONTEND_URL` 의 `/member/#/dashboard`·`/trainer/`(변수가 비면 상대 경로) | 목업 데모 앱 — 열면 로그인 화면 없이 곧장 데모, 운영 앱 로그인 화면의 `체험하기` 가 엽니다([아래 절](#운영-앱의-체험하기는-데모-pages-로-보냅니다)) |
+| 배포 | 소개 페이지(루트) | 랜딩 앱 바로가기 | 같은 도메인의 `/member/`·`/trainer/` |
+| --- | --- | --- | --- |
+| AWS(운영) | 그대로 보임 | 상대 경로 → 운영 회원 앱·트레이너 웹 | 운영 앱 |
+| GitHub Pages | `PRODUCTION_FRONTEND_URL` 로 넘김(변수가 비면 그대로 보임) | `PRODUCTION_FRONTEND_URL` 의 `/member/#/dashboard`·`/trainer/`(변수가 비면 상대 경로) | 목업 데모 앱 — 열면 로그인 화면 없이 곧장 데모, 운영 앱 로그인 화면의 `체험하기` 가 엽니다([아래 절](#운영-앱의-체험하기는-데모-pages-로-보냅니다)) |
 
 처리방침(`legal/privacy.html`)·아이콘은 Pages 에서도 상대 경로 그대로입니다.
 

@@ -54,8 +54,13 @@ class MemberAppPathTest(unittest.TestCase):
             'landing_site_url.sh point-apps public/index.html "$PRODUCTION_FRONTEND_URL"'
         )
         self.assertLess(stamp, point)
+        # 소개 페이지 넘김(#3465)은 바로가기를 바꾼 뒤의 파일을 받아야 한다.
+        redirect = self.pages.index(
+            'landing_site_url.sh redirect public/index.html "$PRODUCTION_FRONTEND_URL"'
+        )
+        self.assertLess(point, redirect)
         self.assertEqual(
-            self.pages.count("PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}"), 2
+            self.pages.count("PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}"), 3
         )
         self.assertIn(
             'landing_site_url.sh verify "$SITE_URL" "$site" 600 "$PRODUCTION_FRONTEND_URL"',
