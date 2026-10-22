@@ -570,5 +570,14 @@ class IosReleaseSigningTest(unittest.TestCase):
         self.assertNotIn("CODE_SIGN_STYLE = Manual", self.original)
 
 
+class DeviceFamilyTest(unittest.TestCase):
+    """첫 출시는 iPhone 전용이다(#3481). iPad 지원으로 한 번 내면 되돌릴 수 없다."""
+
+    def test_runner_targets_iphone_only(self) -> None:
+        families = re.findall(r"TARGETED_DEVICE_FAMILY = ([^;]+);", PBXPROJ.read_text(encoding="utf-8"))
+        self.assertTrue(families, "TARGETED_DEVICE_FAMILY 설정이 없습니다.")
+        self.assertEqual(set(families), {"1"})
+
+
 if __name__ == "__main__":
     unittest.main()
