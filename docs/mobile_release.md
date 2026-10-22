@@ -131,6 +131,9 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
 | 개인정보 매니페스트 | `ios/Runner/PrivacyInfo.xcprivacy` | 추적 없음, 필수 사유 API(UserDefaults), 수집 데이터 유형 |
 | 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게 한국어 하나다(#3404). 개발 언어(`developmentRegion`)도 `ko` |
 | 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `Info.plist`(같은 한국어 문구) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
+| 항상 허용 위치 문구 | 같은 두 곳 `NSLocationAlwaysAndWhenInUseUsageDescription` | 앱은 "사용 중" 위치만 요청하지만 `geolocator` 가 항상 허용 API 를 참조해, 문구가 없으면 업로드 때 ITMS-90683 경고가 난다(#3485) |
+| 최소 iOS 버전 | `project.pbxproj` Runner `IPHONEOS_DEPLOYMENT_TARGET` · `Podfile` `platform :ios` | 15.0. 2027년 4월부터 15 미만은 업로드가 막힌다(ITMS-90068, #3485) |
+| Sentry 네이티브 SDK | `ios/Runner.xcworkspace`·`ios/Runner.xcodeproj/project.xcworkspace` 의 `Package.resolved` | `sentry-cocoa` 8.46.0 고정. `sentry_flutter` 8.14.2 는 최신 8.x 와 컴파일되지 않는다. `sentry_flutter` 를 올릴 때 고정도 함께 다시 정한다(#3485) |
 
 - 두 스토어의 **개인정보처리방침 URL** 은 운영 도메인의 `/legal/privacy.html`, 이용약관이 필요한 칸에는
   `/legal/terms.html` 을 적습니다. 로그인 없이 열리는 정적 페이지로, 앱 안 문서와 같은 원본에서
