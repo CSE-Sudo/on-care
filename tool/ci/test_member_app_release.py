@@ -42,6 +42,7 @@ USER_APP_CI = REPO_ROOT / ".github" / "workflows" / "user-app-ci.yml"
 INFRA_CI = REPO_ROOT / ".github" / "workflows" / "infra-ci.yml"
 DOC = REPO_ROOT / "docs" / "mobile_release.md"
 PBXPROJ = REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner.xcodeproj" / "project.pbxproj"
+PODFILE = REPO_ROOT / "frontend" / "flutter" / "ios" / "Podfile"
 BUNDLE_ID = "com.csesudo.oncare"
 FROM_FILE = "--dart-define-from-file=config/release.json"
 CHECKER = "bash tool/check_release_defines.sh config/release.json"
@@ -577,6 +578,16 @@ class DeviceFamilyTest(unittest.TestCase):
         families = re.findall(r"TARGETED_DEVICE_FAMILY = ([^;]+);", PBXPROJ.read_text(encoding="utf-8"))
         self.assertTrue(families, "TARGETED_DEVICE_FAMILY 설정이 없습니다.")
         self.assertEqual(set(families), {"1"})
+
+
+class DeploymentTargetTest(unittest.TestCase):
+    """App Store 는 2027년 4월부터 iOS 15 미만 대상 앱을 받지 않는다(ITMS-90068, #3485)."""
+
+    def test_runner_and_podfile_target_ios_15(self) -> None:
+        targets = re.findall(r"IPHONEOS_DEPLOYMENT_TARGET = ([^;]+);", PBXPROJ.read_text(encoding="utf-8"))
+        self.assertTrue(targets, "IPHONEOS_DEPLOYMENT_TARGET 설정이 없습니다.")
+        self.assertEqual(set(targets), {"15.0"})
+        self.assertRegex(PODFILE.read_text(encoding="utf-8"), r"(?m)^platform :ios, '15\.0'$")
 
 
 if __name__ == "__main__":
