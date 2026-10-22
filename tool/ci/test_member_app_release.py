@@ -42,6 +42,19 @@ USER_APP_CI = REPO_ROOT / ".github" / "workflows" / "user-app-ci.yml"
 INFRA_CI = REPO_ROOT / ".github" / "workflows" / "infra-ci.yml"
 DOC = REPO_ROOT / "docs" / "mobile_release.md"
 PBXPROJ = REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner.xcodeproj" / "project.pbxproj"
+PODFILE = REPO_ROOT / "frontend" / "flutter" / "ios" / "Podfile"
+PACKAGE_RESOLVED = (
+    REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner.xcworkspace" / "xcshareddata" / "swiftpm" / "Package.resolved",
+    REPO_ROOT
+    / "frontend"
+    / "flutter"
+    / "ios"
+    / "Runner.xcodeproj"
+    / "project.xcworkspace"
+    / "xcshareddata"
+    / "swiftpm"
+    / "Package.resolved",
+)
 BUNDLE_ID = "com.csesudo.oncare"
 FROM_FILE = "--dart-define-from-file=config/release.json"
 CHECKER = "bash tool/check_release_defines.sh config/release.json"
@@ -577,6 +590,40 @@ class DeviceFamilyTest(unittest.TestCase):
         families = re.findall(r"TARGETED_DEVICE_FAMILY = ([^;]+);", PBXPROJ.read_text(encoding="utf-8"))
         self.assertTrue(families, "TARGETED_DEVICE_FAMILY 설정이 없습니다.")
         self.assertEqual(set(families), {"1"})
+
+
+class DeploymentTargetTest(unittest.TestCase):
+    """App Store 는 2027년 4월부터 iOS 15 미만 대상 앱을 받지 않는다(ITMS-90068, #3485)."""
+
+    def test_runner_and_podfile_target_ios_15(self) -> None:
+        targets = re.findall(r"IPHONEOS_DEPLOYMENT_TARGET = ([^;]+);", PBXPROJ.read_text(encoding="utf-8"))
+        self.assertTrue(targets, "IPHONEOS_DEPLOYMENT_TARGET 설정이 없습니다.")
+        self.assertEqual(set(targets), {"15.0"})
+        self.assertRegex(PODFILE.read_text(encoding="utf-8"), r"(?m)^platform :ios, '15\.0'$")
+
+
+class SentryCocoaPinTest(unittest.TestCase):
+    """sentry_flutter 8.14.2 는 sentry-cocoa 를 `from: 8.46.0` 으로만 묶는다. 새로 해석해 최신 8.x 가
+    들어오면 SentryFlutterPlugin.swift 가 컴파일되지 않아 8.46.0 에 고정한다(#3485)."""
+
+    def pins(self, path: Path) -> dict[str, dict]:
+        return {pin["identity"]: pin for pin in json.loads(path.read_text(encoding="utf-8"))["pins"]}
+
+    def test_both_resolved_files_pin_sentry_cocoa(self) -> None:
+        self.assertEqual(PACKAGE_RESOLVED[0].read_bytes(), PACKAGE_RESOLVED[1].read_bytes())
+        state = self.pins(PACKAGE_RESOLVED[0])["sentry-cocoa"]["state"]
+        self.assertEqual(state["version"], "8.46.0")
+        self.assertEqual(state["revision"], "e0fa062817b277fd9ab597b54b8e2f92dc65b009")
+
+    def test_pin_is_revisited_when_sentry_flutter_moves(self) -> None:
+        lock = (REPO_ROOT / "frontend" / "flutter" / "pubspec.lock").read_text(encoding="utf-8")
+        version = re.search(r'(?m)^  sentry_flutter:\n(?:    .*\n)*?    version: "([^"]+)"', lock)
+        self.assertIsNotNone(version, "pubspec.lock 에 sentry_flutter 가 없습니다.")
+        self.assertEqual(
+            version.group(1),
+            "8.14.2",
+            "sentry_flutter 를 올렸다면 Package.resolved 의 sentry-cocoa 고정과 이 테스트를 함께 고칩니다.",
+        )
 
 
 if __name__ == "__main__":

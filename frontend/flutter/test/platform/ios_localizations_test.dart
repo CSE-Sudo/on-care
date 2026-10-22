@@ -70,6 +70,9 @@ void main() {
         'NSCameraUsageDescription',
         'NSPhotoLibraryUsageDescription',
         'NSLocationWhenInUseUsageDescription',
+        // 앱은 "사용 중" 위치만 요청하지만 geolocator 가 항상 허용 API 를
+        // 참조해, 문구가 없으면 업로드 때 ITMS-90683 경고가 난다(#3485).
+        'NSLocationAlwaysAndWhenInUseUsageDescription',
       ]),
     );
   });
