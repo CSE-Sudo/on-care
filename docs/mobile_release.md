@@ -166,14 +166,14 @@ flutter build ipa --release --dart-define-from-file=config/release.json
 | --- | --- | --- |
 | iPhone | 세로만 | `ios/Runner/Info.plist` `UISupportedInterfaceOrientations` = `UIInterfaceOrientationPortrait` 하나 |
 | 안드로이드 휴대폰 | 세로만(앱 시작 시 런타임 고정) | `lib/core/platform/orientation_policy.dart`, `lib/app/bootstrap.dart` |
-| iPad | 모든 방향 | `UISupportedInterfaceOrientations~ipad` 네 방향 유지 |
+| iPad | iPhone 호환 모드(세로) | iPhone 전용 앱이라 iPad 에서는 iPhone 화면으로 돈다(#3481). `UISupportedInterfaceOrientations~ipad` 는 읽히지 않는다 |
 | 안드로이드 태블릿 | 모든 방향 | 런타임 고정을 적용하지 않음 |
 | 웹 | 브라우저가 정함 | 적용하지 않음 |
 
 - 휴대폰 판별: 기기 **화면**(분할 화면의 창 크기가 아님)의 짧은 변이 600 논리 픽셀 미만이면 휴대폰입니다(안드로이드 `sw600dp` 와 같은 경계). 크기를 알 수 없으면 고정하지 않습니다.
 - 안드로이드 매니페스트의 `screenOrientation="portrait"` 는 태블릿까지 세로로 묶어 쓰지 않습니다.
-- 태블릿을 모든 방향으로 두는 이유: 회원 앱 화면은 폭을 휴대폰 폭(`OnCareLayout.mobileContentMaxWidth`)으로 제한해 가운데 정렬하므로 가로에서도 쓸 수 있고, iPad 멀티태스킹(Split View)은 네 방향 지원을 요구합니다. 방향을 막으려면 `UIRequiresFullScreen` 까지 켜야 합니다.
-- 대안(팀 결정 대기): `TARGETED_DEVICE_FAMILY = "1"`(iPhone 전용)로 내면 iPad 에서는 iPhone 호환 모드로 돌고 iPad 스크린샷 제출도 필요 없습니다. 다만 **iPad 지원으로 한 번 출시하면 되돌릴 수 없으므로** 첫 출시 전에만 고를 수 있습니다.
+- 안드로이드 태블릿을 모든 방향으로 두는 이유: 회원 앱 화면은 폭을 휴대폰 폭(`OnCareLayout.mobileContentMaxWidth`)으로 제한해 가운데 정렬하므로 가로에서도 쓸 수 있고, iPad 멀티태스킹(Split View)은 네 방향 지원을 요구합니다. 방향을 막으려면 `UIRequiresFullScreen` 까지 켜야 합니다.
+- iOS 는 **iPhone 전용**으로 냅니다(#3481): Runner 의 `TARGETED_DEVICE_FAMILY = 1`. iPad 에서는 iPhone 호환 모드로 돌고, App Store 제출에 iPad 스크린샷이 필요 없습니다. iPad 지원은 나중에 `1,2` 로 더할 수 있지만, iPad 지원으로 한 번 출시하면 되돌릴 수 없으므로 첫 출시를 iPhone 전용으로 정했습니다.
 
 ## 4. 앱 ID·앱 이름 (확정값)
 
