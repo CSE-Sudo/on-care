@@ -454,8 +454,8 @@ def profile_plist(**overrides) -> bytes:
     data = {
         "UUID": "12345678-ABCD-ABCD-ABCD-123456789ABC",
         "Name": "On-Care App Store",
-        "TeamIdentifier": ["UFM3HBFN93"],
-        "Entitlements": {"application-identifier": f"UFM3HBFN93.{BUNDLE_ID}", "get-task-allow": False},
+        "TeamIdentifier": ["VWCBNTMH6B"],
+        "Entitlements": {"application-identifier": f"VWCBNTMH6B.{BUNDLE_ID}", "get-task-allow": False},
     }
     data.update(overrides)
     return plistlib.dumps(data)
@@ -468,13 +468,13 @@ class IosReleaseSigningTest(unittest.TestCase):
 
     def test_reads_an_app_store_profile(self) -> None:
         self.assertEqual(self.profile.uuid, "12345678-ABCD-ABCD-ABCD-123456789ABC")
-        self.assertEqual(self.profile.team_id, "UFM3HBFN93")
+        self.assertEqual(self.profile.team_id, "VWCBNTMH6B")
 
     def test_rejects_profiles_for_other_apps_or_development(self) -> None:
         cases = {
-            "다른 앱": {"Entitlements": {"application-identifier": "UFM3HBFN93.com.other.app"}},
-            "와일드카드": {"Entitlements": {"application-identifier": "UFM3HBFN93.*"}},
-            "개발용": {"Entitlements": {"application-identifier": f"UFM3HBFN93.{BUNDLE_ID}",
+            "다른 앱": {"Entitlements": {"application-identifier": "VWCBNTMH6B.com.other.app"}},
+            "와일드카드": {"Entitlements": {"application-identifier": "VWCBNTMH6B.*"}},
+            "개발용": {"Entitlements": {"application-identifier": f"VWCBNTMH6B.{BUNDLE_ID}",
                                        "get-task-allow": True}},
             "Ad Hoc": {"ProvisionedDevices": ["00008030-000000000000000E"]},
             "UUID 형식": {"UUID": "not-a-uuid"},
@@ -497,7 +497,7 @@ class IosReleaseSigningTest(unittest.TestCase):
         self.assertIn('\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n', body)
         self.assertIn('\t\t\t\t"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";\n', body)
         self.assertIn('\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "12345678-ABCD-ABCD-ABCD-123456789ABC";\n', body)
-        self.assertIn("\t\t\t\tDEVELOPMENT_TEAM = UFM3HBFN93;\n", body)
+        self.assertIn("\t\t\t\tDEVELOPMENT_TEAM = VWCBNTMH6B;\n", body)
         # 다른 블록(Debug·Profile·RunnerTests·프로젝트 설정)은 그대로다.
         self.assertEqual(patched.count("PROVISIONING_PROFILE_SPECIFIER"), 1)
         self.assertEqual(patched.count("CODE_SIGN_STYLE = Manual"), 1)
@@ -531,7 +531,7 @@ class IosReleaseSigningTest(unittest.TestCase):
         options = plistlib.loads(signing.export_options(BUNDLE_ID, self.profile))
         self.assertEqual(options["method"], "app-store-connect")
         self.assertEqual(options["signingStyle"], "manual")
-        self.assertEqual(options["teamID"], "UFM3HBFN93")
+        self.assertEqual(options["teamID"], "VWCBNTMH6B")
         self.assertEqual(options["provisioningProfiles"], {BUNDLE_ID: self.profile.uuid})
         self.assertFalse(options["manageAppVersionAndBuildNumber"])
 
