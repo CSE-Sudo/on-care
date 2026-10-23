@@ -37,7 +37,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.models.models import EmailVerificationCode, User
-from app.services.account_notice import support_lines
+from app.services.account_notice import support_contact, support_lines
+from app.services.mail_templates import code_mail_html
 from app.services.mailer import (
     Mailer,
     MailDeliveryError,
@@ -145,7 +146,17 @@ def _compose_code(
         ignore,
     ]
     lines += support_lines(settings)
-    return OutgoingMail(to=email, subject=subject, body="\n".join(lines))
+    html = code_mail_html(
+        title="이메일 변경 인증 코드" if changing else "이메일 인증 코드",
+        lead=lead,
+        code=code,
+        minutes=minutes,
+        ignore=ignore,
+        support=support_contact(settings),
+    )
+    return OutgoingMail(
+        to=email, subject=subject, body="\n".join(lines), html=html
+    )
 
 
 def _compose_already_registered(
