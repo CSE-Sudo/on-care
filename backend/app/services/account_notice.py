@@ -31,6 +31,11 @@ def support_lines(settings: Settings) -> list[str]:
     return ["", f"문의: {contact}"]
 
 
+def support_contact(settings: Settings) -> str:
+    """HTML 메일 끝에 넣을 문의처. 설정이 비면 빈 문자열."""
+    return settings.mail_support_contact.strip()
+
+
 def compose_email_changed(
     old_email: str, new_email: str, *, settings: Settings
 ) -> OutgoingMail:

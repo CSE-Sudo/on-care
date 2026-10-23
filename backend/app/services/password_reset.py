@@ -34,6 +34,7 @@ from app.core.security import hash_password
 from app.models.models import PasswordResetToken, User
 from app.services import auth_tokens
 from app.services.contact_format import normalize_email
+from app.services.mail_templates import code_mail_html
 from app.services.mailer import (
     Mailer,
     MailDeliveryError,
@@ -152,11 +153,20 @@ def _compose(
             "아래 링크를 열어 새 비밀번호를 정할 수도 있습니다.",
             link,
         ]
-    lines += [
-        "",
-        "직접 요청하지 않으셨다면 이 메일을 무시하세요. 비밀번호는 바뀌지 않습니다.",
-    ]
-    return OutgoingMail(to=user.email, subject=subject, body="\n".join(lines))
+    ignore = "직접 요청하지 않으셨다면 이 메일을 무시하세요. 비밀번호는 바뀌지 않습니다."
+    lines += ["", ignore]
+    html = code_mail_html(
+        title="비밀번호 재설정 코드",
+        lead="On-Care 비밀번호 재설정을 요청하셨습니다. 앱에 아래 코드를 입력해 주세요.",
+        code=code,
+        minutes=minutes,
+        ignore=ignore,
+        link=link,
+        link_label="새 비밀번호 정하기",
+    )
+    return OutgoingMail(
+        to=user.email, subject=subject, body="\n".join(lines), html=html
+    )
 
 
 def purge_expired(db: Session, *, now: datetime) -> int:
