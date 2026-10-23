@@ -59,7 +59,10 @@ class PeriodChartSelection extends ChangeNotifier {
   }
 }
 
-const double _axisLabelWidth = 52;
+/// 축 라벨 칸의 최소 폭. 글자가 더 넓으면(`10/23` 같은 두 자리 월, 큰 글자
+/// 배율) 그 폭만큼 넓힌다 — 고정 폭이면 글자가 칸 밖으로 넘쳐 가운데가
+/// 어긋나고, 오른쪽 끝 라벨은 그래프 밖으로 밀려 잘렸다(#3493).
+const double _axisLabelMinWidth = 52;
 const double _axisLabelRowHeight = 16;
 
 /// `전체` 기간 그래프 뼈대 — 가로 스크롤 + 날짜 선택(#1018). 두 앱의 복사본을 합쳤다.
@@ -257,27 +260,7 @@ class _PeriodScrollChartState extends State<PeriodScrollChart> {
                     children: <Widget>[
                       for (int i = 0; i < widget.count; i++)
                         if (widget.labelBuilder(i).isNotEmpty)
-                          Positioned(
-                            left: (slot * i + slot / 2 - _axisLabelWidth / 2)
-                                .clamp(
-                                  0.0,
-                                  math.max(contentWidth - _axisLabelWidth, 0.0),
-                                ),
-                            width: _axisLabelWidth,
-                            child: Text(
-                              widget.labelBuilder(i),
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: TextOverflow.visible,
-                              textAlign: TextAlign.center,
-                              style: chartAxisLabelStyle(
-                                context,
-                                selected:
-                                    widget.boldSelectedLabel &&
-                                    widget.selectedIndex == i,
-                              ),
-                            ),
-                          ),
+                          _axisLabel(context, i, slot, contentWidth),
                     ],
                   ),
                 ),
@@ -286,6 +269,50 @@ class _PeriodScrollChartState extends State<PeriodScrollChart> {
           ),
         );
       },
+    );
+  }
+
+  /// [i] 번째 칸의 축 라벨 — 칸 가운데에 두되 그래프 양 끝 밖으로는 나가지
+  /// 않게 당긴다.
+  Widget _axisLabel(
+    BuildContext context,
+    int i,
+    double slot,
+    double contentWidth,
+  ) {
+    final String text = widget.labelBuilder(i);
+    final TextStyle style = chartAxisLabelStyle(
+      context,
+      selected: widget.boldSelectedLabel && widget.selectedIndex == i,
+    );
+    final TextPainter painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: DefaultTextStyle.of(context).style.merge(style),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final double width = math.max(
+      _axisLabelMinWidth,
+      painter.width.ceilToDouble(),
+    );
+    painter.dispose();
+    return Positioned(
+      left: (slot * i + slot / 2 - width / 2).clamp(
+        0.0,
+        math.max(contentWidth - width, 0.0),
+      ),
+      width: width,
+      child: Text(
+        text,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.visible,
+        textAlign: TextAlign.center,
+        style: style,
+      ),
     );
   }
 }
