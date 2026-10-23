@@ -17,7 +17,7 @@ httpx>=0.27
 python-multipart>=0.0.9
 # 끼니 사진 축소·재인코딩(#699). 원본을 그대로 두면 한 장에 3~5MB 라 공유 DB 에
 # 담을 크기가 아니고, 재인코딩이 EXIF(촬영 위치 포함)도 함께 털어 낸다.
-pillow>=10.0
+pillow>=13.0
 python-dotenv>=1.0
 google-genai>=2.31.0
 openai>=3.31.0
