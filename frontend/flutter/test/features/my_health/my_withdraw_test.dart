@@ -269,6 +269,35 @@ void main() {
     expect(_keep('default'), findsNothing);
   });
 
+  testWidgets('고른 사유의 테두리가 카드 모서리에 잘리지 않는다 (#3489)', (
+    WidgetTester tester,
+  ) async {
+    final (AppLocalizations l, _, _) = await _pumpWithdraw(tester);
+    await _openWithdraw(tester, l);
+
+    final Rect card = tester.getRect(
+      find.ancestor(of: _reason('privacy'), matching: find.byType(AppCard)),
+    );
+    for (final WithdrawReason reason in <WithdrawReason>[
+      WithdrawReason.values.first,
+      WithdrawReason.values.last,
+    ]) {
+      await tester.tap(_reason(reason.code));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<AppListRow>(_reason(reason.code)).selected,
+        isTrue,
+        reason: reason.code,
+      );
+      // 둥근 테두리 네 변이 카드 안쪽에 떨어져 서야 모서리 자르기에 걸리지 않는다.
+      final Rect row = tester.getRect(_reason(reason.code));
+      expect(row.left, greaterThan(card.left), reason: reason.code);
+      expect(row.right, lessThan(card.right), reason: reason.code);
+      expect(row.top, greaterThan(card.top), reason: reason.code);
+      expect(row.bottom, lessThan(card.bottom), reason: reason.code);
+    }
+  });
+
   testWidgets('두 번째 칸에서도 바로 지우지 않는다 — 무엇이 사라지는지 먼저 말한다', (
     WidgetTester tester,
   ) async {

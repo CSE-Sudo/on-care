@@ -869,6 +869,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     return SingleChildScrollView(
+      // 끌어 올려도 키패드가 내려간다(#3489).
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.fromLTRB(
         _side,
         OnCareSpacing.s24,
