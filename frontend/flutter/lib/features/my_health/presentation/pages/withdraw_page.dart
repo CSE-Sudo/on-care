@@ -253,7 +253,8 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
       ),
       const SizedBox(height: OnCareSpacing.s12),
       AppCard(
-        padding: EdgeInsets.zero,
+        // 고른 줄의 둥근 테두리가 카드 모서리에 잘리지 않게 안쪽 여백을 둔다(#3489).
+        padding: const EdgeInsets.all(OnCareSpacing.s4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
