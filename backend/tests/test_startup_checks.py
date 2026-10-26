@@ -30,6 +30,11 @@ def _prod(**kw) -> Settings:
         # 거부한다는 경고가 뜬다.
         google_client_ids="test-google-client.apps.googleusercontent.com",
         kakao_app_id="1234567",
+        # 애플 로그인 허용 앱과 탈퇴 때 토큰 철회 키 — 비우면 경고가 뜬다(#3499).
+        apple_client_ids="com.example.oncare",
+        apple_team_id="TEAMID1234",
+        apple_key_id="KEYID12345",
+        apple_private_key="test-apple-key",
         # 웹 카카오 로그인의 인가 코드 교환 키 — 비우면 경고가 뜬다(#330).
         kakao_login_rest_api_key="testloginkey",
         # 운영은 메일 발송 설정이 필수다 — 없으면 가입 인증 코드를 못 보내 기동 거부(#3131).

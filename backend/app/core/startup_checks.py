@@ -27,6 +27,7 @@ class StartupConfigError(RuntimeError):
 _SOCIAL_APP_SETTINGS = (
     ("google", "GOOGLE_CLIENT_IDS", lambda s: bool(s.google_client_id_list)),
     ("kakao", "KAKAO_APP_ID", lambda s: bool(s.kakao_app_id_value)),
+    ("apple", "APPLE_CLIENT_IDS", lambda s: bool(s.apple_client_id_list)),
 )
 
 
@@ -153,6 +154,16 @@ def check(settings: Settings) -> list[str]:
             "로그인의 인가 코드를 교환할 수 없습니다 — 같은 카카오 앱의 REST API 키를 넣으세요."
         )
 
+    # --- 애플 토큰 철회 키(#3499) ---
+    # 애플 로그인은 켜졌는데 철회 키가 없으면 탈퇴는 되지만 Apple 토큰이 남는다 — 회원의
+    # "Apple ID 를 사용하는 앱" 목록에 On-Care 가 계속 보인다. 탈퇴를 막을 일은 아니라
+    # 경고로 남긴다.
+    if settings.apple_client_id_list and not settings.apple_revoke_configured:
+        warnings.append(
+            "APPLE_CLIENT_IDS 는 있지만 APPLE_TEAM_ID·APPLE_KEY_ID·APPLE_PRIVATE_KEY 가 비어 "
+            "애플로 가입한 회원이 탈퇴해도 Apple 토큰을 철회하지 못합니다 — 개발자 포털에서 "
+            "Sign in with Apple 키(.p8)를 발급해 넣으세요."
+        )
     # --- 비밀번호 재설정 메일 링크(#3033) ---
     # 링크 없이도 메일 속 코드로 재설정은 되므로 막지 않는다. 다만 경로형·http 주소는
     # 링크를 눌러도 앱이 코드를 받지 못해 "메일 링크가 안 된다" 로 드러난다.

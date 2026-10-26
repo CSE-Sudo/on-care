@@ -11,6 +11,10 @@ enum AppSocialProvider {
 
   /// 구글 — 흰 원 + 회색 테두리 + 네 색 `G` 로고(Google Identity 브랜딩 가이드).
   google,
+
+  /// 애플 — 검은 원 + 흰 애플 로고(Apple HIG 의 로고만 있는 Sign in with Apple
+  /// 버튼, 검은 스타일, #3499). 회원 iOS 앱에서만 쓴다.
+  apple,
 }
 
 /// 로그인 화면의 원형 소셜 로그인 버튼(#1783).
@@ -57,6 +61,13 @@ class AppSocialLoginButton extends StatelessWidget {
         OnCareColors.textPrimary,
         const _GoogleLogoPainter(),
       ),
+      AppSocialProvider.apple => (
+        OnCareColors.appleButtonFill,
+        BorderSide.none,
+        // 검은 바탕이라 눌림은 흰색을 옅게 얹는다.
+        OnCareColors.appleLogo,
+        const _AppleLogoPainter(),
+      ),
     };
     final bool enabled = onPressed != null;
     return Tooltip(
@@ -75,7 +86,7 @@ class AppSocialLoginButton extends StatelessWidget {
           child: InkWell(
             onTap: onPressed,
             customBorder: const CircleBorder(),
-            // 눌림은 어두운 색을 옅게 얹는다 — 노랑·흰 바탕 위 흰 잉크는 보이지 않는다.
+            // 눌림은 로고 색을 옅게 얹는다 — 노랑·흰 바탕 위 흰 잉크는 보이지 않는다.
             overlayColor: WidgetStateProperty.resolveWith<Color?>((
               Set<WidgetState> states,
             ) {
@@ -245,4 +256,72 @@ class _GoogleLogoPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GoogleLogoPainter oldDelegate) => false;
+}
+
+/// 애플 로고 — Apple HIG 의 로고만 있는 Sign in with Apple 버튼(#3499).
+///
+/// 경로는 `sign_in_with_apple` 패키지의 `AppleLogoPainter` 좌표(MIT License,
+/// Copyright 2019 sign_in_with_apple authors)를 가로 25 : 세로 31 상자의 비율 좌표로
+/// 옮긴 것이다. 글자 없이 흰 로고 하나다.
+class _AppleLogoPainter extends CustomPainter {
+  const _AppleLogoPainter();
+
+  /// 원 지름에 대한 로고 높이.
+  static const double _ratio = 0.42;
+
+  /// 로고 상자의 가로 : 세로.
+  static const double _aspect = 25 / 31;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double h = size.shortestSide * _ratio;
+    final double w = h * _aspect;
+    // 잎을 뺀 몸통이 원 가운데에 오도록 살짝 내린다.
+    final Offset origin = Offset(
+      (size.width - w) / 2,
+      (size.height - h) / 2 - h * 0.04,
+    );
+    Offset p(double x, double y) => origin + Offset(w * x, h * y);
+    void curve(Path path, List<double> c) {
+      final Offset a = p(c[0], c[1]);
+      final Offset b = p(c[2], c[3]);
+      final Offset e = p(c[4], c[5]);
+      path.cubicTo(a.dx, a.dy, b.dx, b.dy, e.dx, e.dy);
+    }
+
+    final Offset start = p(.50779, .28732);
+    final Path path = Path()..moveTo(start.dx, start.dy);
+    for (final List<double> c in const <List<double>>[
+      <double>[.4593, .28732, .38424, .24241, .30519, .24404],
+      <double>[.2009, .24512, .10525, .29328, .05145, .36957],
+      <double>[-.05683, .5227, .02355, .74888, .12916, .87333],
+      <double>[.18097, .93394, .24209, 1.00211, .32313, .99995],
+      <double>[.40084, .99724, .43007, .95883, .52439, .95883],
+      <double>[.61805, .95883, .64462, .99995, .72699, .99833],
+      <double>[.81069, .99724, .86383, .93664, .91498, .8755],
+      <double>[.97409, .80515, .99867, .73698, 1, .73319],
+      <double>[.99801, .73265, .83726, .68233, .83526, .53082],
+      <double>[.83394, .4042, .96214, .3436, .96812, .34089],
+      <double>[.89505, .25378, .78279, .24404, .7436, .24187],
+      <double>[.6413, .23538, .55561, .28732, .50779, .28732],
+    ]) {
+      curve(path, c);
+    }
+    path.close();
+    final Offset leaf = p(.68049, .15962);
+    path.moveTo(leaf.dx, leaf.dy);
+    for (final List<double> c in const <List<double>>[
+      <double>[.72367, .11742, .75223, .05844, .74426, 0],
+      <double>[.68249, .00216, .60809, .03355, .56359, .07575],
+      <double>[.52373, .11309, .48919, .17315, .49849, .23051],
+      <double>[.56691, .23484, .63732, .20183, .68049, .15962],
+    ]) {
+      curve(path, c);
+    }
+    path.close();
+    canvas.drawPath(path, Paint()..color = OnCareColors.appleLogo);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AppleLogoPainter oldDelegate) => false;
 }

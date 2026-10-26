@@ -85,7 +85,7 @@
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET, PUT, DELETE | `/users/me/consents/{kind}` | 선택 동의(`location`) 상태 조회·동의·철회 → `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. 회원 전용, 선택 항목 아닌 `kind` 는 422 (아래 "선택 동의 — 위치정보 이용" 참고, #3136) |
 | GET | `/users/me/health` | `{ profile: { id, name, email, email_is_placeholder, email_placeholder_provider }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
-| DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039) |
+| DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token?, apple_authorization_code? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039). 애플 계정은 토큰 철회(#3499) |
 | GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, upcoming_sessions, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
 | GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, email_is_placeholder, email_placeholder_provider, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
 | PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 이메일을 실제로 바꿀 때만 `current_password`(소셜 전용은 `social_provider`·`social_token`)와 새 주소로 받은 `email_code`(#3230)를 함께 보내고, 그때 응답에 새 `access_token`·`refresh_token` 이 실린다(#3039). 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
@@ -104,6 +104,14 @@
 남고(누가 골랐는지는 남기지 않는다), 모르는 코드는 조용히 버린다. 아는 코드는
 `privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
 `other`. 계정과 그에 매인 기록은 예전처럼 그대로 지워진다.
+
+애플 로그인이 연결된 계정은 지운 뒤 Apple 토큰을 철회한다(#3499, App Review Guideline 5.1.1(v)).
+앱은 본인 확인으로 애플 로그인을 다시 거칠 때 받은 `authorization_code` 를 `apple_authorization_code`
+(1024자까지, 넘으면 422)로 함께 보낸다. 서버는 그 코드를 `https://appleid.apple.com/auth/token` 에서
+토큰으로 바꾸고 `/auth/revoke` 로 철회한다 — client secret 은 Sign in with Apple 키(.p8)로 서명한 ES256 JWT
+(`APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY`)다. **철회는 탈퇴를 막지 않는다**: 코드가 없거나 키가
+설정되지 않았거나 Apple 이 실패해도 탈퇴는 200 이고, 서버 로그에만 남긴다(코드·토큰·키 값은 남기지 않는다).
+Apple 토큰을 DB 에 따로 저장하지 않는다. 애플이 연결되지 않은 계정은 이 값을 무시한다.
 
 탈퇴하면 트레이너가 그 회원과 잡아 둔 일정도 정리한다(#3341). 시작 전인 `예정` 은 `취소`
 (`cancellation_source: member`, 사유 `회원 탈퇴`)가 되고, 지난 일정은 행을 남기되 `client_name` 은
@@ -1837,7 +1845,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type, consent_required, role }`. 틀리면 401. `role` 은 계정 역할(`member`·`trainer`) — 회원 앱은 저장 전에 보고 트레이너 계정이면 토큰을 폐기하고 트레이너 웹 안내를 보인다(#3137) |
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401, 4096자를 넘는 `refresh_token` 422(#3238) |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
-| POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type, consent_required, role }`(`role` 은 위 `/auth/login` 과 같다, #3137). 실패 응답은 아래 절 |
+| POST | `/auth/social/{provider}` | `{ token, name? }` → `{ access_token, refresh_token, token_type, consent_required, role }`(`role` 은 위 `/auth/login` 과 같다, #3137). 실패 응답은 아래 절 |
 | POST | `/auth/social/kakao/code` | `{ code, redirect_uri }` → `{ access_token }` — 카카오 **웹** 로그인 창이 돌려준 인가 코드를 카카오 access_token 으로 교환(#330). 로그인은 하지 않는다 — 앱은 받은 값을 `/auth/social/kakao` 의 `token`(또는 본인 확인의 `social_token`)으로 쓴다. 아래 [소셜 로그인 실연동](#소셜-로그인-실연동-330) |
 | POST | `/auth/password-reset/request` | `{ email }` → **202** `{ status: "requested", expires_in_minutes }` — 계정 유무와 무관하게 같은 응답(#2824). 아래 [비밀번호 재설정](#비밀번호-재설정-2824) |
 | POST | `/auth/password-reset/confirm` | `{ token, new_password }` → `{ status: "reset" }`. 코드 없음·만료·사용됨은 400 `invalid_reset_token`(#2824) |
@@ -1849,13 +1857,13 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 ### 소셜 로그인 실패 응답 (#1550)
 
-`POST /auth/social/{provider}` 는 provider(google·kakao)에 토큰을 확인한 뒤
+`POST /auth/social/{provider}` 는 provider(google·kakao·apple)에 토큰을 확인한 뒤
 결과에 따라 아래처럼 답한다. **500 은 내지 않는다** — provider 점검 페이지·WAF 차단 화면처럼
 200 에 HTML 이 오거나, JSON 이 깨졌거나, 약속한 필드의 타입이 달라도 마찬가지다.
 
 | 상황 | 상태 | `detail` |
 |---|---|---|
-| 지원하지 않는 provider(`naver`·`apple` 포함, #3218) | **400** | `지원하지 않는 소셜 로그인이에요.` |
+| 지원하지 않는 provider(`naver` 포함, #3218) | **400** | `지원하지 않는 소셜 로그인이에요.` |
 | 토큰 거절(provider 가 200 아닌 응답)·요청 실패(연결·타임아웃)·필수 사용자 id 누락 | **401** | `소셜 계정을 인증하지 못했어요.` |
 | provider 응답 형식 이상 — JSON 이 아님(HTML·깨진 JSON·빈 본문), JSON 객체가 아님(배열·문자열·숫자·null), 필드 타입 이상(id 가 객체·bool 등, 하위 객체가 배열 등) | **502** | `소셜 로그인 제공자의 응답을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.` |
 | 검증 중 예상하지 못한 예외 | **502** | 위와 같음 |
@@ -1889,13 +1897,14 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 |---|---|---|
 | google | tokeninfo 의 `aud` 가 허용 목록 안, `iss` 가 `accounts.google.com`·`https://accounts.google.com`, `exp` 가 미래 | `GOOGLE_CLIENT_IDS`(콤마 구분) |
 | kakao | `GET /v1/user/access_token_info` 의 `app_id` 가 설정값과 같고, 그 `id` 가 `/v2/user/me` 의 `id` 와 같음(토큰 정보가 맞을 때만 사용자 정보를 부른다) | `KAKAO_APP_ID` |
+| apple | identity_token(JWT)을 Apple 공개키(`https://appleid.apple.com/auth/keys`, `kid` 로 고름)로 RS256 서명 검증. `iss` = `https://appleid.apple.com`, `aud` 가 허용 목록 안, `exp`·`sub` 필수(#3499). Apple 은 조회 엔드포인트가 없어 서버가 직접 검증한다 | `APPLE_CLIENT_IDS`(콤마 구분, iOS 는 번들 ID `com.csesudo.oncare`) |
 
 - 발급 앱·발급자 불일치, 만료, 두 응답의 id 불일치는 위 표의 **401** `소셜 계정을 인증하지 못했어요.` 와 같다.
   어느 검사에서 떨어졌는지는 서버 로그에만 남기고, 값(토큰·client_id·응답 본문)은 남기지 않는다.
-- 네이버·애플 로그인은 제공하지 않는다(#3218). 애플은 유료 Apple Developer Program 을 쓰지 않기로 했고
-  네이버도 함께 접었다. 두 검증기와 `APPLE_CLIENT_IDS` 설정을 지웠고, `POST /auth/social/naver`·`/apple` 은
-  모르는 provider 와 같은 **400** 이다(네이버가 쓰던 501 은 "지원 예정"이라는 뜻이라 쓰지 않는다).
-  `social_accounts.provider` 는 자유 문자열이라 스키마 변경은 없다.
+- 네이버 로그인은 제공하지 않는다(#3218). `POST /auth/social/naver` 는 모르는 provider 와 같은 **400** 이다
+  (네이버가 쓰던 501 은 "지원 예정"이라는 뜻이라 쓰지 않는다).
+- 애플 로그인은 #3218 에서 함께 걷어냈다가 #3499 에서 되살렸다. App Store 심사(Guideline 4.8)가 카카오·구글과
+  동등한 로그인으로 Sign in with Apple 을 요구한다. `social_accounts.provider` 는 자유 문자열이라 스키마 변경은 없다.
 - 허용 설정이 비어 있으면 그 provider 는 외부 호출 없이 **401** 이다(조용히 통과시키지 않는다). 기동
   점검이 비어 있는 provider 를 경고 로그로 남긴다.
 - 발급 정보 필드의 타입이 약속과 다르면(예: `aud` 가 배열, `exp` 가 숫자가 아닌 문자열, `app_id` 가 bool)
@@ -1903,7 +1912,7 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 
 ### 소셜 로그인 실연동 (#330)
 
-로그인 수단은 이메일과 **카카오·구글** 두 소셜이다. 앱이 provider SDK·로그인 창으로 받은 값을
+로그인 수단은 이메일과 **카카오·구글·애플** 세 소셜이다(애플은 회원 iOS 앱에만, #3499). 앱이 provider SDK·로그인 창으로 받은 값을
 아래처럼 서버에 넘긴다. 서버 검증 규칙은 위 [발급 앱 확인](#소셜-토큰-발급-앱-확인-3035) 절 그대로다.
 
 | provider | 플랫폼 | 앱이 받는 값 | 서버로 보내는 길 |
@@ -1912,6 +1921,13 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 | google | 웹(회원 웹·트레이너 웹) | Google Identity Services 버튼의 credential(id_token, `aud` = 웹 client_id) | 같음 |
 | kakao | Android·iOS | 카카오 SDK(카카오톡 → 없으면 카카오계정)의 access_token | `POST /auth/social/kakao { token: access_token }` |
 | kakao | 웹 | 카카오 로그인 창(`kauth.kakao.com/oauth/authorize`)이 redirect URI 로 돌려준 인가 코드 | `POST /auth/social/kakao/code { code, redirect_uri }` → `{ access_token }` → `POST /auth/social/kakao { token }` |
+| apple | iOS(회원 앱) | `sign_in_with_apple` 의 identity_token(`aud` = 번들 ID). 첫 로그인 때만 오는 이름을 함께 보낸다 | `POST /auth/social/apple { token: identity_token, name? }` |
+
+**`name`**(선택, 100자까지): Apple 은 이름을 토큰에 담지 않고 **첫 로그인 때 앱에만 한 번** 준다. 앱이 그 이름을
+`name` 으로 보내면 **새 계정을 만들 때만** 계정 이름으로 쓴다(이미 있는 계정의 이름은 바꾸지 않는다). 비었거나
+이름 규칙(아래 이름 절)에 맞지 않으면 조용히 버리고 provider 이름으로 만든다 — 이름 때문에 로그인이 실패하지
+않는다. provider 가 이름을 주면(google·kakao) 그쪽이 먼저다. Apple 이 준 이메일(이메일 가리기 주소
+`@privaterelay.appleid.com` 포함)은 `email_verified` 가 참일 때 확인된 이메일이다(아래 #1551 표).
 
 **카카오 인가 코드 교환**(`POST /auth/social/kakao/code`)
 
@@ -1941,6 +1957,8 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 | `KAKAO_APP_ID` | 카카오 콘솔의 숫자 앱 ID | 카카오 로그인·코드 교환 401 |
 | `KAKAO_LOGIN_REST_API_KEY` | 같은 카카오 앱의 REST API 키 — 로그인 창 주소에 실려 브라우저에 보이는 client_id 다. 장소 검색 키(`KAKAO_REST_API_KEY`)와 따로 발급해 두기를 권한다 | 카카오 **웹** 로그인(코드 교환) 401 |
 | `KAKAO_CLIENT_SECRET` | 위 키의 클라이언트 시크릿을 켰을 때만(비밀) | 시크릿을 켠 키면 교환 401 |
+| `APPLE_CLIENT_IDS` | 허용 `aud` — iOS 번들 ID(`com.csesudo.oncare`, 콤마 구분). 철회는 첫 값을 client_id 로 쓴다 | 애플 로그인 401 |
+| `APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY` | 탈퇴 때 토큰 철회용 Sign in with Apple 키(팀 ID·키 ID·.p8 본문, 키는 비밀) | 로그인은 되고 철회만 건너뜀(기동 경고) |
 
 기동 점검(`app/core/startup_checks.py`)은 형식이 틀린 값을 **기동 거부**한다 — `KAKAO_APP_ID` 가 숫자가
 아님(REST 키를 잘못 넣은 경우), `GOOGLE_CLIENT_IDS` 항목이 `.apps.googleusercontent.com` 으로 끝나지 않음.
@@ -1955,6 +1973,7 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 |---|---|
 | google | tokeninfo `email_verified` 가 참(문자열 `"true"`·bool 모두 받는다) |
 | kakao | `kakao_account.is_email_valid` 와 `is_email_verified` 가 **둘 다** 참 |
+| apple | identity_token 의 `email_verified` 가 참(bool·문자열 `"true"`). 이메일 가리기 주소도 Apple 이 확인한 주소다 |
 
 - 확인되지 않은 이메일(플래그가 거짓·없음)이 **기존 계정의 이메일과 같으면** 연결하지 않고, 따로 계정도
   만들지 않는다. **409** `detail: { code: "social_email_in_use", message }` 로 답한다(토큰 없음). 앱은 코드를
@@ -2465,7 +2484,7 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 | 계정 | 보낼 값 |
 |---|---|
 | 비밀번호 있음(`has_password=true`) | `current_password` |
-| 소셜 로그인 전용 | `social_provider` + `social_token` — 그 provider 로 방금 다시 로그인해 받은 토큰. 검증한 provider 계정이 **이 사용자에게 연결된** 것이어야 한다 |
+| 소셜 로그인 전용 | `social_provider` + `social_token` — 그 provider 로 방금 다시 로그인해 받은 토큰. 검증한 provider 계정이 **이 사용자에게 연결된** 것이어야 한다. 애플은 identity_token 이고, 탈퇴면 같은 로그인의 `authorization_code` 를 `apple_authorization_code` 로 더한다(#3499) |
 
 실패는 모두 **400** 이다 — 토큰은 유효하므로 앱이 로그아웃으로 오인하면 안 된다(비밀번호 변경과 같은 규약).
 

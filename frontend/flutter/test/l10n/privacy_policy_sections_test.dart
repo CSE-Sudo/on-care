@@ -133,38 +133,43 @@ void main() {
     });
   });
 
-  group('소셜 로그인 수단 (#3217)', () {
-    // 네이버·애플 로그인은 제공하지 않는다 — 애플은 유료 Apple Developer 계정을
-    // 쓰지 않기로 했고, 네이버도 함께 접었다. 남는 소셜 로그인은 카카오·구글이다.
-    // 처리방침이 쓰지 않는 수집 경로를 적으면 사실과 다른 고지가 된다.
-    test('수집 항목에 카카오·구글만 적는다', () {
+  group('소셜 로그인 수단 (#3217·#3499)', () {
+    // 네이버 로그인은 제공하지 않는다(#3217). 애플은 한때 뺐다가 iOS 앱 심사
+    // (App Review Guideline 4.8)를 위해 다시 넣었다(#3499). 처리방침이 쓰지 않는
+    // 수집 경로를 적거나, 쓰는 경로를 빠뜨리면 사실과 다른 고지가 된다.
+    test('수집 항목에 카카오·구글·애플을 적고, 애플 전달용 주소를 알린다', () {
       final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
-      expect(k, contains('소셜 로그인(카카오·구글)으로 가입하면'));
+      expect(k, contains('소셜 로그인(카카오·구글·애플)으로 가입하면'));
+      expect(k, contains('Apple이 만든 전달용 이메일 주소를 받습니다'));
     });
 
-    test('네이버·애플은 제외를 알리는 개정 이력에만 남는다', () {
-      final List<String> koLines = ko
+    test('탈퇴할 때 애플 로그인 연결 해제를 요청한다고 적는다', () {
+      final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+      final String destroy = k.split('\n10. ')[1].split('\n11. ')[0];
+      expect(destroy, contains('Apple에 로그인 연결 해제(토큰 철회)도 요청'));
+    });
+
+    test('애플 추가가 맨 위 개정 이력이고, 옛 제외 기록도 남는다', () {
+      final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+      expect(
+        k,
+        contains(
+          '- 2026년 10월 27일: 소셜 로그인 수단에 애플 추가(1항 ①), '
+          '탈퇴할 때 애플 로그인 연결 해제 추가(10항 ①)',
+        ),
+      );
+      expect(k, contains('소셜 로그인 수단에서 네이버·애플 제외'));
+      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 27.');
+    });
+
+    test('네이버는 제외를 알리는 개정 이력에만 남는다', () {
+      final List<String> lines = ko
           .myLegalPrivacyBody(LegalContact.privacyOfficerEmail)
           .split('\n')
-          .where((String line) => line.contains('애플') || line.contains('네이버'))
+          .where((String line) => line.contains('네이버'))
           .toList();
-      // 같은 날짜 개정(위치정보 동의 안내 #3136, 동의 철회 표현 #3203)과 한 줄로 합쳐져 있다.
-      const String koRevision =
-          '- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 위치정보 이용 동의 절차와 '
-          '위치기반서비스 이용약관 안내 추가(1항 ⑤), 소셜 로그인 수단에서 네이버·애플 제외, '
-          '동의 철회 방법을 앱 화면과 같은 말(연결 해제)로 정리(5항)';
-      expect(koLines, <String>[koRevision]);
-    });
-
-    test('제외 사실은 2026-10-05 개정 이력에 남는다', () {
-      // 2026-10-05 판(#3132)이 아직 배포되지 않아 같은 날짜 개정에 합쳤다.
-      // 그 뒤 메일 발송 위탁(#3443)으로 시행일이 2026-10-14 로 올랐지만
-      // 제외 사실은 2026-10-05 줄에 그대로 있다.
-      expect(
-        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'),
-      );
-      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 14.');
+      expect(lines, hasLength(1));
+      expect(lines.single, startsWith('- 2026년 10월 5일: '));
     });
 
     test('이용약관에는 소셜 로그인 수단으로 네이버·애플이 없다', () {
@@ -212,13 +217,13 @@ void main() {
     test('시행일이 자리표시자(2026년 1월 1일)가 아니다', () {
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('시행일: 2026년 10월 14일'),
+        contains('시행일: 2026년 10월 27일'),
       );
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         isNot(contains('2026년 1월 1일')),
       );
-      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 14.');
+      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 27.');
     });
 
     test('개정 이력이 있다', () {
@@ -228,10 +233,11 @@ void main() {
       );
     });
 
-    test('개정 이력은 최신순이고 맨 위가 메일 발송 위탁이다 (#3132·#3443)', () {
+    test('개정 이력은 최신순이고 맨 위가 애플 로그인 추가다 (#3132·#3443·#3499)', () {
       final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
       expect(k, contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'));
       // 새 항목이 옛 항목보다 앞에 온다 — 개정 이력은 최신순이다.
+      expect(k.indexOf('2026년 10월 27일:'), lessThan(k.indexOf('2026년 10월 14일:')));
       expect(k.indexOf('2026년 10월 14일:'), lessThan(k.indexOf('2026년 10월 5일:')));
       expect(k.indexOf('2026년 10월 5일:'), lessThan(k.indexOf('2026년 10월 3일:')));
     });

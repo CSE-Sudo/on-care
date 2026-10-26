@@ -211,7 +211,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     try {
       await ref
           .read(sessionControllerProvider.notifier)
-          .socialLogin(provider: success.provider.id, token: success.token);
+          .socialLogin(
+            provider: success.provider.id,
+            token: success.token,
+            name: success.name,
+          );
       final String next = await firstRouteAfterSignIn(container);
       if (next != AppRoutes.dashboard) router?.go(next);
     } catch (e) {
@@ -346,6 +350,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               // '준비 중' 안내를 단다 — 숨기면 화면 배치가 바뀐다(#2769).
               //
               // 웹 구글은 구글이 그리는 같은 크기의 원형 버튼이다(#330).
+              //
+              // 애플은 iOS 에만 같은 크기로 둔다(#3499, App Review Guideline 4.8).
               AppSocialLoginRow(
                 children: <Widget>[
                   AppSocialLoginButton(
@@ -376,6 +382,17 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       onPressed: null,
                     ),
                   ),
+                  if (social.offers(SocialLoginProvider.apple))
+                    AppSocialLoginButton(
+                      key: const ValueKey<String>('member-login-apple'),
+                      provider: AppSocialProvider.apple,
+                      label: l.authAppleAction,
+                      onPressed:
+                          _loading ||
+                              !social.isEnabled(SocialLoginProvider.apple)
+                          ? null
+                          : () => _social(SocialLoginProvider.apple),
+                    ),
                 ],
               ),
               if (!social.anyEnabled) ...<Widget>[

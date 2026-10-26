@@ -3,7 +3,7 @@
   POST /auth/social/{provider}  { token }  ->  { access_token, refresh_token }
   POST /auth/social/kakao/code  { code, redirect_uri }  ->  { access_token }  (웹, #330)
 
-provider(kakao/google)에서 토큰을 검증해 사용자를 찾거나 만들고,
+provider(kakao/google/apple)에서 토큰을 검증해 사용자를 찾거나 만들고,
 우리 서비스의 JWT(access+refresh)를 발급한다. 카카오 웹 로그인은 SDK 가 토큰을 주지
 않아, 먼저 인가 코드를 서버에서 카카오 access_token 으로 바꾼 뒤 같은 로그인 길을 탄다.
 """
@@ -63,7 +63,9 @@ def _placeholder_email(identity: SocialIdentity) -> str:
     return placeholder_email(identity.provider, identity.provider_user_id)
 
 
-def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
+def _find_or_create_user(
+    db: Session, identity: SocialIdentity, app_name: str | None = None
+) -> User:
     # 1) 이미 연결된 소셜 계정이면 그 사용자
     account = db.scalar(
         select(SocialAccount).where(
@@ -104,7 +106,8 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
         user = User(
             id=f"user-{uuid.uuid4().hex[:12]}",
             email=email or _placeholder_email(identity),
-            name=identity.name or identity.provider,
+            # Apple 은 이름을 토큰에 담지 않아 앱이 받은 이름을 따로 보낸다(#3499).
+            name=identity.name or app_name or identity.provider,
             hashed_password="",  # 소셜 계정은 비밀번호 없음
         )
         db.add(user)
@@ -121,7 +124,11 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
 
 
 def _complete_login(
-    db: Session, identity: SocialIdentity, ip: str | None, provider: str
+    db: Session,
+    identity: SocialIdentity,
+    ip: str | None,
+    provider: str,
+    app_name: str | None = None,
 ) -> LoginToken:
     """검증된 신원으로 사용자를 찾거나 만들고 감사 기록 뒤 토큰을 낸다. 동기(#2835).
 
@@ -133,10 +140,10 @@ def _complete_login(
     401 이다 — 예전에는 200 과 토큰을 받고 다음 요청부터 401 이었다.
     """
     try:
-        user = _find_or_create_user(db, identity)
+        user = _find_or_create_user(db, identity, app_name)
     except IntegrityError:
         db.rollback()
-        user = _find_or_create_user(db, identity)
+        user = _find_or_create_user(db, identity, app_name)
     if user is None or not user.is_active:
         audit(
             db, event="auth.social", user_id=user.id if user else None, ip=ip,
@@ -239,7 +246,9 @@ async def social_login(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=_PROVIDER_BAD_RESPONSE)
 
     try:
-        return await run_in_threadpool(_complete_login, db, identity, ip, provider)
+        return await run_in_threadpool(
+            _complete_login, db, identity, ip, provider, payload.name
+        )
     except SocialEmailInUse:
         # 인증은 됐지만 로그인시키지 않았다 — 실패로 남기고 이유를 붙인다(#1551).
         await run_in_threadpool(

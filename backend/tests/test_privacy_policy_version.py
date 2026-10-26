@@ -76,33 +76,49 @@ def test_contact_change_is_recorded_in_the_history(app: str):
     assert "개인정보 보호책임자 연락처 변경" in _privacy_body(app, "ko")
 
 
-def test_naver_apple_removal_is_folded_into_the_unreleased_revision():
-    """네이버·애플 로그인 제외(#3217)는 미배포 2026-10-05 판에 합쳤다 — 버전을 새로 만들지 않는다.
+def test_naver_removal_stays_in_the_2026_10_05_revision():
+    """네이버·애플 로그인 제외(#3217)는 미배포 2026-10-05 판에 합쳤다 — 그 기록은 그대로 둔다.
 
     같은 날짜 안에서 두 번째 버전을 만들 수 없고(버전이 날짜 문자열), 그 판은 아직
-    배포 전이라 재동의를 다시 요구할 실익이 없다. 그래서 동의 버전은 그대로이고,
-    회원 앱 처리방침의 같은 날짜 개정 이력에 제외 사실을 덧붙였다. 그 뒤 메일 발송 위탁
-    추가(#3443)로 버전이 2026-10-14 로 올랐지만, 제외 사실은 2026-10-05 줄에 그대로 있다.
+    배포 전이라 재동의를 다시 요구할 실익이 없었다. 그래서 회원 앱 처리방침의 같은 날짜
+    개정 이력에 제외 사실을 덧붙였다. 애플은 그 뒤 다시 넣었지만(#3499, 아래 테스트)
+    지난 개정 이력은 고치지 않는다.
     """
     assert _privacy_version() >= date(2026, 10, 5)
     ko = _privacy_body("flutter", "ko")
     # 같은 날짜 개정(위치정보 동의 안내, #3136)과 한 줄로 합쳐져 있다.
     assert "- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경," in ko
     assert "소셜 로그인 수단에서 네이버·애플 제외" in ko
-    # 수집 항목에는 실제로 제공하는 소셜 로그인만 남는다.
-    assert "소셜 로그인(카카오·구글)" in ko
+
+
+def test_apple_sign_in_is_a_new_privacy_version():
+    """애플 로그인을 다시 넣은 개정(#3499)은 새 버전이다 — 2026-10-14 판이 이미 운영 중이다.
+
+    회원 앱 처리방침은 수집 경로(1항 ①)와 탈퇴 때의 연결 해제(10항 ①)를 알린다. 트레이너
+    웹에는 애플 로그인이 없지만 처리방침 버전이 하나라 시행일만 함께 옮긴다.
+    """
+    assert _privacy_version() == date(2026, 10, 27)
+    member = _privacy_body("flutter", "ko")
+    assert "소셜 로그인(카카오·구글·애플)으로 가입하면" in member
+    assert "Apple이 만든 전달용 이메일 주소" in member
+    destroy = member.split("\n10. ", 1)[1].split("\n11. ", 1)[0]
+    assert "Apple에 로그인 연결 해제(토큰 철회)도 요청" in destroy
+    assert "- 2026년 10월 27일: 소셜 로그인 수단에 애플 추가(1항 ①)" in member
+    trainer = _privacy_body("flutter_trainer", "ko")
+    assert "- 2026년 10월 27일: 회원 앱 처리방침 개정에 맞춘 시행일 변경" in trainer
 
 
 @pytest.mark.parametrize("app", _APPS)
-def test_naver_apple_appear_only_in_the_revision_history(app: str):
-    """네이버·애플은 제외를 알리는 개정 이력 줄 말고는 처리방침에 나오지 않는다(#3217)."""
-    lines = [
-        line
-        for line in _privacy_body(app, "ko").splitlines()
-        if any(word in line for word in ("네이버", "애플"))
-    ]
-    for line in lines:
-        assert line.startswith("- 2026년 10월 5일: "), line
+def test_naver_appears_only_in_the_revision_history(app: str):
+    """네이버는 제외를 알리는 개정 이력 줄 말고는 처리방침에 나오지 않는다(#3217)."""
+    for line in _privacy_body(app, "ko").splitlines():
+        if "네이버" in line:
+            assert line.startswith("- 2026년 10월 5일: "), line
+
+
+def test_trainer_policy_does_not_name_apple_as_a_login():
+    """트레이너 웹에는 애플 로그인이 없다 — 애플은 회원 iOS 앱에만 있다(#3499)."""
+    assert "애플" not in _privacy_body("flutter_trainer", "ko")
 
 
 def test_contact_placeholder_is_kept_in_every_body():

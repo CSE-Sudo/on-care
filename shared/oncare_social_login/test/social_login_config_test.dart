@@ -33,13 +33,31 @@ void main() {
   });
 
   group('SocialLoginConfig.isEnabled', () {
-    test('빈 설정은 어디서도 켜지지 않는다', () {
+    test('빈 설정은 iOS 애플 말고는 켜지지 않는다', () {
       const SocialLoginConfig config = SocialLoginConfig();
       for (final SocialLoginProvider p in SocialLoginProvider.values) {
         for (final SocialLoginPlatform pl in SocialLoginPlatform.values) {
-          expect(config.isEnabled(p, pl), isFalse, reason: '$p $pl');
+          final bool apple =
+              p == SocialLoginProvider.apple && pl == SocialLoginPlatform.ios;
+          expect(config.isEnabled(p, pl), apple, reason: '$p $pl');
         }
       }
+    });
+
+    test('애플 — iOS 에서만, 빌드 변수 없이 켜진다(#3499)', () {
+      const SocialLoginConfig full = SocialLoginConfig(
+        kakaoNativeAppKey: _kakaoKey,
+        kakaoLoginRestApiKey: _kakaoKey,
+        googleWebClientId: _webId,
+        googleIosClientId: _iosId,
+      );
+      const SocialLoginProvider a = SocialLoginProvider.apple;
+      expect(full.isEnabled(a, SocialLoginPlatform.ios), isTrue);
+      // 트레이너 웹·회원 웹·Android 에는 애플 버튼을 두지 않는다.
+      expect(full.isEnabled(a, SocialLoginPlatform.web), isFalse);
+      expect(full.isEnabled(a, SocialLoginPlatform.android), isFalse);
+      expect(full.isEnabled(a, SocialLoginPlatform.other), isFalse);
+      expect(a.id, 'apple');
     });
 
     test('카카오 — 웹은 REST 키, 모바일은 네이티브 키', () {

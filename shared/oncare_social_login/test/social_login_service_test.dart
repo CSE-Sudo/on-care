@@ -13,6 +13,7 @@ void main() {
   late FakeGoogleGateway google;
   late FakeKakaoGateway kakao;
   late RecordingPopup popup;
+  late FakeAppleGateway apple;
 
   SocialLoginService service(
     SocialLoginPlatform platform, {
@@ -28,12 +29,14 @@ void main() {
     kakaoGateway: kakao,
     kakaoPopup: popup,
     googleGateway: google,
+    appleGateway: apple,
   );
 
   setUp(() {
     google = FakeGoogleGateway();
     kakao = FakeKakaoGateway();
     popup = RecordingPopup();
+    apple = FakeAppleGateway();
   });
 
   tearDown(() async {
@@ -88,7 +91,7 @@ void main() {
 
   test('켜진 provider 가 없으면 anyEnabled=false, signIn 은 notConfigured', () async {
     final SocialLoginService s = service(
-      SocialLoginPlatform.ios,
+      SocialLoginPlatform.android,
       config: const SocialLoginConfig(),
     );
     expect(s.anyEnabled, isFalse);
@@ -97,6 +100,39 @@ void main() {
       (r as SocialSignInFailure).reason,
       SocialSignInFailureReason.notConfigured,
     );
+  });
+
+  test('iOS 는 빈 설정이어도 애플만 켜진다(#3499)', () async {
+    final SocialLoginService s = service(
+      SocialLoginPlatform.ios,
+      config: const SocialLoginConfig(),
+    );
+    expect(s.anyEnabled, isTrue);
+    expect(s.isEnabled(SocialLoginProvider.apple), isTrue);
+    expect(s.isEnabled(SocialLoginProvider.kakao), isFalse);
+    final SocialSignInResult r = await s.signIn(SocialLoginProvider.apple);
+    final SocialSignInSuccess ok = r as SocialSignInSuccess;
+    expect(ok.provider, SocialLoginProvider.apple);
+    expect(ok.token, 'apple-identity-token');
+    expect(ok.authorizationCode, 'apple-code');
+    expect(apple.calls, 1);
+  });
+
+  test('웹·Android 에서 애플은 창을 띄우지 않고 notConfigured', () async {
+    for (final SocialLoginPlatform pl in <SocialLoginPlatform>[
+      SocialLoginPlatform.web,
+      SocialLoginPlatform.android,
+    ]) {
+      final SocialSignInResult r = await service(
+        pl,
+      ).signIn(SocialLoginProvider.apple);
+      expect(
+        (r as SocialSignInFailure).reason,
+        SocialSignInFailureReason.notConfigured,
+        reason: '$pl',
+      );
+    }
+    expect(apple.calls, 0);
   });
 
   test('provider 별로 켜진다', () {

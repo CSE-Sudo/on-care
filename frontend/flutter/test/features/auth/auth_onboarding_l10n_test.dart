@@ -23,6 +23,8 @@ const Map<String, String> _koBefore = <String, String>{
   'authSocialDivider': 'SNS 계정으로 로그인',
   'authKakaoAction': '카카오로 시작하기',
   'authGoogleAction': '구글로 시작하기',
+  // 애플 공식 한국어 버튼 이름(#3499).
+  'authAppleAction': 'Apple로 로그인',
   // 빈칸 토스트(authMissingCredentials)는 칸 아래 오류 문구로 바뀌어 지웠다(#1784).
   'authSignInFailed': '로그인하지 못했어요. 이메일·비밀번호를 확인해 주세요',
   'authSocialSignInFailed': '소셜 로그인을 하지 못했어요. 잠시 후 다시 시도해 주세요',
@@ -123,6 +125,7 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'authSocialDivider' => l.authSocialDivider,
   'authKakaoAction' => l.authKakaoAction,
   'authGoogleAction' => l.authGoogleAction,
+  'authAppleAction' => l.authAppleAction,
   'authEmailEmpty' => l.authEmailEmpty,
   'authEmailInvalid' => l.authEmailInvalid,
   'authPasswordEmpty' => l.authPasswordEmpty,

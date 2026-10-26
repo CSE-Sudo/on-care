@@ -9,6 +9,8 @@
 하는 일
   1. 프로비저닝 프로필(`security cms -D` 로 푼 plist)에서 UUID·이름·팀 ID·앱 ID 를 읽고,
      앱 ID 가 `<팀 ID>.<번들 ID>` 인지 확인한다(다른 앱의 프로필이면 멈춘다).
+     `--entitlements` 를 주면 앱이 쓰는 권한(예: Sign in with Apple, #3499)이 프로필에
+     모두 들어 있는지도 본다 — 빠진 프로필로 만든 IPA 는 기기에서 그 기능이 실패한다.
   2. project.pbxproj 에서 번들 ID 가 정확히 그 값인 **Release** 빌드 설정 하나(Runner 타깃)에
      수동 서명 설정을 넣는다. Pods·RunnerTests·Debug·Profile 은 건드리지 않는다 — 명령줄로
      PROVISIONING_PROFILE_SPECIFIER 를 넘기면 모든 타깃에 걸려 Pods 빌드가 깨지기 때문이다.
@@ -16,7 +18,8 @@
 
 사용
   ios_release_signing.py --pbxproj <project.pbxproj> --profile-plist <풀어 둔 프로필 plist> \\
-      --bundle-id com.csesudo.oncare --export-options <출력 plist>
+      --bundle-id com.csesudo.oncare --export-options <출력 plist> \\
+      [--entitlements ios/Runner/Runner.entitlements]
 """
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ import argparse
 import plistlib
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -64,8 +68,12 @@ class Profile:
     app_id: str
 
 
-def read_profile(data: bytes, bundle_id: str) -> Profile:
-    """풀어 둔 프로비저닝 프로필 plist 를 읽고 이 앱의 배포용 프로필인지 확인한다."""
+def read_profile(data: bytes, bundle_id: str, required_entitlements: Iterable[str] = ()) -> Profile:
+    """풀어 둔 프로비저닝 프로필 plist 를 읽고 이 앱의 배포용 프로필인지 확인한다.
+
+    required_entitlements 는 앱의 .entitlements 에 적힌 권한 이름이다. 하나라도 프로필에
+    없으면 멈춘다 — 개발자 포털에서 앱 ID 기능을 켠 뒤 프로필을 다시 만들어야 한다.
+    """
     try:
         plist = plistlib.loads(data)
     except Exception as exc:  # plistlib 은 형식마다 다른 예외를 낸다.
@@ -89,6 +97,13 @@ def read_profile(data: bytes, bundle_id: str) -> Profile:
         raise SigningError("개발용 프로필(get-task-allow)입니다. App Store 배포용 프로필을 넣으세요.")
     if plist.get("ProvisionedDevices"):
         raise SigningError("기기 목록이 있는 프로필(Ad Hoc·개발용)입니다. App Store 배포용 프로필을 넣으세요.")
+    granted = plist.get("Entitlements") or {}
+    missing = sorted(key for key in required_entitlements if key not in granted)
+    if missing:
+        raise SigningError(
+            f"프로필에 앱이 쓰는 권한이 없습니다: {', '.join(missing)}. 개발자 포털에서 앱 ID 의 기능"
+            "(예: Sign in with Apple)을 켜고 프로필을 다시 만들어 IOS_PROVISIONING_PROFILE_BASE64 를 바꾸세요."
+        )
     return Profile(uuid=uuid, name=name, team_id=team_id, app_id=app_id)
 
 
@@ -165,16 +180,29 @@ def export_options(bundle_id: str, profile: Profile) -> bytes:
     )
 
 
+def read_entitlement_keys(data: bytes) -> list[str]:
+    """앱의 .entitlements(plist)에 적힌 권한 이름."""
+    try:
+        plist = plistlib.loads(data)
+    except Exception as exc:  # plistlib 은 형식마다 다른 예외를 낸다.
+        raise SigningError(f"entitlements 파일을 plist 로 읽지 못했습니다: {exc}") from exc
+    if not isinstance(plist, dict):
+        raise SigningError("entitlements 파일이 dict 가 아닙니다.")
+    return sorted(str(key) for key in plist)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--pbxproj", type=Path, required=True)
     parser.add_argument("--profile-plist", type=Path, required=True)
     parser.add_argument("--bundle-id", required=True)
     parser.add_argument("--export-options", type=Path, required=True)
+    parser.add_argument("--entitlements", type=Path)
     args = parser.parse_args(argv)
 
     try:
-        profile = read_profile(args.profile_plist.read_bytes(), args.bundle_id)
+        required = read_entitlement_keys(args.entitlements.read_bytes()) if args.entitlements else []
+        profile = read_profile(args.profile_plist.read_bytes(), args.bundle_id, required)
         patched = apply_manual_signing(args.pbxproj.read_text(encoding="utf-8"), args.bundle_id, profile)
     except (OSError, SigningError) as exc:
         print(f"::error title=iOS signing::{exc}", file=sys.stderr)

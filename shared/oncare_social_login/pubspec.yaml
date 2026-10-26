@@ -1,5 +1,5 @@
 name: oncare_social_login
-description: "On-Care 두 앱(회원 앱·트레이너 웹)이 함께 쓰는 카카오·구글 로그인 연동 (#330)."
+description: "On-Care 두 앱(회원 앱·트레이너 웹)이 함께 쓰는 카카오·구글·애플 로그인 연동 (#330, #3499)."
 publish_to: 'none'
 version: 0.1.0
 
@@ -23,6 +23,9 @@ dependencies:
   google_sign_in: ^7.2.0
   # 웹 전용 GIS 버튼(`renderButton`). google_sign_in 의 웹 구현이라 버전을 함께 맞춘다.
   google_sign_in_web: ^1.1.3
+  # 애플 로그인(#3499) — iOS 의 AuthenticationServices(ASAuthorizationAppleIDProvider)를
+  # 감싼다. 회원 iOS 앱에서만 켠다(App Store 심사 Guideline 4.8).
+  sign_in_with_apple: ^8.2.0
 
 dev_dependencies:
   flutter_test:

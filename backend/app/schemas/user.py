@@ -352,8 +352,24 @@ class SignupEmailCodeSent(BaseModel):
 
 
 class SocialLoginRequest(BaseModel):
-    # provider 가 준 토큰 (kakao=access_token, google=id_token)
+    # provider 가 준 토큰 (kakao=access_token, google=id_token, apple=identity_token)
     token: str = Field(max_length=TOKEN_MAX_LENGTH)
+    #: 앱이 provider 에게서 따로 받은 이름(#3499). Apple 은 이름을 토큰에 담지 않고 첫
+    #: 로그인 때 앱에만 한 번 준다 — 그 이름을 계정 이름으로 쓰려고 받는다. 새 계정을
+    #: 만들 때 provider 가 이름을 주지 않았을 때만 쓰고, 기존 계정의 이름은 바꾸지 않는다.
+    name: Optional[str] = Field(default=None, max_length=100)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _check_name(cls, value: Any) -> Any:
+        # 가입과 같은 기준으로 다듬는다. 이름이 맞지 않는다고 로그인을 막지는 않는다 —
+        # 비었거나 쓸 수 없는 이름이면 받지 않은 것으로 둔다.
+        if not isinstance(value, str) or not value.strip():
+            return None
+        try:
+            return clean_name(value)
+        except ValueError:
+            return None
 
 
 class KakaoCodeExchangeRequest(BaseModel):
@@ -681,6 +697,10 @@ class AccountDeleteRequest(ReauthFields):
     """
 
     reasons: list[str] = Field(default_factory=list, max_length=10)
+    #: 애플로 가입한 계정이 본인 확인으로 다시 애플 로그인을 했을 때 받은
+    #: `authorization_code`(#3499). 서버는 탈퇴 뒤 이 코드로 Apple 토큰을 철회한다
+    #: (`services/social/apple_revoke.py`). 없어도 탈퇴는 된다.
+    apple_authorization_code: Optional[str] = Field(default=None, max_length=1024)
 
 
 class AccountDeletionPreview(BaseModel):

@@ -131,6 +131,20 @@ def test_kakao_web_login_settings_are_optional() -> None:
     assert params["KakaoLoginRestApiKey"]["Default"] == ""
 
 
+def test_apple_sign_in_settings_are_optional() -> None:
+    # 애플 로그인(#3499): 허용 aud·팀 ID·키 ID 는 파라미터, .p8 키는 켤 때만 비밀에서 읽는다.
+    env = _conditional("Environment")
+    assert env["APPLE_CLIENT_IDS"] == "HasAppleClientIds"
+    assert env["APPLE_TEAM_ID"] == "HasAppleTeamId"
+    assert env["APPLE_KEY_ID"] == "HasAppleKeyId"
+    assert _conditional("Secrets")["APPLE_PRIVATE_KEY"] == "HasAppleSignInKey"
+    assert "APPLE_PRIVATE_KEY" not in _container_env()
+    params = SERVICE["Parameters"]
+    assert params["AppleSignInKeyEnabled"]["Default"] == "false"
+    for name in ("AppleClientIds", "AppleTeamId", "AppleKeyId"):
+        assert params[name]["Default"] == "", name
+
+
 def test_attachments_go_to_the_environment_bucket() -> None:
     env = _container_env()
     assert env["ATTACHMENT_STORAGE"] == "s3"

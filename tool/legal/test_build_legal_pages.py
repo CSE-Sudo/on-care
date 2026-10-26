@@ -262,21 +262,27 @@ class RepositoryPagesTest(unittest.TestCase):
         )
         self.assertNotIn("@oncare.com", privacy)
 
-    def test_published_pages_do_not_offer_naver_or_apple_login(self) -> None:
-        # 네이버·애플 로그인은 제공하지 않는다(#3217). 처리방침이 수집 경로로 적으면
-        # 사실과 다른 고지가 된다. 둘이 남아도 되는 곳은 그 제외를 알리는 개정
-        # 이력 한 줄뿐이다. 글꼴 이름 `-apple-system` 은 소문자라 걸리지 않는다.
+    def test_published_pages_do_not_offer_naver_login(self) -> None:
+        # 네이버 로그인은 제공하지 않는다(#3217). 처리방침이 수집 경로로 적으면
+        # 사실과 다른 고지가 된다. 남아도 되는 곳은 그 제외를 알리는 개정 이력 한 줄뿐이다.
         for path, text in blp.build().items():
             for line in text.splitlines():
-                if re.search(r"애플|네이버|\bApple\b|\bNaver\b", line):
+                if re.search(r"네이버|\bNaver\b", line):
                     self.assertRegex(
                         line,
                         r"2026년 10월 5일: .*네이버·애플 제외"
                         r"|5 October 2026: .*removed Naver and Apple",
                         f"{path.name}: {line.strip()}",
                     )
+
+    def test_published_privacy_page_names_apple_login(self) -> None:
+        # iOS 회원 앱에 애플 로그인을 다시 넣었다(#3499) — 수집 경로·탈퇴 때 연결 해제와
+        # 그 개정 이력이 공개 처리방침에도 실린다.
         privacy = (blp.OUT_DIR / "privacy.html").read_text(encoding="utf-8")
-        self.assertIn("소셜 로그인(카카오·구글)", privacy)
+        self.assertIn("소셜 로그인(카카오·구글·애플)", privacy)
+        self.assertIn("전달용 이메일 주소", privacy)
+        self.assertIn("애플 로그인 연결 해제", privacy)
+        self.assertIn("2026년 10월 27일: 소셜 로그인 수단에 애플 추가", privacy)
 
     def test_every_source_document_is_published(self) -> None:
         pages = blp.build()
