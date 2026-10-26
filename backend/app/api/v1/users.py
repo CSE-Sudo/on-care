@@ -43,7 +43,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
-from app.models.models import AccountDeletionReason, HealthProfile, User
+from app.models.models import AccountDeletionReason, HealthProfile, SocialAccount, User
 from app.schemas.user import (
     AccountDeleteRequest,
     AccountDeletionPreview,
@@ -101,6 +101,7 @@ from app.services.diet_coach_inputs import effective_protein_g
 from app.services.trainer import _common as trainer_common_service
 from app.services.contact_format import normalize_email
 from app.services.placeholder_email import is_placeholder_email, placeholder_provider
+from app.services.social import apple_revoke
 from app.services.profile_format import name_from_email
 
 router = APIRouter(tags=["users"])
@@ -634,9 +635,20 @@ def delete_me(
     # 채팅 첨부의 바이트는 DB 밖에 있어 CASCADE 가 닿지 않는다 — 행이 사라지기
     # 전에 목록을 잡아 두고, 커밋이 끝난 뒤에 지운다(#2817).
     attachments = attachment_cleanup.files_in_threads(db, member_id=user.id)
+    # 애플로 가입한 계정이면 지운 뒤 Apple 토큰을 철회한다(#3499). 연결 행은
+    # CASCADE 로 사라지므로 지우기 전에 확인해 둔다.
+    has_apple = db.scalar(
+        select(SocialAccount.id).where(
+            SocialAccount.user_id == user.id, SocialAccount.provider == "apple"
+        )
+    ) is not None
     db.delete(user)
     db.commit()
     attachment_cleanup.purge(attachments)
+    if has_apple:
+        apple_revoke.revoke_with_code(
+            payload.apple_authorization_code if payload else None
+        )
     return {"status": "deleted"}
 
 
