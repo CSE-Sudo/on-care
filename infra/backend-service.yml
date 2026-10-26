@@ -76,6 +76,26 @@ Parameters:
     Type: String
     Default: 'false'
     AllowedValues: ['true', 'false']
+  # Apple 로그인 aud 목록(#3499) — iOS 회원 앱의 번들 ID. 비우면 Apple 로그인은 401.
+  AppleClientIds:
+    Type: String
+    Default: ''
+    AllowedPattern: '^[A-Za-z0-9.,-]*$'
+  # 탈퇴 때 Apple 토큰을 철회하는 키의 팀 ID·키 ID(#3499). 비밀이 아니다. 키 본문(.p8)은
+  # 비밀(SecretArn)의 APPLE_PRIVATE_KEY 에 넣고 AppleSignInKeyEnabled 를 true 로 둔다 —
+  # 비밀에 없는 키를 참조하면 태스크가 뜨지 않으므로 켤 때만 참조한다.
+  AppleTeamId:
+    Type: String
+    Default: ''
+    AllowedPattern: '^[A-Z0-9]*$'
+  AppleKeyId:
+    Type: String
+    Default: ''
+    AllowedPattern: '^[A-Z0-9]*$'
+  AppleSignInKeyEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
   AllowDemoFallback:
     Type: String
     Default: 'false'
@@ -135,6 +155,10 @@ Conditions:
   HasKakaoAppId: !Not [!Equals [!Ref KakaoAppId, '']]
   HasKakaoLoginRestApiKey: !Not [!Equals [!Ref KakaoLoginRestApiKey, '']]
   HasKakaoClientSecret: !Equals [!Ref KakaoClientSecretEnabled, 'true']
+  HasAppleClientIds: !Not [!Equals [!Ref AppleClientIds, '']]
+  HasAppleTeamId: !Not [!Equals [!Ref AppleTeamId, '']]
+  HasAppleKeyId: !Not [!Equals [!Ref AppleKeyId, '']]
+  HasAppleSignInKey: !Equals [!Ref AppleSignInKeyEnabled, 'true']
   HasMail: !Not [!Equals [!Ref MailFrom, '']]
   HasMemberResetUrl: !Not [!Equals [!Ref PasswordResetMemberUrl, '']]
   HasTrainerResetUrl: !Not [!Equals [!Ref PasswordResetTrainerUrl, '']]
@@ -279,6 +303,21 @@ Resources:
               Value: !Ref KakaoLoginRestApiKey
             - !Ref AWS::NoValue
           - !If
+            - HasAppleClientIds
+            - Name: APPLE_CLIENT_IDS
+              Value: !Ref AppleClientIds
+            - !Ref AWS::NoValue
+          - !If
+            - HasAppleTeamId
+            - Name: APPLE_TEAM_ID
+              Value: !Ref AppleTeamId
+            - !Ref AWS::NoValue
+          - !If
+            - HasAppleKeyId
+            - Name: APPLE_KEY_ID
+              Value: !Ref AppleKeyId
+            - !Ref AWS::NoValue
+          - !If
             - HasMail
             - Name: MAIL_PROVIDER
               Value: smtp
@@ -345,6 +384,11 @@ Resources:
             - HasKakaoClientSecret
             - Name: KAKAO_CLIENT_SECRET
               ValueFrom: !Sub '${SecretArn}:KAKAO_CLIENT_SECRET::'
+            - !Ref AWS::NoValue
+          - !If
+            - HasAppleSignInKey
+            - Name: APPLE_PRIVATE_KEY
+              ValueFrom: !Sub '${SecretArn}:APPLE_PRIVATE_KEY::'
             - !Ref AWS::NoValue
           # 데모 시드가 켜지는 staging 만. 운영은 데모 계정이 없다.
           - !If
