@@ -104,7 +104,7 @@ Rect _viewRect(WidgetTester tester) {
 }
 
 void main() {
-  Future<void> openAll(WidgetTester tester) async {
+  Future<void> openAll(WidgetTester tester, {DateTime? firstRecord}) async {
     tester.view.physicalSize = const Size(420, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -112,7 +112,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
-          testRecordSpanOverride(),
+          testRecordSpanOverride(diet: firstRecord),
           dietRepositoryProvider.overrideWithValue(_VaryingDietRepository()),
           accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         ],
@@ -205,5 +205,39 @@ void main() {
           .toList(growable: false),
       <String>['10/19', '11/2', '11/16', '11/30', '12/14', '12/28'],
     );
+  });
+
+  testWidgets('가입한 지 며칠 안 돼 기록이 짧아도 축 날짜가 서로 겹치지 않는다', (
+    WidgetTester tester,
+  ) async {
+    // 10/22 가입, 10/26 에 연 회원 — 다섯 칸뿐인데 칸 폭은 한 화면 24칸 기준이라
+    // 칸마다 날짜를 적으면 `10/22`·`10/23`… 이 한 덩어리로 겹쳤다.
+    useFixedKstDate(DateTime(2026, 10, 26));
+    await openAll(tester, firstRecord: DateTime(2026, 10, 22));
+
+    final List<Element> labels = _labelElements();
+    expect(
+      labels.map((Element e) => (e.widget as Text).data!).toList(),
+      <String>['10/22', '10/26'],
+    );
+    // 라벨 상자는 최소 폭(52px)이라 서로 닿을 수 있다 — 가운데 정렬된 글자
+    // 자체의 가로 구간이 겹치지 않는지 본다.
+    final List<(double, double)> glyphs = <(double, double)>[
+      for (final Element e in labels)
+        () {
+          final RenderParagraph p = e.renderObject! as RenderParagraph;
+          final double center =
+              p.localToGlobal(Offset.zero).dx + p.size.width / 2;
+          final double half = p.getMaxIntrinsicWidth(double.infinity) / 2;
+          return (center - half, center + half);
+        }(),
+    ];
+    for (int i = 1; i < glyphs.length; i++) {
+      expect(
+        glyphs[i].$1,
+        greaterThan(glyphs[i - 1].$2),
+        reason: '${glyphs[i - 1]} / ${glyphs[i]}',
+      );
+    }
   });
 }
