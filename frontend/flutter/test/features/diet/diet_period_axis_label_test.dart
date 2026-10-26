@@ -9,8 +9,11 @@
 /// 두 자리 월 기준일을 모두 고정해 본다.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
@@ -65,6 +68,20 @@ class _VaryingDietRepository extends FakeDietRepository {
   );
 }
 
+/// 실제 글꼴(Pretendard). 테스트 기본 글꼴은 글자마다 정사각형이라 라벨 폭이
+/// 실제의 두 배쯤 된다 — 라벨끼리 겹치는지는 실제 폭으로 봐야 한다.
+Future<void> _loadFonts() async {
+  final FontLoader loader = FontLoader('Pretendard');
+  for (final String w in <String>['Regular', 'Medium', 'SemiBold', 'Bold']) {
+    loader.addFont(
+      File(
+        'assets/fonts/Pretendard-$w.otf',
+      ).readAsBytes().then((Uint8List b) => ByteData.view(b.buffer)),
+    );
+  }
+  await loader.load();
+}
+
 /// 축에 적힌 날짜 라벨들 — 빈 칸(라벨 없는 칸)은 위젯 자체가 없다.
 final RegExp _dateLabel = RegExp(r'^\d{1,2}/\d{1,2}$');
 
@@ -104,7 +121,7 @@ Rect _viewRect(WidgetTester tester) {
 }
 
 void main() {
-  Future<void> openAll(WidgetTester tester) async {
+  Future<void> openAll(WidgetTester tester, {DateTime? firstRecord}) async {
     tester.view.physicalSize = const Size(420, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -112,7 +129,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
-          testRecordSpanOverride(),
+          testRecordSpanOverride(diet: firstRecord),
           dietRepositoryProvider.overrideWithValue(_VaryingDietRepository()),
           accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         ],
@@ -206,4 +223,45 @@ void main() {
       <String>['10/19', '11/2', '11/16', '11/30', '12/14', '12/28'],
     );
   });
+
+  for (final (int days, List<String> expected) in <(int, List<String>)>[
+    (5, <String>['10/22']),
+    (11, <String>['10/16', '10/22']),
+  ]) {
+    testWidgets('가입한 지 며칠 안 돼 기록이 짧아도 축 날짜가 서로 겹치지 않는다 — $days일', (
+      WidgetTester tester,
+    ) async {
+      // 10/26 에 연 회원 — 칸 폭은 한 화면 24칸 기준이라 칸마다 날짜를 적으면
+      // `10/22`·`10/23`… 이 한 덩어리로 겹쳤다. 테스트 글꼴은 글자마다 정사각형이라
+      // 폭이 부풀려지므로 실제 글꼴로 잰다.
+      await _loadFonts();
+      useFixedKstDate(DateTime(2026, 10, 26));
+      await openAll(tester, firstRecord: DateTime(2026, 10, 27 - days));
+
+      final List<Element> labels = _labelElements();
+      expect(
+        labels.map((Element e) => (e.widget as Text).data!).toList(),
+        expected,
+      );
+      // 라벨 상자는 최소 폭(52px)이라 서로 닿을 수 있다 — 가운데 정렬된 글자
+      // 자체의 가로 구간이 겹치지 않는지 본다.
+      final List<(double, double)> glyphs = <(double, double)>[
+        for (final Element e in labels)
+          () {
+            final RenderParagraph p = e.renderObject! as RenderParagraph;
+            final double center =
+                p.localToGlobal(Offset.zero).dx + p.size.width / 2;
+            final double half = p.getMaxIntrinsicWidth(double.infinity) / 2;
+            return (center - half, center + half);
+          }(),
+      ];
+      for (int i = 1; i < glyphs.length; i++) {
+        expect(
+          glyphs[i].$1,
+          greaterThan(glyphs[i - 1].$2),
+          reason: '${glyphs[i - 1]} / ${glyphs[i]}',
+        );
+      }
+    });
+  }
 }

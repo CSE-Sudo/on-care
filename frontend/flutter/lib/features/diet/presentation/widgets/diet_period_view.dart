@@ -827,8 +827,15 @@ class _PeriodBars extends StatelessWidget {
     final double maxValue = peak * 1.15;
     // 목표가 0이면 초과 판정을 하지 않는다 — 카드 위쪽 숫자도 같은 규칙이다.
     final bool hasGoal = goal > 0;
-    // 달(30칸)에서도 라벨이 겹치지 않도록 몇 칸에 하나만 적는다.
-    final int labelStep = values.length > 10 ? (values.length / 6).ceil() : 1;
+    // 기간 전체에 라벨을 여섯 개쯤 적되, 한 화면(24칸)에 네 개보다 촘촘하게는
+    // 적지 않는다. 칸 폭은 날 수가 아니라 한 화면의 칸 수로 정해져서, 가입한 지
+    // 며칠 안 된 회원(기록 열흘 이하)은 좁은 칸마다 날짜가 적혀 서로 겹쳤다.
+    // 네 칸 간격도 모자라다 — 맨 왼쪽 라벨은 그래프 밖으로 나가지 않게 안쪽으로
+    // 당겨져 둘째 라벨과 닿는다.
+    final int labelStep = math.max(
+      (values.length / 6).ceil(),
+      (_kAllDaysPerScreen / 4).ceil(),
+    );
     final List<String> weekdays = _weekdayLabels(l);
     // 기록이 하나도 없는 기간은 막대마다 `기록 없음` 을 읽히는 대신 비어 있다고
     // 한 번만 말한다(#972).
