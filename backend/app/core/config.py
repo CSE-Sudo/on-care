@@ -158,6 +158,16 @@ class Settings(BaseSettings):
     # 위 키의 클라이언트 시크릿 (#330). 콘솔에서 그 키의 "클라이언트 시크릿"을 켰을 때만
     # 넣는다(켰는데 비우면 카카오가 교환을 거절한다). 서버에만 둔다.
     kakao_client_secret: str = Field("", repr=False)
+    # Apple 로그인에서 허용할 identity_token `aud` 목록, 콤마 구분 (#3499).
+    # iOS 앱은 번들 ID(`com.csesudo.oncare`)가 aud 다. 비어 있으면 Apple 로그인은 **거부**된다
+    # — aud 를 보지 않으면 다른 앱이 받은 Apple 토큰으로도 로그인된다.
+    apple_client_ids: str = ""
+    # 탈퇴 때 Apple 토큰을 철회하는 데 쓰는 Sign in with Apple 키 (#3499). 개발자 포털 >
+    # Keys 에서 발급한 .p8 의 PEM 본문·키 ID 와 팀 ID 다. 셋 중 하나라도 비면 철회를
+    # 건너뛰고 로그만 남긴다(탈퇴는 막지 않는다). 키 본문은 비밀이라 서버에만 둔다.
+    apple_team_id: str = ""
+    apple_key_id: str = ""
+    apple_private_key: str = Field("", repr=False)
 
     # --- 장소(O2O) ---
     # 카카오 Local REST 키. 있으면 실검색, 없으면 시드 폴백(recognizer 팩토리와 같은 철학).
@@ -470,6 +480,21 @@ class Settings(BaseSettings):
     def google_client_id_list(self) -> list[str]:
         """허용 Google `aud` 목록(공백·빈 항목 제거)."""
         return _comma_list(self.google_client_ids)
+
+    @property
+    def apple_client_id_list(self) -> list[str]:
+        """허용 Apple `aud` 목록(공백·빈 항목 제거)."""
+        return _comma_list(self.apple_client_ids)
+
+    @property
+    def apple_revoke_configured(self) -> bool:
+        """탈퇴 때 Apple 토큰을 철회할 키가 갖춰졌는가(#3499)."""
+        return bool(
+            self.apple_team_id.strip()
+            and self.apple_key_id.strip()
+            and self.apple_private_key.strip()
+            and self.apple_client_id_list
+        )
 
     @property
     def kakao_app_id_value(self) -> str:
