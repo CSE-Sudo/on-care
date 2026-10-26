@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:oncare_social_login/src/apple_login.dart';
 import 'package:oncare_social_login/src/google_button_stub.dart'
     if (dart.library.js_interop) 'package:oncare_social_login/src/google_button_web.dart';
 import 'package:oncare_social_login/src/google_login.dart';
@@ -12,10 +13,10 @@ import 'package:oncare_social_login/src/social_sign_in_result.dart';
 
 /// 화면이 쓰는 소셜 로그인 진입점(#330) — 회원 앱·트레이너 웹 공용.
 ///
-/// | | 카카오 | 구글 |
-/// | --- | --- | --- |
-/// | Android·iOS | 카카오 SDK(카카오톡 → 카카오계정) | `google_sign_in` 로그인 창 |
-/// | 웹 | 인가 코드 팝업 + 서버 교환 | 구글이 그리는 버튼(GIS) |
+/// | | 카카오 | 구글 | 애플(#3499) |
+/// | --- | --- | --- | --- |
+/// | Android·iOS | 카카오 SDK(카카오톡 → 카카오계정) | `google_sign_in` 로그인 창 | iOS 만 — `sign_in_with_apple` |
+/// | 웹 | 인가 코드 팝업 + 서버 교환 | 구글이 그리는 버튼(GIS) | 없음 |
 ///
 /// 결과는 언제나 [SocialSignInResult] 다. 받은 토큰은 화면이 그대로
 /// `POST /auth/social/{provider}` 에 보낸다.
@@ -27,6 +28,7 @@ class SocialLoginService {
     KakaoNativeGateway? kakaoGateway,
     KakaoPopupPort? kakaoPopup,
     GoogleSignInGateway? googleGateway,
+    AppleSignInGateway? appleGateway,
   }) : platform = platform ?? SocialLoginPlatform.current {
     _kakaoNative = KakaoNativeLogin(
       nativeAppKey: config.kakaoNativeAppKey,
@@ -42,6 +44,10 @@ class SocialLoginService {
       platform: this.platform,
       gateway: googleGateway ?? const PluginGoogleSignInGateway(),
     );
+    _apple = AppleLogin(
+      platform: this.platform,
+      gateway: appleGateway ?? const PluginAppleSignInGateway(),
+    );
   }
 
   final SocialLoginConfig config;
@@ -50,6 +56,7 @@ class SocialLoginService {
   late final KakaoNativeLogin _kakaoNative;
   late final KakaoWebLogin _kakaoWeb;
   late final GoogleLogin _google;
+  late final AppleLogin _apple;
 
   bool get _isWeb => platform == SocialLoginPlatform.web;
 
@@ -84,6 +91,7 @@ class SocialLoginService {
       ),
       SocialLoginProvider.kakao => _kakaoNative.signIn(),
       SocialLoginProvider.google => _google.signIn(),
+      SocialLoginProvider.apple => _apple.signIn(),
     };
   }
 

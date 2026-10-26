@@ -1,9 +1,13 @@
 import 'package:flutter/foundation.dart';
 
-/// 카카오·구글 로그인이 켜지는 provider(#330). 네이버·애플은 하지 않기로 했다.
+/// 소셜 로그인 provider(#330). 네이버는 하지 않기로 했다(#3218).
+///
+/// 애플(#3499)은 iOS 에서만 켠다 — App Store 심사(Guideline 4.8)가 카카오·구글과
+/// 동등한 로그인으로 요구한다. 웹·Android(트레이너 웹 포함)에는 두지 않는다.
 enum SocialLoginProvider {
   kakao,
-  google;
+  google,
+  apple;
 
   /// 서버 경로·요청 본문에 쓰는 이름(`/auth/social/{id}`).
   String get id => name;
@@ -89,6 +93,8 @@ class SocialLoginConfig {
   /// - 카카오: 웹은 REST 키(인가 창 client_id), 모바일은 네이티브 앱 키.
   /// - 구글: 웹·Android 는 웹 client_id(Android 는 `serverClientId` 로 쓴다),
   ///   iOS 는 iOS client_id 와 웹 client_id 둘 다.
+  /// - 애플: iOS 만. 빌드 변수가 없다 — 앱 ID 의 Sign in with Apple 기능과
+  ///   entitlements(`com.apple.developer.applesignin`)로 켜진다.
   bool isEnabled(SocialLoginProvider provider, SocialLoginPlatform platform) =>
       switch ((provider, platform)) {
         (_, SocialLoginPlatform.other) => false,
@@ -100,6 +106,8 @@ class SocialLoginConfig {
           isGoogleClientId(googleIosClientId) &&
               isGoogleClientId(googleWebClientId),
         (SocialLoginProvider.google, _) => isGoogleClientId(googleWebClientId),
+        (SocialLoginProvider.apple, SocialLoginPlatform.ios) => true,
+        (SocialLoginProvider.apple, _) => false,
       };
 
   @override

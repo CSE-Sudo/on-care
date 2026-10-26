@@ -72,3 +72,22 @@ class RecordingPopup implements KakaoPopupPort {
 
   Future<void> dispose() => messagesController.close();
 }
+
+/// 테스트용 애플 플러그인 경계.
+class FakeAppleGateway implements AppleSignInGateway {
+  int calls = 0;
+  Object? error;
+  AppleCredential credential = (
+    identityToken: 'apple-identity-token',
+    authorizationCode: 'apple-code',
+    givenName: null,
+    familyName: null,
+  );
+
+  @override
+  Future<AppleCredential> getCredential() async {
+    calls++;
+    if (error != null) throw error!;
+    return credential;
+  }
+}

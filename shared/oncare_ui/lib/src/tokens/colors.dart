@@ -119,6 +119,12 @@ class OnCareColors {
   /// 구글 `G` 로고 네 색 — 초록.
   static const Color googleGreen = Color(0xFF34A853);
 
+  /// 애플 로그인 버튼 바탕 — Apple HIG 의 Sign in with Apple 검은 스타일(#3499).
+  static const Color appleButtonFill = Color(0xFF000000);
+
+  /// 애플 로고 색 — 같은 스타일의 흰 로고.
+  static const Color appleLogo = Color(0xFFFFFFFF);
+
   /// [color] 를 흰 바탕 위에 [alpha] 만큼 얹은 **불투명** 색.
   ///
   /// 차트 막대처럼 겹쳐 그리는 자리는 반투명이면 아래 선이 비치므로, 투명도 대신

@@ -1,9 +1,15 @@
-/// On-Care 회원 앱·트레이너 웹 공용 카카오·구글 로그인(#330).
+/// On-Care 회원 앱·트레이너 웹 공용 카카오·구글·애플 로그인(#330, #3499).
 library;
 
 // 취소 판정에 쓰는 구글 예외 — 앱 테스트가 플러그인에 직접 의존하지 않게 내보낸다.
 export 'package:google_sign_in/google_sign_in.dart'
     show GoogleSignInException, GoogleSignInExceptionCode;
+export 'package:oncare_social_login/src/apple_login.dart'
+    show
+        AppleCredential,
+        AppleSignInGateway,
+        appleDisplayName,
+        isAppleCancellation;
 export 'package:oncare_social_login/src/google_login.dart'
     show GoogleSignInGateway, isGoogleCancellation;
 export 'package:oncare_social_login/src/kakao_native_login.dart'
