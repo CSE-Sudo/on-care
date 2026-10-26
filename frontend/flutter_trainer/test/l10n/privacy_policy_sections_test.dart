@@ -119,7 +119,7 @@ void main() {
   test('시행일이 자리표시자가 아니고 개정 이력이 있다', () {
     expect(
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-      contains('시행일: 2026년 10월 14일'),
+      contains('시행일: 2026년 10월 27일'),
     );
     expect(
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
@@ -129,12 +129,18 @@ void main() {
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
       contains('2026년 10월 1일: 제정'),
     );
-    expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 14.');
+    expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 27.');
   });
 
-  test('개정 이력은 최신순이고 맨 위가 메일 발송 위탁이다 (#3132·#3443)', () {
+  test('개정 이력은 최신순이고 맨 위가 회원 앱에 맞춘 시행일 변경이다 (#3132·#3443·#3499)', () {
     final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
     expect(k, contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'));
+    // 처리방침 버전은 두 앱이 하나라, 회원 앱만 바뀐 개정(애플 로그인)도 시행일을 함께 옮긴다.
+    expect(
+      k,
+      contains('- 2026년 10월 27일: 회원 앱 처리방침 개정에 맞춘 시행일 변경(트레이너 웹의 처리 내용은 그대로)'),
+    );
+    expect(k.indexOf('2026년 10월 27일:'), lessThan(k.indexOf('2026년 10월 14일:')));
     expect(k.indexOf('2026년 10월 14일:'), lessThan(k.indexOf('2026년 10월 5일:')));
     expect(k.indexOf('2026년 10월 5일:'), lessThan(k.indexOf('2026년 10월 3일:')));
   });
@@ -168,9 +174,9 @@ void main() {
     expect(ko.myLegalTermsEffectiveDate, '시행일 2026. 10. 03.');
   });
 
-  test('처리방침·약관이 네이버·애플을 로그인 수단으로 적지 않는다 (#3217)', () {
-    // 네이버·애플 로그인은 제공하지 않는다. 트레이너 웹 문서는 처음부터 소셜 로그인
-    // 수단을 나열하지 않았지만, 회원 앱과 문안을 맞추다 다시 들어오지 않게 본다.
+  test('처리방침·약관이 네이버·애플을 로그인 수단으로 적지 않는다 (#3217·#3499)', () {
+    // 트레이너 웹에는 소셜 로그인이 없다. 애플 로그인은 회원 iOS 앱에만 있고(#3499),
+    // 네이버는 제공하지 않는다. 회원 앱과 문안을 맞추다 들어오지 않게 본다.
     for (final String body in <String>[
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
       ko.myLegalTermsBody,

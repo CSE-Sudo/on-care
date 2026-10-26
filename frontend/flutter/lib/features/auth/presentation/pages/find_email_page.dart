@@ -196,6 +196,7 @@ class _FindEmailPageState extends ConsumerState<FindEmailPage> {
       switch (provider) {
         'kakao' => l.findEmailProviderKakao,
         'google' => l.findEmailProviderGoogle,
+        'apple' => l.findEmailProviderApple,
         _ => l.findEmailProviderOther,
       };
 
