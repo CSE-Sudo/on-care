@@ -385,6 +385,7 @@ jobs:
             --pbxproj ios/Runner.xcodeproj/project.pbxproj \
             --profile-plist "$RUNNER_TEMP/member-app-profile.plist" \
             --bundle-id "$BUNDLE_ID" \
+            --entitlements ios/Runner/Runner.entitlements \
             --export-options "$RUNNER_TEMP/ExportOptions.plist" | tee "$RUNNER_TEMP/profile.txt"
           uuid=$(sed -n 's/^profile_uuid=//p' "$RUNNER_TEMP/profile.txt")
           # Xcode 16 은 UserData 아래를, 이전 Xcode 는 MobileDevice 아래를 읽는다.

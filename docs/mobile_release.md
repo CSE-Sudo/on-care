@@ -379,6 +379,10 @@ git push origin member-app-v1.0.1
 | `SENTRY_DSN_MEMBER` | 공통 | 회원 앱 Sentry DSN. 운영 웹 배포와 같은 이름이지만 Environment 비밀은 따로라 `mobile-release` 에도 넣습니다(#480). 비면 define 검사에서 멈춥니다 |
 
 iOS 프로필은 다른 앱·와일드카드·개발용·Ad Hoc 프로필이면 서명 단계에서 멈춥니다. 팀 ID 는 프로필에서 읽습니다.
+앱이 쓰는 권한(`ios/Runner/Runner.entitlements`, 지금은 Sign in with Apple)이 프로필에 없어도
+서명 단계에서 멈춥니다(#3499). Apple Developer 의 App ID `com.csesudo.oncare` 에서 **Sign in with
+Apple** 을 켠 뒤 프로필을 다시 만들어 `IOS_PROVISIONING_PROFILE_BASE64` 를 바꿔 넣습니다 — 권한을
+켜기 전에 만든 프로필에는 이 권한이 없습니다.
 
 **변수(Variables)** — 비밀이 아닌 설정값입니다.
 

@@ -42,6 +42,7 @@ USER_APP_CI = REPO_ROOT / ".github" / "workflows" / "user-app-ci.yml"
 INFRA_CI = REPO_ROOT / ".github" / "workflows" / "infra-ci.yml"
 DOC = REPO_ROOT / "docs" / "mobile_release.md"
 PBXPROJ = REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner.xcodeproj" / "project.pbxproj"
+ENTITLEMENTS = REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner" / "Runner.entitlements"
 PODFILE = REPO_ROOT / "frontend" / "flutter" / "ios" / "Podfile"
 PACKAGE_RESOLVED = (
     REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner.xcworkspace" / "xcshareddata" / "swiftpm" / "Package.resolved",
@@ -577,10 +578,61 @@ class IosReleaseSigningTest(unittest.TestCase):
             self.assertEqual(pbxproj.read_text(encoding="utf-8"), self.original)
             self.assertFalse(export.exists())
 
+    def test_rejects_a_profile_missing_an_app_entitlement(self) -> None:
+        # 앱 ID 에 Sign in with Apple 을 켜기 전 프로필이면 애플 로그인이 기기에서 실패한다(#3499).
+        with self.assertRaises(signing.SigningError) as caught:
+            signing.read_profile(profile_plist(), BUNDLE_ID, ["com.apple.developer.applesignin"])
+        self.assertIn("com.apple.developer.applesignin", str(caught.exception))
+        granted = profile_plist(Entitlements={
+            "application-identifier": f"VWCBNTMH6B.{BUNDLE_ID}",
+            "com.apple.developer.applesignin": ["Default"],
+        })
+        signing.read_profile(granted, BUNDLE_ID, ["com.apple.developer.applesignin"])
+
+    def test_main_checks_the_app_entitlements(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            pbxproj = Path(tmp) / "project.pbxproj"
+            pbxproj.write_text(self.original, encoding="utf-8")
+            profile = Path(tmp) / "profile.plist"
+            profile.write_bytes(profile_plist())
+            export = Path(tmp) / "ExportOptions.plist"
+            args = ["--pbxproj", str(pbxproj), "--profile-plist", str(profile),
+                    "--bundle-id", BUNDLE_ID, "--export-options", str(export),
+                    "--entitlements", str(ENTITLEMENTS)]
+            with redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(signing.main(args), 1)
+            self.assertIn("com.apple.developer.applesignin", err.getvalue())
+            self.assertFalse(export.exists())
+            profile.write_bytes(profile_plist(Entitlements={
+                "application-identifier": f"VWCBNTMH6B.{BUNDLE_ID}",
+                "com.apple.developer.applesignin": ["Default"],
+            }))
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(signing.main(args), 0)
+
+    def test_workflow_checks_the_runner_entitlements(self) -> None:
+        self.assertIn("--entitlements ios/Runner/Runner.entitlements", WORKFLOW.read_text(encoding="utf-8"))
+
     def test_repository_project_is_untouched(self) -> None:
         # 저장소의 프로젝트는 개발자 PC 의 자동 서명 그대로다.
         self.assertNotIn("PROVISIONING_PROFILE_SPECIFIER", self.original)
         self.assertNotIn("CODE_SIGN_STYLE = Manual", self.original)
+
+
+class SignInWithAppleEntitlementTest(unittest.TestCase):
+    """App Store 심사(Guideline 4.8)로 회원 앱에 애플 로그인을 넣었다(#3499)."""
+
+    def test_runner_entitlements_enable_sign_in_with_apple(self) -> None:
+        data = plistlib.loads(ENTITLEMENTS.read_bytes())
+        self.assertEqual(data.get("com.apple.developer.applesignin"), ["Default"])
+
+    def test_every_runner_configuration_signs_with_the_entitlements(self) -> None:
+        text = PBXPROJ.read_text(encoding="utf-8")
+        runner = [m.group("body") for m in signing.CONFIG_BLOCK.finditer(text)
+                  if f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};" in m.group("body")]
+        self.assertEqual(len(runner), 3)
+        for body in runner:
+            self.assertIn("CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;", body)
 
 
 class DeviceFamilyTest(unittest.TestCase):
