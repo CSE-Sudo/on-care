@@ -5470,6 +5470,12 @@ abstract class AppLocalizations {
   /// **'구글로 시작하기'**
   String get authGoogleAction;
 
+  /// Screen reader name and tooltip of the round Sign in with Apple button on the sign-in screen and the reauth dialog (iOS only, #3499). Apple's official Korean title.
+  ///
+  /// In ko, this message translates to:
+  /// **'Apple로 로그인'**
+  String get authAppleAction;
+
   /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In ko, this message translates to:

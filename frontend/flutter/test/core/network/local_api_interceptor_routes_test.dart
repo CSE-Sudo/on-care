@@ -52,6 +52,8 @@ const List<String> _exactRoutes = <String>[
   'POST /auth/refresh',
   'POST /auth/social/kakao',
   'POST /auth/social/google',
+  // 애플 로그인(#3499).
+  'POST /auth/social/apple',
   'GET /users/me',
   'POST /users/me/consents',
   'GET /users/me/profile',

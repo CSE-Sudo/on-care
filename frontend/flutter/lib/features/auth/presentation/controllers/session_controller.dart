@@ -491,18 +491,23 @@ class SessionController extends StateNotifier<SessionState>
     await _applyTokens(res.data, label: '로그인');
   }
 
-  /// Social login — exchanges a provider (kakao/google) token for our
+  /// Social login — exchanges a provider (kakao/google/apple) token for our
   /// session via POST /auth/social/{provider}. Throws on failure.
+  ///
+  /// [name] 은 provider 가 토큰 밖으로 준 이름이다 — 애플은 첫 로그인 때만 앱에
+  /// 이름을 준다(#3499). 서버는 새 계정을 만들 때만 쓰고, 가입 뒤 이름을 다시
+  /// 묻지 않는다.
   Future<void> socialLogin({
     required String provider,
     required String token,
+    String? name,
   }) async {
     _userActionStarted = true;
     _ref.read(trainerAccountNoticeProvider.notifier).state = false;
     final dio = _ref.read(dioProvider);
     final res = await dio.post<Map<String, Object?>>(
       '/auth/social/$provider',
-      data: <String, Object?>{'token': token},
+      data: <String, Object?>{'token': token, 'name': ?name},
     );
     await _applyTokens(res.data, label: '소셜 로그인');
   }

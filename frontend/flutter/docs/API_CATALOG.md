@@ -17,7 +17,7 @@
 
 ---
 
-## 1. Auth (Q4: Google / Kakao)
+## 1. Auth (Q4: Google / Kakao / Apple)
 
 | Method | Path | Body | 응답 | Flutter 사용처 |
 | --- | --- | --- | --- | --- |
@@ -25,7 +25,7 @@
 | POST | `/auth/refresh` | `{refresh_token}` | `{access_token, refresh_token}` | dio interceptor (Stage 4 후속) |
 | POST | `/auth/logout` | `{refresh_token}` | `204` | `SessionController.signOut` |
 
-`provider` enum: `google | kakao` (소문자, `AuthProvider.name`). 네이버·애플 로그인은 제공하지 않는다(#3218) — `naver`·`apple` 은 400.
+`provider` enum: `google | kakao | apple` (소문자, `AuthProvider.name`). 애플은 iOS 앱에만 있다(#3499, App Review Guideline 4.8) — 첫 로그인 때 Apple 이 앱에만 주는 이름을 `name` 으로 함께 보낸다. 네이버 로그인은 제공하지 않는다(#3218) — `naver` 는 400.
 
 ---
 

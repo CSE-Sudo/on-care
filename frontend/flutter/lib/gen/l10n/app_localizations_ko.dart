@@ -3052,6 +3052,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authGoogleAction => '구글로 시작하기';
 
   @override
+  String get authAppleAction => 'Apple로 로그인';
+
+  @override
   String get authEmailEmpty => '이메일을 입력해 주세요';
 
   @override

@@ -27,7 +27,7 @@ Future<String> exchangeKakaoCode(
   return token;
 }
 
-/// 실제 카카오·구글 연동(#330). 테스트는 가짜 SDK 경계를 넣은 것으로 바꿔 끼운다.
+/// 실제 카카오·구글·애플 연동(#330, #3499). 테스트는 가짜 SDK 경계를 넣은 것으로 바꿔 끼운다.
 final socialLoginServiceProvider = Provider<SocialLoginService>((ref) {
   final AppConfig config = ref.watch(appConfigProvider);
   return SocialLoginService(
@@ -61,7 +61,15 @@ class MemberSocialLogin {
   final SocialLoginService service;
 
   bool isEnabled(SocialLoginProvider provider) =>
-      mock || service.isEnabled(provider);
+      offers(provider) && (mock || service.isEnabled(provider));
+
+  /// 이 기기에서 [provider] 버튼 자리를 두는가.
+  ///
+  /// 애플은 iOS 에만 둔다(#3499) — 목업이어도 웹·Android 에는 보이지 않는다.
+  /// 카카오·구글은 키가 없어도 자리를 지킨 채 꺼 둔다(#2769).
+  bool offers(SocialLoginProvider provider) =>
+      provider != SocialLoginProvider.apple ||
+      service.platform == SocialLoginPlatform.ios;
 
   bool get anyEnabled => mock || service.anyEnabled;
 

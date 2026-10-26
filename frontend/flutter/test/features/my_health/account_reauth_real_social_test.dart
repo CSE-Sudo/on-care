@@ -26,6 +26,7 @@ const SocialLoginConfig _allKeys = SocialLoginConfig(
 
 const Key _kakao = ValueKey<String>('reauth-social-kakao');
 const Key _google = ValueKey<String>('reauth-social-google');
+const Key _apple = ValueKey<String>('reauth-social-apple');
 
 Future<List<AccountReauth>> _pump(
   WidgetTester tester, {
@@ -34,6 +35,7 @@ Future<List<AccountReauth>> _pump(
   FakeKakaoGateway? kakao,
   FakeGoogleGateway? google,
   FakeKakaoPopup? popup,
+  FakeAppleGateway? apple,
 }) async {
   final List<AccountReauth> submitted = <AccountReauth>[];
   final FakeGoogleGateway googleGateway = google ?? FakeGoogleGateway();
@@ -59,6 +61,7 @@ Future<List<AccountReauth>> _pump(
             kakaoGateway: kakao ?? FakeKakaoGateway(),
             googleGateway: googleGateway,
             kakaoPopup: kakaoPopup,
+            appleGateway: apple ?? FakeAppleGateway(),
           ),
         ),
       ],
@@ -204,5 +207,58 @@ void main() {
       find.byKey(const ValueKey<String>('reauth-social-unavailable')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('iOS 애플로 다시 로그인하면 토큰과 철회용 코드를 함께 보낸다(#3499)', (
+    tester,
+  ) async {
+    final List<AccountReauth> submitted = await _pump(
+      tester,
+      platform: SocialLoginPlatform.ios,
+    );
+
+    await tester.tap(find.byKey(_apple));
+    await tester.pumpAndSettle();
+    await tester.tap(_confirm());
+    await tester.pumpAndSettle();
+
+    final AccountReauth reauth = submitted.single;
+    expect(reauth.socialProvider, 'apple');
+    expect(reauth.socialToken, 'apple-identity-token');
+    expect(reauth.appleAuthorizationCode, 'apple-code');
+    expect(reauth.toJson(), <String, Object?>{
+      'social_provider': 'apple',
+      'social_token': 'apple-identity-token',
+      'apple_authorization_code': 'apple-code',
+    });
+  });
+
+  testWidgets('애플 뒤에 카카오로 바꿔 확인하면 애플 코드는 남지 않는다', (tester) async {
+    final List<AccountReauth> submitted = await _pump(
+      tester,
+      platform: SocialLoginPlatform.ios,
+    );
+
+    await tester.tap(find.byKey(_apple));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(_kakao));
+    await tester.pumpAndSettle();
+    await tester.tap(_confirm());
+    await tester.pumpAndSettle();
+
+    expect(submitted.single.socialProvider, 'kakao');
+    expect(submitted.single.appleAuthorizationCode, isNull);
+    expect(
+      submitted.single.toJson().containsKey('apple_authorization_code'),
+      isFalse,
+    );
+  });
+
+  testWidgets('Android·웹 본인 확인 창에는 애플 버튼이 없다', (tester) async {
+    await _pump(tester);
+    expect(find.byKey(_apple), findsNothing);
+
+    await _pump(tester, platform: SocialLoginPlatform.web);
+    expect(find.byKey(_apple), findsNothing);
   });
 }
