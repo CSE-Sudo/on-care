@@ -224,44 +224,47 @@ void main() {
     );
   });
 
-  for (final (int days, List<String> expected) in <(int, List<String>)>[
-    (5, <String>['10/22']),
-    (11, <String>['10/16', '10/22']),
-  ]) {
-    testWidgets('가입한 지 며칠 안 돼 기록이 짧아도 축 날짜가 서로 겹치지 않는다 — $days일', (
-      WidgetTester tester,
-    ) async {
-      // 10/26 에 연 회원 — 칸 폭은 한 화면 24칸 기준이라 칸마다 날짜를 적으면
-      // `10/22`·`10/23`… 이 한 덩어리로 겹쳤다. 테스트 글꼴은 글자마다 정사각형이라
-      // 폭이 부풀려지므로 실제 글꼴로 잰다.
-      await _loadFonts();
-      useFixedKstDate(DateTime(2026, 10, 26));
-      await openAll(tester, firstRecord: DateTime(2026, 10, 27 - days));
+  group('짧은 기록 기간', () {
+    // 테스트 글꼴은 글자마다 정사각형이라 폭이 부풀려지므로 실제 글꼴로 잰다.
+    setUpAll(_loadFonts);
 
-      final List<Element> labels = _labelElements();
-      expect(
-        labels.map((Element e) => (e.widget as Text).data!).toList(),
-        expected,
-      );
-      // 라벨 상자는 최소 폭(52px)이라 서로 닿을 수 있다 — 가운데 정렬된 글자
-      // 자체의 가로 구간이 겹치지 않는지 본다.
-      final List<(double, double)> glyphs = <(double, double)>[
-        for (final Element e in labels)
-          () {
-            final RenderParagraph p = e.renderObject! as RenderParagraph;
-            final double center =
-                p.localToGlobal(Offset.zero).dx + p.size.width / 2;
-            final double half = p.getMaxIntrinsicWidth(double.infinity) / 2;
-            return (center - half, center + half);
-          }(),
-      ];
-      for (int i = 1; i < glyphs.length; i++) {
+    for (final (int days, List<String> expected) in <(int, List<String>)>[
+      (5, <String>['10/22']),
+      (11, <String>['10/16', '10/22']),
+    ]) {
+      testWidgets('가입한 지 며칠 안 돼 기록이 짧아도 축 날짜가 서로 겹치지 않는다 — $days일', (
+        WidgetTester tester,
+      ) async {
+        // 10/26 에 연 회원 — 칸 폭은 한 화면 24칸 기준이라 칸마다 날짜를 적으면
+        // `10/22`·`10/23`… 이 한 덩어리로 겹쳤다.
+        useFixedKstDate(DateTime(2026, 10, 26));
+        await openAll(tester, firstRecord: DateTime(2026, 10, 27 - days));
+
+        final List<Element> labels = _labelElements();
         expect(
-          glyphs[i].$1,
-          greaterThan(glyphs[i - 1].$2),
-          reason: '${glyphs[i - 1]} / ${glyphs[i]}',
+          labels.map((Element e) => (e.widget as Text).data!).toList(),
+          expected,
         );
-      }
-    });
-  }
+        // 라벨 상자는 최소 폭(52px)이라 서로 닿을 수 있다 — 가운데 정렬된 글자
+        // 자체의 가로 구간이 겹치지 않는지 본다.
+        final List<(double, double)> glyphs = <(double, double)>[
+          for (final Element e in labels)
+            () {
+              final RenderParagraph p = e.renderObject! as RenderParagraph;
+              final double center =
+                  p.localToGlobal(Offset.zero).dx + p.size.width / 2;
+              final double half = p.getMaxIntrinsicWidth(double.infinity) / 2;
+              return (center - half, center + half);
+            }(),
+        ];
+        for (int i = 1; i < glyphs.length; i++) {
+          expect(
+            glyphs[i].$1,
+            greaterThan(glyphs[i - 1].$2),
+            reason: '${glyphs[i - 1]} / ${glyphs[i]}',
+          );
+        }
+      });
+    }
+  });
 }
