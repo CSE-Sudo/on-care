@@ -3,27 +3,27 @@
 # 고친 뒤에는 반드시 잠금 파일을 다시 만든다(backend/README.md "의존성" 참고):
 #   uv pip compile --universal --python-version 3.12 --generate-hashes \
 #     requirements.in -o requirements.txt
-fastapi>=0.143.2
+fastapi>=0.161.1
 uvicorn[standard]>=0.27
-sqlalchemy>=2.1.4
-alembic>=1.13
+sqlalchemy>=2.1.6
+alembic>=1.20.1
 psycopg[binary]>=3.1
 pgvector>=0.5.1
 pwdlib[bcrypt]>=0.2
 pyjwt>=2.8
 pydantic>=2.14.1
-pydantic-settings>=2.16.0
+pydantic-settings>=2.16.1
 httpx>=0.27
 python-multipart>=0.0.9
 # 끼니 사진 축소·재인코딩(#699). 원본을 그대로 두면 한 장에 3~5MB 라 공유 DB 에
 # 담을 크기가 아니고, 재인코딩이 EXIF(촬영 위치 포함)도 함께 털어 낸다.
 pillow>=13.0
 python-dotenv>=1.0
-google-genai>=2.31.0
-openai>=3.31.0
+google-genai>=2.33.0
+openai>=3.37.0
 # 채팅 첨부(사진·리포트 PDF)의 운영 저장소 S3(#2817). 컨테이너 디스크는 재배포·
 # 스케일 아웃에서 비므로 운영 바이트는 버킷에 둔다. 로컬 개발은 쓰지 않는다.
-boto3>=1.43.114
+boto3>=1.43.118
 # zoneinfo 의 타임존 DB. 슬림 컨테이너에는 시스템 tzdata 가 없을 수 있는데,
 # 기준 시각(app/core/clock.py)이 ZoneInfo("Asia/Seoul") 를 import 시점에 잡으므로
 # 없으면 앱이 아예 뜨지 않는다. 베이스 이미지와 무관하게 보장한다.
@@ -31,4 +31,4 @@ tzdata>=2026.5
 # 처리하지 못한 예외를 에러 추적 도구로 보낸다(#2839). SENTRY_DSN 이 없거나 ENV=dev 면
 # 초기화하지 않는다. 요청 본문·헤더·쿼리 같은 개인정보는 보내지 않는다
 # (app/core/error_tracking.py).
-sentry-sdk[fastapi]>=2.72.0
+sentry-sdk[fastapi]>=2.73.0
