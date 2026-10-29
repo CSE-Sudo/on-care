@@ -148,6 +148,27 @@ Sources — 자체 온라인 설문(2026년, 응답 60명 / PT 경험자 40명) 
 
 ---
 
+## Screenshots
+
+<div align="center">
+
+<img src="docs/assets/landing/img/trainer-web.png" alt="트레이너 웹 대시보드: 담당 회원, 관리 필요 회원, 오늘의 일정, 활동 피드백, 할 일 진행률" width="760" />
+
+<sub><b>트레이너 웹</b> · 담당 회원의 관리 신호와 오늘의 일정을 한 화면에서 봅니다.</sub>
+
+<br/><br/>
+
+<img src="docs/assets/landing/img/member-app.png" alt="회원 앱 홈: AI 통합 조언, 식단 영양, 주간 칼로리 추이" width="180" />
+<img src="docs/assets/screens/member-diet.png" alt="회원 앱 식단: 오늘 섭취 칼로리와 영양 요약, 식단 기록" width="180" />
+<img src="docs/assets/screens/member-exercise.png" alt="회원 앱 운동: 이번 주 운동 현황과 오늘 완료한 PT" width="180" />
+<img src="docs/assets/screens/member-weekly-report.png" alt="회원 앱 주간 리포트 PDF" width="180" />
+
+<sub><b>회원 앱</b> · 홈 · 식단 · 운동 · 주간 리포트</sub>
+
+</div>
+
+---
+
 ## Diet Recognition Pipeline
 
 사진에서 시작해 Vision AI가 음식과 양을 추정하고, **공공 영양성분 DB**(농촌진흥청 국가표준식품성분표 우선 · 식약처 식품영양성분 DB 기반 표준 음식 2,139개)로 칼로리·단백질·나트륨·당류 추정치를 보정한 뒤, 구조화된 기록과 트레이너 리포트로 이어집니다. 확신할 만한 짝이 없으면 AI 추정을 그대로 둡니다(오탐보다 폴백). 마지막 값을 확정하는 것은 AI가 아니라 **회원과 트레이너**입니다.
