@@ -280,7 +280,7 @@ On-Care의 **핵심 타깃**은 **PT를 이용하는 회원과 이들을 관리�
 
 <div align="center">
 
-<img src="docs/assets/oncare-logo-navy.png" alt="On-Care" width="56" />
+<img src="docs/assets/oncare-logo.png" alt="On-Care 회원 앱 로고" width="56" />&nbsp;&nbsp;<img src="docs/assets/oncare-logo-navy.png" alt="On-Care 트레이너 웹 로고" width="56" />
 
 **2026 이화여자대학교 캡스톤디자인**
 
