@@ -150,8 +150,19 @@ h1,h2,h3{text-wrap:balance}
 .card .scan i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0}
 .card .scan i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0}
 .card .chip{z-index:1;left:36px;bottom:28px}
+/* 하이라이트 운동: 운동 강도 × 체중 × 시간 */
+.calc{display:grid;justify-items:center;gap:14px;text-align:center}
+.calc .eq{display:flex;align-items:center;gap:10px}
+.calc .eq span{background:#2c2c2e;border-radius:14px;padding:10px 16px;min-width:72px}
+.calc .eq span b{display:block;font-size:clamp(20px,2.4vw,28px);font-weight:700;letter-spacing:-.02em}
+.calc .eq span small{color:var(--sub);font-size:13px}
+.calc .eq i{font-style:normal;color:var(--sub);font-size:20px}
+.calc .res{font-size:clamp(40px,5vw,60px);font-weight:800;letter-spacing:-.04em;line-height:1}
+.calc em{font-style:normal;color:var(--sub);font-size:15px}
+.calc em b{color:var(--ink);font-weight:500}
 @media (max-width:640px){.card .scan{inset:28% 22% 42%}.card .chip{left:24px;bottom:24px}
-  .card.plain .center.c-coach{padding-top:64px!important}.coach .srcs{gap:8px}.coach .src{padding:10px 12px;font-size:12.5px}.coach .src b{font-size:12px}.coach .merge{height:26px}.coach .ans{padding:10px 14px;font-size:14px}}
+  .card.plain .center.c-coach{padding-top:64px!important}.coach .srcs{gap:8px}.coach .src{padding:10px 12px;font-size:12.5px}.coach .src b{font-size:12px}.coach .merge{height:26px}.coach .ans{padding:10px 14px;font-size:14px}
+  .calc{gap:10px;padding-inline:16px}.calc .eq{gap:5px}.calc .eq span{padding:8px 9px;min-width:0;border-radius:12px}.calc .eq span b{font-size:18px}.calc .eq span small{font-size:11px}.calc .eq i{font-size:14px}.calc .res{font-size:38px}.calc em{font-size:12px}}
 /* 큰 문장 장 */
 .chapter{padding-block:140px;text-align:center}
 .chapter .k{font-size:clamp(19px,2vw,24px);font-weight:600;color:var(--sub);margin-bottom:12px}
@@ -339,6 +350,11 @@ footer .contact a:hover{text-decoration:underline}
       <div class="ans"><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>AI 코치</b>저녁은 국물 없이 싱겁게, 단백질은 챙겨 드세요.</div>
     </div></div></div>
     <div class="card"><img class="bg" src="assets/landing/img/lunch-jjamppong.jpg" alt="짬뽕 한 그릇"><p>기록은 사진 한 장으로.<br><span>수치는 공공 데이터로 보정합니다.</span></p><div class="scan" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="chip"><b class="tn">1,050 kcal</b>짬뽕 1그릇 · 농진청·식약처 DB 보정</div></div>
+    <div class="card plain"><p>운동은 체중과 시간으로.<br><span>소모 열량을 공공 데이터로 계산합니다.</span></p><div class="center"><div class="calc">
+      <div class="eq"><span><b class="tn">6.0</b><small>운동 강도</small></span><i>×</i><span><b class="tn">60kg</b><small>체중</small></span><i>×</i><span><b class="tn">0.5</b><small>시간</small></span></div>
+      <div class="res grad tn">180 kcal</div>
+      <em><b>빠르게 걷기 30분</b> · 한국건강증진개발원 운동 강도 공공데이터</em>
+    </div></div></div>
   </div>
   <div class="wide rail-ctl">
     <button type="button" aria-label="이전" data-d="-1"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
