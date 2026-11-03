@@ -132,6 +132,26 @@ h1,h2,h3{text-wrap:balance}
 .chat .tr{background:var(--btn);color:#fff;border-radius:20px 20px 20px 6px;align-self:flex-start}
 .chat .me{background:#3a3a3c;color:var(--ink);border-radius:20px 20px 6px 20px;align-self:flex-end}
 .center-chat{display:grid;place-items:center;height:100%}
+/* 하이라이트 AI 코치: 내 기록과 공식 지침이 합쳐져 답이 된다 */
+.coach{width:min(520px,86%)}
+.coach .srcs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.coach .src{border:1px solid #3a3a3c;background:#161617;border-radius:16px;padding:14px 16px;font-size:clamp(13px,1.4vw,16px);line-height:1.45}
+.coach .src b{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:13px;font-weight:500;margin-bottom:4px}
+.coach .src span{display:block}
+.coach svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.coach .merge{display:block;width:100%;height:40px;stroke:var(--link)}
+.coach .ans{border:1px solid var(--link);background:rgb(0 113 227/.18);border-radius:16px;padding:14px 18px;font-size:clamp(15px,1.6vw,18px);font-weight:500;line-height:1.4}
+.coach .ans b{display:flex;align-items:center;gap:6px;color:var(--glow2);font-size:13px;font-weight:500;margin-bottom:4px}
+/* 하이라이트 식단 사진: 촬영 틀과 분석 결과 */
+.card .scan{position:absolute;z-index:1;inset:34% 26% 30%}
+.card .scan i{position:absolute;width:28px;height:28px;border:3px solid #fff;border-radius:4px}
+.card .scan i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0}
+.card .scan i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0}
+.card .scan i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0}
+.card .scan i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0}
+.card .chip{z-index:1;left:36px;bottom:28px}
+@media (max-width:640px){.card .scan{inset:28% 22% 42%}.card .chip{left:24px;bottom:24px}
+  .card.plain .center.c-coach{padding-top:64px!important}.coach .srcs{gap:8px}.coach .src{padding:10px 12px;font-size:12.5px}.coach .src b{font-size:12px}.coach .merge{height:26px}.coach .ans{padding:10px 14px;font-size:14px}}
 /* 큰 문장 장 */
 .chapter{padding-block:140px;text-align:center}
 .chapter .k{font-size:clamp(19px,2vw,24px);font-weight:600;color:var(--sub);margin-bottom:12px}
@@ -181,9 +201,6 @@ h1,h2,h3{text-wrap:balance}
 .week .d span{width:34px;height:34px;border-radius:10px;background:linear-gradient(180deg,var(--glow2),var(--glow1))}
 .week .d span.off{background:#3a3a3c}
 .week em{font-style:normal;color:var(--sub);font-size:15px;text-align:center}
-.coach{display:grid;place-items:center;height:100%;gap:14px;align-content:center}
-.coach .bubble{background:var(--btn);color:#fff;padding:12px 18px;border-radius:20px 20px 20px 6px;font-size:17px;font-weight:500}
-.coach img{width:150px}
 @media (max-width:760px){.flow{grid-template-columns:1fr}.fcard .t{padding:28px 26px 0}}
 
 /* 근거 */
@@ -316,8 +333,12 @@ footer .contact a:hover{text-decoration:underline}
     <div class="card plain link"><p>회원 앱과 트레이너 웹이<br><span>같은 기록을 함께 봅니다.</span></p><div class="center"><div class="duo"><img class="tab" src="assets/landing/img/trainer-web.png" alt="트레이너 웹 화면" width="735" height="571"><img class="ph" src="assets/landing/img/member-app.png" alt="회원 앱 화면" width="487" height="1000"></div></div></div>
     <div class="card plain"><p>메신저에 흩어지던 기록이<br><span>회원별, 날짜별로 한 줄에.</span></p><div class="center"><div class="week"><div class="d"><span></span><span></span><span class="off"></span><span></span><span></span><span></span><span class="off"></span></div><em>이번 주 식단 기록 5일, 나트륨 과다 3일</em></div></div></div>
     <div class="card plain"><p>수업이 없는 날도<br><span>트레이너의 코칭이 돌아옵니다.</span></p><div class="center"><div class="chat"><p class="b tr">점심 국물은 반만 드세요. 내일 하체 끝나고 유산소 20분 더!</p><p class="b me">네, 코치님!</p></div></div></div>
-    <div class="card"><img class="bg" src="assets/landing/img/diet-chicken-salad-sweet-potato.jpg" alt="닭가슴살 샐러드"><p>내 기록을 아는 AI 코치.<br><span>공식 지침을 근거로 답합니다.</span></p></div>
-    <div class="card"><img class="bg" src="assets/landing/img/lunch-jjamppong.jpg" alt="짬뽕 한 그릇"><p>기록은 사진 한 장으로.<br><span>수치는 공공 데이터로 보정합니다.</span></p></div>
+    <div class="card plain"><p>내 기록을 아는 AI 코치.<br><span>공식 지침을 근거로 답합니다.</span></p><div class="center c-coach"><div class="coach">
+      <div class="srcs"><div class="src"><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h11a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6zM6 3v18M9 8h6M9 12h6"/></svg>내 기록</b><span>점심 나트륨 3,900mg</span><span>하체 운동 40분</span></div><div class="src"><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5C5 4.5 8 4.5 12 6.5v13c-4-2-7-2-9-1zM21 5.5c-2-1-5-1-9 1v13c4-2 7-2 9-1z"/></svg>공식 지침</b><span>영양소 섭취기준</span><span>신체활동 지침서</span></div></div>
+      <svg class="merge" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M75 0V12Q75 22 150 28M225 0V12Q225 22 150 28M150 28V40"/></svg>
+      <div class="ans"><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>AI 코치</b>저녁은 국물 없이 싱겁게, 단백질은 챙겨 드세요.</div>
+    </div></div></div>
+    <div class="card"><img class="bg" src="assets/landing/img/lunch-jjamppong.jpg" alt="짬뽕 한 그릇"><p>기록은 사진 한 장으로.<br><span>수치는 공공 데이터로 보정합니다.</span></p><div class="scan" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="chip"><b class="tn">1,050 kcal</b>짬뽕 1그릇 · 농진청·식약처 DB 보정</div></div>
   </div>
   <div class="wide rail-ctl">
     <button type="button" aria-label="이전" data-d="-1"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
