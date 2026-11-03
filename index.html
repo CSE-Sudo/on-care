@@ -165,7 +165,20 @@ h1,h2,h3{text-wrap:balance}
 .roster .r.warn em{background:rgb(255 159 10/.18);color:#ffb340}
 .roster.mini{width:min(400px,92%);gap:6px}
 .roster.mini .r{grid-template-columns:3.4em 1fr auto;padding:8px 12px;font-size:14px}
-@media (max-width:640px){.roster .r{gap:8px;padding:8px 10px;font-size:13px;grid-template-columns:3.2em 1fr auto}.roster .d{gap:3px}.roster .d i{border-radius:4px}.roster .r em{font-size:11px;padding:2px 7px}.roster .h{font-size:12px}}
+.rec{width:min(440px,86%);background:#2c2c2e;border-radius:18px;padding:16px 18px;display:grid;gap:8px;font-size:15px}
+.rec .h{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;border-bottom:1px solid #3a3a3c}
+.rec .h span{color:var(--sub);font-size:13px}
+.rec .i{display:grid;grid-template-columns:3em 1fr auto;align-items:center}
+.rec .i span,.rec .bar span{color:var(--sub);font-size:13px}
+.rec .i em,.rec .bar em{font-style:normal;color:var(--ink);font-weight:500}
+.rec .bar{display:grid;grid-template-columns:3em 1fr auto;align-items:center;gap:10px;font-size:13px}
+.rec .bar i{height:8px;border-radius:99px;background:#3a3a3c;position:relative;overflow:hidden}
+.rec .bar i::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);border-radius:inherit;background:linear-gradient(90deg,var(--glow1),var(--glow2))}
+.rec .bar i.over::before{background:#ff453a}
+.fcard .v .chip.set{left:auto;right:24px;bottom:auto;top:20px;display:flex;align-items:center;gap:6px;color:#fff;font-weight:500}
+.fcard .v .chip.set svg{width:16px;height:16px;fill:none;stroke:#30d158;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:640px){.roster .r{gap:8px;padding:8px 10px;font-size:13px;grid-template-columns:3.2em 1fr auto}.roster .d{gap:3px}.roster .d i{border-radius:4px}.roster .r em{font-size:11px;padding:2px 7px}.roster .h{font-size:12px}
+  .rec{padding:12px 14px;gap:5px;font-size:13px}.rec .i span,.rec .bar span,.rec .h span{font-size:11.5px}.rec .bar{font-size:11.5px;gap:6px}.fcard .v .chip.set{right:16px;top:14px;font-size:12px}}
 /* 하이라이트 AI 코치: 내 기록과 공식 지침이 합쳐져 답이 된다 */
 .coach{width:min(520px,86%)}
 .coach .srcs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -241,11 +254,6 @@ h1,h2,h3{text-wrap:balance}
 .chip{position:absolute;left:24px;bottom:24px;background:rgb(29 29 31/.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgb(255 255 255/.12);
   border-radius:16px;padding:12px 16px;font-size:13px;color:#d1d1d6;line-height:1.4}
 .chip b{display:block;font-size:22px;color:#fff;font-weight:700;letter-spacing:-.02em}
-.week{display:grid;place-items:center;height:100%;gap:18px;align-content:center}
-.week .d{display:flex;gap:10px}
-.week .d span{width:34px;height:34px;border-radius:10px;background:linear-gradient(180deg,var(--glow2),var(--glow1))}
-.week .d span.off{background:#3a3a3c}
-.week em{font-style:normal;color:var(--sub);font-size:15px;text-align:center}
 @media (max-width:760px){.flow{grid-template-columns:1fr}.fcard .t{padding:28px 26px 0}}
 
 /* 근거 */
@@ -455,15 +463,15 @@ footer .contact a:hover{text-decoration:underline}
   <div class="flow">
     <article class="fcard rv">
       <div class="t"><span class="no">회원</span><h3>사진을 찍는다</h3><p>먹기 전에 한 장. 운동은 배정받은 루틴에서 끝낸 세트만 체크합니다.</p></div>
-      <div class="v"><img class="ph" src="assets/landing/img/lunch-jjamppong.jpg" alt="회원이 찍은 짬뽕 사진"><div class="chip"><b class="tn">1,050 kcal</b>나트륨 약 3,900mg</div></div>
+      <div class="v"><img class="ph" src="assets/landing/img/lunch-jjamppong.jpg" alt="회원이 찍은 짬뽕 사진"><div class="chip"><b class="tn">1,050 kcal</b>나트륨 약 3,900mg</div><div class="chip set"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>스쿼트 4/4세트 완료</div></div>
     </article>
     <article class="fcard rv">
       <div class="t"><span class="no">On-Care</span><h3>알아서 정리한다</h3><p>열량, 나트륨, 당을 채우고 회원별, 날짜별로 묶습니다. 틀린 값은 고칠 수 있습니다.</p></div>
-      <div class="v"><img class="ph" src="assets/landing/img/diet-vegetable-bibimbap.jpg" alt="채소 비빔밥 사진"><div class="chip">AI 추정 후<b>공공 영양 DB로 보정</b></div></div>
+      <div class="v"><div class="center-chat"><div class="rec" role="img" aria-label="김회원의 11월 3일 기록: 끼니와 운동, 열량과 나트륨 합계"><div class="h"><b>김회원</b><span>11월 3일 월요일</span></div><div class="i"><span>아침</span>채소 비빔밥<em class="tn">560 kcal</em></div><div class="i"><span>점심</span>짬뽕 1그릇<em class="tn">1,050 kcal</em></div><div class="i"><span>운동</span>하체 루틴 40분<em class="tn">−220 kcal</em></div><div class="bar"><span>나트륨</span><i class="over" style="--w:100%"></i><em class="tn">4,500 / 2,300mg</em></div><div class="bar"><span>열량</span><i style="--w:80%"></i><em class="tn">1,610 / 2,000kcal</em></div></div></div></div>
     </article>
     <article class="fcard rv">
       <div class="t"><span class="no">트레이너</span><h3>한 화면에서 본다</h3><p>담당 회원 전체의 기록과 루틴 완료를 주 단위로 비교하고, 먼저 연락할 회원을 고릅니다.</p></div>
-      <div class="v"><div class="week" aria-label="일주일 중 5일 기록"><div class="d"><span></span><span></span><span class="off"></span><span></span><span></span><span></span><span class="off"></span></div><em>이번 주 식단 기록 5일, 나트륨 과다 3일</em></div></div>
+      <div class="v"><div class="center-chat"><div class="roster" role="img" aria-label="담당 회원 4명의 이번 주 기록, 연락이 필요한 회원이 맨 위"><div class="h"><span>이번 주 · 담당 회원 4명</span><span>먼저 볼 순서</span></div><div class="r alert"><b>이회원</b><span class="d"><i></i><i class="o"></i><i class="o"></i><i></i><i class="o"></i><i class="o"></i><i class="o"></i></span><em>연락 필요</em></div><div class="r warn"><b>박회원</b><span class="d"><i></i><i></i><i class="o"></i><i></i><i></i><i class="o"></i><i class="o"></i></span><em>나트륨 과다</em></div><div class="r"><b>김회원</b><span class="d"><i></i><i></i><i class="o"></i><i></i><i></i><i></i><i class="o"></i></span><em>양호</em></div><div class="r"><b>최회원</b><span class="d"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><em>양호</em></div></div></div></div>
     </article>
     <article class="fcard rv">
       <div class="t"><span class="no">다시 회원에게</span><h3>코칭이 돌아간다</h3><p>코멘트와 바뀐 루틴이 회원 앱에 바로 뜨고, 회원은 채팅으로 답합니다.</p></div>
