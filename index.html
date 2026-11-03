@@ -132,6 +132,40 @@ h1,h2,h3{text-wrap:balance}
 .chat .tr{background:var(--btn);color:#fff;border-radius:20px 20px 20px 6px;align-self:flex-start}
 .chat .me{background:#3a3a3c;color:var(--ink);border-radius:20px 20px 6px 20px;align-self:flex-end}
 .center-chat{display:grid;place-items:center;height:100%}
+/* 하이라이트 메신저: 쏟아지는 메시지가 한 줄 기록으로 */
+.card.plain .center.c-mess{padding-top:100px}
+.mess{width:min(480px,88%);display:grid;justify-items:center;gap:10px}
+.mess .pile{position:relative;width:100%;height:clamp(170px,21vw,230px)}
+.mess .m{position:absolute;margin:0;background:#2c2c2e;color:var(--ink);border-radius:16px 16px 16px 4px;padding:8px 13px;font-size:clamp(12.5px,1.3vw,15px);line-height:1.35;white-space:nowrap;box-shadow:0 8px 24px rgb(0 0 0/.55)}
+.mess .m b{display:block;color:var(--sub);font-size:11px;font-weight:500;margin-bottom:2px}
+.mess .m.ph img{display:block;width:clamp(70px,8vw,96px);aspect-ratio:4/3;object-fit:cover;border-radius:10px}
+.mess .m1{left:0;top:4%;transform:rotate(-6deg)}
+.mess .m2{right:0;top:0;transform:rotate(5deg)}
+.mess .m3{left:27%;top:12%;transform:rotate(-3deg);z-index:2}
+.mess .m4{left:1%;top:46%;transform:rotate(4deg);z-index:1}
+.mess .m5{right:3%;top:30%;transform:rotate(-5deg);z-index:3}
+.mess .m6{left:18%;top:72%;transform:rotate(3deg);z-index:4}
+.mess .m7{right:20%;top:50%;transform:rotate(7deg);z-index:2}
+.mess .m8{right:0;top:76%;transform:rotate(-3deg);z-index:5}
+.mess .n{position:absolute;z-index:5;right:-4px;top:-14px;background:#ff3b30;color:#fff;border-radius:99px;font-size:12px;font-weight:700;padding:3px 9px}
+.mess .down{width:22px;height:22px;fill:none;stroke:var(--link);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:640px){.card.plain .center.c-mess{padding-top:76px!important}.mess{gap:6px}.mess .pile{height:150px}.mess .m{padding:6px 10px;font-size:12px}.mess .m b{font-size:10px}.mess .m.ph img{width:62px}
+  .mess .m3{left:24%;top:16%}.mess .m4{top:48%}.mess .m6{left:4%;top:76%}.mess .m7{right:12%;top:46%}.mess .m8{top:84%}}
+/* 작동 방식·하이라이트: 회원 목록, 하루 기록 */
+.roster{width:min(460px,86%);display:grid;gap:8px}
+.roster .h{display:flex;justify-content:space-between;color:var(--sub);font-size:13px;padding:0 4px 2px}
+.roster .r{display:grid;grid-template-columns:3.6em 1fr 5.6em;align-items:center;gap:12px;background:#2c2c2e;border-radius:14px;padding:10px 14px;font-size:15px}
+.roster .r b{font-weight:600}
+.roster .d{display:flex;gap:5px}
+.roster .d i{flex:1;max-width:22px;aspect-ratio:1;border-radius:6px;background:linear-gradient(180deg,var(--glow2),var(--glow1))}
+.roster .d i.o{background:#3a3a3c}
+.roster .r em{justify-self:end;font-style:normal;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:#3a3a3c;color:var(--sub);white-space:nowrap}
+.roster .r.alert{box-shadow:inset 0 0 0 1px #ff453a}
+.roster .r.alert em{background:rgb(255 69 58/.18);color:#ff6961}
+.roster .r.warn em{background:rgb(255 159 10/.18);color:#ffb340}
+.roster.mini{width:min(400px,92%);gap:6px}
+.roster.mini .r{grid-template-columns:3.4em 1fr auto;padding:8px 12px;font-size:14px}
+@media (max-width:640px){.roster .r{gap:8px;padding:8px 10px;font-size:13px;grid-template-columns:3.2em 1fr auto}.roster .d{gap:3px}.roster .d i{border-radius:4px}.roster .r em{font-size:11px;padding:2px 7px}.roster .h{font-size:12px}}
 /* 하이라이트 AI 코치: 내 기록과 공식 지침이 합쳐져 답이 된다 */
 .coach{width:min(520px,86%)}
 .coach .srcs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -342,7 +376,20 @@ footer .contact a:hover{text-decoration:underline}
   <div class="wide"><h2 class="sec-title rv">하이라이트 살펴보기</h2></div>
   <div class="rail" id="rail" tabindex="0" aria-label="하이라이트">
     <div class="card plain link"><p>회원 앱과 트레이너 웹이<br><span>같은 기록을 함께 봅니다.</span></p><div class="center"><div class="duo"><img class="tab" src="assets/landing/img/trainer-web.png" alt="트레이너 웹 화면" width="735" height="571"><img class="ph" src="assets/landing/img/member-app.png" alt="회원 앱 화면" width="487" height="1000"></div></div></div>
-    <div class="card plain"><p>메신저에 흩어지던 기록이<br><span>회원별, 날짜별로 한 줄에.</span></p><div class="center"><div class="week"><div class="d"><span></span><span></span><span class="off"></span><span></span><span></span><span></span><span class="off"></span></div><em>이번 주 식단 기록 5일, 나트륨 과다 3일</em></div></div></div>
+    <div class="card plain"><p>메신저에 흩어지던 기록이<br><span>회원별, 날짜별로 한 줄에.</span></p><div class="center c-mess"><div class="mess">
+      <div class="pile" aria-hidden="true"><span class="n tn">128</span>
+        <div class="m m1"><b>김회원 · 오전 8:12</b>코치님 아침 사진이요</div>
+        <div class="m m2"><b>이회원 · 오전 9:40</b>어제 운동 못 했어요ㅠ</div>
+        <div class="m m3 ph"><b>박회원 · 낮 12:31</b><img src="assets/landing/img/lunch-jjamppong.jpg" alt=""></div>
+        <div class="m m4"><b>최회원 · 오후 1:05</b>체중 61.2kg 찍었어요!</div>
+        <div class="m m5"><b>김회원 · 오후 6:47</b>저녁 이거 먹어도 돼요?</div>
+        <div class="m m6"><b>정회원 · 오후 9:02</b>오늘 스쿼트 4세트 끝!</div>
+        <div class="m m7 ph"><b>이회원 · 오후 7:20</b><img src="assets/landing/img/diet-vegetable-bibimbap.jpg" alt=""></div>
+        <div class="m m8"><b>박회원 · 오후 10:15</b>코치님 확인하셨어요??</div>
+      </div>
+      <svg class="down" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15M6 13l6 6 6-6"/></svg>
+      <div class="roster mini" role="img" aria-label="회원별 이번 주 기록"><div class="r"><b>김회원</b><span class="d"><i></i><i></i><i class="o"></i><i></i><i></i><i></i><i class="o"></i></span><em class="tn">5/7일</em></div><div class="r"><b>이회원</b><span class="d"><i></i><i class="o"></i><i class="o"></i><i></i><i class="o"></i><i class="o"></i><i class="o"></i></span><em class="tn">2/7일</em></div></div>
+    </div></div></div>
     <div class="card plain"><p>수업이 없는 날도<br><span>트레이너의 코칭이 돌아옵니다.</span></p><div class="center"><div class="chat"><p class="b tr">점심 국물은 반만 드세요. 내일 하체 끝나고 유산소 20분 더!</p><p class="b me">네, 코치님!</p></div></div></div>
     <div class="card plain"><p>내 기록을 아는 AI 코치.<br><span>공식 지침을 근거로 답합니다.</span></p><div class="center c-coach"><div class="coach">
       <div class="srcs"><div class="src"><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h11a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6zM6 3v18M9 8h6M9 12h6"/></svg>내 기록</b><span>점심 나트륨 3,900mg</span><span>하체 운동 40분</span></div><div class="src"><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5C5 4.5 8 4.5 12 6.5v13c-4-2-7-2-9-1zM21 5.5c-2-1-5-1-9 1v13c4-2 7-2 9-1z"/></svg>공식 지침</b><span>영양소 섭취기준</span><span>신체활동 지침서</span></div></div>
