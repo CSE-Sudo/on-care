@@ -445,6 +445,14 @@ def test_image_push_role_trusts_main_branch_and_only_pushes() -> None:
             assert action.startswith("ecr:"), action
 
 
+def test_image_push_role_can_read_back_pushed_manifest() -> None:
+    # 푸시 직후 digest 로 manifest 를 조회(HEAD)하는 Docker 는 BatchGetImage 가 없으면 403 이다(#3526).
+    role = BOOTSTRAP["Resources"]["GitHubBackendImagePushRole"]
+    (push,) = [s for s in statements(role) if s.get("Sid") == "PushBackendImages"]
+    assert "ecr:BatchGetImage" in as_list(push["Action"])
+    assert push["Resource"] == {"Fn::GetAtt": ["BackendRepository", "Arn"]}
+
+
 def test_no_app_runner_left_in_backend_templates() -> None:
     for name in ("backend-bootstrap.yml", "backend-environment.yml", "backend-service.yml"):
         text = (INFRA_DIR / name).read_text(encoding="utf-8")

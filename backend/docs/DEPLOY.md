@@ -68,7 +68,7 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 
 | 주체 | 믿는 OIDC subject | 할 수 있는 일 |
 |---|---|---|
-| 이미지 푸시 역할(bootstrap) | `repo:…:ref:refs/heads/main` | ECR `oncare-backend` 에 이미지 푸시·digest 조회만 |
+| 이미지 푸시 역할(bootstrap) | `repo:…:ref:refs/heads/main` | ECR `oncare-backend` 에 이미지 푸시·digest·manifest 조회만(manifest 조회는 푸시 직후 Docker 가 확인용으로 부른다, #3526) |
 | 배포 역할(env, 환경마다) | `repo:…:environment:<environment>` | 그 환경 서비스 스택의 변경 세트 생성·실행, CloudFormation 서비스 역할 넘기기만. 운영만: 서비스 클러스터에서 백업 작업 띄우기·조회·멈추기, 백업 버킷 `db/` 목록, 백업 로그 읽기(#1552) |
 | CloudFormation 서비스 역할(env) | — (cloudformation.amazonaws.com) | ECS Express 서비스 갱신, 태스크·실행·인프라 역할 넘기기 |
 | 태스크 역할(env) | — (ecs-tasks) | 그 환경 첨부 버킷의 `<접두사>/*` 읽기·쓰기·지우기와 접두사 목록 |
