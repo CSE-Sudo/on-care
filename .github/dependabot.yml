@@ -1,5 +1,11 @@
 # 의존성 업데이트 PR 을 주 1회 받는다(#2837).
 #
+# 백엔드(pip)·두 앱(pub)은 보안 업데이트만 자동 PR 로 받는다 — 버전 업데이트는
+# open-pull-requests-limit: 0 으로 끈다. 보안 업데이트는 이 한도와 별개로 계속 열린다.
+# 부·수 버전 묶음이 고정된 Flutter SDK 보다 새 SDK 를 요구하거나(예: web 1.1.2 → Dart 3.13)
+# 일시적인 E2E 실패로 매주 손이 가는 데 비해 얻는 것이 적어서다. 아래 groups·ignore 는
+# 다시 켤 때를 위해 남긴다.
+#
 # 생태계마다 업데이트를 한 묶음(groups)으로 모아 PR 수를 줄인다 — 매주 많아야
 # 생태계당 하나다. pip·pub 의 주 버전 변경은 자동 PR 로 받지 않는다(#2978) — 앱 전체
 # 코드 수정이 따르므로 필요할 때 패키지별 이슈로 계획한다. 보안 업데이트는 ignore 와
@@ -16,7 +22,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: Asia/Seoul
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0  # 보안 업데이트만
     labels: [chore]
     commit-message:
       prefix: chore
@@ -57,7 +63,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: Asia/Seoul
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 0  # 보안 업데이트만
     labels: [chore]
     commit-message:
       prefix: chore

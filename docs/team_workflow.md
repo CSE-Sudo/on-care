@@ -148,6 +148,11 @@ Dependabot 이 매주 월요일 오전에 생태계별로 묶은 업데이트 PR
 ([`.github/dependabot.yml`](../.github/dependabot.yml)) — 백엔드(pip), GitHub Actions,
 회원 앱·트레이너 웹(pub). 백엔드·두 앱의 주 버전 변경은 자동 PR 로 받지 않습니다(#2978).
 
+> **현재 운영**: 백엔드(pip)·두 앱(pub)은 **보안 업데이트 PR 만** 자동으로 열립니다
+> (`open-pull-requests-limit: 0`). 보안 PR 은 우선 처리합니다. 부·수 버전 업데이트는 필요할 때
+> 한도를 되돌려 받거나 이슈로 계획합니다. 아래 묶음 처리 규칙은 다시 켰을 때 적용합니다.
+> GitHub Actions 는 그대로 매주 받습니다.
+
 - **부·수 버전 묶음**: CI 가 모두 초록이면 담당 영역 사람이 변경 기록(릴리스 노트)만 훑고
   병합합니다. 한 패키지 때문에 깨지면 그 패키지만 묶음에서 빼고(`@dependabot ignore this
   minor version`) 나머지를 병합합니다.
