@@ -83,7 +83,10 @@ class _GoogleFocusReleaseState extends State<_GoogleFocusRelease> {
   late final JSFunction _onKeyDown = _handleKeyDown.toJS;
   late final JSFunction _onBlur = _handleBlur.toJS;
   Timer? _timer;
-  DateTime? _lastTab;
+
+  /// 마지막 Tab 키를 눌렀을 때의 `performance.now()`(밀리초). 시각이 아니라 흐른 시간만
+  /// 비교하므로 기기 시계를 읽지 않는다.
+  double? _lastTabMs;
 
   @override
   void initState() {
@@ -103,7 +106,7 @@ class _GoogleFocusReleaseState extends State<_GoogleFocusRelease> {
 
   void _handleKeyDown(web.KeyboardEvent event) {
     if (event.key == 'Tab') {
-      _lastTab = DateTime.now();
+      _lastTabMs = web.window.performance.now();
     }
   }
 
@@ -121,8 +124,10 @@ class _GoogleFocusReleaseState extends State<_GoogleFocusRelease> {
     if (!frame.src.startsWith(_gsiButtonOrigin)) {
       return;
     }
-    final DateTime? tabbed = _lastTab;
-    if (tabbed != null && DateTime.now().difference(tabbed) < _keyboardWindow) {
+    final double? tabbedMs = _lastTabMs;
+    if (tabbedMs != null &&
+        web.window.performance.now() - tabbedMs <
+            _keyboardWindow.inMilliseconds) {
       return;
     }
     frame.blur();
