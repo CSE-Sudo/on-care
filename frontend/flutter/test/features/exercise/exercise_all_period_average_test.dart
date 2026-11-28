@@ -65,8 +65,10 @@ Finder _bars() => find.byWidgetPredicate(
 );
 
 Future<void> _openAllPeriod(WidgetTester tester) async {
-  final AppDatabase exerciseDb = await seededDemoDatabase(tester);
+  // 시드도 같은 오늘을 보게 먼저 고정한다 — 시드가 실제 오늘을 따르면 날이
+  // 갈수록 고정된 화면 구간과 어긋난다.
   useFixedKstDate();
+  final AppDatabase exerciseDb = await seededDemoDatabase(tester);
   await tester.binding.setSurfaceSize(const Size(390, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
