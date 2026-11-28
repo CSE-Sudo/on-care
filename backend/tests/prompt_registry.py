@@ -11,6 +11,7 @@ from app.services import (
     diet_coach_inputs,
     diet_menu_plan,
     diet_recommendation_service,
+    exercise_week_ai,
     trainer_report_summary_service,
     trainer_routine_options_service,
 )
@@ -25,6 +26,22 @@ def _diet_sentence() -> str:
     system, _ = diet_ai_sentence.build_prompt(
         limit=40, finding="이번 주 나트륨을 3일 넘겼다.",
         records=["월 점심: 짬뽕"], notes=[], goal="체중 감량",
+    )
+    return system
+
+
+def _diet_week_pair() -> str:
+    system, _ = diet_ai_sentence.build_pair_prompt(
+        limit=40, finding="이번 주 나트륨을 3일 넘겼다.",
+        records=["월 점심: 짬뽕"], notes=[], goal="체중 감량",
+    )
+    return system
+
+
+def _exercise_week_pair() -> str:
+    system, _ = exercise_week_ai.build_prompt(
+        limit=40, finding="이번 주 2일 운동했고 모두 60분이다.",
+        records=["월 유산소: 걷기 30분"], goal="체중 감량",
     )
     return system
 
@@ -55,6 +72,9 @@ MEMBER_PROMPTS = {
     "diet_coach": lambda: domain_coaches._DIET_SYSTEM,
     "exercise_coach": lambda: domain_coaches._EXERCISE_SYSTEM,
     "diet_sentence": _diet_sentence,
+    # 식단·운동 `이번 주` 조언의 두 문장(탭 + 홈 시트, #3549).
+    "diet_week_pair": _diet_week_pair,
+    "exercise_week_pair": _exercise_week_pair,
     "diet_menu_plan": _diet_menu_plan,
     "diet_recommendation": _diet_recommendation,
     # 두 엔진은 같은 문자열을 쓴다(`recognizer/prompt.py`). 엔진 모듈을 거쳐 읽어야

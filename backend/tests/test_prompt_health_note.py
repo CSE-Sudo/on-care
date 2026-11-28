@@ -18,6 +18,7 @@ from app.services import (
     diet_coach_inputs,
     diet_menu_plan,
     diet_recommendation_service,
+    exercise_week_ai,
     trainer_routine_options_service,
 )
 from app.services.coach import chat as coach_chat
@@ -37,6 +38,22 @@ def _sentence_user() -> str:
     _, user = diet_ai_sentence.build_prompt(
         limit=40, finding="이번 주 나트륨을 3일 넘겼다.",
         records=["월 점심: 짬뽕"], notes=[], goal=_Profile.conditions,
+    )
+    return user
+
+
+def _week_pair_user() -> str:
+    _, user = diet_ai_sentence.build_pair_prompt(
+        limit=40, finding="이번 주 나트륨을 3일 넘겼다.",
+        records=["월 점심: 짬뽕"], notes=[], goal=_Profile.conditions,
+    )
+    return user
+
+
+def _exercise_week_user() -> str:
+    _, user = exercise_week_ai.build_prompt(
+        limit=40, finding="이번 주 2일 운동했고 모두 60분이다.",
+        records=["월 유산소: 걷기 30분"], goal=_Profile.conditions,
     )
     return user
 
@@ -64,8 +81,8 @@ def _recommendation_user() -> str:
 
 #: 건강상태·주의사항 글을 싣는 프롬프트.
 _CARRIERS = (
-    "coach_chat", "diet_sentence", "diet_menu_plan", "diet_recommendation",
-    "routine_options",
+    "coach_chat", "diet_sentence", "diet_week_pair", "exercise_week_pair",
+    "diet_menu_plan", "diet_recommendation", "routine_options",
 )
 
 
@@ -89,6 +106,8 @@ def test_the_boundary_names_every_label(label):
     "build, label",
     [
         (_sentence_user, "[목표]"),
+        (_week_pair_user, "[목표]"),
+        (_exercise_week_user, "[목표]"),
         (_menu_plan_user, "건강 목표"),
         (_recommendation_user, "건강 상태"),
     ],

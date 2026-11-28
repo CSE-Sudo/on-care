@@ -51,6 +51,7 @@ from app.services import (
     diet_trainer_analysis,
     diet_trainer_pick,
     exercise_service,
+    exercise_week_ai,
     health_goal_change,
     diet_photo_service,
 )
@@ -540,6 +541,12 @@ def trainer_client_exercise_advice(
         # "○주 동안" 은 읽은 구간의 주 수다 — `전체` 그래프의 칸 수와 같다(#3365).
         weeks=exercise_service.period_weeks(start, end),
     )
+    # `이번 주` AI 문장은 회원 앱이 만든 것을 읽기만 한다(#3549) — 트레이너가 화면을
+    # 열었다고 회원 몫의 AI 호출을 쓰지 않는다. 회원과 같은 문장이다.
+    ai = (
+        exercise_week_ai.week_ai(db, member_id, generate=False)
+        if period == "week" else None
+    )
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
@@ -548,6 +555,7 @@ def trainer_client_exercise_advice(
         message=advice.text,
         advice_key=advice.key,
         advice_params=advice.params,
+        ai_sentence=ai.sentence if ai is not None else None,
     )
 
 
