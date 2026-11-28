@@ -49,10 +49,11 @@
    ```
 3. **플랫폼 > iOS** — 번들 ID `com.csesudo.oncare`.
 4. **플랫폼 > Web** — 사이트 도메인에 웹을 여는 출처를 넣습니다(운영 도메인, 데모 도메인
-   `https://ewhasudo.zapto.org`, 로컬 시험 주소).
+   `https://cse-sudo.github.io`, 로컬 시험 주소).
 5. **카카오 로그인 > 활성화** 를 켜고, **Redirect URI** 에 콜백 페이지를 등록합니다. 앱마다 경로가 다릅니다.
-   - 회원 웹: `https://<도메인>/frontend/kakao_login_callback.html`
+   - 회원 웹: `https://<도메인>/member/kakao_login_callback.html`
    - 트레이너 웹: `https://<도메인>/trainer/kakao_login_callback.html`
+   - 데모(GitHub Pages)는 저장소 경로 아래라 `https://cse-sudo.github.io/on-care/member/kakao_login_callback.html`·`https://cse-sudo.github.io/on-care/trainer/kakao_login_callback.html` 입니다.
    - 로컬: `http://localhost:<포트>/kakao_login_callback.html`
 6. **카카오 로그인 > 동의항목** — 닉네임(필수), 카카오계정(이메일)(선택)을 켭니다. 이메일 동의를 받지 못한
    계정도 로그인은 되고, 서버가 자리표시 이메일로 계정을 만듭니다.

@@ -72,9 +72,10 @@ def test_demo_alerts_keep_their_times_and_move_to_today(client, db_session):
         "어제",
         "어제",
     ]
+    # 서버 문장은 한국어 하나다 — `en` 을 보내도 같다(#3404).
     en = _inbox(client, {"Accept-Language": "en"})
-    assert en["noti-demo-3"]["time_ago"] == "30 min ago"
-    assert en["noti-demo-8"]["time_ago"] == "yesterday"
+    assert en["noti-demo-3"]["time_ago"] == "30분 전"
+    assert en["noti-demo-8"]["time_ago"] == "어제"
 
     # 목록을 읽을 때 오늘로 옮겨졌다 — 새로 생긴 알림과의 순서도 맞는다.
     db_session.expire_all()
@@ -156,4 +157,4 @@ def test_pt_alert_reads_as_a_pt_record_in_the_demo_inbox(client, db_session):
     assert inbox["noti-demo-5"]["category"] == "pt_done"
     assert action == {"label": "PT 기록 보기", "target": "exercise"}
     en = _inbox(client, {"Accept-Language": "en"})
-    assert en["noti-demo-5"]["action"]["label"] == "View PT record"
+    assert en["noti-demo-5"]["action"] == action

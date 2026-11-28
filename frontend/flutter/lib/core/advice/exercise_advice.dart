@@ -50,7 +50,7 @@ class ExerciseAdvice {
 String _particle(String word, String withFinal, String withoutFinal) =>
     josa(word, withFinal, withoutFinal);
 
-/// 이름 뒤 목적격 조사(을/를). 한국어 ARB 만 쓰고 영어 문장은 무시한다.
+/// 이름 뒤 목적격 조사(을/를). ARB 문장에 끼운다.
 String _obj(Object? name) => _particle(_str(name), '을', '를');
 
 /// 이름 뒤 주격 조사(이/가).

@@ -7,9 +7,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
-from app.core import locale as locale_mod
 from app.services import coach_service
 from app.services.coach.grounding import mentions_untracked_metric
 
@@ -18,14 +15,12 @@ class _NoRows:
     def scalars(self, _query):
         return SimpleNamespace(all=lambda: [])
 
+    def scalar(self, _query):
+        return None
 
-@pytest.mark.parametrize("lang", ["ko", "en"])
-def test_empty_week_fallback_does_not_cite_untracked_metrics(lang):
-    token = locale_mod._request_locale_ctx.set(lang)
-    try:
-        suggestion = coach_service._exercise_suggestion(_NoRows(), "user-x")
-    finally:
-        locale_mod._request_locale_ctx.reset(token)
+
+def test_empty_week_fallback_does_not_cite_untracked_metrics():
+    suggestion = coach_service._exercise_suggestion(_NoRows(), "user-x")
 
     text = f"{suggestion.title} {suggestion.body}"
     assert not mentions_untracked_metric(text)

@@ -1,7 +1,8 @@
 """탈퇴하면 사라지는 것의 수 — 회원 탈퇴 확인창이 보여 준다. (#3006)
 
 `DELETE /users/me` 는 되돌릴 수 없다. 기록·연결·대화 말고도 남은 포인트와 아직
-쓰지 않은 쿠폰이 함께 사라지고, 잡아 둔 PT 예약과 대기 중 상담 요청이 취소된다.
+쓰지 않은 쿠폰이 함께 사라지고, 잡아 둔 PT 예약·트레이너가 잡은 일정과 대기 중
+상담 요청이 취소된다.
 확인창은 그 자리에서 "얼마를 잃는지" 를 숫자로 보여 줘야 한다.
 
 여기서 세는 기준은 각 기능이 회원 화면에 보여 주는 기준과 같다 — 확인창의 숫자가
@@ -22,6 +23,7 @@ from app.services import (
     points_service,
     reservation_service,
 )
+from app.services.trainer._common import sessions_cancelled_on_withdrawal
 
 
 def preview(
@@ -34,6 +36,8 @@ def preview(
         upcoming_reservations=reservation_service.count_upcoming_for_member(
             db, member_id, now=now
         ),
+        # 탈퇴가 실제로 거두는 목록과 같은 기준으로 센다(#3341).
+        upcoming_sessions=len(sessions_cancelled_on_withdrawal(db, member_id)),
         pending_consultations=consultation_service.count_live_pending_for_member(
             db, member_id, now=now
         ),

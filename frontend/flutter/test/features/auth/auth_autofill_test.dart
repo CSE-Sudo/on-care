@@ -343,20 +343,6 @@ void main() {
       expect(server.requests, isNotEmpty);
       expect(_saves(tester), 0);
     });
-
-    testWidgets('영어 화면에서도 힌트와 묶음이 같다', (tester) async {
-      await pumpSignIn(tester, locale: const Locale('en'));
-
-      expect(find.text('Sign in'), findsWidgets);
-      expect(_field(tester, email).autofillHints, <String>[
-        AutofillHints.username,
-        AutofillHints.email,
-      ]);
-      expect(_field(tester, password).autofillHints, <String>[
-        AutofillHints.password,
-      ]);
-      expect(_groupAround(password), findsOneWidget);
-    });
   });
 
   group('가입 화면', () {
@@ -515,17 +501,6 @@ void main() {
       expect(find.byType(SignUpPage), findsNothing);
       expect(_saves(tester), 0);
       expect(_finishCalls(tester), <bool?>[false]);
-    });
-
-    testWidgets('영어 화면에서도 힌트와 묶음이 같다', (tester) async {
-      await pumpSignUp(tester, locale: const Locale('en'));
-
-      expect(find.text('Sign up'), findsWidgets);
-      expect(_field(tester, name).autofillHints, <String>[AutofillHints.name]);
-      expect(_field(tester, confirm).autofillHints, <String>[
-        AutofillHints.newPassword,
-      ]);
-      expect(_groupAround(phone), findsOneWidget);
     });
   });
 }

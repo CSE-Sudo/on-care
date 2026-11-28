@@ -6,30 +6,23 @@
 
 0 인 단위는 뺀다 — 딱 떨어지는 30분은 예전(`30분`)과 같은 모양이고, 초를 적었을
 때만 길어진다. 회원 앱 `formatDurationParts`·트레이너 웹 `formatExerciseDuration`
-과 같은 규칙이고 단위 표기도 같다(`1 hr 30 min 15 sec`).
+과 같은 규칙이다.
 """
 from __future__ import annotations
 
-from app.core.locale import Locale
-
-_UNITS: dict[Locale, tuple[str, str, str]] = {
-    "ko": ("{}시간", "{}분", "{}초"),
-    "en": ("{} hr", "{} min", "{} sec"),
-}
 
 
-def format_duration(seconds: int, locale: Locale = "ko") -> str:
+def format_duration(seconds: int) -> str:
     """초 → `1시간 30분 15초`. 0 이하는 `0분` 이다."""
     total = max(0, int(seconds))
-    hours_fmt, minutes_fmt, seconds_fmt = _UNITS[locale]
     parts: list[str] = []
     if total // 3600:
-        parts.append(hours_fmt.format(total // 3600))
+        parts.append(f"{total // 3600}시간")
     if total % 3600 // 60:
-        parts.append(minutes_fmt.format(total % 3600 // 60))
+        parts.append(f"{total % 3600 // 60}분")
     if total % 60:
-        parts.append(seconds_fmt.format(total % 60))
-    return " ".join(parts) if parts else minutes_fmt.format(0)
+        parts.append(f"{total % 60}초")
+    return " ".join(parts) if parts else "0분"
 
 
 def seconds_or_minutes(duration_seconds: int | None, minutes: int | None) -> int:

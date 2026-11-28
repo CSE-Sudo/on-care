@@ -25,7 +25,6 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/fixed_clock.dart';
@@ -35,7 +34,6 @@ import '../../helpers/pump_app.dart';
 /// 같은 규칙, 일정·예약 슬롯·상담 승인 화면의 안내까지. (#2284)
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 class _MockDio extends Mock implements Dio {}
 
@@ -680,14 +678,13 @@ void main() {
   group('ScheduleOverlapBanner', () {
     Future<void> pumpBanner(
       WidgetTester tester, {
-      required Locale locale,
       required List<ScheduleSession> conflicts,
       String? hint,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          locale: locale,
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
@@ -701,7 +698,6 @@ void main() {
     testWidgets('한국어: 제목·겹친 일정 줄·안내', (tester) async {
       await pumpBanner(
         tester,
-        locale: const Locale('ko'),
         conflicts: <ScheduleSession>[_session()],
       );
       expect(find.text(_ko.schedOverlapTitle), findsOneWidget);
@@ -714,28 +710,9 @@ void main() {
       expect(find.textContaining(_ko.schedOverlapHint), findsOneWidget);
     });
 
-    testWidgets('English: title, row and hint', (tester) async {
-      await pumpBanner(
-        tester,
-        locale: const Locale('en'),
-        conflicts: <ScheduleSession>[_session()],
-        hint: _en.slotOverlapHint,
-      );
-      expect(find.text(_en.schedOverlapTitle), findsOneWidget);
-      expect(
-        find.textContaining(
-          _en.schedRepeatConflictRow('2026-08-20', '10:00', '김민수'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining(_en.slotOverlapHint), findsOneWidget);
-      expect(find.textContaining(_en.schedOverlapHint), findsNothing);
-    });
-
     testWidgets('이름이 없는 일정(상담 자리 등)은 종류로 짚는다', (tester) async {
       await pumpBanner(
         tester,
-        locale: const Locale('ko'),
         conflicts: <ScheduleSession>[
           _session(clientName: '', type: SessionType.consultation),
         ],
@@ -755,7 +732,6 @@ void main() {
     testWidgets('겹친 목록이 없으면 안내만 남는다', (tester) async {
       await pumpBanner(
         tester,
-        locale: const Locale('ko'),
         conflicts: const <ScheduleSession>[],
       );
       expect(find.text(_ko.schedOverlapTitle), findsOneWidget);
@@ -765,7 +741,6 @@ void main() {
     testWidgets('다섯 줄까지만 보인다', (tester) async {
       await pumpBanner(
         tester,
-        locale: const Locale('ko'),
         conflicts: <ScheduleSession>[
           for (var i = 0; i < 7; i++)
             _session(id: 's$i', time: '1$i:00', clientName: '회원$i'),
@@ -816,19 +791,15 @@ void main() {
     }
 
     Future<ProviderContainer> openNewSession(
-      WidgetTester tester, {
-      Locale locale = const Locale('ko'),
-    }) async {
+      WidgetTester tester) async {
       useWideConsole(tester);
       final container = await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.schedule,
         seedClock: kMidWeekKst,
-        locale: locale,
       );
-      final l = locale.languageCode == 'en' ? _en : _ko;
-      await tester.tap(find.text(l.schedNewSession));
+      await tester.tap(find.text(_ko.schedNewSession));
       await settle(tester);
       return container;
     }
@@ -901,26 +872,12 @@ void main() {
       );
       expect(await tester.runAsync(() => countAt(container, '12:50')), 1);
     });
-
-    testWidgets('English console shows the same notice in English', (
-      tester,
-    ) async {
-      await openNewSession(tester, locale: const Locale('en'));
-      await enterTimeRange(tester, start: '12:30', end: '13:30');
-      await tapAdd(tester, _en.schedAddAction);
-
-      expect(find.text(_en.schedOverlapTitle), findsOneWidget);
-      expect(find.textContaining(_en.schedOverlapHint), findsOneWidget);
-      expect(find.text(_ko.schedOverlapTitle), findsNothing);
-    });
   });
 
   // ---------------------------------------------------------------------------
   group('예약 자리 열기', () {
     Future<_OverlapSlotRepository> openSlots(
-      WidgetTester tester, {
-      Locale locale = const Locale('ko'),
-    }) async {
+      WidgetTester tester) async {
       final repo = _OverlapSlotRepository();
       await pumpTrainerApp(
         tester,
@@ -928,7 +885,6 @@ void main() {
         at: AppRoutes.schedule,
         // 기본 열기 시각(10:00)이 아직 오지 않은 아침.
         seedClock: DateTime(2026, 8, 20, 7),
-        locale: locale,
         extraOverrides: <Override>[
           reservationSlotRepositoryProvider.overrideWithValue(repo),
         ],
@@ -972,17 +928,6 @@ void main() {
       // 토스트 타이머를 흘려보낸다.
       await tester.pump(const Duration(seconds: 5));
     });
-
-    testWidgets('English: slot notice', (tester) async {
-      final repo = await openSlots(tester, locale: const Locale('en'));
-      repo.overlapNext = <ScheduleSession>[_session()];
-
-      await tester.tap(find.byKey(const ValueKey<String>('slot-create')));
-      await settle(tester);
-
-      expect(find.text(_en.schedOverlapTitle), findsOneWidget);
-      expect(find.textContaining(_en.slotOverlapHint), findsOneWidget);
-    });
   });
 
   // ---------------------------------------------------------------------------
@@ -1001,9 +946,7 @@ void main() {
     );
 
     Future<_OverlapConsultationRepository> openInbox(
-      WidgetTester tester, {
-      Locale locale = const Locale('ko'),
-    }) async {
+      WidgetTester tester) async {
       final repo = _OverlapConsultationRepository(<ConsultationRequest>[
         request(),
       ]);
@@ -1011,7 +954,6 @@ void main() {
         tester,
         token: 'demo-token',
         at: AppRoutes.consultations,
-        locale: locale,
         extraOverrides: <Override>[
           consultationRepositoryProvider.overrideWithValue(repo),
         ],
@@ -1060,20 +1002,6 @@ void main() {
         findsNothing,
       );
       await tester.pump(const Duration(seconds: 5));
-    });
-
-    testWidgets('English: consultation notice', (tester) async {
-      final repo = await openInbox(tester, locale: const Locale('en'));
-      repo.overlapNext = <ScheduleSession>[_session()];
-
-      await tester.tap(
-        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
-      );
-      await settle(tester);
-
-      expect(find.text(_en.schedOverlapTitle), findsOneWidget);
-      expect(find.textContaining(_en.consultOverlapHint), findsOneWidget);
-      expect(find.text(_ko.consultOverlapHint), findsNothing);
     });
   });
 }

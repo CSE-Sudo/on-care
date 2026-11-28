@@ -1,8 +1,8 @@
 /// 번역 파일(ARB)의 키가 앱 코드에서 실제로 쓰이는가 — 가드(#2905).
 ///
 /// 화면을 바꾸거나 문구를 공용 패키지로 옮기면 ARB 키만 남는다. 그런 키가
-/// 쌓이면 문구를 고칠 때 같은 뜻의 키가 두세 벌이라 엉뚱한 키를 고치게 되고,
-/// 영어 검토도 쓰지 않는 문장까지 하게 된다. 그래서 템플릿 ARB(`app_en.arb`)의
+/// 쌓이면 문구를 고칠 때 같은 뜻의 키가 두세 벌이라 엉뚱한 키를 고치게 된다.
+/// 그래서 템플릿 ARB(`app_ko.arb`)의
 /// 모든 키가 `lib/`(생성 코드 `lib/gen/` 제외)에 식별자로 나오는지 본다.
 ///
 /// 주석 줄에만 나오는 키는 쓰는 것으로 치지 않는다. 서버 키·알림 템플릿으로
@@ -55,13 +55,12 @@ Set<String> _libIdentifiers() {
 }
 
 void main() {
-  final Set<String> en = _arbKeys('lib/l10n/app_en.arb');
   final Set<String> ko = _arbKeys('lib/l10n/app_ko.arb');
 
   test('템플릿 ARB 의 키는 모두 lib/ 에서 쓰이거나 허용 목록에 있다', () {
     final Set<String> used = _libIdentifiers();
     final List<String> unused =
-        en
+        ko
             .where(
               (String k) => !used.contains(k) && !_allowedUnused.containsKey(k),
             )
@@ -70,18 +69,13 @@ void main() {
     expect(
       unused,
       isEmpty,
-      reason: '쓰지 않는 키는 app_en.arb·app_ko.arb 에서 지우고 gen-l10n 을 다시 돌린다',
+      reason: '쓰지 않는 키는 app_ko.arb 에서 지우고 gen-l10n 을 다시 돌린다',
     );
-  });
-
-  test('ko·en ARB 의 키 집합이 같다', () {
-    expect(ko.difference(en), isEmpty, reason: 'app_ko.arb 에만 있는 키');
-    expect(en.difference(ko), isEmpty, reason: 'app_en.arb 에만 있는 키');
   });
 
   test('허용 목록은 ARB 에 있는 키만 담는다', () {
     final List<String> stale = _allowedUnused.keys
-        .where((String k) => !en.contains(k))
+        .where((String k) => !ko.contains(k))
         .toList();
     expect(stale, isEmpty, reason: 'ARB 에서 지운 키는 허용 목록에서도 뺀다');
   });

@@ -57,14 +57,14 @@ class DietFood {
   final String name;
   final int kcal;
 
-  /// 서버가 준 표시 이름과 저장된 원래 이름(#2850). 영어 화면에서 분석한
-  /// 음식은 [name] 이 영어 표시 이름이고, [storedName] 이 공공 영양 DB 가
+  /// 서버가 준 표시 이름과 저장된 원래 이름(#2850). 표시 이름이 있는
+  /// 음식은 [name] 이 그 표시 이름이고, [storedName] 이 공공 영양 DB 가
   /// 매칭하는 한국어 이름이다. 저장할 때 [wireName] 이 둘을 되돌린다.
   final String? displayName;
   final String? storedName;
 
   /// 저장할 때 보낼 이름. 표시 이름을 그대로 두었으면 원래 이름과 표시 이름을
-  /// 함께 되돌려 매칭 키가 영어로 덮이지 않게 하고, 회원이 이름을 바꿨으면 그
+  /// 함께 되돌려 매칭 키가 표시 이름으로 덮이지 않게 하고, 회원이 이름을 바꿨으면 그
   /// 이름이 곧 이름이다 — 표시 이름은 싣지 않는다.
   ({String name, String? displayName}) get wireName {
     final String typed = name.trim();

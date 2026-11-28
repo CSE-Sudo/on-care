@@ -7,6 +7,7 @@
 /// 원본이다 — 한쪽만 고치면 같은 주가 두 앱에서 다른 점수를 말한다.
 library;
 
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
         kGoalDefaultDailyCalories,
@@ -79,17 +80,10 @@ DateTime reportWeekStartOf(DateTime day) =>
     DateTime(day.year, day.month, day.day - (day.weekday - DateTime.monday));
 
 /// 지금 서울의 벽시계. 앱이 기준일을 넘기지 않았을 때만 쓴다.
-DateTime reportNowKst() {
-  final DateTime seoul = DateTime.now().toUtc().add(const Duration(hours: 9));
-  return DateTime(
-    seoul.year,
-    seoul.month,
-    seoul.day,
-    seoul.hour,
-    seoul.minute,
-    seoul.second,
-  );
-}
+///
+/// 두 앱과 같은 [nowKst] 를 읽는다(#3448). 예전에는 여기서 따로 계산해, 테스트가
+/// `debugNowKstOverride` 로 '지금' 을 고정해도 결과지만 실제 시각을 봤다.
+DateTime reportNowKst() => nowKst();
 
 /// 결과지의 하루 — 루틴 수행률과 그날 한 운동.
 abstract interface class ReportSheetDay {

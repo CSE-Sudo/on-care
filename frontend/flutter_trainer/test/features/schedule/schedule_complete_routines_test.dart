@@ -15,6 +15,7 @@ import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -406,15 +407,30 @@ void main() {
     });
     tearDown(() => db.close());
 
-    /// 프로그램이 붙은 시드 일정 하나를 골라 전송 여부만 맞춰 둔다.
+    /// 아직 보내지 않은, 프로그램이 붙은 시드 일정 하나를 고른다.
     ///
-    /// 시드에는 이미 보낸 일정이 없다 — 보낸 상태는 여기서 만든다.
+    /// [sent] 면 완료로 두고 데모 저장소로 **보낸다** — 전송 표시만 바꾸면
+    /// 보낼 때 개인운동을 남기는 길(#2616)을 지나지 않는다.
     Future<String> sessionId({required bool sent}) async {
       final rows = await db.select(db.trainerScheduleEntries).get();
-      final String id = rows.firstWhere((r) => r.programJson.isNotEmpty).id;
-      await (db.update(db.trainerScheduleEntries)
-            ..where((t) => t.id.equals(id)))
-          .write(TrainerScheduleEntriesCompanion(programSent: Value(sent)));
+      final String id = rows
+          .firstWhere(
+            (r) =>
+                !r.programSent &&
+                r.programJson.isNotEmpty &&
+                r.programJson != '[]',
+          )
+          .id;
+      if (sent) {
+        await (db.update(
+          db.trainerScheduleEntries,
+        )..where((t) => t.id.equals(id))).write(
+          const TrainerScheduleEntriesCompanion(
+            status: Value(ScheduleStatus.done),
+          ),
+        );
+        await repo.sendProgram(id);
+      }
       return id;
     }
 

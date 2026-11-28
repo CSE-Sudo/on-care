@@ -150,6 +150,120 @@ void main() {
       expect(item.action?.isNavigable, isTrue);
     });
 
+    // 리포트 알림의 목적지 값은 메시지와 같은 대화다. 그 주 리포트를 바로 열 값은
+    // `report` 칸으로 따로 온다(#3344).
+    test('리포트 알림이 가리키는 주와 메시지를 옮긴다 (#3344)', () async {
+      final repo = DioNotificationRepository(
+        _dio(<Object?>[
+          <String, Object?>{
+            'id': 'n1',
+            'title': '주간 리포트가 도착했어요',
+            'body': '이번 주 잘하셨어요',
+            'time_ago': '방금',
+            'category': 'coach_report',
+            'read': false,
+            'action': <String, Object?>{
+              'label': '리포트 보기',
+              'target': 'coach_chat',
+            },
+            'report': <String, Object?>{
+              'week_start': '2026-10-05',
+              'message_id': 'chat-abc',
+            },
+          },
+        ]),
+      );
+
+      final AlertItem item = (await repo.fetchPage()).single;
+      expect(item.category, AlertCategory.coachReport);
+      expect(item.action?.target, AlertTarget.coachChat);
+      expect(item.report?.weekStart, DateTime(2026, 10, 5));
+      expect(item.report?.messageId, 'chat-abc');
+      // 읽음 처리 뒤에도 남는다 — 읽은 알림을 다시 눌러도 리포트가 열려야 한다.
+      expect(item.copyWith(read: true).report?.messageId, 'chat-abc');
+    });
+
+    test('옛 리포트 알림에는 가리키는 리포트가 없다 (#3344)', () async {
+      final repo = DioNotificationRepository(
+        _dio(<Object?>[
+          // `report` 칸이 생기기 전의 서버 응답 — 키 자체가 없다.
+          <String, Object?>{
+            'id': 'old',
+            'title': '주간 리포트가 도착했어요',
+            'body': '',
+            'time_ago': '3일 전',
+            'category': 'coach_report',
+            'action': <String, Object?>{
+              'label': '리포트 보기',
+              'target': 'coach_chat',
+            },
+          },
+          // 새 서버가 옛 행에 주는 응답 — 키는 있고 값이 null 이다.
+          <String, Object?>{
+            'id': 'null',
+            'title': '주간 리포트가 도착했어요',
+            'body': '',
+            'time_ago': '3일 전',
+            'category': 'coach_report',
+            'action': <String, Object?>{
+              'label': '리포트 보기',
+              'target': 'coach_chat',
+            },
+            'report': null,
+          },
+        ]),
+      );
+
+      final List<AlertItem> items = await repo.fetchPage();
+      for (final AlertItem item in items) {
+        expect(item.report, isNull, reason: item.id);
+        expect(item.action?.target, AlertTarget.coachChat, reason: item.id);
+      }
+    });
+
+    test('깨진 report 한 건이 목록을 실패시키지 않는다 (#3344)', () async {
+      final repo = DioNotificationRepository(
+        _dio(<Object?>[
+          for (final (int index, Object? report) in <Object?>[
+            'not-a-map',
+            <String, Object?>{},
+            <String, Object?>{'week_start': 20261005},
+            <String, Object?>{'week_start': 'garbage'},
+            <Object?>['2026-10-05'],
+          ].indexed)
+            <String, Object?>{
+              'id': 'n$index',
+              'title': '주간 리포트가 도착했어요',
+              'body': '',
+              'time_ago': '방금',
+              'category': 'coach_report',
+              'report': report,
+            },
+        ]),
+      );
+
+      final List<AlertItem> items = await repo.fetchPage();
+      expect(items, hasLength(5));
+      expect(items.every((AlertItem item) => item.report == null), isTrue);
+    });
+
+    test('report 는 날짜만 읽고 빈 메시지 식별자는 버린다 (#3344)', () {
+      final AlertReportRef? timed = DioNotificationRepository.reportFrom(
+        <String, Object?>{
+          'week_start': '2026-10-05T15:30:00+09:00',
+          'message_id': '',
+        },
+      );
+      expect(timed?.weekStart, DateTime(2026, 10, 5));
+      expect(timed?.messageId, isNull);
+
+      final AlertReportRef? weekOnly = DioNotificationRepository.reportFrom(
+        <String, Object?>{'week_start': '2026-10-05', 'message_id': 7},
+      );
+      expect(weekOnly?.weekStart, DateTime(2026, 10, 5));
+      expect(weekOnly?.messageId, isNull);
+    });
+
     test('상담 결과 알림은 내 상담 요청으로 간다 (#2067)', () async {
       final repo = DioNotificationRepository(
         _dio(<Object?>[

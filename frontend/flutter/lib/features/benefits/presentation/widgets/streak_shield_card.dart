@@ -53,7 +53,7 @@ class StreakShieldSummaryCard extends StatelessWidget {
               AppTag(
                 key: const ValueKey<String>('streak-shield-held'),
                 // 운동한 날의 보호권을 되돌려 받으면 최대 보유 수를 넘을 수 있다
-                // (#1788) — 그때는 `3/2개` 대신 개수만 적는다.
+                // (#1788) — 그때는 `5/4개` 대신 개수만 적는다.
                 label: shields.held > shields.maxHeld
                     ? l.myBenefitsShieldHeldCount(shields.held)
                     : l.myBenefitsShieldHeld(shields.held, shields.maxHeld),

@@ -1,6 +1,6 @@
 /// 탈퇴 확인창에 실을 "잃는 것" 건수를 읽는다. (#3006)
 ///
-/// 실서버는 `GET /users/me/deletion-preview` 한 번으로 네 숫자를 모두 준다.
+/// 실서버는 `GET /users/me/deletion-preview` 한 번으로 숫자를 모두 준다.
 /// 데모는 PT 예약·상담 요청을 목 헬스장·상담 저장소가 들고 있어(로컬 목업 API
 /// 를 거치지 않는다), 그 둘은 저장소에서 다시 세어 덮는다 — 데모에서 잡아 둔
 /// 예약이 확인창에서 0건으로 보이지 않게.
@@ -69,6 +69,8 @@ String withdrawConfirmMessage(
       l.myWithdrawLoseCoupons(preview.activeCoupons),
     if (preview.upcomingReservations > 0)
       l.myWithdrawCancelReservations(preview.upcomingReservations),
+    if (preview.upcomingSessions > 0)
+      l.myWithdrawCancelSessions(preview.upcomingSessions),
     if (preview.pendingConsultations > 0)
       l.myWithdrawCancelConsultations(preview.pendingConsultations),
   ];

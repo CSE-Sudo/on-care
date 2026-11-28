@@ -170,9 +170,8 @@ class TrainerClientOut(BaseModel):
     fat_g: float                 # 오늘 총 지방(g)
     last_routine: str            # 마지막 루틴 전송 라벨(오늘/어제/N일 전)
     #: 마지막 루틴을 보낸 날(KST, YYYY-MM-DD). 없으면 None (#2300).
-    #: `last_routine` 은 서버가 문장으로 만든 라벨이라 화면 언어를 따라가지 못한다
-    #: — 앱은 이 날짜로 `오늘`·`N일 전` 을 로케일에 맞춰 직접 그린다. 옛 앱을 위해
-    #: `last_routine` 도 계속 보낸다.
+    #: `last_routine` 은 서버가 문장으로 만든 라벨이다 — 앱은 이 날짜로
+    #: `오늘`·`N일 전` 을 직접 그린다. 옛 앱을 위해 `last_routine` 도 계속 보낸다.
     last_routine_date: str | None = None
     #: 이번 주 일별 이행률 7개(월→일). 그날 걸린 개인운동·잡힌 PT 중 한 비율이다
     #: (#2513). 아무것도 걸리지 않은 날과 아직 오지 않은 날은 null 이다 — 0 은
@@ -329,9 +328,8 @@ RoutineHistoryKind = Literal[
 class RoutineHistoryExerciseOut(BaseModel):
     """이력의 운동 한 종목 — 문장이 아닌 값(#2300).
 
-    `exercises` 의 `스쿼트 3세트 12회 40kg` 은 단위가 한국어로 박힌 문장이라 영어
-    화면에서도 `세트`·`회` 가 그대로 나온다. 같은 내용을 값으로 나눠 보내고 단위는
-    앱이 ARB 로 붙인다. 필드 이름은 앱 `ClientExerciseItem` 과 같다.
+    `exercises` 의 `스쿼트 3세트 12회 40kg` 은 단위가 박힌 문장이다. 같은 내용을
+    값으로 나눠 보내고 단위는 앱이 ARB 로 붙인다. 필드 이름은 앱 `ClientExerciseItem` 과 같다.
     """
     name: str
     #: `cardio` | `strength` | `stretching` | `other`. 모르면 빈 문자열.
@@ -700,6 +698,12 @@ class RoutineOut(BaseModel):
     completed_minutes: int | None = None
     #: 회원이 완료한 기록의 시간(초). 초로 남기지 않은 기록은 비어 있다(#2221).
     completed_duration_seconds: int | None = None
+    #: 회원이 완료하며 적은 세트·횟수·버틴 시간·중량 — 근력 기록에만 있다.
+    #: 배정 값(`sets`·`reps`·`hold_seconds`·`weight`)과 다를 수 있다. (#3364)
+    completed_sets: int | None = None
+    completed_reps: int | None = None
+    completed_hold_seconds: int | None = None
+    completed_weight: float | None = None
     completed_intensity: str | None = None
     #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
     #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
@@ -1558,8 +1562,7 @@ RoutineFindingKind = Literal[
 class RoutineFindingOut(BaseModel):
     """서버가 이번 생성에서 찾은 것 하나와 그에 따른 반영 방향(#3280).
 
-    `routine_ai.rule_findings` 가 규칙형 생성과 같은 규칙으로 만든다. 문장은
-    요청 언어다.
+    `routine_ai.rule_findings` 가 규칙형 생성과 같은 규칙으로 만든다.
     """
 
     kind: RoutineFindingKind
@@ -1695,6 +1698,10 @@ class ScheduleSessionOut(BaseModel):
     #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
     #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
     session_number: int | None = None
+    #: 이 수업의 트레이너 이름(#3347). 회원 응답에만 싣는다 — 회원의 PT 이력에는
+    #: 지난 담당과 마친 수업도 함께 있어, 누구와의 수업이었는지를 적는다. 트레이너
+    #: 응답은 null 이다(자기 일정이다).
+    trainer_name: str | None = None
 
 
 class DeliveryOut(BaseModel):
@@ -2274,8 +2281,20 @@ class WeeklyReportOut(BaseModel):
     message: str                 # 회원에게 전송될 본문(미리보기와 동일)
 
 
+class MemberWeeklyReportOut(WeeklyReportOut):
+    """회원이 읽는 한 주 — `GET /me/coach/weekly-report`. (#3349)
+
+    필드는 [WeeklyReportOut] 그대로이고, 값이 어느 시점의 것인지만 더한다.
+    """
+    #: 이 값을 굳힌 시각. 트레이너가 보냈거나 회원이 포인트로 산 때다. null 이면
+    #: 스냅샷이 없어 **지금** 계산한 값이다(#3349 전의 리포트, 받은 적 없는 주).
+    #: 진행 중이던 주를 굳힌 리포트는 이 시각을 기준일로 읽어야 한다 — 그때 아직
+    #: 오지 않았던 요일을 "안 한 날" 로 세면 안 된다.
+    snapshot_at: _datetime | None = None
+
+
 #: 리포트 요약 headline 의 응답 상한(#3090). 회원 이름(최대 100자)이 들어간 규칙 기반
-#: 영어 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
+#: 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
 REPORT_HEADLINE_MAX = 400
 
 
@@ -2460,6 +2479,35 @@ class MemberReportSendsOut(BaseModel):
     """한 회원에게 나간 리포트를 최신 주부터. 보낸 적이 없으면 빈 목록이다. (#2393)"""
     member_id: str
     sends: list[MemberReportSendOut] = Field(default_factory=list)
+    #: 다음 쪽 커서 — 이 값을 `before` 로 다시 주면 더 오래된 주가 온다.
+    #: 더 없으면 null 이다.
+    next_before: str | None = None
+
+
+class MemberReceivedReportOut(BaseModel):
+    """회원이 받은 한 주 리포트 — `GET /me/coach/reports` 의 한 줄. (#3348)
+
+    한 주를 여러 번 받았으면 가장 최근 전송 하나다. 회원 쪽 수신 기록에서 읽어,
+    담당이 끊기거나 바뀌거나 보낸 트레이너가 탈퇴한 뒤에도 남는다.
+    """
+    #: 그 전송의 채팅 메시지 id. `GET /me/coach/weekly-report` 의 `message_id` 로
+    #: 보내면 그때 굳힌 값이 열린다. 대화가 지워진 뒤에도 같은 값이다.
+    id: str
+    week_start: str              # 리포트 주의 월요일 YYYY-MM-DD
+    #: 보낸 시각(ISO, UTC).
+    sent_at: str
+    #: 보낸 트레이너의 이름. 그 계정이 탈퇴했으면 null 이다.
+    trainer_name: str | None = None
+    #: 트레이너가 리포트와 함께 보낸 글 — 회원이 받은 그대로다.
+    body: str = ""
+    #: PDF 로 받았고 그 파일이 남아 있으면 그 첨부. 본문으로 받았거나, 대화가
+    #: 지워져 파일이 없으면 null 이다 — 그때 앱은 결과지를 세워 연다.
+    attachment: ChatAttachmentOut | None = None
+
+
+class MemberReceivedReportsOut(BaseModel):
+    """회원이 받은 리포트를 최신 주부터. 받은 적이 없으면 빈 목록이다. (#3348)"""
+    reports: list[MemberReceivedReportOut] = Field(default_factory=list)
     #: 다음 쪽 커서 — 이 값을 `before` 로 다시 주면 더 오래된 주가 온다.
     #: 더 없으면 null 이다.
     next_before: str | None = None

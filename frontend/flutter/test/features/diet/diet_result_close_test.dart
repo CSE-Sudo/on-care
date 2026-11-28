@@ -189,51 +189,6 @@ void main() {
       expect(find.byKey(const Key('diet-result-recognized')), findsNothing);
       expect(_results, <bool>[true]);
     });
-
-    testWidgets('영어 화면에서는 `Close` 다', (WidgetTester tester) async {
-      _results.clear();
-      useFixedKstDate(DateTime(2026, 8, 20, 9));
-      await tester.binding.setSurfaceSize(const Size(500, 1600));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: <Override>[
-            mealPhotoPickerProvider.overrideWithValue(_FixedPicker()),
-            dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
-            sessionFeatureResetOverride(),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            locale: const Locale('en'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Builder(
-              builder: (BuildContext context) => Scaffold(
-                body: Center(
-                  child: ElevatedButton(
-                    onPressed: () async =>
-                        _results.add(await showDietAddSheet(context)),
-                    child: const Text('open'),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-      final AppLocalizations l = AppLocalizations.of(
-        tester.element(find.byKey(const Key('dietAddSheet'))),
-      );
-      await tester.tap(find.text(l.dietTakePhoto));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Close'), findsOneWidget);
-      expect(find.text('Cancel'), findsNothing);
-      await _tapFooter(tester, 'Close');
-      expect(_results, <bool>[true]);
-    });
   });
 
   group('분석이 실패하면', () {

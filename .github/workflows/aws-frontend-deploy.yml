@@ -3,12 +3,16 @@ name: Deploy Frontend to AWS
 # 운영 프론트(S3 + CloudFront) 배포. Repository Variable AWS_FRONTEND_DEPLOY_ENABLED=true 일 때만 돈다.
 #
 # 배포 순서(#3018)
-#   main push → E2E CI 완료(workflow_run) → gate(같은 커밋의 CI 판정 → 백엔드 선후 확인)
-#     → build-and-deploy(빌드 → 업로드 → 검증 → CloudFront 전환 → 배포 후 검증)
+#   main push → E2E CI 완료(workflow_run)
+#     → gate(옛 커밋 재배포 가드 → 같은 커밋의 CI 판정 → 백엔드 선후 확인)
+#     → build-and-deploy(production 승인 → 빌드 → 업로드 → 검증 → CloudFront 전환 → 배포 후 검증)
 #   E2E CI 는 paths 필터가 없어 모든 main push 에서 한 번씩 끝나므로 그 완료를 신호로 삼고,
 #   paths 필터가 있는 User App CI·Trainer CI 는 실행이 있을 때만 성공을 요구한다.
 #   백엔드 변경이 들어 있는 커밋은 운영 백엔드가 그 변경을 담은 뒤에만 전환한다.
 #   자동 실행은 운영에 떠 있는 릴리스와 같거나 그보다 옛 커밋이면 빌드 전에 건너뛴다(#3254).
+#   운영 프런트 주소 변수(PRODUCTION_FRONTEND_URL)가 있으면 gate 가 공개 version.txt 로 판정해
+#   production 승인 요청 전에 건너뛴다(#3269). 비어 있거나 읽지 못하면 승인 뒤 배포 단계가
+#   CloudFront origin path 로 다시 본다.
 #   판정 규칙과 대기 시간은 docs/aws-frontend-deployment.md "배포 순서" 에 있다.
 #   스크립트는 배포하는 커밋의 것을 쓴다(백엔드와 같은 원칙). 옛 커밋을 수동 배포할 때는 그 사이
 #   스크립트의 인자·종료 코드 약속이 바뀌지 않았는지 본다(docs/frontend_deployment.md).
@@ -57,6 +61,8 @@ jobs:
       contents: read
     outputs:
       sha: ${{ steps.target.outputs.sha }}
+      deploy: ${{ steps.live.outputs.deploy }}
+      live_state: ${{ steps.live.outputs.live_state }}
     steps:
       - name: Resolve deploy commit
         id: target
@@ -99,10 +105,83 @@ jobs:
             exit 1
           fi
 
+      # 자동 실행이 운영에 이미 떠 있는 커밋이나 그보다 옛 커밋을 다시 올리지 않게 한다(#3254).
+      # 운영 프런트 공개 주소의 version.txt(배포가 릴리스 루트에 넣는 대상 SHA)를 읽어, 대상이 그
+      # 커밋과 같거나 조상이면 CI·백엔드 확인과 build-and-deploy 를 모두 건너뛴다(실패가 아니다).
+      # 자격 증명이 필요 없어 production 승인 요청 전인 여기서 본다(#3269). 수동 실행은 사람이
+      # 일부러 되돌리는 경우라 보지 않는다. 판정을 못 하면(변수 비어 있음·응답 없음 — unknown)
+      # 승인 뒤 배포 단계가 운영 AWS 역할로 CloudFront origin path 를 다시 읽는다.
+      # 판정 스크립트는 이 워크플로와 같은 main 커밋(GITHUB_SHA)의 것을 쓴다 — 대상이 이 가드보다
+      # 옛 커밋이면 그 checkout 에는 스크립트가 없다. 종료 코드 20 이 건너뜀이다(`|| code=$?`, #3235).
+      - name: Skip a release that is already live or older
+        id: live
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -uo pipefail
+          if [ "$EVENT_NAME" != "workflow_run" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "live_state=manual" >> "$GITHUB_OUTPUT"
+            echo "수동 실행이라 운영 릴리스와의 선후를 보지 않습니다(되돌리기 허용)."
+            exit 0
+          fi
+          if [ -z "$PRODUCTION_FRONTEND_URL" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "live_state=unknown" >> "$GITHUB_OUTPUT"
+            echo "::notice::PRODUCTION_FRONTEND_URL 이 비어 있어 옛 커밋 재배포 여부는 승인 뒤 배포 단계에서 봅니다(#3269)."
+            exit 0
+          fi
+          tool="$RUNNER_TEMP/deploy_freshness.sh"
+          git show "$GITHUB_SHA:.github/scripts/deploy_freshness.sh" > "$tool" || exit 1
+          code=0
+          bash "$tool" frontend-site "$PRODUCTION_FRONTEND_URL" "$SHA" > "$RUNNER_TEMP/freshness.txt" || code=$?
+          cat "$RUNNER_TEMP/freshness.txt"
+          state=$(sed -n 's/^state=//p' "$RUNNER_TEMP/freshness.txt")
+          echo "live_state=${state:-unknown}" >> "$GITHUB_OUTPUT"
+          case "$code" in
+            0)
+              # 운영 릴리스와 대상 사이에 배포 산출물에 닿는 경로가 하나도 안 바뀌었으면(문서만 바뀐
+              # 커밋 등) 승인 요청 없이 건너뛴다(#3459). 직전 커밋이 아니라 운영 릴리스와 비교해야
+              # 건너뛴 커밋이 쌓여도 다음 실제 배포에 모두 담긴다. 경로는 build-and-deploy 가 읽는
+              # 것이고, 확신이 없는 것은 감시 쪽에 둔다. live_sha 를 모르거나 이력에 없으면 배포한다.
+              live_sha=$(sed -n 's/^live_sha=//p' "$RUNNER_TEMP/freshness.txt")
+              watched=(frontend/ shared/ index.html legal/ docs/assets/landing/ .github/scripts/
+                tool/ci/ .github/workflows/aws-frontend-deploy.yml infra/frontend-hosting.yml)
+              if [ -n "$live_sha" ] && git cat-file -e "$live_sha^{commit}" 2>/dev/null                 && git diff --quiet "$live_sha" "$SHA" -- "${watched[@]}"; then
+                echo "deploy=false" >> "$GITHUB_OUTPUT"
+                echo "::notice::운영 릴리스 이후 배포 산출물에 닿는 경로가 바뀌지 않아 이 자동 배포를 건너뜁니다."
+                {
+                  echo "### AWS frontend deployment skipped"
+                  echo "- Commit: \`$SHA\`"
+                  echo "- Live release: \`$live_sha\` ($state)"
+                  echo "- 이유: 운영 릴리스와 대상 사이에 배포 산출물에 닿는 경로(${watched[*]})가 바뀌지 않았습니다(#3459). 그래도 올리려면 Run workflow 에 그 SHA 를 넣어 수동으로 실행합니다."
+                } >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "deploy=true" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            20)
+              echo "deploy=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::운영에 이미 같은 커밋이나 더 새 커밋이 떠 있어 이 자동 배포를 건너뜁니다."
+              {
+                echo "### AWS frontend deployment skipped"
+                echo "- Commit: \`$SHA\`"
+                echo "- Live release: \`$(sed -n 's/^live_sha=//p' "$RUNNER_TEMP/freshness.txt")\` ($state)"
+                echo "- 이유: 자동 실행의 대상이 운영에 떠 있는 커밋과 같거나 그보다 옛 커밋입니다(#3254). 되돌리려면 Run workflow 에 그 SHA 를 넣어 수동으로 실행합니다."
+              } >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              exit "$code"
+              ;;
+          esac
+
       # E2E 는 반드시 성공, 경로 필터 CI 는 실행이 있으면 성공. 아직 도는 CI 는 기다린다.
       # shell 을 지정하지 않은 step 은 `bash -e` 로 돌아 `set -uo pipefail` 로는 -e 가 꺼지지 않는다.
       # 0 이 아닌 종료 코드(10 = 대기)를 받아 분기하려면 `|| code=$?` 꼴로 받는다(#3235).
       - name: Check CI results for the commit
+        if: steps.live.outputs.deploy == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.target.outputs.sha }}
@@ -132,6 +211,7 @@ jobs:
       # 이 커밋에 운영 백엔드가 아직 담지 않은 backend/ 변경이 있으면 백엔드 배포를 기다린다.
       # 백엔드 자동 배포가 꺼져 있으면 기다려도 오지 않으므로 바로 멈추고 사람에게 맡긴다.
       - name: Check backend deploy order
+        if: steps.live.outputs.deploy == 'true'
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           SHA: ${{ steps.target.outputs.sha }}
@@ -174,9 +254,11 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$code"
 
+  # gate 가 옛 커밋 자동 실행으로 판정하면 이 job 은 skipped 다 — production 승인 요청도 올라오지 않는다(#3269).
   build-and-deploy:
     name: Build and deploy Flutter web apps
     needs: gate
+    if: needs.gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     # 배포 역할은 이 Environment 형식 OIDC subject 를 믿는다(infra/frontend-hosting.yml,
     # #3019). 승인 규칙·배포 기록은 Environment 설정에서 본다.
@@ -188,6 +270,11 @@ jobs:
     env:
       # workflow_run 에서는 GITHUB_SHA 가 main 의 최신 커밋이다. 배포 대상은 gate 가 고른 커밋이다.
       RELEASE_SHA: ${{ needs.gate.outputs.sha }}
+      # 로그인 화면 `체험하기` 가 같은 탭에서 옮겨 갈 둘러보기 데모(#3437). 운영 서버는 데모 폴백이
+      # 꺼져 있어(ENV=prod) 앱 안 데모로는 화면이 비므로, GitHub Pages 데모(deploy.yml 의 목업
+      # 빌드)의 같은 앱으로 보낸다. 끝에 각 앱 폴더(member/·trainer/)를 붙여 넘긴다. Pages 주소가
+      # 바뀌면(저장소 Settings → Pages) 저장소 변수 DEMO_SITE_URL 로 덮는다.
+      DEMO_SITE_URL: ${{ vars.DEMO_SITE_URL || 'https://cse-sudo.github.io/on-care/' }}
 
     steps:
       - name: Checkout repository
@@ -198,14 +285,14 @@ jobs:
           # 빌드 번호는 커밋 수다(#3226). 얕은 체크아웃이면 1 로 나와 스탬프 단계가 멈춘다.
           fetch-depth: 0
 
-      # 자동 실행이 운영에 이미 떠 있는 커밋이나 그보다 옛 커밋을 다시 올리지 않게 한다(#3254).
-      # 취소된 main E2E CI 를 나중에 Re-run 하면 그 완료가 옛 커밋 배포를 부른다. 지금 서비스
+      # 옛 커밋 재배포 가드(#3254)의 예비 판정. gate 가 공개 version.txt 로 판정하지 못한 자동
+      # 실행(live_state=unknown — PRODUCTION_FRONTEND_URL 이 비어 있거나 응답 없음)만 지금 서비스
       # 중인 릴리스(CloudFront origin path — 그 릴리스의 version.txt 와 같은 커밋)를 읽어, 대상이
-      # 그 커밋과 같거나 조상이면 아래 단계를 모두 건너뛴다(실패가 아니다). 수동 실행은 사람이
-      # 일부러 되돌리는 경우라 보지 않는다. gate 는 운영 AWS 역할을 받을 수 없어(Environment 형식
-      # OIDC, #3019) 여기서 본다. 이 역할은 뒤의 업로드 단계에서 다시 받는다.
+      # 그 커밋과 같거나 조상이면 아래 단계를 모두 건너뛴다(실패가 아니다). gate 는 운영 AWS 역할을
+      # 받을 수 없어(Environment 형식 OIDC, #3019) 이 예비 판정은 승인 뒤에 돈다(#3269). 이 역할은
+      # 뒤의 업로드 단계에서 다시 받는다.
       - name: Configure AWS credentials (live release check)
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'workflow_run' && needs.gate.outputs.live_state == 'unknown'
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
@@ -213,16 +300,23 @@ jobs:
 
       # 판정 스크립트는 이 워크플로와 같은 main 커밋(GITHUB_SHA)의 것을 쓴다 — 대상이 이 가드보다
       # 옛 커밋이면 그 checkout 에는 스크립트가 없다. 종료 코드 20 이 건너뜀이다(`|| code=$?`, #3235).
-      - name: Skip a release that is already live or older
+      # 이름을 gate 의 가드와 다르게 둔다 — 워크플로 단계 검사(tool/ci)가 이름으로 run 블록을 찾는다.
+      - name: Recheck the live release on CloudFront
         id: live
         env:
           EVENT_NAME: ${{ github.event_name }}
+          GATE_STATE: ${{ needs.gate.outputs.live_state }}
           DISTRIBUTION_ID: ${{ vars.AWS_FRONTEND_DISTRIBUTION_ID }}
         run: |
           set -uo pipefail
           if [ "$EVENT_NAME" != "workflow_run" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
             echo "수동 실행이라 운영 릴리스와의 선후를 보지 않습니다(되돌리기 허용)."
+            exit 0
+          fi
+          if [ "$GATE_STATE" != "unknown" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "gate 가 공개 version.txt 로 이미 판정했습니다(state=$GATE_STATE, #3269)."
             exit 0
           fi
           tool="$RUNNER_TEMP/deploy_freshness.sh"
@@ -255,8 +349,8 @@ jobs:
         if: steps.live.outputs.deploy == 'true'
         run: bash .github/scripts/release_build_stamp.sh "$GITHUB_ENV"
 
-      # 랜딩의 앱 바로가기는 상대 경로라 이 배포에서는 같은 도메인의 /frontend/·/trainer/ 로
-      # 간다(#2841). 절대 주소(무료 DNS 데모 등)가 들어오면 운영 방문자가 데모로 넘어가므로 빌드 전에 막는다.
+      # 랜딩의 앱 바로가기는 상대 경로라 이 배포에서는 같은 도메인의 /member/·/trainer/ 로
+      # 간다(#2841). 절대 주소(데모 Pages 주소 등)가 들어오면 운영 방문자가 데모로 넘어가므로 빌드 전에 막는다.
       - name: Check landing app links
         if: steps.live.outputs.deploy == 'true'
         run: bash .github/scripts/landing_site_url.sh check index.html
@@ -333,7 +427,8 @@ jobs:
         # 운영 빌드: 실서버(USE_MOCK_API=false)·운영 환경(ENV=prod — 라우터 진단 로그와
         # provider 로그가 꺼진다). 주소는 저장소 변수에서만 읽고 여기 적지 않는다.
         # 데모 표시·데모 진입·부분 실연동 값은 넘기지 않는다 — 빌드 전 검사와 앱의 릴리스
-        # 가드가 목업·개발·데모 설정을 거부한다(#3022, #3147).
+        # 가드가 목업·개발·데모 설정을 거부한다(#3022, #3147). 체험하기는 앱 안 데모 대신
+        # 데모 Pages 의 회원 앱으로 보낸다(DEMO_SITE_URL, #3437).
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
@@ -344,7 +439,7 @@ jobs:
         run: |
           set -euo pipefail
           args=(
-            --release --base-href "/frontend/"
+            --release --base-href "/member/"
             --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
             --build-number="$BUILD_NUMBER"
             --dart-define=BUILD_NUMBER="$BUILD_NUMBER"
@@ -356,6 +451,7 @@ jobs:
             --dart-define=API_BASE_URL="$API_BASE_URL"
             --dart-define=ENV=prod
             --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=DEMO_SITE_URL="${DEMO_SITE_URL%/}/member/"
           )
           # 데모 진입·부분 실연동·데모 표시·목업 값이 섞이지
           # 않았는지 빌드 전에 본다(#3147). 검사한 인자 그대로 빌드한다.
@@ -386,7 +482,7 @@ jobs:
         # 소속 헬스장 찾기 지도(#2543). 회원 앱과 같은 카카오맵 JS 키를 쓰고, 카카오
         # 콘솔에 트레이너 웹 도메인이 등록돼 있어야 뜬다. 키가 없으면 목록만 보인다.
         # 회원 앱과 같은 운영 설정이다 — 두 앱이 한 백엔드를 봐야 회원 기록이 트레이너에게
-        # 보인다.
+        # 보인다. 체험하기는 데모 Pages 의 트레이너 웹으로 보낸다(DEMO_SITE_URL, #3437).
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
@@ -409,6 +505,7 @@ jobs:
             --dart-define=API_BASE_URL="$API_BASE_URL"
             --dart-define=ENV=prod
             --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=DEMO_SITE_URL="${DEMO_SITE_URL%/}/trainer/"
           )
           # 데모 진입·부분 실연동·데모 표시·목업 값이 섞이지
           # 않았는지 빌드 전에 본다(#3147). 검사한 인자 그대로 빌드한다.
@@ -427,12 +524,14 @@ jobs:
         if: steps.live.outputs.deploy == 'true'
         run: |
           set -euo pipefail
-          mkdir -p public/frontend public/trainer public/legal
+          mkdir -p public/member public/trainer public/legal public/assets/landing
           cp index.html public/index.html
-          cp -R frontend/flutter/build/web/. public/frontend/
+          cp -R frontend/flutter/build/web/. public/member/
           cp -R frontend/flutter_trainer/build/web/. public/trainer/
           # 공개 정책 페이지(#3005). 스토어·가입 전 안내가 여는 처리방침·약관 주소다.
           cp legal/*.html public/legal/
+          # 랜딩의 홈 화면 아이콘·manifest. 랜딩이 assets/landing/ 상대 경로로 부른다.
+          cp -R docs/assets/landing/. public/assets/landing/
           find public -name '*.js.symbols' -delete
           echo "$RELEASE_SHA" > public/version.txt
 
@@ -442,7 +541,7 @@ jobs:
         if: steps.live.outputs.deploy == 'true'
         run: |
           set -euo pipefail
-          cp public/version.txt public/frontend/version.txt
+          cp public/version.txt public/member/version.txt
           cp public/version.txt public/trainer/version.txt
 
       - name: Configure AWS credentials (OIDC)
@@ -504,7 +603,8 @@ jobs:
             exit 1
           fi
 
-          for key in index.html frontend/index.html trainer/index.html legal/privacy.html legal/terms.html; do
+          for key in index.html member/index.html trainer/index.html legal/privacy.html legal/terms.html \
+            assets/landing/manifest.json assets/landing/apple-touch-icon.png; do
             SIZE=$(aws s3api head-object --bucket "$BUCKET" --key "$PREFIX/$key" \
               --query 'ContentLength' --output text)
             if [ "${SIZE:-0}" -le 0 ]; then
@@ -597,7 +697,7 @@ jobs:
             --output text)
           BASE_URL="https://$DOMAIN"
 
-          for path in / /frontend/ /trainer/; do
+          for path in / /member/ /trainer/; do
             curl --fail --silent --show-error "$BASE_URL$path" > /dev/null
           done
           LIVE_SHA=$(curl --fail --silent --show-error "$BASE_URL/version.txt" | tr -d '[:space:]')
@@ -607,7 +707,7 @@ jobs:
           fi
 
           # 배포 후 링크 확인(#2841): 서빙 중인 랜딩의 바로가기가 상대 경로라 같은 도메인의
-          # /frontend/·/trainer/ 로 가는지, canonical 이 위에서 채운 이 배포 주소인지 본다.
+          # /member/·/trainer/ 로 가는지, canonical 이 위에서 채운 이 배포 주소인지 본다.
           bash .github/scripts/landing_site_url.sh verify "$BASE_URL" "$SITE_URL" 120
 
           # 응답 보안 헤더(#3017): 스택의 헤더 정책이 붙어 있고 connect-src 가 이 빌드의 API

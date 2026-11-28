@@ -276,7 +276,7 @@ void main() {
     expect(text, isNot(contains('스트레칭')));
   });
 
-  testWidgets('폭 1024 · 영어 · 배율 1.3 에서도 토글이 제자리고 넘치지 않는다', (tester) async {
+  testWidgets('폭 1024 · 배율 1.3 에서도 토글이 제자리고 넘치지 않는다', (tester) async {
     // #849 가 지키는 가장 좁은 지원 조합. 기간을 바꿔도 헤더가 흔들리지 않아야
     // 하고, 카드가 화면 밖으로 나가면 안 된다.
     tester.view.devicePixelRatio = 1;
@@ -288,7 +288,7 @@ void main() {
         overrides: withSplit(),
         child: MaterialApp(
           theme: AppTheme.light(),
-          locale: const Locale('en'),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (BuildContext context, Widget? child) => MediaQuery(
@@ -308,7 +308,7 @@ void main() {
     );
     final Rect atToday = toggleRect();
 
-    for (final String period in <String>['This week', 'All']) {
+    for (final String period in <String>['이번 주', '전체']) {
       await tester.tap(_periodSegment(period));
       await tester.pumpAndSettle();
       expect(toggleRect(), atToday, reason: period);
@@ -646,7 +646,7 @@ void main() {
     });
   });
 
-  group('이력 제목·운동 줄은 화면 언어를 따른다 (#2300)', () {
+  group('이력 제목·운동 줄은 ARB 문구로 적는다 (#2300)', () {
     // 서버는 `date`·`kind`·값을 따로 보낸다. 옛 한국어 문장(`date_label`·
     // `label`)도 함께 오지만 화면은 그 문장을 쓰지 않는다.
     RoutineHistoryEntry ptToday() => const RoutineHistoryEntry(
@@ -684,7 +684,6 @@ void main() {
 
     Future<void> pumpIn(
       WidgetTester tester,
-      Locale locale,
       List<RoutineHistoryEntry> fixture,
     ) async {
       useFixedKstDate();
@@ -702,7 +701,7 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light(),
-            locale: locale,
+            locale: const Locale('ko'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(
@@ -721,8 +720,8 @@ void main() {
 
     // 기록 한 건은 회원 상세 운동 탭과 같은 모양이다(#3004) — 출처 알약 옆에
     // 날짜, 그 아래 `이름 · 값` 줄과 강도 태그.
-    testWidgets('한국어 화면은 날짜·출처 알약·운동 줄로 적는다', (tester) async {
-      await pumpIn(tester, const Locale('ko'), <RoutineHistoryEntry>[
+    testWidgets('날짜·출처 알약·운동 줄로 적는다', (tester) async {
+      await pumpIn(tester, <RoutineHistoryEntry>[
         withDate(ptToday(), DateTime(2026, 8, 20)),
       ]);
 
@@ -739,40 +738,6 @@ void main() {
       expect(find.text('가벼움'), findsOneWidget);
     });
 
-    testWidgets('영어 화면에는 한국어 날짜·종류·단위가 없다', (tester) async {
-      await pumpIn(tester, const Locale('en'), <RoutineHistoryEntry>[
-        withDate(ptToday(), DateTime(2026, 8, 19)),
-      ]);
-
-      expect(find.text('8/19 (Yesterday)'), findsOneWidget);
-      expect(find.text('PT'), findsOneWidget);
-      expect(find.textContaining('어제'), findsNothing);
-      expect(find.textContaining('트레이너 지도'), findsNothing);
-      expect(find.textContaining('세트'), findsNothing);
-      expect(find.textContaining('가벼움'), findsNothing);
-      expect(find.textContaining('40kg'), findsOneWidget);
-      expect(find.textContaining('Light'), findsOneWidget);
-    });
-
-    testWidgets('날짜·종류 코드가 없는 옛 응답도 영어 종류는 옮긴다', (tester) async {
-      await pumpIn(tester, const Locale('en'), <RoutineHistoryEntry>[
-        const RoutineHistoryEntry(
-          id: 'rh-1',
-          dateLabel: '8/18',
-          label: '배정 루틴 수행',
-          completionRate: 100,
-          exercises: <ClientExerciseItem>[
-            ClientExerciseItem(name: '플랭크', sets: 3, holdSeconds: 60),
-          ],
-          clientFeedback: '',
-          trainerNote: '',
-        ),
-      ]);
-
-      expect(find.text('8/18'), findsOneWidget);
-      expect(find.text('Personal exercise'), findsOneWidget);
-      expect(find.textContaining('배정 루틴'), findsNothing);
-    });
   });
 }
 

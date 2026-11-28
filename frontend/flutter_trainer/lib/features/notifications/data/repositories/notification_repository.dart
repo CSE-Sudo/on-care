@@ -10,7 +10,6 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_notifications.dart';
 import 'package:oncare_trainer/core/utils/poll_intervals.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
@@ -56,12 +55,9 @@ abstract interface class TrainerNotificationRepository {
 /// 회원 백엔드가 없지만, 시드가 트레이너가 받는 종류를 골고루 심어 두고
 /// 읽음 처리도 그 값을 고쳐 남긴다. 한 쪽에 모두 담는다.
 class DemoNotificationRepository implements TrainerNotificationRepository {
-  const DemoNotificationRepository(this._db, {this.language = DemoLanguage.ko});
+  const DemoNotificationRepository(this._db);
 
   final AppDatabase _db;
-
-  /// `3시간 전` 같은 상대 시각의 언어. 실 서버는 요청 언어로 적어 보낸다.
-  final DemoLanguage language;
 
   Future<List<Map<String, Object?>>> _rows() async =>
       _decode(await _db.readValue(demoNotificationsKey));
@@ -94,7 +90,6 @@ class DemoNotificationRepository implements TrainerNotificationRepository {
           'time_ago': demoTimeAgo(
             DateTime.parse(row['created_at']! as String),
             now: now,
-            korean: language == DemoLanguage.ko,
           ),
         }),
     ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -151,19 +146,19 @@ class DemoNotificationRepository implements TrainerNotificationRepository {
 
 /// 서버 `notification_service.time_ago` 와 같은 상대 시각 문구.
 @visibleForTesting
-String demoTimeAgo(DateTime at, {required DateTime now, required bool korean}) {
+String demoTimeAgo(DateTime at, {required DateTime now}) {
   final int sec = now.difference(at).inSeconds;
-  if (sec < 60) return korean ? '방금 전' : 'just now';
+  if (sec < 60) return '방금 전';
   if (sec < 3600) {
     final int n = sec ~/ 60;
-    return korean ? '$n분 전' : '$n min ago';
+    return '$n분 전';
   }
   if (sec < 86400) {
     final int n = sec ~/ 3600;
-    return korean ? '$n시간 전' : '$n ${n == 1 ? 'hour' : 'hours'} ago';
+    return '$n시간 전';
   }
   final int n = sec ~/ 86400;
-  return korean ? '$n일 전' : '$n ${n == 1 ? 'day' : 'days'} ago';
+  return '$n일 전';
 }
 
 /// 다음 쪽 커서가 실리는 응답 헤더(#2293). 서버 `trainer.py` 와 같은 이름이다.
@@ -273,10 +268,7 @@ final trainerNotificationRepositoryProvider =
     Provider<TrainerNotificationRepository>((ref) {
       ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       if (ref.watch(appConfigProvider).useMockApi) {
-        return DemoNotificationRepository(
-          ref.watch(appDatabaseProvider),
-          language: ref.watch(demoLanguageProvider),
-        );
+        return DemoNotificationRepository(ref.watch(appDatabaseProvider));
       }
       return DioNotificationRepository(ref.watch(dioProvider));
     }, name: 'trainerNotificationRepository');

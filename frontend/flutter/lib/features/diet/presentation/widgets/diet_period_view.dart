@@ -398,11 +398,7 @@ class _PeriodBody extends StatelessWidget {
                                               ),
                                         ),
                                         TextSpan(
-                                          // ko `/ 2,000kcal` · en `/ 2,000 kcal`.
-                                          text:
-                                              ' / ${format(goal)}'
-                                              '${unitGap(Localizations.localeOf(context).toString())}'
-                                              '$unit',
+                                          text: ' / ${format(goal)}$unit',
                                           style: tokens
                                               .text(OnCareTypography.bodySmall)
                                               .copyWith(
@@ -566,10 +562,7 @@ class _WeekTrend extends StatelessWidget {
             l.chartA11y,
             values: values,
             dayLabels: days,
-            format: (double v) =>
-                '${format(v)}'
-                '${unitGap(Localizations.localeOf(context).toString())}'
-                '$unit',
+            format: (double v) => '${format(v)}$unit',
             upTo: today,
           ),
         ),
@@ -636,7 +629,7 @@ class _MacroDetail extends StatelessWidget {
               Text(label, maxLines: 1, style: base.copyWith(color: color)),
               const SizedBox(width: OnCareSpacing.s4),
               Text(
-                _macroGrams(value, l.localeName),
+                _macroGrams(value),
                 maxLines: 1,
                 style: OnCareTypography.numeric(
                   base,
@@ -650,9 +643,7 @@ class _MacroDetail extends StatelessWidget {
 }
 
 /// `204g` — 소수점은 버린다. 옆의 머리 숫자가 주인공이고 이 줄은 곁들이다.
-/// `204g` / 영어 `204 g`(#3120).
-String _macroGrams(double v, String locale) =>
-    '${v.round()}${unitGap(locale)}g';
+String _macroGrams(double v) => '${v.round()}g';
 
 /// 요일 라벨(월~일). 이번 주 그래프의 축에 적는다.
 List<String> _weekdayLabels(AppLocalizations l) => <String>[
@@ -778,12 +769,7 @@ class _PeriodBars extends StatelessWidget {
     }
     // 막대와 같은 색이어야 툴팁의 첫 줄이 그 막대를 가리킨다.
     spans.add(_swatch(over ? OnCareColors.danger : color));
-    spans.add(
-      TextSpan(
-        text:
-            '$metricLabel   ${format(value)}${unitGap(dayFormat.locale)}$unit',
-      ),
-    );
+    spans.add(TextSpan(text: '$metricLabel   ${format(value)}$unit'));
     // 칼로리 뒤에는 그 칼로리가 어디서 왔는지를 적는다.
     final DietPeriodDay? day = _dayAt(i);
     if (day != null && day.hasMacros) {
@@ -841,8 +827,15 @@ class _PeriodBars extends StatelessWidget {
     final double maxValue = peak * 1.15;
     // 목표가 0이면 초과 판정을 하지 않는다 — 카드 위쪽 숫자도 같은 규칙이다.
     final bool hasGoal = goal > 0;
-    // 달(30칸)에서도 라벨이 겹치지 않도록 몇 칸에 하나만 적는다.
-    final int labelStep = values.length > 10 ? (values.length / 6).ceil() : 1;
+    // 기간 전체에 라벨을 여섯 개쯤 적되, 한 화면(24칸)에 네 개보다 촘촘하게는
+    // 적지 않는다. 칸 폭은 날 수가 아니라 한 화면의 칸 수로 정해져서, 가입한 지
+    // 며칠 안 된 회원(기록 열흘 이하)은 좁은 칸마다 날짜가 적혀 서로 겹쳤다.
+    // 네 칸 간격도 모자라다 — 맨 왼쪽 라벨은 그래프 밖으로 나가지 않게 안쪽으로
+    // 당겨져 둘째 라벨과 닿는다.
+    final int labelStep = math.max(
+      (values.length / 6).ceil(),
+      (_kAllDaysPerScreen / 4).ceil(),
+    );
     final List<String> weekdays = _weekdayLabels(l);
     // 기록이 하나도 없는 기간은 막대마다 `기록 없음` 을 읽히는 대신 비어 있다고
     // 한 번만 말한다(#972).

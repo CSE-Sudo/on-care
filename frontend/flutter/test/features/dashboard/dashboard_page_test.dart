@@ -9,7 +9,6 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
-import 'package:oncare/shared/services/locale_provider.dart';
 
 import '../../helpers/fake_dashboard_repository.dart';
 import '../../helpers/fake_diet_repository.dart';
@@ -36,7 +35,6 @@ void main() {
         overrides: <Override>[
           appConfigProvider.overrideWithValue(config),
           appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
-          localeProvider.overrideWith((ref) => const Locale('ko')),
           dashboardRepositoryProvider.overrideWithValue(
             FakeDashboardRepository(FakeDietRepository()),
           ),

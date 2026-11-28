@@ -6,7 +6,7 @@ import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
-import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
+import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -710,10 +710,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       // 것은 서버의 AI 제안까지 거절하는 일이다 — 되돌릴 수 있는 범위가 달라
       // 문구도 나눈다.
       // 이름은 조사를 붙여 넘긴다 — `을(를)` 은 사람이 쓴 문장으로 읽히지
-      // 않는다. 영어 화면에는 조사를 붙이지 않는다(#2895).
+      // 않는다(#2895).
       message: personal
-          ? l.aiPersonalDismissBody(withObjectJosaFor(l, name))
-          : l.aiProgramExerciseRemoveBody(withObjectJosaFor(l, name)),
+          ? l.aiPersonalDismissBody(withObjectJosa(name))
+          : l.aiProgramExerciseRemoveBody(withObjectJosa(name)),
       confirmLabel: l.actionDelete,
       cancelLabel: l.actionCancel,
       destructive: true,
@@ -773,7 +773,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     }
     if (!mounted) return;
     ref.invalidate(routineSuggestionsProvider(widget.client.id));
-    showAppToast(context, l.aiPersonalDismissed(withTopicJosaFor(l, name)));
+    showAppToast(context, l.aiPersonalDismissed(withTopicJosa(name)));
   }
 
   RoutineExercise _exerciseOfSuggestion(RoutineSuggestion s) =>
@@ -1148,7 +1148,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         // 번에 보여준다.
         _analysisRow(
           l.aiDietSignal,
-          '${client.sodiumMg}${unitGap(l.localeName)}mg'
+          '${client.sodiumMg}mg'
           '${client.sodiumOverBudget ? l.aiOverTarget : ''}'
           '${client.sodiumOverDays > 0 ? l.aiSodiumOverDaysSuffix(client.sodiumOverDays) : ''}'
           '${client.sugarOverBudget ? l.aiSugarAlsoOver : ''}',

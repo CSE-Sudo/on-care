@@ -64,8 +64,8 @@ class FoodItem {
   final String name;
   final int calories;
 
-  /// 화면 언어로 된 표시 이름(#2850). 영어 화면에서 분석한 음식에만 있다 —
-  /// 한국어 화면·수기 입력·이 필드 이전 기록은 null 이다.
+  /// 표시 이름(#2850). 서버가 함께 준 음식에만 있다 — 수기 입력·이 필드 이전
+  /// 기록은 null 이다.
   final String? displayName;
 
   /// 화면에 보일 이름 — 표시 이름이 있으면 그것, 없으면 [name].
@@ -176,9 +176,9 @@ class DietEntry {
   /// [photoAsset]: the demo asset is a stand-in for exactly this.
   final String? photoUrl;
 
-  /// 사진이 없을 때 그릴 이모지를 정해 둔 값(#2878). 사용 가이드의 예시 끼니처럼
-  /// 언어마다 음식 이름이 달라지는 자료가 쓴다 — 이모지 표는 한국어 이름으로
-  /// 고르므로, 영어 이름이면 끼니 기본 이모지로 떨어진다. 서버 응답에는 없고,
+  /// 사진이 없을 때 그릴 이모지를 정해 둔 값(#2878). 사용 가이드의 예시 끼니가
+  /// 쓴다 — 이모지 표는 음식 이름으로 고르므로, 표에 없는 이름이면 끼니 기본
+  /// 이모지로 떨어진다. 서버 응답에는 없고,
   /// null 이면 음식 이름으로 고른다.
   final String? thumbEmoji;
 

@@ -115,4 +115,43 @@ void main() {
       expect(todayKst(), runKstDatePin!.startDate);
     });
   });
+
+  group('자정 실행 출발 시각 (#3448)', () {
+    test('비어 있으면 실제 시계 그대로다', () {
+      expect(runStartKstClock(''), same(realNowKst));
+    });
+
+    test('시각을 주면 오늘 그 시각에서 출발해 흐른다', () {
+      final DateTime Function() clock = runStartKstClock('23:59');
+
+      final DateTime first = clock();
+      final DateTime second = clock();
+
+      expect(<int>[first.hour, first.minute], <int>[23, 59]);
+      expect(first.second, lessThan(10));
+      expect(second.isBefore(first), isFalse);
+    });
+
+    test('형식이 틀리면 실행을 멈춘다', () {
+      for (final String wrong in <String>['24:00', '7:30', '00:60', 'abc']) {
+        expect(() => runStartKstClock(wrong), throwsArgumentError);
+      }
+    });
+
+    test(
+      'CI 자정 실행이면 실행 고정이 그 시각 언저리다',
+      () {
+        final List<String> hm = kTestKstStartTime.split(':');
+        final int start = int.parse(hm[0]) * 60 + int.parse(hm[1]);
+        final DateTime now = nowKst();
+        final int current = now.hour * 60 + now.minute;
+
+        // 파일을 읽은 뒤 흐른 시간만큼 앞서 있다. 자정을 넘겨도 하루를 돌아 잰다.
+        expect((current - start) % (24 * 60), lessThan(30));
+      },
+      skip: kTestKstStartTime.isEmpty
+          ? '자정 실행(ONCARE_TEST_KST_TIME)에서만 본다'
+          : false,
+    );
+  });
 }

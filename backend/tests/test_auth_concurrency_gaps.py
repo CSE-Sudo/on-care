@@ -574,18 +574,18 @@ def test_racing_first_social_login_lands_on_the_same_account(
     real = social_mod._find_or_create_user
     calls: list[str] = []
 
-    def racing(db, ident):
+    def racing(db, ident, app_name=None):
         if not calls:
             calls.append("lost")
             # 다른 요청이 같은 신원으로 먼저 연결을 만들고 커밋했다.
             other = SessionLocal()
             try:
-                real(other, ident)
+                real(other, ident, app_name)
             finally:
                 other.close()
             raise IntegrityError("INSERT INTO social_accounts", {}, Exception("uq_social_provider_uid"))
         calls.append("retry")
-        return real(db, ident)
+        return real(db, ident, app_name)
 
     monkeypatch.setattr(social_mod, "_find_or_create_user", racing)
     res = client.post("/v1/auth/social/kakao", json={"token": "any"})

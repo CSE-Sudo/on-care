@@ -133,7 +133,7 @@ dart run build_runner build --delete-conflicting-outputs
 안전하다.
 
 로그인: 비어있지 않은 아무 이메일/비밀번호 → 시드 트레이너(김태오)로 로그인.
-"로그인 없이 데모 둘러보기"로 바로 진입할 수도 있습니다.
+`SHOW_DEMO_ENTRY=true` 로 빌드하면 로그인 화면의 "트레이너 체험하기"로 바로 진입할 수도 있습니다.
 
 ### 실 API 로 실행 (회원 앱과 데이터 공유)
 

@@ -65,6 +65,11 @@ class CoachImageAttachment extends ConsumerWidget {
     final AsyncValue<Uint8List?> bytes = local != null
         ? AsyncValue<Uint8List?>.data(local)
         : ref.watch(coachImageProvider(attachment.downloadPath));
+    // 받아 오지 못한 사진은 눌러서 다시 받는다(#3346). 전에는 대화를 나갔다
+    // 들어와야 했다. 이미 가진 바이트를 못 그린 것은 다시 받아도 같다.
+    final VoidCallback? retry = local != null
+        ? null
+        : () => ref.invalidate(coachImageProvider(attachment.downloadPath));
 
     return AppImageFrame(
       child: ConstrainedBox(
@@ -73,14 +78,24 @@ class CoachImageAttachment extends ConsumerWidget {
           maxHeight: maxEdge,
         ),
         child: bytes.when(
+          // 다시 받는 동안에는 실패 자리 대신 받는 중을 보여 준다.
+          skipLoadingOnRefresh: false,
           loading: () => const SizedBox(
             width: maxEdge,
             height: _loadingHeight,
             child: Center(child: AppLoading.inline()),
           ),
-          error: (_, _) => _Unavailable(label: l.coachImageUnavailable),
+          error: (_, _) => _Unavailable(
+            label: l.coachImageUnavailable,
+            retryLabel: l.coachImageRetry,
+            onRetry: retry,
+          ),
           data: (data) => data == null
-              ? _Unavailable(label: l.coachImageUnavailable)
+              ? _Unavailable(
+                  label: l.coachImageUnavailable,
+                  retryLabel: l.coachImageRetry,
+                  onRetry: retry,
+                )
               : Image.memory(
                   data,
                   key: ValueKey<String>('coach-image-${attachment.fileId}'),
@@ -98,41 +113,67 @@ class CoachImageAttachment extends ConsumerWidget {
 }
 
 /// 사진을 못 그렸을 때 남는 자리 — 입력 채움 바탕에 아이콘과 한 줄.
+///
+/// [onRetry] 가 있으면 자리 전체가 다시 받기 버튼이고, 아래에 [retryLabel] 한
+/// 줄이 더 붙는다(#3346).
 class _Unavailable extends StatelessWidget {
-  const _Unavailable({required this.label});
+  const _Unavailable({required this.label, this.retryLabel, this.onRetry});
 
   final String label;
+  final String? retryLabel;
+  final VoidCallback? onRetry;
 
   /// 대신 남는 자리의 높이. 맞는 토큰이 없어 여기서 정한다.
   static const double _height = 96;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final TextStyle caption = context.oncare
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textTertiary);
+    final VoidCallback? retry = onRetry;
+    final String? retryText = retry == null ? null : retryLabel;
+    final Widget body = Container(
       width: CoachImageAttachment.maxEdge,
       height: _height,
-      color: OnCareColors.surfaceInput,
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
-      child: Row(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const AppIcon(
-            AppIcons.imageUnavailable,
-            size: OnCareSize.iconSmall,
-            color: OnCareColors.textTertiary,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const AppIcon(
+                AppIcons.imageUnavailable,
+                size: OnCareSize.iconSmall,
+                color: OnCareColors.textTertiary,
+              ),
+              const SizedBox(width: OnCareSpacing.s4),
+              Flexible(child: Text(label, style: caption)),
+            ],
           ),
-          const SizedBox(width: OnCareSpacing.s4),
-          Flexible(
-            child: Text(
-              label,
-              style: context.oncare
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textTertiary),
+          if (retryText != null) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(
+              retryText,
+              textAlign: TextAlign.center,
+              style: caption.copyWith(color: context.oncare.brand.primary),
             ),
-          ),
+          ],
         ],
       ),
+    );
+    return Material(
+      color: OnCareColors.surfaceInput,
+      child: retry == null
+          ? body
+          : InkWell(
+              key: const ValueKey<String>('coach-image-retry'),
+              onTap: retry,
+              child: body,
+            ),
     );
   }
 }

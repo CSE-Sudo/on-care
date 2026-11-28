@@ -75,6 +75,28 @@ class DioNotificationRepository implements NotificationRepository {
       createdAt: (json['created_at'] as String?) ?? '',
       // 로컬 목 모드의 데모 시드만 준다. 실서버 알림에는 없다(#1812).
       messageKey: json['message_key'] as String?,
+      report: reportFrom(json['report']),
+    );
+  }
+
+  /// 리포트 알림이 가리키는 리포트(#3344). 없거나 읽을 수 없으면 null — 그 알림은
+  /// `action` 대로 대화로 간다.
+  ///
+  /// [_actionFrom] 처럼 캐스팅하지 않고 확인만 한다. 이 칸 하나가 깨졌다고 알림
+  /// 목록 전체가 실패하면 안 된다. 주가 날짜로 읽히지 않으면 열 리포트를 정할 수
+  /// 없으므로 없는 것으로 본다.
+  @visibleForTesting
+  static AlertReportRef? reportFrom(Object? raw) {
+    if (raw is! Map<String, Object?>) return null;
+    final Object? week = raw['week_start'];
+    if (week is! String) return null;
+    final DateTime? parsed = DateTime.tryParse(week);
+    if (parsed == null) return null;
+    final Object? messageId = raw['message_id'];
+    return AlertReportRef(
+      // 날짜만 쓴다 — 시각·오프셋이 붙어 와도 그 주 월요일 하루를 가리킨다.
+      weekStart: DateTime(parsed.year, parsed.month, parsed.day),
+      messageId: messageId is String && messageId.isNotEmpty ? messageId : null,
     );
   }
 

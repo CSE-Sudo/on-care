@@ -258,7 +258,7 @@ void main() {
 
       expect(find.text(_staleText), findsOneWidget);
       expect(find.text(_cancelFailedText), findsNothing);
-      // 대기 카드가 아니므로 취소 버튼이 없다.
+      // 수락된 상담이지만 시작 시각이 지났다 — 취소 버튼이 없다(#3359).
       expect(
         find.byKey(const ValueKey<String>('cancel-consultation-server-1')),
         findsNothing,

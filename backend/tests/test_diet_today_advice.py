@@ -84,7 +84,7 @@ def test_next_slot(slots, at, expected):
 
 
 def _menu(name, tag, slot="dinner"):
-    return PlanMenu(slot=slot, name=name, tag=tag, keyword=catalog.TAG_KEYWORDS["ko"][tag],
+    return PlanMenu(slot=slot, name=name, tag=tag, keyword=catalog.TAG_KEYWORDS[tag],
                     kcal=400, protein_g=20, sodium_mg=400)
 
 
@@ -135,8 +135,8 @@ def test_snack_only_fills_what_can_be_added():
 def test_two_sentences_stay_within_about_45_chars():
     """가장 긴 메뉴 이름과 네 자리 수를 넣어도 두 문장이 45자 안이다(한 문장 반, #1574).
     추천 이유 키워드는 문장에 싣지 않는다."""
-    longest_name = "가" * diet_menu_plan.NAME_MAX["ko"]
-    longest_kw = "나" * diet_menu_plan.KEYWORD_MAX["ko"]
+    longest_name = "가" * diet_menu_plan.NAME_MAX
+    longest_kw = "나" * diet_menu_plan.KEYWORD_MAX
     analyses = [
         copy.line("today_sodium_over", sodium_mg=9999),
         copy.line("today_calorie_over", kcal=9999),
@@ -266,10 +266,12 @@ def test_endpoint_returns_two_sentences_and_keeps_message(client, db_session, mo
         assert "**" not in body["message"]
         assert body["message"] == copy.plain(f"{body['analysis']} {body['action']}")
 
-    en = client.get("/v1/diet/advice?period=today&lang=en", headers=headers).json()
-    if en["action_key"]:
-        assert en["action_params"]["menu"].isascii()
-    assert client.get("/v1/diet/advice?period=today&lang=jp", headers=headers).status_code == 422
+    # 서버 문장은 한국어 하나다 — 헤더가 달라도 같은 조언이다(#3404).
+    en = client.get(
+        "/v1/diet/advice?period=today", headers={**headers, "Accept-Language": "en"}
+    ).json()
+    assert en["analysis"] == body["analysis"]
+    assert en["analysis_key"] == body["analysis_key"]
 
     # 전체도 두 문장이다 — 기록이 없으면 AI 없이 안내한다.
     every = client.get("/v1/diet/advice?period=all", headers=headers).json()

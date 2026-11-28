@@ -15,7 +15,6 @@ import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
-import 'package:oncare/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// End-to-end smoke: the app boots into sign-in, demo entry reaches the main
@@ -44,10 +43,6 @@ void main() {
           // account-specific state on sign-in/out, so the smoke test must
           // exercise the same override the app installs.
           sessionFeatureResetOverride(),
-          // Pin the locale so a different host locale cannot change which
-          // strings render. Assertions below go through widget types rather
-          // than text, so this only keeps the run deterministic.
-          localeProvider.overrideWith((ref) => const Locale('en')),
         ],
         child: const OncareApp(),
       ),

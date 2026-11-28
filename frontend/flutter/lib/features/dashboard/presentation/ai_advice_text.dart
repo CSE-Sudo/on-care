@@ -7,7 +7,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 우선순위:
 ///
 /// 1. [DashboardSummary.aiAdviceKey] — 서버·데모가 싣는 로케일 독립 식별자.
-///    여기서 ARB 문장으로 풀어야 영어 로케일에서 영어가 나온다(#435, #1943).
+///    여기서 ARB 문장으로 푼다(#435, #1943).
 ///    음식 이름이 든 나트륨 경고도 키(`sodium_over_sources`)와 음식 이름
 ///    인자로 온다(#2644).
 /// 2. [DashboardSummary.sodiumWarning] / [DashboardSummary.exerciseFeedback] —
@@ -30,7 +30,8 @@ String aiAdviceBody(AppLocalizations l, DashboardSummary summary) {
 /// 먼저 내려도 화면이 비지 않게.
 ///
 /// 운동 되먹임의 분 수는 요약이 이미 들고 있는 값을 쓴다(#1943) — 서버가 같은
-/// 응답에서 센 값이라, 문장과 카드가 서로 다른 숫자를 말할 일이 없다.
+/// 응답에서 센 값이라, 문장과 카드가 서로 다른 숫자를 말할 일이 없다. 서버가
+/// 목표와 견준 값인 이번 주 유산소 분이다(#3350).
 String? _localized(AppLocalizations l, DashboardSummary summary) =>
     switch (summary.aiAdviceKey) {
       kDailyCombinedAdviceKey => l.homeAiAdviceBody,
@@ -42,9 +43,12 @@ String? _localized(AppLocalizations l, DashboardSummary summary) =>
         null => null,
       },
       'exercise_on_track' => l.homeAdviceExerciseOnTrack(
-        summary.exerciseMinutes,
+        summary.exerciseCardioMinutes,
       ),
-      'exercise_more' => l.homeAdviceExerciseMore(summary.exerciseMinutes),
+      'exercise_more' => l.homeAdviceExerciseMore(
+        summary.exerciseCardioMinutes,
+      ),
+      'exercise_cardio_start' => l.homeAdviceExerciseCardioStart,
       'exercise_start' => l.homeAdviceExerciseStart,
       _ => null,
     };
@@ -61,7 +65,7 @@ List<String>? _foods(Map<String, Object> params) {
   return names.isEmpty ? null : names;
 }
 
-/// 음식 이름을 지금 언어로 잇는다 — 한국어 `라면·김밥`, 영어 `라면 and 김밥`.
+/// 음식 이름을 잇는다 — `라면·김밥`.
 /// 서버는 두 개까지만 보내지만, 더 오더라도 앞의 두 개만 쓴다.
 String _joinFoods(AppLocalizations l, List<String> names) =>
     names.length == 1 ? names.first : l.homeAdviceFoodPair(names[0], names[1]);

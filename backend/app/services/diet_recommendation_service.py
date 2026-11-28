@@ -26,7 +26,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock, metrics
-from app.core.locale import current_locale
 from app.data import meal_catalog
 from app.data.meal_catalog import CATALOG, DEFAULT_ORDER, RECOMMENDATION_COUNT, MealItem
 from app.models.models import DietEntry, HealthProfile
@@ -35,6 +34,8 @@ from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services import ai_call_quota, diet_coach_inputs, goal_defaults, health_focus
 from app.services.ai_log import log_ai_fallback
 from app.services.coach.llm_base import is_truncated, output_cap
+from app.services.coach.prompt_rules import MEDICAL_GUARD, MEMBER_AUDIENCE, MEMBER_VOICE
+from app.services.coach.prompt_safety import HEALTH_NOTE_GUARD
 
 logger = logging.getLogger(__name__)
 
@@ -266,9 +267,8 @@ def _response(
 ) -> DietRecommendationsResponse:
     """응답 조립 — 근거를 문장과 수치 양쪽으로 싣는다.
 
-    `basis` 는 서버가 조립한 한국어 문장이라 영어 로케일에 그대로 못 쓴다. 그래서
-    앱이 직접 문구를 만들 수 있도록 수치도 함께 준다(요리명·이유를 key 로 주고받는
-    것과 같은 이유).
+    `basis` 는 서버가 조립한 문장이다. 앱이 직접 문구를 만들 수 있도록 수치도
+    함께 준다(요리명·이유를 key 로 주고받는 것과 같은 이유).
     """
     return DietRecommendationsResponse(
         items=items,
@@ -279,16 +279,6 @@ def _response(
         avg_sodium_mg=ctx.avg_sodium_mg,
         sodium_limit_mg=ctx.sodium_limit_mg,
     )
-
-
-#: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2722).
-#: 한국어 프롬프트는 그대로 두고 reason_text 를 쓰는 언어만 바꾼다. 영어는 같은
-#: 뜻을 쓰는 데 글자가 더 들어 길이 한도를 넉넉히 준다.
-_ENGLISH_REASON_RULE = (
-    "\nOutput language: the member is using the app in English. Write every "
-    "reason_text in natural English (one short sentence, at most 40 characters), "
-    "ignoring the Korean length rule above. Keep the JSON keys and values of key as-is."
-)
 
 
 def _build_prompt(ctx: NutritionContext) -> tuple[str, str]:
@@ -303,19 +293,18 @@ def _build_prompt(ctx: NutritionContext) -> tuple[str, str]:
     # 이유 짝은 카탈로그에 고정돼 있으므로 서버가 붙이고, LLM 은 순서와 개인화 문구만
     # 담당한다(출력 토큰이 줄어 응답도 빨라진다).
     system = (
-        "너는 한국인 식단을 코칭하는 영양 코치다. 사용자의 최근 섭취 요약을 보고 "
+        f"너는 {MEMBER_AUDIENCE}의 식단을 돕는 영양 코치다. 회원의 최근 섭취 요약을 보고 "
         "**주어진 카탈로그 안에서만** 오늘 추천할 식단의 우선순위를 정한다.\n"
         "규칙:\n"
         "1. 카탈로그에 없는 요리를 지어내지 마라. key 는 반드시 목록에 있는 값이어야 한다.\n"
         f"2. 카탈로그의 {RECOMMENDATION_COUNT}개 key 를 모두, 중복 없이, 추천 순서대로 나열한다.\n"
-        "3. reason_text 는 사용자의 수치를 근거로 든 한 문장(공백 포함 24자 이내)이다. "
-        "카드에 들어가므로 짧아야 한다. 근거가 약하면 생략(null)한다.\n"
-        "4. 의학적 진단·치료를 단정하지 마라. 식단 제안에 그친다.\n"
+        "3. reason_text 는 회원의 수치를 근거로 든 한 문장(공백 포함 24자 이내)이다. "
+        f"카드에 들어가므로 짧아야 한다. {MEMBER_VOICE} 근거가 약하면 생략(null)한다.\n"
+        f"4. {MEDICAL_GUARD} 식단 제안에 그친다.\n"
+        # `건강 상태` 에는 회원·트레이너가 적은 주의사항 글이 들어 있다(#1642).
+        f"{HEALTH_NOTE_GUARD}\n"
         'JSON 만 출력한다: {"items":[{"key":"...","reason_text":"..."}]}'
     )
-    # 요청 스레드에서 읽는다 — LLM 호출은 워커 스레드라 요청 언어가 보이지 않는다.
-    if current_locale() == "en":
-        system += _ENGLISH_REASON_RULE
     user = (
         f"[카탈로그]\n{catalog_lines}\n\n"
         f"[최근 {ctx.days_with_data}일 평균 섭취]\n"
@@ -441,11 +430,9 @@ def build_recommendations(
 
     # use_llm 을 키에 넣지 않으면 규칙 응답이 LLM 요청에 재사용된다(디버깅·비용 절감용
     # 호출 한 번이 그 사용자의 추천을 TTL 동안 규칙 결과로 고정해 버린다).
-    # 언어도 키에 넣는다 — LLM 이 쓴 reason_text 는 요청 언어로 쓰여, 넣지 않으면
-    # 한국어 응답이 TTL 동안 영어 화면에 재사용된다(#2722).
     cache_key = (
         f"{user_id}:{effective_today.isoformat()}:"
-        f"{ctx.fingerprint()}:llm={use_llm}:lang={current_locale()}"
+        f"{ctx.fingerprint()}:llm={use_llm}"
     )
     hit = _cache.get(cache_key)
     if hit and hit[0] > time.monotonic():

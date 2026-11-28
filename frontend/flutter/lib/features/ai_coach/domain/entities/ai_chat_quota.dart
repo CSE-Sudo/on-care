@@ -107,3 +107,20 @@ class AiChatBlocked implements Exception {
   @override
   String toString() => 'AiChatBlocked($reason, shortfall: $shortfall)';
 }
+
+/// 같은 멱등키의 요청이 서버에서 아직 답을 만드는 중이다(409 `in_progress`). (#3352)
+///
+/// 실패가 아니다 — 먼저 간 요청이 끝나면 대화에 저장된다. 컨트롤러는 보낸 말을
+/// 그대로 두고 잠시 뒤 저장된 대화를 다시 읽는다.
+class AiChatInProgress implements Exception {
+  const AiChatInProgress();
+
+  /// 서버 응답 `detail: {code}` 에서. 처리 중 응답이 아니면 null.
+  static AiChatInProgress? fromDetail(Object? detail) =>
+      detail is Map && detail['code'] == 'in_progress'
+      ? const AiChatInProgress()
+      : null;
+
+  @override
+  String toString() => 'AiChatInProgress()';
+}

@@ -23,10 +23,9 @@ from typing import Any
 from pydantic import ValidationError
 
 from app.schemas.diet import RecognizedFood
-from app.services.recognizer.locale_prompt import DISPLAY_NAME_MAX, display_name_of
 
-#: 음식 이름 최대 길이. 표시 이름과 같다 — 카드·트레이너 목록이 같은 폭을 쓴다.
-NAME_MAX = DISPLAY_NAME_MAX
+#: 음식 이름 최대 길이. 카드·트레이너 목록이 같은 폭을 쓴다.
+NAME_MAX = 80
 #: 식단평 최대 길이. 프롬프트는 2~3문장을 요구한다.
 COACH_COMMENT_MAX = 300
 #: 한 사진에서 받는 음식 항목 수 상한.
@@ -104,7 +103,6 @@ def food_from(item: Any) -> RecognizedFood | None:
     try:
         return RecognizedFood(
             name=clean_text(item.get("name"), NAME_MAX) or UNKNOWN_FOOD_NAME,
-            display_name=display_name_of(item),
             amount_g=as_amount_g(item.get("amount_g")),
             calories=as_bounded_int(item.get("calories"), CALORIES_MAX),
             carbs_g=as_macro_float(item.get("carbs_g")),

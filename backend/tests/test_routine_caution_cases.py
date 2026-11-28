@@ -27,6 +27,26 @@ _CASES = _FILE["cases"]
 svc = gen.svc
 
 
+def _english_keys(node, at: str = "") -> list[str]:
+    """영어를 담던 칸 이름(`en`·`en_…`·`lang`)의 자리."""
+    found: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in ("en", "lang") or key.startswith("en_"):
+                found.append(f"{at}/{key}")
+            found += _english_keys(value, f"{at}/{key}")
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            found += _english_keys(value, f"{at}/{i}")
+    return found
+
+
+def test_generator_and_shared_file_have_no_english() -> None:
+    """생성기도 공유 파일도 한국어 하나다(#3415)."""
+    assert _english_keys(gen.build()) == []
+    assert _english_keys(_FILE) == []
+
+
 def test_the_shared_file_is_up_to_date() -> None:
     """표와 사례가 서버와 같다 — 서버 표를 바꾸고 파일을 다시 만들지 않으면 깨진다."""
     assert _FILE == json.loads(json.dumps(gen.build(), ensure_ascii=False))
@@ -59,11 +79,7 @@ def test_guess_type_matches_the_shared_cases(case: dict) -> None:
 
 @pytest.mark.parametrize("case", _CASES["caution_suffix"])
 def test_caution_suffix_matches_the_shared_cases(case: dict) -> None:
-    for locale in ("ko", "en"):
-        assert (
-            svc._caution_suffix(case["cautions"], case["escalate"], locale)
-            == case[locale]
-        )
+    assert svc._caution_suffix(case["cautions"], case["escalate"]) == case["ko"]
 
 
 def test_cases_touch_every_caution_part() -> None:

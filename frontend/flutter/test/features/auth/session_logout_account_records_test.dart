@@ -7,7 +7,7 @@
 /// 계정이 끝낸 홈 가이드를 한 번도 보지 못했다.
 ///
 /// 여기서는 세션이 끝나는 세 길 — 직접 로그아웃, 저장된 세션의 만료, 실행 중
-/// 갱신 거부로 인한 강제 로그아웃 — 이 모두 두 기록을 지우고, 언어와 설치 표식은
+/// 갱신 거부로 인한 강제 로그아웃 — 이 모두 두 기록을 지우고, 설치 표식은
 /// 남기는지 본다. 세션이 끝나지 않는 경우(같은 토큰으로 복구, 일시적 실패)는
 /// 기록을 이어 쓴다.
 library;
@@ -34,11 +34,10 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/network/session_refresh.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 첫 설정과 홈 가이드를 모두 끝낸 기기. 언어를 골라 두었고, 설치 표식도 있다.
+/// 첫 설정과 홈 가이드를 모두 끝낸 기기. 설치 표식도 있다.
 const Map<String, Object> _seenDevice = <String, Object>{
   'onboarding_done': true,
   'home_guide_done': true,
-  'locale_code': 'en',
   'installed': true,
 };
 
@@ -67,9 +66,8 @@ void main() {
   SessionStatus statusOf(ProviderContainer container) =>
       container.read(sessionControllerProvider).status;
 
-  /// 기기의 것은 남았는가 — 언어와 설치 표식.
+  /// 기기의 것은 남았는가 — 설치 표식.
   void expectDeviceRecordsKept(AppPrefs prefs) {
-    expect(prefs.localeCode, 'en');
     expect(prefs.installed, isTrue);
   }
 
@@ -80,7 +78,7 @@ void main() {
   }
 
   group('AppPrefs.clearAccountScoped', () {
-    test('첫 설정·홈 가이드 기록을 지우고 언어·설치 표식은 남긴다', () async {
+    test('첫 설정·홈 가이드 기록을 지우고 설치 표식은 남긴다', () async {
       SharedPreferences.setMockInitialValues(_seenDevice);
       final AppPrefs prefs = AppPrefs(await SharedPreferences.getInstance());
 
@@ -97,7 +95,6 @@ void main() {
       await prefs.clearAccountScoped();
 
       expectAccountRecordsCleared(prefs);
-      expect(prefs.localeCode, isNull);
     });
 
     test('첫 설정 기록만 지우는 함수는 홈 가이드를 건드리지 않는다', () async {
@@ -314,7 +311,7 @@ void main() {
       FlutterSecureStorage.setMockInitialValues(<String, String>{});
       final (ProviderContainer container, AppPrefs prefs) = await start(
         statusByPath: <String, int>{'/auth/login': 200},
-        stored: const <String, Object>{'locale_code': 'en', 'installed': true},
+        stored: const <String, Object>{'installed': true},
       );
       await _waitFor(() => statusOf(container) == SessionStatus.signedOut);
       final SessionController session = container.read(

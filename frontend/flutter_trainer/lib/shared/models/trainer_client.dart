@@ -204,26 +204,12 @@ class TrainerClient {
   }
 }
 
-/// 옛 한국어 상대 날짜(`5일 전`·`3주 전`·`금요일`)를 읽는 표.
-final RegExp _legacyDaysAgo = RegExp(r'^(\d+)일 전$');
-final RegExp _legacyWeeksAgo = RegExp(r'^(\d+)주 전$');
-const List<String> _legacyWeekdays = <String>[
-  '월요일',
-  '화요일',
-  '수요일',
-  '목요일',
-  '금요일',
-  '토요일',
-  '일요일',
-];
-
 /// 로스터·검색이 보여 주는 `마지막 루틴` 문구. (#2300)
 ///
-/// 서버가 날짜([TrainerClient.lastRoutineDate])를 주면 화면 언어로 `오늘`·
-/// `어제`·`N일 전` 을 만든다. 날짜가 없는 옛 서버·데모는 저장된 한국어 문장
-/// ([TrainerClient.lastRoutine])뿐이라, 한국어 화면에서는 그대로 두고 영어
-/// 화면에서만 아는 모양을 옮긴다 — 모르는 문장은 그대로다. 보낸 적이 없으면
-/// 빈 문자열이다(`-`).
+/// 서버가 날짜([TrainerClient.lastRoutineDate])를 주면 `오늘`·`어제`·`N일 전`
+/// 을 만든다. 날짜가 없는 옛 서버·데모는 저장된 문장
+/// ([TrainerClient.lastRoutine])을 그대로 쓴다. 보낸 적이 없으면 빈
+/// 문자열이다(`-`).
 String lastRoutineLabel(
   AppLocalizations l,
   TrainerClient client, {
@@ -232,15 +218,5 @@ String lastRoutineLabel(
   final DateTime? date = client.lastRoutineDate;
   if (date != null) return relativeDayLabel(l, date, now: now);
   final String raw = client.lastRoutine.trim();
-  if (raw.isEmpty || raw == '-') return '';
-  if (l.localeName.startsWith('ko')) return raw;
-  if (raw == '오늘') return l.dateToday;
-  if (raw == '어제') return l.dateYesterday;
-  final RegExpMatch? days = _legacyDaysAgo.firstMatch(raw);
-  if (days != null) return l.dateDaysAgo(int.parse(days.group(1)!));
-  final RegExpMatch? weeks = _legacyWeeksAgo.firstMatch(raw);
-  if (weeks != null) return l.dateWeeksAgo(int.parse(weeks.group(1)!));
-  final int weekday = _legacyWeekdays.indexOf(raw);
-  if (weekday >= 0) return weekdayNames(l)[weekday];
-  return raw;
+  return raw.isEmpty || raw == '-' ? '' : raw;
 }

@@ -34,8 +34,7 @@ String demographicsLabel(
   required String gender,
   required int? age,
 }) {
-  // 성별·나이 문구는 ARB 가 정한다 (#2304) — 예전의 `korean ?` 분기는 두 언어만
-  // 코드에 박아 두어, 로케일이 늘면 그 언어도 영어로 떨어졌다.
+  // 성별·나이 문구는 ARB 가 정한다 (#2304).
   final AppLocalizations l = AppLocalizations.of(context);
   final String? genderLabel = switch (gender) {
     'female' => l.memberHealthGenderFemale,

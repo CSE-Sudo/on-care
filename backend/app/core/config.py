@@ -158,6 +158,16 @@ class Settings(BaseSettings):
     # 위 키의 클라이언트 시크릿 (#330). 콘솔에서 그 키의 "클라이언트 시크릿"을 켰을 때만
     # 넣는다(켰는데 비우면 카카오가 교환을 거절한다). 서버에만 둔다.
     kakao_client_secret: str = Field("", repr=False)
+    # Apple 로그인에서 허용할 identity_token `aud` 목록, 콤마 구분 (#3499).
+    # iOS 앱은 번들 ID(`com.csesudo.oncare`)가 aud 다. 비어 있으면 Apple 로그인은 **거부**된다
+    # — aud 를 보지 않으면 다른 앱이 받은 Apple 토큰으로도 로그인된다.
+    apple_client_ids: str = ""
+    # 탈퇴 때 Apple 토큰을 철회하는 데 쓰는 Sign in with Apple 키 (#3499). 개발자 포털 >
+    # Keys 에서 발급한 .p8 의 PEM 본문·키 ID 와 팀 ID 다. 셋 중 하나라도 비면 철회를
+    # 건너뛰고 로그만 남긴다(탈퇴는 막지 않는다). 키 본문은 비밀이라 서버에만 둔다.
+    apple_team_id: str = ""
+    apple_key_id: str = ""
+    apple_private_key: str = Field("", repr=False)
 
     # --- 장소(O2O) ---
     # 카카오 Local REST 키. 있으면 실검색, 없으면 시드 폴백(recognizer 팩토리와 같은 철학).
@@ -316,6 +326,12 @@ class Settings(BaseSettings):
     password_reset_member_url: str = ""
     password_reset_trainer_url: str = ""
 
+    # --- 아이디(가입 이메일) 찾기(#3337) ---
+    # 같은 전화번호로 찾아볼 수 있는 횟수(아래 창 안에서). IP 버킷과 별개다 — 여러
+    # IP 에서 한 번호에 이름을 바꿔 가며 대어 보는 것을 막는다.
+    find_email_phone_per_window: int = 5
+    find_email_phone_window_minutes: int = 15
+
     # --- 기타 ---
     cors_allow_origins: str = DEFAULT_CORS_ALLOW_ORIGINS
     # 데모 시드(데모 계정·회원 기록·가상 트레이너·가상 헬스장). 기본은 끔이다(#2811) —
@@ -379,6 +395,20 @@ class Settings(BaseSettings):
     # 0 이면 그 한도를 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
     diet_analyze_per_minute: int = 10
     diet_analyze_per_day: int = 20
+    # 회원 헬스장 이름 검색 한도(#3355). 검색 한 번이 외부 장소 검색 호출 한 번이라
+    # 회원 id 버킷으로 분당 횟수를 묶는다. 앱은 입력이 멈춘 뒤에만 묻으므로 사람이
+    # 검색어를 고쳐 치는 속도로는 닿지 않는다. 0 이면 끈다.
+    gym_search_per_minute: int = 30
+    # 코칭 시트 피드백(`GET /ai-coach/feedback`)의 캐시와 회원별 하루 상한(#3351).
+    # 호출 한 번에 모델을 최대 두 번(식단·운동) 부르는데, 앱은 기록이 바뀔 때마다 다시
+    # 받는다. 만든 카드를 `coach_feedback_cache_seconds` 동안 회원별로 들고 있고, 식단·
+    # 운동 기록이 바뀌거나 날(KST)이 바뀌면 버린다. 하루에 새로 만드는 횟수는
+    # `coach_feedback_per_day` 까지다 — 넘으면 오류가 아니라 규칙 기반 카드로 답한다.
+    # 둘 다 DB(`coach_feedback_states`)에 두어 재기동·워커 수·인스턴스 수와 상관없이
+    # 같다. 캐시 0 이면 매번 새로 만들고, 상한 0 이면 상한을 끈다.
+    # RATE_LIMIT_ENABLED=false 면 상한만 끈다(캐시는 그대로).
+    coach_feedback_cache_seconds: int = 1800
+    coach_feedback_per_day: int = 20
     # 서버 전체·트레이너 계정의 하루 AI 호출 상한(#3032). 위 값들은 **한 회원**을
     # 묶을 뿐이라, 가입자가 늘면 그 합만큼 비용이 열린다. 두 값 모두 DB
     # (`ai_call_usages`)에서 KST 날짜로 세므로 재기동·워커 수·인스턴스 수와 상관없이
@@ -450,6 +480,21 @@ class Settings(BaseSettings):
     def google_client_id_list(self) -> list[str]:
         """허용 Google `aud` 목록(공백·빈 항목 제거)."""
         return _comma_list(self.google_client_ids)
+
+    @property
+    def apple_client_id_list(self) -> list[str]:
+        """허용 Apple `aud` 목록(공백·빈 항목 제거)."""
+        return _comma_list(self.apple_client_ids)
+
+    @property
+    def apple_revoke_configured(self) -> bool:
+        """탈퇴 때 Apple 토큰을 철회할 키가 갖춰졌는가(#3499)."""
+        return bool(
+            self.apple_team_id.strip()
+            and self.apple_key_id.strip()
+            and self.apple_private_key.strip()
+            and self.apple_client_id_list
+        )
 
     @property
     def kakao_app_id_value(self) -> str:

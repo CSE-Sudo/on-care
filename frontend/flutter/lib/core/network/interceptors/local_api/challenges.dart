@@ -4,8 +4,9 @@ part of '../local_api_interceptor.dart';
 
 extension _LocalApiChallenges on LocalApiInterceptor {
   //
-  // 규칙은 [DemoWeeklyChallenge] 가 서버와 같게 들고 있다. 여기서는 끝난 주를 먼저
-  // 판정하고(결과 알림을 알림함에 넣는다), 목표·운동한 날을 이어 준다.
+  // 규칙은 [DemoWeeklyChallenge] 가 서버와 같게 들고 있다. 여기서는 유예까지 끝난
+  // 주를 먼저 판정하고(결과 알림을 알림함에 넣는다), 목표·운동한 날을 이어 준다.
+  // 주가 끝난 다음 날은 유예라 판정하지 않고 집계 중으로 답한다(#3362).
 
   Future<Response<Object?>> _challengeWeekly(RequestOptions options) async {
     await _settleChallenges();
@@ -36,7 +37,7 @@ extension _LocalApiChallenges on LocalApiInterceptor {
     return _ok(options, await _challenges.historyJson(daysOf: _exerciseDaysOf));
   }
 
-  /// 끝난 주를 판정하고 결과 알림을 알림함에 넣는다. 챌린지마다 한 번이다.
+  /// 유예까지 끝난 주를 판정하고 결과 알림을 알림함에 넣는다. 챌린지마다 한 번이다.
   Future<void> _settleChallenges() async {
     final List<DemoChallengeNotice> notices = await _challenges.settleDue(
       _exerciseDaysOf,

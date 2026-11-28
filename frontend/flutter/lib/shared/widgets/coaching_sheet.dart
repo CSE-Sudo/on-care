@@ -49,13 +49,21 @@ const int kCoachFallbackCardCount = 2;
 /// 볼 카드가 없으므로 0 이다 — 볼 것이 없는데 `새 제안 2` 가 뜨지 않게(#2813).
 final coachingSuggestionCountProvider = Provider<int>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) return kCoachFallbackCardCount;
-  final List<AiSuggestion>? live = ref
-      .watch(aiCoachStateProvider)
-      .asData
-      ?.value
-      .suggestions;
+  final List<AiSuggestion>? live = liveCoachSuggestions(
+    ref.watch(aiCoachStateProvider),
+  );
   return live?.length ?? 0;
 }, name: 'coachingSuggestionCount');
+
+/// 지금 그릴 실서버 제안. 오류면 null 이다.
+///
+/// 기록·날짜가 바뀌면 조언을 다시 받는다(#3351). 받는 동안에는 직전 카드를 그대로
+/// 둔다 — `asData` 로 읽으면 그 사이 값이 없어져 배지가 꺼졌다 켜지고 열어 둔 시트가
+/// 로딩으로 바뀐다. 처음 받는 중에는 직전 값이 없어 그대로 null 이다.
+List<AiSuggestion>? liveCoachSuggestions(AsyncValue<AiCoachState> state) {
+  if (state.hasError && !state.isLoading) return null;
+  return state.valueOrNull?.suggestions;
+}
 
 /// 마지막으로 시트를 열어 확인한 카드 수.
 ///
@@ -148,7 +156,7 @@ class _CoachingSheetState extends ConsumerState<_CoachingSheet> {
       body = _CoachCardList(cards: _cardsOf(l));
     } else {
       final AsyncValue<AiCoachState> state = ref.watch(aiCoachStateProvider);
-      final List<AiSuggestion>? live = state.asData?.value.suggestions;
+      final List<AiSuggestion>? live = liveCoachSuggestions(state);
       if (live != null && live.isNotEmpty) {
         body = _CoachCardList(
           cards: <_CoachCard>[

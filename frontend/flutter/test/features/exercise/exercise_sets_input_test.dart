@@ -119,6 +119,9 @@ class _CapturingRepository implements ExerciseRepository {
   );
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {}
+
+  @override
   Future<void> deleteSession(String id) async {}
 
   @override

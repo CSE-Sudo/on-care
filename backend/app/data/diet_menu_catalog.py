@@ -42,80 +42,66 @@ TAGS = (
 
 #: 태그의 기본 키워드. AI 가 키워드를 빠뜨리거나 너무 길게 주면 이것을 쓴다.
 TAG_KEYWORDS = {
-    "ko": {
-        TAG_SODIUM_LOW: "저나트륨",
-        TAG_PROTEIN_HIGH: "고단백",
-        TAG_CALORIE_LOW: "가벼운",
-        TAG_CALORIE_HIGH: "든든한",
-        TAG_SUGAR_LOW: "저당",
-        TAG_FIBER_HIGH: "식이섬유",
-    },
-    "en": {
-        TAG_SODIUM_LOW: "Low sodium",
-        TAG_PROTEIN_HIGH: "High protein",
-        TAG_CALORIE_LOW: "Light",
-        TAG_CALORIE_HIGH: "Filling",
-        TAG_SUGAR_LOW: "Low sugar",
-        TAG_FIBER_HIGH: "High fiber",
-    },
+    TAG_SODIUM_LOW: "저나트륨",
+    TAG_PROTEIN_HIGH: "고단백",
+    TAG_CALORIE_LOW: "가벼운",
+    TAG_CALORIE_HIGH: "든든한",
+    TAG_SUGAR_LOW: "저당",
+    TAG_FIBER_HIGH: "식이섬유",
 }
 
 
 @dataclass(frozen=True)
 class CatalogMenu:
     slot: str
-    name_ko: str
-    name_en: str
+    name: str
     tag: str
     kcal: int
     protein_g: int
     sodium_mg: int
 
-    def name(self, lang: str) -> str:
-        return self.name_en if lang == "en" else self.name_ko
-
 
 CATALOG: tuple[CatalogMenu, ...] = (
     # 아침
-    CatalogMenu(SLOT_BREAKFAST, "그릭요거트 볼", "Greek yogurt bowl", TAG_PROTEIN_HIGH, 220, 18, 80),
-    CatalogMenu(SLOT_BREAKFAST, "삶은 달걀과 고구마", "Boiled eggs & sweet potato", TAG_PROTEIN_HIGH, 300, 14, 150),
-    CatalogMenu(SLOT_BREAKFAST, "바나나 오트밀", "Banana oatmeal", TAG_FIBER_HIGH, 320, 10, 60),
-    CatalogMenu(SLOT_BREAKFAST, "두부 스크램블", "Tofu scramble", TAG_PROTEIN_HIGH, 330, 20, 380),
-    CatalogMenu(SLOT_BREAKFAST, "현미 누룽지와 달걀", "Brown rice porridge & egg", TAG_SODIUM_LOW, 280, 10, 150),
-    CatalogMenu(SLOT_BREAKFAST, "과일 요거트 스무디", "Fruit yogurt smoothie", TAG_CALORIE_LOW, 200, 8, 70),
-    CatalogMenu(SLOT_BREAKFAST, "요거트와 견과", "Plain yogurt & nuts", TAG_SUGAR_LOW, 260, 12, 60),
-    CatalogMenu(SLOT_BREAKFAST, "닭가슴살 샌드위치", "Chicken breast sandwich", TAG_PROTEIN_HIGH, 380, 28, 620),
-    CatalogMenu(SLOT_BREAKFAST, "채소 달걀말이", "Veggie rolled omelet", TAG_SODIUM_LOW, 250, 15, 300),
-    CatalogMenu(SLOT_BREAKFAST, "연어 베이글 반쪽", "Half salmon bagel", TAG_CALORIE_HIGH, 450, 22, 700),
+    CatalogMenu(SLOT_BREAKFAST, "그릭요거트 볼", TAG_PROTEIN_HIGH, 220, 18, 80),
+    CatalogMenu(SLOT_BREAKFAST, "삶은 달걀과 고구마", TAG_PROTEIN_HIGH, 300, 14, 150),
+    CatalogMenu(SLOT_BREAKFAST, "바나나 오트밀", TAG_FIBER_HIGH, 320, 10, 60),
+    CatalogMenu(SLOT_BREAKFAST, "두부 스크램블", TAG_PROTEIN_HIGH, 330, 20, 380),
+    CatalogMenu(SLOT_BREAKFAST, "현미 누룽지와 달걀", TAG_SODIUM_LOW, 280, 10, 150),
+    CatalogMenu(SLOT_BREAKFAST, "과일 요거트 스무디", TAG_CALORIE_LOW, 200, 8, 70),
+    CatalogMenu(SLOT_BREAKFAST, "요거트와 견과", TAG_SUGAR_LOW, 260, 12, 60),
+    CatalogMenu(SLOT_BREAKFAST, "닭가슴살 샌드위치", TAG_PROTEIN_HIGH, 380, 28, 620),
+    CatalogMenu(SLOT_BREAKFAST, "채소 달걀말이", TAG_SODIUM_LOW, 250, 15, 300),
+    CatalogMenu(SLOT_BREAKFAST, "연어 베이글 반쪽", TAG_CALORIE_HIGH, 450, 22, 700),
     # 점심
-    CatalogMenu(SLOT_LUNCH, "현미 비빔밥", "Brown rice bibimbap", TAG_FIBER_HIGH, 550, 18, 700),
-    CatalogMenu(SLOT_LUNCH, "닭가슴살 샐러드", "Chicken breast salad", TAG_PROTEIN_HIGH, 380, 32, 520),
-    CatalogMenu(SLOT_LUNCH, "연어 포케", "Salmon poke bowl", TAG_PROTEIN_HIGH, 560, 28, 650),
-    CatalogMenu(SLOT_LUNCH, "두부 스테이크 정식", "Tofu steak set", TAG_SODIUM_LOW, 480, 24, 600),
-    CatalogMenu(SLOT_LUNCH, "두부 버섯 덮밥", "Tofu mushroom rice bowl", TAG_SODIUM_LOW, 500, 20, 550),
-    CatalogMenu(SLOT_LUNCH, "닭안심 샐러드 랩", "Chicken tender wrap", TAG_CALORIE_LOW, 420, 26, 600),
-    CatalogMenu(SLOT_LUNCH, "통밀 샐러드 파스타", "Whole wheat salad pasta", TAG_FIBER_HIGH, 520, 16, 500),
-    CatalogMenu(SLOT_LUNCH, "닭가슴살 도시락", "Chicken breast lunchbox", TAG_PROTEIN_HIGH, 520, 35, 550),
-    CatalogMenu(SLOT_LUNCH, "소고기 채소 덮밥", "Beef & veggie rice bowl", TAG_CALORIE_HIGH, 650, 30, 800),
-    CatalogMenu(SLOT_LUNCH, "곤약 채소 비빔밥", "Konjac veggie bibimbap", TAG_SUGAR_LOW, 380, 12, 500),
+    CatalogMenu(SLOT_LUNCH, "현미 비빔밥", TAG_FIBER_HIGH, 550, 18, 700),
+    CatalogMenu(SLOT_LUNCH, "닭가슴살 샐러드", TAG_PROTEIN_HIGH, 380, 32, 520),
+    CatalogMenu(SLOT_LUNCH, "연어 포케", TAG_PROTEIN_HIGH, 560, 28, 650),
+    CatalogMenu(SLOT_LUNCH, "두부 스테이크 정식", TAG_SODIUM_LOW, 480, 24, 600),
+    CatalogMenu(SLOT_LUNCH, "두부 버섯 덮밥", TAG_SODIUM_LOW, 500, 20, 550),
+    CatalogMenu(SLOT_LUNCH, "닭안심 샐러드 랩", TAG_CALORIE_LOW, 420, 26, 600),
+    CatalogMenu(SLOT_LUNCH, "통밀 샐러드 파스타", TAG_FIBER_HIGH, 520, 16, 500),
+    CatalogMenu(SLOT_LUNCH, "닭가슴살 도시락", TAG_PROTEIN_HIGH, 520, 35, 550),
+    CatalogMenu(SLOT_LUNCH, "소고기 채소 덮밥", TAG_CALORIE_HIGH, 650, 30, 800),
+    CatalogMenu(SLOT_LUNCH, "곤약 채소 비빔밥", TAG_SUGAR_LOW, 380, 12, 500),
     # 저녁
-    CatalogMenu(SLOT_DINNER, "구운 고등어 정식", "Grilled mackerel set", TAG_PROTEIN_HIGH, 600, 32, 650),
-    CatalogMenu(SLOT_DINNER, "연두부 채소찜", "Steamed soft tofu & veggies", TAG_SODIUM_LOW, 300, 18, 350),
-    CatalogMenu(SLOT_DINNER, "닭가슴살 채소볶음", "Chicken breast stir-fry", TAG_PROTEIN_HIGH, 450, 35, 600),
-    CatalogMenu(SLOT_DINNER, "연어 스테이크", "Salmon steak", TAG_PROTEIN_HIGH, 520, 30, 400),
-    CatalogMenu(SLOT_DINNER, "흰살생선 찜", "Steamed white fish", TAG_SODIUM_LOW, 380, 30, 300),
-    CatalogMenu(SLOT_DINNER, "두부 닭가슴살볼", "Chicken tofu patties", TAG_CALORIE_LOW, 350, 30, 450),
-    CatalogMenu(SLOT_DINNER, "잡곡밥과 나물 반찬", "Multigrain rice & namul", TAG_FIBER_HIGH, 480, 14, 550),
-    CatalogMenu(SLOT_DINNER, "돼지 안심 수육", "Boiled pork tenderloin", TAG_SUGAR_LOW, 480, 34, 400),
-    CatalogMenu(SLOT_DINNER, "소고기 샤브샤브", "Beef shabu-shabu", TAG_CALORIE_HIGH, 560, 32, 800),
-    CatalogMenu(SLOT_DINNER, "곤약 두부 비빔면", "Konjac tofu noodles", TAG_CALORIE_LOW, 330, 14, 600),
+    CatalogMenu(SLOT_DINNER, "구운 고등어 정식", TAG_PROTEIN_HIGH, 600, 32, 650),
+    CatalogMenu(SLOT_DINNER, "연두부 채소찜", TAG_SODIUM_LOW, 300, 18, 350),
+    CatalogMenu(SLOT_DINNER, "닭가슴살 채소볶음", TAG_PROTEIN_HIGH, 450, 35, 600),
+    CatalogMenu(SLOT_DINNER, "연어 스테이크", TAG_PROTEIN_HIGH, 520, 30, 400),
+    CatalogMenu(SLOT_DINNER, "흰살생선 찜", TAG_SODIUM_LOW, 380, 30, 300),
+    CatalogMenu(SLOT_DINNER, "두부 닭가슴살볼", TAG_CALORIE_LOW, 350, 30, 450),
+    CatalogMenu(SLOT_DINNER, "잡곡밥과 나물 반찬", TAG_FIBER_HIGH, 480, 14, 550),
+    CatalogMenu(SLOT_DINNER, "돼지 안심 수육", TAG_SUGAR_LOW, 480, 34, 400),
+    CatalogMenu(SLOT_DINNER, "소고기 샤브샤브", TAG_CALORIE_HIGH, 560, 32, 800),
+    CatalogMenu(SLOT_DINNER, "곤약 두부 비빔면", TAG_CALORIE_LOW, 330, 14, 600),
     # 간식
-    CatalogMenu(SLOT_SNACK, "그릭요거트", "Greek yogurt", TAG_PROTEIN_HIGH, 120, 10, 40),
-    CatalogMenu(SLOT_SNACK, "삶은 달걀 2개", "Two boiled eggs", TAG_PROTEIN_HIGH, 150, 12, 140),
-    CatalogMenu(SLOT_SNACK, "무가당 두유", "Unsweetened soy milk", TAG_SUGAR_LOW, 90, 7, 90),
-    CatalogMenu(SLOT_SNACK, "방울토마토", "Cherry tomatoes", TAG_CALORIE_LOW, 30, 1, 10),
-    CatalogMenu(SLOT_SNACK, "바나나 1개", "One banana", TAG_CALORIE_HIGH, 100, 1, 0),
-    CatalogMenu(SLOT_SNACK, "견과류 한 줌", "Handful of nuts", TAG_CALORIE_HIGH, 170, 5, 0),
+    CatalogMenu(SLOT_SNACK, "그릭요거트", TAG_PROTEIN_HIGH, 120, 10, 40),
+    CatalogMenu(SLOT_SNACK, "삶은 달걀 2개", TAG_PROTEIN_HIGH, 150, 12, 140),
+    CatalogMenu(SLOT_SNACK, "무가당 두유", TAG_SUGAR_LOW, 90, 7, 90),
+    CatalogMenu(SLOT_SNACK, "방울토마토", TAG_CALORIE_LOW, 30, 1, 10),
+    CatalogMenu(SLOT_SNACK, "바나나 1개", TAG_CALORIE_HIGH, 100, 1, 0),
+    CatalogMenu(SLOT_SNACK, "견과류 한 줌", TAG_CALORIE_HIGH, 170, 5, 0),
 )
 
 

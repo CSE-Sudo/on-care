@@ -44,9 +44,10 @@ def test_list_gyms_sorts_by_distance_when_coordinates_given(client):
     assert gyms[0]["distance_km"] == 0
 
 
-def test_gyms_without_coordinates_sort_last(client, db_session):
+def test_gyms_without_coordinates_are_left_out_of_nearby(client, db_session):
     """좌표를 모르는 헬스장은 distance_km 가 0 이라, 그냥 정렬하면 '가장 가까운 곳'
-    으로 맨 앞에 온다."""
+    으로 맨 앞에 온다. 반경 안인지 알 수 없으므로 좌표가 있는 조회에서는 뺀다(#3356).
+    좌표 없는 조회와 단건에서는 그대로 읽힌다."""
     from app.models.models import Place
 
     db_session.add(
@@ -61,9 +62,10 @@ def test_gyms_without_coordinates_sort_last(client, db_session):
     try:
         gyms = client.get("/v1/gyms", params=SINCHON).json()
         ids = [g["id"] for g in gyms]
-        assert "gym-no-coords-test" in ids
-        assert ids[-1] == "gym-no-coords-test", ids
+        assert "gym-no-coords-test" not in ids
         assert ids[0] == "gym-oncare-sinchon", ids
+        assert "gym-no-coords-test" in {g["id"] for g in client.get("/v1/gyms").json()}
+        assert client.get("/v1/gyms/gym-no-coords-test").status_code == 200
     finally:
         db_session.query(Place).filter(
             Place.id == "gym-no-coords-test"

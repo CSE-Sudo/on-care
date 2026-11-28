@@ -31,7 +31,18 @@ class OnCareLayout {
   static const double splitBreakpoint = 900;
 
   /// 대시보드 두 열 기준 폭.
-  static const double twoColumnBreakpoint = 1080;
+  ///
+  /// 1024 창(레일, 콘텐츠 916)과 1280 창(펼친 사이드바, 콘텐츠 1016)에서도 두
+  /// 열이 서야 한다. 1080 이던 때에는 1280 에서 사이드바가 펼쳐지며 콘텐츠가
+  /// 줄어, 1200 창은 두 열인데 1300 창은 한 열로 되돌아갔다(#3316).
+  static const double twoColumnBreakpoint = 900;
+
+  /// 요약 카드 네 칸이 한 줄에 서는 기준 폭 — 칸마다 168 은 남는다(#3316).
+  static const double statRowBreakpoint = 720;
+
+  /// 칸 셋(리포트 운동 추이의 유형 칸)이 한 줄에 서는 기준 폭 — 칸마다 200 은
+  /// 남는다(#3316).
+  static const double threeTileBreakpoint = 640;
 
   /// 사이드바 폭(펼침/레일)과 전환 기준 폭.
   static const double sidebarWidth = 232;

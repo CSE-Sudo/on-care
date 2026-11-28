@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -31,6 +32,8 @@ final List<ProviderOrFamily> kExerciseChangeRefreshTargets = <ProviderOrFamily>[
   weeklyChallengeProvider,
   // 첫 기록일 — 더 이른 날짜로 적거나 첫 기록을 지우면 `전체` 가 달라진다.
   recordSpanProvider,
+  // 홈 코칭 시트의 운동 카드 — 이번 주 운동량을 두고 말한다(#3351).
+  aiCoachStateProvider,
 ];
 
 /// 운동 기록을 **저장·수정·삭제**하거나 추천 개인운동을 **완료·완료 취소**한

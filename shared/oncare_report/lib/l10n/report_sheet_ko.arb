@@ -2,6 +2,16 @@
   "@@locale": "ko",
   "chartNoRecord": "기록 없음",
   "dateMonthDay": "{month}월 {day}일",
+  "@dateMonthDay": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
   "metricCalories": "칼로리",
   "metricCarbs": "탄수화물",
   "metricFat": "지방",
@@ -16,54 +26,242 @@
   "reportsMemberFeedbackPainLabel": "통증",
   "reportsMemberFeedbackPainNone": "없음",
   "reportsMemberFeedbackPainOn": "{area} ({date})",
+  "@reportsMemberFeedbackPainOn": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "reportsMemberFeedbackTitle": "회원 주간 피드백",
   "reportsMemberFeedbackUnanswered": "미응답",
   "reportsPdfAttendance": "{done}/{booked}회 ({rate}%)",
+  "@reportsPdfAttendance": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "booked": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfDocTitle": "주간 리포트",
   "reportsPdfLabelCompletion": "운동 완료율",
   "reportsPdfLabelSessions": "완료 PT",
   "reportsPdfNoData": "미집계",
   "reportsPdfNoFeedback": "피드백 없음",
   "reportsPdfValueDays": "{value}일",
+  "@reportsPdfValueDays": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueGram": "{value}g",
+  "@reportsPdfValueGram": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueKcal": "{value}kcal",
+  "@reportsPdfValueKcal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueMg": "{value}mg",
+  "@reportsPdfValueMg": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValuePercent": "{value}%",
+  "@reportsPdfValuePercent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueSessions": "{value}회",
+  "@reportsPdfValueSessions": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsSheetAttendance": "완료 PT",
+  "@reportsSheetAttendance": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetAverageBase": "4주 평균",
+  "@reportsSheetAverageBase": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetAverageChange": "변화",
+  "@reportsSheetAverageChange": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetAverageNow": "이번 주",
+  "@reportsSheetAverageNow": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetAverageTitle": "4주 평균 대비",
+  "@reportsSheetAverageTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetBandNormal": "적정",
+  "@reportsSheetBandNormal": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetBandOver": "초과",
+  "@reportsSheetBandOver": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetBandUnder": "부족",
+  "@reportsSheetBandUnder": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetCalorieDays": "칼로리 적정일",
+  "@reportsSheetCalorieDays": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetDailyCalories": "칼로리",
+  "@reportsSheetDailyCalories": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetDailyCompletion": "완료율",
+  "@reportsSheetDailyCompletion": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetDailyMeals": "끼니",
+  "@reportsSheetDailyMeals": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetDailyTitle": "요일별 기록",
+  "@reportsSheetDailyTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetDailyWorkouts": "운동",
+  "@reportsSheetDailyWorkouts": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetDaysOf": "{days}/{due}일",
+  "@reportsSheetDaysOf": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
   "reportsSheetDietHint": "하루 평균 · 목표 대비",
+  "@reportsSheetDietHint": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetDietTitle": "식단 분석",
+  "@reportsSheetDietTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetEvalTitle": "항목별 평가",
+  "@reportsSheetEvalTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetExerciseHint": "이번 주 · 목표 대비",
+  "@reportsSheetExerciseHint": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetExerciseTitle": "운동 분석",
+  "@reportsSheetExerciseTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetFootnote": "범위는 이번 주 기록을 회원의 목표와 견줘요. 기록이 없는 항목은 미집계로 표시해요.",
+  "@reportsSheetFootnote": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetGoal": "목표 {value}",
+  "@reportsSheetGoal": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsSheetInfoMealDays": "식단 기록",
+  "@reportsSheetInfoMealDays": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetInfoMember": "회원",
+  "@reportsSheetInfoMember": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetInfoPeriod": "기간",
+  "@reportsSheetInfoPeriod": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetMealDaysLabel": "식단 기록일",
+  "@reportsSheetMealDaysLabel": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetPeriodValue": "{start} ~ {end}",
+  "@reportsSheetPeriodValue": {
+    "description": "리포트 PDF 한 장 결과지 (#2485).",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
   "reportsSheetScoreFormula": "운동 완료율·완료 PT·식단 기록·칼로리 적정일 비율의 평균이에요. 기록이 없는 항목은 빠져요.",
+  "@reportsSheetScoreFormula": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetScoreNone": "점수를 낼 기록이 없어요",
+  "@reportsSheetScoreNone": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetScoreTitle": "주간 관리 점수",
+  "@reportsSheetScoreTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetScoreUnit": "/100점",
+  "@reportsSheetScoreUnit": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetTrendDaily": "요일별 섭취 칼로리 · 목표선",
+  "@reportsSheetTrendDaily": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetTrendTitle": "추이",
+  "@reportsSheetTrendTitle": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsSheetTrendWeekly": "주별 운동 달성률 (8주)",
+  "@reportsSheetTrendWeekly": {
+    "description": "리포트 PDF 한 장 결과지 (#2485)."
+  },
   "reportsTrendUnavailable": "이 주의 운동 기록을 불러오지 못했어요",
   "weekdayMon": "월",
   "weekdayTue": "화",
@@ -76,7 +274,21 @@
   "routineTypeStrength": "근력",
   "routineTypeStretching": "스트레칭",
   "minutesShort": "{minutes}분",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "progSetsValue": "{sets}세트",
+  "@progSetsValue": {
+    "placeholders": {
+      "sets": {
+        "type": "int"
+      }
+    }
+  },
   "reportsMemberFeedbackConditionGreat": "아주 좋았어요",
   "reportsMemberFeedbackConditionGood": "좋았어요",
   "reportsMemberFeedbackConditionOk": "보통이었어요",

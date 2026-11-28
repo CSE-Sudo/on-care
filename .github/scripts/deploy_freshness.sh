@@ -10,6 +10,9 @@
 #   bash .github/scripts/deploy_freshness.sh frontend <CloudFront 배포 ID> <대상 40자 SHA>
 #     지금 서비스 중인 릴리스의 origin path(`/releases/<SHA>`)에서 커밋을 읽는다. 배포가 그
 #     릴리스에 넣는 version.txt 와 같은 값이다. aws 자격 증명이 필요하다.
+#   bash .github/scripts/deploy_freshness.sh frontend-site <PRODUCTION_FRONTEND_URL> <대상 40자 SHA>
+#     운영 프런트 공개 주소의 `<주소>/version.txt` 를 읽는다(#3269). 자격 증명이 필요 없어
+#     production 승인 전의 gate 에서 부른다. 주소는 출처만(https://…, 끝 / 는 정리한다).
 #   bash .github/scripts/deploy_freshness.sh backend <API_BASE_URL> <대상 40자 SHA>
 #     운영 백엔드 `<API_BASE_URL>/version` 의 commit_sha 를 읽는다(API_BASE_URL 은 …/v1).
 #   저장소 checkout 안에서 실행한다(전체 이력 필요 — actions/checkout 의 fetch-depth: 0).
@@ -25,8 +28,8 @@ mode="${1:-}"
 source="${2:-}"
 target=$(printf '%s' "${3:-}" | tr '[:upper:]' '[:lower:]')
 
-if ! [[ "$mode" =~ ^(frontend|backend)$ ]] || ! [[ "$target" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "사용: $0 <frontend|backend> <CloudFront 배포 ID|API_BASE_URL> <40자 SHA>" >&2
+if ! [[ "$mode" =~ ^(frontend|frontend-site|backend)$ ]] || ! [[ "$target" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "사용: $0 <frontend|frontend-site|backend> <CloudFront 배포 ID|운영 프런트 주소|API_BASE_URL> <40자 SHA>" >&2
   exit 1
 fi
 if ! git cat-file -e "$target^{commit}" 2> /dev/null; then
@@ -64,6 +67,18 @@ print(str(path).strip())
     proceed_unknown "" "origin path '${origin_path:-없음}' 가 릴리스 경로가 아님"
   fi
   live="${origin_path#/releases/}"
+elif [ "$mode" = frontend-site ]; then
+  # 배포가 릴리스 루트에 넣는 version.txt 는 대상 SHA 한 줄이다. no-cache 로 올리고 전환 뒤
+  # 전체 무효화를 하므로 지금 서비스 중인 릴리스의 값이다(배포 후 검증과 같은 주소).
+  site="${source%/}"
+  if ! [[ "$site" =~ ^https://[^/]+$ ]]; then
+    proceed_unknown "" "운영 프런트 주소 '$source' 가 https 출처가 아님"
+  fi
+  if ! body=$(curl --fail --silent --show-error --max-time 15 "$site/version.txt"); then
+    proceed_unknown "" "$site/version.txt 응답 없음"
+  fi
+  # 첫 줄만 본다 — 경로가 없어 HTML 이 돌아와도 경고 문구가 한 줄로 끝난다.
+  live=$(printf '%s\n' "$body" | head -n 1 | tr -d '[:space:]')
 else
   api="${source%/}"
   if ! body=$(curl --fail --silent --show-error --max-time 15 "$api/version"); then

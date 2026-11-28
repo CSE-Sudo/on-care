@@ -14,7 +14,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 
-/// 영어 화면의 운동 빼기·제외 문구에 한국어 조사가 붙지 않는다 (#2895).
+/// 운동 빼기·제외 문구에 받침에 맞는 조사가 붙는다 (#2895).
 const _client = TrainerClient(
   id: 'm1',
   name: '김민수',
@@ -91,7 +91,7 @@ class _EmptyMemoRepository implements TrainerMemoRepository {
       throw UnsupportedError('not used');
 }
 
-Future<void> _pumpFlow(WidgetTester tester, Locale locale) async {
+Future<void> _pumpFlow(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1000, 2400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
@@ -118,7 +118,7 @@ Future<void> _pumpFlow(WidgetTester tester, Locale locale) async {
         ),
       ],
       child: MaterialApp(
-        locale: locale,
+        locale: const Locale('ko'),
         theme: AppTheme.light(),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -133,30 +133,8 @@ Future<void> _pumpFlow(WidgetTester tester, Locale locale) async {
 }
 
 void main() {
-  final TestPlatformDispatcher dispatcher =
-      TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher;
-  tearDown(dispatcher.clearLocalesTestValue);
-
-  testWidgets('영어 화면은 확인 창·토스트에 이름만 넣는다', (tester) async {
-    dispatcher.localesTestValue = const <Locale>[Locale('en')];
-    await _pumpFlow(tester, const Locale('en'));
-
-    await tester.tap(
-      find.byKey(const ValueKey<String>('personal-routine-remove-0')),
-    );
-    await tester.pumpAndSettle();
-    expect(find.textContaining('가벼운 인터벌 러닝 will be dropped'), findsOneWidget);
-    expect(find.textContaining('러닝을'), findsNothing);
-
-    await tester.tap(find.text('Delete'));
-    await tester.pumpAndSettle();
-    expect(find.text('가벼운 인터벌 러닝 will not be recommended'), findsOneWidget);
-    expect(find.textContaining('러닝은'), findsNothing);
-  });
-
-  testWidgets('한국어 화면은 받침에 맞는 조사를 그대로 붙인다', (tester) async {
-    dispatcher.localesTestValue = const <Locale>[Locale('ko')];
-    await _pumpFlow(tester, const Locale('ko'));
+  testWidgets('확인 창·토스트에 받침에 맞는 조사를 붙인다', (tester) async {
+    await _pumpFlow(tester);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('personal-routine-remove-0')),

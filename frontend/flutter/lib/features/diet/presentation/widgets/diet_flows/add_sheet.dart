@@ -52,6 +52,9 @@ class _DietAddSheet extends ConsumerStatefulWidget {
 class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
   MealPhotoFailure? _failure;
 
+  /// 데모 샘플 사진 목록을 펼쳤는가(#3423).
+  bool _showSamples = false;
+
   /// Guards a second tap while the OS picker is up — image_picker rejects a
   /// concurrent request with `multiple_request`.
   bool _picking = false;
@@ -88,6 +91,34 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
     navigator.pop((photo: photo, mealType: _currentMealType()));
   }
 
+  /// 데모 샘플 사진을 골랐다(#3423). 자산에서 읽은 바이트를 올릴 사진으로 쓰고,
+  /// 어느 샘플인지 적어 둔다 — 목업 분석이 같은 바이트로 그 끼니를 찾는다.
+  Future<void> _pickSample(FixtureMeal meal) async {
+    if (_picking) return;
+    setState(() {
+      _picking = true;
+      _failure = null;
+    });
+    final NavigatorState navigator = Navigator.of(context);
+
+    final MealPhoto? photo;
+    try {
+      final ByteData data = await rootBundle.load(meal.photoAsset);
+      photo = MealPhoto.fromBytes(data.buffer.asUint8List());
+    } on Object {
+      _settle(MealPhotoFailure.readFailed);
+      return;
+    }
+    if (!mounted) return;
+    if (photo == null) {
+      _settle(MealPhotoFailure.readFailed);
+      return;
+    }
+    _settle(null);
+    rememberDemoSamplePhoto(meal, photo.bytes);
+    navigator.pop((photo: photo, mealType: _currentMealType()));
+  }
+
   void _settle(MealPhotoFailure? failure) {
     if (!mounted) return;
     setState(() {
@@ -103,6 +134,7 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
     final MealPhotoChoiceLayout layout = ref.watch(
       mealPhotoChoiceLayoutProvider,
     );
+    final List<FixtureMeal> samples = ref.watch(demoSampleMealsProvider);
     return AppSheet(
       key: const Key('dietAddSheet'),
       title: l.dietAddSheetTitle,
@@ -130,36 +162,60 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
             _PhotoFailureNotice(failure: failure),
             const SizedBox(height: OnCareSpacing.s12),
           ],
-          Column(
-            key: const Key('dietAddOptions'),
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              if (layout == MealPhotoChoiceLayout.systemMenu)
-                // 웹: 브라우저가 보관함·촬영·파일을 묻는 메뉴를 스스로 띄운다.
-                // 앱에 촬영을 따로 두면 그 메뉴의 `사진 찍기`와 겹친다(#1433).
-                _SourceOption(
-                  icon: AppIcons.image,
-                  title: l.dietAddPhoto,
-                  subtitle: l.dietAddPhotoSub,
-                  onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
-                )
-              else ...<Widget>[
-                _SourceOption(
-                  icon: AppIcons.image,
-                  title: l.dietPickPhoto,
-                  subtitle: l.dietPickPhotoSub,
-                  onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
-                ),
-                const SizedBox(height: OnCareSpacing.s12),
-                _SourceOption(
-                  icon: AppIcons.camera,
-                  title: l.dietTakePhoto,
-                  subtitle: l.dietTakePhotoSub,
-                  onTap: () => _pickAndAnalyze(MealPhotoSource.camera),
-                ),
+          if (_showSamples)
+            _SamplePhotoGrid(
+              meals: samples,
+              onPick: _pickSample,
+              onBack: _picking
+                  ? null
+                  : () => setState(() => _showSamples = false),
+            )
+          else
+            Column(
+              key: const Key('dietAddOptions'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                if (layout == MealPhotoChoiceLayout.systemMenu)
+                  // 웹: 브라우저가 보관함·촬영·파일을 묻는 메뉴를 스스로 띄운다.
+                  // 앱에 촬영을 따로 두면 그 메뉴의 `사진 찍기`와 겹친다(#1433).
+                  _SourceOption(
+                    icon: AppIcons.image,
+                    title: l.dietAddPhoto,
+                    subtitle: l.dietAddPhotoSub,
+                    onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
+                  )
+                else ...<Widget>[
+                  _SourceOption(
+                    icon: AppIcons.image,
+                    title: l.dietPickPhoto,
+                    subtitle: l.dietPickPhotoSub,
+                    onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
+                  ),
+                  const SizedBox(height: OnCareSpacing.s12),
+                  _SourceOption(
+                    icon: AppIcons.camera,
+                    title: l.dietTakePhoto,
+                    subtitle: l.dietTakePhotoSub,
+                    onTap: () => _pickAndAnalyze(MealPhotoSource.camera),
+                  ),
+                ],
+                // 데모는 사진을 볼 수 없다 — 고르면 결과가 사진과 맞는 사진을
+                // 따로 내놓는다(#3423). 실제로 사진을 읽는 빌드에는 없다.
+                if (samples.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: OnCareSpacing.s12),
+                  _SourceOption(
+                    key: const Key('dietSamplePhotoOption'),
+                    icon: AppIcons.image,
+                    title: l.dietSamplePhoto,
+                    subtitle: l.dietSamplePhotoSub,
+                    onTap: () => setState(() {
+                      _showSamples = true;
+                      _failure = null;
+                    }),
+                  ),
+                ],
               ],
-            ],
-          ),
+            ),
         ],
       ),
     );
@@ -237,8 +293,72 @@ class _PhotoFailureNoticeState extends State<_PhotoFailureNotice> {
   }
 }
 
+/// 데모 샘플 사진 목록(#3423). 사진을 누르면 그 사진으로 분석을 시작한다.
+class _SamplePhotoGrid extends StatelessWidget {
+  const _SamplePhotoGrid({
+    required this.meals,
+    required this.onPick,
+    required this.onBack,
+  });
+
+  final List<FixtureMeal> meals;
+  final ValueChanged<FixtureMeal> onPick;
+  final VoidCallback? onBack;
+
+  /// 세 줄이 보이는 높이. 나머지는 이 안에서 스크롤한다 — 시트가 화면을 다
+  /// 덮지 않게 한다.
+  static const double _height = 340;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Column(
+      key: const Key('dietSamplePhotos'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        SizedBox(
+          height: _height,
+          child: GridView.count(
+            crossAxisCount: 3,
+            mainAxisSpacing: OnCareSpacing.s8,
+            crossAxisSpacing: OnCareSpacing.s8,
+            children: <Widget>[
+              for (final FixtureMeal meal in meals)
+                Semantics(
+                  button: true,
+                  label: meal.foods
+                      .map((FixtureFood food) => food.name)
+                      .join(', '),
+                  child: GestureDetector(
+                    key: Key('dietSamplePhoto-${meal.slug}'),
+                    onTap: () => onPick(meal),
+                    child: ClipRRect(
+                      borderRadius: OnCareRadius.mdAll,
+                      child: Image.asset(meal.photoAsset, fit: BoxFit.cover),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Center(
+          child: AppButton(
+            key: const Key('dietSamplePhotosBack'),
+            label: l.dietSamplePhotoBack,
+            onPressed: onBack,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _SourceOption extends StatelessWidget {
   const _SourceOption({
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,

@@ -5,18 +5,25 @@
 두 가지다 — 회원이 받는 값이 트레이너가 같은 회원을 두고 받는 값과 **같다**는 것,
 그리고 트레이너 몫인 자동 초안(`message`)은 회원에게 **가지 않는다**는 것.
 
+회원은 받았거나 산 주만 연다(#3366, `test_member_weekly_report_access.py`). 여기서는
+시드 회원이 이번 주와 지난 넉 주의 리포트를 받은 것으로 두고, 끝나면 그 안내를 지운다.
+
 순수 로직(주 계산)은 DB 없이 돌고, 엔드포인트는 DB 가 있어야 한다
 (로컬 skip, CI 실행).
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import date, timedelta
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy import delete
 
 from app.core import clock
+from app.db.seed_trainer import TRAINER_ID
+from app.models.models import ChatMessage
 
 
 def _h(token: str) -> dict:
@@ -94,7 +101,31 @@ def test_week_strings_in_other_shapes_are_rejected(bad):
 
 # ---- 엔드포인트 ----
 
-def test_member_reads_own_week(client):
+@pytest.fixture()
+def received(db_session) -> Iterator[None]:
+    """시드 회원(지수)이 이번 주와 지난 넉 주의 리포트를 받았다. 끝나면 지운다."""
+    ids = [f"msg-wr-{uuid4().hex[:12]}" for _ in range(5)]
+    db_session.add_all(
+        ChatMessage(
+            id=message_id,
+            trainer_id=TRAINER_ID,
+            member_id="user-jisu",
+            sender="trainer",
+            body="주간 리포트를 보냈어요.",
+            report_week_start=(_this_monday() - timedelta(weeks=back)).isoformat(),
+        )
+        for back, message_id in enumerate(ids)
+    )
+    db_session.commit()
+    try:
+        yield
+    finally:
+        db_session.rollback()
+        db_session.execute(delete(ChatMessage).where(ChatMessage.id.in_(ids)))
+        db_session.commit()
+
+
+def test_member_reads_own_week(client, received):
     t = _login(client, "jisu@oncare.com")
     r = client.get("/v1/me/coach/weekly-report", headers=_h(t))
     assert r.status_code == 200, r.text
@@ -106,7 +137,7 @@ def test_member_reads_own_week(client):
     assert len(body["calories_week"]) == 7
 
 
-def test_member_never_receives_the_trainer_draft(client):
+def test_member_never_receives_the_trainer_draft(client, received):
     """자동 초안은 트레이너가 손보고 보낼 글이다 — 회원에게 먼저 닿으면 안 된다."""
     t = _login(client, "jisu@oncare.com")
     body = client.get("/v1/me/coach/weekly-report", headers=_h(t)).json()
@@ -114,7 +145,7 @@ def test_member_never_receives_the_trainer_draft(client):
 
 
 @pytest.mark.parametrize("weeks_back", [0, 1, 4])
-def test_member_sees_the_same_numbers_as_the_trainer(client, weeks_back):
+def test_member_sees_the_same_numbers_as_the_trainer(client, received, weeks_back):
     """같은 회원·같은 주면 두 앱의 결과지가 같은 값을 읽는다."""
     week = (_this_monday() - timedelta(weeks=weeks_back)).isoformat()
     mt = _login(client, "jisu@oncare.com")
@@ -134,10 +165,12 @@ def test_member_sees_the_same_numbers_as_the_trainer(client, weeks_back):
     a, b = mine.json(), theirs.json()
     a.pop("message")
     b.pop("message")
+    # 회원 응답에만 있는 칸 — 보낸 적 없는 주라 지금 값을 계산해 준 것이다(#3349).
+    assert a.pop("snapshot_at") is None
     assert a == b
 
 
-def test_mid_week_date_returns_that_weeks_monday(client):
+def test_mid_week_date_returns_that_weeks_monday(client, received):
     t = _login(client, "jisu@oncare.com")
     monday = _this_monday() - timedelta(weeks=1)
     r = client.get(
@@ -170,14 +203,27 @@ def test_bad_date_is_422(client):
     assert r.status_code == 422
 
 
-def test_member_without_trainer_still_gets_a_sheet(client):
+def test_member_without_trainer_still_gets_a_sheet(client, db_session):
     """포인트로 교환한 리포트(#2022)는 담당 트레이너 없이도 열린다 — 수업 칸만 0 이다."""
+    from app.models.models import User, WeeklyReportPurchase
+
     email = f"m-{uuid4().hex[:8]}@oncare.com"
     client.post(
         "/v1/auth/register",
         json={"email": email, "password": "test-pw-1234", "name": "u"},
     )
     t = _login(client, email, "test-pw-1234")
+    member_id = db_session.query(User.id).filter(User.email == email).scalar()
+    db_session.add(
+        WeeklyReportPurchase(
+            id=f"wrp-{uuid4().hex[:12]}",
+            user_id=member_id,
+            week_start=_this_monday().isoformat(),
+            cost=300,
+        )
+    )
+    db_session.commit()
+
     r = client.get("/v1/me/coach/weekly-report", headers=_h(t))
     assert r.status_code == 200, r.text
     body = r.json()
@@ -187,7 +233,7 @@ def test_member_without_trainer_still_gets_a_sheet(client):
     assert body["message"] == ""
 
 
-def test_another_members_week_cannot_be_named(client):
+def test_another_members_week_cannot_be_named(client, received):
     """경로에 회원 id 가 없다 — 토큰의 주인만 자기 주를 읽는다."""
     t = _login(client, "jisu@oncare.com")
     r = client.get(

@@ -103,6 +103,11 @@ void main() {
       expect(find.byKey(const Key('dietAddSheet')), findsNothing);
       expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
       expect(find.text('식단 직접 추가'), findsOneWidget);
+      // 직접 추가한 끼니는 포인트를 받지 않는다 — 적는 자리에서 밝힌다(#3367).
+      expect(
+        find.text('음식 이름을 적으면 영양 정보를 찾아 채워요. 포인트는 사진으로 기록한 끼니에만 쌓여요'),
+        findsOneWidget,
+      );
       // 빈 음식 줄 하나로 연다.
       expect(_field('diet-food-name-1'), findsOneWidget);
       expect(_field('diet-food-name-2'), findsNothing);

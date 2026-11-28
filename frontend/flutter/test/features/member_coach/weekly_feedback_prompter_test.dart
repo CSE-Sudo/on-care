@@ -117,7 +117,9 @@ void main() {
     await _pump(
       tester,
       FakeMemberCoachRepository(
-        feedback: <DateTime, MemberWeeklyFeedback>{_askedWeek: _sent(_askedWeek)},
+        feedback: <DateTime, MemberWeeklyFeedback>{
+          _askedWeek: _sent(_askedWeek),
+        },
       ),
     );
 
@@ -130,7 +132,9 @@ void main() {
     await _pump(
       tester,
       FakeMemberCoachRepository(
-        feedback: <DateTime, MemberWeeklyFeedback>{_weekBefore: _sent(_weekBefore)},
+        feedback: <DateTime, MemberWeeklyFeedback>{
+          _weekBefore: _sent(_weekBefore),
+        },
       ),
     );
 
@@ -208,7 +212,9 @@ void main() {
       find.byKey(const ValueKey<String>('weekly-feedback-intensity-right')),
     );
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey<String>('weekly-feedback-send')));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('weekly-feedback-send')),
+    );
     await tester.pumpAndSettle();
 
     expect(_sheet, findsNothing);
@@ -217,15 +223,6 @@ void main() {
     expect(container.read(weeklyFeedbackPromptProvider).value, isNull);
     // 보낸 것은 무르는 것과 다르다 — 물림 표시까지 서지는 않는다.
     expect(container.read(weeklyFeedbackDismissedProvider), isFalse);
-  });
-
-  testWidgets('영어에서도 같은 창이 뜬다', (tester) async {
-    useFixedKstDate(_sunday);
-
-    await _pump(tester, FakeMemberCoachRepository(), locale: 'en');
-
-    expect(_sheet, findsOneWidget);
-    expect(find.text('How was your week?'), findsOneWidget);
   });
 
   testWidgets('묻지 않는 날에도 셸은 그대로 그려진다', (tester) async {

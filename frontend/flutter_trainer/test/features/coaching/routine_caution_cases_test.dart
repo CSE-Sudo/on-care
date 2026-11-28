@@ -43,7 +43,7 @@ void main() {
       expect(demoCardioKeywords, tables['cardio_keywords']);
     });
 
-    test('라이브러리 운동과 영어 이름', () {
+    test('라이브러리 운동', () {
       expect(<Map<String, String>>[
         for (final (String name, String type) in <(String, String)>[
           libCardioEasy,
@@ -55,8 +55,6 @@ void main() {
         ])
           <String, String>{'name': name, 'type': type},
       ], tables['library']);
-      expect(demoEnExerciseNames, tables['en_exercise_names']);
-      expect(demoEnCautionParts, tables['en_caution_parts']);
     });
   });
 
@@ -101,8 +99,7 @@ void main() {
       test('안전 메모: ${c['cautions']} ${c['escalate']}', () {
         final List<String> cautions = strings(c['cautions']);
         final bool escalate = c['escalate']! as bool;
-        expect(cautionSuffix(cautions, escalate, en: false), c['ko']);
-        expect(cautionSuffix(cautions, escalate, en: true), c['en']);
+        expect(cautionSuffix(cautions, escalate), c['ko']);
       });
     }
   });

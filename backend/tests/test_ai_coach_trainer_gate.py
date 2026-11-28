@@ -124,7 +124,7 @@ def test_history_keeps_only_the_last_30_days(client, db_session):
     member_id, headers = _member(client)
     convo = conversation.append_exchange(
         db_session, member_id, question="예전 질문", reply="예전 답", sources=[]
-    )
+    ).conversation
     conversation.append_exchange(
         db_session, member_id, question="얼마 전 질문", reply="얼마 전 답", sources=[]
     )

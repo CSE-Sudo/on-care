@@ -198,7 +198,7 @@ def test_migration_drops_only_trainer_threads(client, db_session):
     trainer_convo, _ = _trainer_thread(db_session, member_id, _trainer(db_session))
     member_convo = conversation.append_exchange(
         db_session, member_id, question="무릎이 아파요", reply="쉬어 가세요", sources=[]
-    )
+    ).conversation
 
     migration = _load_migration()
     with patch.object(

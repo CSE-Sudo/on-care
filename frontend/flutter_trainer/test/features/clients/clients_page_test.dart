@@ -765,32 +765,6 @@ void main() {
       );
     });
 
-    testWidgets('영어 화면 데모에서도 담당 중 안내가 영어로 뜬다 (#2893)', (tester) async {
-      await pumpTrainerApp(
-        tester,
-        token: 'demo-trainer-token',
-        at: AppRoutes.clients,
-        locale: const Locale('en'),
-      );
-
-      await tester.tap(find.text('Connect member'));
-      await settle(tester);
-
-      await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
-
-      expect(
-        find.text(
-          'You already manage this member. Find them in your member list',
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining('이미 담당'), findsNothing);
-      expect(
-        find.byKey(const ValueKey<String>('client-connect-result')),
-        findsNothing,
-      );
-    });
-
     testWidgets('모르는 코드는 왜인지 갈라 말하지 않는다', (tester) async {
       await pumpTrainerApp(
         tester,

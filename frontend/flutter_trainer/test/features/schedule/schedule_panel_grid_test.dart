@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -75,5 +76,37 @@ void main() {
 
     expect(panel.top, greaterThan(grid.bottom - 1));
     expect(find.text('상세 일정'), findsOneWidget);
+  });
+
+  // 380 으로 못 박혀 있던 때에는 1024 창에서 요일 칸이 67 이라 회원 이름이 한
+  // 글자로 잘렸다(#3316).
+  testWidgets('1024 창에서는 패널이 줄어 시간표에 폭을 내준다', (tester) async {
+    await openSchedule(tester, const Size(1024, 768));
+
+    final Rect grid = tester.getRect(find.byType(ScheduleWeekTimetable));
+    final Rect panel = tester.getRect(find.byKey(const Key('week-detail')));
+
+    expect(panel.left, greaterThan(grid.right - 1), reason: '좌우로 나뉜다');
+    expect(panel.width, lessThan(OnCareLayout.splitListWidth));
+    expect(grid.width, greaterThan(580));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('1024 창에서도 날짜 행과 새 일정이 한 줄이다', (tester) async {
+    await openSchedule(tester, const Size(1024, 768));
+
+    final Rect arrow = tester.getRect(find.byIcon(AppIcons.chevronLeft).first);
+    final Rect add = tester.getRect(find.text('새 일정'));
+
+    expect(add.center.dy, closeTo(arrow.center.dy, 12));
+  });
+
+  testWidgets('낮은 창에서 쌓이면 시간표가 화면을 쓰고 상세는 아래로 잇는다', (tester) async {
+    await openSchedule(tester, const Size(900, 620));
+
+    expect(find.byKey(const Key('schedule-stacked-scroll')), findsOneWidget);
+    final Rect grid = tester.getRect(find.byType(ScheduleWeekTimetable));
+    expect(grid.height, greaterThan(280));
+    expect(tester.takeException(), isNull);
   });
 }

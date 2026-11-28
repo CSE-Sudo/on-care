@@ -6,6 +6,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_sidebar.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
+import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/desktop_alerts/presentation/desktop_alerts_host.dart';
 import 'package:oncare_trainer/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -89,7 +90,10 @@ class _AppShellState extends State<AppShell> {
     super.dispose();
   }
 
-  void _goBranch(int index) {
+  Future<void> _goBranch(int index) async {
+    // 저장하지 않은 수정이 있으면 먼저 묻는다 — 사이드바 이동은 앱 안의
+    // 이동이라 브라우저 경고가 서지 않는다(#3336).
+    if (!await leaveGuards.confirmLeave() || !mounted) return;
     // Tapping the active destination resets it to its branch root (e.g.
     // 고객 상세에서 l.clientsTitle을 다시 누르면 목록으로) — the standard console
     // behaviour; tapping another switches branch, keeping its state.
@@ -100,7 +104,8 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
-  void _goDashboard() {
+  Future<void> _goDashboard() async {
+    if (!await leaveGuards.confirmLeave() || !mounted) return;
     _requestScrollReset();
     context.go(AppRoutes.dashboard);
   }

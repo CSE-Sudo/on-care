@@ -73,6 +73,25 @@ def search_terms(query: str) -> list[str]:
     return [term for term in query.split() if term]
 
 
+def match_conditions(query: str) -> list:
+    """검색어의 단어마다 "이름이나 주소에 있다" 조건 하나씩. 단어가 없으면 빈 목록.
+
+    회원용 이름 검색(`gym_search`, #3355)도 같은 조건을 쓴다 — 두 앱의 검색이 같은
+    검색어에 같은 등록 헬스장을 찾아야 한다.
+    """
+    # 이름·주소의 띄어쓰기를 빼고 비교한다 — 검색어 단어에도 띄어쓰기가 없다.
+    name = func.replace(Place.name, " ", "")
+    address = func.replace(Place.address, " ", "")
+    conditions = []
+    for term in search_terms(query):
+        pattern = f"%{_like_escape(term)}%"
+        conditions.append(or_(
+            name.ilike(pattern, escape="\\"),
+            address.ilike(pattern, escape="\\"),
+        ))
+    return conditions
+
+
 def _registered_matches(db: Session, query: str) -> list[Place]:
     """이미 `places` 에 있는 헬스장 중 검색어의 모든 단어가 이름·주소에 있는 곳. (#3223)
 
@@ -84,19 +103,9 @@ def _registered_matches(db: Session, query: str) -> list[Place]:
     신촌점`). 예전에는 검색어 전체를 `ILIKE '%검색어%'` 한 번으로 비교해, 띄어쓰기나
     순서만 달라도 등록된 헬스장이 빈 목록이 됐다.
     """
-    terms = search_terms(query)
-    if not terms:
+    conditions = match_conditions(query)
+    if not conditions:
         return []
-    # 이름·주소의 띄어쓰기를 빼고 비교한다 — 검색어 단어에도 띄어쓰기가 없다.
-    name = func.replace(Place.name, " ", "")
-    address = func.replace(Place.address, " ", "")
-    conditions = []
-    for term in terms:
-        pattern = f"%{_like_escape(term)}%"
-        conditions.append(or_(
-            name.ilike(pattern, escape="\\"),
-            address.ilike(pattern, escape="\\"),
-        ))
     return list(db.scalars(
         select(Place)
         .where(Place.category == "fitness", and_(*conditions))

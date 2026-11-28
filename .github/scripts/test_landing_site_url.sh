@@ -30,24 +30,51 @@ expect_check() {
 }
 
 head_ok='<head><!-- SITE_URL_META --></head>'
-links_ok='<a href="frontend/#/dashboard" target="_blank">회원</a><a href="trainer/" target="_blank">트레이너</a><a href="legal/privacy.html">처리방침</a>'
+links_ok='<a href="member/#/dashboard" target="_blank">회원</a><a href="trainer/" target="_blank">트레이너</a><a href="legal/privacy.html">처리방침</a>'
 
 # 현재 저장소의 랜딩 원본은 통과해야 한다.
 if bash "$tool" check "$repo_root/index.html" > /dev/null 2>&1; then got=pass; else got=fail; fi
 record pass "$got" "check: 저장소 index.html"
 
 expect_check pass '상대 경로 바로가기' "$head_ok$links_ok"
-expect_check pass './ 로 시작하는 상대 경로' "$head_ok<a href=\"./frontend/\">회원</a><a href=\"./trainer/\">트레이너</a><a href=\"./legal/privacy.html\">처리방침</a>"
+expect_check pass './ 로 시작하는 상대 경로' "$head_ok<a href=\"./member/\">회원</a><a href=\"./trainer/\">트레이너</a><a href=\"./legal/privacy.html\">처리방침</a>"
 expect_check pass '외부 링크(데모 영상·GitHub)는 그대로' "$head_ok$links_ok<a href=\"https://github.com/CSE-Sudo/on-care\">GitHub</a><a href=\"https://youtu.be/abc\">영상</a>"
-expect_check fail '무료 DNS 절대 주소 회원 앱' "$head_ok<a href=\"https://ewhasudo.zapto.org/frontend/#/dashboard\">회원</a><a href=\"trainer/\">트레이너</a>"
-expect_check fail '다른 도메인 절대 주소 트레이너 웹' "$head_ok<a href=\"frontend/\">회원</a><a href=\"http://example.cloudfront.net/trainer/\">트레이너</a>"
-expect_check fail '끝 슬래시 없는 절대 주소' "$head_ok<a href=\"https://ewhasudo.zapto.org/trainer\">트레이너</a>$links_ok"
+expect_check fail '데모 절대 주소 회원 앱' "$head_ok<a href=\"https://cse-sudo.github.io/on-care/member/#/dashboard\">회원</a><a href=\"trainer/\">트레이너</a>"
+expect_check fail '다른 도메인 절대 주소 트레이너 웹' "$head_ok<a href=\"member/\">회원</a><a href=\"http://example.cloudfront.net/trainer/\">트레이너</a>"
+expect_check fail '끝 슬래시 없는 절대 주소' "$head_ok<a href=\"https://cse-sudo.github.io/on-care/trainer\">트레이너</a>$links_ok"
+expect_check fail '상대 바로가기 옆의 절대 주소 회원 앱' "$head_ok<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a>$links_ok"
 expect_check fail '회원 앱 바로가기 없음' "$head_ok<a href=\"trainer/\">트레이너</a>"
-expect_check fail '트레이너 웹 바로가기 없음' "$head_ok<a href=\"frontend/#/dashboard\">회원</a>"
-expect_check fail '처리방침 링크 없음' "$head_ok<a href=\"frontend/\">회원</a><a href=\"trainer/\">트레이너</a>"
-expect_check fail '처리방침 절대 주소' "$head_ok<a href=\"frontend/\">회원</a><a href=\"trainer/\">트레이너</a><a href=\"https://ewhasudo.zapto.org/legal/privacy.html\">처리방침</a>"
+expect_check fail '트레이너 웹 바로가기 없음' "$head_ok<a href=\"member/#/dashboard\">회원</a>"
+expect_check fail '처리방침 링크 없음' "$head_ok<a href=\"member/\">회원</a><a href=\"trainer/\">트레이너</a>"
+expect_check fail '처리방침 절대 주소' "$head_ok<a href=\"member/\">회원</a><a href=\"trainer/\">트레이너</a><a href=\"https://cse-sudo.github.io/on-care/legal/privacy.html\">처리방침</a>"
+expect_check pass '상대 경로 아이콘·manifest' "<head><!-- SITE_URL_META --><link rel=\"apple-touch-icon\" href=\"assets/landing/apple-touch-icon.png\" /><link rel=\"manifest\" href=\"assets/landing/manifest.json\" /></head>$links_ok"
+expect_check pass '프로토콜 상대 주소는 외부' "$head_ok$links_ok<script src=\"//cdn.example.com/a.js\"></script>"
+expect_check fail '루트 절대 경로 manifest' "<head><!-- SITE_URL_META --><link rel=\"manifest\" href=\"/docs/assets/landing/manifest.json\" /></head>$links_ok"
+expect_check fail '루트 절대 경로 이미지' "$head_ok$links_ok<img src=\"/assets/landing/icon-192.png\" />"
+expect_check fail '루트 자체 링크' "$head_ok$links_ok<a href=\"/\">처음</a>"
 expect_check fail '표시 줄 없음' "<head></head>$links_ok"
 expect_check fail '표시 줄 두 번' "<head><!-- SITE_URL_META --><!-- SITE_URL_META --></head>$links_ok"
+
+# check-manifest: 저장소 manifest 는 통과하고, 루트 절대 경로가 있으면 실패한다.
+if bash "$tool" check-manifest "$repo_root/docs/assets/landing/manifest.json" > /dev/null 2>&1; then got=pass; else got=fail; fi
+record pass "$got" "check-manifest: 저장소 manifest"
+
+expect_manifest() {
+  local want="$1" label="$2" body="$3" file got
+  file="$work/manifest.json"
+  printf '%s
+' "$body" > "$file"
+  if bash "$tool" check-manifest "$file" > /dev/null 2>&1; then got=pass; else got=fail; fi
+  record "$want" "$got" "check-manifest: $label"
+}
+
+manifest_ok='{ "start_url": "../../", "scope": "../../", "icons": [ { "src": "icon-192.png" } ] }'
+expect_manifest pass '상대 경로' "$manifest_ok"
+expect_manifest fail '루트 start_url' '{ "start_url": "/", "icons": [ { "src": "icon-192.png" } ] }'
+expect_manifest fail '루트 scope' '{ "start_url": "../../", "scope": "/", "icons": [] }'
+expect_manifest fail '루트 id' '{ "id": "/", "start_url": "../../", "icons": [] }'
+expect_manifest fail '루트 아이콘' '{ "start_url": "../../", "icons": [ { "src": "/docs/assets/landing/icon-192.png" } ] }'
+expect_manifest fail 'start_url 없음' '{ "icons": [ { "src": "icon-192.png" } ] }'
 
 # stamp: 표시 줄이 사이트 주소의 og:url·canonical 로 바뀐다.
 expect_stamp() {
@@ -64,37 +91,141 @@ expect_stamp() {
   record "$want" "$got" "stamp: $label"
 }
 
-expect_stamp pass '끝 슬래시 있음' 'https://ewhasudo.zapto.org/' 'https://ewhasudo.zapto.org/'
+expect_stamp pass '끝 슬래시 있음' 'https://cse-sudo.github.io/on-care/' 'https://cse-sudo.github.io/on-care/'
 expect_stamp pass '끝 슬래시 없음' 'https://d111111abcdef8.cloudfront.net' 'https://d111111abcdef8.cloudfront.net/'
-expect_stamp fail 'https 아님' 'http://ewhasudo.zapto.org/' 'http://ewhasudo.zapto.org/'
+expect_stamp fail 'https 아님' 'http://cse-sudo.github.io/on-care/' 'http://cse-sudo.github.io/on-care/'
 expect_stamp fail '빈 값' '' 'https:///'
 expect_stamp fail '구분자 섞임' 'https://a.example|b/' 'https://a.example|b/'
 expect_stamp fail '따옴표 섞임' 'https://a.example/"x' 'https://a.example/"x'
 
 # stamp 는 치환 전에 check 를 거친다 — 절대 주소가 남은 파일은 치환하지 않는다.
 file="$work/stamp-bad.html"
-printf '%s\n' "$head_ok<a href=\"https://ewhasudo.zapto.org/frontend/\">회원</a><a href=\"trainer/\">트레이너</a>" > "$file"
-if bash "$tool" stamp "$file" 'https://ewhasudo.zapto.org/' > /dev/null 2>&1; then got=pass; else got=fail; fi
+printf '%s\n' "$head_ok<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"trainer/\">트레이너</a>" > "$file"
+if bash "$tool" stamp "$file" 'https://cse-sudo.github.io/on-care/' > /dev/null 2>&1; then got=pass; else got=fail; fi
 record fail "$got" "stamp: 절대 주소가 남은 파일"
+
+# point-apps(#3437): 데모 Pages 랜딩의 앱 바로가기를 운영 사이트로 바꾼다. 처리방침·아이콘은 그대로다.
+prod='https://d111111abcdef8.cloudfront.net/'
+expect_point() {
+  local want="$1" label="$2" body="$3" app_site="$4" file got
+  file="$work/point.html"
+  printf '%s\n' "$body" > "$file"
+  if bash "$tool" point-apps "$file" "$app_site" > /dev/null 2>&1; then got=pass; else got=fail; fi
+  record "$want" "$got" "point-apps: $label"
+}
+
+file="$work/point-repo.html"
+cp "$repo_root/index.html" "$file"
+if bash "$tool" point-apps "$file" "$prod" > /dev/null 2>&1 \
+  && grep -qF "href=\"${prod}member/#/dashboard\"" "$file" \
+  && grep -qF "href=\"${prod}trainer/\"" "$file" \
+  && ! grep -qE 'href="(\./)?(member|trainer)/' "$file" \
+  && grep -qF 'href="legal/privacy.html"' "$file"; then
+  got=pass
+else
+  got=fail
+fi
+record pass "$got" "point-apps: 저장소 index.html 의 앱 바로가기 전부"
+
+file="$work/point-slash.html"
+printf '%s\n' "$head_ok$links_ok" > "$file"
+if bash "$tool" point-apps "$file" 'https://d111111abcdef8.cloudfront.net' > /dev/null 2>&1 \
+  && grep -qF "href=\"${prod}member/#/dashboard\"" "$file"; then got=pass; else got=fail; fi
+record pass "$got" "point-apps: 끝 슬래시 없는 주소"
+
+file="$work/point-empty.html"
+printf '%s\n' "$head_ok$links_ok" > "$file"
+if bash "$tool" point-apps "$file" '' > /dev/null 2>&1 \
+  && grep -qF 'href="member/#/dashboard"' "$file" && grep -qF 'href="trainer/"' "$file"; then
+  got=pass
+else
+  got=fail
+fi
+record pass "$got" "point-apps: 빈 주소는 상대 경로 그대로"
+
+expect_point pass './ 로 시작하는 상대 경로' "$head_ok<a href=\"./member/\">회원</a><a href=\"./trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>" "$prod"
+expect_point fail 'https 아님' "$head_ok$links_ok" 'http://d111111abcdef8.cloudfront.net/'
+expect_point fail '따옴표 섞인 주소' "$head_ok$links_ok" 'https://a.example/"x'
+expect_point fail '이미 다른 절대 주소가 있는 원본' "$head_ok<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a>$links_ok" "$prod"
+expect_point fail '처리방침 링크 없음' "$head_ok<a href=\"member/\">회원</a><a href=\"trainer/\">트레이너</a>" "$prod"
+
+# redirect(#3465): 데모 Pages 소개 페이지가 운영 소개 페이지로 넘어간다. stamp·point-apps 다음에 부른다.
+refresh="<meta http-equiv=\"refresh\" content=\"0; url=${prod}\" />"
+file="$work/redirect-repo.html"
+cp "$repo_root/index.html" "$file"
+if bash "$tool" stamp "$file" 'https://cse-sudo.github.io/on-care/' > /dev/null 2>&1 \
+  && bash "$tool" point-apps "$file" "$prod" > /dev/null 2>&1 \
+  && bash "$tool" redirect "$file" "$prod" > /dev/null 2>&1 \
+  && grep -qF "$refresh" "$file" \
+  && grep -qF "location.replace(\"${prod}\")" "$file" \
+  && grep -qF "rel=\"canonical\" href=\"${prod}\"" "$file" \
+  && grep -qF "property=\"og:url\" content=\"${prod}\"" "$file" \
+  && ! grep -qF 'cse-sudo.github.io' "$file" \
+  && grep -qF "href=\"${prod}member/#/dashboard\"" "$file" \
+  && grep -qF 'href="legal/privacy.html"' "$file"; then
+  got=pass
+else
+  got=fail
+fi
+record pass "$got" "redirect: 저장소 index.html 을 운영으로 넘김"
+
+stamped_head="<head><meta property=\"og:url\" content=\"https://cse-sudo.github.io/on-care/\" /><link rel=\"canonical\" href=\"https://cse-sudo.github.io/on-care/\" /></head>"
+pointed_links="<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+expect_redirect() {
+  local want="$1" label="$2" body="$3" app_site="$4" file got
+  file="$work/redirect.html"
+  printf '%s\n' "$body" > "$file"
+  if bash "$tool" redirect "$file" "$app_site" > /dev/null 2>&1; then got=pass; else got=fail; fi
+  record "$want" "$got" "redirect: $label"
+}
+
+file="$work/redirect-empty.html"
+printf '%s\n' "$stamped_head$links_ok" > "$file"
+cp "$file" "$work/redirect-empty.orig"
+if bash "$tool" redirect "$file" '' > /dev/null 2>&1 && cmp -s "$file" "$work/redirect-empty.orig"; then
+  got=pass
+else
+  got=fail
+fi
+record pass "$got" "redirect: 빈 주소는 그대로"
+
+file="$work/redirect-slash.html"
+printf '%s\n' "$stamped_head$pointed_links" > "$file"
+if bash "$tool" redirect "$file" 'https://d111111abcdef8.cloudfront.net' > /dev/null 2>&1 \
+  && grep -qF "$refresh" "$file"; then got=pass; else got=fail; fi
+record pass "$got" "redirect: 끝 슬래시 없는 주소"
+
+expect_redirect pass '운영으로 바꾼 바로가기' "$stamped_head$pointed_links" "$prod"
+expect_redirect fail 'point-apps 를 거치지 않은 파일' "$stamped_head$links_ok" "$prod"
+expect_redirect fail 'stamp 를 거치지 않은 파일' "$head_ok$pointed_links" "$prod"
+expect_redirect fail '이미 넘김 태그가 있음' "<head>$refresh<link rel=\"canonical\" href=\"$prod\" /></head>$pointed_links" "$prod"
+expect_redirect fail '<head> 없음' "<link rel=\"canonical\" href=\"https://cse-sudo.github.io/on-care/\" />$pointed_links" "$prod"
+expect_redirect fail 'https 아님' "$stamped_head$pointed_links" 'http://d111111abcdef8.cloudfront.net/'
+expect_redirect fail '따옴표 섞인 주소' "$stamped_head$pointed_links" 'https://a.example/"x'
 
 # verify: 로컬 정적 서버로 배포된 사이트를 흉내 낸다(python3 가 있을 때만).
 if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
   site="$work/site"
-  mkdir -p "$site/frontend" "$site/trainer" "$site/legal"
-  echo ok > "$site/frontend/index.html"
+  mkdir -p "$site/member" "$site/trainer" "$site/legal" "$site/assets/landing"
+  echo ok > "$site/member/index.html"
   echo ok > "$site/trainer/index.html"
   echo ok > "$site/legal/privacy.html"
+  for icon in apple-touch-icon icon-192 icon-512 icon-maskable-512; do
+    echo ok > "$site/assets/landing/$icon.png"
+  done
+  printf '%s
+' "$manifest_ok" > "$site/assets/landing/manifest.json"
   port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
   python3 -m http.server "$port" --bind 127.0.0.1 --directory "$site" > /dev/null 2>&1 &
   server=$!
   # 끝에서 서버를 내릴 때 셸이 작업 종료 안내를 찍지 않게 작업 목록에서 뗀다.
   disown "$server"
   for _ in $(seq 1 50); do
-    curl -fs -o /dev/null "http://127.0.0.1:$port/frontend/" && break
+    curl -fs -o /dev/null "http://127.0.0.1:$port/member/" && break
     sleep 0.1
   done
   base="http://127.0.0.1:$port"
-  stamped='https://ewhasudo.zapto.org/'
+  stamped='https://cse-sudo.github.io/on-care/'
 
   expect_verify() {
     local want="$1" label="$2" body="$3" got
@@ -107,7 +238,35 @@ if command -v python3 > /dev/null 2>&1 && command -v curl > /dev/null 2>&1; then
   expect_verify pass '치환된 랜딩' "$canonical$links_ok"
   expect_verify fail '표시 줄이 남은 랜딩' "$head_ok$links_ok"
   expect_verify fail '다른 canonical' "<head><link rel=\"canonical\" href=\"https://other.example/\" /></head>$links_ok"
-  expect_verify fail '절대 주소 바로가기' "$canonical<a href=\"https://ewhasudo.zapto.org/frontend/\">회원</a><a href=\"trainer/\">트레이너</a>"
+  expect_verify fail '절대 주소 바로가기' "$canonical<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"trainer/\">트레이너</a>"
+  # 앱 사이트 주소를 준 verify(#3437, #3465): 앱 바로가기가 그 주소이고 소개 페이지가 그 주소로 넘기며
+  # canonical 도 그 주소여야 한다. 같은 도메인의 데모 앱도 응답해야 한다.
+  expect_verify_app() {
+    local want="$1" label="$2" body="$3" got
+    printf '%s\n' "$body" > "$site/index.html"
+    if bash "$tool" verify "$base" "$stamped" 0 "$prod" > /dev/null 2>&1; then got=pass; else got=fail; fi
+    record "$want" "$got" "verify(앱 사이트): $label"
+  }
+  pointed="<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+  redirected="<head>$refresh<meta property=\"og:url\" content=\"$prod\" /><link rel=\"canonical\" href=\"$prod\" /></head>"
+  expect_verify_app pass '운영으로 넘기는 소개 페이지' "$redirected$pointed"
+  expect_verify_app fail '넘김 태그 없음' "<head><link rel=\"canonical\" href=\"$prod\" /></head>$pointed"
+  expect_verify_app fail '다른 주소로 넘김' "<head><meta http-equiv=\"refresh\" content=\"0; url=https://other.example/\" /><link rel=\"canonical\" href=\"$prod\" /></head>$pointed"
+  expect_verify_app fail 'canonical 이 Pages 주소' "$canonical$refresh$pointed"
+  expect_verify_app fail '상대 경로 그대로' "$redirected$links_ok"
+  expect_verify_app fail '트레이너 웹만 상대 경로' "$redirected<a href=\"${prod}member/#/dashboard\">회원</a><a href=\"trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+  expect_verify_app fail '다른 도메인 바로가기' "$redirected<a href=\"https://cse-sudo.github.io/on-care/member/\">회원</a><a href=\"${prod}trainer/\">트레이너</a><a href=\"legal/privacy.html\">처리방침</a>"
+  expect_verify fail '앱 사이트 없이 운영 바로가기' "$canonical$pointed"
+
+  printf '%s
+' '{ "start_url": "/", "icons": [ { "src": "icon-192.png" } ] }' > "$site/assets/landing/manifest.json"
+  expect_verify fail '배포된 manifest 루트 절대 경로' "$canonical$links_ok"
+  printf '%s
+' "$manifest_ok" > "$site/assets/landing/manifest.json"
+  rm -f "$site/assets/landing/apple-touch-icon.png"
+  expect_verify fail '랜딩 아이콘 없음' "$canonical$links_ok"
+  rm -rf "$site/assets"
+  expect_verify fail '랜딩 manifest 없음' "$canonical$links_ok"
   rm -rf "$site/legal"
   expect_verify fail '처리방침 경로 없음' "$canonical$links_ok"
   rm -rf "$site/trainer"

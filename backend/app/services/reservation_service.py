@@ -7,6 +7,7 @@ from sqlalchemy import exists, func, select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.core.clock import SEOUL
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
@@ -317,11 +318,17 @@ def overlapped_slot_ids(
 def list_member_slots(
     db: Session, trainer_id: str, *, now: datetime | None = None
 ) -> list[TrainerSlotOut]:
-    current = now or datetime.now(timezone.utc)
+    """회원에게 보이는 예약 가능 시간. 회원이 잡을 수 있는 종류의 자리만. (#3368)
+
+    종류를 거르지 않으면 [reserve] 가 받지 않는 `상담` 자리가 목록에 섞여, 눌러야만
+    안 되는 줄 아는 자리가 생긴다. 상담 신청 폼([consultation_slots])과 같은 기준이다.
+    """
+    current = now or clock.now_utc()
     rows = db.scalars(
         select(TrainerReservationSlot)
         .where(
             TrainerReservationSlot.trainer_id == trainer_id,
+            TrainerReservationSlot.session_type == CONSULTATION_SESSION_TYPE,
             TrainerReservationSlot.starts_at > current,
         )
         .order_by(TrainerReservationSlot.starts_at)
@@ -341,7 +348,7 @@ def list_trainer_slots(
     )
     if not include_past:
         query = query.where(
-            TrainerReservationSlot.starts_at > datetime.now(timezone.utc)
+            TrainerReservationSlot.starts_at > clock.now_utc()
         )
     rows = db.scalars(query.order_by(TrainerReservationSlot.starts_at)).all()
     booked_names = _booked_names(db, [row.id for row in rows])
@@ -429,7 +436,7 @@ def create_slot(
     session_type: str,
     duration_minutes: int | None = None,
 ) -> TrainerSlotOut:
-    if _aware(starts_at) <= datetime.now(timezone.utc):
+    if _aware(starts_at) <= clock.now_utc():
         raise SlotUnavailable("지난 시간에는 예약 가능 시간을 열 수 없어요.")
     resolved_minutes = duration_minutes or _SESSION_DURATION_MINUTES.get(
         session_type, 60
@@ -486,9 +493,7 @@ def update_slot(
             # 때 본 종류(1:1 PT/상담)를 그대로 믿고 그 시간을 비워 둔다.
             raise CapacityConflict("이미 예약된 자리의 종류는 바꿀 수 없어요.")
         slot.session_type = fields["session_type"]
-    if "starts_at" in fields and _aware(fields["starts_at"]) <= datetime.now(
-        timezone.utc
-    ):
+    if "starts_at" in fields and _aware(fields["starts_at"]) <= clock.now_utc():
         raise SlotUnavailable("예약 가능 시간을 지난 시간으로 바꿀 수 없어요.")
     reopening = fields.get("is_closed") is False and slot.is_closed
     if "starts_at" in fields or "duration_minutes" in fields or reopening:
@@ -610,7 +615,7 @@ def _release(
         if schedule.status != trainer_common_service.SCHEDULE_UPCOMING:
             continue
         schedule.status = trainer_common_service.SCHEDULE_CANCELLED
-        schedule.cancelled_at = datetime.now(timezone.utc)
+        schedule.cancelled_at = clock.now_utc()
         schedule.cancellation_source = cancelled_by
     db.flush()
 
@@ -670,7 +675,7 @@ def count_upcoming_for_member(
     것만 센다. 트레이너가 일정을 취소해 행만 남은 예약은 회원 화면에 없으므로 세지
     않는다. 지난 예약도 탈퇴 때 함께 지워지지만, 회원이 잃는 것은 앞으로의 예약이다.
     """
-    current = now or datetime.now(timezone.utc)
+    current = now or clock.now_utc()
     value = db.scalar(
         select(func.count(TrainerReservation.id))
         .join(
@@ -693,7 +698,7 @@ def count_upcoming_for_member(
 def reserve(
     db: Session, member: User, slot_id: str, *, now: datetime | None = None
 ) -> ReservationOut:
-    current = now or datetime.now(timezone.utc)
+    current = now or clock.now_utc()
     slot = db.scalar(
         select(TrainerReservationSlot)
         .where(TrainerReservationSlot.id == slot_id)
@@ -702,6 +707,11 @@ def reserve(
     if slot is None:
         raise SlotNotFound("예약 가능 시간을 찾을 수 없어요.")
     if slot.is_closed or slot.remaining <= 0 or _aware(slot.starts_at) <= current:
+        raise SlotUnavailable("예약할 수 없는 시간이에요.")
+    # 회원이 잡는 자리는 한 종류뿐이다(#1849). 목록이 걸러 주더라도 id 를 직접 보내면
+    # `상담` 자리가 PT 예약으로 잡혔다 — 일정은 30분짜리 상담으로 생기는데 회원 앱은
+    # PT 예약으로 보여 준다. (#3368)
+    if slot.session_type != CONSULTATION_SESSION_TYPE:
         raise SlotUnavailable("예약할 수 없는 시간이에요.")
     # 자리 행 잠금은 그 자리의 경합만 막는다. 겹치는 다른 자리의 예약이나 트레이너의
     # 일정 생성과 동시에 오면 둘 다 빈 시간으로 본다 — 확인부터 커밋까지 트레이너
@@ -838,7 +848,7 @@ def list_member_reservations(
     `(starts_at, id)` 를 `(before, before_id)` 로 넘긴다. 한 트레이너가 같은 시각에
     슬롯을 여러 개 열어 둘 수 있어 동시각이 실제로 나오므로 복합 커서를 쓴다.
     """
-    current = now or datetime.now(timezone.utc)
+    current = now or clock.now_utc()
     query = (
         select(TrainerReservation, TrainerReservationSlot)
         .join(
@@ -892,7 +902,7 @@ def cancel(
     - 이미 시작한 슬롯 → [ReservationTooLate]. 수업이 시작된 뒤의 취소는 자리를
       비워 주는 게 아니라 기록을 지우는 일이라, 트레이너가 판단할 몫이다.
     """
-    current = now or datetime.now(timezone.utc)
+    current = now or clock.now_utc()
     reservation = db.scalar(
         select(TrainerReservation)
         .where(

@@ -90,13 +90,13 @@ final ReportTrend _trend = ReportTrend(
 
 /// 편집기·보낸 리포트가 함께 쓰는 앱 틀. 추세 카드가 provider 를 읽어
 /// [ProviderScope] 가 필요하다.
-Widget _app(Widget child, {String locale = 'ko'}) => ProviderScope(
+Widget _app(Widget child) => ProviderScope(
   overrides: <Override>[
     reportTrendProvider.overrideWith((ref, key) async => _trend),
   ],
   child: MaterialApp(
     theme: AppTheme.light(),
-    locale: Locale(locale),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: child),
@@ -120,7 +120,6 @@ Future<({int back, int rewrite})> _pump(
   WeeklyReport? report,
   ReportSendRecord? record,
   double? calorieBaseline,
-  String locale = 'ko',
   Size size = const Size(900, 1600),
 }) async {
   int back = 0;
@@ -141,7 +140,6 @@ Future<({int back, int rewrite})> _pump(
           onRewrite: () => rewrite++,
         ),
       ),
-      locale: locale,
     ),
   );
   // 추세는 비동기 provider 다 — 한 번 더 그려야 도넛이 선다.
@@ -306,14 +304,6 @@ void main() {
     expect(richText(RegExp('[▲▼]')), findsNothing);
   });
 
-  testWidgets('영어 화면에서도 지난 4주 평균이 번역되어 선다 (#2453)', (tester) async {
-    await _pump(tester, calorieBaseline: 1800, locale: 'en');
-
-    expect(richText('지난 4주 평균'), findsNothing);
-    expect(richText('Past 4 weeks 1,800 kcal/day'), findsOneWidget);
-    expect(richText('▲187kcal'), findsOneWidget);
-  });
-
   testWidgets('편집기 ② 작성의 피드백 카드에 보낸 글이 선다', (tester) async {
     await _pump(tester, record: _record(message: '그때 보낸 글입니다'));
 
@@ -445,32 +435,6 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text(_ko.reportsFeedbackTitle), findsOneWidget);
-  });
-
-  testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    expect(find.text('Report sent to 김민수'), findsOneWidget);
-    expect(find.text('Trainer feedback'), findsOneWidget);
-    expect(find.text('Rewrite from this'), findsOneWidget);
-    expect(find.text("This week's reports"), findsOneWidget);
-  });
-
-  testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    // 운동 이름은 트레이너가 적은 사용자 데이터라 번역하지 않는다 — ① 격자가
-    // 그대로 옮겨 적는다.
-    final Set<String> exercises = <String>{
-      for (final ReportDay day in _report().days) ...day.exercises,
-    };
-    for (final String t in _texts(tester)) {
-      // 회원 이름은 사람 이름이라 번역하지 않는다.
-      if (t.contains('김민수')) continue;
-      if (exercises.any(t.contains)) continue;
-      expect(hangul.hasMatch(t), isFalse, reason: '영어 화면에 번역되지 않은 글이 있다: $t');
-    }
   });
 
   testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {

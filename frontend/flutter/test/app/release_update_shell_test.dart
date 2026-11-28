@@ -239,13 +239,4 @@ void main() {
     await tester.pumpAndSettle();
     expect(banner(), findsOneWidget);
   });
-
-  testWidgets('영어 화면은 영어 문구다', (WidgetTester tester) async {
-    await pumpShell(tester, locale: const Locale('en'));
-    final AppLocalizations l = lookupAppLocalizations(const Locale('en'));
-    expect(find.text(l.releaseUpdateTitle), findsOneWidget);
-    expect(find.byTooltip(l.releaseUpdateDismiss), findsOneWidget);
-    expect(l.releaseUpdateTitle, 'The app has been updated');
-    expect(l.releaseUpdateReload, 'Refresh');
-  });
 }

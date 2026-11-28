@@ -118,7 +118,7 @@ def test_every_all_line_fits_with_its_fallback_tip():
     for analysis in worst:
         tip = copy.line(svc._TIPS[analysis.key])
         assert len(copy.message(analysis, tip)) <= 45, analysis.key
-        assert len(copy.plain(analysis.text)) + 1 + ai.MIN_SENTENCE["ko"] <= 45, analysis.key
+        assert len(copy.plain(analysis.text)) + 1 + ai.MIN_SENTENCE <= 45, analysis.key
     assert len(copy.message(copy.line("all_good", days=28), copy.line("tip_keep"))) <= 45
     assert len(copy.message(copy.line("all_few_records", days=6), copy.line("all_few_hint"))) <= 45
 

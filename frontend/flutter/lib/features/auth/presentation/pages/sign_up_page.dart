@@ -420,8 +420,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               fullWidth: true,
             ),
             const SizedBox(height: OnCareSpacing.s8),
-            // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.
-            // Row 로 두면 영어에서 화면 밖으로 넘친다(폭 400 기준 실측).
+            // Wrap 인 이유: Row 로 두면 좁은 폭·큰 글자에서 화면 밖으로 넘친다.
             Wrap(
               alignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,

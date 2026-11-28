@@ -51,6 +51,35 @@ void main() {
     }
   });
 
+  testWidgets('높이를 잇는 창도 내용만큼만 차지하고 화면 85% 에서 멈춘다 (#3425)', (tester) async {
+    final BuildContext context = await _pump(tester);
+    Finder surface() => find
+        .descendant(of: find.byType(Dialog), matching: find.byType(Material))
+        .first;
+
+    showAppDialog<void>(
+      context: context,
+      builder: (_) =>
+          const AppDialog(title: '제목', animateHeight: true, child: Text('본문')),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getSize(surface()).height, lessThan(200));
+    Navigator.pop(tester.element(find.text('본문')));
+    await tester.pumpAndSettle();
+
+    showAppDialog<void>(
+      context: context,
+      builder: (_) => const AppDialog(
+        title: '제목',
+        animateHeight: true,
+        child: SizedBox(height: 2000, child: Text('긴 본문')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getSize(surface()).height, 900 * 0.85);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('창은 하단 버튼이 있어도 X 를 둔다, 확인창은 끈다 (#2983)', (tester) async {
     Future<void> open(OnCareDensity density, {Widget? footer}) async {
       final BuildContext context = await _pump(tester, density: density);

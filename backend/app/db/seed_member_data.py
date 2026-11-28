@@ -31,8 +31,9 @@ import json
 import logging
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import TypeVar
 
 from sqlalchemy import or_, select
@@ -52,12 +53,17 @@ from app.db.session import SessionLocal
 from app.models import models
 from app.services import (
     chat_image_storage,
+    diet_photo_service,
     exercise_activity,
     exercise_types,
     points_service,
     report_pdf_storage,
 )
 from app.services.coach import personal_ingest
+from app.services.trainer._common import (
+    DELIVERY_PT_WITH_ROUTINE,
+    ROUTINE_SCHEDULED,
+)
 from app.services.coach.rag import has_personal_doc
 
 logger = logging.getLogger(__name__)
@@ -567,6 +573,7 @@ def _ingest_member_documents(db: Session, member_id: str) -> int:
             "total_calories": entry.total_calories,
             "sodium_mg": entry.sodium_mg,
             "sugar_g": entry.sugar_g,
+            "protein_g": entry.protein_g,
             "source_ref": entry.id,
         }
         for entry in db.scalars(
@@ -706,7 +713,58 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
             program_json=json.dumps(program, ensure_ascii=False),
             sort_order=i,
         ))
+        if member_id and program and typ != "상담":
+            # 개인운동 줄이 일정 행을 가리킨다(FK) — 일정부터 넣는다.
+            db.flush()
+            _seed_session_routines(db, f"seed-schedule-{today}-{i}", member_id, today)
     _safe_commit(db)
+
+
+#: 한 PT 에 처음 붙어 있는 개인운동 수 — 트레이너 웹 데모(`_seedRoutinesPerSession`)와 같다.
+_SEED_ROUTINES_PER_SESSION = 2
+
+
+def _seed_session_routines(
+    db: Session, schedule_id: str, member_id: str, day: str
+) -> None:
+    """오늘 타임라인의 PT 에 개인운동을 붙여 둔다(#2616).
+
+    `개인운동은 PT 마다 최소 한 개`(#2223) 규칙대로 데모 첫 화면의 PT 도 개인
+    운동을 달고 선다. 트레이너 웹 데모(`_seedSessionRoutines`)와 같은 규칙이다 —
+    그 회원의 시드 개인운동에서 일정 id 로 시작 자리를 정해 두 개를 고른다.
+    프로그램 만들기로 붙인 것과 같이 아직 보내지 않은(`scheduled`) 줄이라 회원
+    에게는 그 PT 를 보낼 때 함께 간다.
+
+    행을 **처음 깔 때만** 붙인다. 이미 깔린 일정에 나중에 붙이면 트레이너가
+    `개인운동 없이 추가` 로 둔 PT 를 시드가 덮어쓴다.
+    """
+    pool = _routine_rows(member_id)
+    if not pool:
+        return
+    start = sum(ord(c) for c in schedule_id) % len(pool)
+    for n in range(min(_SEED_ROUTINES_PER_SESSION, len(pool))):
+        routine = pool[(start + n) % len(pool)]
+        db.add(models.TrainerRoutine(
+            id=f"seed-sched-routine-{schedule_id}-{n}",
+            trainer_id=TRAINER_ID,
+            member_id=member_id,
+            name=routine.name,
+            minutes=routine.minutes,
+            type=routine.type,
+            exercise_date=day,
+            intensity=routine.intensity,
+            sets=_strength_only(routine.type, routine.sets),
+            reps=_strength_only(routine.type, routine.reps),
+            hold_seconds=_strength_only(routine.type, routine.hold_seconds),
+            weight=_strength_only(routine.type, routine.weight),
+            reason=routine.reason,
+            effect=routine.effect,
+            source=routine.source,
+            status=ROUTINE_SCHEDULED,
+            schedule_id=schedule_id,
+            delivery_kind=DELIVERY_PT_WITH_ROUTINE,
+            sort_order=n,
+        ))
 
 
 #: 회원별 주간 PT 자리 — (요일 0=월, 시각, 길이 분). (#2452)
@@ -973,7 +1031,7 @@ def _seed_chat(db: Session, member_id: str) -> None:
     #
     # 묶음 안의 최대 간격이 38분이라 정오 기준이면 어떤 시각에 시드해도 자정을 넘지
     # 않는다. 오늘 정오가 아직 오지 않았으면 하루 뒤로 물러 미래 시각을 만들지 않는다.
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     span = timedelta(minutes=(len(thread) - 1) * 2)
     base = now.replace(hour=12, minute=0, second=0, microsecond=0)
     if base + span > now:
@@ -1233,6 +1291,50 @@ def _peak(left: int | None, right: int | None) -> int | None:
     return max(left, right)
 
 
+#: 데모 끼니 사진(#3307). 목업은 앱 번들(`assets/demo/images/`)의 사진을 그리고,
+#: 실서버는 `diet_photos` 표의 사진을 내준다 — 시드가 사진을 넣지 않으면 실서버에서는
+#: 같은 끼니가 대체 이모지로만 보인다. 백엔드 이미지는 `backend/` 만 담으므로 같은
+#: 파일을 한 벌 더 둔다(어긋나지 않는지는 `test_demo_meal_photos.py` 가 본다).
+DEMO_PHOTO_DIR = Path(__file__).resolve().parent / "demo_photos"
+
+
+@lru_cache(maxsize=None)
+def _demo_photo_jpeg(asset: str) -> tuple[bytes, int, int] | None:
+    """픽스처의 `photoAsset` → 저장 형식(축소 JPEG)과 크기. 파일이 없으면 None.
+
+    회원이 올린 사진과 같은 축소 규칙을 거친다. 기동마다 같은 사진을 다시 줄이지
+    않도록 한 번만 만든다.
+    """
+    if not asset:
+        return None
+    path = DEMO_PHOTO_DIR / Path(asset).name
+    if not path.is_file():
+        logger.warning("데모 끼니 사진이 없습니다: %s", path.name)
+        return None
+    return diet_photo_service._downscale_to_jpeg(path.read_bytes())
+
+
+def _demo_meal_photo(
+    member_id: str, entry_id: str, asset: str
+) -> models.DietPhoto | None:
+    """시드 끼니에 붙일 사진 행. id 는 끼니 id 에서 만든다(재기동해도 같다)."""
+    jpeg = _demo_photo_jpeg(asset)
+    if jpeg is None:
+        return None
+    data, width, height = jpeg
+    digest = hashlib.sha1(entry_id.encode("utf-8")).hexdigest()[:24]
+    return models.DietPhoto(
+        id=f"seedpic-{digest}",
+        entry_id=entry_id,
+        user_id=member_id,
+        content_type="image/jpeg",
+        width=width,
+        height=height,
+        byte_size=len(data),
+        data=data,
+    )
+
+
 def _seed_from_fixture(db: Session, member_id: str) -> None:
     """픽스처 회원(김민수)의 식단·운동기록·운동세션을 픽스처 그대로 깐다.
 
@@ -1268,6 +1370,13 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
         _safe_commit(db)
         return
 
+    # 끼니 사진(#3307)을 먼저 지운다. Postgres 는 끼니를 따라 CASCADE 로 지우지만,
+    # 외래 키를 강제하지 않는 DB 에서는 사진이 남아 같은 끼니 id 에 다시 붙일 때
+    # unique(entry_id) 에 걸린다.
+    db.query(models.DietPhoto).filter(
+        models.DietPhoto.user_id == member_id,
+        models.DietPhoto.entry_id.like("seed-%"),
+    ).delete(synchronize_session=False)
     for model in (models.DietEntry, models.ExerciseSession):
         db.query(model).filter(
             model.user_id == member_id, model.id.like("seed-%")
@@ -1285,14 +1394,17 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
     routine_ids = {r.name: r.id for r in _routine_rows(member_id)}
     routine_since = _seed_routine_since()
     linked: set[tuple[str, str]] = set()
+    # 사진은 끼니 행이 DB 에 들어간 뒤 붙인다 — 외래 키(entry_id)가 끼니를 가리킨다.
+    pending_photos: list[models.DietPhoto] = []
 
     for day in days:
         # 행 id 는 **날짜에서 만든다**. 픽스처가 시연용으로 못 박아 둔 id 는 사용자
         # 앱의 로컬 DB 것이다 — 백엔드는 과거를 지우지 않고 쌓아 두므로 날짜가
         # 없는 id 를 쓰면 다음 날 같은 id 로 부딪힌다.
         for index, meal in enumerate(day.meals):
+            entry_id = f"{_FIXTURE_ID_PREFIX}diet-{member_id}-{day.iso}-{index}"
             db.add(models.DietEntry(
-                id=f"{_FIXTURE_ID_PREFIX}diet-{member_id}-{day.iso}-{index}",
+                id=entry_id,
                 user_id=member_id,
                 date=day.iso,
                 meal_type=meal.meal_type,
@@ -1306,6 +1418,9 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
                 sugar_g=meal.sugar_g,
                 engine="seed",
             ))
+            photo = _demo_meal_photo(member_id, entry_id, meal.photo_asset)
+            if photo is not None:
+                pending_photos.append(photo)
 
         if not day.exercises:
             continue  # 휴식일. 이력에도 세션에도 남기지 않는다.
@@ -1376,6 +1491,9 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
                 source="trainer_pt" if day.is_pt else "assigned_routine",
             ))
 
+    if pending_photos:
+        db.flush()
+        db.add_all(pending_photos)
     _safe_commit(db)
 
 

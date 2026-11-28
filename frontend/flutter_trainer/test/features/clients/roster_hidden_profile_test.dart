@@ -37,11 +37,9 @@ Map<String, Object?> _row({
 
 Future<void> _pump(
   WidgetTester tester,
-  TrainerClient client, {
-  Locale locale = const Locale('ko'),
-}) => tester.pumpWidget(
+  TrainerClient client) => tester.pumpWidget(
   MaterialApp(
-    locale: locale,
+    locale: const Locale('ko'),
     theme: AppTheme.light(),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
@@ -101,19 +99,6 @@ void main() {
       expect(find.textContaining('혈압'), findsNothing);
       // "기록 없음" 같은 오해 문구도 없다.
       expect(find.textContaining('없음'), findsNothing);
-    });
-
-    testWidgets('해제 회원 카드도 같다 (영어)', (tester) async {
-      await _pump(
-        tester,
-        trainerClientFromJson(_row(registered: false)),
-        locale: const Locale('en'),
-      );
-
-      expect(find.text('가회원'), findsOneWidget);
-      expect(find.textContaining('Other'), findsNothing);
-      expect(find.textContaining('Female'), findsNothing);
-      expect(find.textContaining('Age'), findsNothing);
     });
 
     testWidgets('담당·동의 회원 카드는 지금과 같다', (tester) async {

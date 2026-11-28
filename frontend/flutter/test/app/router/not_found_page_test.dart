@@ -18,12 +18,10 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -142,14 +140,6 @@ void main() {
         findsOneWidget,
       );
     });
-
-    testWidgets('영어 설정에서는 영어로 안내한다', (tester) async {
-      await pumpUnknown(tester, '/nope', locale: const Locale('en'));
-
-      expect(find.text(_en.notFoundTitle), findsOneWidget);
-      expect(find.text(_en.notFoundMessage), findsOneWidget);
-      expect(find.text(_ko.notFoundTitle), findsNothing);
-    });
   });
 
   group('돌아가기 버튼', () {
@@ -228,14 +218,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('로그인 화면'), findsOneWidget);
-    });
-
-    testWidgets('영어 설정의 버튼 이름', (tester) async {
-      final ProviderContainer c = container();
-      c.read(sessionControllerProvider.notifier).enterDemo();
-      await pumpMini(tester, container: c, locale: const Locale('en'));
-
-      expect(find.text(_en.notFoundGoHome), findsOneWidget);
     });
   });
 }

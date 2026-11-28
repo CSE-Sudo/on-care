@@ -28,9 +28,7 @@ final Finder _retry = find.byKey(
 
 Future<PagedChatRepository> _pump(
   WidgetTester tester,
-  int count, {
-  Locale locale = const Locale('ko'),
-}) async {
+  int count) async {
   await tester.binding.setSurfaceSize(const Size(800, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final PagedChatRepository repo = PagedChatRepository(pagedChatThread(count));
@@ -52,7 +50,7 @@ Future<PagedChatRepository> _pump(
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const Scaffold(
@@ -198,10 +196,4 @@ void main() {
     expect(repo.olderCursors.map((m) => m.id), <String>['m070', 'm070']);
   });
 
-  testWidgets('영어 화면에서도 문구가 나온다', (tester) async {
-    await _pump(tester, 120, locale: const Locale('en'));
-    await _jumpToTop(tester);
-
-    expect(find.text('Load earlier messages'), findsOneWidget);
-  });
 }

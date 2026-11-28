@@ -5,7 +5,7 @@ import hashlib
 import json
 import uuid
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import exists, func, or_, select, text, update
@@ -562,7 +562,7 @@ def series_occurrences(
 
 
 #: 겹침 409 응답의 `detail.code`. 화면은 문구가 아니라 이 값으로 겹침을 알아보고
-#: 자기 언어의 안내를 띄운다 — 서버 문구는 한국어 한 벌뿐이다. (#2284)
+#: 안내를 띄운다. (#2284)
 SCHEDULE_OVERLAP_CODE = "schedule_overlap"
 
 #: 시간을 차지하는 상태. 취소·노쇼는 그 시간이 비어 있고(#871), 공백 슬롯은
@@ -1042,7 +1042,7 @@ def _add_scheduled_routines(
             TrainerRoutine.member_id == member_id,
         )
     ) or 0
-    now = datetime.now(timezone.utc)
+    now = clock.now_utc()
     created: list[TrainerRoutine] = []
     for index, item in enumerate(items):
         rt = TrainerRoutine(
@@ -1334,8 +1334,8 @@ def _raise_scheduled_program(
         # 않았다는 표시다([_retire_personal_routines] 와 같은 규칙).
         row.ended_on = today_iso
     db.flush()
-    # 바로 배정([assign_program])과 같은 틀이다 — 문장이 코드에 박혀 있으면
-    # 영어 화면에서도 한국어로 보인다(#2546). 여러 세션이면 프로그램 이름으로 부른다.
+    # 바로 배정([assign_program])과 같은 틀이다(#2546). 여러 세션이면 프로그램
+    # 이름으로 부른다.
     program_name = rows[0].program_name
     notification_service.queue(
         db,
@@ -1398,8 +1398,7 @@ def _send_scheduled_routines(
         row.ended_on = ended_on
         row.exercise_date = today.isoformat()
     db.flush()
-    # 프로그램 화면의 `개인운동만` 전송과 같은 틀이다 — 문장이 코드에 박혀
-    # 있으면 영어 화면에서도 한국어로 보인다(#2546, #3107).
+    # 프로그램 화면의 `개인운동만` 전송과 같은 틀이다(#2546, #3107).
     notification_service.queue(
         db,
         member_id=session.member_id,
@@ -1538,7 +1537,7 @@ def _rewrite_scheduled_routines(
                     if base.client_request_id
                     else None
                 ),
-                created_at=datetime.now(timezone.utc),
+                created_at=clock.now_utc(),
             )
             db.add(row)
         strength = item.type == "근력"
@@ -2615,7 +2614,7 @@ def send_session_program(
     )
     # 배정이 커밋된 뒤에만 보낸 것으로 남긴다. 반대 순서면 배정에 실패한 세션이
     # 화면에서 '전송됨' 이 되어 다시 보낼 수 없다.
-    s.program_sent_at = datetime.now(timezone.utc)
+    s.program_sent_at = clock.now_utc()
     db.commit()
     db.refresh(s)
     return _schedule_out(s)
@@ -2786,7 +2785,7 @@ def cancel_session(
         )
         .values(
             status=SCHEDULE_CANCELLED,
-            cancelled_at=datetime.now(timezone.utc),
+            cancelled_at=clock.now_utc(),
             cancellation_source=source,
             cancellation_reason=reason[:200],
         )
@@ -2855,7 +2854,7 @@ def mark_session_no_show(
             TrainerSchedule.id == session_id,
             TrainerSchedule.status == SCHEDULE_UPCOMING,
         )
-        .values(status=SCHEDULE_NO_SHOW, no_show_at=datetime.now(timezone.utc))
+        .values(status=SCHEDULE_NO_SHOW, no_show_at=clock.now_utc())
     ).rowcount
     db.commit()
     db.refresh(s)

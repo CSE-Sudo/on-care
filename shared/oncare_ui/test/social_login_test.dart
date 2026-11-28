@@ -23,12 +23,14 @@ Future<void> _pump(
 const Map<AppSocialProvider, String> _labels = <AppSocialProvider, String>{
   AppSocialProvider.kakao: '카카오로 시작하기',
   AppSocialProvider.google: '구글로 시작하기',
+  AppSocialProvider.apple: 'Apple로 로그인',
 };
 
 /// 각 회사 가이드의 버튼 바탕.
 const Map<AppSocialProvider, Color> _backgrounds = <AppSocialProvider, Color>{
   AppSocialProvider.kakao: OnCareColors.kakaoYellow,
   AppSocialProvider.google: OnCareColors.googleButtonFill,
+  AppSocialProvider.apple: OnCareColors.appleButtonFill,
 };
 
 /// 카카오는 테두리가 없고, 구글은 흰 바탕이라 1px 회색 테두리가 있다.
@@ -38,6 +40,7 @@ const Map<AppSocialProvider, BorderSide> _sides =
       AppSocialProvider.google: BorderSide(
         color: OnCareColors.googleButtonStroke,
       ),
+      AppSocialProvider.apple: BorderSide.none,
     };
 
 Widget _row() => AppSocialLoginRow(
@@ -126,6 +129,12 @@ void main() {
     );
     expect(google, paintsExactlyCountTimes(#drawPath, 4));
     expect(google, paintsExactlyCountTimes(#drawParagraph, 0));
+
+    // 애플 — 검은 원 위 흰 로고 하나(#3499). 글자가 없다.
+    final RenderObject apple = logoOf(AppSocialProvider.apple);
+    expect(apple, paints..path(color: OnCareColors.appleLogo));
+    expect(apple, paintsExactlyCountTimes(#drawPath, 1));
+    expect(apple, paintsExactlyCountTimes(#drawParagraph, 0));
   });
 
   testWidgets('그림만 있어 라벨이 화면 읽기 이름이자 툴팁이다', (tester) async {
@@ -206,11 +215,18 @@ void main() {
     final Rect google = tester.getRect(
       find.byKey(const ValueKey<AppSocialProvider>(AppSocialProvider.google)),
     );
+    final Rect apple = tester.getRect(
+      find.byKey(const ValueKey<AppSocialProvider>(AppSocialProvider.apple)),
+    );
     final Rect row = tester.getRect(find.byType(AppSocialLoginRow));
     expect(kakao.center.dy, google.center.dy);
+    expect(apple.center.dy, google.center.dy);
     expect(kakao.left, lessThan(google.left));
     expect(google.left - kakao.right, OnCareSpacing.s24);
-    expect(kakao.left - row.left, closeTo(row.right - google.right, 0.01));
+    expect(apple.left - google.right, OnCareSpacing.s24);
+    // 애플 버튼은 다른 버튼과 같은 크기다(App Review Guideline 4.8).
+    expect(apple.size, google.size);
+    expect(kakao.left - row.left, closeTo(row.right - apple.right, 0.01));
   });
 
   testWidgets('글자 구분선은 양옆 선 가운데에 캡션을 둔다', (tester) async {

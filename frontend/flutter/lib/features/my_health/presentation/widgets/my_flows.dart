@@ -17,10 +17,14 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/focus_change_label.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
     show ReissuedTokens;
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart'
+    show kDefaultWeeklyWorkoutDays;
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/presentation/controllers/location_consent_controller.dart';
@@ -289,7 +293,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     text: _base.name,
   );
   late final TextEditingController _email = TextEditingController(
-    text: _base.email,
+    text: _base.visibleEmail,
   );
   late final TextEditingController _phone = TextEditingController(
     text: _base.phone,
@@ -342,7 +346,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _base = await _latest();
     if (!mounted) return;
     _name.text = _base.name;
-    _email.text = _base.email;
+    _email.text = _base.visibleEmail;
     _phone.text = _base.phone;
     _birth.text = _base.birthDate;
     _height.text = _base.heightCm?.toString() ?? '';
@@ -433,7 +437,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _ProfileField.weight => _measureError(AppGoalRanges.weightKg, _weight.text),
     _ => authInputErrorText(AppLocalizations.of(context), switch (field) {
       _ProfileField.name => AppInputRules.name(_name.text),
-      _ProfileField.email => AppInputRules.email(_email.text),
+      // 대체 이메일인 회원은 칸이 빈 채로 열린다(#3338). 비워 둔 채 이름만
+      // 고치는 저장을 막지 않는다 — 이메일을 넣었을 때만 형식을 본다.
+      _ProfileField.email =>
+        _email.text.trim().isEmpty && _base.emailIsPlaceholder
+            ? null
+            : AppInputRules.email(_email.text),
       _ProfileField.phone =>
         _phone.text.trim().isEmpty && _base.phone.trim().isEmpty
             ? null
@@ -491,7 +500,10 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     }
 
     final String? name = changed(_name.text.trim(), _base.name.trim());
-    final String? email = changed(_email.text.trim(), _base.email.trim());
+    final String? email = changed(
+      _email.text.trim(),
+      _base.visibleEmail.trim(),
+    );
     final String? phone = changed(_phone.text.trim(), _base.phone.trim());
     final String? birthDate = changed(
       _birth.text.trim(),
@@ -533,7 +545,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     // 주소다 — 서버도 그렇게 비교한다.
     final bool emailChanged =
         email != null &&
-        email.toLowerCase() != _base.email.trim().toLowerCase();
+        email.toLowerCase() != _base.visibleEmail.trim().toLowerCase();
     Future<void> send({AccountReauth? reauth, String? emailCode}) async {
       _base = await ref
           .read(accountRepositoryProvider)
@@ -718,10 +730,19 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: OnCareSpacing.s12),
               _profileField(
                 l.myFieldEmail,
-                _base.email,
+                // 소셜 가입의 대체 이메일은 보여 주지 않는다(#3338). 보기에서는
+                // 가입 수단과 미등록 안내를, 수정에서는 빈 칸을 둔다.
+                _base.emailIsPlaceholder
+                    ? l.myEmailUnregistered(
+                        _base.emailPlaceholderProvider ?? '',
+                      )
+                    : _base.email,
                 AppTextField(
                   key: const ValueKey<String>('my-profile-email'),
                   controller: _email,
+                  hint: _base.emailIsPlaceholder
+                      ? l.myProfileEmailEmptyHint
+                      : null,
                   keyboardType: TextInputType.emailAddress,
                   errorText: _errors.of(_ProfileField.email),
                   onChanged: _onEdited,
@@ -913,11 +934,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   final TextEditingController _protein = TextEditingController();
   final TextEditingController _fat = TextEditingController();
   // 운동 목표는 운동 탭이 견주는 축과 같다 (#1139) — 소모는 하루, 유형별은
-  // 한 주다. 주간 운동 횟수·시간은 어느 화면도 쓰지 않아 뺐다.
+  // 한 주다. 주간 운동 시간·소모는 어느 화면도 쓰지 않아 뺐다.
   final TextEditingController _burn = TextEditingController();
   final TextEditingController _cardio = TextEditingController();
   final TextEditingController _strength = TextEditingController();
   final TextEditingController _flexibility = TextEditingController();
+  // 주간 운동 횟수는 주간 운동 챌린지의 목표다(#3361). 운동 탭의 네 축과 달리
+  // 운동한 날 수라, 같은 구역의 따로 선 카드에 둔다.
+  final TextEditingController _workouts = TextEditingController();
+
+  /// 이번 편집에서 회원이 주간 운동 횟수 칸을 직접 고쳤는가.
+  ///
+  /// 서버 컬럼은 옛 범위(0~21)를 받아, 1~7 밖의 값이 이미 저장된 회원이 있다.
+  /// 손대지 않은 칸까지 검사·전송하면 그 회원은 다른 목표를 고치다 이 칸의
+  /// 범위 안내에 막힌다 — 고친 칸일 때만 1~7 을 보고 보낸다.
+  bool _workoutsEdited = false;
   bool _saving = false;
 
   /// 지금 고치는 중인가. 들어오면 보기 모드이고, 연필을 눌러야 칸이 열린다 —
@@ -945,6 +976,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   static const String _kCardio = 'cardio';
   static const String _kStrength = 'strength';
   static const String _kFlexibility = 'flexibility';
+  static const String _kWorkouts = 'workouts';
 
   /// 저장된 값이 없어 **권장값으로 채워 둔** 칸.
   ///
@@ -965,6 +997,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     if (_base.weeklyCardioMinutes == null) _kCardio,
     if (_base.weeklyStrengthSets == null) _kStrength,
     if (_base.weeklyFlexibilityMinutes == null) _kFlexibility,
+    if (_base.weeklyWorkoutGoal == null) _kWorkouts,
   };
 
   /// 칸마다 서버가 받는 범위(#1888). 서버 `health_goal_ranges` 와 같은 값을
@@ -981,6 +1014,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kCardio: AppGoalRanges.weeklyCardioMinutes,
     _kStrength: AppGoalRanges.weeklyStrengthSets,
     _kFlexibility: AppGoalRanges.weeklyFlexibilityMinutes,
+    _kWorkouts: AppGoalRanges.weeklyWorkoutDays,
   };
 
   /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
@@ -992,6 +1026,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   /// 빈 칸은 오류가 아니다 — 목표를 세우지 않는 것은 할 수 있는 일이고,
   /// 빈 칸은 `목표 해제`로 나간다.
   String? _rangeError(String key) {
+    if (key == _kWorkouts && !_workoutsEdited) return null;
     final AppGoalRange range = _ranges[key]!;
     if (!range.rejects(_controllerFor(key).text)) return null;
     return AppLocalizations.of(context).myGoalRange(range.min, range.max);
@@ -1008,6 +1043,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kCardio => _cardio,
     _kStrength => _strength,
     _kFlexibility => _flexibility,
+    _kWorkouts => _workouts,
     _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
   };
 
@@ -1039,7 +1075,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   /// 기준선을 그대로 드러낸 것이다.
   void _fillControllers() {
     for (final String key in _ranges.keys) {
-      _controllerFor(key).text = '${_savedValue(key) ?? _fallbackValue(key)}';
+      _controllerFor(key).text = '${_shownValue(key) ?? _fallbackValue(key)}';
     }
   }
 
@@ -1057,6 +1093,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _notes.text = healthFocusNotes(_base.conditions);
     _prefilled = _prefilledKeys();
     _errors = AppFieldErrors<String>(_rangeError);
+    _workoutsEdited = false;
     setState(() {
       _kcalFromMacros = false;
       _editing = true;
@@ -1079,7 +1116,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     // 칸이 아니라 **저장된 목표**를 읽는다. 컨트롤러에는 고치다 취소한 값이
     // 남아 있을 수 있는데, 보기 모드가 그것을 보여 주면 버린 값이 저장된 것처럼
     // 읽힌다. 같은 이유로 세웠는지 여부도 지금 프로필에서 다시 센다.
-    final int? saved = _savedValue(key);
+    final int? saved = _shownValue(key);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -1146,8 +1183,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kCardio => _base.weeklyCardioMinutes,
     _kStrength => _base.weeklyStrengthSets,
     _kFlexibility => _base.weeklyFlexibilityMinutes,
+    _kWorkouts => _base.weeklyWorkoutGoal,
     _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
   };
+
+  /// 화면에 적는 목표. 주간 운동 횟수만 저장된 값과 다를 수 있다 — 챌린지가
+  /// 읽는 값(`weekly_challenge_service.goal_for`)과 같게 1 미만은 세운 적 없는
+  /// 것으로(기본 3), 7 초과는 7 로 적는다. 저장된 수를 그대로 적으면 화면의
+  /// 목표와 챌린지에 걸리는 목표가 달라진다.
+  int? _shownValue(String key) {
+    final int? saved = _savedValue(key);
+    if (key != _kWorkouts || saved == null) return saved;
+    const AppGoalRange range = AppGoalRanges.weeklyWorkoutDays;
+    if (saved < range.min) return null;
+    return saved > range.max ? range.max : saved;
+  }
 
   /// 세운 적 없는 칸을 채워 두는 기본값.
   ///
@@ -1166,6 +1216,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kCardio => kDefaultExerciseLoadGoals.weeklyCardioMinutes.round(),
     _kStrength => kDefaultExerciseLoadGoals.weeklyStrengthSets.round(),
     _kFlexibility => kDefaultExerciseLoadGoals.weeklyFlexibilityMinutes.round(),
+    // 목표가 없는 회원에게 챌린지가 거는 횟수다 — 서버 `DEFAULT_GOAL` 과 같다.
+    _kWorkouts => kDefaultWeeklyWorkoutDays,
     _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
   };
 
@@ -1338,6 +1390,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       _cardio,
       _strength,
       _flexibility,
+      _workouts,
       _notes,
     ]) {
       c.dispose();
@@ -1364,6 +1417,9 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     // 안 된다. 빈 칸은 `GoalUpdate(null)` 로 나가 목표 해제가 된다 — 회원이
     // 지운 목표는 지워져야 하므로 해제도 바꾼 칸이다.
     GoalUpdate? changed(String key) {
+      // 손대지 않은 주간 운동 횟수는 보내지 않는다 — 칸에는 챌린지가 읽는
+      // 값이 적혀 있어, 저장된 값이 1~7 밖이면 견주는 것만으로 달라 보인다.
+      if (key == _kWorkouts && !_workoutsEdited) return null;
       final int? next = _valueToSave(key, _controllerFor(key));
       return next == _savedValue(key) ? null : GoalUpdate(next);
     }
@@ -1415,11 +1471,18 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
             weeklyCardioMinutes: goals[_kCardio],
             weeklyStrengthSets: goals[_kStrength],
             weeklyFlexibilityMinutes: goals[_kFlexibility],
+            weeklyWorkoutGoal: goals[_kWorkouts],
           );
       if (!mounted) return;
       _base = updatedProfile;
       ref.read(profileProvider.notifier).applyUpdatedProfile(updatedProfile);
       ref.invalidate(dashboardSummaryProvider);
+      // 주간 운동 횟수는 다음에 참가할 챌린지의 목표다(#3361) — 사용처 카드가
+      // 옛 횟수를 적지 않게 다시 읽는다. 이미 참가한 주는 서버가 그대로 둔다.
+      if (goals[_kWorkouts] != null) ref.invalidate(weeklyChallengeProvider);
+      // 홈 코칭 시트의 카드도 나트륨·유산소 목표로 판정한다(#3350) — 서버가 목표가
+      // 바뀐 회원의 카드를 새로 만든다(#3351).
+      ref.invalidate(aiCoachStateProvider);
       // 저장해도 화면을 닫지 않고 보기 모드로 돌아온다 — 내 프로필과 같다
       // (#2132). 방금 저장한 목표가 화면에 그대로 남아, 무엇이 저장됐는지
       // 돌아간 화면에서 다시 찾지 않아도 된다.
@@ -1675,6 +1738,36 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
             _kFlexibility,
           ]),
         ]),
+        const SizedBox(height: OnCareSpacing.s12),
+        // 주간 운동 횟수(#3361) — 주간 운동 챌린지에 참가할 때 걸리는 목표다.
+        // 위 네 칸의 `권장값 채우기` 가 다루지 않는 값이라 카드를 따로 둔다.
+        _card(<Widget>[
+          _goalField(
+            _kWorkouts,
+            l.myGoalWorkoutsWeekly,
+            AppTextField(
+              key: const Key('goalWorkoutsField'),
+              label: l.myGoalWorkoutsWeekly,
+              controller: _workouts,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '$kDefaultWeeklyWorkoutDays',
+              errorText: _errors.of(_kWorkouts),
+              onChanged: (_) {
+                _workoutsEdited = true;
+                _onGoalEdited(_kWorkouts);
+              },
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          Text(
+            keepWords(l.myGoalWorkoutsWeeklyHint(kDefaultWeeklyWorkoutDays)),
+            key: const Key('goalWorkoutsHint'),
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ]),
         const SizedBox(height: OnCareSpacing.s20),
         AppSectionHeader(title: l.myGoalsDietSection),
         const SizedBox(height: OnCareSpacing.s8),
@@ -1878,7 +1971,7 @@ class _MacroSuggestionRow extends StatelessWidget {
   /// 버튼의 키. 식단·운동 두 곳이 같은 줄을 쓰므로 각자 다른 키를 준다.
   final Key buttonKey;
 
-  /// 안내 줄의 항목을 나누는 글자. 두 ARB(ko·en)가 같은 글자를 쓴다.
+  /// 안내 줄의 항목을 나누는 글자. ARB 문구가 같은 글자를 쓴다.
   static const String _separator = ' · ';
 
   @override
@@ -1886,7 +1979,7 @@ class _MacroSuggestionRow extends StatelessWidget {
     final TextStyle noteStyle = context.oncare
         .text(OnCareTypography.caption)
         .copyWith(color: OnCareColors.textSecondary);
-    // 안내와 버튼을 한 줄에 두면 좁은 폰·큰 글자에서 영어 버튼 라벨이 넘친다.
+    // 안내와 버튼을 한 줄에 두면 좁은 폰·큰 글자에서 버튼 라벨이 넘친다.
     // 안내를 위에, 버튼을 그 아래 끝에 둔다.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2064,9 +2157,9 @@ class NotificationSettingsPage extends ConsumerWidget {
         ],
       ]),
       const SizedBox(height: OnCareSpacing.s12),
-      // 끌 수 없는 알림을 밝혀 둔다(#3024) — PT 일정과 담당 관계 알림은
-      // 서버가 스위치와 상관없이 보낸다. 스위치 목록만 보면 이것도 끌 수
-      // 있는 것처럼 읽힌다.
+      // 끌 수 없는 알림을 밝혀 둔다(#3024) — PT 일정과 담당 관계, 상담 요청
+      // 결과, 건강 목표 변경, 쿠폰·주간 챌린지 알림은 서버가 스위치와 상관없이
+      // 보낸다(#3367). 스위치 목록만 보면 이것도 끌 수 있는 것처럼 읽힌다.
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
         child: Text(
@@ -2157,7 +2250,7 @@ class SupportPage extends StatelessWidget {
           context,
           AppIcons.logout,
           l.myWithdrawTitle,
-          () => context.push<void>(AppRoutes.mySettingsPath('withdraw')),
+          () => context.push<void>(AppRoutes.withdraw),
         ),
       ]),
       const SizedBox(height: OnCareSpacing.s12),

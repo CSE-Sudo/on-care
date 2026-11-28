@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -97,6 +97,11 @@ RECORD_LOOKBACK_DAYS = 30
 
 #: 노쇼와 회원 사정 취소를 이 기간에 이 횟수 이상이면 반복으로 본다. 트레이너
 #: 사정 취소는 세지 않는다 — 회원의 미이행이 아니다(#871).
+#:
+#: 노쇼는 PT 날짜로, 회원 사정 취소는 **취소한 날**(KST)로 창에 넣는다(#3306).
+#: 다음 주 PT 를 오늘 한꺼번에 취소한 회원은 지금 연락해야 하는데, PT 날짜로
+#: 세면 그 날이 올 때까지 신호가 없었다. 취소 시각이 없는 옛 기록은 PT 날짜로
+#: 센다.
 NO_SHOW_WINDOW_DAYS = 30
 NO_SHOW_MIN_COUNT = 2
 #: `TrainerSchedule.status`·`cancellation_source` 계약값.
@@ -179,6 +184,14 @@ def _record_gap_days(
     recorded |= data.exercise_dates
     last = max(recorded) if recorded else link_start
     return min((today - last).days, RECORD_LOOKBACK_DAYS)
+
+
+def _parse_day(value: str | None) -> date | None:
+    """`YYYY-MM-DD` 일정 날짜. 비었거나 깨졌으면 None — 세지 않는다."""
+    try:
+        return date.fromisoformat(value) if value else None
+    except ValueError:
+        return None
 
 
 def _recent_days(today: date) -> list[date]:
@@ -413,24 +426,46 @@ def build_signals(
         if found is not None and found.kind == insights.KIND_DISCOMFORT:
             data[member_id].discomfort = True
 
-    # 노쇼·회원 사정 취소.
-    for member_id, status, source in db.execute(
+    # 노쇼(PT 날짜)·회원 사정 취소(취소한 날) — 기준은 [NO_SHOW_WINDOW_DAYS] 주석.
+    no_show_from = today - timedelta(days=NO_SHOW_WINDOW_DAYS)
+    # 취소 시각은 UTC 로 저장된다 — KST 날짜 경계를 놓치지 않게 하루 넉넉히
+    # 읽고, 아래에서 KST 날짜로 정확히 거른다.
+    cancelled_since = datetime.combine(
+        no_show_from - timedelta(days=1), time.min, tzinfo=timezone.utc
+    )
+    for member_id, status, source, day_iso, cancelled_at in db.execute(
         select(
             TrainerSchedule.member_id,
             TrainerSchedule.status,
             TrainerSchedule.cancellation_source,
+            TrainerSchedule.date,
+            TrainerSchedule.cancelled_at,
         ).where(
             TrainerSchedule.trainer_id == trainer_id,
             TrainerSchedule.member_id.in_(member_ids),
-            TrainerSchedule.date >= (today - timedelta(days=NO_SHOW_WINDOW_DAYS)).isoformat(),
-            TrainerSchedule.date <= today.isoformat(),
             or_(
                 TrainerSchedule.status == _SCHEDULE_NO_SHOW,
                 TrainerSchedule.status == _SCHEDULE_CANCELLED,
             ),
+            or_(
+                TrainerSchedule.date.between(
+                    no_show_from.isoformat(), today.isoformat()
+                ),
+                TrainerSchedule.cancelled_at >= cancelled_since,
+            ),
         )
     ).all():
-        if status == _SCHEDULE_NO_SHOW or source == _CANCELLED_BY_MEMBER:
+        if status == _SCHEDULE_NO_SHOW:
+            counted_on = _parse_day(day_iso)
+        elif source == _CANCELLED_BY_MEMBER:
+            counted_on = (
+                clock.to_seoul(cancelled_at).date()
+                if cancelled_at is not None
+                else _parse_day(day_iso)
+            )
+        else:
+            continue
+        if counted_on is not None and no_show_from <= counted_on <= today:
             data[member_id].no_show_count += 1
 
     # 배정 루틴 — 최근 창에 걸려 있던 것과 그 완료.

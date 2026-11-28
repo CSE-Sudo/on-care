@@ -61,9 +61,7 @@ Finder _condition(WeekCondition value) =>
 Finder _intensity(WeekIntensity value) =>
     find.byKey(ValueKey<String>('weekly-feedback-intensity-${value.wire}'));
 
-final Finder _send = find.byKey(
-  const ValueKey<String>('weekly-feedback-send'),
-);
+final Finder _send = find.byKey(const ValueKey<String>('weekly-feedback-send'));
 
 /// 보내기가 지금 눌리는가.
 bool _canSend(WidgetTester tester) =>
@@ -131,11 +129,15 @@ void main() {
     await tester.pump();
 
     expect(
-      tester.widget<WeeklyConditionTile>(_condition(WeekCondition.good)).selected,
+      tester
+          .widget<WeeklyConditionTile>(_condition(WeekCondition.good))
+          .selected,
       isTrue,
     );
     expect(
-      tester.widget<WeeklyConditionTile>(_condition(WeekCondition.tired)).selected,
+      tester
+          .widget<WeeklyConditionTile>(_condition(WeekCondition.tired))
+          .selected,
       isFalse,
     );
   });
@@ -287,7 +289,9 @@ void main() {
 
     // 빈 칸으로 열면 회원이 무엇을 보냈는지 모르는 채로 덮어쓴다.
     expect(
-      tester.widget<WeeklyConditionTile>(_condition(WeekCondition.great)).selected,
+      tester
+          .widget<WeeklyConditionTile>(_condition(WeekCondition.great))
+          .selected,
       isTrue,
     );
     expect(
@@ -325,46 +329,12 @@ void main() {
     final FakeMemberCoachRepository repo = await _pump(tester);
 
     await _answer(tester);
-    await tester.tap(find.byKey(const ValueKey<String>('weekly-feedback-later')));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('weekly-feedback-later')),
+    );
     await tester.pumpAndSettle();
 
     expect(repo.saved, isEmpty);
-  });
-
-  testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    expect(find.text('How was your week?'), findsOneWidget);
-    expect(find.text('How did you feel this week?'), findsOneWidget);
-    expect(find.text('How was the workout intensity?'), findsOneWidget);
-    expect(find.text('Anywhere it hurt?'), findsOneWidget);
-    expect(find.text('Send'), findsOneWidget);
-    expect(find.text('Later'), findsOneWidget);
-    expect(find.text('Too easy'), findsOneWidget);
-    expect(find.text('Too hard'), findsOneWidget);
-  });
-
-  testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
-    await _pump(tester, locale: 'en');
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    for (final String t in _texts(tester)) {
-      expect(
-        hangul.hasMatch(t),
-        isFalse,
-        reason: '영어 화면에 번역되지 않은 글이 있다: $t',
-      );
-    }
-  });
-
-  testWidgets('영어에서도 두 문항을 다 골라야 보낼 수 있다', (tester) async {
-    await _pump(tester, locale: 'en');
-    expect(_canSend(tester), isFalse);
-
-    await _answer(tester);
-
-    expect(_canSend(tester), isTrue);
-    expect(find.text('Pick your condition and intensity'), findsNothing);
   });
 
   testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {

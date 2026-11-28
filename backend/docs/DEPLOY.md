@@ -47,8 +47,8 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 | 스택 | 템플릿 | 개수 | 비용 | 내용 |
 |---|---|---|---|---|
 | `oncare-backend-bootstrap` | `infra/backend-bootstrap.yml` | 계정에 1개 | 없음(이미지 저장량만) | ECR `oncare-backend`(불변 태그, 최근 20개 유지), 이미지 푸시 역할 |
-| `oncare-backend-env-<environment>` | `infra/backend-environment.yml` | 환경마다 1개 | 없음 | 첨부 버킷, 태스크·실행·인프라 역할, CloudFormation 서비스 역할, GitHub 배포 역할 |
-| `oncare-backend-<environment>` | `infra/backend-service.yml` | 환경마다 1개 | **생성 순간부터 과금** | ECS Express Mode 서비스(Fargate 태스크 1~4개, 기본 1 + ALB) |
+| `oncare-backend-env-<environment>` | `infra/backend-environment.yml` | 환경마다 1개 | 없음(백업 저장량만) | 첨부 버킷, 태스크·실행·인프라 역할, CloudFormation 서비스 역할, GitHub 배포 역할. 운영만: DB 백업 버킷·백업 작업 역할·로그 그룹(#1552) |
+| `oncare-backend-<environment>` | `infra/backend-service.yml` | 환경마다 1개 | **생성 순간부터 과금** | ECS Express Mode 서비스(Fargate 태스크 1~4개, 기본 1 + ALB). 운영만: 배포 직전 DB 백업 작업 정의(돌 때만 과금, #1552) |
 
 `<environment>` 는 `production`·`staging` 이다. staging 은 데모 시연용이고 **운영과 다른 DB·비밀·버킷**을
 쓴다(#3020). staging 이 필요 없으면 staging 스택을 만들지 않고 `BACKEND_STAGING_DEPLOY_ENABLED` 를 비워 둔다.
@@ -68,15 +68,17 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 
 | 주체 | 믿는 OIDC subject | 할 수 있는 일 |
 |---|---|---|
-| 이미지 푸시 역할(bootstrap) | `repo:…:ref:refs/heads/main` | ECR `oncare-backend` 에 이미지 푸시·digest 조회만 |
-| 배포 역할(env, 환경마다) | `repo:…:environment:<environment>` | 그 환경 서비스 스택의 변경 세트 생성·실행, CloudFormation 서비스 역할 넘기기만 |
+| 이미지 푸시 역할(bootstrap) | `repo:…:ref:refs/heads/main` | ECR `oncare-backend` 에 이미지 푸시·digest·manifest 조회만(manifest 조회는 푸시 직후 Docker 가 확인용으로 부른다, #3526) |
+| 배포 역할(env, 환경마다) | `repo:…:environment:<environment>` | 그 환경 서비스 스택의 변경 세트 생성·실행, CloudFormation 서비스 역할 넘기기만. 운영만: 서비스 클러스터에서 백업 작업 띄우기·조회·멈추기, 백업 버킷 `db/` 목록, 백업 로그 읽기(#1552) |
 | CloudFormation 서비스 역할(env) | — (cloudformation.amazonaws.com) | ECS Express 서비스 갱신, 태스크·실행·인프라 역할 넘기기 |
 | 태스크 역할(env) | — (ecs-tasks) | 그 환경 첨부 버킷의 `<접두사>/*` 읽기·쓰기·지우기와 접두사 목록 |
 | 실행 역할(env) | — (ecs-tasks) | 이미지 pull, 로그, `oncare/backend/<environment>-*` 비밀 읽기 |
+| 백업 작업 역할(env, 운영만) | — (ecs-tasks) | 백업 버킷 `db/*` 에 올리기만(읽기·지우기 없음, #1552) |
 
 - 배포 역할은 **GitHub Environment 에서 돈 job 만** 맡을 수 있다. 브랜치 형식 토큰으로는 서비스를
   바꿀 수 없으므로 Environment 의 승인 규칙을 건너뛰는 길이 없다.
-- 배포 역할에는 ECS·IAM 권한이 없다. 서비스 변경은 CloudFormation 이 서비스 역할로 한다.
+- 배포 역할에는 서비스를 바꾸는 ECS·IAM 권한이 없다. 서비스 변경은 CloudFormation 이 서비스 역할로 한다.
+  운영 배포 역할만 배포 직전 백업 작업 하나(`oncare-backend-production-db-backup`)를 띄우고 지켜볼 수 있다(2-1).
 - Environment 이름이 곧 배포 경계다. 워크플로의 `environment:` 와 템플릿의 신뢰 조건이 같은 이름을
   써야 한다(아래 표). `infra/tests/test_deploy_workflows.py` 가 둘이 어긋나지 않는지 PR 마다 본다.
 
@@ -162,6 +164,7 @@ staging → `staging`).
   실패·취소되면 운영으로 가지 않는다. 두 환경은 같은 digest 를 쓴다.
 - 각 환경 배포(`backend-deploy-service.yml`)는
   1. 스택이 지금 선언한 이미지(되돌릴 지점)를 기록하고,
+  1-1. **production 만** 지금 DB 를 S3 백업 버킷에 덤프한다(2-1 "백업·복구"). 실패하면 여기서 멈추고 배포하지 않는다.
   2. `aws cloudformation deploy --role-arn <서비스 역할>` 로 `ImageIdentifier` 만 바꾸고,
   3. `/v1/healthz` 가 그 환경의 기대 설정인지(아래 표), `/v1/readyz` 로 **DB 까지 닿는지**, `/v1/version`
      의 `commit_sha` 가 배포한 커밋과 같은지 확인한다(`.github/scripts/backend_verify_service.sh`). healthz·
@@ -279,45 +282,88 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 - `downgrade()` 는 **스키마만** 되돌린다. 지운 칸·행은 빈 칸으로 다시 생길 뿐 값은 돌아오지 않는다
   (`0016` 의 downgrade 가 그렇고, `0147` 은 아무것도 하지 않는다). 데이터가 필요하면 백업에서 복구한다.
 
-### 백업·복구 — 배포 재개 시 도입
+### 백업·복구
 
-운영 배포는 지금 멈춰 둔 상태라 백업 단계는 아직 없다. 배포를 다시 켤 때 아래 방식으로 넣는다
-(체크리스트는 다음 절).
-
-- **운영 배포 직전마다** 백엔드 이미지로 일회성 ECS 작업을 띄워 `pg_dump --format=custom` 을 실행하고
-  S3 백업 버킷에 올린다. 작업은 서비스와 같은 Secrets Manager 비밀의 `DATABASE_URL`
-  (`infra/backend-service.yml` 의 `Secrets`)을 쓴다 — 운영 DB 자격 증명을 GitHub 에 따로 두지 않는다.
-- **백업이 실패하면 production 배포를 멈춘다.** staging 은 백업하지 않는다.
+- **운영 배포 직전마다** 백업 작업이 돈다. `backend-deploy-service.yml` 의 `Back up production database` 단계가
+  서비스 스택의 백업 작업 정의(`BackupTaskDefinition`, 패밀리 `oncare-backend-production-db-backup`)를 서비스와
+  같은 클러스터·서브넷(지금 배포의 네트워크 설정 — Express Mode 는 서비스 최상위 값이 비어 있다)으로 한 번 띄운다(`.github/scripts/backend_db_backup.sh`). 작업은 지금 떠 있는
+  이미지로 `python -m scripts.backup_db` 를 실행해 `pg_dump --format=custom` → `pg_restore --list` 확인 →
+  `s3://oncare-db-backups-<계정>-<리전>-production/db/<UTC 시각>-<커밋 앞 12자>.dump` 업로드를 한다.
+- 작업은 서비스와 같은 Secrets Manager 비밀의 `DATABASE_URL` 만 받는다 — 운영 DB 자격 증명을 GitHub 에 따로
+  두지 않는다. 작업 역할은 백업 버킷 `db/*` 에 올리기만 할 수 있다.
+- **백업이 실패하면 production 배포를 멈춘다** — 작업을 못 띄움, 종료 코드가 0 이 아님, 30분 안에 끝나지 않음,
+  S3 에 덤프가 없거나 0바이트. 시간 초과·잡 취소면 띄운 작업을 멈춘다. 잡 요약에 덤프 키나 실패가 남고, 실패하면 작업 로그 끝부분을 잡 로그에 붙인다
+  (로그 그룹 `/oncare/backend/production/db-backup`, 30일 보관). staging 은 백업하지 않는다.
+- 백업 버킷은 퍼블릭 차단·SSE-S3·TLS 전용이고, 덤프는 `BackupRetentionDays`(환경 스택 파라미터, 기본 30일) 뒤
+  자동으로 지운다. 버전 관리는 켜지 않는다(켜면 만료된 덤프가 이전 버전으로 남는다).
+- `pg_dump` 는 서버보다 옛 주 버전이면 덤프를 거부한다. 이미지는 PostgreSQL 공식 apt 저장소의
+  `postgresql-client-<PG_CLIENT_MAJOR>`(`backend/Dockerfile`, 지금 18)를 깔고, Backend CI 가 그 이미지로 CI DB 를
+  덤프해 본다. Neon 을 더 새 주 버전으로 올리면 이 값을 먼저 올린다.
+- 운영은 #1552 이후 커밋만 배포한다. 그 전 커밋에는 백업 스크립트·작업 정의가 없어, 옛 커밋으로 수동 되돌리기를
+  하면 백업 단계가 실패한다(운영 스택은 이 변경 뒤에 처음 만들므로 되돌릴 지점도 모두 그 뒤 커밋이다).
 - 백업은 AWS 계정(배포 담당) 안에서 끝난다. Neon 계정은 다른 팀원 소유라 Neon 콘솔 조작에 기대지 않는다.
-  Neon 의 기본 시점 복구(PITR)는 덤이다 — 보관 기간은 요금제에 따른다.
+  Neon 의 기본 시점 복구(PITR)는 덤이다 — 운영 DB(Neon `oncare` 프로젝트 `production` 브랜치, Free 요금제)의
+  보관 기간은 **6시간**이다(2026-10-14 확인). 배포 다음 날 데이터 문제를 찾으면 PITR 로는 되돌릴 수 없으므로
+  **복구의 기준은 S3 덤프**다.
+- **운영 DB 를 바꾸는 일은 그 직전에 덤프를 받는다.** 배포는 워크플로가 자동으로 받는다. 손으로 하는
+  마이그레이션·`alembic downgrade`·데이터 정리 스크립트(`purge_*`, `migrate_attachments` 등)는 먼저
+  `bash .github/scripts/backend_db_backup.sh run oncare-backend-production <운영 커밋 SHA>` 로 덤프를 받고
+  출력된 키를 기록한 뒤 실행한다.
 - 복구는 S3 덤프를 `pg_restore` 로 새 DB(로컬 docker Postgres·staging·새 Neon 브랜치)에 푼 뒤 필요한
   표·행만 옮기거나 `DATABASE_URL` 을 바꾼다. 리허설을 한 번 하기 전까지는 복구 가능하다고 보지 않는다.
+
+  ```bash
+  aws s3 cp s3://oncare-db-backups-<계정>-ap-southeast-1-production/db/<키>.dump ./restore.dump
+  docker run -d --name restore -e POSTGRES_PASSWORD=restore -p 55432:5432 pgvector/pgvector:pg<운영 주 버전>
+  docker exec restore psql -U postgres -c 'CREATE DATABASE oncare'
+  pg_restore --no-owner --no-privileges -d postgresql://postgres:restore@localhost:55432/oncare ./restore.dump
+  ```
+
+  덤프를 받는 사람에게는 백업 버킷 `s3:GetObject` 가 따로 필요하다(배포·작업 역할에는 없다).
 
 ### 배포 재개 체크리스트
 
 운영 배포(`BACKEND_DEPLOY_ENABLED=true`)를 다시 켜기 전에 끝낸다. 남은 일은 #1552 에서 추적한다.
 
-- [ ] `infra/backend-environment.yml` 에 백업 S3 버킷을 더한다 — 서버 측 암호화(SSE-S3 또는 KMS),
-      퍼블릭 액세스 전부 차단, TLS 만 허용하는 버킷 정책, 보관 기간(예: 30일) 뒤 자동 삭제 수명 주기 규칙.
-      리전은 백엔드·Neon 과 같은 `ap-southeast-1`.
-- [ ] 백업 작업이 쓰는 역할(`TaskRole` 또는 백업 전용 역할)에 그 버킷의 백업 접두사 `s3:PutObject` 만 준다.
-      배포 역할(`GitHubBackendDeployRole`)에는 그 작업을 띄우는 `ecs:RunTask`·`ecs:DescribeTasks` 와 역할
-      `iam:PassRole` 을 더한다.
-- [ ] 백엔드 `Dockerfile` 에 Neon 의 Postgres 주 버전과 같은(또는 더 새) `postgresql-client` 를 설치한다.
-      `pg_dump` 는 서버보다 옛 버전이면 거부한다 — Neon 버전은 `SELECT version();` 으로 확인한다.
-- [ ] `.github/workflows/backend-deploy-service.yml` 에서 production 일 때만 `Record rollback point` 다음,
-      `Deploy image` 전에 백업 단계를 둔다. 일회성 ECS 작업의 종료 코드가 0 이 아니거나 S3 에 객체가 없으면
-      잡을 실패시켜 배포하지 않는다. 잡 요약에 덤프 객체 키를 남긴다.
-- [ ] 첫 복구 리허설(배포 담당이 직접): S3 의 덤프를 받아 로컬 docker Postgres(`pgvector/pgvector` 이미지,
-      운영과 같은 주 버전)나 staging DB 에 `pg_restore` 하고, `alembic current` 가 운영과 같은지·주요 표의
-      행 수가 맞는지 본다. 걸린 시간을 이 절에 적는다.
-- [ ] `docs/privacy_processing.md` 의 위탁·보관 표에 S3 백업 보관을 더한다(같은 싱가포르 리전, 보관 기간,
-      탈퇴한 회원의 정보가 보관 기간 동안 백업에 남는다는 점).
-- [ ] Neon 계정 주인 팀원에게 지금 요금제의 시점 복구 가능 기간을 확인해 이 절에 적는다.
+- [x] `infra/backend-environment.yml` 에 백업 S3 버킷을 더한다 — SSE-S3, 퍼블릭 액세스 전부 차단, TLS 만 허용하는
+      버킷 정책, 30일(`BackupRetentionDays`) 뒤 자동 삭제. 리전은 백엔드·Neon 과 같은 `ap-southeast-1`.
+- [x] 백업 작업 역할(`BackupTaskRole`)에 백업 버킷 `db/*` 의 `s3:PutObject` 만 준다. 운영 배포 역할에는 그 작업을
+      띄우고 멈추는 `ecs:RunTask`(백업 작업 정의만)·`ecs:StopTask`·`ecs:DescribeTasks`·`ecs:DescribeServices`(모두 서비스 클러스터 `ServiceClusterName`, 기본 `default` 한정) 와 실행·백업 작업 역할
+      `iam:PassRole`, 덤프 확인용 `s3:ListBucket`(`db/*`), 실패 로그용 `logs:GetLogEvents` 를 더한다.
+- [x] 백엔드 `Dockerfile` 에 `postgresql-client` 를 설치한다(PGDG, `PG_CLIENT_MAJOR=18`).
+- [x] `.github/workflows/backend-deploy-service.yml` 에서 production 일 때만 `Record rollback point` 다음,
+      `Deploy image` 전에 백업 단계를 둔다. 잡 요약에 덤프 객체 키를 남긴다.
+- [x] Neon 운영 DB 에서 `SELECT version();` 으로 주 버전을 확인한다. 18 보다 높으면 `PG_CLIENT_MAJOR` 를 올린다.
+      — Postgres 17.11(2026-10-14). 클라이언트 18 이라 그대로 둔다.
+- [x] 첫 복구 리허설(배포 담당이 직접): 첫 운영 배포가 남긴 S3 덤프를 위 절차로 로컬 docker Postgres(운영과 같은
+      주 버전)나 staging DB 에 `pg_restore` 하고, `alembic current` 가 운영과 같은지·주요 표의 행 수가 맞는지 본다.
+      걸린 시간을 이 절에 적는다.
+      — 2026-10-14, 배포 전 백업 `db/20261014T123036Z-7d5d4d6b9475.dump`(548KB)를 `pgvector/pgvector:pg17` 에
+      복원. 오류 없음, 복원 3초. 운영과 비교해 revision `0155_member_received_reports`·표 64개·`users` 0행·
+      `food_nutrients` 2,139행이 같았다(pgvector 확장 버전은 복원한 서버의 것을 쓴다 — 운영 0.8.0, 로컬 0.8.7).
+- [x] `docs/privacy_processing.md` 의 위탁·보관 표에 S3 백업 보관을 더한다(같은 싱가포르 리전, 30일, 탈퇴한 회원의
+      정보가 보관 기간 동안 백업에 남는다는 점).
+- [x] Neon 계정 주인 팀원에게 지금 요금제의 시점 복구 가능 기간을 확인해 이 절에 적는다.
+      — Free 요금제, 6시간(2026-10-14). 위 "백업·복구" 에 적었다.
 
 ## 3) 처음 만들기 (#480)
 
 순서대로 한 번씩. 1~2 와 4 는 비용이 없고, **5 부터 과금된다.**
+
+0. **처음 쓰는 계정이면 서비스 연결 역할을 먼저 만든다.** ECS·로드밸런서·오토스케일링을 한 번도 쓰지 않은
+   계정은 이 역할들이 없다. ECS 역할이 없으면 서비스 생성이 "Unable to assume the service linked role" 로
+   멈추고, 나머지 둘은 Express Mode 가 만들자마자 쓰려다 IAM 반영 지연으로 `CreateLoadBalancer`·
+   `RegisterScalableTarget` 이 거부된다(2026-10-14 첫 운영 생성에서 두 번 실패). 이미 있으면 오류가 나고 넘어가면 된다.
+
+   ```bash
+   aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com
+   aws iam create-service-linked-role --aws-service-name elasticloadbalancing.amazonaws.com
+   aws iam create-service-linked-role --aws-service-name ecs.application-autoscaling.amazonaws.com
+   ```
+
+   서비스 스택 생성이 실패해 `ROLLBACK_COMPLETE` 가 되면 스택을 지운 뒤 다시 만든다. 이때 Express 서비스가
+   `ACTIVE`(태스크 0개)로 남을 수 있으니 `aws ecs describe-services --cluster default --services oncare-backend-<environment>`
+   로 보고, 남았으면 `aws ecs delete-express-gateway-service --service-arn <ARN>` 으로 지운 뒤 다시 만든다.
 
 1. **bootstrap 스택**(계정에 한 번):
 
@@ -347,6 +393,8 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
      --region ap-southeast-1
    ```
 
+   production 환경 스택은 DB 백업 버킷·백업 작업 역할·로그 그룹도 만든다(2-1). 보관 일수를 바꾸려면
+   `BackupRetentionDays=<7~90>` 를 더한다(기본 30, 바꾸면 `docs/privacy_processing.md` 도 고친다).
    출력 `GitHubDeployRoleArn`·`CloudFormationDeployRoleArn`·`ServiceStackName` → 그 Environment 의 변수
    `AWS_BACKEND_DEPLOY_ROLE_ARN`·`AWS_BACKEND_CFN_ROLE_ARN`·`BACKEND_STACK_NAME`.
 3. **비밀**: Secrets Manager 에 `oncare/backend/<environment>` 이름으로 JSON 비밀을 만든다(아래 5절 "비밀 키").
@@ -378,7 +426,8 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
 
 선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `GoogleClientIds`·`KakaoAppId`(#3035),
-카카오 웹 로그인 `KakaoLoginRestApiKey`·`KakaoClientSecretEnabled`(#330), 메일
+카카오 웹 로그인 `KakaoLoginRestApiKey`·`KakaoClientSecretEnabled`(#330), 애플 로그인
+`AppleClientIds`·`AppleTeamId`·`AppleKeyId`·`AppleSignInKeyEnabled`(#3499), 메일
 (`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
@@ -424,6 +473,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 헬스장 찾기가 사실상 빈다(시드로 채우지 않음, #2914) | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
 | `KAKAO_CLIENT_SECRET` | 카카오 웹 로그인 키의 클라이언트 시크릿(#330). 파라미터 `KakaoClientSecretEnabled=true` 일 때만 읽는다 | 시크릿을 켤 때 |
+| `APPLE_PRIVATE_KEY` | Sign in with Apple 키(.p8) 본문 — 탈퇴한 애플 회원의 토큰 철회용(#3499). `-----BEGIN PRIVATE KEY-----` 부터 끝줄까지, 줄바꿈은 그대로 또는 `\n` 글자로. 파라미터 `AppleSignInKeyEnabled=true` 일 때만 읽는다 | 애플 로그인을 켤 때 |
 | `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다. 운영은 메일이 필수라 항상 채운다(#3131) | 운영 예, staging 은 메일을 켤 때 |
 | `DEMO_LOGIN_PASSWORD` | staging 만. 강한 값 | staging |
 
@@ -451,9 +501,11 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `ACCESS_TOKEN_EXPIRE_MINUTES`·`REFRESH_TOKEN_EXPIRE_DAYS`·`WEB_REFRESH_TOKEN_EXPIRE_DAYS` | `60`·`30`·`7`(#2913·#2828) — 데모 서비스에서 길게 바꾼 값이 운영으로 복사되지 않게 |
 | `AUDIT_RETENTION_DAYS`·`AUDIT_SENSITIVE_RETENTION_DAYS` | `365`·`730`(#2830) — 처리방침 보관 기간과 묶여 있다 |
 | `MAIL_PROVIDER`·`SMTP_STARTTLS`·`SMTP_SSL` | `smtp`·`true`·`false` — `MailFrom` 파라미터를 채웠을 때만 들어간다(#3033). `smtp` 라 서버·발신 주소가 비면 기동이 거부돼 빠뜨린 것이 바로 드러난다. 587 STARTTLS 기준 |
-| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값). **비우면 그 로그인은 401 로 거부**. 네이버·애플 로그인은 제공하지 않아 설정이 없다(#3218). 형식이 틀리면(숫자가 아닌 앱 ID, `.apps.googleusercontent.com` 으로 끝나지 않는 client_id) 기동 거부(#330) |
+| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값). **비우면 그 로그인은 401 로 거부**. 네이버 로그인은 제공하지 않아 설정이 없다(#3218). 형식이 틀리면(숫자가 아닌 앱 ID, `.apps.googleusercontent.com` 으로 끝나지 않는 client_id) 기동 거부(#330) |
+| `APPLE_CLIENT_IDS`·`APPLE_TEAM_ID`·`APPLE_KEY_ID` | 스택 파라미터 `AppleClientIds`·`AppleTeamId`·`AppleKeyId`(#3499). 애플 로그인 허용 `aud` 는 회원 iOS 번들 ID `com.csesudo.oncare`. 팀 ID·키 ID 는 개발자 포털의 Sign in with Apple 키 값(비밀 아님). `AppleClientIds` 를 비우면 애플 로그인은 401, 키 값이 빠지면 로그인은 되지만 탈퇴 때 토큰 철회를 건너뛴다(기동 경고) — App Store 심사(5.1.1(v))에 필요하므로 운영은 셋 다와 `APPLE_PRIVATE_KEY` 를 채운다 |
 | `KAKAO_LOGIN_REST_API_KEY` | 스택 파라미터 `KakaoLoginRestApiKey`(#330). 회원 웹·트레이너 웹 카카오 로그인의 client_id — 같은 카카오 앱의 REST API 키. 웹이 받은 인가 코드를 서버가 이 키로 교환한다(`POST /v1/auth/social/kakao/code`). 브라우저에 보이는 값이라 비밀이 아니며, 프런트 웹 빌드 변수 `KAKAO_LOGIN_REST_API_KEY` 와 같은 값이다. 비우면 웹 카카오 로그인만 401(기동 경고) |
-| `AI_GLOBAL_CALLS_PER_DAY`·`TRAINER_AI_CALLS_PER_DAY`·`LLM_MAX_OUTPUT_TOKENS` | `0`·`200`·`4096`(#3032) — 서버 전체 하루 AI 호출 합(DB 에서 KST 날짜로 셈, 0 이면 끔, 넘으면 폴백이 있는 기능은 규칙형 폴백·AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After`)·트레이너 한 계정 하루 AI 호출(넘으면 429 `daily_limit`)·호출 한 번의 출력 토큰 천장. 출시 전 `AI_GLOBAL_CALLS_PER_DAY` 를 공급자 하루 예산 ÷ 호출당 비용으로 바꾼다(#480) |
+| `AI_GLOBAL_CALLS_PER_DAY`·`TRAINER_AI_CALLS_PER_DAY`·`LLM_MAX_OUTPUT_TOKENS` | `0`·`200`·`4096`(#3032) — 서버 전체 하루 AI 호출 합(DB 에서 KST 날짜로 셈, 0 이면 끔, 넘으면 폴백이 있는 기능은 규칙형 폴백·AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After`)·트레이너 한 계정 하루 AI 호출(넘으면 429 `daily_limit`)·호출 한 번의 출력 토큰 천장. `AI_GLOBAL_CALLS_PER_DAY` 는 고정값이 아니라 스택 파라미터 `AiGlobalCallsPerDay`(기본 0)로 넣는다 — 공급자 하루 예산 ÷ 호출당 비용. 운영은 **100**(2026-10-14 결정: Gemini 크레딧 약 ₩55,000 을 12월 말까지 79일로 나눠 하루 약 ₩700, 30% 여유를 빼고 호출당 약 ₩3~6 로 계산). 며칠 운영한 뒤 실제 하루 비용과 `ai_calls.rejected{reason=global_cap}` 로 다시 맞춘다(#480) |
+| `COACH_FEEDBACK_CACHE_SECONDS`·`COACH_FEEDBACK_PER_DAY` | `1800`·`20`(#3351) — 코칭 시트 피드백(`GET /ai-coach/feedback`)의 회원별 캐시 시간(초)과 회원 한 명이 하루에 카드를 새로 만드는 횟수. 호출 한 번에 모델을 최대 두 번 부르므로 회원 한 명의 하루 모델 호출은 상한 × 2 이하다. 캐시는 식단·운동 기록이 바뀌거나 KST 날짜가 바뀌면 먼저 버린다. 상한을 넘으면 오류가 아니라 규칙 기반 카드로 답한다. 둘 다 DB(`coach_feedback_states`)에 두어 태스크 수와 무관하다. 0 이면 각각 캐시 없음·상한 끔 |
 
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
 복사되지 않게 하고, 운영에서 무엇이 들어가는지 `.env.aws.example` 한 곳에서 보이게 한다.
@@ -468,12 +520,12 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `SMTP_HOST`·`SMTP_PORT` | 업체 SMTP 엔드포인트(SES 는 `email-smtp.<리전>.amazonaws.com`)·`587` |
 | `SMTP_USERNAME`·`SMTP_PASSWORD` | SMTP 자격 증명. 비밀 JSON 에 넣는다(SES 는 IAM 에서 만든 SMTP 자격 증명, #480) |
 | `MAIL_SUPPORT_CONTACT` | 가입 안내·이메일 변경 안내 메일 끝의 문의처(#3038·#3039, **결정 필요**). 비우면 문의처 줄이 빠진다 |
-| `PASSWORD_RESET_MEMBER_URL` | 회원 앱 재설정 화면 — **해시형** `https://<운영 도메인>/frontend/#/auth/password-reset`. 서버가 `…#/auth/password-reset?token=…` 꼴로 토큰을 붙인다. 비우면 메일에 코드만 보낸다 |
+| `PASSWORD_RESET_MEMBER_URL` | 회원 앱 재설정 화면 — **해시형** `https://<운영 도메인>/member/#/auth/password-reset`. 서버가 `…#/auth/password-reset?token=…` 꼴로 토큰을 붙인다. 비우면 메일에 코드만 보낸다 |
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
 소셜 로그인 `aud`(`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 카카오 웹 로그인
-`KAKAO_LOGIN_REST_API_KEY`(#330), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
+`KAKAO_LOGIN_REST_API_KEY`(#330), 애플 로그인(`APPLE_CLIENT_IDS`·`APPLE_TEAM_ID`·`APPLE_KEY_ID`, #3499), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
 템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고

@@ -111,8 +111,10 @@ class ClientProfileDialog extends StatelessWidget {
         key: const ValueKey<String>('client-memo-dialog'),
         title: l.clientMemoDialogTitle,
         size: AppDialogSize.medium,
-        // 메모·피드백 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
-        fixedHeight: true,
+        // 창은 내용만큼만 차지하고, 높이 변화는 이어 그린다(#3425). 두 탭 가운데
+        // 긴 쪽이 창 높이를 정하도록 스크롤은 탭마다 본문이 맡는다.
+        animateHeight: true,
+        scrollBody: false,
         child: _MemoDialogBody(
           clientId: clientId,
           clientName: clientName,
@@ -735,8 +737,9 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           Expanded(
             child: Text(
               name,
+              // 값을 보러 여는 창이라 목록 행 제목 크기로 읽힌다(#3427).
               style: tokens
-                  .text(OnCareTypography.body)
+                  .text(OnCareTypography.bodyLarge)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
@@ -780,7 +783,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           textAlign: TextAlign.end,
           style:
               OnCareTypography.numeric(
-                context.oncare.text(OnCareTypography.body),
+                context.oncare.text(OnCareTypography.bodyLarge),
               ).copyWith(
                 color: text.isEmpty
                     ? OnCareColors.textTertiary
@@ -835,8 +838,9 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       key: const ValueKey<String>('client-profile-dialog'),
       title: l.clientProfileSectionTitle,
       size: AppDialogSize.medium,
-      // 신체·목표 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
-      fixedHeight: true,
+      // 창은 내용만큼만 차지하고, 높이 변화는 이어 그린다(#3425). 탭 사이 높이는
+      // 본문의 [_healthTabBodyMinHeight] 가 지킨다.
+      animateHeight: true,
       trailing: _editing || !_profileLoaded
           ? null
           : AppIconButton(
@@ -846,7 +850,46 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               color: OnCareColors.textSecondary,
               onPressed: _startEditing,
             ),
+      // 창이 낮으면 본문이 스크롤된다 — 버튼을 본문 끝에 두면 값을 고친 뒤
+      // 내려가야 저장이 보였다. 창 바닥에 고정한다(#3316).
+      footer: _footer(context),
       child: _body(context),
+    );
+  }
+
+  /// 보기 상태에는 버튼이 없다 — 저장이 끝난 직후에만 완료 표시가 남는다.
+  /// 편집 중에는 `취소`·`저장` 이다(#2596).
+  Widget? _footer(BuildContext context) {
+    if (!_editing && !_saved) return null;
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    return AppActionRow(
+      actions: <Widget>[
+        // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이 결과인지
+        // 읽히지 않아 완료 전용 문구를 쓴다.
+        if (_saved)
+          Text(
+            l.actionSaved,
+            key: const ValueKey<String>('client-profile-saved'),
+            // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.label))
+                .copyWith(color: OnCareColors.success),
+          ),
+        if (_editing) ...<Widget>[
+          AppButton(
+            key: const ValueKey<String>('client-profile-cancel'),
+            onPressed: _saving ? null : _cancelEditing,
+            variant: AppButtonVariant.secondary,
+            label: l.actionCancel,
+          ),
+          AppButton(
+            key: const ValueKey<String>('client-profile-save'),
+            onPressed: _saving || !_profileLoaded ? null : _save,
+            label: _saving ? l.memberHealthSaving : l.actionSave,
+          ),
+        ],
+      ],
     );
   }
 
@@ -899,7 +942,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                       ),
                       textAlign: TextAlign.end,
                       style: tokens
-                          .text(OnCareTypography.body)
+                          .text(OnCareTypography.bodyLarge)
                           .copyWith(
                             color: _gender.isEmpty
                                 ? OnCareColors.textTertiary
@@ -1152,39 +1195,6 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                 children: tabBody,
               ),
             ),
-            // 보기 상태에는 버튼이 없다 — 저장이 끝난 직후에만 완료 표시가
-            // 남는다. 편집 중에는 `취소`·`저장` 이다(#2596).
-            if (_editing || _saved) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s16),
-              AppActionRow(
-                actions: <Widget>[
-                  // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이
-                  // 결과인지 읽히지 않아 완료 전용 문구를 쓴다.
-                  if (_saved)
-                    Text(
-                      l.actionSaved,
-                      key: const ValueKey<String>('client-profile-saved'),
-                      // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
-                      style: tokens
-                          .text(OnCareTypography.strong(OnCareTypography.label))
-                          .copyWith(color: OnCareColors.success),
-                    ),
-                  if (_editing) ...<Widget>[
-                    AppButton(
-                      key: const ValueKey<String>('client-profile-cancel'),
-                      onPressed: _saving ? null : _cancelEditing,
-                      variant: AppButtonVariant.secondary,
-                      label: l.actionCancel,
-                    ),
-                    AppButton(
-                      key: const ValueKey<String>('client-profile-save'),
-                      onPressed: _saving || !_profileLoaded ? null : _save,
-                      label: _saving ? l.memberHealthSaving : l.actionSave,
-                    ),
-                  ],
-                ],
-              ),
-            ],
           ],
         );
       },
@@ -1299,6 +1309,7 @@ class _MemoDialogBodyState extends State<_MemoDialogBody> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         AppSegmentedToggle<_MemoTab>(
@@ -1320,13 +1331,25 @@ class _MemoDialogBodyState extends State<_MemoDialogBody> {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s16),
-        switch (_tab) {
-          _MemoTab.memo => _MemoSection(
-            clientId: widget.clientId,
-            clientName: widget.clientName,
+        // 두 탭을 겹쳐 두어 긴 쪽이 창 높이를 정한다 — 탭을 오가도 창 크기가
+        // 그대로다(#2955). 화면 85% 를 넘는 탭은 제 안에서 스크롤한다(#3425).
+        Flexible(
+          child: IndexedStack(
+            index: _tab.index,
+            alignment: Alignment.topCenter,
+            children: <Widget>[
+              SingleChildScrollView(
+                child: _MemoSection(
+                  clientId: widget.clientId,
+                  clientName: widget.clientName,
+                ),
+              ),
+              SingleChildScrollView(
+                child: ClientFeedbackSection(clientId: widget.clientId),
+              ),
+            ],
           ),
-          _MemoTab.feedback => ClientFeedbackSection(clientId: widget.clientId),
-        },
+        ),
       ],
     );
   }

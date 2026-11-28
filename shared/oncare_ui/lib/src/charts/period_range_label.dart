@@ -25,14 +25,13 @@ import 'package:oncare_ui/src/tokens/typography.dart';
 /// 어느 해인지 갈리지 않는다.
 const int _daysInYear = 365;
 
-/// `9. 14. ~ 9. 20.` / `9/14 – 9/20` — 카드가 집계한 기간. 1년을 넘기면 연도까지
-/// 적는다. 기간 구분은 한국어 `~`, 영어 `–` 이고 앞뒤를 띄운다(#3120).
+/// `9. 14. ~ 9. 20.` — 카드가 집계한 기간. 1년을 넘기면 연도까지 적는다. 기간
+/// 구분은 `~` 이고 앞뒤를 띄운다(#3120). [locale] 은 날짜 형식에만 쓴다.
 String periodRangeText(String locale, DateTime from, DateTime to) {
   final DateFormat format = to.difference(from).inDays >= _daysInYear - 1
       ? DateFormat.yMd(locale)
       : DateFormat.Md(locale);
-  final String separator = locale.startsWith('ko') ? '~' : '–';
-  return '${format.format(from)} $separator ${format.format(to)}';
+  return '${format.format(from)} ~ ${format.format(to)}';
 }
 
 /// 카드 머리줄 오른쪽에 붙는 기간 한 줄.

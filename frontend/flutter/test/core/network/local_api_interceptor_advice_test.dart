@@ -137,26 +137,6 @@ void main() {
     );
   });
 
-  test('GET /diet/advice 는 lang 을 받는다 — 메뉴 이름이 그 언어다', () async {
-    final Response<Map<String, Object?>> en = await dio
-        .get<Map<String, Object?>>(
-          '/diet/advice',
-          queryParameters: <String, Object?>{'period': 'today', 'lang': 'en'},
-        );
-    final Object? menu =
-        (en.data!['action_params']! as Map<String, Object?>)['menu'];
-    if (menu != null) {
-      expect((menu as String).codeUnits.every((int c) => c < 128), isTrue);
-    }
-
-    final Response<Object?> unknown = await dio.get<Object?>(
-      '/diet/advice',
-      queryParameters: <String, Object?>{'period': 'today', 'lang': 'jp'},
-      options: Options(validateStatus: (int? _) => true),
-    );
-    expect(unknown.statusCode, 422);
-  });
-
   test('GET /diet/advice 는 기록이 없어도 그 기간의 안내를 남긴다', () async {
     for (final String period in <String>['today', 'week', 'all']) {
       final Response<Map<String, Object?>> res = await dio

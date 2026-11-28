@@ -135,7 +135,9 @@ def _fake_repo(root: Path, *, contact: str = "dpo@team.example") -> None:
     contact_file.write_text(
         f"static const String privacyOfficerEmail = '{contact}';\n", encoding="utf-8"
     )
-    (root / "index.html").write_text(
+    look = root / "tool" / "legal" / "look.html"
+    look.parent.mkdir(parents=True, exist_ok=True)
+    look.write_text(
         "<link href=\"https://fonts.googleapis.com/css2?family=X\" rel=\"stylesheet\" />\n"
         "<style>\n  :root {\n    --brand: #1580bd;\n  }\n</style>\n"
         '<img src="data:image/png;base64,AAAA" alt="On-Care" />\n',
@@ -151,17 +153,17 @@ class BuildTest(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.tmp)
 
-    def test_builds_both_pages_with_four_sections(self) -> None:
+    def test_builds_both_pages_with_a_section_per_source(self) -> None:
         pages = blp.build(self.tmp)
         self.assertEqual(
             sorted(p.name for p in pages),
             ["location.html", "privacy.html", "terms.html"],
         )
         privacy = pages[self.tmp / "legal" / "privacy.html"]
-        for anchor in ("member-ko", "trainer-ko", "member-en", "trainer-en"):
-            self.assertIn(f'id="{anchor}"', privacy)
-            self.assertIn(f'href="#{anchor}"', privacy)
-        self.assertIn('lang="en"', privacy)
+        for source in blp.SOURCES:
+            self.assertIn(f'id="{source.anchor}"', privacy)
+            self.assertIn(f'href="#{source.anchor}"', privacy)
+        self.assertEqual(privacy.count('<section class="doc"'), len(blp.SOURCES))
 
     def test_placeholder_is_filled_with_the_contact(self) -> None:
         privacy = blp.build(self.tmp)[self.tmp / "legal" / "privacy.html"]
@@ -195,8 +197,8 @@ class BuildTest(unittest.TestCase):
     def test_location_terms_carry_only_the_member_app(self) -> None:
         """위치를 쓰는 것은 회원 앱뿐이다 — 트레이너 웹 절은 없다(#3136)."""
         location = blp.build(self.tmp)[self.tmp / "legal" / "location.html"]
-        for anchor in ("member-ko", "member-en"):
-            self.assertIn(f'id="{anchor}"', location)
+        self.assertIn('id="member-ko"', location)
+        self.assertNotIn('id="member-en"', location)
         for anchor in ("trainer-ko", "trainer-en"):
             self.assertNotIn(f'id="{anchor}"', location)
         self.assertNotIn("{contact}", location)
@@ -211,7 +213,7 @@ class BuildTest(unittest.TestCase):
     def test_doc_sources_keep_the_source_order(self) -> None:
         doc = next(d for d in blp.DOCS if d.slug == "location")
         self.assertEqual(
-            [s.anchor for s in doc.sources()], ["member-ko", "member-en"]
+            [s.anchor for s in doc.sources()], ["member-ko"]
         )
         privacy = next(d for d in blp.DOCS if d.slug == "privacy")
         self.assertEqual(privacy.sources(), blp.SOURCES)
@@ -220,7 +222,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(blp.build(self.tmp), blp.build(self.tmp))
 
     def test_landing_without_tokens_is_an_error(self) -> None:
-        (self.tmp / "index.html").write_text("<html></html>", encoding="utf-8")
+        (self.tmp / "tool" / "legal" / "look.html").write_text("<html></html>", encoding="utf-8")
         with self.assertRaises(ValueError):
             blp.build(self.tmp)
 
@@ -260,22 +262,27 @@ class RepositoryPagesTest(unittest.TestCase):
         )
         self.assertNotIn("@oncare.com", privacy)
 
-    def test_published_pages_do_not_offer_naver_or_apple_login(self) -> None:
-        # 네이버·애플 로그인은 제공하지 않는다(#3217). 처리방침이 수집 경로로 적으면
-        # 사실과 다른 고지가 된다. 둘이 남아도 되는 곳은 그 제외를 알리는 개정
-        # 이력 한 줄뿐이다. 글꼴 이름 `-apple-system` 은 소문자라 걸리지 않는다.
+    def test_published_pages_do_not_offer_naver_login(self) -> None:
+        # 네이버 로그인은 제공하지 않는다(#3217). 처리방침이 수집 경로로 적으면
+        # 사실과 다른 고지가 된다. 남아도 되는 곳은 그 제외를 알리는 개정 이력 한 줄뿐이다.
         for path, text in blp.build().items():
             for line in text.splitlines():
-                if re.search(r"애플|네이버|\bApple\b|\bNaver\b", line):
+                if re.search(r"네이버|\bNaver\b", line):
                     self.assertRegex(
                         line,
                         r"2026년 10월 5일: .*네이버·애플 제외"
                         r"|5 October 2026: .*removed Naver and Apple",
                         f"{path.name}: {line.strip()}",
                     )
+
+    def test_published_privacy_page_names_apple_login(self) -> None:
+        # iOS 회원 앱에 애플 로그인을 다시 넣었다(#3499) — 수집 경로·탈퇴 때 연결 해제와
+        # 그 개정 이력이 공개 처리방침에도 실린다.
         privacy = (blp.OUT_DIR / "privacy.html").read_text(encoding="utf-8")
-        self.assertIn("소셜 로그인(카카오·구글)", privacy)
-        self.assertIn("social login (Kakao or Google)", privacy)
+        self.assertIn("소셜 로그인(카카오·구글·애플)", privacy)
+        self.assertIn("전달용 이메일 주소", privacy)
+        self.assertIn("애플 로그인 연결 해제", privacy)
+        self.assertIn("2026년 10월 27일: 소셜 로그인 수단에 애플 추가", privacy)
 
     def test_every_source_document_is_published(self) -> None:
         pages = blp.build()

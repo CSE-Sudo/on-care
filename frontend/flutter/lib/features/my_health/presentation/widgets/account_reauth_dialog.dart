@@ -35,7 +35,7 @@ class AccountReauthDialogOutcome {
 /// 이메일 변경·탈퇴 앞의 본인 확인 창(#3039).
 ///
 /// 비밀번호 계정은 현재 비밀번호 칸을, 비밀번호 없는 소셜 전용 계정은 그 칸
-/// 대신 카카오·구글 다시 로그인 버튼을 보인다. 확정 버튼은 비밀번호를 적었거나
+/// 대신 카카오·구글(iOS 는 애플도, #3499) 다시 로그인 버튼을 보인다. 확정 버튼은 비밀번호를 적었거나
 /// 다시 로그인을 마쳤을 때만 켜진다.
 ///
 /// [onSubmit] 이 실제 작업(저장·탈퇴)을 한다. 서버가 본인 확인을 받아 주지
@@ -100,7 +100,7 @@ class _AccountReauthDialogState extends ConsumerState<AccountReauthDialog> {
   AccountReauthFailure? _failure;
 
   /// 소셜 전용 계정이 방금 다시 로그인해 받은 provider·토큰.
-  ({String provider, String token})? _social;
+  ({String provider, String token, String? code})? _social;
   bool _socialBusy = false;
 
   /// 다시 로그인하지 못한 이유(없으면 null). 취소는 실패가 아니다.
@@ -135,10 +135,14 @@ class _AccountReauthDialogState extends ConsumerState<AccountReauthDialog> {
       final String password = _password.text;
       return password.isEmpty ? null : AccountReauth.password(password);
     }
-    final ({String provider, String token})? social = _social;
+    final ({String provider, String token, String? code})? social = _social;
     return social == null
         ? null
-        : AccountReauth.social(provider: social.provider, token: social.token);
+        : AccountReauth.social(
+            provider: social.provider,
+            token: social.token,
+            appleAuthorizationCode: social.code,
+          );
   }
 
   /// 로그인 화면과 같은 길로 provider 토큰을 받는다(#330). 계정에 연결된
@@ -168,9 +172,19 @@ class _AccountReauthDialogState extends ConsumerState<AccountReauthDialog> {
       _socialBusy = false;
       _failure = null;
       switch (result) {
-        case SocialSignInSuccess(:final provider, :final token):
+        case SocialSignInSuccess(
+          :final provider,
+          :final token,
+          :final authorizationCode,
+        ):
           _socialFailure = null;
-          _social = (provider: provider.id, token: token);
+          _social = (
+            provider: provider.id,
+            token: token,
+            code: provider == SocialLoginProvider.apple
+                ? authorizationCode
+                : null,
+          );
         case SocialSignInCancelled():
           _socialFailure = null;
         case SocialSignInFailure(:final reason):
@@ -340,6 +354,16 @@ class _AccountReauthDialogState extends ConsumerState<AccountReauthDialog> {
               onPressed: null,
             ),
           ),
+          // 애플로 가입한 회원도 같은 창에서 다시 로그인한다(#3499). iOS 에만 있다.
+          if (social.offers(SocialLoginProvider.apple))
+            AppSocialLoginButton(
+              key: const ValueKey<String>('reauth-social-apple'),
+              provider: AppSocialProvider.apple,
+              label: l.authAppleAction,
+              onPressed: enabled(SocialLoginProvider.apple)
+                  ? () => _relogin(SocialLoginProvider.apple)
+                  : null,
+            ),
         ],
       ),
       if (!social.anyEnabled) ...<Widget>[

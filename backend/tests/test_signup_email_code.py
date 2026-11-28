@@ -533,10 +533,13 @@ def test_prod_without_mail_is_503(client, monkeypatch, outbox, cleanup):
     assert outbox.sent == []
 
 
-def test_english_request_gets_english_mail(client, outbox, verification_on, cleanup):
+def test_english_request_gets_the_korean_mail(client, outbox, verification_on, cleanup):
+    """서버 문장은 한국어 하나다 — 메일도 헤더와 무관하다(#3404)."""
     email = _email(cleanup)
     _ask(client, email, **{"Accept-Language": "en-US"})
-    assert "verification code" in outbox.to(email)[-1].subject.lower()
+    subject = outbox.to(email)[-1].subject
+    assert any("가" <= ch <= "힣" for ch in subject)
+    assert "verification code" not in subject.lower()
 
 
 def test_support_contact_is_added_when_set(

@@ -199,14 +199,13 @@ int _doneCount(int completion, int routines) =>
 /// 개인운동 한 줄의 양. 근력은 세트·횟수(버티면 초)·중량, 나머지는 시간이다.
 /// 안 한 근력은 시간을 적지 않는다 — 서버 `_personal_missed_item` 과 같다.
 Map<String, Object?> _routineAmounts(
-  _Routine r,
-  _SeedText t, {
+  _Routine r, {
   bool done = true,
 }) {
   final String code = _routineCode(r.type);
   final bool strength = code == 'strength';
   return <String, Object?>{
-    'name': t(r.name),
+    'name': r.name,
     'type': code,
     'minutes': strength && !done ? 0 : r.minutes,
     if (strength && r.sets > 0) 'sets': r.sets,
@@ -221,8 +220,7 @@ Map<String, Object?> _routineAmounts(
 /// 그날 완료한 개인운동 → 운동 행(출처 `assigned_routine`).
 List<Map<String, Object?>> _personalRows(
   _Client client,
-  int completion,
-  _SeedText t, {
+  int completion, {
   required DateTime date,
   required DateTime? offDay,
 }) => <Map<String, Object?>>[
@@ -231,7 +229,7 @@ List<Map<String, Object?>> _personalRows(
           .take(_doneCount(completion, client.aiRoutine.length))
           .indexed)
     () {
-      final Map<String, Object?> row = _routineAmounts(r, t);
+      final Map<String, Object?> row = _routineAmounts(r);
       return <String, Object?>{
         ...row,
         'calories': _seedKcal(row),
@@ -246,14 +244,13 @@ List<Map<String, Object?>> _personalRows(
 List<Map<String, Object?>> _memberLogRows(
   _Client client,
   DateTime date,
-  _SeedText t,
 ) => <Map<String, Object?>>[
   for (final (int weekday, Map<String, Object?> e)
       in _memberLogs[client.id] ?? const <(int, Map<String, Object?>)>[])
     if (date.weekday - 1 == weekday)
       <String, Object?>{
         ...e,
-        'name': t(e['name']! as String),
+        'name': e['name']! as String,
         'calories': _seedKcal(e),
         'source': 'member',
       },
@@ -271,7 +268,6 @@ bool _seedsPersonalOn(_Client client, DateTime date, DateTime today) =>
 Iterable<ClientRoutineHistoryCompanion> _personalCards(
   _Client client,
   DateTime now,
-  _SeedText t,
 ) sync* {
   final DateTime today = DateTime(now.year, now.month, now.day);
   final DateTime seedSince = today.subtract(const Duration(days: 27));
@@ -288,14 +284,14 @@ Iterable<ClientRoutineHistoryCompanion> _personalCards(
     yield ClientRoutineHistoryCompanion.insert(
       id: 'seed-personal-${client.id}-${ymd(d.date)}',
       clientId: 'seed-client-${client.id}',
-      dateLabel: _historyLabel(now, daysAgo, t),
-      label: t(_personalLabel),
+      dateLabel: _historyLabel(now, daysAgo),
+      label: _personalLabel,
       completionRate: (100 * done / client.aiRoutine.length).round(),
       exercisesJson: jsonEncode(<Map<String, Object?>>[
         for (final (int i, _Routine r) in client.aiRoutine.indexed)
           if (i < done)
             <String, Object?>{
-              ..._routineAmounts(r, t),
+              ..._routineAmounts(r),
               // 한 강도와 처방 강도 — 둘이 다른 날(#3263) 트레이너 화면이
               // `수행 …` 을 붙인다. 서버 `_personal_done_item` 과 같다.
               'intensity': _performedIntensity(client, i, d.date, offDay),
@@ -303,7 +299,7 @@ Iterable<ClientRoutineHistoryCompanion> _personalCards(
             }
           else if (missedLines)
             <String, Object?>{
-              ..._routineAmounts(r, t, done: false),
+              ..._routineAmounts(r, done: false),
               'intensity': r.intensity,
               'done': false,
             },
@@ -322,7 +318,7 @@ int _historyOrder(int daysAgo, {bool pt = false}) => daysAgo * 2 + (pt ? 1 : 0);
 ///
 /// 수업 날은 이 데모의 일정이 정한다 — 일정을 다 심은 뒤에 돈다. 서버도 그
 /// 서버의 끝난 수업 날에 같은 프로그램을 둔다(`_seed_pt_programs`).
-Future<void> _seedPtPrograms(AppDatabase db, DateTime now, _SeedText t) async {
+Future<void> _seedPtPrograms(AppDatabase db, DateTime now) async {
   final String today = ymd(now);
   for (final MapEntry<int, List<Map<String, Object?>>> program
       in _ptPrograms.entries) {
@@ -339,7 +335,7 @@ Future<void> _seedPtPrograms(AppDatabase db, DateTime now, _SeedText t) async {
             .get();
     final List<Map<String, Object?>> exercises = <Map<String, Object?>>[
       for (final Map<String, Object?> e in program.value)
-        <String, Object?>{...e, 'name': t(e['name']! as String)},
+        <String, Object?>{...e, 'name': e['name']! as String},
     ];
     for (final String date in <String>{
       for (final TrainerScheduleRow s in sessions) s.date,
@@ -354,9 +350,8 @@ Future<void> _seedPtPrograms(AppDatabase db, DateTime now, _SeedText t) async {
               dateLabel: _historyLabel(
                 now,
                 _daysBetween(day, DateTime(now.year, now.month, now.day)),
-                t,
               ),
-              label: t(_ptLabel),
+              label: _ptLabel,
               completionRate: 100,
               exercisesJson: jsonEncode(exercises),
               sortOrder: Value(

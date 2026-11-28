@@ -38,13 +38,13 @@ class _AdviceRepository extends FakeDietRepository {
   final Map<String, int> calls = <String, int>{};
 
   @override
-  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) {
+  Future<DietAdvice> fetchAdvice(String period) {
     calls[period] = (calls[period] ?? 0) + 1;
     if (pending.contains(period)) return Completer<DietAdvice>().future;
     if (failing.contains(period)) {
       return Future<DietAdvice>.error(StateError('advice unavailable'));
     }
-    return super.fetchAdvice(period, lang: lang);
+    return super.fetchAdvice(period);
   }
 }
 

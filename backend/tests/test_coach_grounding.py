@@ -44,7 +44,7 @@ def test_prompts_never_ask_to_ground_on_an_untracked_metric(name):
         ("저혈당 위험이 있는 분", False),
         ("혈압 관리에 도움이 되는 운동", True),          # 지표 주장
         ("최근 혈당 수치를 보면", True),
-        ("나트륨·당류·운동 관리를 중심으로", False),
+        ("칼로리·단백질·나트륨·당류·운동 관리를 중심으로", False),
     ],
 )
 def test_condition_names_are_not_metric_claims(text, expected):
@@ -66,14 +66,14 @@ def test_the_chat_prompt_lists_exactly_the_grounded_topics():
 def test_grounded_topics_match_what_is_actually_ingested():
     """적재 도메인이 늘었는데 주제 목록이 그대로면 잡는다.
 
-    `personal_ingest` 의 적재 진입점과 대조한다 — 식단(나트륨·당류), 운동, 채팅.
+    `personal_ingest` 의 적재 진입점과 대조한다 — 식단(네 축), 운동, 채팅.
     채팅은 특정 지표가 아니라 맥락이라 주제 목록에는 없다.
     """
     assert hasattr(personal_ingest, "record_diet")
     assert hasattr(personal_ingest, "record_exercise")
     assert "운동" in grounding.GROUNDED_TOPICS
-    # 식단에서 나오는 두 수치는 record_diet 가 실제로 문서에 적는 값이다.
-    assert {"나트륨", "당류"} <= set(grounding.GROUNDED_TOPICS)
+    # 식단을 보는 축은 전부 근거 주제다(#1642).
+    assert set(grounding.DIET_AXIS) <= set(grounding.GROUNDED_TOPICS)
 
 
 def test_untracked_metrics_have_no_ingest_entry_point():

@@ -112,9 +112,7 @@ def tables() -> dict:
         "escalation_keywords": list(svc._ESCALATION_KEYWORDS),
         "stretch_keywords": list(svc._STRETCH_KEYWORDS),
         "cardio_keywords": list(svc._CARDIO_KEYWORDS),
-        "en_caution_parts": dict(svc._EN_CAUTION_PARTS),
         "library": [{"name": name, "type": type_} for name, type_ in _LIBRARY],
-        "en_exercise_names": dict(svc._EN_EXERCISE_NAMES),
     }
 
 
@@ -151,8 +149,7 @@ def cases() -> dict:
             {
                 "cautions": cautions,
                 "escalate": escalate,
-                "ko": svc._caution_suffix(cautions, escalate, "ko"),
-                "en": svc._caution_suffix(cautions, escalate, "en"),
+                "ko": svc._caution_suffix(cautions, escalate),
             }
             for cautions, escalate in _SUFFIX
         ],

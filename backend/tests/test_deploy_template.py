@@ -128,6 +128,9 @@ _OPTIONAL_PARAMETER_KEYS = {
     "GOOGLE_CLIENT_IDS",
     "KAKAO_APP_ID",
     "KAKAO_LOGIN_REST_API_KEY",
+    "APPLE_CLIENT_IDS",
+    "APPLE_TEAM_ID",
+    "APPLE_KEY_ID",
 }
 
 
@@ -144,6 +147,7 @@ def _production_values() -> dict[str, object]:
         "GEMINI_API_KEY": "test-gemini-key",
         "KAKAO_REST_API_KEY": "",
         "KAKAO_CLIENT_SECRET": "",
+        "APPLE_PRIVATE_KEY": "",
         "SENTRY_DSN": "",
         "MAIL_FROM": "noreply@example.com",
         "SMTP_HOST": "smtp.example.com",
@@ -152,6 +156,7 @@ def _production_values() -> dict[str, object]:
         "SMTP_PASSWORD": "smtp-password",
         "PASSWORD_RESET_MEMBER_URL": "https://app.example.com/reset",
         "PASSWORD_RESET_TRAINER_URL": "https://trainer.example.com/reset",
+        "AI_GLOBAL_CALLS_PER_DAY": "100",
     }
     values: dict[str, object] = {}
     for item in _entries("Environment"):

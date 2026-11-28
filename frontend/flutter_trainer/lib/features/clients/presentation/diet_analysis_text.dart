@@ -2,9 +2,9 @@ import 'package:intl/intl.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
-/// `식단 분석` 문장 → 화면 언어의 문장. (#2379)
+/// `식단 분석` 문장 → 화면 문장. (#2379)
 ///
-/// 서버 `diet_trainer_analysis` 의 한국어·영어 틀과 **같은 문장**이어야 한다 — 공유
+/// 서버 `diet_trainer_analysis` 의 한국어 틀과 **같은 문장**이어야 한다 — 공유
 /// 사례 파일의 `renderings` 로 테스트가 본다. 모르는 키면 null 이다(서버가 먼저 새
 /// 키를 내보낸 경우) — 카드는 그 문장만 빼고 그린다.
 String? clientDietSentenceText(AppLocalizations l, ClientDietSentence s) {
@@ -12,10 +12,8 @@ String? clientDietSentenceText(AppLocalizations l, ClientDietSentence s) {
   String str(String k) => '${p[k] ?? ''}';
   int number(String k) => (p[k] as num?)?.toInt() ?? 0;
   final String nutrient = str('nutrient');
-  // 단위는 한국어 붙임(`4,286mg`), 영어 띄움(`4,286 mg`) — 서버 `_fmt` 와 같다(#3120).
-  final bool spaced = !l.localeName.startsWith('ko');
   String amount(String k, [String? of]) =>
-      formatDietAmount(number(k), of ?? nutrient, spaced: spaced);
+      formatDietAmount(number(k), of ?? nutrient);
   return switch (s.key) {
     'tr_today_empty' => l.clientDietAnalysisTodayEmpty,
     'tr_today_over' => l.clientDietAnalysisTodayOver(
@@ -144,13 +142,13 @@ String clientDietAnalysisText(AppLocalizations l, ClientDietAnalysis a) => a
     .whereType<String>()
     .join(' ');
 
-/// `4,286mg` · `70g` · `2,600kcal` — 서버 틀과 같은 모양(천 단위 쉼표). 한국어는
-/// 단위를 붙이고, [spaced] 면(영어) `4,286 mg` 처럼 띄운다.
-String formatDietAmount(int value, String nutrient, {bool spaced = false}) {
+/// `4,286mg` · `70g` · `2,600kcal` — 서버 틀과 같은 모양(천 단위 쉼표). 단위는
+/// 숫자에 붙여 쓴다.
+String formatDietAmount(int value, String nutrient) {
   final String unit = switch (nutrient) {
     'sodium' => 'mg',
     'calorie' => 'kcal',
     _ => 'g',
   };
-  return '${NumberFormat('#,##0', 'en').format(value)}${spaced ? ' ' : ''}$unit';
+  return '${NumberFormat('#,##0', 'en').format(value)}$unit';
 }

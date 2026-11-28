@@ -81,6 +81,8 @@ void main() {
           // 카카오맵 SDK 와 SDK 가 이어 올리는 본체.
           'https://dapi.kakao.com',
           'https://t1.daumcdn.net',
+          // 카카오가 본체를 옮긴 주소 — 빠지면 지도가 뜨지 않는다.
+          'https://t1.kakaocdn.net',
           // 구글 로그인 버튼(Google Identity Services, #330).
           'https://accounts.google.com/gsi/client',
         ]),

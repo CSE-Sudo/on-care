@@ -45,6 +45,34 @@ void main() {
       expect(state.activityPoints, 50);
       expect(state.profile.id, '');
     });
+
+    test('대체 이메일 표시와 가입 수단을 읽는다 (#3338)', () {
+      final state = MyHealthState.fromJson(<String, Object?>{
+        'profile': <String, Object?>{
+          'id': 'user-social',
+          'name': '김민수',
+          'email': 'kakao_4242@social.oncare',
+          'email_is_placeholder': true,
+          'email_placeholder_provider': 'kakao',
+        },
+        'activity_points': 0,
+      });
+      expect(state.profile.emailIsPlaceholder, isTrue);
+      expect(state.profile.emailPlaceholderProvider, 'kakao');
+    });
+
+    test('표시를 주지 않는 옛 서버의 이메일은 실제 주소로 본다 (#3338)', () {
+      final state = MyHealthState.fromJson(<String, Object?>{
+        'profile': <String, Object?>{
+          'name': '김민수',
+          'email': 'minsu@oncare.com',
+          'email_placeholder_provider': null,
+        },
+        'activity_points': 0,
+      });
+      expect(state.profile.emailIsPlaceholder, isFalse);
+      expect(state.profile.emailPlaceholderProvider, isNull);
+    });
   });
 
   group('myHealthRepositoryProvider 모드 분기', () {

@@ -53,6 +53,13 @@ abstract final class AppGoalRanges {
   static const AppGoalRange weeklyFlexibilityMinutes =
       AppGoalRange(0, minutesPerWeek);
 
+  /// 주간 운동 횟수 — 주간 운동 챌린지의 목표가 되는 값이다(#3361). 챌린지는
+  /// 운동한 **날**을 세므로 한 주에 채울 수 있는 1~7 만 받는다. 서버 컬럼은
+  /// 옛 범위(0~21)를 아직 받지만, 챌린지는 1 미만을 3 으로, 7 초과를 7 로 읽는다
+  /// (`weekly_challenge_service.goal_for`) — 화면이 그 밖의 값을 받으면 적은
+  /// 목표와 걸리는 목표가 달라진다.
+  static const AppGoalRange weeklyWorkoutDays = AppGoalRange(1, 7);
+
   /// 키·몸무게도 같은 자리에서 본다 — 트레이너 웹이 이미 같은 폼에서 함께
   /// 검사하던 값이고, 서버 스키마(`height_cm`·`weight_kg`)도 한 벌이다.
   static const AppGoalRange heightCm = AppGoalRange(50, 300);

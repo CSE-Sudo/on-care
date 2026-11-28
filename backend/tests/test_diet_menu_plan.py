@@ -50,13 +50,13 @@ def _assert_shape(plan) -> None:
 
 
 def test_rules_plan_fills_every_slot_without_duplicates():
-    items = svc.rules_plan(lang="ko", needs=[], excluded=set())
-    plan = svc.MenuPlan("x", "ko", "rules", items, 0, "", "")
+    items = svc.rules_plan(needs=[], excluded=set())
+    plan = svc.MenuPlan("x", "rules", items, 0, "", "")
     _assert_shape(plan)
 
 
 def test_rules_plan_puts_urgent_tag_first_and_mixes_tags():
-    items = svc.rules_plan(lang="ko", needs=[catalog.TAG_SODIUM_LOW], excluded=set())
+    items = svc.rules_plan(needs=[catalog.TAG_SODIUM_LOW], excluded=set())
     lunch = [m for m in items if m.slot == catalog.SLOT_LUNCH]
     assert lunch[0].tag == catalog.TAG_SODIUM_LOW
     # 한 태그로만 채우지 않는다.
@@ -64,9 +64,9 @@ def test_rules_plan_puts_urgent_tag_first_and_mixes_tags():
 
 
 def test_rules_plan_avoids_previous_menus_while_catalog_allows():
-    first = svc.rules_plan(lang="ko", needs=[], excluded=set())
+    first = svc.rules_plan(needs=[], excluded=set())
     excluded = {svc.norm_name(m.name) for m in first}
-    second = svc.rules_plan(lang="ko", needs=[], excluded=excluded)
+    second = svc.rules_plan(needs=[], excluded=excluded)
     main_slots = (catalog.SLOT_BREAKFAST, catalog.SLOT_LUNCH, catalog.SLOT_DINNER, catalog.SLOT_SNACK)
     for slot in main_slots:
         again = [m for m in second if m.slot == slot and svc.norm_name(m.name) in excluded]
@@ -76,15 +76,8 @@ def test_rules_plan_avoids_previous_menus_while_catalog_allows():
 def test_catalog_respects_name_and_keyword_limits():
     """카탈로그도 AI 응답과 같은 한도를 지킨다 — 카드 두 문장이 45자 안팎이다."""
     for m in catalog.CATALOG:
-        assert len(m.name_ko) <= svc.NAME_MAX["ko"], m.name_ko
-        assert len(m.name_en) <= svc.NAME_MAX["en"], m.name_en
-    for lang, words in catalog.TAG_KEYWORDS.items():
-        assert all(len(w) <= svc.KEYWORD_MAX[lang] for w in words.values()), lang
-
-
-def test_rules_plan_english_names_and_keywords():
-    items = svc.rules_plan(lang="en", needs=[], excluded=set())
-    assert all(m.name.isascii() and m.keyword.isascii() for m in items)
+        assert len(m.name) <= svc.NAME_MAX, m.name
+    assert all(len(w) <= svc.KEYWORD_MAX for w in catalog.TAG_KEYWORDS.values())
 
 
 def test_parse_items_drops_bad_rows_and_fills_from_catalog():
@@ -110,9 +103,9 @@ def test_parse_items_drops_bad_rows_and_fills_from_catalog():
     ]
     items = svc.parse_items(
         json.dumps({"items": rows}, ensure_ascii=False),
-        lang="ko", needs=[], excluded={svc.norm_name("옛 메뉴")},
+        needs=[], excluded={svc.norm_name("옛 메뉴")},
     )
-    plan = svc.MenuPlan("x", "ko", "llm", items, 0, "", "")
+    plan = svc.MenuPlan("x", "llm", items, 0, "", "")
     _assert_shape(plan)
     names = [m.name for m in items]
     assert "귀리 죽" in names
@@ -124,10 +117,10 @@ def test_parse_items_drops_bad_rows_and_fills_from_catalog():
 
 def test_parse_items_accepts_code_fence_and_rejects_empty():
     fenced = "```json\n" + _llm_payload() + "\n```"
-    items = svc.parse_items(fenced, lang="ko", needs=[], excluded=set())
+    items = svc.parse_items(fenced, needs=[], excluded=set())
     assert len(items) == _EXPECTED_TOTAL
     with pytest.raises(ValueError):
-        svc.parse_items('{"items": []}', lang="ko", needs=[], excluded=set())
+        svc.parse_items('{"items": []}', needs=[], excluded=set())
 
 
 def test_needs_follow_recent_averages():
@@ -157,17 +150,17 @@ def test_targets_use_personal_values_then_weight_then_default():
     assert inputs.targets_of(None).calories == inputs.DEFAULT_CALORIES
 
 
-def test_prompt_carries_trainer_notes_previous_menus_and_language():
+def test_prompt_carries_trainer_notes_and_previous_menus():
     targets = inputs.DietTargets(2000, 80, 2000, 50)
     recent = inputs.DietDigest(0, 0, 0, 0, 0, {}, [])
     prev = (svc.PlanMenu("dinner", "구운 고등어 정식", "protein_high", "고단백", 600, 32, 650),)
     system, user = svc.build_prompt(
-        lang="en", profile=None, targets=targets, recent=recent, needs=[],
+        profile=None, targets=targets, recent=recent, needs=[],
         notes=["저녁 탄수화물은 줄여 주세요"], previous=prev,
     )
     assert "트레이너: 저녁 탄수화물은 줄여 주세요" in user
     assert "- 구운 고등어 정식" in user
-    assert "영어(English)" in system
+    assert "English" not in system
     assert "상충" in system  # 트레이너 조언과 상충하지 않는다(대원칙)
 
 
@@ -302,13 +295,23 @@ def test_plan_made_before_seven_days_is_remade_once_records_pile_up(db_session, 
     assert svc.get_plan(db_session, member.id, now=now).id == second.id
 
 
-def test_language_change_remakes_plan(db_session, member, monkeypatch):
+def test_a_plan_stored_in_another_language_is_remade_in_korean(
+    db_session, member, monkeypatch
+):
+    """예전에 영어로 저장된 리스트는 한 번 다시 만든다 — 그 뒤로는 한국어 하나다(#3404)."""
+    from app.models.models import DietMenuPlan
+
     monkeypatch.setattr(svc, "_call_llm", _FakeLLM(fail=True))
     now = _now()
-    ko = svc.get_plan(db_session, member.id, now=now, use_llm=False)
-    en = svc.get_plan(db_session, member.id, now=now, lang="en", use_llm=False)
-    assert en.id != ko.id and en.lang == "en"
-    assert all(m.name.isascii() for m in en.items)
+    first = svc.get_plan(db_session, member.id, now=now, use_llm=False)
+    row = db_session.get(DietMenuPlan, first.id)
+    row.lang = "en"
+    db_session.commit()
+
+    again = svc.get_plan(db_session, member.id, now=now, use_llm=False)
+    assert again.id != first.id
+    assert db_session.get(DietMenuPlan, again.id).lang == svc.PLAN_LANG == "ko"
+    assert svc.get_plan(db_session, member.id, now=now, use_llm=False).id == again.id
 
 
 def test_llm_failure_falls_back_and_retries_after_an_hour(db_session, member, monkeypatch):

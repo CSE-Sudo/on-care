@@ -310,18 +310,6 @@ void main() {
       expect(lines.where((String s) => s.startsWith('· 회원')), isEmpty);
     });
 
-    testWidgets('영어 화면이면 영어 결과지다', (WidgetTester tester) async {
-      final AppLocalizations l = await localizations(tester, lang: 'en');
-      final List<String> lines = const MemberReportPdfGenerator().textContent(
-        l: l,
-        inputs: _inputs(),
-        feedback: trainerReportFeedback(''),
-      );
-      expect(lines.first, 'Weekly report');
-      expect(lines, contains('Trainer feedback'));
-      expect(lines, contains('No feedback'));
-    });
-
     testWidgets('포인트로 받은 리포트는 트레이너 칸에 감지 기록을 싣는다 (#2022)', (
       WidgetTester tester,
     ) async {

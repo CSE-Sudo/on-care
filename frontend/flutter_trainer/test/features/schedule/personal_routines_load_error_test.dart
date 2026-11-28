@@ -75,9 +75,7 @@ void main() {
     });
 
     Future<List<List<RoutineExercise>?>> pump(
-      WidgetTester tester, {
-      Locale locale = const Locale('ko'),
-    }) async {
+      WidgetTester tester) async {
       final reported = <List<RoutineExercise>?>[];
       await tester.pumpWidget(
         ProviderScope(
@@ -86,7 +84,7 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light(),
-            locale: locale,
+            locale: const Locale('ko'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
@@ -157,13 +155,6 @@ void main() {
         find.byKey(const ValueKey<String>('session-personal-routines')),
         findsOneWidget,
       );
-    });
-
-    testWidgets('영어 화면은 영어 안내다', (tester) async {
-      await pump(tester, locale: const Locale('en'));
-
-      expect(find.text("Couldn't load personal exercises"), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
     });
   });
 

@@ -2,26 +2,58 @@
 # 소개(랜딩) 페이지가 특정 도메인에 묶이지 않게 하는 검사·치환·배포 후 확인(#2841).
 #
 # 같은 index.html 이 GitHub Pages(데모)와 AWS CloudFront(운영)에 그대로 올라간다. 두 배포 모두
-# 랜딩을 루트에, 회원 앱을 /frontend/, 트레이너 웹을 /trainer/ 에 두므로 앱 바로가기는 상대 경로
-# (`frontend/#/dashboard`, `trainer/`)여야 각 배포에서 자기 앱으로 간다. 공개 정책 페이지(#3005)도 같은 이유로
+# 랜딩 바로 아래에 회원 앱 member/, 트레이너 웹 trainer/ 를 두므로(Pages 는 /on-care/ 아래) 앱 바로가기는 상대 경로
+# (`member/#/dashboard`, `trainer/`)여야 각 배포에서 자기 앱으로 간다. 공개 정책 페이지(#3005)도 같은 이유로
 # `legal/privacy.html` 상대 경로다 — 스토어에 적는 처리방침 주소가 배포마다 자기 도메인을 가리킨다. 절대 주소가 다시 들어오면
-# 운영 방문자가 데모로 넘어가고, 무료 DNS 이름이 끊기면 운영 랜딩의 버튼까지 함께 죽는다.
+# 운영 방문자가 데모로 넘어가고, 데모 주소가 바뀌거나 끊기면 운영 랜딩의 버튼까지 함께 죽는다.
 # og:url·canonical 은 상대 경로를 쓸 수 없어 원본에는 표시 줄(<!-- SITE_URL_META -->)만 두고,
 # 각 배포 워크플로가 자기 도메인으로 바꾼다.
+# 데모 Pages 만 예외로, 배포할 때 앱 바로가기를 운영 사이트의 /member/·/trainer/ 로 바꾼다(#3437,
+# `point-apps`). 소개 페이지를 보고 앱을 여는 방문자가 데모(목업)가 아니라 실서비스로 가게 하려는
+# 것이다 — 데모는 운영 앱 로그인 화면의 `체험하기` 가 연다. 원본 index.html 은 그대로 상대 경로다.
+# 운영 주소 변수(PRODUCTION_FRONTEND_URL)가 비어 있으면 바꾸지 않는다.
+# 데모 Pages 소개 페이지 자체도 운영 소개 페이지로 넘긴다(#3465, `redirect`). Pages 주소로 들어온
+# 방문자도 첫 화면은 운영 사이트여야 하기 때문이다. 같은 도메인의 데모 앱(member/·trainer/)과
+# 처리방침은 그대로 둔다. 본문은 남겨 두므로 스크립트가 꺼져 있어도 버튼은 운영으로 간다.
+# 루트 절대 경로(`href="/…"`·`src="/…"`)도 막는다. Pages 는 /on-care/ 아래에서 서비스되므로 `/` 로
+# 시작하는 경로는 저장소 경로 밖(도메인 루트)을 가리킨다. 홈 화면 아이콘·manifest 는 배포가
+# docs/assets/landing/ 을 assets/landing/ 으로 올리고 랜딩이 그 상대 경로로 부른다.
 #
 # 사용
 #   bash landing_site_url.sh check  <index.html>
 #       앱 바로가기에 절대 주소가 없고, 상대 경로 바로가기와 표시 줄이 있는지 확인
+#   bash landing_site_url.sh check-manifest <manifest.json>
+#       랜딩 manifest 의 아이콘·start_url·scope·id 가 루트 절대 경로(`/…`)가 아닌지 확인
 #   bash landing_site_url.sh stamp  <배포용 index.html> <사이트 주소>
 #       표시 줄을 og:url·canonical 태그로 바꿈(사이트 주소는 https://도메인/ 형식)
-#   bash landing_site_url.sh verify <배포 주소> <사이트 주소> [대기 초]
-#       배포된 랜딩을 받아 바로가기가 상대 경로인지, canonical 이 사이트 주소인지,
-#       같은 도메인의 /frontend/·/trainer/·/legal/privacy.html 이 응답하는지 확인(캐시가 바뀔 때까지 재시도)
+#   bash landing_site_url.sh point-apps <배포용 index.html> [앱 사이트 주소]
+#       회원 앱·트레이너 웹 바로가기를 앱 사이트 주소(운영 https://도메인/)의 member/·trainer/ 로
+#       바꿈(#3437, 데모 Pages 전용). 주소가 비면 바꾸지 않는다. stamp 다음에 부른다.
+#   bash landing_site_url.sh redirect <배포용 index.html> [앱 사이트 주소]
+#       소개 페이지가 열리자마자 앱 사이트 주소(운영 https://도메인/)로 넘어가게 하고 og:url·canonical 을
+#       그 주소로 바꿈(#3465, 데모 Pages 전용). 주소가 비면 바꾸지 않는다. point-apps 다음에 부른다.
+#   bash landing_site_url.sh verify <배포 주소> <사이트 주소> [대기 초] [앱 사이트 주소]
+#       배포된 랜딩을 받아 바로가기가 상대 경로인지(앱 사이트 주소를 주면 앱 바로가기만 그 주소의
+#       member/·trainer/ 이고 그 주소로 넘기는지), canonical 이 사이트 주소(앱 사이트 주소를 주면 그 주소)인지,
+#       같은 도메인의 /member/·/trainer/·/legal/privacy.html·랜딩 아이콘이 응답하고 manifest 가
+#       루트 절대 경로를 쓰지 않는지 확인(캐시가 바뀔 때까지 재시도)
 set -euo pipefail
 
 MARKER='<!-- SITE_URL_META -->'
-# 바로가기 href 가 http(s):// 로 시작하면서 frontend·trainer·legal 경로를 가리키면 절대 주소로 본다.
-ABSOLUTE_APP_LINK='href="https?://[^"]*/(frontend|trainer|legal)([/"#?])'
+# 바로가기 href 가 http(s):// 로 시작하면서 member·trainer·legal 경로를 가리키면 절대 주소로 본다.
+ABSOLUTE_APP_LINK='href="https?://[^"]*/(member|trainer|legal)([/"#?])'
+# `/` 로 시작하는 href·src. 프로토콜 상대 주소(`//cdn…`)는 외부 주소라 뺀다.
+ROOT_ABSOLUTE_PATH='(href|src)="/([^/"][^"]*)?"'
+# manifest 에서 문서 위치 기준으로 풀리는 값이 `/` 로 시작하면 루트 절대 경로다.
+MANIFEST_ROOT_ABSOLUTE='"(src|start_url|scope|id)"[[:space:]]*:[[:space:]]*"/([^/"]|")'
+# 랜딩이 상대 경로로 부르는 아이콘·manifest(배포 산출물 기준).
+LANDING_ASSETS=(
+  assets/landing/manifest.json
+  assets/landing/apple-touch-icon.png
+  assets/landing/icon-192.png
+  assets/landing/icon-512.png
+  assets/landing/icon-maskable-512.png
+)
 
 fail() {
   echo "::error title=landing::$1"
@@ -29,20 +61,43 @@ fail() {
 }
 
 usage() {
-  echo "사용: $0 check <index.html> | stamp <index.html> <site_url> | verify <base_url> <site_url> [wait_seconds]" >&2
+  echo "사용: $0 check <index.html> | check-manifest <manifest.json> | stamp <index.html> <site_url> | point-apps <index.html> [app_site_url] | redirect <index.html> [app_site_url] | verify <base_url> <site_url> [wait_seconds] [app_site_url]" >&2
   exit 2
 }
 
+# 앱 사이트 주소로 바꾼 바로가기를 가리키는 자리표시(#3437). 검사 사본에서만 쓴다.
+APP_SITE_PLACEHOLDER='APP_SITE__'
+
+# 정규식에 그대로 넣을 수 있게 점을 이스케이프한다. 주소 문자는 validate_site_url 이 먼저 거른다.
+regex_literal() {
+  printf '%s' "$1" | sed 's/[.]/\\./g'
+}
+
 # 랜딩 HTML 본문을 검사한다. 실패 사유를 표준 출력으로 내고 0/1 을 돌려준다.
+# 앱 사이트 주소([2])를 주면 앱 바로가기가 그 주소의 member/·trainer/ 여야 한다(#3437) — 그 바로가기만
+# 자리표시로 바꾼 사본으로 나머지 규칙(다른 절대 주소·루트 절대 경로·처리방침 상대 경로)을 그대로 본다.
 inspect_html() {
-  local file="$1" found
+  local file="$1" app_site="${2:-}" found copy status
+  if [ -n "$app_site" ]; then
+    copy="$(mktemp)"
+    sed -E "s#href=\"$(regex_literal "$app_site")(member|trainer)/#href=\"${APP_SITE_PLACEHOLDER}\1/#g" "$file" > "$copy"
+    status=0
+    inspect_pointed_html "$copy" "$app_site" || status=$?
+    rm -f "$copy"
+    return "$status"
+  fi
   if found=$(grep -nE "$ABSOLUTE_APP_LINK" "$file"); then
-    echo "앱 바로가기에 절대 주소가 있습니다. frontend/·trainer/ 상대 경로를 쓰세요."
+    echo "앱 바로가기에 절대 주소가 있습니다. member/·trainer/ 상대 경로를 쓰세요."
     echo "$found"
     return 1
   fi
-  if ! grep -qE 'href="(\./)?frontend/' "$file"; then
-    echo "회원 앱 상대 경로 바로가기(href=\"frontend/...\")가 없습니다."
+  if found=$(grep -nE "$ROOT_ABSOLUTE_PATH" "$file"); then
+    echo "루트 절대 경로(href=\"/…\"·src=\"/…\")가 있습니다. 하위 경로(/on-care/) 배포에서 깨지므로 상대 경로를 쓰세요."
+    echo "$found"
+    return 1
+  fi
+  if ! grep -qE 'href="(\./)?member/' "$file"; then
+    echo "회원 앱 상대 경로 바로가기(href=\"member/...\")가 없습니다."
     return 1
   fi
   if ! grep -qE 'href="(\./)?trainer/' "$file"; then
@@ -51,6 +106,55 @@ inspect_html() {
   fi
   if ! grep -qE 'href="(\./)?legal/privacy\.html"' "$file"; then
     echo "개인정보 처리방침 상대 경로 링크(href=\"legal/privacy.html\")가 없습니다."
+    return 1
+  fi
+  return 0
+}
+
+# 앱 바로가기를 자리표시로 바꾼 사본을 검사한다(#3437). 앱 바로가기가 모두 앱 사이트로 가야 한다 —
+# 일부만 바뀌면 같은 페이지의 버튼이 서로 다른 곳(데모·운영)으로 간다.
+inspect_pointed_html() {
+  local file="$1" app_site="$2" found
+  if found=$(grep -nE "$ABSOLUTE_APP_LINK" "$file"); then
+    echo "앱 바로가기에 ${app_site} 가 아닌 절대 주소가 있습니다."
+    echo "$found"
+    return 1
+  fi
+  if found=$(grep -nE "$ROOT_ABSOLUTE_PATH" "$file"); then
+    echo "루트 절대 경로(href=\"/…\"·src=\"/…\")가 있습니다. 하위 경로(/on-care/) 배포에서 깨지므로 상대 경로를 쓰세요."
+    echo "$found"
+    return 1
+  fi
+  if found=$(grep -nE 'href="(\./)?(member|trainer)/' "$file"); then
+    echo "앱 사이트(${app_site})로 바꾸지 않은 상대 경로 앱 바로가기가 남아 있습니다."
+    echo "$found"
+    return 1
+  fi
+  if ! grep -qF "href=\"${APP_SITE_PLACEHOLDER}member/" "$file"; then
+    echo "회원 앱 바로가기(href=\"${app_site}member/...\")가 없습니다."
+    return 1
+  fi
+  if ! grep -qF "href=\"${APP_SITE_PLACEHOLDER}trainer/" "$file"; then
+    echo "트레이너 웹 바로가기(href=\"${app_site}trainer/\")가 없습니다."
+    return 1
+  fi
+  if ! grep -qE 'href="(\./)?legal/privacy\.html"' "$file"; then
+    echo "개인정보 처리방침 상대 경로 링크(href=\"legal/privacy.html\")가 없습니다."
+    return 1
+  fi
+  return 0
+}
+
+# 랜딩 manifest 를 검사한다. 실패 사유를 표준 출력으로 내고 0/1 을 돌려준다.
+inspect_manifest() {
+  local file="$1" found
+  if found=$(grep -nE "$MANIFEST_ROOT_ABSOLUTE" "$file"); then
+    echo "manifest 에 루트 절대 경로가 있습니다. manifest 위치 기준 상대 경로를 쓰세요."
+    echo "$found"
+    return 1
+  fi
+  if ! grep -qE '"start_url"' "$file"; then
+    echo "manifest 에 start_url 이 없습니다."
     return 1
   fi
   return 0
@@ -90,6 +194,15 @@ cmd_check() {
   echo "랜딩 바로가기 확인 완료: $file"
 }
 
+cmd_check_manifest() {
+  local file="$1" reason
+  [ -f "$file" ] || fail "파일이 없습니다: $file"
+  if ! reason=$(inspect_manifest "$file"); then
+    fail "$file: $reason"
+  fi
+  echo "랜딩 manifest 확인 완료: $file"
+}
+
 cmd_stamp() {
   local file="$1" site_url tags tmp
   cmd_check "$file"
@@ -104,21 +217,85 @@ cmd_stamp() {
   echo "og:url·canonical = ${site_url}"
 }
 
+# 데모 Pages 랜딩의 앱 바로가기를 앱 사이트(운영)로 바꾼다(#3437). 주소가 비면 그대로 둔다.
+cmd_point_apps() {
+  local file="$1" app_site tmp reason
+  [ -f "$file" ] || fail "파일이 없습니다: $file"
+  if [ -z "${2:-}" ]; then
+    inspect_html "$file" > /dev/null || fail "$file: 상대 경로 바로가기가 아닙니다."
+    echo "앱 사이트 주소가 비어 있어 바로가기를 상대 경로로 둡니다."
+    return 0
+  fi
+  validate_site_url "$2"
+  app_site=$(normalize_site_url "$2")
+  if ! reason=$(inspect_html "$file"); then
+    fail "$file: $reason"
+  fi
+  tmp="$(mktemp)"
+  sed -E "s#href=\"(\./)?(member|trainer)/#href=\"${app_site}\2/#g" "$file" > "$tmp"
+  mv "$tmp" "$file"
+  if ! reason=$(inspect_html "$file" "$app_site"); then
+    fail "$file: 바꾼 결과 확인 실패 — $reason"
+  fi
+  echo "앱 바로가기 → ${app_site}member/, ${app_site}trainer/"
+}
+
+# 넘김 태그. redirect 가 넣고 verify 가 찾는다.
+redirect_meta() {
+  printf '<meta http-equiv="refresh" content="0; url=%s" />' "$1"
+}
+
+# 데모 Pages 소개 페이지를 앱 사이트(운영) 소개 페이지로 넘긴다(#3465). 주소가 비면 그대로 둔다.
+# stamp·point-apps 를 거친 파일을 받는다 — 앱 바로가기가 이미 운영을 가리켜야 한다.
+cmd_redirect() {
+  local file="$1" app_site reason tags tmp
+  [ -f "$file" ] || fail "파일이 없습니다: $file"
+  if [ -z "${2:-}" ]; then
+    echo "앱 사이트 주소가 비어 있어 소개 페이지를 넘기지 않습니다."
+    return 0
+  fi
+  validate_site_url "$2"
+  app_site=$(normalize_site_url "$2")
+  if ! reason=$(inspect_html "$file" "$app_site"); then
+    fail "$file: point-apps 를 먼저 거쳐야 합니다 — $reason"
+  fi
+  if grep -qF 'http-equiv="refresh"' "$file"; then
+    fail "$file: 이미 넘김 태그가 있습니다."
+  fi
+  grep -qF 'rel="canonical"' "$file" || fail "$file: canonical 이 없습니다. stamp 를 먼저 부르세요."
+  [ "$(grep -cF '<head>' "$file")" = "1" ] || fail "$file: <head> 가 정확히 한 번 있어야 합니다."
+  tags="$(redirect_meta "$app_site")<script>location.replace(\"${app_site}\")</script>"
+  tmp="$(mktemp)"
+  awk -v tags="$tags" '{ sub(/<head>/, "<head>" tags); print }' "$file" \
+    | sed -E "s|(property=\"og:url\" content=\")[^\"]*\"|\1${app_site}\"|; s|(rel=\"canonical\" href=\")[^\"]*\"|\1${app_site}\"|" \
+    > "$tmp"
+  mv "$tmp" "$file"
+  grep -qF "$(redirect_meta "$app_site")" "$file" || fail "넘김 태그를 넣지 못했습니다."
+  grep -qF "rel=\"canonical\" href=\"${app_site}\"" "$file" || fail "canonical 치환 결과를 찾지 못했습니다."
+  echo "소개 페이지 → ${app_site}"
+}
+
 cmd_verify() {
-  local base="${1%/}" site_url wait_seconds deadline page reason path
+  local base="${1%/}" site_url wait_seconds deadline page manifest reason path app_site=""
   validate_site_url "$2"
   site_url=$(normalize_site_url "$2")
   wait_seconds="${3:-300}"
+  if [ -n "${4:-}" ]; then
+    validate_site_url "$4"
+    app_site=$(normalize_site_url "$4")
+  fi
   deadline=$(( $(date +%s) + wait_seconds ))
   page="$(mktemp)"
   while :; do
     reason=""
     if curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
         "$base/?landingcheck=$(date +%s)" -o "$page"; then
-      if ! reason=$(inspect_html "$page"); then
+      if ! reason=$(inspect_html "$page" "$app_site"); then
         :
-      elif ! grep -qF "rel=\"canonical\" href=\"${site_url}\"" "$page"; then
-        reason="canonical 이 ${site_url} 이 아닙니다."
+      elif ! grep -qF "rel=\"canonical\" href=\"${app_site:-$site_url}\"" "$page"; then
+        reason="canonical 이 ${app_site:-$site_url} 이 아닙니다."
+      elif [ -n "$app_site" ] && ! grep -qF "$(redirect_meta "$app_site")" "$page"; then
+        reason="소개 페이지가 ${app_site} 로 넘기지 않습니다."
       fi
     else
       reason="$base/ 응답 없음"
@@ -134,12 +311,20 @@ cmd_verify() {
     sleep 10
   done
   rm -f "$page"
-  # 상대 경로 바로가기는 같은 도메인의 이 경로들로 열린다. 처리방침은 스토어 심사가 여는
-  # 공개 주소라 함께 본다(#3005).
-  for path in frontend/ trainer/ legal/privacy.html; do
+  # 상대 경로 바로가기는 같은 도메인의 이 경로들로 열린다. 앱 바로가기를 운영으로 바꾼 데모 Pages
+  # 도 같은 도메인의 /member/·/trainer/ 를 본다 — 운영 앱의 `체험하기` 가 여는 데모다(#3437). 처리방침은 스토어 심사가 여는
+  # 공개 주소라 함께 본다(#3005). 랜딩 아이콘·manifest 도 같은 배포에 있어야 한다.
+  for path in member/ trainer/ legal/privacy.html "${LANDING_ASSETS[@]}"; do
     curl -fsS --max-time 20 -o /dev/null "$base/$path" || fail "바로가기 목적지 $base/$path 가 응답하지 않습니다."
   done
-  echo "배포된 랜딩 확인 완료: $base/ → $base/frontend/, $base/trainer/, $base/legal/privacy.html (canonical ${site_url})"
+  manifest="$(mktemp)"
+  curl -fsS --max-time 20 -o "$manifest" "$base/assets/landing/manifest.json"     || { rm -f "$manifest"; fail "$base/assets/landing/manifest.json 을 받지 못했습니다."; }
+  if ! reason=$(inspect_manifest "$manifest"); then
+    rm -f "$manifest"
+    fail "배포된 랜딩 manifest 확인 실패($base): $reason"
+  fi
+  rm -f "$manifest"
+  echo "배포된 랜딩 확인 완료: $base/ → $base/member/, $base/trainer/, $base/legal/privacy.html, $base/assets/landing/ (canonical ${app_site:-$site_url}${app_site:+, 앱 바로가기·넘김 ${app_site}})"
 }
 
 [ $# -ge 1 ] || usage
@@ -147,7 +332,10 @@ command="$1"
 shift
 case "$command" in
   check) [ $# -eq 1 ] || usage; cmd_check "$1" ;;
+  check-manifest) [ $# -eq 1 ] || usage; cmd_check_manifest "$1" ;;
   stamp) [ $# -eq 2 ] || usage; cmd_stamp "$1" "$2" ;;
-  verify) [ $# -ge 2 ] && [ $# -le 3 ] || usage; cmd_verify "$@" ;;
+  point-apps) [ $# -ge 1 ] && [ $# -le 2 ] || usage; cmd_point_apps "$@" ;;
+  redirect) [ $# -ge 1 ] && [ $# -le 2 ] || usage; cmd_redirect "$@" ;;
+  verify) [ $# -ge 2 ] && [ $# -le 4 ] || usage; cmd_verify "$@" ;;
   *) usage ;;
 esac

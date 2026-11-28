@@ -10,6 +10,8 @@ import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
 import 'package:oncare/features/my_health/data/repositories/trainer_sync_repository.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
@@ -61,6 +63,10 @@ void main() {
             const MockMyHealthRepository(),
           ),
           trainerSyncRepositoryProvider.overrideWithValue(sync),
+          // 코드를 띄운 시트는 연결됐는지 담당 상태를 묻는다(#3342).
+          memberCoachRepositoryProvider.overrideWithValue(
+            MockMemberCoachRepository(),
+          ),
           benefitsRepositoryProvider.overrideWithValue(
             FakeBenefitsRepository(pet: pet),
           ),
@@ -106,9 +112,7 @@ void main() {
     expect(tester.widget<Icon>(icons).icon, AppIcons.chevronRight);
   });
 
-  testWidgets('코드 시트는 목적·기간·거부권을 말하고, 자세히를 펼쳐 볼 수 있다 (#2826)', (
-    tester,
-  ) async {
+  testWidgets('코드 시트는 목적·기간·거부권을 말하고, 자세히를 펼쳐 볼 수 있다 (#2826)', (tester) async {
     await pumpMyTab(tester);
 
     await tester.tap(find.text('트레이너 연결 코드'));
@@ -146,9 +150,7 @@ void main() {
     expect(sync.issued, 0);
   });
 
-  testWidgets('공유 범위를 먼저 보여 주고, 동의해야 코드를 발급한다 (#2584)', (
-    tester,
-  ) async {
+  testWidgets('공유 범위를 먼저 보여 주고, 동의해야 코드를 발급한다 (#2584)', (tester) async {
     await pumpMyTab(tester);
 
     await tester.tap(find.text('트레이너 연결 코드'));
@@ -167,7 +169,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sync.issued, 1);
-    expect(find.byKey(const ValueKey<String>('trainer-sync-agree')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('trainer-sync-agree')),
+      findsNothing,
+    );
     // 한 자리씩 상자에 담긴다 — 마주 앉아 불러 주는 값이라 글자가 갈려야 한다.
     final String shown = <String>[
       for (int i = 0; i < 6; i++)

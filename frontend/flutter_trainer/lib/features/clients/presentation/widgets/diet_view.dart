@@ -182,21 +182,13 @@ class _TodayDiet extends ConsumerWidget {
 /// 올리면 아침 카드 아래에 저녁 카드가 붙는다 — 회원 앱은 시각 표시를 내리며
 /// 순서를 끼니로 고정했고, 트레이너 화면도 같은 순서로 읽혀야 한다.
 ///
-/// 라벨로 가른다. 서버는 한국어 라벨을 보내고(`_meal_kr`), 영어 데모 시드는
-/// 같은 라벨을 옮긴 값을 적는다. 모르는 라벨은 맨 뒤로 가되 서로의 순서는 둔다.
-const List<List<String>> _mealOrder = <List<String>>[
-  <String>['아침', 'Breakfast'],
-  <String>['점심', 'Lunch'],
-  <String>['저녁', 'Dinner'],
-  <String>['간식', 'Snack'],
-  <String>['야식', 'Late-night snack'],
-];
+/// 라벨로 가른다. 서버는 한국어 라벨을 보낸다(`_meal_kr`). 모르는 라벨은 맨
+/// 뒤로 가되 서로의 순서는 둔다.
+const List<String> _mealOrder = <String>['아침', '점심', '저녁', '간식', '야식'];
 
 int _mealRank(String label) {
-  for (int i = 0; i < _mealOrder.length; i++) {
-    if (_mealOrder[i].contains(label)) return i;
-  }
-  return _mealOrder.length;
+  final int rank = _mealOrder.indexOf(label);
+  return rank < 0 ? _mealOrder.length : rank;
 }
 
 /// [meals] 를 끼니 순서로. 같은 끼니가 둘 이상이면 받은 순서를 지킨다 —
@@ -296,9 +288,9 @@ class _MealCard extends StatelessWidget {
                     food: f,
                     flags: <String>[
                       if (identical(f, sugarFood))
-                        '${l.metricSugar} ${_grams(f.sugarG)}${unitGap(l.localeName)}g',
+                        '${l.metricSugar} ${_grams(f.sugarG)}g',
                       if (identical(f, sodiumFood))
-                        '${l.metricSodium} ${formatNumber(f.sodiumMg)}${unitGap(l.localeName)}mg',
+                        '${l.metricSodium} ${formatNumber(f.sodiumMg)}mg',
                     ],
                   ),
               const SizedBox(height: OnCareSpacing.s8),
@@ -395,7 +387,7 @@ class _FoodLine extends StatelessWidget {
                     TextSpan(text: food.name),
                     if (amount != null)
                       TextSpan(
-                        text: '  ${_grams(amount)}${unitGap(l.localeName)}g',
+                        text: '  ${_grams(amount)}g',
                         style: OnCareTypography.numeric(
                           tokens
                               .text(OnCareTypography.caption)
@@ -438,7 +430,7 @@ class _FoodLine extends StatelessWidget {
                     Text(
                       // ko `310kcal` · en `310 kcal`(#3120).
                       '${formatNumber(food.calories)}'
-                      '${unitGap(Localizations.localeOf(context).toString())}'
+                      ''
                       '${l.unitKcal}',
                       style: OnCareTypography.numeric(
                         tokens
@@ -547,7 +539,7 @@ class _MealTotals extends StatelessWidget {
     // 당류 — 탄수화물의 일부라 그 칸 안, **g 값 바로 오른쪽**에 작게 붙는다.
     // 아래 줄로 따로 두면 탄수화물 칸만 한 줄 길어져 네 칸의 키가 어긋났다.
     final Widget sugar = Text(
-      '${l.metricSugar} ${_grams(entry.sugarG)}${unitGap(l.localeName)}g',
+      '${l.metricSugar} ${_grams(entry.sugarG)}g',
       key: ValueKey<String>('client-diet-sugar-${entry.id}'),
       maxLines: 1,
       softWrap: false,
@@ -587,10 +579,10 @@ class _MealTotals extends StatelessWidget {
         bool sugarFits(double rowWidth) => _fitsInline(
           context,
           columnWidth: _macroColumnWidth(rowWidth),
-          value: '${_grams(entry.carbsG)}${unitGap(l.localeName)}g',
+          value: '${_grams(entry.carbsG)}g',
           valueStyle: value(),
           sugar:
-              '${l.metricSugar} ${_grams(entry.sugarG)}${unitGap(l.localeName)}g',
+              '${l.metricSugar} ${_grams(entry.sugarG)}g',
           sugarStyle: head,
         );
         final double totalWidth =
@@ -637,7 +629,7 @@ class _MealTotals extends StatelessWidget {
                             textBaseline: TextBaseline.alphabetic,
                             children: <Widget>[
                               Text(
-                                '${_grams(p.grams)}${unitGap(l.localeName)}g',
+                                '${_grams(p.grams)}g',
                                 maxLines: 1,
                                 softWrap: false,
                                 style: value(),
@@ -712,7 +704,7 @@ class _MealTotals extends StatelessWidget {
                     const SizedBox(height: OnCareSpacing.s2),
                     fit(
                       Text(
-                        '${formatNumber(entry.sodiumMg)}${unitGap(l.localeName)}mg',
+                        '${formatNumber(entry.sodiumMg)}mg',
                         key: ValueKey<String>('client-diet-sodium-${entry.id}'),
                         maxLines: 1,
                         softWrap: false,
@@ -889,7 +881,7 @@ InlineSpan _foodsSpan(BuildContext context, ClientDietEntry meal) {
         if (meal.foods[i].amountG case final double g)
           TextSpan(
             text:
-                ' ${_grams(g)}${unitGap(Localizations.localeOf(context).toString())}g',
+                ' ${_grams(g)}g',
             style: amount,
           ),
       ],
@@ -945,7 +937,7 @@ class _DayRow extends StatelessWidget {
       totalStyle
           ? l.clientDietTotalCalories(formatNumber(calories))
           : '${formatNumber(calories)}'
-                '${unitGap(Localizations.localeOf(context).toString())}'
+                ''
                 '${l.unitKcal}',
       maxLines: 1,
       softWrap: false,
@@ -1063,12 +1055,12 @@ class _NutrientLine extends StatelessWidget {
     final bool tellsMacros = basis > 0 || calories <= 0;
     String part(String name, double kcal, double grams) => basis > 0
         ? '${l.clientDietMacroShare(name, (kcal / basis * 100).round())} '
-              '${_grams(grams)}${unitGap(l.localeName)}g'
-        : '$name ${_grams(grams)}${unitGap(l.localeName)}g';
+              '${_grams(grams)}g'
+        : '$name ${_grams(grams)}g';
     Widget item(InlineSpan span) =>
         Text.rich(span, maxLines: 1, softWrap: false, style: caption);
     final TextSpan sugar = TextSpan(
-      text: '${l.metricSugar} ${_grams(sugarG)}${unitGap(l.localeName)}g',
+      text: '${l.metricSugar} ${_grams(sugarG)}g',
       style: sugarOver ? warn : null,
     );
     return Wrap(
@@ -1109,7 +1101,7 @@ class _NutrientLine extends StatelessWidget {
         item(
           TextSpan(
             text:
-                '${l.metricSodium} ${formatNumber(sodiumMg)}${unitGap(l.localeName)}mg',
+                '${l.metricSodium} ${formatNumber(sodiumMg)}mg',
             style: sodiumOver ? warn : null,
           ),
         ),

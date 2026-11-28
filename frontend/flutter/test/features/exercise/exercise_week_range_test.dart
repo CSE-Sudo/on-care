@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -53,6 +54,13 @@ Widget _app(int period) => ProviderScope(
 );
 
 void main() {
+  // `periodRangeText` 만 부르는 테스트는 앱을 띄우지 않는다. 날짜 로케일 데이터를 여기서
+  // 준비하지 않으면 앞선 위젯 테스트가 초기화해 둔 상태에 기대게 되어, 한 건만 돌릴 때
+  // 깨진다(#3331).
+  setUpAll(() async {
+    await initializeDateFormatting('ko');
+  });
+
   Future<void> pump(WidgetTester tester, int period) async {
     // 기간의 양끝이 오늘에 매여 있다 — 고정하지 않으면 기대값이 달력을 탄다.
     useFixedKstDate();

@@ -22,14 +22,12 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/widgets/gym_tab.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../support/consultation_test_support.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// `POST /reservations` 에 정해 둔 상태·본문으로 답하는 어댑터.
 class _ReserveAdapter implements HttpClientAdapter {
@@ -241,24 +239,6 @@ void main() {
         find.byKey(const ValueKey<String>('reserve-confirm')),
       );
       expect(button.onPressed, isNotNull);
-      await drainToast(tester);
-    });
-
-    testWidgets('English: the overlap notice reads in English', (
-      WidgetTester tester,
-    ) async {
-      await pumpTab(
-        tester,
-        repository: _FailingReserveRepository(
-          const SlotTimeTakenError('slot-open'),
-        ),
-        locale: const Locale('en'),
-      );
-
-      await tapReserve(tester);
-
-      expect(find.text(_en.exReserveTimeTaken), findsOneWidget);
-      expect(find.text(_en.exReserveFailed), findsNothing);
       await drainToast(tester);
     });
 

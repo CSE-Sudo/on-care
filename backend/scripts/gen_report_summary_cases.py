@@ -126,7 +126,7 @@ def run(case: dict) -> dict:
     return {
         "watchpoints": [
             {"kind": w.kind, "severity": w.severity}
-            for w in svc.watchpoints(report, "ko")
+            for w in svc.watchpoints(report)
         ],
         "skipped": svc._skipped_exercises(report),
     }

@@ -14,11 +14,8 @@ import 'package:oncare_core/legal_contact.dart';
 
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   const String koScope = '식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항';
-  const String enScope =
-      'meal records, workout records, body information, health goals, and health notes & cautions';
 
   group('한국어', () {
     final Map<String, String> consents = <String, String>{
@@ -64,60 +61,6 @@ void main() {
       expect(text, contains('상담을 위해'));
       expect(text, contains('상담 요청과 일정에 남아요'));
       expect(text, contains('동의하지 않으면'));
-    });
-  });
-
-  group('영어', () {
-    final Map<String, String> consents = <String, String>{
-      'coachInviteConsentBody': en.coachInviteConsentBody('Kim'),
-      'trainerSyncConsent': en.trainerSyncConsent,
-    };
-
-    test('두 동의 문구가 같은 범위·목적·남는 기록·거부권을 말한다', () {
-      consents.forEach((String key, String text) {
-        expect(text, contains(enScope), reason: key);
-        expect(
-          text,
-          contains('coaching, consultations and writing reports'),
-          reason: key,
-        );
-        expect(text, contains('reports already delivered'), reason: key);
-        expect(text, contains("even if you don't agree"), reason: key);
-      });
-    });
-
-    test('수락 안내와 처리방침도 같은 범위를 말한다', () {
-      expect(en.coachInviteExplain, contains(enScope));
-      expect(
-        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains(enScope),
-      );
-    });
-
-    test('자세히의 다섯 항목이 모두 있다', () {
-      for (final String text in <String>[
-        en.trainerShareRecipientLabel,
-        en.trainerShareRecipient,
-        en.trainerShareItemsLabel,
-        en.trainerShareItems,
-        en.trainerSharePurposeLabel,
-        en.trainerSharePurpose,
-        en.trainerSharePeriodLabel,
-        en.trainerSharePeriod,
-        en.trainerShareRefuseLabel,
-        en.trainerShareRefuse,
-      ]) {
-        expect(text, isNotEmpty);
-      }
-      expect(en.trainerSharePeriod, contains('MY tab'));
-      expect(en.trainerShareRefuse, contains('personal records'));
-    });
-
-    test('상담 신청 안내도 목적·남는 곳·거부할 때를 말한다', () {
-      final String text = en.exConsultDataSharingNotice;
-      expect(text, contains('for the consultation'));
-      expect(text, contains('stay with the request'));
-      expect(text, contains("If you don't agree"));
     });
   });
 }

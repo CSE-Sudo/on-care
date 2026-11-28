@@ -25,14 +25,12 @@ import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 /// 변경 호출을 기록하고 [error] 를 던지는 페이크.
 class _FakeAccountRepository implements TrainerAccountRepository {
@@ -134,7 +132,6 @@ void main() {
 
     expect(find.text(_ko.myPwNew(8)), findsOneWidget);
     expect(_ko.myPwNew(8), contains('영문·숫자'));
-    expect(_en.myPwNew(8), contains('letters and numbers'));
   });
 
   for (final String weak in <String>['12345678', 'abcdefgh', 'abc1234']) {

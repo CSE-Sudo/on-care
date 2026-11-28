@@ -10,7 +10,6 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
@@ -122,7 +121,7 @@ void main() {
 
     test('목표가 없으면 공통 기준을 적는다', () {
       final String message = reportMessage(
-        AppLocalizationsEn(),
+        AppLocalizationsKo(),
         build(const <int>[2100, 1800, 0, 0, 0, 0, 0]),
       );
 

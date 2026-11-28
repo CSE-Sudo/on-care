@@ -259,7 +259,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   });
 
   // 홈 '오늘의 AI 통합 조언'(큐레이션). 문구가 아니라 **키**를 저장한다 —
-  // 문장은 ARB 가 ko·en 양쪽으로 갖고 있고 화면이 로케일에 맞게 고른다(#435).
+  // 문장은 ARB 가 갖고 있고 화면이 키로 고른다(#435).
   // 대시보드 요약은 이 값이 있으면 나트륨 급원 기반 동적 경고 대신 이 조언을
   // 노출한다.
   await db.putValue('dashboard_ai_advice', kDailyCombinedAdviceKey);

@@ -9,54 +9,19 @@
 // * BOOT_TIMEOUT_MS 안에 첫 프레임이 없거나, 부팅 스크립트(flutter_bootstrap.js·
 //   main.dart.js·CanvasKit)를 받지 못하면 실패 안내와 새로고침 버튼으로 바꾼다.
 //   안내를 띄운 뒤에라도 첫 프레임이 오면(아주 느린 회선) 그대로 지운다.
-// * 문구는 한국어가 기본이고, 브라우저 언어가 한국어가 아니면 영어로 쓴다.
 //
 // pdfjs_loader.js 보다 먼저 실행돼야 부팅 스크립트의 로드 오류를 놓치지 않는다 —
-// index.html 에서 이 파일을 먼저 부른다. 문구는 textContent 로만 넣는다.
+// index.html 에서 이 파일을 먼저 부른다. 문구는 index.html 의 마크업에 있다.
 (function () {
   "use strict";
 
   var BOOT_TIMEOUT_MS = 20000;
-
-  var MESSAGES = {
-    ko: {
-      loading: "트레이너 웹을 불러오는 중입니다",
-      failed: "트레이너 웹을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.",
-      reload: "새로고침",
-    },
-    en: {
-      loading: "Loading the trainer web",
-      failed: "Couldn't load the trainer web. Check your connection and refresh the page.",
-      reload: "Refresh",
-    },
-  };
 
   // 이 이름으로 끝나는 스크립트를 못 받으면 앱이 뜰 수 없다.
   var BOOT_SCRIPTS = ["flutter_bootstrap.js", "flutter.js", "main.dart.js", "canvaskit.js"];
 
   var root = document.getElementById("boot-status");
   if (!root) return;
-
-  function pickLanguage() {
-    var langs = navigator.languages && navigator.languages.length
-      ? navigator.languages
-      : [navigator.language || ""];
-    return String(langs[0] || "").toLowerCase().indexOf("ko") === 0 ? "ko" : "en";
-  }
-
-  var lang = pickLanguage();
-  var text = MESSAGES[lang];
-
-  function setText(selector, value) {
-    var node = root.querySelector(selector);
-    if (node) node.textContent = value;
-  }
-
-  if (lang !== "ko") {
-    setText(".boot-label", text.loading);
-    setText(".boot-error-text", text.failed);
-    setText(".boot-reload", text.reload);
-  }
 
   var finished = false;
   var failed = false;

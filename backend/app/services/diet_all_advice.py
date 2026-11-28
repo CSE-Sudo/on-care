@@ -224,8 +224,8 @@ def repeated(records: dict[date, DayRecord]) -> Finding | None:
     )
 
 
-def _last_kind(db: Session, user_id: str, monday: date, lang: str) -> str | None:
-    row = load_state(db, user_id, PERIOD_ALL, (monday - timedelta(days=7)).isoformat(), lang)
+def _last_kind(db: Session, user_id: str, monday: date) -> str | None:
+    row = load_state(db, user_id, PERIOD_ALL, (monday - timedelta(days=7)).isoformat())
     if row is None:
         return None
     try:
@@ -284,7 +284,6 @@ def all_advice(
     db: Session,
     user_id: str,
     *,
-    lang: str = "ko",
     use_llm: bool = True,
     now: datetime | None = None,
 ) -> DietAdvice:
@@ -294,7 +293,7 @@ def all_advice(
     key = monday.isoformat()
     start = today - timedelta(days=WINDOW_DAYS - 1)
 
-    cached = cached_advice(db, user_id, PERIOD_ALL, key, lang, now)
+    cached = cached_advice(db, user_id, PERIOD_ALL, key, now)
     if cached is not None:
         return cached
 
@@ -302,7 +301,7 @@ def all_advice(
     profile = inputs.load_profile(db, user_id)
     targets = inputs.targets_of(profile)
     records, analysis, finding = decide_all(
-        entries, targets, today, _last_kind(db, user_id, monday, lang)
+        entries, targets, today, _last_kind(db, user_id, monday)
     )
     base = dict(period=PERIOD_ALL, from_date=start.isoformat(), to_date=today.isoformat(),
                 days_logged=len(records))
@@ -322,7 +321,6 @@ def all_advice(
             # 문장을 기다리는 동안 연결을 쥐지 않는다(#3242). 이번 주 조언과 같다.
             release_connection(db)
             text = diet_ai_sentence.generate(
-                lang=lang,
                 analysis_text=finding.analysis.text,
                 finding=finding.description,
                 records=list(finding.records),
@@ -337,5 +335,5 @@ def all_advice(
             retry_after = now + RETRY_AFTER
 
     advice = DietAdvice(**base, analysis=analysis, action=action, action_source=source)
-    store_advice(db, user_id, PERIOD_ALL, key, lang, advice, retry_after=retry_after)
+    store_advice(db, user_id, PERIOD_ALL, key, advice, retry_after=retry_after)
     return advice

@@ -24,19 +24,16 @@ const ValueKey<String> _connectBanner = ValueKey<String>(
 );
 
 const String _hintKo = '연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요.';
-const String _hintEn = 'Connect members with their connection code';
 
 Future<void> _pumpEmpty(
   WidgetTester tester, {
   String at = AppRoutes.clients,
   List<Override> extra = const <Override>[],
-  Locale locale = const Locale('ko'),
 }) async {
   await pumpTrainerApp(
     tester,
     token: 'demo-trainer-token',
     at: at,
-    locale: locale,
     extraOverrides: <Override>[stillRoster(), ...extra],
   );
 }
@@ -132,17 +129,4 @@ void main() {
     expect(find.byKey(_emptyConnect), findsNothing);
   });
 
-  testWidgets('영문 화면도 안내 문구와 버튼을 보인다', (tester) async {
-    await _pumpEmpty(tester, locale: const Locale('en'));
-
-    expect(find.text('No members yet'), findsOneWidget);
-    expect(find.textContaining(_hintEn), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(_emptyConnect),
-        matching: find.text('Connect member'),
-      ),
-      findsOneWidget,
-    );
-  });
 }

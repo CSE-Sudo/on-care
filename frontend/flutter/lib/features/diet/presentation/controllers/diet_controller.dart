@@ -1,8 +1,10 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/demo/demo_sample_meals.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart';
 import 'package:oncare/features/diet/data/sources/image_picker_meal_photo_picker.dart';
@@ -37,6 +39,26 @@ final mealPhotoPickerProvider = Provider<MealPhotoPicker>((ref) {
 final mealPhotoChoiceLayoutProvider = Provider<MealPhotoChoiceLayout>((ref) {
   return MealPhotoChoiceLayout.forPlatform(isWeb: kIsWeb);
 }, name: 'mealPhotoChoiceLayout');
+
+/// 식단 추가 시트가 내놓는 데모 샘플 사진의 끼니(#3423). 비어 있으면(기본값)
+/// 시트에 샘플 갈래가 없다. 앱이 기동할 때 [demoSampleMealsFor] 의 값으로 덮는다.
+final demoSampleMealsProvider = Provider<List<FixtureMeal>>((ref) {
+  return const <FixtureMeal>[];
+}, name: 'demoSampleMeals');
+
+/// 이 설정에서 내놓을 데모 샘플 사진의 끼니(#3423).
+///
+/// 목업은 사진을 볼 수 없어, 고르면 결과가 사진과 맞는 사진을 따로 내놓는다.
+/// 사진 분석이 실서버로 가는 설정(실서버 모드·`REAL_API=diet`)에는 없다 —
+/// 거기서는 올린 사진을 실제로 읽는다. 운영 빌드는 [kDemoCodeIncluded] 가
+/// 상수 false 라 픽스처째 번들에서 빠진다(#3157).
+List<FixtureMeal> demoSampleMealsFor(AppConfig config) {
+  if (!kDemoCodeIncluded) return const <FixtureMeal>[];
+  if (!config.useMockApi || config.isRealApi('POST', '/diet/analyze')) {
+    return const <FixtureMeal>[];
+  }
+  return demoSampleMeals;
+}
 
 final dietTodayProvider = FutureProvider<DietDay>((ref) {
   return ref.watch(dietRepositoryProvider).fetchToday();
@@ -110,23 +132,18 @@ final dietPeriodProvider = FutureProvider.family<DietPeriod, DietDateRange>((
 ///
 /// 구간 경계는 서버가 정한다 — 앱이 따로 계산해 넘기지 않는다.
 ///
-/// 조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). 앱 언어([DietAdviceKey.lang])
-/// 마다 따로 받는다 — 메뉴 이름과 AI 문장이 그 언어로 온다.
+/// 조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). 기간(`today`·`week`·`all`)
+/// 마다 따로 받는다.
 ///
 /// 끼니를 저장·수정·삭제하거나 날짜를 옮기면 **family 통째로** 비운다(#2078).
 /// 오늘 조언은 합계가 바뀌면 다음 메뉴가 바뀌고, 한 번 받은 값을 들고 있으면
 /// 영양 요약은 새 합계인데 조언만 옛 합계를 말한다.
-final dietAdviceProvider = FutureProvider.family<DietAdvice, DietAdviceKey>((
+final dietAdviceProvider = FutureProvider.family<DietAdvice, String>((
   ref,
-  DietAdviceKey key,
+  String period,
 ) async {
-  return ref
-      .watch(dietRepositoryProvider)
-      .fetchAdvice(key.period, lang: key.lang);
+  return ref.watch(dietRepositoryProvider).fetchAdvice(period);
 }, name: 'dietAdvice');
-
-/// 조언 요청의 열쇠 — 기간(`today`·`week`·`all`)과 앱 언어(`ko`·`en`).
-typedef DietAdviceKey = ({String period, String lang});
 
 /// 홈 "AI 추천 식단" — GET /diet/recommendations.
 ///

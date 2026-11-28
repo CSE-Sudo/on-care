@@ -111,7 +111,6 @@ def _generate_rejected(monkeypatch):
     )
     monkeypatch.setattr(ai, "_call_llm", lambda s, u: next(bad))
     return ai.generate(
-        lang="ko",
         analysis_text="이번 주 나트륨을 **3일** 넘겼어요.",
         finding="f",
         records=["월 점심: 짬뽕"],

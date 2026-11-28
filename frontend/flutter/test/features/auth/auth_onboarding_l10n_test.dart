@@ -1,13 +1,7 @@
-/// 로그인·회원가입·온보딩 화면의 현지화 — #642.
+/// 로그인·회원가입·온보딩 화면의 문구 — #642.
 ///
-/// 세 화면만 한국어가 하드코딩돼 있어, 영어 로케일로 켜면 앱에서 처음 보는 세 화면이
-/// 로케일을 따르지 않았다.
-///
-/// 여기서 고정하는 것은 둘이다.
-///
-///  * en 로케일에서 한국어가 남지 않는다.
-///  * **ko 로케일 문구는 옮기기 전과 같다.** 로그인 화면은 "데모 둘러보기" 직전 화면이라
-///    문구가 바뀌면 시연 첫 장면이 달라진다.
+/// 세 화면의 문구는 ARB 에서 읽는다. **문구는 ARB 로 옮기기 전과 같다.** 로그인
+/// 화면은 "데모 둘러보기" 직전 화면이라 문구가 바뀌면 시연 첫 장면이 달라진다.
 library;
 
 import 'package:flutter/material.dart';
@@ -24,11 +18,13 @@ const Map<String, String> _koBefore = <String, String>{
   'authSignInAction': '로그인',
   'authNoAccountQuestion': '계정이 없으신가요?',
   'authSignUpAction': '회원가입',
-  'authDemoAction': '로그인 없이 데모 둘러보기',
+  'authDemoAction': '체험하기',
   // 소셜 로그인이 원형 버튼이 되며 구분선 문구가 "또는" 에서 바뀌었다(#1783).
   'authSocialDivider': 'SNS 계정으로 로그인',
   'authKakaoAction': '카카오로 시작하기',
   'authGoogleAction': '구글로 시작하기',
+  // 애플 공식 한국어 버튼 이름(#3499).
+  'authAppleAction': 'Apple로 로그인',
   // 빈칸 토스트(authMissingCredentials)는 칸 아래 오류 문구로 바뀌어 지웠다(#1784).
   'authSignInFailed': '로그인하지 못했어요. 이메일·비밀번호를 확인해 주세요',
   'authSocialSignInFailed': '소셜 로그인을 하지 못했어요. 잠시 후 다시 시도해 주세요',
@@ -114,10 +110,10 @@ const Map<String, String> _koAdded = <String, String>{
   'healthFocusBloodPressure': '혈압 관리',
 };
 
-/// 두 표를 합친 것. 로케일 검사는 새 문구까지 함께 본다.
+/// 두 표를 합친 것. 새 문구까지 함께 본다.
 Map<String, String> get _koAll => <String, String>{..._koBefore, ..._koAdded};
 
-/// 키 이름 → 그 로케일의 문구.
+/// 키 이름 → ARB 문구.
 String _read(AppLocalizations l, String key) => switch (key) {
   'authTagline' => l.authTagline,
   'authEmailHint' => l.authEmailHint,
@@ -129,6 +125,7 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'authSocialDivider' => l.authSocialDivider,
   'authKakaoAction' => l.authKakaoAction,
   'authGoogleAction' => l.authGoogleAction,
+  'authAppleAction' => l.authAppleAction,
   'authEmailEmpty' => l.authEmailEmpty,
   'authEmailInvalid' => l.authEmailInvalid,
   'authPasswordEmpty' => l.authPasswordEmpty,
@@ -197,15 +194,12 @@ String _read(AppLocalizations l, String key) => switch (key) {
   _ => fail('알 수 없는 키: $key'),
 };
 
-/// [locale] 의 [AppLocalizations] 를 꺼낸다.
-Future<AppLocalizations> _localizations(
-  WidgetTester tester,
-  Locale locale,
-) async {
+/// 화면이 받는 [AppLocalizations] 를 꺼낸다.
+Future<AppLocalizations> _localizations(WidgetTester tester) async {
   late AppLocalizations found;
   await tester.pumpWidget(
     MaterialApp(
-      locale: locale,
+      locale: const Locale('ko'),
       localizationsDelegates: const <LocalizationsDelegate<Object>>[
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -225,43 +219,11 @@ Future<AppLocalizations> _localizations(
 }
 
 void main() {
-  testWidgets('ko 문구가 옮기기 전과 같다', (WidgetTester tester) async {
-    final AppLocalizations l = await _localizations(tester, const Locale('ko'));
+  testWidgets('문구가 옮기기 전과 같다', (WidgetTester tester) async {
+    final AppLocalizations l = await _localizations(tester);
 
     for (final MapEntry<String, String> entry in _koAll.entries) {
       expect(_read(l, entry.key), entry.value, reason: entry.key);
-    }
-  });
-
-  testWidgets('en 문구에 한국어가 남지 않는다', (WidgetTester tester) async {
-    final AppLocalizations l = await _localizations(tester, const Locale('en'));
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    for (final String key in _koAll.keys) {
-      final String value = _read(l, key);
-      expect(
-        hangul.hasMatch(value),
-        isFalse,
-        reason: '$key 가 en 로케일에서 한국어다: $value',
-      );
-      expect(value.trim(), isNotEmpty, reason: '$key 가 비어 있다');
-    }
-  });
-
-  testWidgets('두 로케일의 문구가 실제로 다르다', (WidgetTester tester) async {
-    // 같은 값이면 ARB 에 en 번역을 빠뜨리고 ko 를 복사해 둔 것이다. 위 두 테스트만으로는
-    // 잡히지 않는 실수라(영문 그대로 둔 키는 한글 검사를 통과한다) 여기서 함께 본다.
-    final AppLocalizations ko = await _localizations(
-      tester,
-      const Locale('ko'),
-    );
-    final AppLocalizations en = await _localizations(
-      tester,
-      const Locale('en'),
-    );
-
-    for (final String key in _koAll.keys) {
-      expect(_read(en, key), isNot(_read(ko, key)), reason: key);
     }
   });
 }

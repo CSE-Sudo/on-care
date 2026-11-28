@@ -90,6 +90,9 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
     from app.services import consultation_service
 
     consultation_service.cancel_pending_for_trainer_deletion(db, trainer)
+    # 수락해 둔 상담도 시작 전이면 취소하고 알린다(#3360). 두면 트레이너도 상담
+    # 일정도 없는 `수락됨` 카드가 회원 화면에 남는다.
+    consultation_service.cancel_accepted_for_trainer_deletion(db, trainer)
 
     # 예약만 있고 지금 담당은 아닌 회원에게도 알린다 — 잡아 둔 수업이 사라진다.
     # 담당이 끝난 과거 회원이라도 예약이 남아 있으면 여기서 받는다(#3024).

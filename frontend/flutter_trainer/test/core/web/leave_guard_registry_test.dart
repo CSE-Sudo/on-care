@@ -76,4 +76,23 @@ void main() {
     expect(leaveGuards.isRegistered(a), isTrue);
     expect(leaveGuards.shouldBlock(), isFalse);
   });
+
+  group('앱 안 이동 확인 (#3336)', () {
+    test('등록한 확인이 없으면 떠나도 된다', () async {
+      expect(await LeaveGuardRegistry().confirmLeave(), isTrue);
+    });
+
+    test('하나라도 막으면 떠나지 않는다', () async {
+      final LeaveGuardRegistry registry = LeaveGuardRegistry();
+      final Object a = Object();
+      final Object b = Object();
+      registry.setConfirm(a, () async => true);
+      registry.setConfirm(b, () async => false);
+      expect(await registry.confirmLeave(), isFalse);
+
+      // 막던 쪽이 풀리면 떠날 수 있다.
+      registry.setConfirm(b, null);
+      expect(await registry.confirmLeave(), isTrue);
+    });
+  });
 }

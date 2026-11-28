@@ -19,20 +19,16 @@ import 'package:oncare_trainer/features/notifications/domain/entities/trainer_no
 import 'package:oncare_trainer/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:oncare_trainer/features/notifications/presentation/trainer_notification_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/pump_app.dart';
 
 const String _template = 'trainer_consult_withdrawn';
 const String _koTitle = '회원 탈퇴로 상담 요청이 취소됐어요';
-const String _enTitle =
-    'Consultation request cancelled: member account deleted';
 
 final AppLocalizations _ko = AppLocalizationsKo();
-final AppLocalizations _en = AppLocalizationsEn();
 
-/// 서버가 주는 한 건 그대로. 제목·본문은 서버가 요청 언어로 조립한 값이다.
+/// 서버가 주는 한 건 그대로. 제목·본문은 서버가 조립한 값이다.
 Map<String, Object?> _json({
   String id = 'noti-withdrawn',
   String category = 'consult_withdrawn',
@@ -117,15 +113,12 @@ class _MockDio extends Mock implements Dio {}
 
 Future<_FakeRepo> _pumpInbox(
   WidgetTester tester,
-  List<TrainerNotification> rows, {
-  Locale locale = const Locale('ko'),
-}) async {
+  List<TrainerNotification> rows) async {
   final _FakeRepo repo = _FakeRepo(rows);
   await pumpTrainerApp(
     tester,
     token: 'demo-token',
     at: AppRoutes.notifications,
-    locale: locale,
     extraOverrides: <Override>[
       trainerNotificationRepositoryProvider.overrideWithValue(repo),
     ],
@@ -167,7 +160,7 @@ void main() {
       expect(n.kind, TrainerNotificationKind.consultationWithdrawn);
       expect(n.args, isEmpty);
       expect(n.targetDate, isNull);
-      expect(trainerNotificationText(_en, n), (
+      expect(trainerNotificationText(_ko, n), (
         title: _koTitle,
         body: '지수 회원 · 10월 1일',
       ));
@@ -204,21 +197,10 @@ void main() {
       ));
     });
 
-    test('영어는 서버 영어 조립과 같다', () {
-      expect(trainerNotificationText(_en, _notice()), (
-        title: _enTitle,
-        body: '지수 · 10/1',
-      ));
-    });
-
     test('회원이 직접 취소한 알림과 제목이 다르다', () {
       expect(
         _ko.notifTplConsultWithdrawnTitle,
         isNot(_ko.notifTplConsultCancelledTitle),
-      );
-      expect(
-        _en.notifTplConsultWithdrawnTitle,
-        isNot(_en.notifTplConsultCancelledTitle),
       );
     });
 
@@ -236,12 +218,10 @@ void main() {
           title: '서버 제목',
           body: '서버 본문',
         );
-        for (final AppLocalizations l in <AppLocalizations>[_ko, _en]) {
-          expect(trainerNotificationText(l, n), (
-            title: '서버 제목',
-            body: '서버 본문',
-          ));
-        }
+        expect(trainerNotificationText(_ko, n), (
+          title: '서버 제목',
+          body: '서버 본문',
+        ));
       });
     }
   });
@@ -270,45 +250,38 @@ void main() {
   });
 
   group('알림함', () {
-    for (final (Locale locale, String title, String body)
-        in const <(Locale, String, String)>[
-          (Locale('ko'), _koTitle, '지수 회원 · 10월 1일'),
-          (Locale('en'), _enTitle, '지수 · 10/1'),
-        ]) {
-      testWidgets('화면 언어로 제목·본문을 보인다 (${locale.languageCode})', (tester) async {
-        await withWideSurface(tester, () async {
-          await _pumpInbox(tester, <TrainerNotification>[
-            _notice(),
-          ], locale: locale);
+    testWidgets('제목·본문을 보인다', (tester) async {
+      await withWideSurface(tester, () async {
+        await _pumpInbox(tester, <TrainerNotification>[
+          _notice(),
+        ]);
 
-          expect(find.text(title), findsOneWidget);
-          expect(find.text(body), findsOneWidget);
-          expect(find.byIcon(AppIcons.eventBusy), findsOneWidget);
-          expect(tester.takeException(), isNull);
-        });
+        expect(find.text(_koTitle), findsOneWidget);
+        expect(find.text('지수 회원 · 10월 1일'), findsOneWidget);
+        expect(find.byIcon(AppIcons.eventBusy), findsOneWidget);
+        expect(tester.takeException(), isNull);
       });
+    });
 
-      testWidgets('누르면 읽음 처리하고 상담 요청함을 연다 '
-          '(${locale.languageCode})', (tester) async {
-        await withWideSurface(tester, () async {
-          final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
-            _notice(),
-          ], locale: locale);
+    testWidgets('누르면 읽음 처리하고 상담 요청함을 연다', (tester) async {
+      await withWideSurface(tester, () async {
+        final _FakeRepo repo = await _pumpInbox(tester, <TrainerNotification>[
+          _notice(),
+        ]);
 
-          await tester.tap(
-            find.byKey(const ValueKey<String>('notification-noti-withdrawn')),
-          );
-          await settle(tester);
+        await tester.tap(
+          find.byKey(const ValueKey<String>('notification-noti-withdrawn')),
+        );
+        await settle(tester);
 
-          expect(repo.readCalls, <String>['noti-withdrawn']);
-          expect(Uri.parse(currentLocation(tester)).path, AppRoutes.schedule);
-          expect(
-            find.byKey(const ValueKey<String>('consultations-dialog')),
-            findsOneWidget,
-          );
-        });
+        expect(repo.readCalls, <String>['noti-withdrawn']);
+        expect(Uri.parse(currentLocation(tester)).path, AppRoutes.schedule);
+        expect(
+          find.byKey(const ValueKey<String>('consultations-dialog')),
+          findsOneWidget,
+        );
       });
-    }
+    });
 
     testWidgets('이미 읽은 알림은 읽음 호출 없이 상담 요청함을 연다', (tester) async {
       await withWideSurface(tester, () async {

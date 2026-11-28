@@ -8,8 +8,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 /// 서버가 사유를 주면(이미 다른 기기에서 취소됨, 시작 전이라 노쇼 불가 등) 그
 /// 문장이 고정 문구보다 정확하다 — 트레이너는 "왜 안 되는지" 알면 바로
 /// 해결한다. 연결 오류·5xx 는 원인별 안내이고, 그 밖에 사유가 없는 실패(데모
-/// 저장소·422 목록형)는 동작별 [fallback] 이다. 영어 화면에서는 한국어 사유
-/// 대신 [fallback] 이다([appErrorMessage]).
+/// 저장소·422 목록형)는 동작별 [fallback] 이다([appErrorMessage]).
 String scheduleActionErrorMessage(
   AppLocalizations l,
   Object error,

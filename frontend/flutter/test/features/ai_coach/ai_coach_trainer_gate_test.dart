@@ -148,9 +148,7 @@ void main() {
       expect(find.text('참고 기록'), findsNWidgets(2));
       // 머리 줄 자체의 오른쪽 끝을 기준으로 잰다.
       final Rect header = tester.getRect(
-        find
-            .ancestor(of: button, matching: find.byType(ColoredBox))
-            .first,
+        find.ancestor(of: button, matching: find.byType(ColoredBox)).first,
       );
       final double rightGap = header.right - tester.getBottomRight(button).dx;
       expect(rightGap, greaterThanOrEqualTo(OnCareSpacing.s8));
@@ -167,14 +165,6 @@ void main() {
       // 늘 켜져 있는 초록 점은 트레이너 온라인 표시와 같은 모양이라, AI 가 사람처럼
       // 접속해 있다는 뜻으로 읽혔다.
       expect(find.byType(AppStatusDot), findsNothing);
-    });
-
-    testWidgets('영어에서도 보관 안내가 기간을 말한다', (WidgetTester tester) async {
-      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-      expect(
-        en.aicRetentionNotice(kAiChatRetentionDays),
-        'AI Coach chats are kept for the last 30 days',
-      );
     });
   });
 

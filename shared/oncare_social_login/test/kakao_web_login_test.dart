@@ -8,7 +8,7 @@ import 'package:oncare_social_login/src/kakao_web_login.dart';
 
 const String _restKey = '0123456789abcdef0123456789abcdef';
 final Uri _callback = Uri.parse(
-  'https://app.example.com/frontend/kakao_login_callback.html',
+  'https://app.example.com/member/kakao_login_callback.html',
 );
 
 class _FakePort implements KakaoPopupPort {

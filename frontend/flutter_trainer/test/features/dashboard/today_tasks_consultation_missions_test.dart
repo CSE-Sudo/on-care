@@ -95,7 +95,6 @@ void main() {
     setUp(useFixedKstDate);
 
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
     test('자리를 고른 요청은 그 자리의 날짜·시각', () {
       final String when = consultationMissionWhen(
@@ -126,18 +125,12 @@ void main() {
         consultationMissionWhen(ko, _request('c1', '회원', timeCode: 'flexible')),
         contains('조율 가능'),
       );
-      expect(
-        consultationMissionWhen(en, _request('c1', '회원', timeCode: 'flexible')),
-        contains('Flexible'),
-      );
     });
 
     test('부제는 희망 일시로 읽히고 요청이라고 적지 않는다', () {
       final String when = consultationMissionWhen(ko, _request('c1', '회원'));
       expect(ko.dashTodoConsultationSubtitle(when), startsWith('희망 '));
       expect(ko.dashTodoConsultationSubtitle(when), isNot(contains('요청')));
-      expect(en.dashTodoConsultationSubtitle(when), startsWith('Preferred'));
-      expect(en.dashTodoConsultationSubtitle(when), isNot(contains('request')));
     });
   });
 

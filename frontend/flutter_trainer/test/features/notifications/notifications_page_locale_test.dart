@@ -1,10 +1,9 @@
-/// 알림함은 알림 문장을 화면 언어로 보여 준다(#2302).
+/// 알림함은 알림 문장을 틀로 조립해 보여 준다(#2302).
 ///
 /// 서버가 틀 코드와 인자를 주면 ARB 로 조립하고, 틀이 없는 옛 알림은 저장된
-/// 문장을 그대로 보여 준다. 한국어 화면의 문장은 틀 이전과 같다.
+/// 문장을 그대로 보여 준다. 화면의 문장은 틀 이전과 같다.
 library;
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -84,12 +83,11 @@ final List<TrainerNotification> _rows = <TrainerNotification>[
   _row('legacy', title: '예전 알림 제목', body: '예전 알림 본문'),
 ];
 
-Future<void> _pump(WidgetTester tester, {required Locale locale}) async {
+Future<void> _pump(WidgetTester tester) async {
   await pumpTrainerApp(
     tester,
     token: 'demo-token',
     at: AppRoutes.notifications,
-    locale: locale,
     extraOverrides: <Override>[
       trainerNotificationRepositoryProvider.overrideWithValue(_Repo(_rows)),
     ],
@@ -97,36 +95,20 @@ Future<void> _pump(WidgetTester tester, {required Locale locale}) async {
 }
 
 void main() {
-  testWidgets('영어 화면은 틀로 조립한 영어 문장을 보여 준다', (tester) async {
-    await _pump(tester, locale: const Locale('en'));
-
-    expect(find.text('Member goals changed'), findsOneWidget);
-    expect(
-      find.text('지수 changed their health goals: Build strength · Rehab'),
-      findsOneWidget,
-    );
-    expect(find.text('Message from 지수'), findsOneWidget);
-    // 메시지 본문은 회원이 쓴 문장 그대로다.
-    expect(find.text('오늘 수업 시간 조정 가능할까요?'), findsOneWidget);
-    expect(find.text('회원 건강 목표가 바뀌었어요'), findsNothing);
-    expect(find.text('지수 회원의 메시지'), findsNothing);
-  });
-
   testWidgets('틀이 없는 옛 알림은 저장된 문장을 보여 준다', (tester) async {
-    await _pump(tester, locale: const Locale('en'));
+    await _pump(tester);
 
     expect(find.text('예전 알림 제목'), findsOneWidget);
     expect(find.text('예전 알림 본문'), findsOneWidget);
   });
 
-  testWidgets('한국어 화면의 문장은 틀 이전과 같다', (tester) async {
-    await _pump(tester, locale: const Locale('ko'));
+  testWidgets('화면의 문장은 틀 이전과 같다', (tester) async {
+    await _pump(tester);
 
     expect(find.text('회원 건강 목표가 바뀌었어요'), findsOneWidget);
     expect(find.text('지수 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활'), findsOneWidget);
     expect(find.text('지수 회원의 메시지'), findsOneWidget);
     expect(find.text('오늘 수업 시간 조정 가능할까요?'), findsOneWidget);
     expect(find.text('예전 알림 제목'), findsOneWidget);
-    expect(find.text('Member goals changed'), findsNothing);
   });
 }

@@ -39,6 +39,8 @@ class UserProfile {
     this.onboardingSkipped = false,
     required this.name,
     required this.email,
+    this.emailIsPlaceholder = false,
+    this.emailPlaceholderProvider,
     this.phone = '',
     this.birthDate = '',
     this.gender = '',
@@ -82,6 +84,17 @@ class UserProfile {
 
   final String name;
   final String email;
+
+  /// [email] 이 소셜 가입의 대체 이메일(`kakao_…@social.oncare`)인가(#3338).
+  /// 회원의 주소가 아니라 서버가 채운 내부용 값이라 화면에 보이지 않는다.
+  /// 이 값을 주지 않는 서버(필드 추가 이전)에서는 거짓이다.
+  final bool emailIsPlaceholder;
+
+  /// 대체 이메일을 만든 가입 수단(`kakao`·`google`). 대체 이메일이 아니면 null.
+  final String? emailPlaceholderProvider;
+
+  /// 화면에 보이고 편집 칸에 채울 이메일 — 대체 이메일이면 빈 문자열이다.
+  String get visibleEmail => emailIsPlaceholder ? '' : email;
   final String phone;
   final String birthDate;
   final String gender;
@@ -165,6 +178,7 @@ class UserProfile {
   /// MY 비밀번호 변경이 "바꿀 비밀번호가 없음" 을 말한다. 이 값을 주지 않는
   /// 서버(필드 추가 이전)에서는 참으로 둔다 — 그때는 서버의 409 가 같은 안내를 낸다.
   final bool hasPassword;
+
   /// 건강상태·주의사항을 마지막으로 바꾼 사람 — [focusChangedByMember] 또는
   /// [focusChangedByTrainer](#2942). 목표 칩 기록과 따로다. 바꾼 적이 없으면 null.
   final String? notesChangedBy;
@@ -178,6 +192,11 @@ class UserProfile {
     id: (json['id'] as String?) ?? '',
     name: (json['name'] as String?) ?? '',
     email: (json['email'] as String?) ?? '',
+    emailIsPlaceholder: (json['email_is_placeholder'] as bool?) ?? false,
+    emailPlaceholderProvider: switch (json['email_placeholder_provider']) {
+      final String provider when provider.isNotEmpty => provider,
+      _ => null,
+    },
     phone: (json['phone'] as String?) ?? '',
     birthDate: (json['birth_date'] as String?) ?? '',
     gender: (json['gender'] as String?) ?? '',

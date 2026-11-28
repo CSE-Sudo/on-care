@@ -66,13 +66,17 @@ class DioAiCoachRepository implements AiCoachRepository {
         },
       );
     } on DioException catch (e) {
-      throw _blocked(e.response?.data) ?? e;
+      final Object? body = e.response?.data;
+      throw _blocked(body) ?? _inProgress(body) ?? e;
     }
     return ChatMessage.coachFromReply(res.data!);
   }
 
   static AiChatBlocked? _blocked(Object? body) =>
       body is Map ? AiChatBlocked.fromDetail(body['detail']) : null;
+
+  static AiChatInProgress? _inProgress(Object? body) =>
+      body is Map ? AiChatInProgress.fromDetail(body['detail']) : null;
 
   @override
   Future<AiChatQuota> fetchQuota() async {

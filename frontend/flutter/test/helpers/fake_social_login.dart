@@ -91,3 +91,20 @@ class FakeKakaoPopup implements KakaoPopupPort {
 
   Future<void> dispose() => callbacks.close();
 }
+
+/// 애플 플러그인 대신(#3499).
+class FakeAppleGateway implements AppleSignInGateway {
+  Object? error;
+  AppleCredential credential = (
+    identityToken: 'apple-identity-token',
+    authorizationCode: 'apple-code',
+    givenName: null,
+    familyName: null,
+  );
+
+  @override
+  Future<AppleCredential> getCredential() async {
+    if (error != null) throw error!;
+    return credential;
+  }
+}

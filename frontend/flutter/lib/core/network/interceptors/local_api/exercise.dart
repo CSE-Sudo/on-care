@@ -1,4 +1,5 @@
-// 운동 경로(/exercise/weeks, /exercise/sessions, /exercise/advice, /exercise/calories).
+// 운동 경로(/exercise/weeks, /exercise/sessions, /exercise/sessions/move,
+// /exercise/advice, /exercise/calories).
 
 part of '../local_api_interceptor.dart';
 
@@ -134,6 +135,91 @@ extension _LocalApiExercise on LocalApiInterceptor {
     );
   }
 
+  /// POST /exercise/sessions/move — 운동 기록 1~N개의 날짜를 한 번에 옮긴다.
+  /// (#3365)
+  ///
+  /// 실서버처럼 **전부 옮기거나 전부 그대로다** — 기록을 모두 먼저 검사하고,
+  /// 하나라도 없거나(404) PT·배정 루틴에서 생긴 기록이면(409) 아무것도 옮기지
+  /// 않는다. 날짜 말고는 건드리지 않아 칼로리도 그대로다. 같은 id 가 두 번 와도
+  /// 한 번만 옮긴다.
+  Future<Response<Object?>> _exerciseMove(RequestOptions options) async {
+    final Map<String, Object?> payload = _payloadOf(options.data);
+    final Object? raw = payload['session_ids'];
+    if (raw is! List ||
+        raw.isEmpty ||
+        raw.length > kMaxExerciseSessionsPerMove ||
+        raw.any((Object? id) => id is! String)) {
+      return _unprocessable(
+        options,
+        'session_ids must hold 1..$kMaxExerciseSessionsPerMove ids',
+      );
+    }
+    final Object? date = payload['date'];
+    if (date is! String || !_isDateString(date)) {
+      return _unprocessable(options, 'date must be YYYY-MM-DD');
+    }
+    // 앞날로는 옮기지 못한다 — 단건 수정과 같은 422(#3042).
+    final String? dateError = _exerciseDateError(date);
+    if (dateError != null) return _unprocessable(options, dateError);
+
+    final List<String> ids = <String>{...raw.cast<String>()}.toList();
+    final List<ExerciseSessionRow> found = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.id.isIn(ids))).get();
+    if (found.length != ids.length) {
+      return _notFound(options, '운동 기록을 찾을 수 없어요.');
+    }
+    if (found.any((ExerciseSessionRow r) => r.source != 'member')) {
+      return _derivedExercise(options);
+    }
+    final (String weekStart, String dayLabel) = _placement(date);
+    await (_db.update(
+      _db.exerciseSessions,
+    )..where((t) => t.id.isIn(ids))).write(
+      ExerciseSessionsCompanion(
+        weekStart: Value(weekStart),
+        dayLabel: Value(dayLabel),
+      ),
+    );
+    // 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
+    await _retireCuratedAdvice();
+
+    final Map<String, ExerciseSessionRow> byId = <String, ExerciseSessionRow>{
+      for (final ExerciseSessionRow r in found) r.id: r,
+    };
+    final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
+        ?.toDouble();
+    return _ok(options, <String, Object?>{
+      'sessions': <Map<String, Object?>>[
+        for (final ExerciseSessionRow r in <ExerciseSessionRow>[
+          for (final String id in ids) byId[id]!,
+        ])
+          _sessionJson(
+            id: r.id,
+            weekStart: weekStart,
+            dayLabel: dayLabel,
+            type: r.type,
+            name: r.name,
+            minutes: r.minutes,
+            sets: r.sets,
+            reps: r.reps,
+            holdSeconds: r.holdSeconds,
+            durationSeconds: r.durationSeconds,
+            weight: r.weight,
+            calories: r.calories,
+            intensity: r.intensity,
+            calorieSource:
+                matchDemoExercise(r.name) != null &&
+                    weightKg != null &&
+                    weightKg > 0
+                ? 'db'
+                : 'estimate',
+          ),
+      ],
+    });
+  }
+
   /// GET /exercise/weeks/current[?week_start=YYYY-MM-DD]
   ///
   /// `week_start` 없이 부르면 이번 주다(예전 동작 그대로). 운동 탭이 주를 뒤로
@@ -149,7 +235,12 @@ extension _LocalApiExercise on LocalApiInterceptor {
     if (period == null) {
       return _unprocessable(options, 'period must be today, week or all');
     }
-    final (String start, String end) = _periodBounds(period);
+    final (String boundStart, String end) = _periodBounds(period);
+    // `전체` 는 첫 기록이 있는 주의 월요일부터다(#3365) — `전체` 그래프
+    // ([_exercisePeriod])와 같은 주다. 서버 `exercise_service.period_days` 와 같다.
+    final String start = period == kPeriodAll
+        ? wireDate(await _exerciseFirstMonday(mondayOf(nowKst())))
+        : boundStart;
     final List<String> weeks = _weekStartsCovering(start, end);
     final rows = await (_db.select(
       _db.exerciseSessions,
@@ -195,6 +286,8 @@ extension _LocalApiExercise on LocalApiInterceptor {
     final ExerciseAdvice advice = exercisePeriodAdviceOf(
       days,
       period,
+      // "○주 동안" 은 읽은 구간의 주 수다 — `전체` 그래프의 칸 수와 같다(#3365).
+      weeks: weeks.length,
       routineDays:
           routineDays?.call(routineAdviceFetchStart(period, today), today) ??
           const <RoutineAdviceDay>[],
@@ -228,6 +321,28 @@ extension _LocalApiExercise on LocalApiInterceptor {
     return weeks;
   }
 
+  /// 서버와 같은 구간 하한(`exercise_service.MAX_PERIOD_WEEKS`, #2833).
+  DateTime _exerciseFloorMonday(DateTime lastMonday) => DateTime(
+    lastMonday.year,
+    lastMonday.month,
+    lastMonday.day - (kExerciseMaxPeriodWeeks - 1) * 7,
+  );
+
+  /// `전체` 가 시작하는 주의 월요일 — 첫 기록이 있는 주다. 기록이 없으면
+  /// [lastMonday]. (#2247, #3365)
+  ///
+  /// `전체` 그래프([_exercisePeriod])와 `전체` 조언([_exerciseAdvice])이 이 함수
+  /// 하나로 시작을 정한다 — 서버 `exercise_service.first_record_monday` 와 같다.
+  Future<DateTime> _exerciseFirstMonday(DateTime lastMonday) async {
+    final Set<String> days = await _exerciseDates();
+    DateTime firstMonday = days.isEmpty
+        ? lastMonday
+        : mondayOf(DateTime.parse((days.toList()..sort()).first));
+    if (firstMonday.isAfter(lastMonday)) firstMonday = lastMonday;
+    final DateTime floorMonday = _exerciseFloorMonday(lastMonday);
+    return firstMonday.isBefore(floorMonday) ? floorMonday : firstMonday;
+  }
+
   /// `GET /exercise/weeks?from=&to=` — 구간이 걸친 주들. (#2247)
   ///
   /// 주마다의 집계는 [_exerciseCurrentWeek] 을 그대로 부른다 — 데모에서도 한 주
@@ -247,22 +362,11 @@ extension _LocalApiExercise on LocalApiInterceptor {
         : mondayOf(_queryDate(options, 'to')!);
     if (lastMonday.isAfter(thisMonday)) lastMonday = thisMonday;
     final DateTime? fromQuery = _queryDate(options, 'from');
-    DateTime firstMonday;
-    if (fromQuery != null) {
-      firstMonday = mondayOf(fromQuery);
-    } else {
-      final Set<String> days = await _exerciseDates();
-      firstMonday = days.isEmpty
-          ? lastMonday
-          : mondayOf(DateTime.parse((days.toList()..sort()).first));
-    }
+    DateTime firstMonday = fromQuery != null
+        ? mondayOf(fromQuery)
+        : await _exerciseFirstMonday(lastMonday);
     if (firstMonday.isAfter(lastMonday)) firstMonday = lastMonday;
-    // 서버와 같은 구간 상한(`exercise_service.MAX_PERIOD_WEEKS`, #2833).
-    final DateTime floorMonday = DateTime(
-      lastMonday.year,
-      lastMonday.month,
-      lastMonday.day - (kExerciseMaxPeriodWeeks - 1) * 7,
-    );
+    final DateTime floorMonday = _exerciseFloorMonday(lastMonday);
     if (firstMonday.isBefore(floorMonday)) firstMonday = floorMonday;
 
     const List<String> carried = <String>[

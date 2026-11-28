@@ -206,25 +206,4 @@ void main() {
     expect(find.byKey(const Key('appGuideOverlay')), findsNothing);
     expect(container.read(appGuideControllerProvider).active, isFalse);
   });
-
-  testWidgets('영어 화면에는 한글이 남지 않는다', (WidgetTester tester) async {
-    final ProviderContainer container = await pumpGuide(
-      tester,
-      locale: const Locale('en'),
-    );
-
-    container.read(appGuideControllerProvider.notifier).start();
-    await tester.pumpAndSettle();
-
-    for (int step = 0; step < kGuideSteps.length; step++) {
-      final Iterable<String> texts = tester
-          .widgetList<Text>(find.byType(Text))
-          .map((Text t) => t.data ?? t.textSpan?.toPlainText() ?? '');
-      for (final String text in texts) {
-        expect(RegExp('[가-힣]').hasMatch(text), isFalse, reason: text);
-      }
-      await tester.tap(find.byKey(const Key('appGuideNext')));
-      await tester.pumpAndSettle();
-    }
-  });
 }

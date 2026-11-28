@@ -471,7 +471,7 @@ def test_routine_only_with_a_future_start_runs_from_that_day(db_session, pair):
     ).first()
     assert note is not None
     assert note.template_args["starts_on"] == start.isoformat()
-    title, _ = notification_templates.render(note.template, note.template_args, "ko")
+    title, _ = notification_templates.render(note.template, note.template_args)
     assert title == f"{start.month}/{start.day}부터 할 개인운동이 왔어요"
 
 

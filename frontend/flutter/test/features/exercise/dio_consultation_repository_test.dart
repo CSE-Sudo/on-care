@@ -106,6 +106,27 @@ void main() {
       );
     });
 
+    test('담당 여부로 가르는 409 코드는 없다 (#3358)', () async {
+      // 서버가 담당 여부 거절을 없앴다. 예전 코드가 오더라도 따로 읽지 않고
+      // 나머지 409 와 같은 길로 간다.
+      final repository = _repo(
+        _StubAdapter(
+          status: 409,
+          body: <String, Object?>{
+            'detail': <String, Object?>{
+              'code': 'linked_to_other_trainer',
+              'message': '담당 트레이너 연결을 해제한 뒤 요청할 수 있어요.',
+            },
+          },
+        ),
+      );
+
+      expect(
+        () => repository.create(_draft),
+        throwsA(isA<DuplicatePendingConsultation>()),
+      );
+    });
+
     test('문자열 detail 409 는 예전처럼 이미 대기 중이다', () async {
       final repository = _repo(
         _StubAdapter(
@@ -192,6 +213,42 @@ void main() {
         _StubAdapter(
           status: 409,
           body: <String, Object?>{'detail': '대기 중인 요청만 취소할 수 있습니다.'},
+        ),
+      );
+
+      await expectLater(
+        repository.cancel('consult-1'),
+        throwsA(isA<ConsultationNoLongerPending>()),
+      );
+    });
+
+    test('시작 시각이 지난 상담의 409 는 ConsultationAlreadyStarted 다 (#3359)', () async {
+      // 같은 409 지만 서버가 코드로 밝힌다 — 화면의 안내가 다르다.
+      final repository = _repo(
+        _StubAdapter(
+          status: 409,
+          body: <String, Object?>{
+            'detail': <String, Object?>{
+              'code': 'consultation_started',
+              'message': '시작 시각이 지난 상담은 취소할 수 없어요.',
+            },
+          },
+        ),
+      );
+
+      await expectLater(
+        repository.cancel('consult-1'),
+        throwsA(isA<ConsultationAlreadyStarted>()),
+      );
+    });
+
+    test('모르는 코드의 409 는 ConsultationNoLongerPending 으로 남는다', () async {
+      final repository = _repo(
+        _StubAdapter(
+          status: 409,
+          body: <String, Object?>{
+            'detail': <String, Object?>{'code': 'something_else'},
+          },
         ),
       );
 

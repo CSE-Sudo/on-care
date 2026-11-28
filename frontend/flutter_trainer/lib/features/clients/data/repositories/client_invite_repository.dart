@@ -8,7 +8,6 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
@@ -79,12 +78,9 @@ abstract interface class ClientInviteRepository {
 /// 로컬 로스터에 연결한다 — [demoProspectiveMembers] 가 "아직 연결되지 않은
 /// 회원", [demoAlreadyLinkedMemberId] 가 "이미 연결된 회원" 시나리오다.
 class DemoClientInviteRepository implements ClientInviteRepository {
-  DemoClientInviteRepository(this._db, {this.language = DemoLanguage.ko});
+  DemoClientInviteRepository(this._db);
 
   final AppDatabase _db;
-
-  /// 명부 회원의 목표를 보여 줄 데모 언어 (#2304).
-  final DemoLanguage language;
 
   @override
   bool get supportsInvites => true;
@@ -141,7 +137,7 @@ class DemoClientInviteRepository implements ClientInviteRepository {
       // 맞는지" 확인할 수 있게 데모에서만 함께 실어 준다.
       gender: prospect.gender,
       age: prospect.ageOn(now),
-      goal: prospect.goalIn(language),
+      goal: prospect.goal,
     );
   }
 
@@ -191,7 +187,7 @@ class DemoClientInviteRepository implements ClientInviteRepository {
               id: prospect.id,
               name: prospect.name,
               avatar: String.fromCharCode(prospect.name.runes.first),
-              goal: prospect.goalIn(language),
+              goal: prospect.goal,
               // 대화가 없으면 비워 둔다 — 화면이 로케일에 맞춰
               // "아직 대화가 없어요" 를 그린다.
               lastMessage: '',
@@ -384,10 +380,7 @@ class DioClientInviteRepository implements ClientInviteRepository {
 final clientInviteRepositoryProvider = Provider<ClientInviteRepository>((ref) {
   ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   if (ref.watch(appConfigProvider).useMockApi) {
-    return DemoClientInviteRepository(
-      ref.watch(appDatabaseProvider),
-      language: ref.watch(demoLanguageProvider),
-    );
+    return DemoClientInviteRepository(ref.watch(appDatabaseProvider));
   }
   return DioClientInviteRepository(ref.watch(dioProvider));
 }, name: 'clientInviteRepository');

@@ -71,19 +71,19 @@ class _FailingProfile extends ProfileController {
 
 class _RecordingRepository implements MemberReportSheetRepository {
   DateTime? weekStart;
-  String? languageCode;
   ReportSheetGoals? goals;
+  String? messageId;
   int calls = 0;
 
   @override
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     ReportSheetGoals goals = const ReportSheetGoals(),
+    String? messageId,
   }) async {
     calls++;
+    this.messageId = messageId;
     this.weekStart = weekStart;
-    this.languageCode = languageCode;
     this.goals = goals;
     return _inputs;
   }
@@ -94,7 +94,6 @@ class _RecordingGenerator extends MemberReportPdfGenerator {
 
   ReportSheetInputs? inputs;
   MemberReportFeedback? feedback;
-  String? language;
 
   @override
   Future<Uint8List> generate({
@@ -105,7 +104,6 @@ class _RecordingGenerator extends MemberReportPdfGenerator {
   }) async {
     this.inputs = inputs;
     this.feedback = feedback;
-    language = l.localeName;
     return Uint8List.fromList(<int>[1, 2, 3]);
   }
 }
@@ -135,7 +133,6 @@ CoachMessage _notice({CoachAttachment? attachment, String body = '수고하셨�
 
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-  final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
   group('어디서 읽는가', () {
     test('데모면 트레이너 웹 데모와 같은 규칙의 저장소다', () {
@@ -192,7 +189,7 @@ void main() {
   });
 
   group('결과지 자료 읽기', () {
-    test('그 주·언어·회원 목표를 저장소에 넘긴다', () async {
+    test('그 주·회원 목표를 저장소에 넘긴다', () async {
       final _RecordingRepository repository = _RecordingRepository();
       final ProviderContainer container = ProviderContainer(
         overrides: <Override>[
@@ -207,13 +204,30 @@ void main() {
       final ReportSheetInputs inputs = await loadMemberReportSheet(
         container.read,
         weekStart: _monday,
-        languageCode: 'en',
       );
 
       expect(inputs, same(_inputs));
       expect(repository.weekStart, _monday);
-      expect(repository.languageCode, 'en');
       expect(repository.goals!.weeklyCardioMinutes, 120);
+      expect(repository.messageId, isNull, reason: '포인트로 받은 리포트는 주로만 찾는다');
+    });
+
+    test('전송 메시지 id 를 저장소까지 그대로 넘긴다 (#3349)', () async {
+      final _RecordingRepository repository = _RecordingRepository();
+      final ProviderContainer container = ProviderContainer(
+        overrides: <Override>[
+          memberReportSheetRepositoryProvider.overrideWithValue(repository),
+          profileProvider.overrideWith(() => _StubProfile(_profile())),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await loadMemberReportSheet(
+        container.read,
+        weekStart: _monday,
+        messageId: 'chat-abc',
+      );
+      expect(repository.messageId, 'chat-abc');
     });
 
     test('프로필을 못 읽어도 권장 목표로 결과지를 세운다', () async {
@@ -226,11 +240,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      await loadMemberReportSheet(
-        container.read,
-        weekStart: _monday,
-        languageCode: 'ko',
-      );
+      await loadMemberReportSheet(container.read, weekStart: _monday);
       expect(repository.goals!.weeklyCardioMinutes, kReportWeeklyCardioMinutes);
     });
 
@@ -245,11 +255,7 @@ void main() {
       addTearDown(container.dispose);
 
       for (int i = 0; i < 2; i++) {
-        await loadMemberReportSheet(
-          container.read,
-          weekStart: _monday,
-          languageCode: 'ko',
-        );
+        await loadMemberReportSheet(container.read, weekStart: _monday);
       }
       expect(repository.calls, 2);
     });
@@ -314,6 +320,16 @@ void main() {
       expect(generator.inputs, same(_inputs));
     });
 
+    test('보낼 때 굳힌 값을 그 전송 메시지로 찾는다 (#3349)', () async {
+      await loadCoachReportPdf(
+        container.read,
+        l: ko,
+        message: _notice(),
+        weekStart: _monday,
+      );
+      expect(repository.messageId, 'report-1');
+    });
+
     test('트레이너가 함께 보낸 글이 트레이너 피드백 칸에 실린다', () async {
       await loadCoachReportPdf(
         container.read,
@@ -323,18 +339,6 @@ void main() {
       );
       expect(generator.feedback!.text, '다음 주는 하체 위주로 가요');
       expect(generator.feedback!.title, isNull);
-    });
-
-    test('화면 언어로 자료와 문서를 만든다', () async {
-      final CoachReportPdf pdf = await loadCoachReportPdf(
-        container.read,
-        l: en,
-        message: _notice(),
-        weekStart: _monday,
-      );
-      expect(repository.languageCode, 'en');
-      expect(generator.language, 'en');
-      expect(pdf.fileName, en.coachReportPdfFileName('2026-09-14'));
     });
 
     test('자료를 못 읽으면 던진다 — 부르는 쪽이 안내를 띄운다', () async {
@@ -444,7 +448,7 @@ class _ThrowingRepository implements MemberReportSheetRepository {
   @override
   Future<ReportSheetInputs> fetch({
     required DateTime weekStart,
-    required String languageCode,
     ReportSheetGoals goals = const ReportSheetGoals(),
+    String? messageId,
   }) async => throw StateError('offline');
 }

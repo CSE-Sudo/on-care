@@ -63,10 +63,8 @@ def targets_of(t: dict) -> inputs.DietTargets:
     return inputs.DietTargets(**t)
 
 
-DEMO_PLAN = {
-    lang: [asdict(m) for m in diet_menu_plan.rules_plan(lang=lang, needs=[], excluded=set())]
-    for lang in ("ko", "en")
-}
+#: 서버 문장은 한국어 하나다(#3404). 언어 칸 없이 리스트 하나다(#3415).
+DEMO_PLAN = [asdict(m) for m in diet_menu_plan.rules_plan(needs=[], excluded=set())]
 
 
 def run_today(case: dict) -> dict:
@@ -77,7 +75,7 @@ def run_today(case: dict) -> dict:
     decision = today_svc.decide_today(totals, targets_of(case["targets"]), now.time())
     action = decision.action
     if decision.slot is not None:
-        plan = [diet_menu_plan.PlanMenu(**m) for m in DEMO_PLAN[case.get("lang", "ko")]]
+        plan = [diet_menu_plan.PlanMenu(**m) for m in DEMO_PLAN]
         menus = [m for m in plan if m.slot == decision.slot]
         recent = {diet_menu_plan.norm_name(n) for n in case.get("recent", [])}
         menu = today_svc.pick_menu(menus, decision.needs, recent, decision.satisfied)
@@ -143,9 +141,7 @@ def cases() -> list[dict]:
         [entry(THU, m, kcal=600, protein=31) for m in ("breakfast", "lunch", "dinner")])
     add("today_protein_met_other_tag", "today", "2026-09-24T13:00",
         [entry(THU, "breakfast", protein=45), entry(THU, "lunch", protein=45)])
-    add("today_recent_pushed_back", "today", "2026-09-24T08:00", [], recent=[DEMO_PLAN["ko"][0]["name"]])
-    add("today_english", "today", "2026-09-24T13:00",
-        [entry(THU, "breakfast", protein=15), entry(THU, "lunch", protein=20)], lang="en")
+    add("today_recent_pushed_back", "today", "2026-09-24T08:00", [], recent=[DEMO_PLAN[0]["name"]])
     add("today_personal_targets", "today", "2026-09-24T13:00",
         [entry(THU, "breakfast", sodium=700), entry(THU, "lunch", sodium=700)],
         targets={"calories": 1800, "protein_g": 60, "sodium_mg": 1300, "sugar_g": 40})

@@ -42,9 +42,7 @@ class _Taps {
 
 Future<_Taps> _pumpCard(
   WidgetTester tester,
-  ScheduleSession session, {
-  Locale locale = const Locale('ko'),
-}) async {
+  ScheduleSession session) async {
   final taps = _Taps();
   tester.view.physicalSize = const Size(420, 900);
   tester.view.devicePixelRatio = 1.0;
@@ -59,7 +57,7 @@ Future<_Taps> _pumpCard(
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -163,14 +161,4 @@ void main() {
     expect(taps.editSchedule, 1);
   });
 
-  testWidgets('영어 화면은 영어 안내다', (tester) async {
-    await _pumpCard(
-      tester,
-      scheduleSessionFromJson(_json(reservation: true)),
-      locale: const Locale('en'),
-    );
-
-    expect(find.textContaining('Booked by the member'), findsOneWidget);
-    expect(find.textContaining('회원이 예약한'), findsNothing);
-  });
 }

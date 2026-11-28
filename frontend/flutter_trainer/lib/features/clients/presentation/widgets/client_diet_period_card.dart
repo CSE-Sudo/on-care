@@ -333,7 +333,7 @@ class _Body extends StatelessWidget {
                                   children: <InlineSpan>[
                                     TextSpan(
                                       text:
-                                          ' / ${format(goal)}${unitGap(locale)}$unit',
+                                          ' / ${format(goal)}$unit',
                                       style: tokens
                                           .text(OnCareTypography.bodySmall)
                                           .copyWith(
@@ -414,7 +414,7 @@ class _Body extends StatelessWidget {
                             values: values,
                             dayLabels: days,
                             format: (double v) =>
-                                '${format(v)}${unitGap(locale)}$unit',
+                                '${format(v)}$unit',
                             upTo: today,
                           ),
                         ),
@@ -539,7 +539,7 @@ class _MacroDetail extends StatelessWidget {
               Text(
                 // `204g` — 소수점은 버린다. 옆의 머리 숫자가 주인공이고 이
                 // 줄은 곁들이다. (회원 앱 `_macroGrams`)
-                '${value.round()}${unitGap(Localizations.localeOf(context).toString())}g',
+                '${value.round()}g',
                 maxLines: 1,
                 style: OnCareTypography.numeric(
                   captionStrong,
@@ -675,7 +675,7 @@ class _PeriodBars extends StatelessWidget {
     spans.add(_swatch(over ? OnCareColors.danger : brand.dietChart));
     spans.add(
       TextSpan(
-        text: '$label   ${format(value)}${unitGap(dayFormat.locale)}$unit',
+        text: '$label   ${format(value)}$unit',
       ),
     );
     // 칼로리 뒤에는 그 칼로리가 어디서 왔는지를 적는다 — 숫자 하나만 보고는

@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/client_factory.dart';
@@ -279,60 +278,4 @@ void main() {
     });
   });
 
-  group('영어 요약 (#2232)', () {
-    final AppLocalizationsEn en = AppLocalizationsEn();
-    final RegExp hangul = RegExp(r'[가-힣]');
-    // 주의사항이 골고루 걸리는 주 — 이행률·나트륨·당류·칼로리·단백질.
-    final report = _report(
-      completionAvg: 55,
-      sodiumAvg: 2600,
-      sodiumOverDays: 4,
-      sugarWeek: const <double>[72, 80, 61, 90, 0, 0, 0],
-      caloriesWeek: const <int>[2900, 3000, 2800, 0, 0, 0, 0],
-      proteinWeek: const <double>[40, 42, 38, 0, 0, 0, 0],
-      proteinTarget: 120,
-    );
-
-    test('머리 문장과 근거 줄에 한글이 남지 않는다', () {
-      final summary = ruleReportSummary(en, report, makeClient(name: 'Min'));
-
-      expect(summary.headline, isNot(matches(hangul)));
-      for (final String point in summary.points) {
-        expect(point, isNot(matches(hangul)), reason: point);
-      }
-    });
-
-    test('주의사항·다음 주 할 일에도 한글이 남지 않는다', () {
-      for (final w in summaryWatchpoints(en, report)) {
-        expect(w.text, isNot(matches(hangul)), reason: w.text);
-        expect(w.topic, isNot(matches(hangul)), reason: w.topic);
-      }
-      for (final String a in summaryCoachingActionsAll(en, report)) {
-        expect(a, isNot(matches(hangul)), reason: a);
-      }
-    });
-
-    test('영어에는 한국어 조사를 붙이지 않는다', () {
-      final summary = ruleReportSummary(
-        en,
-        _report(completionAvg: 95, sodiumAvg: 2600, sodiumOverDays: 4),
-        makeClient(name: 'Min'),
-      );
-
-      expect(
-        summary.headline,
-        contains('workout completion rate at 95% on track'),
-      );
-    });
-
-    test('기록이 없는 주도 영어로 말한다', () {
-      final summary = ruleReportSummary(
-        en,
-        _report(completionAvg: null, sodiumAvg: null, sodiumOverDays: 0),
-        makeClient(name: 'Min'),
-      );
-
-      expect(summary.headline, en.summaryHeadlineNoData('Min'));
-    });
-  });
 }

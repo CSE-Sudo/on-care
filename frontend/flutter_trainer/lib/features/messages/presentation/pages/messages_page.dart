@@ -460,6 +460,9 @@ class _ThreadPanel extends StatelessWidget {
 /// 목표 글과 같은 비율이다(#2330). 나머지는 신호 배지 줄이 쓴다.
 const double _identityWidthShare = 0.4;
 
+/// 이름·목표와 신호 배지를 한 줄에 둘 수 있는 가장 좁은 폭.
+const double _stackedIdentityWidth = 280;
+
 /// 대화 헤더가 말하는 이 사람 — 이름 · 성별·나이, 그 아래 목표, 그 오른쪽에
 /// 주의 신호.
 ///
@@ -487,34 +490,53 @@ class _Identity extends StatelessWidget {
       density: ClientRowDensity.header,
     );
     return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints c) => Row(
-        key: const ValueKey<String>('messages-thread-identity'),
-        children: <Widget>[
-          // 이름·목표는 제 글 폭만큼만 쓴다 — 배지가 그 바로 뒤에서 시작해야
-          // 빈자리가 가운데에 남지 않는다. 신호가 있으면 폭에 상한을 둬
-          // 긴 이름이 배지 자리를 다 먹지 않게 한다.
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: signals.isEmpty
-                  ? c.maxWidth
-                  : c.maxWidth * _identityWidthShare,
-            ),
-            child: who,
-          ),
-          // 활성/휴면은 없다 — 이 사람과 지금 이야기하는 데 쓰이지 않는
-          // 값이다. 신호는 다르다: 통증을 말했거나 기록이 끊겼다는 사실은
-          // **지금 이 대화에서 할 말**을 바꾼다.
-          if (signals.isNotEmpty) ...<Widget>[
-            const SizedBox(width: OnCareSpacing.s12),
-            Expanded(
-              child: ClientSignalBadges(
+      builder: (BuildContext context, BoxConstraints c) {
+        // 좁은 머리에서는 배지를 이름 아래로 내린다 — 폭의 40% 만 받으면
+        // 휴대폰 폭에서 이름이 통째로 말줄임됐다(#3316).
+        if (signals.isNotEmpty && c.maxWidth < _stackedIdentityWidth) {
+          return Column(
+            key: const ValueKey<String>('messages-thread-identity'),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              who,
+              const SizedBox(height: OnCareSpacing.s4),
+              ClientSignalBadges(
                 signals: signals,
                 keyPrefix: 'messages-thread',
               ),
+            ],
+          );
+        }
+        return Row(
+          key: const ValueKey<String>('messages-thread-identity'),
+          children: <Widget>[
+            // 이름·목표는 제 글 폭만큼만 쓴다 — 배지가 그 바로 뒤에서 시작해야
+            // 빈자리가 가운데에 남지 않는다. 신호가 있으면 폭에 상한을 둬
+            // 긴 이름이 배지 자리를 다 먹지 않게 한다.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: signals.isEmpty
+                    ? c.maxWidth
+                    : c.maxWidth * _identityWidthShare,
+              ),
+              child: who,
             ),
+            // 활성/휴면은 없다 — 이 사람과 지금 이야기하는 데 쓰이지 않는
+            // 값이다. 신호는 다르다: 통증을 말했거나 기록이 끊겼다는 사실은
+            // **지금 이 대화에서 할 말**을 바꾼다.
+            if (signals.isNotEmpty) ...<Widget>[
+              const SizedBox(width: OnCareSpacing.s12),
+              Expanded(
+                child: ClientSignalBadges(
+                  signals: signals,
+                  keyPrefix: 'messages-thread',
+                ),
+              ),
+            ],
           ],
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -526,10 +548,7 @@ class _EmptyThread extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return AppCard(
-      child: AppEmptyState(
-        title: l.messagesSelectPrompt,
-        icon: AppIcons.chat,
-      ),
+      child: AppEmptyState(title: l.messagesSelectPrompt, icon: AppIcons.chat),
     );
   }
 }

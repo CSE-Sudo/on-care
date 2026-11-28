@@ -129,8 +129,11 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
 | --- | --- | --- |
 | 수출 규정 | `ios/Runner/Info.plist` `ITSAppUsesNonExemptEncryption=false` | 표준 HTTPS 와 OS 키체인만 쓰고 자체 암호화가 없다. 암호화 라이브러리를 추가하면 다시 판단 |
 | 개인정보 매니페스트 | `ios/Runner/PrivacyInfo.xcprivacy` | 추적 없음, 필수 사유 API(UserDefaults), 수집 데이터 유형 |
-| 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko`, `en` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게. 개발 언어(`developmentRegion`)는 `en` — 앱 안 문구의 폴백과 같다 |
-| 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `ios/Runner/en.lproj/InfoPlist.strings`, `Info.plist`(영어 폴백) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
+| 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게 한국어 하나다(#3404). 개발 언어(`developmentRegion`)도 `ko` |
+| 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `Info.plist`(같은 한국어 문구) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
+| 항상 허용 위치 문구 | 같은 두 곳 `NSLocationAlwaysAndWhenInUseUsageDescription` | 앱은 "사용 중" 위치만 요청하지만 `geolocator` 가 항상 허용 API 를 참조해, 문구가 없으면 업로드 때 ITMS-90683 경고가 난다(#3485) |
+| 최소 iOS 버전 | `project.pbxproj` Runner `IPHONEOS_DEPLOYMENT_TARGET` · `Podfile` `platform :ios` | 15.0. 2027년 4월부터 15 미만은 업로드가 막힌다(ITMS-90068, #3485) |
+| Sentry 네이티브 SDK | `ios/Runner.xcworkspace`·`ios/Runner.xcodeproj/project.xcworkspace` 의 `Package.resolved` | `sentry-cocoa` 8.46.0 고정. `sentry_flutter` 8.14.2 는 최신 8.x 와 컴파일되지 않는다. `sentry_flutter` 를 올릴 때 고정도 함께 다시 정한다(#3485) |
 
 - 두 스토어의 **개인정보처리방침 URL** 은 운영 도메인의 `/legal/privacy.html`, 이용약관이 필요한 칸에는
   `/legal/terms.html` 을 적습니다. 로그인 없이 열리는 정적 페이지로, 앱 안 문서와 같은 원본에서
@@ -149,8 +152,8 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
   - [ ] 추적: 하지 않음
 - 오류 수집 SDK 를 빼거나 Sentry 세션 추적(`enableAutoSessionTracking`)을 끄면 진단 항목을 함께 고칩니다. 어긋나면 `test/platform/privacy_manifest_test.dart` 가 실패합니다.
 - 권한 문구는 실제로 그 권한을 쓰는 화면과 맞아야 합니다. 새 용도가 생기면 문구도 고칩니다.
-- **권한 문구는 세 곳을 함께 고칩니다**(#3048): `ko.lproj/InfoPlist.strings`, `en.lproj/InfoPlist.strings`, `Info.plist` 본문(영어 폴백). 권한 키를 새로 더할 때(예: 푸시 알림 #474)도 같습니다. 한 곳이라도 빠지면 `test/platform/ios_localizations_test.dart` 가 실패합니다.
-- 릴리스 전에 기기 언어를 한국어·영어로 바꿔 가며 카메라·사진·위치 권한 창의 설명과 버튼이 그 언어로 뜨는지, 설정 → On-Care 에 언어 항목(한국어·영어)이 보이는지 확인합니다.
+- **권한 문구는 두 곳을 함께 고칩니다**(#3048, #3404): `ko.lproj/InfoPlist.strings` 와 `Info.plist` 본문. 둘은 같은 한국어 문구입니다. 권한 키를 새로 더할 때(예: 푸시 알림 #474)도 같습니다. 한 곳이라도 빠지면 `test/platform/ios_localizations_test.dart` 가 실패합니다.
+- 릴리스 전에 기기 언어가 한국어가 아니어도 카메라·사진·위치 권한 창의 설명이 한국어로 뜨는지 확인합니다.
 - iOS 빌드·서명은 Mac 과 Apple Developer 계정이 필요합니다. 서명 인증서·프로비저닝은
   Xcode 의 자동 서명(팀 계정)으로 하고, 인증서 파일도 저장소에 올리지 않습니다.
 
@@ -166,14 +169,14 @@ flutter build ipa --release --dart-define-from-file=config/release.json
 | --- | --- | --- |
 | iPhone | 세로만 | `ios/Runner/Info.plist` `UISupportedInterfaceOrientations` = `UIInterfaceOrientationPortrait` 하나 |
 | 안드로이드 휴대폰 | 세로만(앱 시작 시 런타임 고정) | `lib/core/platform/orientation_policy.dart`, `lib/app/bootstrap.dart` |
-| iPad | 모든 방향 | `UISupportedInterfaceOrientations~ipad` 네 방향 유지 |
+| iPad | iPhone 호환 모드(세로) | iPhone 전용 앱이라 iPad 에서는 iPhone 화면으로 돈다(#3481). `UISupportedInterfaceOrientations~ipad` 는 읽히지 않는다 |
 | 안드로이드 태블릿 | 모든 방향 | 런타임 고정을 적용하지 않음 |
 | 웹 | 브라우저가 정함 | 적용하지 않음 |
 
 - 휴대폰 판별: 기기 **화면**(분할 화면의 창 크기가 아님)의 짧은 변이 600 논리 픽셀 미만이면 휴대폰입니다(안드로이드 `sw600dp` 와 같은 경계). 크기를 알 수 없으면 고정하지 않습니다.
 - 안드로이드 매니페스트의 `screenOrientation="portrait"` 는 태블릿까지 세로로 묶어 쓰지 않습니다.
-- 태블릿을 모든 방향으로 두는 이유: 회원 앱 화면은 폭을 휴대폰 폭(`OnCareLayout.mobileContentMaxWidth`)으로 제한해 가운데 정렬하므로 가로에서도 쓸 수 있고, iPad 멀티태스킹(Split View)은 네 방향 지원을 요구합니다. 방향을 막으려면 `UIRequiresFullScreen` 까지 켜야 합니다.
-- 대안(팀 결정 대기): `TARGETED_DEVICE_FAMILY = "1"`(iPhone 전용)로 내면 iPad 에서는 iPhone 호환 모드로 돌고 iPad 스크린샷 제출도 필요 없습니다. 다만 **iPad 지원으로 한 번 출시하면 되돌릴 수 없으므로** 첫 출시 전에만 고를 수 있습니다.
+- 안드로이드 태블릿을 모든 방향으로 두는 이유: 회원 앱 화면은 폭을 휴대폰 폭(`OnCareLayout.mobileContentMaxWidth`)으로 제한해 가운데 정렬하므로 가로에서도 쓸 수 있고, iPad 멀티태스킹(Split View)은 네 방향 지원을 요구합니다. 방향을 막으려면 `UIRequiresFullScreen` 까지 켜야 합니다.
+- iOS 는 **iPhone 전용**으로 냅니다(#3481): Runner 의 `TARGETED_DEVICE_FAMILY = 1`. iPad 에서는 iPhone 호환 모드로 돌고, App Store 제출에 iPad 스크린샷이 필요 없습니다. iPad 지원은 나중에 `1,2` 로 더할 수 있지만, iPad 지원으로 한 번 출시하면 되돌릴 수 없으므로 첫 출시를 iPhone 전용으로 정했습니다.
 
 ## 4. 앱 ID·앱 이름 (확정값)
 
@@ -376,6 +379,10 @@ git push origin member-app-v1.0.1
 | `SENTRY_DSN_MEMBER` | 공통 | 회원 앱 Sentry DSN. 운영 웹 배포와 같은 이름이지만 Environment 비밀은 따로라 `mobile-release` 에도 넣습니다(#480). 비면 define 검사에서 멈춥니다 |
 
 iOS 프로필은 다른 앱·와일드카드·개발용·Ad Hoc 프로필이면 서명 단계에서 멈춥니다. 팀 ID 는 프로필에서 읽습니다.
+앱이 쓰는 권한(`ios/Runner/Runner.entitlements`, 지금은 Sign in with Apple)이 프로필에 없어도
+서명 단계에서 멈춥니다(#3499). Apple Developer 의 App ID `com.csesudo.oncare` 에서 **Sign in with
+Apple** 을 켠 뒤 프로필을 다시 만들어 `IOS_PROVISIONING_PROFILE_BASE64` 를 바꿔 넣습니다 — 권한을
+켜기 전에 만든 프로필에는 이 권한이 없습니다.
 
 **변수(Variables)** — 비밀이 아닌 설정값입니다.
 

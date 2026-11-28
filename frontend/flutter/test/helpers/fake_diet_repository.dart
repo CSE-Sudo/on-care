@@ -247,7 +247,7 @@ class FakeDietRepository implements DietRepository {
   }
 
   @override
-  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) async {
+  Future<DietAdvice> fetchAdvice(String period) async {
     // 기간마다 다른 말을 한다 — 화면이 기간을 바꿔도 조언이 그대로면 안 된다.
     // (#1017)
     final String message = switch (period) {

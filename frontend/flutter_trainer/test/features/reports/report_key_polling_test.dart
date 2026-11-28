@@ -170,24 +170,6 @@ void main() {
         ),
       );
     });
-
-    test('요약 열쇠도 회원 객체가 아니라 내용으로 가른다', () {
-      final ReportSummaryKey a = (
-        report: ReportKey(client: minsu, weekStart: week),
-        locale: const Locale('ko'),
-      );
-      final ReportSummaryKey b = (
-        report: ReportKey(client: _polled(minsu), weekStart: week),
-        locale: const Locale('ko'),
-      );
-      final ReportSummaryKey english = (
-        report: ReportKey(client: _polled(minsu), weekStart: week),
-        locale: const Locale('en'),
-      );
-
-      expect(a, b);
-      expect(a, isNot(english));
-    });
   });
 
   group('폴링으로 새 회원 객체가 와도 다시 부르지 않는다 (#2768)', () {
@@ -246,22 +228,16 @@ void main() {
       expect(reports.drafts, 1);
     });
 
-    test('reportSummaryProvider — 폴링으로는 다시 만들지 않고 언어가 바뀌면 만든다', () async {
-      ReportSummaryKey keyOf(TrainerClient c, String lang) =>
-          (report: ReportKey(client: c, weekStart: week), locale: Locale(lang));
+    test('reportSummaryProvider — 폴링으로는 다시 만들지 않는다', () async {
+      ReportKey keyOf(TrainerClient c) => ReportKey(client: c, weekStart: week);
       final ProviderSubscription<AsyncValue<ReportSummary>> keep = container
-          .listen(reportSummaryProvider(keyOf(minsu, 'ko')), (_, _) {});
+          .listen(reportSummaryProvider(keyOf(minsu)), (_, _) {});
       addTearDown(keep.close);
-      await container.read(reportSummaryProvider(keyOf(minsu, 'ko')).future);
+      await container.read(reportSummaryProvider(keyOf(minsu)).future);
       await container.read(
-        reportSummaryProvider(keyOf(_polled(minsu), 'ko')).future,
+        reportSummaryProvider(keyOf(_polled(minsu))).future,
       );
       expect(reports.summaries, 1);
-
-      await container.read(
-        reportSummaryProvider(keyOf(_polled(minsu), 'en')).future,
-      );
-      expect(reports.summaries, 2);
     });
 
     test('이름이 바뀐 회원은 새로 읽어 새 이름이 실린다', () async {

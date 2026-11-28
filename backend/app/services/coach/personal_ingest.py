@@ -161,9 +161,13 @@ def exercise_text(
 
 def diet_text(
     *, date: str, foods: list[dict], total_calories: int, sodium_mg: int,
-    sugar_g: float,
+    sugar_g: float, protein_g: float | None = None,
 ) -> str:
     """식단 기록 한 건의 문서 본문.
+
+    식단을 보는 네 축(`grounding.DIET_AXIS`)을 모두 적는다(#1642). 단백질은 나중에
+    더해진 값이라 넘기지 않는 호출이 있을 수 있다 — 그때는 0g 이라고 적지 않고
+    뺀다. 모르는 값을 0 으로 적으면 코치가 단백질을 안 먹었다고 답한다.
 
     dict 이 아닌 항목은 건너뛴다. 저장된 JSON 이 늘 dict 목록이라는 보장이 없고,
     여기서 터지면 갱신이 조용히 실패해 옛 근거가 남는다.
@@ -172,11 +176,13 @@ def diet_text(
         f["name"] for f in foods
         if isinstance(f, dict) and isinstance(f.get("name"), str) and f["name"]
     ) or "식단"
+    # 단백질도 float 이다 — 당류와 같은 이유로 소수 한 자리로 끊는다.
+    protein = f"단백질 {protein_g:.1f}g, " if protein_g is not None else ""
     return (
         f"{date} 식단 기록: {names}. "
         # 당류는 float 이라 그대로 찍으면 29.497999999999998 이 근거 문장에
         # 들어간다 — 소수 한 자리로 끊는다(#1564).
-        f"총 {total_calories}kcal, 나트륨 {sodium_mg}mg, 당류 {sugar_g:.1f}g."
+        f"총 {total_calories}kcal, {protein}나트륨 {sodium_mg}mg, 당류 {sugar_g:.1f}g."
     )
 
 
@@ -208,10 +214,11 @@ def record_diet(
     db: Session, user_id: str, *, date: str, foods: list[dict],
     total_calories: int, sodium_mg: int, sugar_g: float,
     source_ref: str | None = None, once: bool = False,
+    protein_g: float | None = None,
 ) -> None:
     text = diet_text(
         date=date, foods=foods, total_calories=total_calories,
-        sodium_mg=sodium_mg, sugar_g=sugar_g,
+        sodium_mg=sodium_mg, sugar_g=sugar_g, protein_g=protein_g,
     )
     _safe(
         db, user_id, text, domain="diet", source="diet",
@@ -284,7 +291,7 @@ def refresh_diet(db: Session, user_id: str, *, entry_id: str) -> None:
         return diet_text(
             date=row.date, foods=_entry_foods(row.foods_json),
             total_calories=row.total_calories, sodium_mg=row.sodium_mg,
-            sugar_g=row.sugar_g,
+            sugar_g=row.sugar_g, protein_g=row.protein_g,
         )
 
     _safe_replace(

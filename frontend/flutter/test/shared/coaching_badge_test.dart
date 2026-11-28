@@ -65,10 +65,8 @@ void main() {
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_real),
           aiCoachStateProvider.overrideWith(
-            (ref) async => const AiCoachState(
-              greeting: '',
-              suggestions: <AiSuggestion>[],
-            ),
+            (ref) async =>
+                const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]),
           ),
         ],
       );
@@ -111,6 +109,76 @@ void main() {
       expect(c.read(aiCoachStateProvider).isLoading, isTrue);
       expect(c.read(coachingSuggestionCountProvider), 0);
       expect(c.read(coachingBadgeCountProvider), 0);
+    });
+
+    test('다시 받는 동안에는 직전 카드 수를 그대로 둔다 (#3351)', () async {
+      // 기록·날짜가 바뀌면 조언을 다시 받는다. 그 사이 0 이 되면 기록을 저장할
+      // 때마다 배지가 꺼졌다 켜진다.
+      final Completer<AiCoachState> second = Completer<AiCoachState>();
+      int calls = 0;
+      final ProviderContainer c = ProviderContainer(
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_real),
+          aiCoachStateProvider.overrideWith((ref) {
+            calls++;
+            if (calls > 1) return second.future;
+            return AiCoachState(
+              greeting: '',
+              suggestions: <AiSuggestion>[_suggestion('하나'), _suggestion('둘')],
+            );
+          }),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(aiCoachStateProvider, (_, _) {});
+      await c.read(aiCoachStateProvider.future);
+      expect(c.read(coachingBadgeCountProvider), 2);
+
+      c.invalidate(aiCoachStateProvider);
+
+      expect(c.read(aiCoachStateProvider).isLoading, isTrue);
+      expect(c.read(coachingSuggestionCountProvider), 2);
+      expect(c.read(coachingBadgeCountProvider), 2);
+
+      second.complete(
+        AiCoachState(
+          greeting: '',
+          suggestions: <AiSuggestion>[
+            _suggestion('하나'),
+            _suggestion('둘'),
+            _suggestion('셋'),
+          ],
+        ),
+      );
+      await c.read(aiCoachStateProvider.future);
+      expect(c.read(coachingSuggestionCountProvider), 3);
+    });
+
+    test('다시 받다가 실패하면 배지를 내린다 (#3351)', () async {
+      int calls = 0;
+      final ProviderContainer c = ProviderContainer(
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_real),
+          aiCoachStateProvider.overrideWith((ref) async {
+            calls++;
+            if (calls > 1) throw Exception('timeout');
+            return AiCoachState(
+              greeting: '',
+              suggestions: <AiSuggestion>[_suggestion('하나')],
+            );
+          }),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(aiCoachStateProvider, (_, _) {});
+      await c.read(aiCoachStateProvider.future);
+      expect(c.read(coachingSuggestionCountProvider), 1);
+
+      c.invalidate(aiCoachStateProvider);
+      await expectLater(c.read(aiCoachStateProvider.future), throwsException);
+
+      // 시트는 오류와 다시 시도를 보인다 — 볼 카드가 없으니 배지도 0 이다.
+      expect(c.read(coachingSuggestionCountProvider), 0);
     });
 
     test('다 보면 배지가 내려가고, 새 제안이 오면 그만큼 다시 뜬다', () {

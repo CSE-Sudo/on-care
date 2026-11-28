@@ -12,7 +12,7 @@ sealed class AppError {
   final String? message;
 
   /// 서버가 응답 본문 `detail` 에 **문자열로** 준 사유(#2859). 백엔드는 이 사유를
-  /// 한국어로만 준다. 화면은 `serverDetailOr` 로 한국어 화면에서만 쓴다.
+  /// 한국어로 준다. 화면은 `serverDetailOr` 로 그대로 쓴다.
   /// FastAPI 스키마 검증의 목록형 `detail` 이나 본문이 없는 응답이면 null 이다.
   final String? detail;
 
@@ -40,6 +40,7 @@ sealed class AppError {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
+      case DioExceptionType.transformTimeout:
       case DioExceptionType.connectionError:
         return NetworkError(
           message: message,

@@ -4,10 +4,11 @@
 숫자는 각 기능이 회원 화면에 보여 주는 기준과 같아야 한다. 여기서 보는 것:
 
   * 서비스 — 포인트 잔액, 쓸 수 있는 쿠폰(사용·취소·만료·기한 지난 것 제외),
-    앞으로의 예약(지난 예약·취소된 예약·트레이너가 취소한 일정 제외), 아직
+    앞으로의 예약(지난 예약·취소된 예약·트레이너가 취소한 일정 제외), 트레이너가
+    잡은 시작 전 일정(지난 일정·끝난 일정·예약이 만든 일정 제외, #3341), 아직
     살아 있는 대기 상담 요청(처리된 것·만료 시각이 지난 것 제외). 다른 회원의
     행은 섞이지 않는다.
-  * API — `GET /users/me/deletion-preview` 가 네 칸을 주고, 아무것도 바꾸지 않으며,
+  * API — `GET /users/me/deletion-preview` 가 다섯 칸을 주고, 아무것도 바꾸지 않으며,
     트레이너 계정에는 403 이다.
 """
 from __future__ import annotations
@@ -17,6 +18,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.core import clock
 from app.core.security import hash_password
 from app.models.models import (
     ConsultationRequest,
@@ -167,6 +169,30 @@ def _booking(
     db_session.commit()
 
 
+def _session(
+    db_session,
+    member: User,
+    trainer: User,
+    *,
+    days: int = 2,
+    status: str = trainer_common_service.SCHEDULE_UPCOMING,
+) -> None:
+    """트레이너가 직접 잡은 일정 — 예약 행이 없다."""
+    db_session.add(
+        TrainerSchedule(
+            id=f"{ID_PREFIX}sched-{_suffix()}",
+            trainer_id=trainer.id,
+            member_id=member.id,
+            date=(clock.today() + timedelta(days=days)).isoformat(),
+            time="10:00",
+            type="1:1 PT",
+            duration_minutes=60,
+            status=status,
+        )
+    )
+    db_session.commit()
+
+
 def _consultation(
     db_session,
     member: User,
@@ -211,13 +237,14 @@ def _login(client, user: User) -> dict[str, str]:
 
 
 def test_new_member_loses_nothing(db_session):
-    """아무것도 없는 계정은 네 칸이 모두 0 이다 — 프로필 행이 없어도 된다."""
+    """아무것도 없는 계정은 모든 칸이 0 이다 — 프로필 행이 없어도 된다."""
     member = _user(db_session)
 
     p = _preview(db_session, member)
 
     assert (p.points, p.active_coupons) == (0, 0)
     assert (p.upcoming_reservations, p.pending_consultations) == (0, 0)
+    assert p.upcoming_sessions == 0
 
 
 def test_points_are_the_current_balance(db_session):
@@ -261,6 +288,28 @@ def test_only_upcoming_live_bookings_are_counted(db_session):
     assert _preview(db_session, member).upcoming_reservations == 2
 
 
+def test_only_trainer_made_upcoming_sessions_are_counted(db_session):
+    """트레이너가 잡은 시작 전 일정만 — 지난·끝난 일정과 예약이 만든 일정은 빠진다."""
+    member = _user(db_session)
+    trainer = _user(db_session, role="trainer")
+    _session(db_session, member, trainer, days=1)
+    _session(db_session, member, trainer, days=9)
+    _session(db_session, member, trainer, days=-2)
+    _session(
+        db_session,
+        member,
+        trainer,
+        status=trainer_common_service.SCHEDULE_CANCELLED,
+    )
+    _session(db_session, member, trainer, status=trainer_common_service.SCHEDULE_DONE)
+    _booking(db_session, member, trainer)
+
+    preview = _preview(db_session, member)
+
+    assert preview.upcoming_sessions == 2
+    assert preview.upcoming_reservations == 1
+
+
 def test_only_live_pending_consultations_are_counted(db_session):
     """처리된 요청과 만료 시각(신청 후 24시간)이 지난 대기 요청은 빠진다."""
     member = _user(db_session)
@@ -296,12 +345,14 @@ def test_other_members_rows_never_leak_in(db_session):
 # --------------------------------------------------------------------------
 
 
-def test_api_returns_the_four_counts(client, db_session):
+def test_api_returns_the_five_counts(client, db_session):
     member = _user(db_session)
     trainer = _user(db_session, role="trainer")
     _points(db_session, member, 1200)
     _coupon(db_session, member, item="pt_renewal")
     _booking(db_session, member, trainer)
+    _session(db_session, member, trainer)
+    _session(db_session, member, trainer, days=4)
     _consultation(db_session, member, trainer)
 
     response = client.get(URL, headers=_login(client, member))
@@ -311,6 +362,7 @@ def test_api_returns_the_four_counts(client, db_session):
         "points": 1200,
         "active_coupons": 1,
         "upcoming_reservations": 1,
+        "upcoming_sessions": 2,
         "pending_consultations": 1,
     }
 

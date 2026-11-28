@@ -10,16 +10,13 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 기동 가드([releaseGuardProblems])가 문제를 찾으면 `bootstrap()` 은 저장소·토큰·
 /// 오류 보고를 건드리지 않고 이것만 띄운다. 라우터가 없으니 기능 화면으로 갈 길도
-/// 없다. 테마·언어는 앱과 같다 — 기기 언어로 뜬다.
+/// 없다. 테마·언어는 앱과 같다.
 class MisconfiguredBuildApp extends StatelessWidget {
   /// [problems] 는 비어 있지 않다.
-  const MisconfiguredBuildApp({super.key, required this.problems, this.locale});
+  const MisconfiguredBuildApp({super.key, required this.problems});
 
   /// 찾은 문제들.
   final List<ReleaseProblem> problems;
-
-  /// 기기 언어 대신 쓸 로케일. 테스트가 언어를 고를 때만 넘긴다.
-  final Locale? locale;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +24,6 @@ class MisconfiguredBuildApp extends StatelessWidget {
       onGenerateTitle: (BuildContext ctx) => AppLocalizations.of(ctx).appTitle,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: MisconfiguredBuildPage(problems: problems),

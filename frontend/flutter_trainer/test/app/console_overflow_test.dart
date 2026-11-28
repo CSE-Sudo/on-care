@@ -14,8 +14,7 @@
 ///  * 1100 — 레일(아이콘만)
 ///  * 1024 — 드로어 경계. 지원하는 가장 좁은 폭
 ///
-/// 로케일과 글자 배율도 함께 돈다. 영어 문구가 더 길어 같은 자리가 다시 샐 수
-/// 있고(#743 계열), 배율은 세로로 넘치는 자리를 드러낸다.
+/// 글자 배율도 함께 돈다 — 배율은 세로로 넘치는 자리를 드러낸다(#743 계열).
 library;
 
 import 'package:flutter/material.dart';
@@ -50,7 +49,6 @@ void main() {
     WidgetTester tester, {
     required String at,
     required Size size,
-    required String lang,
     required double scale,
   }) async {
     tester.platformDispatcher.textScaleFactorTestValue = scale;
@@ -61,7 +59,6 @@ void main() {
         tester,
         token: 'demo-token',
         at: at,
-        locale: Locale(lang),
         // 요일에 따라 시드가 채우는 주간 계열의 길이가 달라진다. 날짜를 고정해야
         // 어느 날 돌려도 같은 레이아웃을 본다.
         seedClock: DateTime(2026, 8, 12),
@@ -71,31 +68,27 @@ void main() {
 
   group('콘솔 셸이 사이드바 경계에서 넘치지 않는다 (#849)', () {
     for (final double width in _widths) {
-      for (final String lang in <String>['ko', 'en']) {
-        testWidgets('폭 $width · $lang', (WidgetTester tester) async {
-          await pumpConsole(
-            tester,
-            at: AppRoutes.dashboard,
-            size: Size(width, 900),
-            lang: lang,
-            scale: 1.0,
-          );
+      testWidgets('폭 $width', (WidgetTester tester) async {
+        await pumpConsole(
+          tester,
+          at: AppRoutes.dashboard,
+          size: Size(width, 900),
+          scale: 1.0,
+        );
 
-          // 넘침은 렌더링 예외로 보고된다. 예외가 없으면 넘친 곳이 없다.
-          expect(tester.takeException(), isNull);
-        });
-      }
+        // 넘침은 렌더링 예외로 보고된다. 예외가 없으면 넘친 곳이 없다.
+        expect(tester.takeException(), isNull);
+      });
     }
   });
 
   group('주요 화면이 넘치지 않는다 — 기본 폭 (#849)', () {
     _surfaces.forEach((String name, String location) {
-      testWidgets('$name · 폭 1280 · ko · 배율 1.0', (WidgetTester tester) async {
+      testWidgets('$name · 폭 1280 · 배율 1.0', (WidgetTester tester) async {
         await pumpConsole(
           tester,
           at: location,
           size: const Size(1280, 900),
-          lang: 'ko',
           scale: 1.0,
         );
 
@@ -104,14 +97,13 @@ void main() {
     });
   });
 
-  group('주요 화면이 넘치지 않는다 — 가장 좁은 지원 폭·영어·큰 글자 (#849)', () {
+  group('주요 화면이 넘치지 않는다 — 가장 좁은 지원 폭·큰 글자 (#849)', () {
     _surfaces.forEach((String name, String location) {
-      testWidgets('$name · 폭 1024 · en · 배율 1.3', (WidgetTester tester) async {
+      testWidgets('$name · 폭 1024 · 배율 1.3', (WidgetTester tester) async {
         await pumpConsole(
           tester,
           at: location,
           size: const Size(1024, 900),
-          lang: 'en',
           scale: 1.3,
         );
 

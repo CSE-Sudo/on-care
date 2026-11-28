@@ -22,11 +22,6 @@ const List<(String, String, int?, int?, int)> _startProgram =
       ('저강도 걷기', '유산소', null, null, 10),
     ];
 
-const Map<String, String> _enStartNames = <String, String>{
-  '푸시업': 'Push-up',
-  '밴드 로우': 'Band row',
-};
-
 const int _minutesPerSet = 3;
 const int _stepUpRate = 80;
 const int _stepDownRate = 50;
@@ -135,9 +130,7 @@ String _label(List<DemoPtItem> items) {
 DemoNextPt chooseNextPt(
   List<DemoPtSession> sessions, {
   required DateTime today,
-  required bool en,
 }) {
-  String t(String ko, String english) => en ? english : ko;
   final List<DemoPtSession> recent = sessions
       .where((DemoPtSession s) => s.items.isNotEmpty)
       .take(demoNextPtLookback)
@@ -145,24 +138,19 @@ DemoNextPt chooseNextPt(
   if (recent.isEmpty) {
     return DemoNextPt(
       kind: 'start',
-      label: t('전신 기본', 'Full-body starter'),
+      label: '전신 기본',
       items: <DemoPtItem>[
         for (final (String name, String type, int? sets, int? reps, int min)
             in _startProgram)
           DemoPtItem(
-            name: en
-                ? _enStartNames[name] ?? libraryExerciseName(name, en: en)
-                : name,
+            name: name,
             type: type,
             sets: sets,
             reps: reps,
             minutes: min,
           ),
       ],
-      basis: t(
-        'PT 기록이 아직 없어 전신 기본 프로그램으로 시작해요',
-        'No PT records yet — starting with a full-body basic program',
-      ),
+      basis: 'PT 기록이 아직 없어 전신 기본 프로그램으로 시작해요',
     );
   }
 
@@ -200,12 +188,8 @@ DemoNextPt chooseNextPt(
       kind: 'rotation',
       label: label,
       items: chosen.items,
-      basis: t(
-        "최근 $count회에서 번갈아 한 프로그램 $kinds가지 중 '$label'을 "
+      basis: "최근 $count회에서 번갈아 한 프로그램 $kinds가지 중 '$label'을 "
             '가장 오래 안 했어요($days일 전) → 이번 차례',
-        'Of the $kinds programs alternated over the last $count sessions, '
-            "'$label' was done longest ago ($days days) → up next",
-      ),
       sessionCount: count,
       daysAgo: days,
     );
@@ -215,22 +199,11 @@ DemoNextPt chooseNextPt(
   final DemoPtSession latest = recent.first;
   final String label = _label(latest.items);
   final String basis = count == 1
-      ? t(
-          '지난 PT 1회의 프로그램($label)을 이어 가요',
-          'Continuing the program from the last PT ($label)',
-        )
+      ? '지난 PT 1회의 프로그램($label)을 이어 가요'
       : lastSeen.length == 1
-      ? t(
-          '최근 $count회 같은 프로그램($label)을 이어 와서 같은 흐름을 유지해요',
-          'The last $count sessions repeated the same program ($label) '
-              '— keeping that flow',
-        )
-      : t(
-          '최근 $count회에서 번갈아 하는 프로그램이 보이지 않아 '
-              '지난 PT($label)를 이어 가요',
-          'No alternating programs over the last $count sessions — '
-              'continuing the last PT ($label)',
-        );
+      ? '최근 $count회 같은 프로그램($label)을 이어 와서 같은 흐름을 유지해요'
+      : '최근 $count회에서 번갈아 하는 프로그램이 보이지 않아 '
+              '지난 PT($label)를 이어 가요';
   return DemoNextPt(
     kind: 'continue',
     label: label,
@@ -291,9 +264,7 @@ RoutinePlan rulePlanC(
   required int completion,
   required List<String> cautions,
   required bool escalate,
-  required bool en,
 }) {
-  String t(String ko, String english) => en ? english : ko;
   final List<String> changes = <String>[];
   final List<String> names = <String>[];
   final List<_Row> rows = <_Row>[];
@@ -301,14 +272,13 @@ RoutinePlan rulePlanC(
     final String? part = _cautionPart(item.name, cautions);
     if (part != null) {
       (String, String) alt = item.type == '근력' ? libStretch : libCardioEasy;
-      String altName = libraryExerciseName(alt.$1, en: en);
+      String altName = alt.$1;
       if (names.contains(altName)) {
         alt = libCardioEasy;
-        altName = libraryExerciseName(alt.$1, en: en);
+        altName = alt.$1;
       }
-      final String partEn = demoEnCautionParts[part] ?? part;
       changes.add(
-        t('${item.name} → $altName($part)', '${item.name} → $altName ($partEn)'),
+        '${item.name} → $altName($part)',
       );
       names.add(altName);
       rows.add(_Row(altName, alt.$2, _itemMinutes(item)));
@@ -342,10 +312,7 @@ RoutinePlan rulePlanC(
     }
     if (moved.isNotEmpty) {
       changes.add(
-        t(
-          '근력 세트 +1(완료율 $completion%)',
-          'Strength sets +1 ($completion% completion)',
-        ),
+        '근력 세트 +1(완료율 $completion%)',
       );
     }
   } else if (strength.isNotEmpty && completion < _stepDownRate) {
@@ -358,10 +325,7 @@ RoutinePlan rulePlanC(
     }
     if (moved.isNotEmpty) {
       changes.add(
-        t(
-          '근력 세트 -1(완료율 $completion%)',
-          'Strength sets −1 ($completion% completion)',
-        ),
+        '근력 세트 -1(완료율 $completion%)',
       );
     }
   }
@@ -376,25 +340,18 @@ RoutinePlan rulePlanC(
   final int after = fitted.fold(0, (int a, int b) => a + b);
   if (after < before) {
     changes.add(
-      t(
-        '총 $before분 → $after분(최대 $availableMinutes분 조건)',
-        'Total $before → $after min (up to $availableMinutes min)',
-      ),
+      '총 $before분 → $after분(최대 $availableMinutes분 조건)',
     );
   }
 
   // 차례 근거·바꾼 점은 카드에 따로 서므로 되풀이하지 않는다 — 서버와 같다.
   final String rationale = changes.isEmpty
-      ? t('지난 PT 프로그램을 그대로 이어 가요.', 'Continues the past PT program as is.')
-      : t(
-          '지난 PT 프로그램을 기준으로 주의 부위·완료율·시간 조건만 반영했어요.',
-          'Based on the past PT program, adjusted only for cautions, '
-              'completion and the time limit.',
-        );
+      ? '지난 PT 프로그램을 그대로 이어 가요.'
+      : '지난 PT 프로그램을 기준으로 주의 부위·완료율·시간 조건만 반영했어요.';
   return RoutinePlan(
     key: 'C',
     // A·B안과 같은 결의 고정 이름 — 운동 이름을 이으면 제목이 넘친다. 서버와 같다.
-    label: t('지난 PT 연계형', 'Continue last PT'),
+    label: '지난 PT 연계형',
     totalMinutes: after,
     intensity: escalate
         ? '보통'
@@ -410,10 +367,7 @@ RoutinePlan rulePlanC(
           weight: r.weight ?? 0,
         ),
     ],
-    reason: t(
-      '지난 PT 흐름상 이번 차례인 프로그램',
-      'The program that comes next in the recent PT flow',
-    ),
+    reason: '지난 PT 흐름상 이번 차례인 프로그램',
     rationale: rationale,
     basis: next.basis,
     changes: changes,
@@ -421,35 +375,22 @@ RoutinePlan rulePlanC(
 }
 
 /// 판단 결과(#3280)에 싣는 차례 한 줄 — 서버 `finding`.
-RoutineFinding nextPtFinding(DemoNextPt next, {required bool en}) {
-  String t(String ko, String english) => en ? english : ko;
+RoutineFinding nextPtFinding(DemoNextPt next) {
   if (next.kind == 'start') {
-    return RoutineFinding(
+    return const RoutineFinding(
       kind: 'rotation',
-      finding: t('PT 기록 없음', 'No PT records'),
-      source: t('PT 기록', 'PT records'),
-      action: t(
-        '연계안은 전신 기본 프로그램으로 시작',
-        'Follow-up plan starts with a full-body basic program',
-      ),
+      finding: 'PT 기록 없음',
+      source: 'PT 기록',
+      action: '연계안은 전신 기본 프로그램으로 시작',
     );
   }
   return RoutineFinding(
     kind: 'rotation',
     finding: next.kind == 'continue'
-        ? t('이어 갈 지난 PT: ${next.label}', 'Last PT to continue: ${next.label}')
-        : t(
-            '가장 오래 안 한 프로그램: ${next.label}(${next.daysAgo}일 전)',
-            'Done longest ago: ${next.label} (${next.daysAgo} days)',
-          ),
-    source: t(
-      'PT 기록 · 최근 ${next.sessionCount}회',
-      'PT records · last ${next.sessionCount} sessions',
-    ),
-    action: t(
-      '연계안: 이번 차례 프로그램을 최근 상태에 맞게 조정',
-      'Follow-up plan: adjusts this program to the latest condition',
-    ),
+        ? '이어 갈 지난 PT: ${next.label}'
+        : '가장 오래 안 한 프로그램: ${next.label}(${next.daysAgo}일 전)',
+    source: 'PT 기록 · 최근 ${next.sessionCount}회',
+    action: '연계안: 이번 차례 프로그램을 최근 상태에 맞게 조정',
   );
 }
 

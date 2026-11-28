@@ -158,7 +158,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final OnCareTokens tokens = context.oncare;
     final int? due = sheet.mealDaysDue;
     final List<(String, String)> cells = <(String, String)>[
@@ -342,7 +342,7 @@ class _LeftColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final String Function(String) pct = l.reportsPdfValuePercent;
     final String Function(String) kcal = l.reportsPdfValueKcal;
     final String Function(String) g = l.reportsPdfValueGram;
@@ -481,7 +481,7 @@ class _BarSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final OnCareTokens tokens = context.oncare;
     final TextStyle scale = tokens.text(OnCareTypography.caption);
 
@@ -676,7 +676,7 @@ class _DailyTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final OnCareTokens tokens = context.oncare;
     final List<String> weekdays = _weekdayNames(l);
     final TextStyle head = tokens
@@ -811,7 +811,7 @@ class _TrendSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final List<ReportSheetTrendWeek> weeks =
         trend?.weeks ?? const <ReportSheetTrendWeek>[];
     final List<double?> kcal = <double?>[
@@ -1100,7 +1100,7 @@ class _ScoreBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final OnCareTokens tokens = context.oncare;
     final int? value = score.value;
     final TextStyle caption = tokens
@@ -1223,7 +1223,7 @@ class _Evaluation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final List<(String, SheetMeasure)> items = <(String, SheetMeasure)>[
       (l.metricCalories, sheet.diet[SheetDietItem.calories]!),
       (l.metricCarbs, sheet.diet[SheetDietItem.carbs]!),
@@ -1260,7 +1260,7 @@ class _EvalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final OnCareTokens tokens = context.oncare;
     final SheetBand? band = measure.band;
     final List<(SheetBand, String)> options = <(SheetBand, String)>[
@@ -1356,7 +1356,7 @@ class _Averages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final OnCareTokens tokens = context.oncare;
     final TextStyle head = tokens
         .text(OnCareTypography.caption)
@@ -1468,7 +1468,7 @@ class _MemberAnswers extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final ReportSheetAnswers? given = feedback;
     String pain(ReportSheetAnswers f) {
       if (!f.hasPain) return l.reportsMemberFeedbackPainNone;
@@ -1524,7 +1524,7 @@ class _FeedbackBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final OnCareTokens tokens = context.oncare;
     final String body = text.trim().isEmpty
         ? l.reportsPdfNoFeedback
@@ -1572,7 +1572,7 @@ class _Footnote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ReportSheetLocalizations l = reportSheetLocalizationsOf(context);
+    final ReportSheetLocalizations l = reportSheetLocalizations();
     final OnCareTokens tokens = context.oncare;
     return Text(
       l.reportsSheetFootnote,

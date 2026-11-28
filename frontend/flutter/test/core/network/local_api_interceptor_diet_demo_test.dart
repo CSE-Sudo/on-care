@@ -19,8 +19,10 @@ import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
+import 'package:oncare/core/demo/demo_sample_meals.dart';
 
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
+import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
 import 'package:oncare_core/clock.dart';
@@ -156,6 +158,78 @@ void main() {
     });
   });
 
+  // 목업은 사진을 볼 수 없다. 샘플 사진이면 그 사진의 끼니를, 직접 올린 사진이면
+  // 끼니 종류에 맞는 예시를 돌려준다(#3423).
+  group('데모 인식 결과', () {
+    Future<Map<String, Object?>> analyze(
+      String mealType, {
+      Uint8List? photo,
+    }) async {
+      final res = await dio.post<Map<String, Object?>>(
+        '/diet/analyze',
+        data: <String, Object?>{'meal_type': mealType},
+        options: Options(
+          extra: <String, Object?>{kMealPhotoBytesExtra: ?photo},
+        ),
+      );
+      return res.data!['analysis']! as Map<String, Object?>;
+    }
+
+    List<String> names(Map<String, Object?> analysis) =>
+        (analysis['foods']! as List<Object?>)
+            .cast<Map<String, Object?>>()
+            .map((Map<String, Object?> f) => f['name']! as String)
+            .toList();
+
+    test('샘플 사진은 사진 한 장에 끼니 하나다', () {
+      final List<String> assets = demoSampleMeals
+          .map((FixtureMeal m) => m.photoAsset)
+          .toList();
+      expect(assets, isNotEmpty);
+      expect(assets.toSet().length, assets.length);
+    });
+
+    test('샘플 사진을 올리면 끼니 종류와 무관하게 그 사진의 끼니로 읽는다', () async {
+      final FixtureMeal bibimbap = demoSampleMeals.firstWhere(
+        (FixtureMeal m) => m.slug == 'lunch-bibimbap',
+      );
+      final Uint8List photo = File(bibimbap.photoAsset).readAsBytesSync();
+      rememberDemoSamplePhoto(bibimbap, photo);
+
+      final analysis = await analyze('breakfast', photo: photo);
+
+      expect(names(analysis), <String>['야채비빔밥']);
+      expect(analysis['total_calories'], bibimbap.calories);
+      expect(analysis['coach_comment'], bibimbap.aiComment);
+      // 사진과 맞는 결과라 예시 안내가 붙지 않는다.
+      expect(analysis['engine'], 'demo-sample');
+    });
+
+    test('직접 올린 사진은 끼니 종류에 맞는 예시로 읽고 예시임을 알린다', () async {
+      final Map<String, String> firstFood = <String, String>{
+        'breakfast': '오트밀',
+        'lunch': '야채비빔밥',
+        'dinner': '연어구이',
+        'snack': '아이스 아메리카노',
+        'lateNight': '그릭 요거트',
+      };
+      for (final MapEntry<String, String> e in firstFood.entries) {
+        final analysis = await analyze(e.key);
+        expect(names(analysis).first, e.value, reason: e.key);
+        expect(analysis['engine'], 'stub', reason: e.key);
+      }
+    });
+
+    test('같은 사진은 늘 같은 끼니로, 다른 사진은 후보 안에서 갈린다', () async {
+      final Uint8List one = Uint8List.fromList(<int>[1, 2, 3]);
+      final Uint8List other = Uint8List.fromList(<int>[1, 2, 3, 4]);
+
+      final first = names(await analyze('lunch', photo: one));
+      expect(names(await analyze('lunch', photo: one)), first);
+      expect(names(await analyze('lunch', photo: other)), isNot(first));
+    });
+  });
+
   group('분석 결과 저장', () {
     test('로컬이 만든 결과에도 코멘트가 함께 남는다', () async {
       await dio.post<Map<String, Object?>>(
@@ -168,13 +242,14 @@ void main() {
           .cast<Map<String, Object?>>()
           .firstWhere((Map<String, Object?> e) => e['meal_type'] == 'dinner');
 
-      expect(dinner['ai_comment'], contains('요거트 아이스크림'));
+      // 사진 없이 올린 저녁은 저녁 예시(연어구이·현미밥)다(#3423).
+      expect(dinner['ai_comment'], contains('연어'));
       // 업로드한 사진을 데모가 보관하지 않으므로 사진은 비워 둔다 — 남의 사진을
       // 대신 보여 주는 것보다 없는 편이 정직하다.
       expect(dinner['photo_asset'], isNull);
     });
 
-    // 데모 분석도 음식마다 양을 준다 — 실서버 스텁과 같은 1회 섭취량(#2090).
+    // 데모 분석도 음식마다 양을 준다 — 픽스처 끼니의 양이다(#2090, #3423).
     // 비어 있으면 분석 완료 시트에 끼니 내용량이 뜨지 않는다.
     test('인식된 모든 음식에 내용량이 실리고 저장까지 이어진다', () async {
       final res = await dio.post<Map<String, Object?>>(
@@ -186,7 +261,7 @@ void main() {
           .cast<Map<String, Object?>>();
       expect(
         foods.map((Map<String, Object?> f) => f['amount_g']).toList(),
-        <Object?>[110, 90, 50],
+        <Object?>[120, 150],
       );
 
       final today = await dio.get<Map<String, Object?>>('/diet/days/today');

@@ -1,6 +1,5 @@
 // Boot smoke test — the trainer app now starts on the login screen.
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +26,7 @@ void main() {
           ),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
-        child: const OncareTrainerApp(locale: Locale('ko')),
+        child: const OncareTrainerApp(),
       ),
     );
     await tester.pumpAndSettle();
@@ -37,6 +36,6 @@ void main() {
     expect(find.text('로그인'), findsOneWidget);
     expect(find.text('회원가입'), findsOneWidget);
     // 데모 진입은 기본 빌드에서 감춰 뒀다 — SHOW_DEMO_ENTRY 로만 뜬다. (#1526)
-    expect(find.text('로그인 없이 데모 둘러보기'), findsNothing);
+    expect(find.text('체험하기'), findsNothing);
   });
 }

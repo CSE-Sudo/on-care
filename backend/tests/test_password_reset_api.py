@@ -176,9 +176,12 @@ def test_mail_failure_does_not_change_response(client, outbox, member):
     assert res.json()["status"] == "requested"
 
 
-def test_english_request_gets_english_mail(client, outbox, member):
+def test_english_request_gets_the_korean_mail(client, outbox, member):
+    """서버 문장은 한국어 하나다 — 메일도 헤더와 무관하다(#3404)."""
     _request(client, member, **{"Accept-Language": "en-US"})
-    assert "password reset" in outbox.sent[-1].subject.lower()
+    subject = outbox.sent[-1].subject
+    assert "비밀번호" in subject
+    assert "password" not in subject.lower()
 
 
 def test_link_uses_role_specific_url(client, monkeypatch, outbox, member, trainer):

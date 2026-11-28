@@ -222,6 +222,43 @@ void main() {
     });
   });
 
+  group('DioAccountRepository.fetchHasPassword (#3340)', () {
+    test('GET /users/me 의 has_password 를 읽는다', () async {
+      final (DioAccountRepository repo, _Server server) = _repo(
+        200,
+        <String, Object?>{'id': 'u1', 'has_password': false},
+      );
+
+      expect(await repo.fetchHasPassword(), isFalse);
+      expect(server.requests.single.method, 'GET');
+      // 동의 없이도 열린 경로다 — 프로필(`/users/me/profile`)이 아니다.
+      expect(server.requests.single.path, '/users/me');
+    });
+
+    test('비밀번호 계정은 참이다', () async {
+      final (DioAccountRepository repo, _) = _repo(200, <String, Object?>{
+        'id': 'u1',
+        'has_password': true,
+      });
+
+      expect(await repo.fetchHasPassword(), isTrue);
+    });
+
+    test('값을 주지 않는 옛 서버면 비밀번호 계정으로 본다', () async {
+      final (DioAccountRepository repo, _) = _repo(200, <String, Object?>{
+        'id': 'u1',
+      });
+
+      expect(await repo.fetchHasPassword(), isTrue);
+    });
+
+    test('실패는 그대로 올린다 — 부른 쪽이 비밀번호 계정으로 물러선다', () async {
+      final (DioAccountRepository repo, _) = _repo(500, null);
+
+      await expectLater(repo.fetchHasPassword(), throwsA(isA<DioException>()));
+    });
+  });
+
   group('DioAccountRepository.deleteAccount', () {
     test('사유와 본인 확인을 한 본문에 싣는다', () async {
       final (DioAccountRepository repo, _Server server) = _repo(

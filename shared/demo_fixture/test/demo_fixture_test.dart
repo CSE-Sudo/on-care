@@ -54,6 +54,25 @@ void main() {
     expect(yesterday.sugarG, 64.2);
   });
 
+  // 데모 식단 인식이 샘플 사진·끼니별 예시를 여기서 고른다(#3423).
+  test('끼니 템플릿은 이름이 겹치지 않고 날짜에 놓인 끼니를 모두 담는다', () {
+    final DemoFixture fixture = DemoFixture.load();
+    final List<String> slugs = fixture.mealTemplates
+        .map((FixtureMeal m) => m.slug)
+        .toList();
+    expect(slugs, isNotEmpty);
+    expect(slugs.toSet().length, slugs.length);
+    for (final FixtureDay day in fixture.daysFor(DateTime(2026, 10, 14))) {
+      for (final FixtureMeal meal in day.meals) {
+        expect(slugs, contains(meal.slug));
+      }
+    }
+    for (final FixtureMeal meal in fixture.mealTemplates) {
+      expect(meal.foods, isNotEmpty, reason: meal.slug);
+      expect(meal.aiComment, isNotEmpty, reason: meal.slug);
+    }
+  });
+
   test('아직 오지 않은 날은 없다', () {
     // 주중에 열어도 이번 주 남은 요일이 채워지면 주 평균이 실제보다 높아진다(#752).
     for (final DateTime now in <DateTime>[
@@ -89,7 +108,9 @@ void main() {
         expect(day.completion, 0, reason: '${day.date}: 휴식일은 0');
         continue;
       }
-      final int done = day.exercises.where((FixtureExercise e) => e.done).length;
+      final int done = day.exercises
+          .where((FixtureExercise e) => e.done)
+          .length;
       expect(day.completion, (done * 100 / day.exercises.length).round());
       expect(day.doneExercises.length, done);
     }
@@ -175,7 +196,11 @@ void main() {
         expect(date.weekday, today.weekday, reason: '$now · ${day.date}');
         final int weeksAgo = today.difference(date).inDays ~/ 7;
         expect(weeksAgo, lessThanOrEqualTo(11), reason: '$now · ${day.date}');
-        expect(weeks.add(day.weekStart), isTrue, reason: '${day.weekStart} 두 번');
+        expect(
+          weeks.add(day.weekStart),
+          isTrue,
+          reason: '${day.weekStart} 두 번',
+        );
       }
       expect(pt.last.date, _ymd(today), reason: '오늘은 PT 날이다');
       // 어느 요일이든 오늘이 12회차다 — 데모 문구(`12회차 PT를 마쳤어요`)와 같다.
@@ -223,11 +248,9 @@ void main() {
       DateTime(2027, 1, 1),
     ]) {
       final FixtureDay day = fixture.daysFor(now).last;
-      expect(
-        day.exercises.map((FixtureExercise e) => e.type).toSet(),
-        <String>{'strength'},
-        reason: '$now',
-      );
+      expect(day.exercises.map((FixtureExercise e) => e.type).toSet(), <String>{
+        'strength',
+      }, reason: '$now');
       expect(day.isPt, isTrue, reason: '$now');
     }
   });

@@ -12,9 +12,6 @@ A·B안이 회원 분석으로 새로 짜는 안이라면, C안은 트레이너�
   부위·완료율·생성 조건에 맞게 고치게 한다. AI 가 실패하거나 데모일 때는 아래
   [rule_plan_c] 가 같은 기준으로 규칙만큼 고친다.
 
-판단은 한국어 운동 이름으로 하고(`routine_ai` 와 같은 이유, #2301), 문장만 요청
-언어로 쓴다. 트레이너가 적은 운동 이름은 옮기지 않는다.
-
 트레이너 웹 데모(`demo_next_pt.dart`)도 같은 규칙이다 — 바꾸면 함께 바꾼다.
 """
 from __future__ import annotations
@@ -22,7 +19,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from app.core.locale import Locale, localized
 from app.services import routine_ai
 
 #: 차례를 볼 최근 완료 PT 수. 주 1~2회 PT 면 한두 달이다.
@@ -38,8 +34,6 @@ _START_PROGRAM: tuple[tuple[str, str, int | None, int | None, int], ...] = (
     ("플랭크", "근력", 3, None, 6),
     ("저강도 걷기", "유산소", None, None, 10),
 )
-
-_EN_START_NAMES = {"푸시업": "Push-up", "밴드 로우": "Band row"}
 
 #: 근력 한 세트를 분으로 어림한다 — 기록에 시간이 없는 근력 줄의 길이.
 _MINUTES_PER_SET = 3
@@ -88,12 +82,6 @@ class NextPt:
     days_ago: int | None = None
 
 
-def _start_name(name: str, locale: Locale) -> str:
-    if locale == "en" and name in _EN_START_NAMES:
-        return _EN_START_NAMES[name]
-    return routine_ai.exercise_name(name, locale)
-
-
 def _signature(items: tuple[PtItem, ...]) -> frozenset[str]:
     """프로그램의 정체 — 근력 운동 이름 묶음, 근력이 없으면 전체 이름.
 
@@ -103,13 +91,13 @@ def _signature(items: tuple[PtItem, ...]) -> frozenset[str]:
     return strength or frozenset(i.name for i in items)
 
 
-def plan_c_label(locale: Locale = "ko") -> str:
+def plan_c_label() -> str:
     """C안 제목. A·B안("기존 패턴 유지형"·"점진적 강화형")과 같은 결의 고정 이름이다.
 
     운동 이름을 이어 붙이면 "데드리프트 · 루마니안 데드리프트" 처럼 길어져 카드
     제목이 두 줄로 넘친다. 어떤 프로그램인지는 근거·운동 목록이 이미 보여 준다.
     """
-    return localized("지난 PT 연계형", "Continue last PT", locale)
+    return "지난 PT 연계형"
 
 
 def _label(items: tuple[PtItem, ...]) -> str:
@@ -118,14 +106,14 @@ def _label(items: tuple[PtItem, ...]) -> str:
 
 
 def choose_next(
-    sessions: list[PtSession], *, today: date, locale: Locale = "ko"
+    sessions: list[PtSession], *, today: date
 ) -> NextPt:
     """[sessions](최신 먼저) 에서 이번 차례를 고른다. 비어 있으면 전신 기본으로 시작."""
     sessions = [s for s in sessions if s.items][:NEXT_PT_LOOKBACK]
     if not sessions:
         items = tuple(
             PtItem(
-                name=_start_name(name, locale),
+                name=name,
                 type=type_,
                 sets=sets,
                 reps=reps,
@@ -135,13 +123,9 @@ def choose_next(
         )
         return NextPt(
             kind="start",
-            label=localized("전신 기본", "Full-body starter", locale),
+            label="전신 기본",
             items=items,
-            basis=localized(
-                "PT 기록이 아직 없어 전신 기본 프로그램으로 시작해요",
-                "No PT records yet — starting with a full-body basic program",
-                locale,
-            ),
+            basis="PT 기록이 아직 없어 전신 기본 프로그램으로 시작해요",
         )
 
     # 프로그램마다 마지막으로 한 회차(가장 최근 쪽 위치)와 한 횟수를 센다.
@@ -165,12 +149,9 @@ def choose_next(
             kind="rotation",
             label=label,
             items=chosen.items,
-            basis=localized(
+            basis=(
                 f"최근 {count}회에서 번갈아 한 프로그램 {len(repeated)}가지 중 "
-                f"'{label}'을 가장 오래 안 했어요({days}일 전) → 이번 차례",
-                f"Of the {len(repeated)} programs alternated over the last {count} "
-                f"sessions, '{label}' was done longest ago ({days} days) → up next",
-                locale,
+                f"'{label}'을 가장 오래 안 했어요({days}일 전) → 이번 차례"
             ),
             session_count=count,
             days_ago=days,
@@ -180,25 +161,13 @@ def choose_next(
     latest = sessions[0]
     label = _label(latest.items)
     if count == 1:
-        basis = localized(
-            f"지난 PT 1회의 프로그램({label})을 이어 가요",
-            f"Continuing the program from the last PT ({label})",
-            locale,
-        )
+        basis = f"지난 PT 1회의 프로그램({label})을 이어 가요"
     elif len(last_seen) == 1:
-        basis = localized(
-            f"최근 {count}회 같은 프로그램({label})을 이어 와서 같은 흐름을 유지해요",
-            f"The last {count} sessions repeated the same program ({label}) "
-            "— keeping that flow",
-            locale,
-        )
+        basis = f"최근 {count}회 같은 프로그램({label})을 이어 와서 같은 흐름을 유지해요"
     else:
-        basis = localized(
+        basis = (
             f"최근 {count}회에서 번갈아 하는 프로그램이 보이지 않아 "
-            f"지난 PT({label})를 이어 가요",
-            f"No alternating programs over the last {count} sessions — "
-            f"continuing the last PT ({label})",
-            locale,
+            f"지난 PT({label})를 이어 가요"
         )
     return NextPt(
         kind="continue",
@@ -254,7 +223,6 @@ def rule_plan_c(
     avg_completion_rate: int,
     cautions: list[str],
     escalate: bool,
-    locale: Locale = "ko",
 ) -> dict:
     """[next_pt] 의 기준 프로그램을 규칙만큼 고친 연계안(AI 실패·데모용).
 
@@ -272,16 +240,12 @@ def rule_plan_c(
             alt_name, alt_type = (
                 routine_ai._STRETCH if item.type == "근력" else routine_ai._CARDIO_EASY
             )
-            alt = routine_ai.exercise_name(alt_name, locale)
+            alt = alt_name
             if alt in names:
                 alt_name, alt_type = routine_ai._CARDIO_EASY
-                alt = routine_ai.exercise_name(alt_name, locale)
+                alt = alt_name
             changes.append(
-                localized(
-                    f"{item.name} → {alt}({part})",
-                    f"{item.name} → {alt} ({routine_ai._EN_CAUTION_PARTS.get(part, part)})",
-                    locale,
-                )
+                f"{item.name} → {alt}({part})"
             )
             names.append(alt)
             rows.append({"name": alt, "type": alt_type, "minutes": _item_minutes(item)})
@@ -304,11 +268,7 @@ def rule_plan_c(
             r["sets"] += 1
         if moved:
             changes.append(
-                localized(
-                    f"근력 세트 +1(완료율 {avg_completion_rate}%)",
-                    f"Strength sets +1 ({avg_completion_rate}% completion)",
-                    locale,
-                )
+                f"근력 세트 +1(완료율 {avg_completion_rate}%)"
             )
     elif strength and avg_completion_rate < _STEP_DOWN_RATE:
         moved = [r for r in strength if r["sets"] > _MIN_SETS]
@@ -316,11 +276,7 @@ def rule_plan_c(
             r["sets"] -= 1
         if moved:
             changes.append(
-                localized(
-                    f"근력 세트 -1(완료율 {avg_completion_rate}%)",
-                    f"Strength sets −1 ({avg_completion_rate}% completion)",
-                    locale,
-                )
+                f"근력 세트 -1(완료율 {avg_completion_rate}%)"
             )
 
     before = sum(r["minutes"] for r in rows)
@@ -330,84 +286,47 @@ def rule_plan_c(
     after = sum(fitted)
     if after < before:
         changes.append(
-            localized(
-                f"총 {before}분 → {after}분(최대 {available_minutes}분 조건)",
-                f"Total {before} → {after} min (up to {available_minutes} min)",
-                locale,
-            )
+            f"총 {before}분 → {after}분(최대 {available_minutes}분 조건)"
         )
 
     intensity = "보통" if escalate else routine_ai._B_LABEL.get(intensity_preference, "보통")
     # 차례 근거(`basis`)와 바꾼 점(`changes`)은 카드에 따로 서므로 되풀이하지
     # 않는다 — 규칙형이 무엇을 기준으로 고쳤는지만 짧게 적는다.
     rationale = (
-        localized(
-            "지난 PT 프로그램을 기준으로 주의 부위·완료율·시간 조건만 반영했어요.",
-            "Based on the past PT program, adjusted only for cautions, "
-            "completion and the time limit.",
-            locale,
-        )
+        "지난 PT 프로그램을 기준으로 주의 부위·완료율·시간 조건만 반영했어요."
         if changes
-        else localized(
-            "지난 PT 프로그램을 그대로 이어 가요.",
-            "Continues the past PT program as is.",
-            locale,
-        )
+        else "지난 PT 프로그램을 그대로 이어 가요."
     )
     return {
         "key": "C",
-        "label": plan_c_label(locale),
+        "label": plan_c_label(),
         "total_minutes": after,
         "intensity": intensity,
         "exercises": rows,
-        "reason": localized(
-            "지난 PT 흐름상 이번 차례인 프로그램",
-            "The program that comes next in the recent PT flow",
-            locale,
-        ),
+        "reason": "지난 PT 흐름상 이번 차례인 프로그램",
         "rationale": routine_ai._clip_rationale(rationale),
         "basis": next_pt.basis,
         "changes": changes,
     }
 
 
-def finding(next_pt: NextPt, locale: Locale = "ko") -> dict:
+def finding(next_pt: NextPt) -> dict:
     """판단 결과(#3280)에 싣는 차례 한 줄."""
     if next_pt.kind == "start":
         return {
             "kind": "rotation",
-            "finding": localized("PT 기록 없음", "No PT records", locale),
-            "source": localized("PT 기록", "PT records", locale),
-            "action": localized(
-                "연계안은 전신 기본 프로그램으로 시작",
-                "Follow-up plan starts with a full-body basic program",
-                locale,
-            ),
+            "finding": "PT 기록 없음",
+            "source": "PT 기록",
+            "action": "연계안은 전신 기본 프로그램으로 시작",
         }
-    source = localized(
-        f"PT 기록 · 최근 {next_pt.session_count}회",
-        f"PT records · last {next_pt.session_count} sessions",
-        locale,
-    )
+    source = f"PT 기록 · 최근 {next_pt.session_count}회"
     if next_pt.kind == "continue":
-        text = localized(
-            f"이어 갈 지난 PT: {next_pt.label}",
-            f"Last PT to continue: {next_pt.label}",
-            locale,
-        )
+        text = f"이어 갈 지난 PT: {next_pt.label}"
     else:
-        text = localized(
-            f"가장 오래 안 한 프로그램: {next_pt.label}({next_pt.days_ago}일 전)",
-            f"Done longest ago: {next_pt.label} ({next_pt.days_ago} days)",
-            locale,
-        )
+        text = f"가장 오래 안 한 프로그램: {next_pt.label}({next_pt.days_ago}일 전)"
     return {
         "kind": "rotation",
         "finding": text[:120],
         "source": source,
-        "action": localized(
-            "연계안: 이번 차례 프로그램을 최근 상태에 맞게 조정",
-            "Follow-up plan: adjusts this program to the latest condition",
-            locale,
-        ),
+        "action": "연계안: 이번 차례 프로그램을 최근 상태에 맞게 조정",
     }

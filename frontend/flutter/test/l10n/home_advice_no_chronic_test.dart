@@ -15,25 +15,11 @@ void main() {
     for (final String word in <String>['혈당', '혈압', '고혈압', '당뇨']) {
       expect(ko.homeAiAdviceBody, isNot(contains(word)), reason: word);
     }
-
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-    for (final String word in <String>[
-      'blood sugar',
-      'blood pressure',
-      'diabetes',
-      'hypertension',
-    ]) {
-      expect(en.homeAiAdviceBody.toLowerCase(), isNot(contains(word)));
-    }
   });
 
   test('기록으로 뒷받침되는 이야기는 남는다', () {
     // 나트륨은 실제로 재는 값이라 조언의 근거가 된다 — 통째로 비우지 않는다.
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
     expect(ko.homeAiAdviceBody, contains('나트륨'));
-    expect(
-      lookupAppLocalizations(const Locale('en')).homeAiAdviceBody.toLowerCase(),
-      contains('sodium'),
-    );
   });
 }

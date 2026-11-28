@@ -129,17 +129,6 @@ void main() {
       );
     });
 
-    testWidgets('영어 화면에서도 안내가 나온다', (tester) async {
-      final AppLocalizations l = await _pumpChat(
-        tester,
-        _ChatRepository(),
-        locale: const Locale('en'),
-      );
-
-      expect(find.text(l.coachChatEmptyTitle('김트레이너')), findsOneWidget);
-      expect(find.text(l.coachChatEmptyBody), findsOneWidget);
-    });
-
     testWidgets('메시지가 있으면 안내가 없다', (tester) async {
       await _pumpChat(
         tester,

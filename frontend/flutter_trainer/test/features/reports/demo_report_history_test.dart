@@ -16,7 +16,6 @@ import 'package:drift/drift.dart' show StringExpressionOperators;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
@@ -406,17 +405,6 @@ void main() {
       expect(mine, hasLength(1));
       expect(mine.single.message, '다시 보낸 지난 주 리포트');
       expect(mine.single.sentAt, _today);
-    });
-
-    test('영어 데모도 본문을 비워 두어 화면 언어로 초안이 선다', () async {
-      await seedIfEmpty(db, clock: _today, language: DemoLanguage.en);
-
-      final List<ReportSendRecord> records = await _local(
-        db,
-      ).sentReports(weekStart: _lastMonday);
-
-      expect(records, isNotEmpty);
-      expect(records.where((r) => r.message.isNotEmpty), isEmpty);
     });
 
     test('같은 DB 로 다시 물어도(새로고침) 같은 이력이다', () async {

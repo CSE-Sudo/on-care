@@ -22,6 +22,32 @@ class LeaveGuardRegistry {
     }
   }
 
+  final Map<Object, Future<bool> Function()> _confirmers =
+      <Object, Future<bool> Function()>{};
+
+  /// 앱 안에서 다른 탭으로 떠나기 전에 물을 확인을 [owner] 이름으로 등록한다.
+  /// (#3336)
+  ///
+  /// 새로 고침·탭 닫기는 브라우저 경고([set])가 막지만, 사이드바로 탭을 옮기는
+  /// 것은 앱 안의 이동이라 그 경고가 서지 않는다. [confirm] 이 `false` 를 주면
+  /// 떠나지 않는다. `null` 이면 그 소유자의 확인만 푼다.
+  void setConfirm(Object owner, Future<bool> Function()? confirm) {
+    if (confirm == null) {
+      _confirmers.remove(owner);
+    } else {
+      _confirmers[owner] = confirm;
+    }
+  }
+
+  /// 지금 떠나도 되는가 — 등록한 화면에 차례로 묻고, 하나라도 막으면 남는다.
+  Future<bool> confirmLeave() async {
+    for (final Future<bool> Function() confirm
+        in List<Future<bool> Function()>.of(_confirmers.values)) {
+      if (!await confirm()) return false;
+    }
+    return true;
+  }
+
   /// 지키는 화면이 하나도 없다.
   bool get isEmpty => _guards.isEmpty;
 

@@ -308,6 +308,7 @@ def test_social_app_settings_default_to_empty():
     settings = Settings(_env_file=None)
     assert settings.google_client_id_list == []
     assert settings.kakao_app_id_value == ""
+    assert settings.apple_client_id_list == []
 
 
 # ── 기동 점검 ─────────────────────────────────────────────────────
@@ -317,7 +318,7 @@ def test_startup_warns_about_every_unconfigured_provider(caplog):
     caplog.set_level(logging.WARNING, logger="app.startup")
     warnings = startup_checks.check(Settings(_env_file=None))
     [social] = [w for w in warnings if "소셜 로그인" in w]
-    for name in ("GOOGLE_CLIENT_IDS", "KAKAO_APP_ID"):
+    for name in ("GOOGLE_CLIENT_IDS", "KAKAO_APP_ID", "APPLE_CLIENT_IDS"):
         assert name in social
     assert any("소셜 로그인" in r.getMessage() for r in caplog.records)
 
@@ -330,7 +331,12 @@ def test_startup_names_only_the_missing_provider():
 
 
 def test_startup_is_quiet_when_every_provider_is_configured():
-    settings = Settings(_env_file=None, google_client_ids="g.apps.googleusercontent.com", kakao_app_id="1")
+    settings = Settings(
+        _env_file=None,
+        google_client_ids="g.apps.googleusercontent.com",
+        kakao_app_id="1",
+        apple_client_ids="com.example.oncare",
+    )
     assert not any("소셜 로그인" in w for w in startup_checks.check(settings))
     assert startup_checks.unconfigured_social_providers(settings) == []
 
@@ -454,11 +460,11 @@ def test_api_malformed_kakao_token_info_answers_502(client, monkeypatch):
     assert r.json()["detail"] == BAD_RESPONSE_DETAIL
 
 
-@pytest.mark.parametrize("provider", ["naver", "apple"])
+@pytest.mark.parametrize("provider", ["naver"])
 def test_api_dropped_provider_answers_400_and_creates_nothing(
     client, db_session, monkeypatch, provider
 ):
-    """네이버·애플은 제공하지 않는다(#3218) — 외부 호출 없이 모르는 provider 와 같은 400."""
+    """네이버는 제공하지 않는다(#3218) — 외부 호출 없이 모르는 provider 와 같은 400."""
     from app.models.models import SocialAccount
 
     seen = _no_network(monkeypatch)

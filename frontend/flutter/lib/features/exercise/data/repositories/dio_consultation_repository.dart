@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart' show TimeOfDay;
 
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
@@ -47,10 +48,6 @@ class DioConsultationRepository implements ConsultationRepository {
             limit: limit is int && limit > 0 ? limit : null,
           );
         }
-        // 담당 트레이너가 따로 있다(#2611). 역시 이 트레이너에게는 신청한 적이 없다.
-        if (detail is Map && detail['code'] == 'linked_to_other_trainer') {
-          throw const ConsultationLinkedToOtherTrainer();
-        }
         // 나머지 409 는 오류가 아니라 "이미 신청함" 상태다 — 화면이 오류 대신
         // 기존 신청을 보여줘야 한다.
         throw const DuplicatePendingConsultation();
@@ -91,6 +88,15 @@ class DioConsultationRepository implements ConsultationRepository {
       // (#2858). 나머지(네트워크·서버 오류)는 그대로 올린다.
       switch (e.response?.statusCode) {
         case 409:
+          // 409 는 두 가지다. 수락된 상담의 시작 시각이 지난 경우는 서버가
+          // `detail.code` 로 밝힌다(#3359) — 안내 문구가 다르다.
+          final Object? detail = switch (e.response?.data) {
+            final Map<String, Object?> body => body['detail'],
+            _ => null,
+          };
+          if (detail is Map && detail['code'] == 'consultation_started') {
+            throw const ConsultationAlreadyStarted();
+          }
           throw const ConsultationNoLongerPending();
         case 404:
           throw const ConsultationNotFound();
@@ -150,6 +156,9 @@ class MockConsultationRepository implements ConsultationRepository {
   /// 까닭으로 헬스장 저장소도 기다리지 않는 조회만 쓴다.
   @override
   Future<String> create(ConsultationDraft draft) async {
+    // 서버도 접수 전에 지난 대기 요청부터 만료로 내린다 — 만료된 요청이 대기 중복과
+    // 대기 상한에 걸리지 않는다(#3360).
+    _expireStale(nowKst());
     if (_mine.any(
       (ConsultationRequest r) => r.trainerId == draft.trainerId && r.isPending,
     )) {
@@ -203,13 +212,41 @@ class MockConsultationRepository implements ConsultationRepository {
   }
 
   /// 이번 세션에 낸 신청. 앱을 새로 켜면 사라진다 — 데모의 다른 기록과 같다.
+  ///
+  /// 실서버처럼 읽기 전에 지난 대기 요청을 만료로 내리고 자리를 푼다(#3360).
+  /// 데모에는 요청을 확인해 줄 트레이너가 없어, 두면 "대기 중" 으로 영영 남는다.
   @override
   Future<List<ConsultationRequest>> fetchMine({
     int limit = consultationPageSize,
-  }) async => List<ConsultationRequest>.unmodifiable(_mine.take(limit));
+  }) async {
+    _expireStale(nowKst());
+    return List<ConsultationRequest>.unmodifiable(_mine.take(limit));
+  }
 
-  /// 대기 중인 신청을 취소하고 잡아 둔 자리를 푼다. 실서버처럼 대기 중이 아니면
-  /// 취소할 수 없다.
+  /// 만료 시각이 지난 대기 요청을 만료로 바꾸고 잡아 둔 자리를 푼다. 만료 시각은
+  /// 서버 `_expires_at` 과 같다 — 신청 뒤 [kConsultationHold] 와 자리 시작
+  /// [kConsultationExpireBeforeStart] 전 중 이른 쪽.
+  void _expireStale(DateTime now) {
+    for (int i = 0; i < _mine.length; i++) {
+      final ConsultationRequest request = _mine[i];
+      if (!request.isPending) continue;
+      DateTime expiresAt = request.createdAt.add(kConsultationHold);
+      final DateTime? startsAt = request.slotStartsAt;
+      if (startsAt != null) {
+        final DateTime beforeStart = startsAt.subtract(
+          kConsultationExpireBeforeStart,
+        );
+        if (beforeStart.isBefore(expiresAt)) expiresAt = beforeStart;
+      }
+      if (expiresAt.isAfter(now)) continue;
+      _mine[i] = request.copyWith(status: ConsultationStatus.expired);
+      final String? slotId = _slotOf.remove(request.id);
+      if (slotId != null) _mockGyms?.setSlotBooked(slotId, booked: false);
+    }
+  }
+
+  /// 신청을 취소하고 잡아 둔 자리를 푼다. 실서버처럼 대기 중이거나, 수락됐지만
+  /// 아직 시작하지 않은 상담만 취소할 수 있다(#3359).
   @override
   Future<void> cancel(String consultationId) async {
     final int i = _mine.indexWhere(
@@ -217,10 +254,28 @@ class MockConsultationRepository implements ConsultationRepository {
     );
     // 실서버와 같은 예외를 낸다(#2858) — 화면이 두 경로에서 같은 안내를 한다.
     if (i < 0) throw const ConsultationNotFound();
-    if (!_mine[i].isPending) throw const ConsultationNoLongerPending();
+    final ConsultationRequest request = _mine[i];
+    if (!request.canCancelAt(nowKst())) {
+      throw request.status == ConsultationStatus.accepted
+          ? const ConsultationAlreadyStarted()
+          : const ConsultationNoLongerPending();
+    }
     _mine[i] = _mine[i].copyWith(status: ConsultationStatus.cancelled);
     final String? slotId = _slotOf.remove(consultationId);
     if (slotId != null) _mockGyms?.setSlotBooked(slotId, booked: false);
+  }
+
+  /// 대기 중인 신청을 수락된 상담으로 바꾼다. 없는 id 면 아무것도 하지 않는다.
+  ///
+  /// 데모에는 수락해 줄 트레이너가 없다 — 테스트가 수락된 상담의 취소(#3359)를
+  /// 볼 때 쓴다. 자리는 잠긴 채로 둔다. 실서버도 수락은 자리를 풀지 않는다.
+  @visibleForTesting
+  void acceptForTesting(String consultationId) {
+    final int i = _mine.indexWhere(
+      (ConsultationRequest r) => r.id == consultationId,
+    );
+    if (i < 0 || !_mine[i].isPending) return;
+    _mine[i] = _mine[i].copyWith(status: ConsultationStatus.accepted);
   }
 
   /// 서버 `GET /consultations/slots` 와 같은 조건으로 거른다 — `1:1 PT` 이고,

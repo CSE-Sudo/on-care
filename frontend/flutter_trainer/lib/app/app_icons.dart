@@ -152,7 +152,6 @@ class AppIcons {
   /// 글을 직접 쓰기 시작하는 동작(직접 만들기·처음부터 쓰기·초안으로 쓰기).
   /// 메모([note])와 다른 뜻이다.
   static const IconData write = Symbols.edit_note_rounded;
-  static const IconData language = Symbols.language_rounded;
 
   /// 고객 지원.
   static const IconData support = Symbols.support_agent_rounded;

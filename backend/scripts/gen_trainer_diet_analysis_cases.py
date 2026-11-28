@@ -245,7 +245,7 @@ def cases() -> list[dict]:
 
 
 def renderings() -> list[dict]:
-    """키마다 값 한 벌과 서버가 그린 한국어·영어 문장 — 앱 ARB 가 같게 그리는지 본다."""
+    """키마다 값 한 벌과 서버가 그린 문장 — 앱 ARB 가 같게 그리는지 본다."""
     samples = {
         "tr_today_empty": {},
         "tr_today_over": {"nutrient": "sodium", "slot": "lunch", "food": "짬뽕",
@@ -286,7 +286,7 @@ def renderings() -> list[dict]:
     out = []
     for key in svc.KEYS:
         s = svc.Sentence(key, samples[key])
-        out.append({"key": key, "params": s.params, "ko": s.text_in("ko"), "en": s.text_in("en")})
+        out.append({"key": key, "params": s.params, "ko": s.text})
     return out
 
 

@@ -18,6 +18,8 @@ _ROOT = Path(__file__).resolve().parents[2]
 _CASES = json.loads(
     (_ROOT / "frontend/flutter/test/core/demo/diet_advice_cases.json").read_text(encoding="utf-8")
 )
+#: 서버 문장은 한국어 하나다(#3404). 공유 파일에도 한국어 사례만 있다(#3415).
+_SERVER_CASES = _CASES["cases"]
 
 _spec = importlib.util.spec_from_file_location(
     "gen_diet_advice_cases", _ROOT / "backend/scripts/gen_diet_advice_cases.py"
@@ -26,18 +28,26 @@ gen = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gen)
 
 
-@pytest.mark.parametrize("case", _CASES["cases"], ids=[c["name"] for c in _CASES["cases"]])
+@pytest.mark.parametrize("case", _SERVER_CASES, ids=[c["name"] for c in _SERVER_CASES])
 def test_server_matches_the_shared_cases(case):
     assert gen.RUN[case["period"]](case) == case["expected"]
 
 
-@pytest.mark.parametrize("case", _CASES["cases"], ids=[c["name"] for c in _CASES["cases"]])
+@pytest.mark.parametrize("case", _SERVER_CASES, ids=[c["name"] for c in _SERVER_CASES])
 def test_cases_fit_the_card(case):
     expected = case["expected"]
     analysis = copy.Line(key=expected["analysis"]["key"], params=expected["analysis"]["params"])
     action = expected["action"]
     action_line = copy.Line(key=action["key"], params=action["params"]) if action else None
     assert len(copy.message(analysis, action_line)) <= 45
+
+
+def test_shared_cases_are_korean_only():
+    """공유 파일에 언어 칸이 없다 — 메뉴 리스트는 하나, 사례에 `lang` 이 없다(#3415)."""
+    assert isinstance(_CASES["demo_plan"], list)
+    assert isinstance(gen.DEMO_PLAN, list)
+    assert not [c["name"] for c in _CASES["cases"] if "lang" in c]
+    assert not [c["name"] for c in gen.cases() if "lang" in c]
 
 
 def test_demo_plan_is_the_servers_rules_plan():

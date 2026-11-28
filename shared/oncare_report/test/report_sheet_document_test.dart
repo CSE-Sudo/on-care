@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_report/gen/l10n/report_sheet_localizations_en.dart';
 import 'package:oncare_report/gen/l10n/report_sheet_localizations_ko.dart';
 import 'package:oncare_report/oncare_report.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 final ReportSheetLocalizationsKo _ko = ReportSheetLocalizationsKo();
-final ReportSheetLocalizationsEn _en = ReportSheetLocalizationsEn();
 
 /// 결과지의 모든 칸 — 트레이너 웹 결과지와 같은 칸이다.
 const List<String> _sections = <String>[
@@ -226,24 +224,20 @@ void main() {
       );
     });
 
-    testWidgets('영어 로케일이면 결과지 문구가 영어다', (tester) async {
-      await _pump(
-        tester,
-        ReportSheetDocument(report: _report(), feedback: 'x', trend: _trend()),
-        locale: const Locale('en'),
-      );
-      expect(find.text(_en.reportsPdfDocTitle), findsOneWidget);
-      expect(find.text(_en.reportsSheetDietTitle), findsOneWidget);
-      expect(find.text(_ko.reportsSheetDietTitle), findsNothing);
-    });
-
-    testWidgets('결과지가 모르는 언어면 한국어로 그린다', (tester) async {
-      await _pump(
-        tester,
-        ReportSheetDocument(report: _report(), feedback: 'x'),
-        locale: const Locale('ja'),
-      );
-      expect(find.text(_ko.reportsPdfDocTitle), findsOneWidget);
+    testWidgets('둘러싼 로케일이 무엇이든 결과지 문구는 한국어다 (#3415)', (tester) async {
+      for (final Locale locale in const <Locale>[Locale('en'), Locale('ja')]) {
+        await _pump(
+          tester,
+          ReportSheetDocument(
+            report: _report(),
+            feedback: 'x',
+            trend: _trend(),
+          ),
+          locale: locale,
+        );
+        expect(find.text(_ko.reportsPdfDocTitle), findsOneWidget);
+        expect(find.text(_ko.reportsSheetDietTitle), findsOneWidget);
+      }
     });
 
     testWidgets('아래 칸 제목은 기본이 트레이너 코칭이고 바꿀 수 있다', (tester) async {

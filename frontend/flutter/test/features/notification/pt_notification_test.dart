@@ -142,20 +142,6 @@ void main() {
       expect(item.action?.isNavigable, isTrue);
     });
 
-    test('영어 라벨도 서버 문구를 그대로 쓴다', () async {
-      final DioNotificationRepository repo = DioNotificationRepository(
-        _dio(<Object?>[
-          _row('pt_done', <String, Object?>{
-            'label': 'View PT record',
-            'target': 'exercise',
-          }),
-        ]),
-      );
-
-      final AlertItem item = (await repo.fetchPage()).single;
-      expect(item.action?.label, 'View PT record');
-    });
-
     test('버튼이 없는 옛 일정 알림도 갈래는 읽는다', () async {
       final DioNotificationRepository repo = DioNotificationRepository(
         _dio(<Object?>[_row('member_schedule', null)]),

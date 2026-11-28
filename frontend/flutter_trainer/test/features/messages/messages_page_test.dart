@@ -574,31 +574,6 @@ void main() {
     });
   });
 
-  testWidgets('new workspace labels render in English locale', (tester) async {
-    await withWideSurface(tester, () async {
-      await pumpTrainerApp(
-        tester,
-        token: 'demo-trainer-token-existing',
-        locale: const Locale('en'),
-      );
-      await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
-
-      expect(find.text('Messages'), findsWidgets);
-      expect(find.text('Conversations'), findsNothing);
-      expect(find.textContaining('Unread'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey<String>('messages-client-detail-button'),
-          ),
-          matching: find.text('Member details'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('프로그램'), findsNothing);
-    });
-  });
-
   testWidgets('mobile back keeps the active conversation filter', (
     tester,
   ) async {

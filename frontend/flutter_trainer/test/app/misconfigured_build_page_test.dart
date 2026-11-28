@@ -11,12 +11,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/misconfigured_build_page.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 Finder get _page => find.byKey(MisconfiguredBuildPage.bodyKey);
 Finder get _details => find.byKey(MisconfiguredBuildPage.detailsKey);
@@ -24,19 +22,16 @@ Finder get _details => find.byKey(MisconfiguredBuildPage.detailsKey);
 Future<void> _pump(
   WidgetTester tester, {
   List<ReleaseProblem> problems = ReleaseProblem.values,
-  Locale locale = const Locale('ko'),
 }) async {
   tester.view.physicalSize = const Size(1440, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(
-    MisconfiguredBuildApp(problems: problems, locale: locale),
-  );
+  await tester.pumpWidget(MisconfiguredBuildApp(problems: problems));
   await tester.pumpAndSettle();
 }
 
 void main() {
-  testWidgets('한국어로 제목·설명과 문제 목록을 띄운다', (tester) async {
+  testWidgets('제목·설명과 문제 목록을 띄운다', (tester) async {
     await _pump(tester);
 
     expect(_page, findsOneWidget);
@@ -51,22 +46,6 @@ void main() {
       '· ${_ko.misconfiguredBuildDemoEntry}',
     ].join('\n');
     expect(find.text(details), findsOneWidget);
-  });
-
-  testWidgets('영어 브라우저에서는 영어로 안내한다', (tester) async {
-    await _pump(
-      tester,
-      problems: const <ReleaseProblem>[ReleaseProblem.insecureApiUrl],
-      locale: const Locale('en'),
-    );
-
-    expect(find.text(_en.misconfiguredBuildTitle), findsOneWidget);
-    expect(find.text(_en.misconfiguredBuildMessage), findsOneWidget);
-    expect(
-      find.text('· ${_en.misconfiguredBuildInsecureApiUrl}'),
-      findsOneWidget,
-    );
-    expect(find.text(_ko.misconfiguredBuildTitle), findsNothing);
   });
 
   testWidgets('로그인 화면 레이아웃 + 위험 배너, 버튼 없음', (tester) async {
@@ -114,10 +93,7 @@ void main() {
     expect(find.textContaining('SHOW_DEMO_ENTRY'), findsOneWidget);
   });
 
-  test('새 설정 문구는 영어에 한글이 없고 define 이름을 그대로 적는다 (#3147)', () {
-    final RegExp hangul = RegExp(r'[가-힣]');
-    expect(hangul.hasMatch(_en.misconfiguredBuildDemoEntry), isFalse);
-    expect(_en.misconfiguredBuildDemoEntry, contains('SHOW_DEMO_ENTRY'));
+  test('새 설정 문구는 define 이름을 그대로 적는다 (#3147)', () {
     expect(_ko.misconfiguredBuildDemoEntry, contains('SHOW_DEMO_ENTRY'));
   });
 }

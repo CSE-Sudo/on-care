@@ -10,6 +10,7 @@ from app.schemas.exercise_limits import (
     MAX_EXERCISE_MINUTES,
     MAX_EXERCISE_REPS,
     MAX_EXERCISE_SECONDS,
+    MAX_EXERCISE_SESSIONS_PER_MOVE,
     MAX_EXERCISE_SESSIONS_PER_REQUEST,
     MAX_EXERCISE_SETS,
     MAX_EXERCISE_WEIGHT_KG,
@@ -105,11 +106,10 @@ class ExerciseAdviceResponse(BaseModel):
     from_date: str
     to_date: str
     days_logged: int
-    #: 조언 문장 — 요청 언어(`Accept-Language`)로, 헤더가 없으면 한국어다(#2299).
-    #: 키를 모르는 옛 앱과 트레이너웹이 그대로 보여 준다.
+    #: 조언 문장. 키를 모르는 옛 앱과 트레이너웹이 그대로 보여 준다.
     message: str
     #: 조언 문장의 **로케일과 무관한 키**(#2210). 앱은 이 키와 [advice_params] 로
-    #: 자기 언어의 문장을 그리고, 모르는 키면 [message] 를 쓴다 — 홈 통합 조언의
+    #: 자기 문장을 그리고, 모르는 키면 [message] 를 쓴다 — 홈 통합 조언의
     #: `ai_advice_key`(#1943)와 같은 방식이다.
     advice_key: str | None = None
     #: 문장에 드는 값 — 수, 운동 유형·부위 코드, 운동 이름(트레이너가 적은 그대로).
@@ -283,6 +283,33 @@ class ExerciseSessionsCreate(BaseModel):
     client_request_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
+class ExerciseSessionsMove(BaseModel):
+    """POST /exercise/sessions/move 입력 — 날짜를 옮길 기록들과 옮길 날. (#3365)
+
+    회원은 하루의 기록을 통째로 다른 날로 옮긴다. 기록마다 수정 요청을 하나씩
+    보내면 중간에 하나가 실패했을 때 일부만 옮겨진 채로 남는다 — 그래서 **목록
+    하나를 한 트랜잭션으로** 받는다. 날짜 말고는 아무것도 바꾸지 않는다.
+    """
+
+    session_ids: list[str] = Field(
+        min_length=1, max_length=MAX_EXERCISE_SESSIONS_PER_MOVE
+    )
+    #: 옮길 날. 단건 수정(`ExerciseSessionCreate.date`)과 같은 규칙으로, 아직 오지
+    #: 않은 날은 422 다(#3042).
+    date: date_
+
+    @field_validator("date")
+    @classmethod
+    def _past_or_today(cls, value: date_) -> date_:
+        return not_after_today(value)
+
+
+class ExerciseSessionsMovedOut(BaseModel):
+    """POST /exercise/sessions/move 응답 — 옮긴 기록들(요청과 같은 순서)."""
+
+    sessions: list[ExerciseSessionOut]
+
+
 class ExerciseCalorieRequest(BaseModel):
     """소모 칼로리 미리보기 입력. (#1312)
 
@@ -337,7 +364,9 @@ class AssignedRoutineCompleteRequest(BaseModel):
     모르는 칸이라 무시되고 422 가 나지 않는다.
     """
 
-    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
+    #: 수행한 시간(분). 비우면 서버가 채운다 — 근력은 세트 수에서, 나머지는
+    #: `duration_seconds`·배정된 시간에서. 앱이 분을 지어내 보내지 않는다. (#3364)
+    minutes: int | None = Field(None, gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력 루틴이면 실제로 한 세트 수·횟수·중량. 수기 기록과 같은 값을 남겨야
     #: 그래프가 두 기록을 같은 축으로 읽는다. (#1276, #1310)
     sets: int | None = Field(None, gt=0, le=MAX_EXERCISE_SETS)

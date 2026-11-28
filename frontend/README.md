@@ -9,7 +9,7 @@ On-Care 의 프론트엔드 — **Flutter 로 만든 두 개의 앱**. 트레이
 | 디렉토리 | [`flutter/`](flutter/) | [`flutter_trainer/`](flutter_trainer/) |
 | 개발 가이드 | **[flutter/README.md](flutter/README.md)** | **[flutter_trainer/README.md](flutter_trainer/README.md)** |
 | 타깃 | Android · iOS · Web | Web 전용 (센터 PC·태블릿) |
-| 라이브 | https://ewhasudo.zapto.org/frontend/ | https://ewhasudo.zapto.org/trainer/ |
+| 라이브 | https://cse-sudo.github.io/on-care/member/ | https://cse-sudo.github.io/on-care/trainer/ |
 | CI | [`user-app-ci.yml`](../.github/workflows/user-app-ci.yml) | [`trainer-ci.yml`](../.github/workflows/trainer-ci.yml) |
 
 두 앱이 함께 읽는 것은 **데모 픽스처**([`shared/demo_fixture/`](../shared/demo_fixture/))

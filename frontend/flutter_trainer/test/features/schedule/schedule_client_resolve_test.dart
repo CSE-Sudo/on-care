@@ -106,9 +106,7 @@ void main() {
   group('스케줄 화면의 프로그램 추가', () {
     Future<void> openWith(
       WidgetTester tester,
-      ScheduleSession session, {
-      Locale locale = const Locale('ko'),
-    }) async {
+      ScheduleSession session) async {
       tester.view.physicalSize = const Size(1440, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -118,7 +116,6 @@ void main() {
         token: 'demo-trainer-token',
         at: AppRoutes.schedule,
         seedClock: kMidWeekKst,
-        locale: locale,
         extraOverrides: <Override>[
           clientsProvider.overrideWith(
             (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
@@ -180,13 +177,6 @@ void main() {
       await tapAddProgram(tester);
 
       expect(currentLocation(tester), AppRoutes.coachingFor('member-c'));
-    });
-
-    testWidgets('영어 화면은 영어 안내다', (tester) async {
-      await openWith(tester, _session(), locale: const Locale('en'));
-      await tapAddProgram(tester);
-
-      expect(find.textContaining("Couldn't tell which member"), findsOneWidget);
     });
   });
 }

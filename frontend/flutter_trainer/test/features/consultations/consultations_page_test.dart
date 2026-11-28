@@ -12,7 +12,6 @@ import 'package:oncare_trainer/features/consultations/data/repositories/consulta
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -720,14 +719,11 @@ void main() {
     // "This exception was thrown because …" 이 한국어 화면에 그대로 떴다.
     Future<void> acceptWith(
       WidgetTester tester,
-      AppError failure, {
-      Locale locale = const Locale('ko'),
-    }) async {
+      AppError failure) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-token',
         at: AppRoutes.consultations,
-        locale: locale,
         extraOverrides: <Override>[
           consultationRepositoryProvider.overrideWithValue(
             _FailingAcceptRepository(
@@ -769,19 +765,6 @@ void main() {
       );
 
       expect(find.text('이미 처리된 상담 요청입니다.'), findsOneWidget);
-    });
-
-    testWidgets('영어 화면의 연결 오류는 영어 안내다', (tester) async {
-      await acceptWith(
-        tester,
-        const NetworkError(),
-        locale: const Locale('en'),
-      );
-
-      expect(
-        find.text(AppLocalizationsEn().errorNetworkUnstable),
-        findsOneWidget,
-      );
     });
   });
 }

@@ -68,7 +68,6 @@ Future<void> _pump(
   WeeklyReport? report,
   bool empty = false,
   Future<ReportTrend> Function()? load,
-  String locale = 'ko',
   Size size = const Size(1400, 1000),
   bool settle = true,
 }) async {
@@ -93,7 +92,7 @@ Future<void> _pump(
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: Locale(locale),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -464,58 +463,6 @@ void main() {
       ];
       expect(widths[0], closeTo(widths[1], 0.5));
       expect(widths[1], closeTo(widths[2], 0.5));
-    });
-
-    testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
-      await _pump(
-        tester,
-        locale: 'en',
-        trend: _trend(
-          weeks: <ReportTrendWeek>[_w(cardio: 75, cardioKcal: 640)],
-        ),
-      );
-
-      expect(
-        _cardTexts(tester, ExerciseKind.cardio),
-        containsAll(<String>[
-          'Cardio',
-          'of goal',
-          '50%',
-          '640 kcal',
-          '75 min',
-          'Weekly goal 150 min',
-        ]),
-      );
-      expect(find.text('Weekly goal progress'), findsOneWidget);
-      expect(find.text('8-week average'), findsOneWidget);
-    });
-
-    testWidgets('영어 빈 상태도 번역되어 있다', (tester) async {
-      await _pump(tester, locale: 'en', empty: true);
-
-      expect(
-        find.text("Couldn't load this week's workout records"),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
-      await _pump(
-        tester,
-        locale: 'en',
-        report: _report(
-          days: const <ReportDay>[
-            ReportDay(completion: 100, exercises: <String>['Squat']),
-          ],
-        ),
-      );
-
-      final RegExp hangul = RegExp(r'[가-힣]');
-      for (final Element e in find.byType(Text).evaluate()) {
-        final String? data = (e.widget as Text).data;
-        if (data == null) continue;
-        expect(hangul.hasMatch(data), isFalse, reason: '번역되지 않은 글: $data');
-      }
     });
 
     testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {

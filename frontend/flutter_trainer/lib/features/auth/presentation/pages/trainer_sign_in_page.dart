@@ -11,6 +11,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/auth/presentation/demo_site_entry.dart';
 import 'package:oncare_trainer/features/auth/presentation/trainer_social_login.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -21,9 +22,10 @@ enum _Field { email, password }
 /// Trainer login screen — email/password login. Layout follows the shared
 /// [AppAuthLayout]. Wired to [SessionController].
 ///
-/// "로그인 없이 데모 둘러보기" 진입은 화면에서 내렸다. 코드는 지우지 않고
-/// [AppConfig.showDemoEntry] 로 감춰 두었으므로, 다시 열려면
-/// `--dart-define=SHOW_DEMO_ENTRY=true` 로 빌드한다. (#1526)
+/// 로그인 없이 들어가는 `체험하기` 진입은 [AppConfig.showDemoEntry] 로 감춰
+/// 두었다(#1526). `--dart-define=SHOW_DEMO_ENTRY=true` 로 빌드하면 화면 맨 아래에
+/// 뜬다 — 데모 배포가 그렇게 빌드한다(#3423, #3432). 운영 웹 빌드는 대신
+/// `DEMO_SITE_URL` 을 받아 같은 버튼이 둘러보기 데모 사이트로 옮긴다(#3437).
 class TrainerSignInPage extends ConsumerStatefulWidget {
   /// Creates the trainer login screen.
   const TrainerSignInPage({super.key});
@@ -99,7 +101,14 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
   /// 데모는 늘 대시보드에서 시작한다(#2765). 이어 갈 자리(`?from=`)는 실서버
   /// 계정의 주소라(회원 id 포함) 데모 데이터에는 없다 — 이어 가면 '찾을 수 없음'
   /// 이 뜨고, 이전 사용자의 위치를 다음 사람에게 보여 주는 셈이 된다.
-  void _enterDemo() {
+  ///
+  /// 데모 사이트 주소([demoSite])가 있으면(운영 웹 빌드) 같은 탭에서 그리로
+  /// 옮긴다 — 운영 서버에는 데모 폴백이 없어 앱 안 데모가 비기 때문이다(#3437).
+  void _enterDemo(Uri? demoSite) {
+    if (demoSite != null) {
+      unawaited(ref.read(demoSiteLauncherProvider)(demoSite));
+      return;
+    }
     ref.read(sessionControllerProvider.notifier).enterDemo();
     context.go(AppRoutes.dashboard);
   }
@@ -221,6 +230,8 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    final AppConfig config = ref.watch(appConfigProvider);
+    final Uri? demoSite = demoSiteEntryAddress(config.demoSiteUrl);
     // 가입 경로는 이제 실 API 모드에서도 열린다 — `/auth/trainer/register` 가
     // 트레이너 계정을 만든다(#475). 전에는 회원용
     // `/auth/register` 로 나가 role='member' 계정이 생겼고, 그 계정은
@@ -397,15 +408,32 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
               ),
             // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
             // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
-            if (ref.watch(appConfigProvider).showDemoEntry)
+            // 데모 배포는 이 플래그를 켠다(#3423). 로그인이 이 화면의 주 동작이라
+            // 맨 아래 알약 버튼으로 두어 꽉 찬 로그인 버튼과 구별한다(#3432).
+            // 운영 웹 빌드는 데모 사이트 주소를 받아 같은 버튼을 띄운다(#3437).
+            if (config.showDemoEntry || demoSite != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s16),
               Center(
                 child: AppButton(
                   key: const Key('demoEnterButton'),
                   label: l.authDemoAction,
-                  onPressed: _loading ? null : _enterDemo,
-                  variant: AppButtonVariant.text,
+                  onPressed: _loading ? null : () => _enterDemo(demoSite),
+                  variant: AppButtonVariant.brandOutline,
+                  pill: true,
                 ),
               ),
+              // 배포 데모는 두 앱이 각자 브라우저 안의 예시 데이터로 돈다 —
+              // 한쪽에서 남긴 기록이 다른 쪽에 보이지 않는 것을 미리 알린다(#3423).
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.authDemoNote,
+                key: const Key('demoEntryNote'),
+                textAlign: TextAlign.center,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ],
           ],
         ),
       ),

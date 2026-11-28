@@ -56,5 +56,4 @@
   <text x="675" y="356" font-size="10" font-weight="400" fill="#5A7A90" text-anchor="middle">식약처 참고값</text>
   <path d="M 675,312 V 262" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#pr)"/>
 
-  <text x="40" y="414" font-size="10" font-weight="400" fill="#94A3B8" text-anchor="start">Palette — 시스템 아키텍처 그림과 같은 규칙. 브랜드 기본색 #3EAFDF · #2E7DAB · #17435F 의 명도 단계만 사용하고, 사람이 최종 확정하는 단계를 짙은 면으로 강조.</text>
 </svg>

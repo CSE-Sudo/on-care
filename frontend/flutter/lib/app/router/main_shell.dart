@@ -231,14 +231,19 @@ class _MainShellState extends ConsumerState<MainShell>
           // 않는다.
           const ReleaseUpdateBanner(),
           Expanded(
-            child: MediaQuery.removePadding(
-              context: context,
-              // 배너가 상태 표시줄 자리를 이미 썼다 — 탭 화면이 그만큼 또 띄우지 않게.
-              removeTop: showReleaseBanner,
-              child: CoachInvitePrompter(
-                // 주간 피드백은 담당 요청 안쪽이다 — 담당을 아직 수락하지도 않은
-                // 회원에게 한 주를 묻는 창이 먼저 뜨면 안 된다(#2232).
-                child: WeeklyFeedbackPrompter(child: navigationShell),
+            // 여백은 Scaffold 본문 안쪽에서 읽는다(#3489). 셸 자신의 context 는
+            // Scaffold 바깥이라 extendBody 가 더한 하단 내비 높이가 빠져, 탭
+            // 화면 마지막 항목이 내비 뒤에 숨었다.
+            child: Builder(
+              builder: (BuildContext context) => MediaQuery.removePadding(
+                context: context,
+                // 배너가 상태 표시줄 자리를 이미 썼다 — 탭 화면이 그만큼 또 띄우지 않게.
+                removeTop: showReleaseBanner,
+                child: CoachInvitePrompter(
+                  // 주간 피드백은 담당 요청 안쪽이다 — 담당을 아직 수락하지도 않은
+                  // 회원에게 한 주를 묻는 창이 먼저 뜨면 안 된다(#2232).
+                  child: WeeklyFeedbackPrompter(child: navigationShell),
+                ),
               ),
             ),
           ),

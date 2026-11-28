@@ -112,7 +112,6 @@ Future<(AppLocalizations, _CountingAccountRepository, AppPrefs)> _pumpWithdraw(
   SharedPreferences.setMockInitialValues(<String, Object>{
     'onboarding_done': true,
     'home_guide_done': true,
-    'locale_code': 'ko',
   });
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   final _CountingAccountRepository repository = hasPassword
@@ -270,6 +269,35 @@ void main() {
     expect(_keep('default'), findsNothing);
   });
 
+  testWidgets('고른 사유의 테두리가 카드 모서리에 잘리지 않는다 (#3489)', (
+    WidgetTester tester,
+  ) async {
+    final (AppLocalizations l, _, _) = await _pumpWithdraw(tester);
+    await _openWithdraw(tester, l);
+
+    final Rect card = tester.getRect(
+      find.ancestor(of: _reason('privacy'), matching: find.byType(AppCard)),
+    );
+    for (final WithdrawReason reason in <WithdrawReason>[
+      WithdrawReason.values.first,
+      WithdrawReason.values.last,
+    ]) {
+      await tester.tap(_reason(reason.code));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<AppListRow>(_reason(reason.code)).selected,
+        isTrue,
+        reason: reason.code,
+      );
+      // 둥근 테두리 네 변이 카드 안쪽에 떨어져 서야 모서리 자르기에 걸리지 않는다.
+      final Rect row = tester.getRect(_reason(reason.code));
+      expect(row.left, greaterThan(card.left), reason: reason.code);
+      expect(row.right, lessThan(card.right), reason: reason.code);
+      expect(row.top, greaterThan(card.top), reason: reason.code);
+      expect(row.bottom, lessThan(card.bottom), reason: reason.code);
+    }
+  });
+
   testWidgets('두 번째 칸에서도 바로 지우지 않는다 — 무엇이 사라지는지 먼저 말한다', (
     WidgetTester tester,
   ) async {
@@ -320,8 +348,6 @@ void main() {
     expect(repo.lastReauth?.socialToken, isNull);
     expect(prefs.onboardingDone, isFalse);
     expect(prefs.homeGuideDone, isFalse);
-    // 언어는 기기 설정이라 남는다.
-    expect(prefs.localeCode, 'ko');
     expect(find.text('로그인 화면'), findsOneWidget);
   });
 
@@ -554,6 +580,31 @@ void main() {
       expect(repo.deletes, 0);
     });
 
+    testWidgets('트레이너가 잡은 PT 일정이 있으면 취소될 수를 한 줄로 말한다 (#3341)', (
+      WidgetTester tester,
+    ) async {
+      final (
+        AppLocalizations l,
+        _CountingAccountRepository repo,
+        _,
+      ) = await _pumpWithdraw(
+        tester,
+        preview: () async => const AccountDeletionPreview(upcomingSessions: 3),
+      );
+      await _openWithdraw(tester, l);
+      await _reachConfirm(tester);
+
+      expect(find.byType(AppDialog), findsOneWidget);
+      final String message = withdrawConfirmMessage(
+        l,
+        const AccountDeletionPreview(upcomingSessions: 3),
+      );
+      expect(find.text(message), findsOneWidget);
+      expect(message, endsWith(l.myWithdrawCancelSessions(3)));
+      expect(message, isNot(contains(l.myWithdrawCancelReservations(0))));
+      expect(repo.deletes, 0);
+    });
+
     testWidgets('잃는 것이 없으면 기본 문구만 띄운다', (WidgetTester tester) async {
       final (AppLocalizations l, _, _) = await _pumpWithdraw(tester);
       await _openWithdraw(tester, l);
@@ -583,25 +634,6 @@ void main() {
       expect(repo.deletes, 1);
     });
 
-    testWidgets('영어 로케일에서도 숫자 줄이 붙는다', (WidgetTester tester) async {
-      final (AppLocalizations l, _, _) = await _pumpWithdraw(
-        tester,
-        locale: const Locale('en'),
-        preview: () async =>
-            const AccountDeletionPreview(points: 300, pendingConsultations: 1),
-      );
-      await _openWithdraw(tester, l);
-      await _reachConfirm(tester);
-
-      final String message = withdrawConfirmMessage(
-        l,
-        const AccountDeletionPreview(points: 300, pendingConsultations: 1),
-      );
-      expect(find.text(message), findsOneWidget);
-      expect(message, contains('300P'));
-      expect(message, contains(l.myWithdrawCancelConsultations(1)));
-    });
-
     testWidgets('작은 화면에서도 확인창이 넘치지 않는다', (WidgetTester tester) async {
       final (AppLocalizations l, _, _) = await _pumpWithdraw(
         tester,
@@ -610,6 +642,7 @@ void main() {
           points: 125000,
           activeCoupons: 12,
           upcomingReservations: 4,
+          upcomingSessions: 16,
           pendingConsultations: 3,
         ),
       );

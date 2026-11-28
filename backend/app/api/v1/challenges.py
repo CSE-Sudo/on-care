@@ -6,7 +6,8 @@
   GET  /me/challenges               -> 챌린지 배열(최근 주 먼저)
 
 읽기는 CurrentUser(데모 폴백 허용), 쓰기는 RequireMember 다 — 포인트 사용처와
-같은 규약이다. 지난 주 판정은 읽기·참가 경로가 먼저 한다(스케줄러 없음).
+같은 규약이다. 지난 주 판정은 읽기·참가 경로가 먼저 한다(스케줄러 없음). 주가 끝난
+다음 날 하루는 유예라 판정하지 않고 집계 중으로 답한다(#3362).
 """
 from __future__ import annotations
 
@@ -33,7 +34,10 @@ def weekly_challenge(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> WeeklyChallengeOut:
-    """이번 주 챌린지·진행과 참가 가능 여부. 막힌 이유와 모자란 포인트를 함께 준다."""
+    """이번 주 챌린지·진행과 참가 가능 여부. 막힌 이유와 모자란 포인트를 함께 준다.
+
+    지난주 참가 기록이 유예 중이면 `settling_challenge` 로 함께 준다(#3362).
+    """
     return weekly_challenge_service.weekly_state(db, current_user.id)
 
 
@@ -66,5 +70,5 @@ def my_challenges(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> list[ChallengeOut]:
-    """내 챌린지(최근 주 먼저, 최대 20). 읽기 전에 끝난 주를 판정한다."""
+    """내 챌린지(최근 주 먼저, 최대 20). 읽기 전에 유예까지 끝난 주를 판정한다."""
     return weekly_challenge_service.list_challenges(db, current_user.id)

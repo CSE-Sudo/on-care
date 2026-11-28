@@ -1301,7 +1301,7 @@ class _SessionEditorState extends State<_SessionEditor> {
               Expanded(child: _buildSessionName()),
               if (_editingName)
                 AppIconButton(
-                  tooltip: l.actionClose,
+                  tooltip: l.actionDone,
                   onPressed: () => setState(() => _editingName = false),
                   icon: AppIcons.check,
                   color: context.oncare.brand.primary,
@@ -1357,7 +1357,7 @@ class _SessionEditorState extends State<_SessionEditor> {
                     key: ValueKey<String>(
                       'session-actions-${widget.session.id}',
                     ),
-                    tooltip: l.actionEdit,
+                    tooltip: l.actionMore,
                     icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
@@ -1660,7 +1660,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
               if (_editing)
                 AppIconButton(
                   key: ValueKey<String>('exercise-edit-${exercise.id}'),
-                  tooltip: l.actionClose,
+                  tooltip: l.actionDone,
                   onPressed: () => setState(() => _editing = false),
                   icon: AppIcons.check,
                   color: context.oncare.brand.primary,
@@ -1702,7 +1702,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   ],
                   triggerBuilder: (context, toggle) => AppIconButton(
                     key: ValueKey<String>('exercise-edit-${exercise.id}'),
-                    tooltip: l.actionEdit,
+                    tooltip: l.actionMore,
                     icon: AppIcons.more,
                     color: OnCareColors.textTertiary,
                     onPressed: toggle,
@@ -1888,8 +1888,7 @@ class _ExerciseSummary extends StatelessWidget {
 /// 유형은 시간. 유형마다 재는 단위가 다르다는 규칙은 회원 앱·서버와도 같다
 /// (#1276). 버티는 운동에 횟수를 적으면 나가는 값(초)과 화면이 달라진다(#3247).
 ///
-/// 단위는 ARB 가 로케일마다 정한다 (#2304). 예전에는 `korean ?` 분기로 두 언어만
-/// 코드에 박혀 있었고, 영어는 `1 sets` 처럼 단수를 가리지 못했다.
+/// 단위는 ARB 가 정한다 (#2304).
 List<String> programExerciseMetrics(
   AppLocalizations l,
   ProgramExerciseDraft exercise,

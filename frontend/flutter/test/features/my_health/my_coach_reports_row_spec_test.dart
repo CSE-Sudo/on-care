@@ -245,27 +245,6 @@ void main() {
           .dx;
       expect(coach, profile);
     });
-
-    testWidgets('영어에서도 같은 규격이다', (tester) async {
-      await _pumpMy(tester, locale: 'en');
-      final AppLocalizations l = _l10n(tester);
-
-      expect(l.myCoachReportsEntry, 'Weekly reports');
-      final TextStyle coach = _textStyleIn(
-        tester,
-        _coachRow(),
-        l.myCoachReportsEntry,
-      );
-      final TextStyle profile = _textStyleIn(
-        tester,
-        _settingRow(l.myProfileTitle),
-        l.myProfileTitle,
-      );
-      expect(coach.fontSize, profile.fontSize);
-      expect(coach.fontWeight, profile.fontWeight);
-      final Icon leading = _iconIn(tester, _coachRow(), AppIcons.document);
-      expect(leading.color, _tokens(tester).brand.primary);
-    });
   });
 
   group('원래 모양', () {

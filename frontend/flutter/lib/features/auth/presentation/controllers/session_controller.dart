@@ -9,6 +9,7 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
+import 'package:oncare/features/auth/presentation/demo_site_entry.dart';
 import 'package:oncare_core/network/session_refresh.dart';
 
 enum SessionStatus { unknown, signedOut, demo, authenticated }
@@ -147,7 +148,7 @@ class SessionController extends StateNotifier<SessionState>
   ///
   /// 다음에 이 기기로 들어오는 사람이 같은 계정이라는 보장이 없다. 첫 설정 기록만
   /// 지우면 앞 계정이 끝낸 홈 가이드 기록이 남아, 다른 계정으로 로그인한 새
-  /// 회원이 첫 사용 안내를 한 번도 보지 못한다. 언어와 설치 표식은 기기의 것이라
+  /// 회원이 첫 사용 안내를 한 번도 보지 못한다. 설치 표식은 기기의 것이라
   /// 남는다([AppPrefs.clearAccountScoped]).
   Future<void> _forgetAccountRecords() async {
     try {
@@ -180,6 +181,13 @@ class SessionController extends StateNotifier<SessionState>
     }
     if (!mounted || _userActionStarted) return;
     if (access == null || access.isEmpty) {
+      // 운영 앱의 체험하기로 데모 사이트에 왔다(#3437) — 로그인 화면 대신 곧장
+      // 데모로 들인다. 버튼을 누른 것과 같은 길이다. 저장된 토큰이 있으면 위에서
+      // 이미 복원으로 갔다.
+      if (_ref.read(demoEntryOnLaunchProvider)) {
+        enterDemo();
+        return;
+      }
       state = const SessionState(status: SessionStatus.signedOut);
       return;
     }
@@ -483,18 +491,23 @@ class SessionController extends StateNotifier<SessionState>
     await _applyTokens(res.data, label: '로그인');
   }
 
-  /// Social login — exchanges a provider (kakao/google) token for our
+  /// Social login — exchanges a provider (kakao/google/apple) token for our
   /// session via POST /auth/social/{provider}. Throws on failure.
+  ///
+  /// [name] 은 provider 가 토큰 밖으로 준 이름이다 — 애플은 첫 로그인 때만 앱에
+  /// 이름을 준다(#3499). 서버는 새 계정을 만들 때만 쓰고, 가입 뒤 이름을 다시
+  /// 묻지 않는다.
   Future<void> socialLogin({
     required String provider,
     required String token,
+    String? name,
   }) async {
     _userActionStarted = true;
     _ref.read(trainerAccountNoticeProvider.notifier).state = false;
     final dio = _ref.read(dioProvider);
     final res = await dio.post<Map<String, Object?>>(
       '/auth/social/$provider',
-      data: <String, Object?>{'token': token},
+      data: <String, Object?>{'token': token, 'name': ?name},
     );
     await _applyTokens(res.data, label: '소셜 로그인');
   }

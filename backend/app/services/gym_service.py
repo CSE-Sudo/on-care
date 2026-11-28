@@ -61,45 +61,94 @@ def _to_gym(
     )
 
 
+#: 좌표가 있는 목록 조회의 기본 반경(m). 주변 검색(`places/nearby`)의 기본 3km 보다
+#: 넓게 잡는다 — 여기는 트레이너가 소속으로 고른 헬스장이라 훨씬 드물고, 회원은 PT
+#: 를 받으러 걸어갈 거리보다 멀리 다닌다. 상한은 주변 검색과 같다.
+DEFAULT_GYM_RADIUS_M = 5000
+MAX_GYM_RADIUS_M = 20000
+#: 한 번에 내려 주는 헬스장 수. 가까운 순으로 자른다.
+DEFAULT_GYM_LIMIT = 50
+MAX_GYM_LIMIT = 100
+
+
+def _gym_query(*, include_demo: bool = False):
+    """디렉터리에 노출할 헬스장 — `fitness` 장소와 (있으면) 프로필.
+
+    데모 시드가 꺼진 서버(운영)에서는 가상 헬스장(`demo_ids`)을 뺀다(#3356). 주변
+    검색(#2914)·트레이너 디렉터리(#2811)와 같은 규칙이다 — 예전 기본값으로 운영 DB
+    에 심긴 행이 남아 있어도 실서비스 회원에게 존재하지 않는 헬스장이 보이지 않는다.
+
+    `include_demo=True` 는 **회원이 이미 연결한 헬스장을 그 회원이 읽을 때**만 쓴다
+    (`get_member_gym`). 그 자리는 찾기가 아니라 이미 맺어진 링크를 읽는 것이라, 옛
+    링크가 남은 회원의 내 헬스장·쿠폰·코치 카드가 갑자기 비지 않게 거르지 않는다.
+    """
+    from app.db import demo_ids
+
+    query = (
+        select(Place, GymProfile)
+        .outerjoin(GymProfile, GymProfile.place_id == Place.id)
+        .where(Place.category == "fitness")
+    )
+    if not include_demo and not demo_ids.demo_data_enabled():
+        query = query.where(Place.id.not_in(demo_ids.demo_place_ids()))
+    return query
+
+
 def list_gyms(
     db: Session,
     *,
     lat: float | None = None,
     lng: float | None = None,
     partner_only: bool = False,
+    radius_m: int = DEFAULT_GYM_RADIUS_M,
+    limit: int = DEFAULT_GYM_LIMIT,
 ) -> list[GymOut]:
-    """헬스장 목록. 좌표를 주면 거리순, 아니면 이름순."""
-    query = (
-        select(Place, GymProfile)
-        .outerjoin(GymProfile, GymProfile.place_id == Place.id)
-        .where(Place.category == "fitness")
-    )
+    """헬스장 목록. 좌표를 주면 반경 안에서 거리순, 아니면 이름순.
+
+    좌표가 있으면 `radius_m` 안의 헬스장만 가까운 순으로 `limit` 곳까지 준다(#3356).
+    트레이너가 소속을 고를 때마다 장소가 늘어나므로, 범위가 없으면 "내 주변" 에 수백
+    km 떨어진 곳이 끝없이 이어진다. 좌표를 모르는 헬스장은 반경 안인지 알 수 없어
+    뺀다 — 주변 검색(`places._seed_nearby`)과 같다. 단건 조회로는 그대로 읽힌다.
+
+    좌표가 없는 조회는 그대로다 — 기준점이 없어 반경도 상한도 걸지 않는다.
+    """
+    query = _gym_query()
     if partner_only:
         query = query.where(GymProfile.is_partner.is_(True))
 
-    gyms = [_to_gym(place, profile, lat, lng) for place, profile in db.execute(query)]
-    if lat is not None and lng is not None:
-        # 좌표를 모르는 헬스장은 distance_km 가 0 이라 그냥 정렬하면 '가장 가까운 곳'
-        # 으로 맨 앞에 온다. 뒤로 보내고 그 안에서는 이름순으로 둔다.
-        gyms.sort(
-            key=lambda g: (
-                g.lat is None or g.lng is None,
-                g.distance_km,
-                g.name,
-            )
-        )
-    else:
+    if lat is None or lng is None:
+        gyms = [_to_gym(place, profile, lat, lng) for place, profile in db.execute(query)]
         gyms.sort(key=lambda g: g.name)
-    return gyms
+        return gyms
+
+    # 좌표가 빈 행은 DB 에서 걸러 읽는 양부터 줄인다.
+    query = query.where(Place.lat.is_not(None), Place.lng.is_not(None))
+    nearby: list[tuple[int, GymOut]] = []
+    for place, profile in db.execute(query):
+        # 반경은 미터로 비교한다 — `distance_km` 로 비교하면 경계에서 어긋난다.
+        meters = _haversine_m(lat, lng, place.lat, place.lng)
+        if meters <= radius_m:
+            nearby.append((meters, _to_gym(place, profile, lat, lng)))
+    nearby.sort(key=lambda pair: (pair[0], pair[1].name))
+    return [gym for _, gym in nearby[:limit]]
 
 
 def get_gym(
-    db: Session, gym_id: str, *, lat: float | None = None, lng: float | None = None
+    db: Session,
+    gym_id: str,
+    *,
+    lat: float | None = None,
+    lng: float | None = None,
+    include_demo: bool = False,
 ) -> GymOut | None:
+    """헬스장 한 곳. 반경과 무관하다 — 목록에 없는 헬스장의 상세가 이것으로 열린다.
+
+    데모 시드가 꺼진 서버에서는 가상 헬스장을 없는 것으로 본다(`_gym_query`). 소속
+    트레이너 목록도 이 함수를 거쳐 같은 규칙을 따른다. 내 헬스장(`get_member_gym`)만
+    `include_demo=True` 로 거르지 않고 읽는다.
+    """
     row = db.execute(
-        select(Place, GymProfile)
-        .outerjoin(GymProfile, GymProfile.place_id == Place.id)
-        .where(Place.id == gym_id, Place.category == "fitness")
+        _gym_query(include_demo=include_demo).where(Place.id == gym_id)
     ).first()
     if row is None:
         return None
@@ -122,9 +171,14 @@ def get_member_gym_id(db: Session, member_id: str) -> str | None:
 def get_member_gym(
     db: Session, member_id: str, *, lat: float | None = None, lng: float | None = None
 ) -> GymOut | None:
-    """회원의 '내 헬스장' 카드. 연결이 없거나 헬스장이 사라졌으면 None."""
+    """회원의 '내 헬스장' 카드. 연결이 없거나 헬스장이 사라졌으면 None.
+
+    데모 제외를 걸지 않는다(#3356) — 찾기 경로가 아니라 회원 자신의 링크다.
+    """
     gym_id = get_member_gym_id(db, member_id)
-    return None if gym_id is None else get_gym(db, gym_id, lat=lat, lng=lng)
+    if gym_id is None:
+        return None
+    return get_gym(db, gym_id, lat=lat, lng=lng, include_demo=True)
 
 
 def unlink_member_gym(db: Session, member_id: str) -> bool:

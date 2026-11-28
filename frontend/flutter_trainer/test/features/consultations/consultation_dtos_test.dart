@@ -91,8 +91,8 @@ void main() {
   test('a missing member name comes through empty, not as Korean text', () {
     final request = consultationRequestFromJson(_json(memberName: null));
 
-    // 대체 문구('알 수 없는 회원')는 화면이 자기 로케일로 붙인다 — DTO 가
-    // 한국어를 박아 두면 영어 로케일에서 그 문구만 한국어로 남는다. (#501)
+    // 대체 문구('알 수 없는 회원')는 화면이 ARB 문구로 붙인다 — DTO 는
+    // 문구를 박아 두지 않는다. (#501)
     expect(request.memberName, isEmpty);
   });
 

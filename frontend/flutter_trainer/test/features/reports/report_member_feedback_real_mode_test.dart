@@ -1,7 +1,7 @@
 /// 실서버 모드의 리포트 화면이 회원 주간 피드백을 그리는가. (#2286)
 ///
 /// 저장소 단위 테스트는 값이 [WeeklyReport] 에 실리는지까지만 본다. 이 파일은
-/// 그 값이 리포트 편집기의 첫 카드까지 가서 **한·영 두 로케일로** 서는지를
+/// 그 값이 리포트 편집기의 첫 카드까지 가서 서는지를
 /// 본다 — 예전에는 실서버에서 언제나 "아직 받지 못함" 이었다.
 library;
 
@@ -97,7 +97,6 @@ void main() {
   Future<void> openReport(
     WidgetTester tester, {
     required _MockDio dio,
-    Locale locale = const Locale('ko'),
   }) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(1600, 1200);
@@ -105,7 +104,6 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      locale: locale,
       at: AppRoutes.reportFor('seed-client-1', weekStart: lastWeek),
       extraOverrides: <Override>[
         reportRepositoryProvider.overrideWithValue(DioReportRepository(dio)),
@@ -126,7 +124,7 @@ void main() {
     return t.data!;
   }
 
-  testWidgets('한국어 — 회원이 낸 답이 첫 카드에 선다', (tester) async {
+  testWidgets('회원이 낸 답이 첫 카드에 선다', (tester) async {
     await openReport(
       tester,
       dio: _server(feedback: answered('오른 무릎', '3일차부터 힘들었어요')),
@@ -148,33 +146,6 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('확인 필요'), findsOneWidget);
-  });
-
-  testWidgets('English — the member answer renders in the first card', (
-    tester,
-  ) async {
-    await openReport(
-      tester,
-      locale: const Locale('en'),
-      dio: _server(feedback: answered('Right knee', 'Tough from day 3')),
-    );
-
-    expect(
-      find.byKey(const ValueKey<String>('report-feedback-empty')),
-      findsNothing,
-    );
-    expect(answer(tester, 'report-feedback-condition'), '😩 Worn out');
-    expect(answer(tester, 'report-feedback-intensity'), 'Too hard');
-    expect(
-      answer(tester, 'report-feedback-pain'),
-      'Right knee (${painDay.month}/${painDay.day})',
-    );
-    expect(find.text('Tough from day 3'), findsOneWidget);
-    expect(
-      find.text('· Weekly · submitted ${submittedOn.month}/${submittedOn.day}'),
-      findsOneWidget,
-    );
-    expect(find.text('Needs attention'), findsOneWidget);
   });
 
   testWidgets('답하지 않은 주는 "아직 받지 못함" 을 그린다', (tester) async {
@@ -199,22 +170,6 @@ void main() {
     );
     // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
     expect(find.text('· 아직 받지 못했어요'), findsOneWidget);
-  });
-
-  testWidgets('Not submitted yet reads naturally in English', (tester) async {
-    await openReport(
-      tester,
-      locale: const Locale('en'),
-      dio: _server(
-        feedback: <String, dynamic>{
-          'week_start': ymd(lastWeek),
-          'submitted': false,
-        },
-      ),
-    );
-
-    // 제목 줄 곁말로 선다(#2450) — 머리가 `· ` 를 앞에 붙인다.
-    expect(find.text('· Not received yet'), findsOneWidget);
   });
 
   testWidgets('피드백 요청만 실패하면 그 칸만 비고 리포트는 뜬다', (tester) async {

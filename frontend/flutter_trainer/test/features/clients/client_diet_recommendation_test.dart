@@ -50,16 +50,13 @@ class _FakeRepository implements ClientRepository {
 
   @override
   Future<ClientDietRecommendations> fetchDietRecommendations(
-    String clientId, {
-    required Locale locale,
-  }) async => state;
+    String clientId) async => state;
 
   @override
   Future<ClientDietRecommendations> confirmDietRecommendation(
     String clientId, {
     required String slot,
     required String name,
-    required Locale locale,
   }) async {
     if (failConfirm) throw StateError('offline');
     confirmed.add(name);
@@ -382,27 +379,18 @@ void main() {
     test('급한 태그를 채우는 메뉴부터 후보를 낸다 — 공유 4주 메뉴 리스트에서', () async {
       final ClientDietRecommendations r = await repo.fetchDietRecommendations(
         'seed-client-1',
-        locale: const Locale('ko'),
       );
       expect(r.needs, contains('protein_high'));
       expect(r.pick, isNull);
       expect(r.candidates, hasLength(18));
       expect(r.candidates.first.tag, r.needs.first);
       expect(r.candidates.first.urgent, isTrue);
-      // 영어 화면은 같은 리스트의 영어 이름이다.
-      final ClientDietRecommendations en = await repo.fetchDietRecommendations(
-        'seed-client-1',
-        locale: const Locale('en'),
-      );
-      expect(en.candidates.first.tag, r.candidates.first.tag);
-      expect(en.candidates.first.name, isNot(r.candidates.first.name));
     });
 
     test('확정하면 추천 중이고, 그 메뉴를 기록하면 해소된다', () async {
       final ClientDietRecommendations before = await repo
           .fetchDietRecommendations(
             'seed-client-1',
-            locale: const Locale('ko'),
           );
       final ClientDietCandidate pick = before.candidates.first;
       final ClientDietRecommendations after = await repo
@@ -410,7 +398,6 @@ void main() {
             'seed-client-1',
             slot: pick.slot,
             name: pick.name,
-            locale: const Locale('ko'),
           );
       expect(after.pick?.name, pick.name);
       expect(after.pick?.resolved, isFalse);
@@ -438,7 +425,6 @@ void main() {
       final ClientDietRecommendations eaten = await repo
           .fetchDietRecommendations(
             'seed-client-1',
-            locale: const Locale('ko'),
           );
       expect(eaten.pick?.resolved, isTrue);
     });
@@ -449,7 +435,6 @@ void main() {
           'seed-client-1',
           slot: 'dinner',
           name: '지어낸 메뉴',
-          locale: const Locale('ko'),
         ),
         throwsArgumentError,
       );

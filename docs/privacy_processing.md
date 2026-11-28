@@ -2,12 +2,14 @@
 
 두 앱의 개인정보 처리방침 본문(`myLegalPrivacyBody`)은 ARB 에 있다. 이 문서는 그 본문이 따르는
 **원본 표**다. 처리 구조(인프라·외부 API·보관 기간·탈퇴 처리)가 바뀌면 이 표를 먼저 고치고,
-아래 "본문을 고칠 때" 절차대로 네 개의 ARB 와 버전 상수를 함께 맞춘다.
+아래 "본문을 고칠 때" 절차대로 두 앱의 ARB 와 버전 상수를 함께 맞춘다.
 
-| 앱 | 한국어(원본) | 영문 |
-| --- | --- | --- |
-| 회원 앱 | `frontend/flutter/lib/l10n/app_ko.arb` | `frontend/flutter/lib/l10n/app_en.arb` |
-| 트레이너 웹 | `frontend/flutter_trainer/lib/l10n/app_ko.arb` | `frontend/flutter_trainer/lib/l10n/app_en.arb` |
+| 앱 | 원본 |
+| --- | --- |
+| 회원 앱 | `frontend/flutter/lib/l10n/app_ko.arb` |
+| 트레이너 웹 | `frontend/flutter_trainer/lib/l10n/app_ko.arb` |
+
+두 앱 모두 한국어만 지원한다(#3404).
 
 > 이 표와 처리방침 문안은 법률 검토 전의 초안이다. 스토어 제출·정식 출시 전에 법률 검토를 받고,
 > 아래 "확정이 필요한 값" 을 채운다.
@@ -16,9 +18,10 @@
 
 | 수탁자 | 위탁 업무 | 이전 국가 | 이전 항목 | 보유 기간 | 근거(코드·설정) |
 | --- | --- | --- | --- | --- | --- |
-| Amazon Web Services, Inc. | 서버 운영(ECS Express Mode), 채팅 사진·리포트 PDF 보관(S3) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF | 탈퇴 또는 위탁 계약 종료 시까지 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·리전 |
+| Amazon Web Services, Inc. | 서버 운영(ECS Express Mode), 채팅 사진·리포트 PDF 보관(S3), 운영 DB 백업 사본 보관(S3, #1552) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF, DB 전체의 백업 사본 | 탈퇴 또는 위탁 계약 종료 시까지. DB 백업 사본은 만든 날부터 30일 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·2-1·리전, `infra/backend-environment.yml` `BackupBucket`·`BackupRetentionDays` |
 | Neon | 데이터베이스 운영(Postgres + pgvector) | 싱가포르(서버와 같은 리전) | 계정·프로필·식단(음식 사진 축소본 포함)·운동·건강 기록, 대화 기록, 검색 색인 | 탈퇴 또는 위탁 계약 종료 시까지 | `backend/docs/DEPLOY.md` 4·5절, `backend/.env.aws.example` `DATABASE_URL` |
 | Google LLC (Gemini API) | 음식 사진 인식, AI 코치 답변·추천, 개인 기록 검색 색인(임베딩), 트레이너 AI 프로그램·루틴 후보·리포트 요약 | 미국 등 Google 데이터센터 소재 국가 | 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치 대화, 트레이너가 입력한 코칭 조건과 담당 회원 운동 기록·주간 리포트 수치 | 요청 처리 후 수탁자 약관에서 정한 기간. **유료 등급 키 사용 전제**(#3032) — 무료 등급은 입력이 제공자의 서비스 개선에 쓰일 수 있어 이 표의 위탁 범위를 넘는다 | `config.py` `recognizer`·`coach_llm`·`embedder` 기본값 `gemini`, `backend/docs/DEPLOY.md` 5절 `GEMINI_API_KEY`, `rag_auto_ingest=True`(식단·운동 저장 때마다 색인), `services/trainer_report_summary_service.py`, `services/trainer_routine_options_service.py` |
+| Google LLC (Gmail) | 메일 발송 — 가입 인증 코드(회원·트레이너, #3038), 비밀번호 재설정 코드·링크(회원·트레이너, #3033), 로그인 이메일 변경 인증 코드와 옛 주소로 보내는 변경 안내(회원만, #3039) | 미국 등 Google 데이터센터 소재 국가 | 받는 사람 이메일 주소와 메일 내용 — 인증 코드, 재설정 코드와 재설정 링크(링크에 같은 코드), 변경 안내의 일부를 가린 새 이메일 주소(`mask_email`). 이름·전화번호 등 다른 항목은 메일에 넣지 않는다(`tests/test_privacy_policy_version.py`) | 발송일로부터 30일. Gmail 은 SMTP 로 보낸 메일도 발신 계정 보낸편지함에 사본을 남기고 서버가 이를 막을 수 없어, 발신 계정의 매일 도는 스크립트가 30일이 지난 사본을 휴지통을 거치지 않고 영구 삭제한다(아래 "운영 메모", #3443). 매일 한 번 돌므로 실제로는 길어야 31일이다. Google 백업에서 사라지는 시점은 Google 의 삭제 정책을 따른다 | 운영 `SMTP_HOST=smtp.gmail.com`·`SMTP_PORT=587`(STARTTLS), 발신 계정 `MAIL_FROM` 은 팀 Google 계정(보호책임자 연락처와 같은 주소, 5절). `backend/app/services/mailer.py`, `services/signup_email_code.py`, `services/password_reset.py`, `services/account_notice.py`, `backend/.env.aws.example` 메일 블록 |
 | Functional Software, Inc. (Sentry) | 앱·서버 오류 수집 | 미국 | 오류 내용, 기기·브라우저·운영체제 종류, 앱 버전. 이름·이메일·IP·헤더·쿠키·요청 본문·지역 변수는 보내기 전에 지운다 | 수탁자 보관 기간 | `backend/app/core/error_tracking.py`(`send_default_pii=False`, `scrub_event`), `frontend/flutter/lib/core/observability/error_reporter.dart`, 화면이 잡아서 처리한 오류도 같은 항목·같은 정리로 보낸다(`source=handled`, `frontend/flutter/lib/core/observability/handled_error.dart`, 연결 끊김·이미 지워진 항목 같은 예상된 실패는 보내지 않음), 트레이너 웹 `sentry_flutter` |
 | 주식회사 카카오 | 헬스장·장소 검색, 지도 표시 | 대한민국(국외 이전 아님) | 장소 검색 좌표(회원이 위치정보 이용에 동의하고 현재 위치를 허용한 경우 그 좌표), 검색어 | 수탁자 보관 기간 | `backend/app/services/places/kakao.py`, `services/trainer_gym_search.py`, `shared/oncare_kakao_map`, 두 앱 `web/index.html` CSP |
 
@@ -27,15 +30,29 @@
 
 **위탁 대상이 아닌 것**
 
-- 소셜 로그인(카카오·구글): 회원이 고른 로그인 수단에서 식별자·이메일·이름을 **받는**
-  쪽이라 위탁이 아니다. 처리방침 1항 수집 항목에 적는다.
+- 소셜 로그인(카카오·구글·애플): 회원이 고른 로그인 수단에서 식별자·이메일·이름을 **받는**
+  쪽이라 위탁이 아니다. 처리방침 1항 수집 항목에 적는다. 애플(#3499, iOS 앱)은 이메일 가리기를 고르면
+  `@privaterelay.appleid.com` 전달 주소가 오고, 탈퇴할 때 서버가 Apple 에 토큰 철회를 요청한다
+  (`backend/app/services/social/apple_revoke.py`, 처리방침 10항 ①, 시행일 2026-10-27).
 - 공공 식품영양성분 DB: 서버에 적재한 참조표(`food_nutrients`)를 조회할 뿐 외부로 보내지 않는다.
 - OpenAI·LiteLLM: 설정으로 고를 수 있지만 운영 기본값과 `backend/.env.aws.example` 은 Gemini 다.
   운영에서 바꾸면 이 표와 처리방침에 수탁자를 더한다.
-- 메일 발송(비밀번호 재설정): `mail_provider` 의 실제 발송 업체가 아직 정해지지 않았다(#480). 정해지면 표에 더한다.
-  미리 정해 둔 행 — 위탁 업무 "비밀번호 재설정 메일 발송", 이전 항목 **수신 이메일 주소·재설정 코드(재설정 링크)**,
-  근거 `backend/app/services/mailer.py`·`services/password_reset.py`, `backend/.env.aws.example` 메일 블록(#3033).
-  업체 이름·이전 국가·보유 기간만 채우면 된다.
+- 받는 사람의 메일 업체: 메일이 Gmail 을 떠나 받는 사람의 메일함(받는 사람이 고른 업체)에 들어가는 것은
+  회원 본인에게 보내는 것이라 위탁이 아니다. 메일 발송 위탁(Gmail)은 위 표에 있다(#3443).
+
+**운영 메모 — Gmail 발송 사본 30일 삭제**(#3443)
+
+- 발신 계정(`sudo.capstone@gmail.com`)에 Google Apps Script [`tool/ops/gmail_sent_cleanup.gs`](../tool/ops/gmail_sent_cleanup.gs)
+  를 설치해 매일 돌린다. 설치 절차는 파일 머리 주석에 있다.
+- 지우는 것: SENT 라벨이 붙고 제목이 `[On-Care] ` 로 시작하는 메시지(서버가 보낸 메일 — 제목 머리는
+  `tests/test_privacy_policy_version.py` 가 지킨다), mailer-daemon 의 발송 실패 알림(원래 메일 내용을 담는다).
+  둘 다 30일(`older_than:30d`)이 지난 것만이다. 받은 메일과 팀원이 손으로 보낸 답장은 건드리지 않는다.
+- 메시지 단위로 고른다. 스레드 단위로 휴지통에 옮기면 같은 스레드의 받은 답장까지 지워진다.
+- 휴지통으로 옮기지 않고 Gmail API `batchDelete` 로 영구 삭제한다. 휴지통은 30일을 더 보관해 최대 60일이
+  되기 때문이다. 대신 `https://mail.google.com/` 권한이 필요하다(Gmail API 에서 영구 삭제를 허용하는 유일한 범위).
+- 스크립트가 멈추면 처리방침 7항 ⑤의 30일 약속이 깨진다. 계정 비밀번호를 바꾸거나 권한을 철회했다면
+  script.google.com → 프로젝트 "On-Care 메일 사본 정리" → 트리거에서 일 단위 트리거가 살아 있고 최근 실행이
+  성공했는지 본다. 실패 알림 메일은 같은 계정으로 온다.
 
 ## 2. 보관 기간
 
@@ -46,6 +63,7 @@
 | 트레이너 열람 기록, 데이터 공유 동의·철회, 탈퇴 기록 | 2년 | 「개인정보의 안전성 확보조치 기준」 처리 기록 | `config.py` `audit_sensitive_retention_days=730`, `services/audit.py` `SENSITIVE_EVENTS` |
 | 탈퇴 사유 | 회원과 잇지 않은 사유 코드·시각만 | 개인정보 아님 | `account_deletion_reasons` |
 | 위치정보 이용 동의·철회 기록 | 탈퇴 시까지(철회해도 행은 남고 철회 시각만 적는다) | 위치기반서비스 이용약관 제5조 ③ | `user_consents` (`kind=location`) |
+| 운영 DB 백업 사본(S3) | 만든 날부터 30일 뒤 자동 삭제. 탈퇴한 회원의 정보도 이 기간 동안 백업에 남는다 | 장애·데이터 손상 복구 | `infra/backend-environment.yml` `BackupRetentionDays`, `backend/docs/DEPLOY.md` 2-1 |
 
 기간이 지난 감사 기록은 서버가 기동할 때와 그 뒤 하루마다 지운다(`services/retention.py` `run_purge`,
 `app/main.py` lifespan, #3144). 재시작 없이 오래 도는 서버에서도 고지한 보관 기간을 하루 넘게 넘기지 않는다.
@@ -73,7 +91,7 @@
 
 **방법**: 운영 DB 에서 행을 지우고 파일 저장소에서 객체를 지운다. S3 버킷에 버전 관리를 켜면 지운
 객체가 이전 버전으로 남으므로, 켤 때는 이전 버전 만료 규칙을 함께 건다(`backend/docs/DEPLOY.md` 5-1).
-DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 지나면 사라진다. 첨부 삭제가 실패하면
+DB 복구용 기록(Neon 의 복원 기간, 운영 배포 직전마다 뜨는 S3 백업 30일)에 남은 사본은 그 기간이 지나면 사라진다. 첨부 삭제가 실패하면
 `탈퇴 첨부 삭제 실패` 경고 로그로 남아 다시 지울 수 있다.
 
 ## 4. 수집 항목 — 실제와 대조
@@ -97,7 +115,7 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 
 처리방침에는 개인 성명 대신 직책(On-Care 서비스 운영팀 개인정보 보호책임자)과 연락처를 적는다.
 연락처는 **한 곳**, `shared/oncare_core/lib/legal_contact.dart` 의 `LegalContact.privacyOfficerEmail`
-에서만 정한다(#3005). 네 ARB 의 처리방침 본문은 `{contact}` 자리표시자를 쓰고, 두 앱과 공개 페이지
+에서만 정한다(#3005). 두 앱 ARB 의 처리방침 본문은 `{contact}` 자리표시자를 쓰고, 두 앱과 공개 페이지
 생성기가 모두 이 상수로 채운다. 지금 값은 팀이 메일을 직접 받는 `sudo.capstone@gmail.com` 이다(#3132).
 예전 값은 데모 시드 전용 도메인이라 메일을 받지 못했다 — 생성기는 값이 데모 도메인이면 경고를 낸다.
 
@@ -109,12 +127,13 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 - [ ] Sentry 데이터 보관 지역(미국/EU)과 보관 기간 — `SENTRY_DSN` 을 만들 때 정해진다.
 - [ ] 수탁자 정식 법인명·연락처(특히 Neon), Gemini API 의 입력 보관 기간 — 계약·약관 확인.
 - [ ] Gemini 결제 연결 확인 — 운영 `GEMINI_API_KEY` 가 결제가 연결된 프로젝트(유료 등급)의 키인지 본다(#3032). 무료 등급이면 1절 Gemini 행의 전제가 깨진다.
-- [ ] 메일 발송 업체.
+- [x] 메일 발송 업체. (#480·#3443, Google LLC Gmail SMTP `smtp.gmail.com`, 팀 Google 계정에서 발송 — 1절 표와 처리방침 6항·7항 ⑤에 반영, 처리방침 시행일 2026-10-14)
+- [x] Gmail 보낸편지함에 남는 발송 사본을 지우는 주기(#3443). 발송일로부터 30일, 발신 계정의 매일 도는 스크립트로 영구 삭제(1절 "운영 메모").
 
 ## 7. 본문을 고칠 때
 
 1. 이 문서의 표를 먼저 고친다.
-2. 네 ARB 의 `myLegalPrivacyBody` 를 같은 내용으로 고친다. 한국어가 원본이고, 영문은 같은 절 번호를 쓴다.
+2. 두 앱 ARB 의 `myLegalPrivacyBody` 를 같은 내용으로 고친다.
 3. 본문 끝의 개정 이력에 한 줄을 더하고 `시행일`, `myLegalPrivacyEffectiveDate` 를 새 날짜로 바꾼다.
 4. `backend/app/services/signup_consent.py` 의 `CURRENT_VERSIONS["privacy"]` 를 같은 날짜로 올린다 —
    옛 버전에만 동의한 계정은 다음 로그인 때 동의 화면을 다시 거친다.
@@ -130,9 +149,9 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 
 | 문서 | 경로 | 원본 |
 | --- | --- | --- |
-| 개인정보 처리방침 | `/legal/privacy.html` | 두 앱 ARB `myLegalPrivacyBody`(회원·트레이너, 한국어·영문) |
+| 개인정보 처리방침 | `/legal/privacy.html` | 두 앱 ARB `myLegalPrivacyBody`(회원·트레이너) |
 | 이용약관 | `/legal/terms.html` | 두 앱 ARB `myLegalTermsBody` |
-| 위치기반서비스 이용약관 | `/legal/location.html` | 회원 앱 ARB `myLegalLocationBody`(한국어·영문, #3136). 위치는 회원 앱만 쓴다 |
+| 위치기반서비스 이용약관 | `/legal/location.html` | 회원 앱 ARB `myLegalLocationBody`(한국어, #3136). 위치는 회원 앱만 쓴다 |
 
 - 랜딩 바닥글의 "개인정보 처리방침" 링크는 다른 링크보다 눈에 띄게(굵게) 둔다.
 - 페이지는 생성물이라 손으로 고치지 않는다. 모양은 랜딩 `index.html` 의 `:root` 토큰·글꼴·로고를

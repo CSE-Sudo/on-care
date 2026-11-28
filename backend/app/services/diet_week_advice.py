@@ -248,7 +248,6 @@ def week_advice(
     db: Session,
     user_id: str,
     *,
-    lang: str = "ko",
     use_llm: bool = True,
     now: datetime | None = None,
 ) -> DietAdvice:
@@ -256,7 +255,7 @@ def week_advice(
     today = now.date()
     key = today.isoformat()
 
-    cached = cached_advice(db, user_id, PERIOD_WEEK, key, lang, now)
+    cached = cached_advice(db, user_id, PERIOD_WEEK, key, now)
     if cached is not None:
         return cached
 
@@ -288,7 +287,6 @@ def week_advice(
             # 저장(`store_advice`)은 새 연결로 한다.
             release_connection(db)
             text = diet_ai_sentence.generate(
-                lang=lang,
                 analysis_text=finding.analysis.text,
                 finding=finding.description,
                 records=record_lines(finding, records),
@@ -308,5 +306,5 @@ def week_advice(
         days_logged=len(records), analysis=finding.analysis, action=action,
         action_source=source,
     )
-    store_advice(db, user_id, PERIOD_WEEK, key, lang, advice, retry_after=retry_after)
+    store_advice(db, user_id, PERIOD_WEEK, key, advice, retry_after=retry_after)
     return advice

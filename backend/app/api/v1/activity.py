@@ -12,7 +12,8 @@
 것이라 포인트가 들지 않는다.
 
 날짜는 모두 KST 다. `from`·`to` 는 YYYY-MM-DD 이고, 주지 않으면 오늘로 끝나는
-8주다 — 앱 기록 그래프가 그리는 구간과 같다.
+371일(53주, `activity_calendar_service.MAX_DAYS`)이다 — 앱 기록 그래프가 그리는
+구간과 같다.
 
 읽기는 CurrentUser(데모 폴백 허용), 쓰기는 RequireMember 다 — 포인트 사용처와
 같은 규약이다.

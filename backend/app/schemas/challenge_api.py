@@ -9,7 +9,9 @@ from pydantic import BaseModel, Field
 class ChallengeOut(BaseModel):
     """참가한 주간 챌린지 한 건.
 
-    `status`: active(진행 중)|succeeded(성공)|failed(실패). 주가 끝난 뒤 판정한다.
+    `status`: active(진행 중)|succeeded(성공)|failed(실패). 주가 끝나고 하루의 유예가
+    지난 뒤 판정한다(#3362). 유예 중에는 `active` 이면서 `settling` 이 참이다 — 그날
+    적은 지난주 기록까지 센다.
     `progress` 는 그 주에 운동 기록이 있는 날 수다(같은 날 여러 번은 1). 진행 중이면
     지금까지, 판정했으면 판정 때 센 값이다. `rewarded` 는 받은 보상으로, 성공이 아니면 0.
     """
@@ -23,6 +25,8 @@ class ChallengeOut(BaseModel):
     stake: int
     reward: int
     status: str
+    #: 주는 끝났고 판정을 기다리는 중(유예)인가. 앱이 "결과 집계 중"을 적는다.
+    settling: bool = False
     #: 목표를 채웠는가. 진행 중에도 참일 수 있다 — 보상은 주가 끝나야 받는다.
     achieved: bool
     rewarded: int
@@ -36,7 +40,8 @@ class WeeklyChallengeOut(BaseModel):
     `goal` 은 참가했으면 고정된 목표, 아니면 지금 참가하면 걸릴 목표다.
     `blocked_reason`: `already_joined`(이번 주 참가함)·`join_closed`(월·화요일이 아님)·
     `insufficient_points`(잔액 부족). 참가할 수 있으면 null. `shortfall` 은 건 포인트에
-    모자란 포인트(모자라지 않으면 0).
+    모자란 포인트(모자라지 않으면 0). `settling_challenge` 는 지난주 참가 기록이 아직
+    유예 중일 때만 실린다(#3362) — 판정하면 null 이다.
     """
 
     week_start: str
@@ -53,6 +58,7 @@ class WeeklyChallengeOut(BaseModel):
     blocked_reason: str | None = None
     shortfall: int = 0
     challenge: ChallengeOut | None = None
+    settling_challenge: ChallengeOut | None = None
 
 
 class ChallengeJoinRequest(BaseModel):

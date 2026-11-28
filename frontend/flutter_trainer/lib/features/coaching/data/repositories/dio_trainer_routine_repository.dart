@@ -10,14 +10,10 @@ import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 /// assigned here is what the member app receives via `/me/coach/routines`.
 /// Selected when `USE_MOCK_API=false` (see [trainerRoutineRepositoryProvider]).
 class DioTrainerRoutineRepository implements TrainerRoutineRepository {
-  /// [fallbackName] 은 이름 없이 보낸 배정의 이름을 **보내는 순간의** 화면
-  /// 언어로 돌려준다(#2301). 생략하면 한국어 기본 이름이다.
-  DioTrainerRoutineRepository(this._dio, {this.fallbackName});
+  /// Creates the repository.
+  DioTrainerRoutineRepository(this._dio);
 
   final Dio _dio;
-
-  /// 이름 없는 배정의 이름을 화면 언어로 돌려준다. `null` 이면 한국어 기본 이름.
-  final String Function()? fallbackName;
 
   /// Assigns [routine] to [memberId].
   ///
@@ -36,11 +32,7 @@ class DioTrainerRoutineRepository implements TrainerRoutineRepository {
     try {
       await _dio.post<Map<String, Object?>>(
         '/trainer/clients/$encodedId/routines',
-        data: assignRoutineToJson(
-          routine,
-          clientRequestId: clientRequestId,
-          fallbackName: fallbackName?.call() ?? kDefaultAiRoutineName,
-        ),
+        data: assignRoutineToJson(routine, clientRequestId: clientRequestId),
       );
     } on DioException catch (e) {
       throw AppError.fromDio(e);

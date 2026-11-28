@@ -16,7 +16,6 @@ import 'package:oncare/core/release/build_info.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_core/build_info.dart';
 
@@ -135,7 +134,6 @@ void main() {
 
   group('버전 줄 (#3047, #3226)', () {
     final AppLocalizationsKo ko = AppLocalizationsKo();
-    final AppLocalizationsEn en = AppLocalizationsEn();
     final BuildInfo released = BuildInfo.fromDefines(
       version: '0.4.0',
       buildNumber: '7032',
@@ -155,32 +153,12 @@ void main() {
       expect(line(), findsOneWidget);
     });
 
-    testWidgets('영어 화면은 영어 문구와 날짜 형식이다', (WidgetTester tester) async {
-      await _pumpSupport(tester, locale: const Locale('en'), info: released);
-
-      expect(
-        find.text(
-          'On-Care · Version 0.4.0 (7032) · Deployed Oct 5, 2026 14:30 KST',
-        ),
-        findsOneWidget,
-      );
-    });
-
     testWidgets('빌드 번호가 없는 빌드는 빌드 버전과 개발 빌드', (WidgetTester tester) async {
       await _pumpSupport(tester, version: '1.2.3');
 
       expect(find.text('On-Care · 버전 1.2.3 · 개발 빌드'), findsOneWidget);
       expect(
         find.text('${ko.myAppVersion('1.2.3')} · ${ko.buildInfoDevelopment}'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('영어 개발 빌드도 빌드 버전을 보인다', (WidgetTester tester) async {
-      await _pumpSupport(tester, locale: const Locale('en'), version: '1.2.3');
-
-      expect(
-        find.text('${en.myAppVersion('1.2.3')} · ${en.buildInfoDevelopment}'),
         findsOneWidget,
       );
     });

@@ -370,9 +370,13 @@ class DriftScheduleRepository implements ScheduleRepository {
   /// 예전에는 모든 PT 가 같은 두 개(저강도 걷기·코어 스트레칭)였다. 회원마다
   /// 목록이 다르고, 같은 회원이라도 일정마다 시작 자리를 달리해 PT 마다 다른
   /// 조합이 붙는다. 자리는 일정 id 로 정해 다시 읽어도 같다.
+  ///
+  /// 이미 보낸 PT 에는 붙이지 않는다(#2616) — 실서버 시드는 아직 보내지 않은
+  /// PT 에만 개인운동을 깔아, 지난 PT 는 개인운동 없이 보낸 것으로 선다.
   Future<List<RoutineExercise>> _seedSessionRoutines(
     TrainerScheduleRow row,
   ) async {
+    if (row.programSent) return const <RoutineExercise>[];
     final String? clientId = row.clientId;
     if (clientId == null) return _demoPersonalRoutines;
     final pool =
@@ -1017,8 +1021,11 @@ class DriftScheduleRepository implements ScheduleRepository {
           ),
         );
         // 서버와 같은 규칙 — 다시 붙이면 개인운동도 **새것으로 갈린다**(#2224).
-        // 쌓아 두면 두 번 짠 트레이너가 두 배를 보내게 된다.
-        await _rememberPersonalRoutines(existing.id, personalRoutines);
+        // 쌓아 두면 두 번 짠 트레이너가 두 배를 보내게 된다. 개인운동 없이
+        // 다시 붙이면 붙어 있던 것은 그대로 둔다(#2280, #2616).
+        if (personalRoutines.isNotEmpty) {
+          await _rememberPersonalRoutines(existing.id, personalRoutines);
+        }
         return true;
       }
 
@@ -1087,12 +1094,23 @@ class DriftScheduleRepository implements ScheduleRepository {
     if ((jsonDecode(session.programJson) as List<Object?>).isEmpty) {
       throw StateError('session has no program: $id');
     }
+    // 시드 개인운동을 단 PT 는 보내기 전에 그 목록을 기억에 남긴다(#2616) —
+    // 보낸 PT 에는 시드를 붙이지 않으므로, 남기지 않으면 함께 보낸 개인운동이
+    // 보내자마자 상세에서 사라진다.
+    SessionRoutineState? state = await _routineStore.readSession(id);
+    if (state?.items == null && !(state?.dismissed ?? false)) {
+      state = (state ?? const SessionRoutineState()).copyWith(
+        items: List<RoutineExercise>.unmodifiable(
+          await _seedSessionRoutines(session),
+        ),
+      );
+      await _routineStore.writeSession(id, state);
+    }
     await (_db.update(table)..where((t) => t.id.equals(id))).write(
       const TrainerScheduleEntriesCompanion(programSent: Value(true)),
     );
     // 개인운동은 PT 프로그램과 함께 나간다(#2224) — 전송 이력에도 `PT 와 함께`
     // 로 남는다(#2668). 보내지 않기로 정리한 것은 싣지 않는다.
-    final SessionRoutineState? state = await _routineStore.readSession(id);
     await _recordDelivery(
       session,
       DeliveryKinds.ptWithRoutine,
@@ -1629,8 +1647,7 @@ bool isDemoReservationScheduleId(String id) =>
 const String demoFinishedEditRejected =
     '완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있어요.';
 const String demoSentProgramEditRejected = '이미 보낸 프로그램은 수정할 수 없어요.';
-const String demoReservationEditRejected =
-    '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없어요.';
+const String demoReservationEditRejected = '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없어요.';
 const String demoReservationDeleteRejected =
     '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없어요.';
 const String demoReservationReopenRejected =

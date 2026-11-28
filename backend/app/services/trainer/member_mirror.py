@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from datetime import date
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core import clock
@@ -205,15 +205,21 @@ def build_member_routines(
     담당이 없으면 AI 가 안전 범위에서 직접 준비한 것(#782) — 예전에는 이 경우
     늘 빈 목록이라, 트레이너 없는 회원은 운동 탭에서 받을 것이 아무것도 없었다.
 
-    지난 날짜(#2161)는 **지금의 담당 기준**으로 읽는다 — 그 트레이너가 그날 걸어
-    둔 목록이다. 하루치 AI 추천을 준비하는 일은 오늘에만 한다. 지난 날을 열었다고
-    그날 추천을 새로 만들면, 회원이 받은 적 없는 목록이 "그날 안 한 운동" 으로
-    보인다. 아직 오지 않은 날은 [RoutineDayInFuture] — 체크할 목록이 없다.
+    지난 날짜(#2161)는 **회원 기준**으로 읽는다(#3347) — 그날 이 회원에게 걸려
+    있던 목록이다. 지금의 담당으로 거르면 트레이너를 바꾸거나 담당이 끊긴 뒤
+    지난 날의 목록과 완료가 통째로 사라진다. 하루치 AI 추천을 준비하는 일은
+    오늘에만 한다. 지난 날을 열었다고 그날 추천을 새로 만들면, 회원이 받은 적
+    없는 목록이 "그날 안 한 운동" 으로 보인다. 아직 오지 않은 날은
+    [RoutineDayInFuture] — 체크할 목록이 없다.
     """
     today = clock.today()
     day = day or today
     if day > today:
         raise RoutineDayInFuture("아직 오지 않은 날이에요.")
+    if day < today:
+        return build_routines(
+            db, member_id, None, for_member=True, day=day, member_scope=True
+        )
     trainer_id = get_member_trainer_id(db, member_id)
     if trainer_id is None:
         if day == today:
@@ -287,29 +293,50 @@ _MEMBER_SESSIONS_LIMIT = 100
 
 
 def build_member_sessions(db: Session, member_id: str) -> list[ScheduleSessionOut]:
-    """회원의 PT 세션(현재 활성 담당 트레이너의 스케줄에서 매칭된 것), 최신순(최근 100건).
+    """회원의 PT 세션, 최신순(최근 100건) — 지금 담당의 일정과 **지난 담당과 마친 PT**.
 
-    routines 와 동일하게 **활성 트레이너로 스코프**한다 — member_id 로만 조회하면 코치
-    재배정 후에도 이전 트레이너가 만든 세션이 계속 보인다(stale). 활성 담당이 없으면 빈 목록.
+    지금 담당의 것은 상태와 상관없이 전부 싣는다(예정·완료·취소·노쇼·상담).
+    지난 담당의 것은 **완료한 PT** 만 싣는다(#3347) — 회원이 받은 수업은 담당이
+    바뀌거나 끊겨도 회원의 이력이다. 예전에는 지금 담당으로만 걸러, 트레이너를
+    바꾸는 순간 지난 PT 목록이 비었다. 지난 담당의 예정 일정은 해제 때 이미
+    취소됐고(#2589), 그 취소·노쇼·상담은 끝난 관계의 일정이라 다시 띄우지 않는다.
+
+    행마다 `trainer_name` 을 싣는다 — 여러 담당의 수업이 한 목록에 섞이므로 누구와의
+    수업이었는지를 앱이 적는다. 회차(`session_number`)도 그 담당과의 몇 번째인지다.
     """
     trainer_id = get_member_trainer_id(db, member_id)
-    if trainer_id is None:
-        return []
+    past_done = and_(
+        TrainerSchedule.status == SCHEDULE_DONE, TrainerSchedule.type != "상담"
+    )
     rows = db.scalars(
         select(TrainerSchedule)
         .where(
             TrainerSchedule.member_id == member_id,
-            TrainerSchedule.trainer_id == trainer_id,
+            past_done
+            if trainer_id is None
+            else or_(TrainerSchedule.trainer_id == trainer_id, past_done),
         )
         .order_by(TrainerSchedule.date.desc(), TrainerSchedule.time.desc())
         .limit(_MEMBER_SESSIONS_LIMIT)
     ).all()
-    numbers = _done_pt_numbers(db, member_id, trainer_id)
+    numbers = _done_pt_numbers(db, member_id, None)
     # 예약 소유 여부를 행마다 묻지 않고 한 번에 모은다(#3242).
     reserved = _reservation_schedule_ids(db, {s.id for s in rows})
+    # 담당 이름도 한 번에 모은다 — 거쳐 온 트레이너 수만큼 묻지 않는다.
+    trainer_ids = {s.trainer_id for s in rows}
+    names: dict[str, str] = {}
+    if trainer_ids:
+        names = dict(
+            db.execute(
+                select(User.id, User.name).where(User.id.in_(trainer_ids))
+            ).all()
+        )
     return [
         _member_schedule_out(
-            s, numbers.get(s.id), is_reservation=s.id in reserved
+            s,
+            numbers.get(s.id),
+            is_reservation=s.id in reserved,
+            trainer_name=names.get(s.trainer_id) or None,
         )
         for s in rows
     ]
@@ -320,6 +347,7 @@ def _member_schedule_out(
     session_number: int | None = None,
     *,
     is_reservation: bool | None = None,
+    trainer_name: str | None = None,
 ) -> ScheduleSessionOut:
     """회원에게 내보내는 세션 — `note` 는 **완료된 PT** 것만 싣는다(#2515).
 
@@ -339,6 +367,7 @@ def _member_schedule_out(
     # 상담 요청 내용은 트레이너 카드용이다 — 회원은 `내 상담 요청` 에서 본다(#2584).
     out.consultation = None
     out.session_number = session_number
+    out.trainer_name = trainer_name
     return out
 
 

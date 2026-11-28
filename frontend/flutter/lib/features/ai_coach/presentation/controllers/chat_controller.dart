@@ -47,34 +47,29 @@ class ChatState {
   );
 }
 
-/// 저장분의 회원 메시지 시각이 보낸 시각보다 이만큼까지 앞서도 같은 요청으로
-/// 본다 — 서버와 기기 시계의 차이다. 서버는 받은 뒤에 저장하므로 원래는 늘 뒤다.
-const Duration kChatSavedClockSkew = Duration(seconds: 30);
+/// 같은 키의 요청이 서버에서 아직 처리 중일 때(`in_progress`) 저장된 대화를 다시
+/// 읽는 간격과 횟수(#3352). 서버의 답 생성 대기보다 조금 넉넉하게 기다린다.
+const Duration kChatInProgressPollInterval = Duration(seconds: 3);
+const int kChatInProgressPolls = 10;
 
-/// 저장분 [stored] 에서 [question] 과 같은 글의 회원 메시지 가운데, 보낸 시각
-/// [sentAt] 이후에 저장됐고 바로 뒤에 코치 답이 있는 첫 위치. [claimed] 에 든
-/// 위치는 이미 다른 메시지와 짝지었으므로 건너뛴다. 없으면 -1.
-int _storedPairOf(
+/// 저장분 [stored] 에서 멱등키 [clientRequestId] 의 전송이 남긴 질문과 답.
+/// 둘 다 있어야 돌려준다 — 서버는 두 줄을 함께 저장한다. 없으면 null. (#3352)
+({ChatMessage question, ChatMessage answer})? storedExchangeOf(
   List<ChatMessage> stored,
-  ChatMessage question,
-  DateTime sentAt,
-  Set<int> claimed,
+  String clientRequestId,
 ) {
-  final String text = question.content.trim();
-  for (int i = 0; i + 1 < stored.length; i++) {
-    final ChatMessage q = stored[i];
-    final DateTime? savedAt = q.at;
-    if (claimed.contains(i) ||
-        !q.isUser ||
-        stored[i + 1].isUser ||
-        q.content.trim() != text ||
-        savedAt == null ||
-        savedAt.isBefore(sentAt.subtract(kChatSavedClockSkew))) {
-      continue;
+  ChatMessage? question;
+  ChatMessage? answer;
+  for (final ChatMessage m in stored) {
+    if (m.clientRequestId != clientRequestId) continue;
+    if (m.isUser) {
+      question ??= m;
+    } else {
+      answer ??= m;
     }
-    return i;
   }
-  return -1;
+  if (question == null || answer == null) return null;
+  return (question: question, answer: answer);
 }
 
 /// 복원한 대화 [stored] 와, 복원하는 동안 화면에 쌓인 [current] 를 합친다.
@@ -86,49 +81,48 @@ int _storedPairOf(
 /// 사라지고 뒤이어 온 답만 남았다.
 ///
 /// 복원 중에 보낸 질문이 그 사이 서버에 저장돼 복원분에도 들어 있으면 한 번만
-/// 남긴다(#2846). 보낸 질문은 멱등키로 [sentAtOf] 에서 보낸 시각을 찾아, 복원분에
-/// 같은 글이 그 시각 이후로 답과 함께 있으면 같은 요청으로 본다(저장된 대화는
-/// 키를 주지 않는다). 그 질문이 `보내지 못함` 이면 실패 표시와 안내를 거두고
-/// 복원된 질문·답을 남기며, 보내는 중이거나 이미 답을 받았으면 복원분 쪽 쌍을
-/// 뺀다. 저장분 한 쌍은 한 메시지하고만 짝짓는다 — 같은 글을 일부러 두 번
-/// 보냈으면 둘 다 남는다.
+/// 남긴다(#2846). 같은 전송인지는 서버가 준 식별자와 멱등키로만 가른다(#3352) —
+/// 예전에는 같은 글과 기기 시각으로 추측해, 같은 짧은 문장을 다시 보냈다가 실패한
+/// 메시지가 직전의 같은 문장과 맞아떨어져 실패 표시가 조용히 지워졌다. 그 질문이
+/// `보내지 못함` 이고 복원분에 같은 키의 질문이 있으면 실패 표시와 안내를 거두고
+/// 복원된 질문·답을 남기며, 보내는 중이거나 이미 답을 받았으면 복원분 쪽 줄을
+/// 뺀다. 키도 식별자도 없는 줄(예전 서버·예전에 저장된 대화)은 짝짓지 않는다.
 List<ChatMessage> mergeRestoredChat(
   List<ChatMessage> stored,
-  List<ChatMessage> current, {
-  DateTime? Function(String clientRequestId)? sentAtOf,
-}) {
+  List<ChatMessage> current,
+) {
   if (stored.isEmpty) return current;
   final List<ChatMessage> added = <ChatMessage>[
     for (final ChatMessage m in current)
       if (m.notice != ChatNotice.welcome) m,
   ];
-  if (sentAtOf == null) return <ChatMessage>[...stored, ...added];
-  final Set<int> claimed = <int>{};
-  final Set<int> dropStored = <int>{};
+  // 서버에 질문이 저장된 전송의 키.
+  final Set<String> storedKeys = <String>{
+    for (final ChatMessage m in stored)
+      if (m.isUser) ?m.clientRequestId,
+  };
+  // 화면에 이미 있는(보내는 중이거나 답을 받은) 전송의 키와 줄의 식별자.
+  final Set<String> liveKeys = <String>{};
+  final Set<String> liveIds = <String>{};
   final Set<int> dropAdded = <int>{};
   for (int j = 0; j < added.length; j++) {
     final ChatMessage m = added[j];
+    final String? id = m.id;
+    if (id != null) liveIds.add(id);
     final String? key = m.clientRequestId;
     if (!m.isUser || key == null) continue;
-    final DateTime? sentAt = sentAtOf(key);
-    if (sentAt == null) continue;
-    final int i = _storedPairOf(stored, m, sentAt, claimed);
-    if (i < 0) continue;
-    claimed.add(i);
-    if (m.failed) {
+    if (!m.failed) {
+      liveKeys.add(key);
+    } else if (storedKeys.contains(key)) {
       dropAdded.add(j);
       if (j + 1 < added.length && added[j + 1].notice == ChatNotice.failure) {
         dropAdded.add(j + 1);
       }
-    } else {
-      dropStored
-        ..add(i)
-        ..add(i + 1);
     }
   }
   return <ChatMessage>[
-    for (int i = 0; i < stored.length; i++)
-      if (!dropStored.contains(i)) stored[i],
+    for (final ChatMessage m in stored)
+      if (!liveKeys.contains(m.clientRequestId) && !liveIds.contains(m.id)) m,
     for (int j = 0; j < added.length; j++)
       if (!dropAdded.contains(j)) added[j],
   ];
@@ -163,20 +157,18 @@ enum ChatSendOutcome {
 typedef ChatSendResult = ({ChatSendOutcome outcome, int shortfall});
 
 class ChatController extends StateNotifier<ChatState> {
-  ChatController(this._repo, {DateTime Function()? wallClock})
-    : _wallClock = wallClock ?? DateTime.now,
-      super(const ChatState(restoring: true)) {
+  ChatController(
+    this._repo, {
+    Duration inProgressPollInterval = kChatInProgressPollInterval,
+  }) : _inProgressPollInterval = inProgressPollInterval,
+       super(const ChatState(restoring: true)) {
     _restore();
   }
 
   final AiCoachRepository _repo;
 
-  /// 저장분 시각(서버 시각을 기기 시간대로 바꾼 값)과 견줄 지금. 테스트가 고정한다.
-  final DateTime Function() _wallClock;
-
-  /// 멱등키별로 처음 보낸 시각([_wallClock] 기준). 저장분의 같은 글이 이 요청의
-  /// 것인지 가르는 데 쓴다 — 저장된 대화는 키를 주지 않는다. (#2846)
-  final Map<String, DateTime> _sentAt = <String, DateTime>{};
+  /// `in_progress` 뒤 저장된 대화를 다시 읽는 간격. 테스트가 줄인다. (#3352)
+  final Duration _inProgressPollInterval;
 
   /// 오늘 한도를 다시 읽는다. 실패해도 대화는 막지 않는다 — 판단은 서버가 한다.
   Future<void> refreshQuota() async {
@@ -203,11 +195,7 @@ class ChatController extends StateNotifier<ChatState> {
       // 복원한 대화가 있으면 welcome 대신 그것을 보여준다 — 이어 하는 대화에
       // 매번 인사가 끼어들면 맥락이 끊긴다. 그 사이 쌓인 말은 뒤에 둔다.
       state = state.copyWith(
-        messages: mergeRestoredChat(
-          stored,
-          state.messages,
-          sentAtOf: (String key) => _sentAt[key],
-        ),
+        messages: mergeRestoredChat(stored, state.messages),
         restoring: false,
       );
     } catch (_) {
@@ -332,11 +320,9 @@ class ChatController extends StateNotifier<ChatState> {
         if (m.notice == null && !m.failed) m,
     ];
 
-    // 방금 주고받는 것은 지금 시각이다 — 서버가 저장 시각을 따로 돌려주지
-    // 않으므로 여기서 찍는다(#1918).
+    // 방금 보낸 것은 지금 시각이다(#1918) — 답이 오면 서버가 저장한 시각으로
+    // 바꾼다(#3352).
     final DateTime now = nowKst();
-    // 다시 보내기면 처음 보낸 시각을 그대로 둔다 — 서버는 그 뒤에 저장한다.
-    _sentAt.putIfAbsent(clientRequestId, _wallClock);
     // 키를 달아 둔다 — 복원분과 합칠 때 같은 요청인지 가른다.
     final ChatMessage mine = ChatMessage(
       role: ChatRole.user,
@@ -370,11 +356,24 @@ class ChatController extends StateNotifier<ChatState> {
       // 기다리는 사이 로그아웃·계정 전환 리셋이 이 컨트롤러를 버렸으면 아무것도
       // 쓰지 않는다(#3096) — [refreshQuota]·[_restore] 와 같은 규칙이다.
       if (!mounted) return _discarded;
-      // 답에 실려 온 감지 결과는 **방금 보낸 회원 메시지**에 붙인다(#1824).
-      final List<ChatMessage> next = _replacePending(reply.withTime(nowKst()));
-      final int mineAt = next.lastIndexWhere((ChatMessage m) => m.isUser);
-      if (mineAt >= 0 && reply.replyToInsight != null) {
-        next[mineAt] = next[mineAt].withInsight(reply.replyToInsight);
+      // 서버가 저장 시각을 주지 않았으면(예전 서버·목업) 받은 시각을 찍는다.
+      final List<ChatMessage> next = _replacePending(
+        reply.at == null ? reply.withTime(nowKst()) : reply,
+      );
+      // 답에 실려 온 감지 결과(#1824)와 저장된 식별자·시각(#3352)은 **방금 보낸
+      // 회원 메시지**에 붙인다.
+      final int mineAt = next.lastIndexWhere(
+        (ChatMessage m) => m.isUser && m.clientRequestId == clientRequestId,
+      );
+      if (mineAt >= 0) {
+        ChatMessage sent = next[mineAt].asStored(
+          id: reply.questionId,
+          at: reply.questionAt,
+        );
+        if (reply.replyToInsight != null) {
+          sent = sent.withInsight(reply.replyToInsight);
+        }
+        next[mineAt] = sent;
       }
       state = state.copyWith(
         messages: next,
@@ -404,28 +403,20 @@ class ChatController extends StateNotifier<ChatState> {
         },
         shortfall: blocked.shortfall,
       );
+    } on AiChatInProgress {
+      if (!mounted) return _discarded;
+      // 같은 키의 앞선 요청이 서버에서 아직 답을 만드는 중이다(#3352). 실패가
+      // 아니다 — 보낸 말과 `답 생성 중` 을 그대로 두고, 그 요청이 저장되기를
+      // 기다린다. 끝내 보이지 않으면 `보내지 못함` 으로 남겨 다시 보내게 한다.
+      if (await _awaitStored(clientRequestId)) {
+        return (outcome: ChatSendOutcome.sent, shortfall: 0);
+      }
+      if (!mounted) return _discarded;
+      _markFailed(mine, clientRequestId, payWithPoints: payWithPoints);
+      return (outcome: ChatSendOutcome.failed, shortfall: 0);
     } catch (_) {
       if (!mounted) return _discarded;
-      // 답을 받지 못했다. 회원이 쓴 말은 지우지 않고 `보내지 못함` 으로 남기고,
-      // 처음 쓴 키를 함께 둔다 — 다시 보내면 같은 키로 간다(#2846).
-      state = state.copyWith(
-        messages: <ChatMessage>[
-          for (final ChatMessage m in state.messages)
-            if (identical(m, mine))
-              m.asFailed(
-                clientRequestId: clientRequestId,
-                paidAttempt: payWithPoints,
-              )
-            else if (!m.pending)
-              m,
-          const ChatMessage(
-            role: ChatRole.coach,
-            content: '',
-            notice: ChatNotice.failure,
-          ),
-        ],
-        sending: false,
-      );
+      _markFailed(mine, clientRequestId, payWithPoints: payWithPoints);
       // 시간 초과여도 서버는 답을 저장했을 수 있다. 저장분에 이 질문의 답이
       // 있으면 실패 안내를 그 답으로 바꾼다.
       await _recoverFromHistory(clientRequestId);
@@ -433,15 +424,76 @@ class ChatController extends StateNotifier<ChatState> {
     }
   }
 
+  /// 답을 받지 못했다. 회원이 쓴 말은 지우지 않고 `보내지 못함` 으로 남기고,
+  /// 처음 쓴 키를 함께 둔다 — 다시 보내면 같은 키로 간다(#2846).
+  void _markFailed(
+    ChatMessage mine,
+    String clientRequestId, {
+    required bool payWithPoints,
+  }) {
+    state = state.copyWith(
+      messages: <ChatMessage>[
+        for (final ChatMessage m in state.messages)
+          if (identical(m, mine))
+            m.asFailed(
+              clientRequestId: clientRequestId,
+              paidAttempt: payWithPoints,
+            )
+          else if (!m.pending)
+            m,
+        const ChatMessage(
+          role: ChatRole.coach,
+          content: '',
+          notice: ChatNotice.failure,
+        ),
+      ],
+      sending: false,
+    );
+  }
+
+  /// 서버에서 처리 중인 [clientRequestId] 전송이 저장될 때까지 저장된 대화를
+  /// 잠시 간격을 두고 다시 읽는다. 저장분에 그 질문과 답이 보이면 보내는 중인
+  /// 말풍선을 그 두 줄로 바꾸고 true 다. (#3352)
+  ///
+  /// [kChatInProgressPolls] 번 읽어도 없으면 false — 앞선 요청이 답 없이 끝났을
+  /// 수 있다. 읽기가 실패한 차례는 건너뛴다.
+  Future<bool> _awaitStored(String clientRequestId) async {
+    for (int i = 0; i < kChatInProgressPolls; i++) {
+      await Future<void>.delayed(_inProgressPollInterval);
+      if (!mounted) return false;
+      final List<ChatMessage> stored;
+      try {
+        stored = await _repo.fetchHistory();
+      } catch (_) {
+        continue;
+      }
+      if (!mounted) return false;
+      final exchange = storedExchangeOf(stored, clientRequestId);
+      if (exchange == null) continue;
+      state = state.copyWith(
+        messages: <ChatMessage>[
+          for (final ChatMessage m in state.messages)
+            if (m.isUser &&
+                m.clientRequestId == clientRequestId) ...<ChatMessage>[
+              exchange.question,
+              exchange.answer,
+            ] else if (!m.pending)
+              m,
+        ],
+        sending: false,
+      );
+      await refreshQuota();
+      return true;
+    }
+    return false;
+  }
+
   /// 저장된 대화에 이 실패한 질문과 그 답이 있으면, 실패 메시지와 안내를 그 두
   /// 말로 바꾼다. (#2846)
   ///
-  /// 확신할 수 없으면 바꾸지 않는다 — 실패로 남아도 `다시 보내기` 가 같은 키로 가서
-  /// 서버가 저장한 답을 돌려주므로 안전하다. 저장된 대화는 키를 주지 않으므로, 같은
-  /// 글의 회원 메시지가 이 질문을 보낸 시각 이후에 저장됐고 바로 뒤에 코치 답이
-  /// 있을 때만 이 질문의 것으로 본다. 앞서 같은 글을 보내 답을 받은 질문이 있으면
-  /// 저장분의 쌍을 그 질문부터 차례로 짝지어 둔다 — 같은 글을 일부러 두 번
-  /// 보냈으면 앞의 것의 답을 뒤의 것에 붙이지 않는다.
+  /// 같은 전송인지는 서버가 저장한 줄의 멱등키로만 가른다(#3352) — 같은 글의 다른
+  /// 질문이 저장돼 있어도 이 질문의 답으로 붙이지 않는다. 없으면 실패로 남는다.
+  /// `다시 보내기` 가 같은 키로 가서 서버가 저장한 답을 돌려주므로 안전하다.
   ///
   /// 그 쌍이 이미 화면에 있으면(보내는 사이 끝난 복원이 먼저 가져왔다) 실패 메시지와
   /// 안내만 거둔다 — 같은 질문·답을 두 번 두지 않는다.
@@ -452,55 +504,27 @@ class ChatController extends StateNotifier<ChatState> {
     } catch (_) {
       return;
     }
-    if (!mounted || state.sending || stored.length < 2) return;
+    if (!mounted || state.sending) return;
     final int index = state.messages.indexWhere(
       (ChatMessage m) => m.failed && m.clientRequestId == clientRequestId,
     );
     if (index < 0) return;
-    final ChatMessage failed = state.messages[index];
-    final DateTime? sentAt = _sentAt[clientRequestId];
-    if (sentAt == null) return;
-    final String text = failed.content.trim();
+    final exchange = storedExchangeOf(stored, clientRequestId);
+    if (exchange == null) return;
 
-    // 앞서 이 화면에서 같은 글을 보내 답을 받은 질문이 먼저 제 쌍을 가져간다.
-    final Set<int> claimed = <int>{};
-    for (final ChatMessage m in state.messages.take(index)) {
-      final String? key = m.clientRequestId;
-      if (!m.isUser || m.failed || key == null) continue;
-      if (m.content.trim() != text) continue;
-      final DateTime? earlier = _sentAt[key];
-      if (earlier == null) return; // 가를 수 없다 — 실패로 남긴다.
-      final int i = _storedPairOf(stored, m, earlier, claimed);
-      if (i >= 0) claimed.add(i);
-    }
-    final int at = _storedPairOf(stored, failed, sentAt, claimed);
-    if (at < 0) return;
-    final ChatMessage question = stored[at];
-    final ChatMessage answer = stored[at + 1];
-
-    // 복원이 먼저 가져와 화면에 있는 그 쌍 — 저장분과 글·시각이 같다.
-    final bool shown = state.messages.any(
-      (ChatMessage m) =>
-          m.isUser &&
-          !m.failed &&
-          m.clientRequestId == null &&
-          m.content.trim() == text &&
-          m.at == question.at,
-    );
+    // 복원이 먼저 가져와 화면에 있는 그 쌍 — 서버가 준 식별자가 같다.
+    final String? questionId = exchange.question.id;
+    final bool shown =
+        questionId != null &&
+        state.messages.any((ChatMessage m) => m.id == questionId);
     final List<ChatMessage> rest = _without(state.messages, index);
     state = state.copyWith(
       messages: shown
           ? rest
           : <ChatMessage>[
               ...rest.take(index),
-              ChatMessage(
-                role: ChatRole.user,
-                content: failed.content,
-                insight: question.insight,
-                at: failed.at,
-                clientRequestId: clientRequestId,
-              ),
-              answer.withTime(nowKst()),
+              exchange.question,
+              exchange.answer,
               ...rest.skip(index),
             ],
     );

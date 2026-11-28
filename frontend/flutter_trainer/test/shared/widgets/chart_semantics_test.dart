@@ -15,36 +15,34 @@ import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-Future<Map<String, String>> _perLocale(
+Future<String> _labelOf(
   WidgetTester tester,
   String Function(AppLocalizations l) body,
 ) async {
-  final out = <String, String>{};
-  for (final code in <String>['ko', 'en']) {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light(),
-        locale: Locale(code),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Builder(
-          builder: (context) {
-            out[code] = body(AppLocalizations.of(context));
-            return const SizedBox.shrink();
-          },
-        ),
+  late String out;
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: AppTheme.light(),
+      locale: const Locale('ko'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Builder(
+        builder: (context) {
+          out = body(AppLocalizations.of(context));
+          return const SizedBox.shrink();
+        },
       ),
-    );
-    await tester.pump();
-  }
+    ),
+  );
+  await tester.pump();
   return out;
 }
 
-Future<void> _pump(WidgetTester tester, Widget child, {String locale = 'ko'}) {
+Future<void> _pump(WidgetTester tester, Widget child) {
   return tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light(),
-      locale: Locale(locale),
+      locale: const Locale('ko'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(body: SizedBox(width: 360, child: child)),
@@ -62,7 +60,7 @@ String _label(WidgetTester tester, String needle) =>
 
 void main() {
   testWidgets('요일별 값을 한 문장으로 모으고 0 은 읽지 않는다', (tester) async {
-    final labels = await _perLocale(
+    final label = await _labelOf(
       tester,
       (l) => chartSemanticsLabel(
         l.chartA11y,
@@ -76,17 +74,15 @@ void main() {
       ),
     );
 
-    for (final label in labels.values) {
-      expect(label, contains('나트륨 추이'));
-      expect(label, contains('월 1800mg'));
-      expect(label, contains('수 2100mg'));
-      // 0 은 이 앱에서 `기록 없음` 이다 — 측정된 0 처럼 읽히면 안 된다.
-      expect(label, isNot(contains('화')));
-    }
+    expect(label, contains('나트륨 추이'));
+    expect(label, contains('월 1800mg'));
+    expect(label, contains('수 2100mg'));
+    // 0 은 이 앱에서 `기록 없음` 이다 — 측정된 0 처럼 읽히면 안 된다.
+    expect(label, isNot(contains('화')));
   });
 
-  testWidgets('기록이 없으면 두 로케일 모두 비어 있다고 말한다', (tester) async {
-    final labels = await _perLocale(
+  testWidgets('기록이 없으면 비어 있다고 말한다', (tester) async {
+    final label = await _labelOf(
       tester,
       (l) => chartSemanticsLabel(
         l.chartA11y,
@@ -95,8 +91,7 @@ void main() {
       ),
     );
 
-    expect(labels['ko'], '당류. 기록이 없어요');
-    expect(labels['en'], '당류. No records yet');
+    expect(label, '당류. 기록이 없어요');
   });
 
   testWidgets('꺾은선은 요약 한 문장만 남기고 요일 낱글자는 감춘다', (tester) async {

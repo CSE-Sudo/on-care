@@ -211,7 +211,18 @@ void main() {
         )
         .toList();
     expect(past, isNotEmpty);
-    // 끝내 하지 못한 수업은 3주 전의 배준혁 노쇼·강서연 회원 취소뿐이다(#2669).
+    // 2주 전 배준혁의 PT 당일 취소(#3304)는 되풀이한 수업이 아니다 —
+    // 아래 따로 본다.
+    final TrainerScheduleRow sameDayCancel = past.singleWhere(
+      (r) => r.id == seedSameDayCancelId,
+    );
+    expect(sameDayCancel.clientName, seedSameDayCancelClient);
+    expect(sameDayCancel.status, ScheduleStatus.cancelled);
+    expect(sameDayCancel.cancellationSource, CancellationSource.member);
+    expect(sameDayCancel.cancelledAt, isNotNull);
+    past.remove(sameDayCancel);
+    // 끝내 하지 못한 되풀이 수업은 3주 전의 배준혁 노쇼·강서연 회원 취소뿐이다
+    // (#2669).
     final List<TrainerScheduleRow> missed = past
         .where((r) => r.status != ScheduleStatus.done)
         .toList();

@@ -5,6 +5,11 @@
 ///   않는다. 그 기본값 때문에 같은 날 다른 상자만 고쳐도 이 기록이 저장됐다.
 /// - 수정 중 `날짜 변경` 뒤 새 자료를 받는 동안 상자를 빼지 않아 고치던 값이 남는다.
 /// - 초를 분으로 바꾸는 규칙이 추가 시트·서버와 같다(2분 30초 → 2분).
+///
+/// 수정 화면의 숫자가 서버와 어긋나지 않는다 — #3365.
+///
+/// - 고친 값의 소모 칼로리는 앱이 따로 어림하지 않고 서버 미리보기를 보인다.
+/// - `날짜 변경` 은 그날 기록을 한 요청으로 옮긴다. 실패하면 화면도 그대로다.
 library;
 
 import 'dart:async';
@@ -62,6 +67,22 @@ class _Repo implements ExerciseRepository {
   final List<ExerciseSession> sessions;
   final List<Map<String, Object?>> updates = <Map<String, Object?>>[];
 
+  /// `날짜 변경` 이 보낸 묶음 이동 — (기록 id 들, 옮길 날).
+  final List<(List<String>, DateTime)> moves = <(List<String>, DateTime)>[];
+
+  /// 참이면 묶음 이동이 실패한다 — 아무 기록도 옮겨지지 않는다.
+  bool failMove = false;
+
+  /// 미리보기 요청 — 서버가 받은 (이름, 유형, 분).
+  final List<(String, ExerciseType, int)> previews =
+      <(String, ExerciseType, int)>[];
+
+  /// 서버가 내줄 소모 칼로리. null 이면 앱의 유형 평균과 같은 값을 낸다.
+  int? serverCalories;
+
+  /// 참이면 미리보기가 실패한다.
+  bool failPreview = false;
+
   /// 채워 두면 이번 주 조회가 이것이 끝날 때까지 기다린다.
   Completer<void>? gate;
 
@@ -102,9 +123,37 @@ class _Repo implements ExerciseRepository {
     required String name,
     required int minutes,
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
-  }) async => ExerciseCalorieEstimate(
-    calories: estimateExerciseCalories(type, minutes, intensity: intensity),
-  );
+  }) async {
+    previews.add((name, type, minutes));
+    if (failPreview) throw StateError('preview failed');
+    return ExerciseCalorieEstimate(
+      calories:
+          serverCalories ??
+          estimateExerciseCalories(type, minutes, intensity: intensity),
+    );
+  }
+
+  @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {
+    moves.add((ids, date));
+    if (failMove) throw StateError('move failed');
+    for (int i = 0; i < sessions.length; i++) {
+      final ExerciseSession s = sessions[i];
+      if (!ids.contains(s.id)) continue;
+      sessions[i] = _session(
+        id: s.id!,
+        date: date,
+        name: s.name,
+        type: s.type,
+        minutes: s.minutes,
+        calories: s.calories,
+        sets: s.sets,
+        reps: s.reps,
+        weight: s.weight,
+        durationSeconds: s.durationSeconds,
+      );
+    }
+  }
 
   @override
   Future<ExerciseSessionsAdded> addSessions(
@@ -275,13 +324,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    // 날짜 이동은 저장된 값으로 보냈다 — 고치던 값은 아직 상자에만 있다.
-    expect(
-      repo.updates
-          .where((Map<String, Object?> u) => u['id'] == 'run')
-          .single['minutes'],
-      40,
-    );
+    // 날짜 이동은 날짜만 옮긴다 — 고치던 값은 아직 상자에만 있고 저장되지 않았다.
+    expect(repo.moves.single.$1, unorderedEquals(<String>['push-up', 'run']));
+    expect(repo.updates, isEmpty);
     expect(
       find.byKey(const ValueKey<String>('exercise-detail-editor-run')),
       findsOneWidget,
@@ -311,5 +356,188 @@ void main() {
 
     expect(repo.updates.single['minutes'], 2);
     expect(repo.updates.single['durationSeconds'], 150);
+  });
+  group('소모 칼로리 미리보기 (#3365)', () {
+    /// 상자 아래 소모 칼로리 칸의 글자.
+    String calorieBox(WidgetTester tester, String id) {
+      final Finder texts = find.descendant(
+        of: find.byKey(ValueKey<String>('exercise-detail-calorie-box-$id')),
+        matching: find.byType(Text),
+      );
+      return tester
+          .widgetList<Text>(texts)
+          .map((Text t) => t.data ?? '')
+          .join(' ');
+    }
+
+    /// 디바운스가 끝나고 응답이 그려질 때까지 기다린다.
+    Future<void> settlePreview(WidgetTester tester) async {
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+    }
+
+    _Repo run() =>
+        _Repo(<ExerciseSession>[_session(id: 'run', date: _today, name: '러닝')]);
+
+    testWidgets('이름을 바꾸면 서버가 계산한 값을 보인다', (tester) async {
+      final _Repo repo = run()..serverCalories = 417;
+      await _pump(tester, repo);
+      await _tapKey(tester, const Key('exercise-detail-edit'));
+
+      await _type(tester, 'exercise-detail-name-field-run', '수영');
+      await settlePreview(tester);
+
+      // 시간·유형이 그대로여도 이름이 바뀌면 서버 값이 달라진다 — 앱이 저장된
+      // 값을 그대로 두면 저장 직후 숫자가 바뀐다.
+      expect(repo.previews.single, ('수영', ExerciseType.cardio, 40));
+      expect(calorieBox(tester, 'run'), contains('417'));
+      expect(calorieBox(tester, 'run'), isNot(contains('280')));
+    });
+
+    testWidgets('시간을 바꿔도 비례 계산이 아니라 서버 값이다', (tester) async {
+      final _Repo repo = run()..serverCalories = 333;
+      await _pump(tester, repo);
+      await _tapKey(tester, const Key('exercise-detail-edit'));
+
+      await _type(tester, 'exercise-detail-minutes-run', '50');
+      await settlePreview(tester);
+
+      expect(repo.previews.single, ('러닝', ExerciseType.cardio, 50));
+      // 예전 비례 계산이면 280 × 50 / 40 = 350 이다.
+      expect(calorieBox(tester, 'run'), contains('333'));
+      expect(calorieBox(tester, 'run'), isNot(contains('350')));
+    });
+
+    testWidgets('응답을 받기 전에는 직전 값을 그대로 둔다', (tester) async {
+      final _Repo repo = run()..serverCalories = 333;
+      await _pump(tester, repo);
+      await _tapKey(tester, const Key('exercise-detail-edit'));
+
+      await _type(tester, 'exercise-detail-minutes-run', '50');
+
+      // 아직 묻지 않았다 — 앱이 어림한 숫자를 끼워 넣지 않는다.
+      expect(repo.previews, isEmpty);
+      expect(calorieBox(tester, 'run'), contains('280'));
+      await settlePreview(tester);
+    });
+
+    testWidgets('글자마다 묻지 않고 조작이 멎은 뒤 한 번 묻는다', (tester) async {
+      final _Repo repo = run();
+      await _pump(tester, repo);
+      await _tapKey(tester, const Key('exercise-detail-edit'));
+
+      await _type(tester, 'exercise-detail-minutes-run', '5');
+      await _type(tester, 'exercise-detail-minutes-run', '55');
+      await settlePreview(tester);
+
+      expect(repo.previews.single, ('러닝', ExerciseType.cardio, 55));
+    });
+
+    testWidgets('저장된 값으로 되돌리면 저장된 칼로리이고 묻지 않는다', (tester) async {
+      final _Repo repo = run()..serverCalories = 333;
+      await _pump(tester, repo);
+      await _tapKey(tester, const Key('exercise-detail-edit'));
+      await _type(tester, 'exercise-detail-minutes-run', '50');
+      await settlePreview(tester);
+
+      await _type(tester, 'exercise-detail-minutes-run', '40');
+      await settlePreview(tester);
+
+      expect(repo.previews, hasLength(1));
+      expect(calorieBox(tester, 'run'), contains('280'));
+    });
+
+    testWidgets('미리보기가 실패하면 유형 평균으로 채우고 저장은 된다', (tester) async {
+      final _Repo repo = run()..failPreview = true;
+      await _pump(tester, repo);
+      await _tapKey(tester, const Key('exercise-detail-edit'));
+
+      await _type(tester, 'exercise-detail-minutes-run', '50');
+      await settlePreview(tester);
+
+      final int fallback = estimateExerciseCalories(ExerciseType.cardio, 50);
+      expect(calorieBox(tester, 'run'), contains('$fallback'));
+      await _tapKey(tester, const Key('exerciseSaveButton'));
+      expect(repo.updates.single['minutes'], 50);
+    });
+
+    testWidgets('이름을 지운 동안에는 묻지 않는다', (tester) async {
+      final _Repo repo = run();
+      await _pump(tester, repo);
+      await _tapKey(tester, const Key('exercise-detail-edit'));
+
+      await _type(tester, 'exercise-detail-name-field-run', '');
+      await settlePreview(tester);
+
+      expect(repo.previews, isEmpty);
+    });
+
+    testWidgets('취소하면 받아 둔 값을 버리고 저장된 칼로리로 돌아간다', (tester) async {
+      final _Repo repo = run()..serverCalories = 333;
+      await _pump(tester, repo);
+      await _tapKey(tester, const Key('exercise-detail-edit'));
+      await _type(tester, 'exercise-detail-minutes-run', '50');
+      await settlePreview(tester);
+
+      await _tapKey(tester, const Key('exerciseCancelButton'));
+
+      expect(find.textContaining('333'), findsNothing);
+      expect(find.textContaining('280'), findsWidgets);
+    });
+  });
+
+  group('날짜 변경 (#3365)', () {
+    Future<void> moveToThe19th(WidgetTester tester) async {
+      await _tapKey(tester, const Key('exercise-detail-date-change'));
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const Key('portraitDatePickerCalendar')),
+          matching: find.text('19'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('portraitDatePickerConfirm')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('그날 기록을 한 요청으로 옮긴다', (tester) async {
+      final _Repo repo = pushUpAndRun();
+      await _pump(tester, repo);
+
+      await moveToThe19th(tester);
+
+      // 기록마다 수정 요청을 보내지 않는다 — 중간에 실패하면 일부만 옮겨진다.
+      expect(repo.updates, isEmpty);
+      expect(repo.moves, hasLength(1));
+      expect(repo.moves.single.$1, unorderedEquals(<String>['push-up', 'run']));
+      expect(repo.moves.single.$2, DateTime(2026, 8, 19));
+      expect(
+        repo.sessions.map((ExerciseSession s) => s.date),
+        everyElement(DateTime(2026, 8, 19)),
+      );
+    });
+
+    testWidgets('실패하면 어떤 기록도 옮겨지지 않고 화면도 그날에 남는다', (tester) async {
+      final _Repo repo = pushUpAndRun()..failMove = true;
+      await _pump(tester, repo);
+
+      await moveToThe19th(tester);
+
+      expect(repo.moves, hasLength(1));
+      expect(repo.updates, isEmpty);
+      expect(
+        repo.sessions.map((ExerciseSession s) => s.date),
+        everyElement(_today),
+      );
+      // 두 기록 모두 원래 날 화면에 그대로 있다.
+      expect(
+        find.byKey(const ValueKey<String>('exercise-detail-card-push-up')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('exercise-detail-card-run')),
+        findsOneWidget,
+      );
+    });
   });
 }

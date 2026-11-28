@@ -20,7 +20,6 @@ import 'package:oncare_trainer/core/config/app_config.dart'
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/release/build_info.dart';
-import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
@@ -44,7 +43,6 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -61,13 +59,15 @@ import 'package:url_launcher/url_launcher.dart';
 ///    affiliation endpoints; mock mode follows the same repository contract
 ///    (#477, #452). 이름·이메일 입력은 비활성이다 — 값이 없어서가 아니라
 ///    **계정 소관**이라 여기서 바꾸지 않는다. 소속 헬스장의 영업시간·전화·
-///    태그는 `헬스장 정보 수정`(`t=gymInfo`)에서 고친다(#2700).
+///    태그는 `영업시간·연락처 수정`(`t=gymInfo`)에서 고친다(#2700). 어느 헬스장
+///    소속인지는 `헬스장 변경`(`t=gym`)에서 바꾼다 — 둘 다 소속 헬스장 카드에서
+///    들어간다.
 ///  * **설정** — 한 장짜리 목록이다. 알림·계정·고객 지원은 하위 화면으로
-///    열고(`t=notifications|account|support`), 화면 언어만 줄 안에서 고른다.
+///    연다(`t=notifications|account|support`).
 ///    알림 수신 설정은 `GET/PUT /v1/trainer/me/settings`(#379), 비밀번호
 ///    변경은 `POST /v1/trainer/me/password` 로 서버에 저장된다. 비밀번호
 ///    변경만 **데모에서 비활성**이고(바꿀 계정이 없다) 그 사유를 함께 보여
-///    준다. 화면 언어는 이 브라우저에만 저장된다(#2296).
+///    준다.
 ///
 /// The Figma mock's "역할 전환" section is intentionally omitted — the
 /// trainer and member apps use fully separate accounts (CLAUDE.local.md).
@@ -83,6 +83,9 @@ class MyPage extends ConsumerStatefulWidget {
   ConsumerState<MyPage> createState() => _MyPageState();
 }
 
+/// 저장하지 않은 수정을 두고 떠날 때의 선택.
+enum _LeaveChoice { save, discard, stay }
+
 /// 이 화면의 구획 — `t` 쿼리 값과 이름이 같다.
 ///
 /// `settings` 는 메뉴만 연 상태다(좁은 화면의 첫 화면). 프로필 수정은 프로필에서
@@ -93,11 +96,15 @@ enum _MySection {
   clients,
   edit(parent: profile),
 
+  /// 소속 헬스장 변경 — 어느 헬스장 소속인지 고른다. 프로필의 소속 헬스장
+  /// 카드에서 들어가 프로필로 돌아간다. 예전에는 프로필 수정 폼 맨 아래에
+  /// 있어, 카드의 `헬스장 정보 수정` 을 눌러서는 찾을 수 없었다.
+  gym(parent: profile),
+
   /// 소속 헬스장 정보(영업시간·전화·태그) 수정(#2700). 프로필의 소속 헬스장
   /// 카드에서 들어가 프로필로 돌아간다.
   gymInfo(parent: profile),
   notifications,
-  language,
   account,
   support,
   withdraw(parent: support);
@@ -118,6 +125,9 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 남은 폭은 모두 본문이 받는다.
   static const double _menuWidth = 260;
 
+  /// 소속 헬스장 카드의 버튼 둘을 머리줄에 두는 가장 좁은 카드 폭(글자 배율 1 기준).
+  static const double _gymActionsHeaderWidth = 560;
+
   _MySection get _section => _MySection.parse(widget.tab);
 
   bool _saving = false;
@@ -134,15 +144,15 @@ class _MyPageState extends ConsumerState<MyPage> {
   final TextEditingController _newCert = TextEditingController();
   late List<String> _draftCerts;
 
-  /// 이번 수정에서 고른 헬스장 — 저장을 눌러야 소속이 바뀐다. null 이면
-  /// 소속을 그대로 둔다.
+  /// 헬스장 변경 화면에서 고른 헬스장 — 저장을 눌러야 소속이 바뀐다. null 이면
+  /// 아직 고르지 않았다.
   TrainerGymCandidate? _draftGym;
 
   /// 탈퇴 — 고른 사유와 두 번째 칸('탈퇴하기 전에')에 있는지.
   final Set<_WithdrawReason> _withdrawReasons = <_WithdrawReason>{};
   bool _withdrawKeepStep = false;
 
-  /// 소속 헬스장 안내를 띄울지 — 저장을 눌러 한 번 막힌 뒤부터(전화번호와 같다).
+  /// 헬스장을 고르라는 안내를 띄울지 — 저장을 눌러 한 번 막힌 뒤부터(전화번호와 같다).
   bool _showGymError = false;
 
   /// 헬스장 정보 수정(#2700) — 서버에서 읽은 값. 읽는 중이면 null 이다.
@@ -170,13 +180,14 @@ class _MyPageState extends ConsumerState<MyPage> {
     _profile =
         session.profile ??
         (kDemoCodeIncluded
-            ? seedTrainerProfileFor(ref.read(demoLanguageProvider))
+            ? seedTrainerProfile
             : _blankProfile);
     _gym = _profile.gym;
     _certs = List<String>.of(_profile.certifications);
     _draftCerts = List<String>.of(_certs);
     // 주소로 프로필 수정에 바로 들어와도(새로고침·뒤로) 빈 폼이 아니다.
     if (_section == _MySection.edit) _loadDrafts();
+    if (_section == _MySection.gym) _loadGymDraft();
     if (_section == _MySection.gymInfo) _loadGymInfo();
   }
 
@@ -185,7 +196,9 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   /// 지금 화면이 저장 버튼이 있는 수정 화면인가.
   bool get _editing =>
-      _section == _MySection.edit || _section == _MySection.gymInfo;
+      _section == _MySection.edit ||
+      _section == _MySection.gym ||
+      _section == _MySection.gymInfo;
 
   /// 프로필 수정 화면에 있는 동안 새로 고침·탭 닫기 앞에서 브라우저가 묻게 한다.
   /// 앱 안의 이동은 [_go] 가 묻는다. 막을지는 떠나는 그 순간에 정한다 —
@@ -198,11 +211,92 @@ class _MyPageState extends ConsumerState<MyPage> {
       this,
       want ? () => mounted && _editing && !_saving && _isDirty : null,
     );
+    leaveGuards.setConfirm(this, want ? _confirmLeavingTab : null);
   }
+
+  /// 사이드바로 다른 탭에 가기 전의 확인. (#3336)
+  ///
+  /// 이 화면이 앞에 있을 때만 묻는다 — 탭 상태가 유지되는 셸이라, 다른 탭에
+  /// 가 있는 동안에도 이 화면은 뒤에 살아 있다. `저장 안 함` 으로 떠나면 초안을
+  /// 저장된 값으로 되돌려, 뒤에 남은 화면이 다시 묻거나 새로 고침을 막지 않게
+  /// 한다.
+  Future<bool> _confirmLeavingTab() async {
+    if (!mounted || !TickerMode.valuesOf(context).enabled) return true;
+    if (_saving) return false;
+    if (!_editing || !_isDirty) return true;
+    final _LeaveChoice choice = await _askUnsaved();
+    if (!mounted) return false;
+    switch (choice) {
+      case _LeaveChoice.stay:
+        return false;
+      case _LeaveChoice.save:
+        return _saveCurrent();
+      case _LeaveChoice.discard:
+        setState(() {
+          switch (_section) {
+            case _MySection.gymInfo:
+              _loadGymInfo();
+            case _MySection.gym:
+              _loadGymDraft();
+            default:
+              _loadDrafts();
+          }
+        });
+        return true;
+    }
+  }
+
+  /// 저장하지 않은 수정을 어떻게 할지 묻는다 — 저장하고 나가기 · 저장 안 함 ·
+  /// 계속 수정. 창 밖을 눌러 닫으면 계속 수정이다.
+  Future<_LeaveChoice> _askUnsaved() async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final _LeaveChoice? choice = await showAppDialog<_LeaveChoice>(
+      context: context,
+      builder: (BuildContext dialogContext) => AppDialog(
+        key: const ValueKey<String>('my-unsaved-dialog'),
+        title: l.myDiscardTitle,
+        showClose: false,
+        footer: AppActionRow(
+          actions: <Widget>[
+            AppButton(
+              key: const ValueKey<String>('my-unsaved-stay'),
+              label: l.myKeepEditing,
+              variant: AppButtonVariant.text,
+              onPressed: () => Navigator.pop(dialogContext, _LeaveChoice.stay),
+            ),
+            AppButton(
+              key: const ValueKey<String>('my-unsaved-discard'),
+              label: l.myDiscardAction,
+              variant: AppButtonVariant.secondary,
+              onPressed: () =>
+                  Navigator.pop(dialogContext, _LeaveChoice.discard),
+            ),
+            AppButton(
+              key: const ValueKey<String>('my-unsaved-save'),
+              label: l.mySaveAndLeave,
+              onPressed: () => Navigator.pop(dialogContext, _LeaveChoice.save),
+            ),
+          ],
+        ),
+        child: Text(l.myDiscardBody),
+      ),
+    );
+    return choice ?? _LeaveChoice.stay;
+  }
+
+  /// 지금 수정 화면의 내용을 저장한다. 저장됐으면 참 — 떠나도 된다. 입력이
+  /// 틀렸거나 요청이 실패하면 거짓이고, 저장 버튼을 눌렀을 때와 같은 안내가
+  /// 뜬다.
+  Future<bool> _saveCurrent() => switch (_section) {
+    _MySection.gymInfo => _saveGymInfo(leaveAfter: false),
+    _MySection.gym => _saveGym(leaveAfter: false),
+    _ => _save(leaveAfter: false),
+  };
 
   @override
   void dispose() {
     if (_leaveGuarded) setLeaveGuard(this, null);
+    leaveGuards.setConfirm(this, null);
     for (final c in _fields.values) {
       c.dispose();
     }
@@ -236,8 +330,6 @@ class _MyPageState extends ConsumerState<MyPage> {
   void _loadDrafts() {
     _showPhoneError = false;
     _draftCerts = List<String>.of(_certs);
-    _draftGym = null;
-    _showGymError = false;
     _newCert.clear();
     _field('name', _profile.name).text = _profile.name;
     _field('email', _profile.email).text = _profile.email;
@@ -245,6 +337,13 @@ class _MyPageState extends ConsumerState<MyPage> {
     _field('specialty', _profile.specialty).text = _profile.specialty;
     _field('career', _careerText(_profile)).text = _careerText(_profile);
     _field('intro', _profile.intro).text = _profile.intro;
+  }
+
+  /// 헬스장 변경 화면에 들어올 때마다 지난번에 고르고 저장하지 않은 헬스장을
+  /// 버린다.
+  void _loadGymDraft() {
+    _draftGym = null;
+    _showGymError = false;
   }
 
   /// 헬스장 정보 수정 화면에 들어올 때마다 서버 값을 새로 읽는다(#2700) — 같은
@@ -302,11 +401,13 @@ class _MyPageState extends ConsumerState<MyPage> {
     return error == null;
   }
 
-  Future<void> _saveGymInfo() async {
-    if (_saving || _gymInfo == null) return;
+  /// [leaveAfter] 가 거짓이면 저장한 뒤 프로필로 가지 않는다 — 떠나려던 곳으로
+  /// 부른 쪽이 보낸다(#3336). 저장됐으면 참이다.
+  Future<bool> _saveGymInfo({bool leaveAfter = true}) async {
+    if (_saving || _gymInfo == null) return false;
     // 칸에 적어 두고 `추가` 를 누르지 않은 태그도 담는다 — 저장을 눌렀는데
     // 적어 둔 태그가 사라지면 저장이 안 된 줄 안다.
-    if (!_addTag()) return;
+    if (!_addTag()) return false;
     final AppLocalizations l = AppLocalizations.of(context);
     setState(() => _saving = true);
     final repository = ref.read(trainerProfileRepositoryProvider);
@@ -320,16 +421,16 @@ class _MyPageState extends ConsumerState<MyPage> {
         ),
       );
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _saving = false);
       final String? detail = error is AppError ? error.message : null;
       // 실패하면 이 화면에 남는다 — 적은 값을 다시 적지 않아도 된다.
       showAppToast(
         context,
-        serverDetailOr(l, detail, l.myGymInfoSaveFailed),
+        serverDetailOr(detail, l.myGymInfoSaveFailed),
         type: AppToastType.error,
       );
-      return;
+      return false;
     }
     // 서버가 프로필의 영업시간·전화 복사본도 바꿨다 — 내 정보 카드가 새 값을
     // 보이게 다시 읽는다. 읽기만 실패하면 저장은 된 것이라 그대로 알린다.
@@ -339,7 +440,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     } catch (_) {
       refreshed = null;
     }
-    if (!mounted) return;
+    if (!mounted) return false;
     if (refreshed != null) {
       _applySavedProfile(refreshed);
     } else {
@@ -347,16 +448,61 @@ class _MyPageState extends ConsumerState<MyPage> {
       setState(() => _saving = false);
     }
     showAppToast(context, l.mySaved, type: AppToastType.success);
-    context.go(AppRoutes.mySection(_MySection.profile.name));
+    if (leaveAfter) context.go(AppRoutes.mySection(_MySection.profile.name));
+    return true;
   }
 
-  /// 소속이 없고 새로 고르지도 않았으면 저장하지 않는다 — 소속이 없으면 회원이
+  /// 헬스장을 고르지 않고 저장을 누르면 알린다 — 소속이 없으면 회원이
   /// 트레이너를 찾을 수 없다(#443·#451).
   String? _gymError(AppLocalizations l) =>
-      _gym.id == null && _draftGym == null ? l.myGymRequired : null;
+      _draftGym == null ? l.myGymRequired : null;
 
-  Future<void> _save() async {
-    if (_saving) return;
+  /// 헬스장 변경 저장 — 소속만 바꾼다. 헬스장 이름·주소는 서버가 소속에서
+  /// 채운다. [leaveAfter] 와 돌려주는 값은 [_save] 와 같다(#3336).
+  Future<bool> _saveGym({bool leaveAfter = true}) async {
+    if (_saving) return false;
+    final AppLocalizations l = AppLocalizations.of(context);
+    final TrainerGymCandidate? picked = _draftGym;
+    // 소속 헬스장은 필수다 — 소규모·개인 스튜디오라도 수업하는 곳이 있고,
+    // 검색은 카카오에 있는 곳을 모두 찾는다(#2543).
+    if (picked == null) {
+      setState(() => _showGymError = true);
+      return false;
+    }
+    // 지금 소속을 다시 골랐으면 바꿀 것이 없다.
+    if (picked.id == _gym.id) {
+      if (leaveAfter) context.go(AppRoutes.mySection(_MySection.profile.name));
+      return true;
+    }
+    setState(() => _saving = true);
+    final TrainerProfile saved;
+    try {
+      saved = await ref
+          .read(trainerProfileRepositoryProvider)
+          .selectGym(picked);
+    } catch (error) {
+      if (!mounted) return false;
+      setState(() => _saving = false);
+      final String? detail = error is AppError ? error.message : null;
+      // 실패하면 이 화면에 남는다 — 고른 헬스장을 다시 찾지 않아도 된다.
+      showAppToast(
+        context,
+        serverDetailOr(detail, l.myGymChangeFailed),
+        type: AppToastType.error,
+      );
+      return false;
+    }
+    if (!mounted) return false;
+    _applySavedProfile(saved);
+    showAppToast(context, l.mySaved, type: AppToastType.success);
+    if (leaveAfter) context.go(AppRoutes.mySection(_MySection.profile.name));
+    return true;
+  }
+
+  /// [leaveAfter] 가 거짓이면 저장한 뒤 프로필로 가지 않는다 — 떠나려던 곳으로
+  /// 부른 쪽이 보낸다(#3336). 저장됐으면 참이다.
+  Future<bool> _save({bool leaveAfter = true}) async {
+    if (_saving) return false;
     // 숫자만 읽는다. 전에는 한국어 '년' 접미사를 정규식에 박아 뒀는데, 영어
     // 로케일에서 "7 years" 를 입력하면 매칭에 실패했다. (#501)
     final careerMatch = RegExp(
@@ -366,27 +512,19 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (careerYears == null || careerYears < 0 || careerYears > 80) {
       final AppLocalizations l = AppLocalizations.of(context);
       showAppToast(context, l.myCareerInvalid);
-      return;
+      return false;
     }
     // 형식이 틀린 전화번호는 보내지 않고 칸 아래에 알린다(#1914). 서버도 같은
     // 기준으로 막지만, 거기서 걸리면 어느 칸이 문제인지 말해 줄 수 없다.
     if (_phoneError(AppLocalizations.of(context)) != null) {
       setState(() => _showPhoneError = true);
-      return;
-    }
-    // 소속 헬스장은 필수다 — 소규모·개인 스튜디오라도 수업하는 곳이 있고,
-    // 검색은 카카오에 있는 곳을 모두 찾는다(#2543).
-    if (_gymError(AppLocalizations.of(context)) != null) {
-      setState(() => _showGymError = true);
-      return;
+      return false;
     }
 
     setState(() => _saving = true);
     final repository = ref.read(trainerProfileRepositoryProvider);
-    var profileSaved = false;
     try {
-      final TrainerGymCandidate? picked = _draftGym;
-      var saved = await repository.update(
+      final saved = await repository.update(
         TrainerProfileUpdate(
           phone: _fields['phone']!.text.trim(),
           specialty: _fields['specialty']!.text.trim(),
@@ -395,12 +533,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           certifications: List<String>.of(_draftCerts),
         ),
       );
-      profileSaved = true;
-      // 헬스장 이름·주소는 서버가 소속에서 채운다 — 여기서는 소속만 바꾼다.
-      if (picked != null && picked.id != _gym.id) {
-        saved = await repository.selectGym(picked);
-      }
-      if (!mounted) return;
+      if (!mounted) return false;
       _applySavedProfile(saved);
     } catch (error) {
       TrainerProfile? restored;
@@ -409,14 +542,21 @@ class _MyPageState extends ConsumerState<MyPage> {
       } catch (_) {
         restored = ref.read(sessionControllerProvider).profile;
       }
-      if (!mounted) return;
+      if (!mounted) return false;
       if (restored != null) _applyRestoredProfile(restored);
       setState(() => _saving = false);
-      final message = _saveFailureMessage(error, profileSaved: profileSaved);
-      showAppToast(context, message, type: AppToastType.error);
+      showAppToast(
+        context,
+        appErrorMessage(
+          AppLocalizations.of(context),
+          error,
+          fallback: AppLocalizations.of(context).myProfileSaveFailed,
+        ),
+        type: AppToastType.error,
+      );
       // 실패도 내 정보로 돌아간다 — 화면에는 서버에 실제로 남은 값을 보인다.
       context.go(AppRoutes.mySection(_MySection.profile.name));
-      return;
+      return false;
     }
 
     // 저장 완료는 다른 저장(비밀번호·프로그램·리포트 피드백)과 같은 공용
@@ -426,19 +566,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       AppLocalizations.of(context).mySaved,
       type: AppToastType.success,
     );
-    context.go(AppRoutes.mySection(_MySection.profile.name));
-  }
-
-  String _saveFailureMessage(Object error, {required bool profileSaved}) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final detail = error is AppError ? error.message : null;
-    if (profileSaved) {
-      final localizedDetail = serverDetailOr(l, detail, '');
-      return localizedDetail.isEmpty
-          ? l.myGymChangeFailed
-          : '${l.myGymChangeFailed} $localizedDetail';
-    }
-    return appErrorMessage(l, error, fallback: l.myProfileSaveFailed);
+    if (leaveAfter) context.go(AppRoutes.mySection(_MySection.profile.name));
+    return true;
   }
 
   void _applySavedProfile(TrainerProfile saved) {
@@ -579,6 +708,9 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (_section == _MySection.edit && oldWidget.tab != _MySection.edit.name) {
       setState(_loadDrafts);
     }
+    if (_section == _MySection.gym && oldWidget.tab != _MySection.gym.name) {
+      setState(_loadGymDraft);
+    }
     if (_section == _MySection.gymInfo &&
         oldWidget.tab != _MySection.gymInfo.name) {
       setState(_loadGymInfo);
@@ -599,16 +731,11 @@ class _MyPageState extends ConsumerState<MyPage> {
   Future<void> _go(_MySection section) async {
     if (_saving) return;
     if (_editing && section != _section && _isDirty) {
-      final AppLocalizations l = AppLocalizations.of(context);
-      final bool leave = await showAppConfirmDialog(
-        context: context,
-        title: l.myDiscardTitle,
-        message: l.myDiscardBody,
-        cancelLabel: l.myKeepEditing,
-        confirmLabel: l.myDiscardAction,
-        destructive: true,
-      );
-      if (!leave || !mounted) return;
+      final _LeaveChoice choice = await _askUnsaved();
+      if (!mounted || choice == _LeaveChoice.stay) return;
+      // 저장하지 못했으면 가지 않는다 — 저장 버튼을 눌렀을 때와 같은 안내가 뜬다.
+      if (choice == _LeaveChoice.save && !await _saveCurrent()) return;
+      if (!mounted) return;
     }
     context.go(AppRoutes.mySection(section.name));
   }
@@ -616,6 +743,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 편집 초안이 저장된 값과 다른가. 떠날 때 버릴지 묻는 기준이다.
   bool get _isDirty => switch (_section) {
     _MySection.edit => _profileDirty,
+    _MySection.gym => _draftGym != null && _draftGym!.id != _gym.id,
     _MySection.gymInfo => _gymInfoDirty,
     _ => false,
   };
@@ -639,8 +767,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         text('career') != _careerText(_profile) ||
         text('intro') != _profile.intro ||
         _newCert.text.trim().isNotEmpty ||
-        !listEquals(_draftCerts, _certs) ||
-        (_draftGym != null && _draftGym!.id != _gym.id);
+        !listEquals(_draftCerts, _certs);
   }
 
   String _title(AppLocalizations l, _MySection section) => switch (section) {
@@ -648,9 +775,10 @@ class _MyPageState extends ConsumerState<MyPage> {
     _MySection.profile => l.myProfileTitle,
     _MySection.clients => l.myClientManagement,
     _MySection.edit => l.myEditProfile,
+    // 소속이 없으면 바꿀 것이 아니라 처음 정하는 것이다.
+    _MySection.gym => _gym.id == null ? l.myGymHiddenAction : l.myGymChange,
     _MySection.gymInfo => l.myGymInfoEdit,
     _MySection.notifications => l.myNotifications,
-    _MySection.language => l.myLanguageApp,
     _MySection.account => l.myAccount,
     _MySection.support => l.mySupportTitle,
     _MySection.withdraw => l.myDeleteAccount,
@@ -665,10 +793,10 @@ class _MyPageState extends ConsumerState<MyPage> {
         // 누가 보는 정보인지 먼저 알린다 — 소개·경력·자격증은 담당 회원이
         // 보는 트레이너 소개에 그대로 나간다.
         _MySection.edit => l.myEditVisibleBody,
+        _MySection.gym => l.myGymEditHint,
         // 누가 보는 값이고 누가 고칠 수 있는지 먼저 알린다(#2700).
         _MySection.gymInfo => l.myGymInfoSubtitle,
         _MySection.notifications => l.myNotificationsHint,
-        _MySection.language => l.myLanguageSubtitle,
         _MySection.account => l.myAccountSubtitle,
         _MySection.support => l.mySupportSubtitle,
         _MySection.withdraw => l.myWithdrawSubtitle,
@@ -690,8 +818,25 @@ class _MyPageState extends ConsumerState<MyPage> {
         final _MySection detail = section == _MySection.settings
             ? _MySection.notifications
             : section;
+        // 돌아갈 곳 — 한 단계 들어간 화면(프로필 수정 등)은 그 윗 화면으로,
+        // 좁은 화면의 구획은 메뉴로. 메뉴 자신과 넓은 화면의 첫 단계에는 없다.
+        final _MySection? back = !wide && section == _MySection.settings
+            ? null
+            : detail.parent ?? (wide ? null : _MySection.settings);
         return AppWebPage(
           title: _title(l, wide ? detail : section),
+          // 돌아가는 길은 제목 왼쪽에 둔다 — 알림함·회원 상세와 같은 자리다.
+          // 본문 맨 위의 글자 링크이던 때에는 스크롤하면 함께 사라졌고, 다른
+          // 화면과 모양이 달랐다(#3316).
+          leading: back == null
+              ? null
+              : Semantics(
+                  label: _title(l, back),
+                  child: AppBackButton(
+                    key: const ValueKey<String>('my-back'),
+                    onPressed: () => _go(back),
+                  ),
+                ),
           // 트레이너 이름 대신 이 탭이 무엇을 하는 곳인지 말한다 — 이름은
           // 사이드바 아래와 프로필에 이미 있다.
           subtitle: _subtitle(l, wide ? detail : section),
@@ -701,6 +846,13 @@ class _MyPageState extends ConsumerState<MyPage> {
                 label: _saving ? l.mySaving : l.actionSave,
                 loading: _saving,
                 onPressed: _save,
+              ),
+            if (section == _MySection.gym)
+              AppButton(
+                key: const ValueKey<String>('gym-save'),
+                label: _saving ? l.mySaving : l.actionSave,
+                loading: _saving,
+                onPressed: _saveGym,
               ),
             if (section == _MySection.gymInfo)
               AppButton(
@@ -748,14 +900,13 @@ class _MyPageState extends ConsumerState<MyPage> {
   }
 
   /// 왼쪽 메뉴 — 앱 사이드바와 같은 항목·묶음 제목이다. 내 정보(프로필·회원
-  /// 관리)와 설정(알림·화면 언어·계정·고객 지원)을 한 목록에 둔다. 예전에는
+  /// 관리)와 설정(알림·계정·고객 지원)을 한 목록에 둔다. 예전에는
   /// 둘이 토글로 갈려 있어, 설정을 보다 프로필을 보려면 화면을 바꿔야 했다.
   /// 로그아웃은 맨 아래다(#2227).
   Widget _menu({required _MySection? selected}) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 프로필 수정·헬스장 정보 수정은 프로필 항목에 속한다.
-    final _MySection? current =
-        selected == _MySection.edit || selected == _MySection.gymInfo
+    // 프로필 수정·헬스장 변경·헬스장 정보 수정은 프로필 항목에 속한다.
+    final _MySection? current = selected?.parent == _MySection.profile
         ? _MySection.profile
         : selected;
     Widget item(_MySection section, IconData icon) => KeyedSubtree(
@@ -777,7 +928,6 @@ class _MyPageState extends ConsumerState<MyPage> {
           item(_MySection.clients, AppIcons.clients),
           AppOverline(l.myTabSettings),
           item(_MySection.notifications, AppIcons.notifications),
-          item(_MySection.language, AppIcons.language),
           item(_MySection.account, AppIcons.lock),
           // 약관·개인정보와 탈퇴는 고객 지원 안에 있다(#2227). 회원 앱과 같은
           // 자리다 — 매일 쓰는 설정 옆에서 되돌릴 수 없는 동작이 눈에 띄지
@@ -806,28 +956,14 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 지금 화면 이름은 바로 위 페이지 제목이 말한다 — 예전 경로 표시
   /// `‹ 프로필 › 프로필 수정` 의 뒷부분은 제목을 한 번 더 적은 것이라 뺐다(#2469).
   Widget _detail(_MySection section, {required bool wide}) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final _MySection? back =
-        section.parent ?? (wide ? null : _MySection.settings);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (back != null) ...<Widget>[
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: AppBackLink(
-              key: const ValueKey<String>('my-back'),
-              label: _title(l, back),
-              onPressed: () => _go(back),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-        ],
         ...switch (section) {
           _MySection.edit => _editCards(),
+          _MySection.gym => _gymCards(),
           _MySection.gymInfo => _gymInfoCards(),
           _MySection.clients => <Widget>[_buildClientManagement()],
-          _MySection.language => <Widget>[_languageCard(wide: wide)],
           _MySection.account => _accountCards(),
           _MySection.support => _supportCards(),
           _MySection.withdraw => _withdrawCards(),
@@ -861,7 +997,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           icon: AppIcons.warning,
           tone: AppBannerTone.caution,
           actionLabel: l.myGymHiddenAction,
-          onAction: () => _go(_MySection.edit),
+          onAction: () => _go(_MySection.gym),
         ),
         const SizedBox(height: OnCareSpacing.cardGap),
       ],
@@ -889,25 +1025,61 @@ class _MyPageState extends ConsumerState<MyPage> {
         ),
       ),
       const SizedBox(height: OnCareSpacing.cardGap),
-      _SettingsCard(
-        title: l.myGym,
-        // 소속이 있어야 고칠 헬스장이 있다(#2700).
-        trailing: _gym.id == null
-            ? null
-            : AppButton(
-                key: const ValueKey<String>('my-gym-info-edit'),
-                label: l.myGymInfoEdit,
-                leadingIcon: AppIcons.edit,
+      LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // 이 카드에서 할 수 있는 두 가지를 나란히 둔다 — 어느 헬스장 소속인지
+          // 바꾸기와, 그 헬스장의 영업시간·전화·태그 고치기다.
+          final Widget actions = Wrap(
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[
+              AppButton(
+                key: const ValueKey<String>('my-gym-change'),
+                label: _gym.id == null ? l.myGymHiddenAction : l.myGymChange,
+                leadingIcon: AppIcons.search,
                 variant: AppButtonVariant.secondary,
                 size: OnCareButtonSize.small,
-                onPressed: () => _go(_MySection.gymInfo),
+                onPressed: () => _go(_MySection.gym),
               ),
-        body: _gym.name.trim().isEmpty
-            ? AppEmptyState(
-                title: l.myGymEmpty,
-                placement: AppStatePlacement.inline,
-              )
-            : _gymInfoGrid(l),
+              // 소속이 있어야 고칠 헬스장이 있다(#2700).
+              if (_gym.id != null)
+                AppButton(
+                  key: const ValueKey<String>('my-gym-info-edit'),
+                  label: l.myGymInfoEdit,
+                  leadingIcon: AppIcons.edit,
+                  variant: AppButtonVariant.secondary,
+                  size: OnCareButtonSize.small,
+                  onPressed: () => _go(_MySection.gymInfo),
+                ),
+            ],
+          );
+          // 머리줄은 줄을 바꾸지 못한다 — 좁거나 글자가 크면(폭 1024·영어·배율
+          // 1.3) 버튼 둘이 제목 옆에 다 들어가지 않아, 본문 위로 내려 줄을 바꾼다.
+          final bool inHeader =
+              constraints.maxWidth /
+                  MediaQuery.textScalerOf(context).scale(1) >=
+              _gymActionsHeaderWidth;
+          final Widget info = _gym.name.trim().isEmpty
+              ? AppEmptyState(
+                  title: l.myGymEmpty,
+                  placement: AppStatePlacement.inline,
+                )
+              : _gymInfoGrid(l);
+          return _SettingsCard(
+            title: l.myGym,
+            trailing: inHeader ? actions : null,
+            body: inHeader
+                ? info
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      actions,
+                      const SizedBox(height: OnCareSpacing.s16),
+                      info,
+                    ],
+                  ),
+          );
+        },
       ),
       const SizedBox(height: OnCareSpacing.cardGap),
       _SettingsCard(
@@ -979,10 +1151,16 @@ class _MyPageState extends ConsumerState<MyPage> {
           onRemove: (i) => setState(() => _draftCerts.removeAt(i)),
         ),
       ),
-      const SizedBox(height: OnCareSpacing.cardGap),
+    ];
+  }
+
+  /// 헬스장 변경 — 이름이나 현재 위치로 찾아 고른다. 저장은 헤더 버튼, 취소는
+  /// 경로의 뒤로 가기다(프로필 수정과 같다).
+  List<Widget> _gymCards() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return <Widget>[
       _SettingsCard(
         title: l.myGym,
-        description: l.myGymEditHint,
         body: _GymPicker(
           current: _gym,
           picked: _draftGym,
@@ -1273,37 +1451,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     );
   }
 
-  /// 화면 언어(#2296) — 세 가지 중 하나를 고르는 목록. 고른 줄에 체크를
-  /// 단다. 좁은 화면에서는 고르면 메뉴로 돌아간다 — 하나만 고르는 칸이라 더
-  /// 할 일이 없다.
-  Widget _languageCard({required bool wide}) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final TrainerLanguage current = TrainerLanguage.fromLocale(
-      ref.watch(trainerLocaleProvider),
-    );
-    return _SettingsCard(
-      footer: l.myLanguageHint,
-      rows: <Widget>[
-        for (final TrainerLanguage language in TrainerLanguage.values)
-          AppListRow(
-            key: ValueKey<String>('my-language-${language.name}'),
-            title: _languageLabel(l, language),
-            trailing: language == current
-                ? AppIcon(
-                    AppIcons.check,
-                    size: OnCareSize.iconMedium,
-                    color: context.oncare.brand.primary,
-                  )
-                : null,
-            onTap: () {
-              ref.read(trainerLocaleProvider.notifier).setLanguage(language);
-              if (!wide) _go(_MySection.settings);
-            },
-          ),
-      ],
-    );
-  }
-
   /// 계정 — 로그인 계정과 보안(비밀번호)을 카드 둘로 나눈다. 이름·이메일은
   /// 계정 소관이라 여기서도, 프로필 수정에서도 바꾸지 않고 문의 창구를 알린다.
   List<Widget> _accountCards() {
@@ -1572,13 +1719,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 }
-
-String _languageLabel(AppLocalizations l, TrainerLanguage language) =>
-    switch (language) {
-      TrainerLanguage.system => l.myLanguageSystem,
-      TrainerLanguage.korean => l.myLanguageKorean,
-      TrainerLanguage.english => l.myLanguageEnglish,
-    };
 
 /// 트레이너 탈퇴 사유. 회원 앱 `WithdrawReason` 과 같은 자리지만, 트레이너가
 /// 떠나는 이유에 맞춘 항목이다. 고른 사유는 탈퇴 요청과 함께 서버에 남는다.
@@ -3084,7 +3224,31 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           onChanged: _onChanged,
           onSubmitted: (_) => _search(),
         ),
-        const SizedBox(height: OnCareSpacing.s8),
+        // 지도는 검색 칸 바로 아래에 처음부터 뜬다 — 회원 앱 헬스장 찾기와 같은
+        // 순서(#3223). 현재 위치 버튼은 그 아래다. 지도 위에는 아무것도 겹치지
+        // 않는다.
+        if (isKakaoMapConfigured && !_mapUnavailable) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s12),
+          ClipRRect(
+            borderRadius: OnCareRadius.mdAll,
+            child: SizedBox(
+              key: const ValueKey<String>('gym-map'),
+              height: _mapHeight,
+              child: KakaoMapView(
+                centerLat: centerLat,
+                centerLng: centerLng,
+                level: position != null ? _nearbyMapLevel : _mapLevel,
+                markers: markers,
+                onMarkerTap: _pickById,
+                onUnavailable: () {
+                  if (mounted) setState(() => _mapUnavailable = true);
+                },
+                fallback: const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: OnCareSpacing.s12),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: AppButton(
@@ -3108,29 +3272,6 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           ),
         ],
         const SizedBox(height: OnCareSpacing.s12),
-        // 지도가 먼저다 — 회원 앱 헬스장 찾기와 같은 순서(#3223). 지도 위에는
-        // 아무것도 겹치지 않는다.
-        if (isKakaoMapConfigured && !_mapUnavailable) ...<Widget>[
-          ClipRRect(
-            borderRadius: OnCareRadius.mdAll,
-            child: SizedBox(
-              key: const ValueKey<String>('gym-map'),
-              height: _mapHeight,
-              child: KakaoMapView(
-                centerLat: centerLat,
-                centerLng: centerLng,
-                level: position != null ? _nearbyMapLevel : _mapLevel,
-                markers: markers,
-                onMarkerTap: _pickById,
-                onUnavailable: () {
-                  if (mounted) setState(() => _mapUnavailable = true);
-                },
-                fallback: const SizedBox.shrink(),
-              ),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-        ],
         if (_loading)
           Text(
             l.myGymSearching,
@@ -3336,8 +3477,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       // The server's own wording (현재 비밀번호가 일치하지 않습니다 …) is
       // more useful than anything generic we could substitute, and it is
       // always about the current password — that is the only value it
-      // verifies. 다만 그 문장은 한국어뿐이라 영어 화면에서는 기본 문구로
-      // 물러난다. (#501)
+      // verifies. (#501)
       if (mounted) {
         final AppLocalizations l = AppLocalizations.of(context);
         _fail(

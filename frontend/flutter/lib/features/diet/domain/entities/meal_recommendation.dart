@@ -1,8 +1,8 @@
 /// 홈 "AI 추천 식단" 카드 1장에 해당하는 추천 결과.
 ///
 /// 서버는 요리명·태그 같은 **문자열을 내려주지 않는다.** 카드에 쓰이는 사진은 앱
-/// 번들 에셋(`assets/images/rec-*`)이고 문구는 로케일별 ARB(`homeMeal*`)라, 서버가
-/// 텍스트를 생성하면 영어 화면에 한국어가 섞이고 사진이 없는 요리가 나온다.
+/// 번들 에셋(`assets/images/rec-*`)이고 문구는 ARB(`homeMeal*`)라, 서버가
+/// 텍스트를 생성하면 사진이 없는 요리가 나온다.
 ///
 /// 그래서 계약은 "서버는 [key]로 무엇을 어떤 순서로 보여줄지만 정하고, 그리기는
 /// 앱이 한다"이다. [reasonText]만 예외로, 서버가 사용자 수치를 근거로 쓴 개인화
@@ -123,7 +123,7 @@ class MealRecommendations {
   final bool personalized;
 
   /// 근거 수치 — 화면 문구는 앱이 l10n 으로 만든다. [basis] 는 서버가 조립한
-  /// 한국어 문장이라 영어 로케일에 그대로 쓸 수 없어 표시에 쓰지 않는다.
+  /// 문장이고 표시에 쓰지 않는다.
   final int daysWithData;
   final int avgSodiumMg;
   final int sodiumLimitMg;

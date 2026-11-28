@@ -184,7 +184,14 @@ class World:
             created_at=_dt(_day(1)),
         ))
 
-    def session(self, member_id: str, day: date, status: str, source: str = ""):
+    def session(
+        self,
+        member_id: str,
+        day: date,
+        status: str,
+        source: str = "",
+        cancelled_on: date | None = None,
+    ):
         from app.models.models import TrainerSchedule
 
         self._add(TrainerSchedule(
@@ -197,6 +204,7 @@ class World:
             type="1:1 PT",
             status=status,
             cancellation_source=source,
+            cancelled_at=_dt(cancelled_on) if cancelled_on is not None else None,
         ))
 
     def keep_active(self, member_id: str):
@@ -377,6 +385,36 @@ def test_no_show_ignores_sessions_older_than_window(world):
     _enough_exercise(world, m)
     world.session(m, _day(31), "노쇼")
     world.session(m, _day(40), "노쇼")
+    assert "no_show" not in world.kinds(m)
+
+
+def test_member_cancellation_counts_on_the_day_it_was_cancelled(world):
+    """다음 주 PT 를 오늘 미리 취소해도 바로 센다 (#3306)."""
+    m = world.member()
+    world.keep_active(m)
+    _enough_exercise(world, m)
+    world.session(m, _day(-3), "취소", source="member", cancelled_on=_day(0))
+    world.session(m, _day(-7), "취소", source="member", cancelled_on=_day(0))
+    signals = {s.kind: s for s in world.signals()[m]}
+    assert signals["no_show"].count == 2
+
+
+def test_cancellation_outside_window_by_cancel_day_is_not_counted(world):
+    """취소한 날이 창 밖이면 PT 날짜가 창 안이어도 세지 않는다 (#3306)."""
+    m = world.member(linked_days_ago=60)
+    world.keep_active(m)
+    _enough_exercise(world, m)
+    world.session(m, _day(5), "노쇼")
+    world.session(m, _day(2), "취소", source="member", cancelled_on=_day(35))
+    assert "no_show" not in world.kinds(m)
+
+
+def test_trainer_cancellation_is_not_counted_even_when_cancelled_ahead(world):
+    m = world.member()
+    world.keep_active(m)
+    _enough_exercise(world, m)
+    world.session(m, _day(5), "노쇼")
+    world.session(m, _day(-3), "취소", source="trainer", cancelled_on=_day(0))
     assert "no_show" not in world.kinds(m)
 
 

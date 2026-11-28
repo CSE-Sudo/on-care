@@ -20,12 +20,10 @@ void main() {
   Future<void> pumpConsole(
     WidgetTester tester, {
     String sha = kCurrentSha,
-    Locale locale = const Locale('ko'),
   }) async {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token-existing',
-      locale: locale,
       extraOverrides: releaseOverrides(probe, sha: sha),
       at: AppRoutes.dashboard,
     );
@@ -217,16 +215,4 @@ void main() {
       });
     });
   }
-
-  testWidgets('영어 화면은 영어 문구다', (tester) async {
-    await withWideSurface(tester, () async {
-      await pumpConsole(tester, locale: const Locale('en'));
-      final AppLocalizations l = lookupAppLocalizations(const Locale('en'));
-      expect(find.text(l.releaseUpdateTitle), findsOneWidget);
-      expect(find.text(l.releaseUpdateReload), findsOneWidget);
-      expect(find.byTooltip(l.releaseUpdateDismiss), findsOneWidget);
-      expect(l.releaseUpdateTitle, 'The app has been updated');
-      expect(l.releaseUpdateReload, 'Refresh');
-    });
-  });
 }

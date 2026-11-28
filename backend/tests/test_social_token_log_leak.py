@@ -399,11 +399,11 @@ def test_api_google_login_sends_post_without_token_in_url(client, real_logging, 
     assert parse_qs(req.content.decode()) == {"id_token": [SECRET_TOKEN]}
 
 
-@pytest.mark.parametrize("provider", ["naver", "apple"])
+@pytest.mark.parametrize("provider", ["naver"])
 def test_api_dropped_provider_is_rejected_without_calling_out(
     client, real_logging, monkeypatch, provider
 ):
-    """네이버·애플은 제공하지 않는다(#3218) — 400 이고, 앱이 보낸 토큰을 어디로도 보내지도 남기지도 않는다."""
+    """네이버는 제공하지 않는다(#3218) — 400 이고, 앱이 보낸 토큰을 어디로도 보내지도 남기지도 않는다."""
     out = real_logging("DEBUG")
     seen = respond_json(monkeypatch, PROVIDERS["kakao"].valid_body("dropped-3218"))
 

@@ -31,9 +31,6 @@ String _currentMonday() {
   );
 }
 
-Options _lang(String lang) =>
-    Options(headers: <String, Object?>{'Accept-Language': lang});
-
 void main() {
   late AppDatabase db;
   late Dio dio;
@@ -50,16 +47,12 @@ void main() {
     dio.close();
   });
 
-  Future<Map<String, Object?>> summary([String lang = 'ko']) async =>
-      (await dio.get<Map<String, Object?>>(
-        '/dashboard/summary',
-        options: _lang(lang),
-      )).data!;
+  Future<Map<String, Object?>> summary() async =>
+      (await dio.get<Map<String, Object?>>('/dashboard/summary')).data!;
 
-  Future<String> dayMessage(String date, [String lang = 'ko']) async =>
+  Future<String> dayMessage(String date) async =>
       (await dio.get<Map<String, Object?>>(
             '/diet/days/$date',
-            options: _lang(lang),
           )).data!['ai_coach_message']!
           as String;
 
@@ -124,27 +117,25 @@ void main() {
 
     test('큐레이션 조언 대신 지금 기록으로 만든 조언이다', () async {
       final Map<String, Object?> ko = await summary();
-      final Map<String, Object?> en = await summary('en');
 
       expect(ko['ai_advice_key'], isNot(kDailyCombinedAdviceKey));
       // 나트륨이 0 이라 경고는 없고, 이번 주 운동 되먹임이 조언이다.
       expect(ko['sodium_warning'], isNull);
       expect(
         ko['ai_advice_key'],
-        isIn(<String>['exercise_start', 'exercise_more', 'exercise_on_track']),
+        isIn(<String>[
+          'exercise_start',
+          'exercise_cardio_start',
+          'exercise_more',
+          'exercise_on_track',
+        ]),
       );
-      expect(en['ai_advice_key'], ko['ai_advice_key']);
-      expect(en['exercise_feedback'], isNot(matches(RegExp('[가-힣]'))));
     });
 
     test('식단 탭 하루 문장도 시드 큐레이션이 아니라 빈 날 문장이다', () async {
       expect(
         await dayMessage(_today()),
-        LocalApiInterceptor.derivedDietDayMessage(
-          lang: 'ko',
-          totalSodium: 0,
-          empty: true,
-        ),
+        LocalApiInterceptor.derivedDietDayMessage(totalSodium: 0, empty: true),
       );
     });
 

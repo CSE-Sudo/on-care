@@ -54,25 +54,6 @@ const List<String> demoEscalationKeywords = <String>[
   '골절',
 ];
 
-/// 주의 부위 이름의 영어. 근거 문장에만 쓴다(서버 `_EN_CAUTION_PARTS`).
-const Map<String, String> demoEnCautionParts = <String, String>{
-  '무릎': 'knee',
-  '허리': 'lower back',
-  '어깨': 'shoulder',
-  '발목': 'ankle',
-};
-
-/// 라이브러리 운동 이름의 영어(서버 `_EN_EXERCISE_NAMES`). 회원 기록에 적힌
-/// 반복 운동 이름은 여기 없어 원문 그대로다.
-const Map<String, String> demoEnExerciseNames = <String, String>{
-  '저강도 걷기': 'Low-intensity walk',
-  '인터벌 러닝': 'Interval running',
-  '스쿼트': 'Squat',
-  '플랭크': 'Plank',
-  '코어 스트레칭': 'Core stretch',
-  '목·어깨 스트레칭': 'Neck & shoulder stretch',
-};
-
 /// 라이브러리 운동(한국어 이름·계약 유형). 서버 `_CARDIO_EASY` 등과 같다.
 const (String, String) libCardioEasy = ('저강도 걷기', '유산소');
 const (String, String) libCardioHard = ('인터벌 러닝', '유산소');
@@ -147,25 +128,14 @@ List<(String, String, int)> safeParts(
 }
 
 /// 근거 문장에 붙일 안전 메모 — 서버 `_caution_suffix`.
-String cautionSuffix(List<String> cautions, bool escalate, {required bool en}) {
+String cautionSuffix(List<String> cautions, bool escalate) {
   final StringBuffer out = StringBuffer();
   if (cautions.isNotEmpty) {
-    if (en) {
-      final String names = cautions
-          .map((String c) => demoEnCautionParts[c] ?? c)
-          .join(', ');
-      out.write(
-        ' Cautions ($names) applied: removed movements that load those areas.',
-      );
-    } else {
-      out.write(' 주의사항(${cautions.join(', ')}) 반영: 해당 부위 부담 동작을 뺐어요.');
-    }
+    out.write(' 주의사항(${cautions.join(', ')}) 반영: 해당 부위 부담 동작을 뺐어요.');
   }
   if (escalate) {
     out.write(
-      en
-          ? ' Intensity was not raised — adjust after a professional check.'
-          : ' 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.',
+      ' 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.',
     );
   }
   return out.toString();
@@ -179,8 +149,8 @@ const Map<String, String> demoCautionExamples = <String, String>{
   '발목': '러닝·점프·줄넘기',
 };
 
-/// 판단 결과의 근거 자료 — (화면 이름 ko, en, 최근 것부터의 줄) (#3280).
-typedef DemoFindingSource = (String, String, List<String>);
+/// 판단 결과의 근거 자료 — (화면 이름, 최근 것부터의 줄) (#3280).
+typedef DemoFindingSource = (String, List<String>);
 
 final RegExp _lineDate = RegExp(r'^(\d{2}\.\d{2})');
 
@@ -189,7 +159,7 @@ final RegExp _lineDate = RegExp(r'^(\d{2}\.\d{2})');
   List<String> keywords,
 ) {
   for (final DemoFindingSource source in sources) {
-    for (final String line in source.$3) {
+    for (final String line in source.$2) {
       for (final String keyword in keywords) {
         if (line.contains(keyword)) return (source, line, keyword);
       }
@@ -198,8 +168,8 @@ final RegExp _lineDate = RegExp(r'^(\d{2}\.\d{2})');
   return null;
 }
 
-String _sourceLabel(DemoFindingSource source, String line, {required bool en}) {
-  final String name = en ? source.$2 : source.$1;
+String _sourceLabel(DemoFindingSource source, String line) {
+  final String name = source.$1;
   final RegExpMatch? m = _lineDate.firstMatch(line.trim());
   return m == null ? name : '$name · ${m.group(1)}';
 }
@@ -213,26 +183,19 @@ List<RoutineFinding> ruleFindings({
   required int sodium,
   required bool sodiumOver,
   required int completion,
-  required bool en,
 }) {
-  String t(String ko, String english) => en ? english : ko;
   final List<RoutineFinding> out = <RoutineFinding>[];
   for (final (String part, List<String> keywords, List<String> risky)
       in demoCautionRules) {
     final hit = _firstHit(sources, keywords);
     if (hit == null) continue;
-    final String partEn = demoEnCautionParts[part] ?? part;
     final String moves = demoCautionExamples[part] ?? risky.take(3).join('·');
     out.add(
       RoutineFinding(
         kind: 'caution',
-        finding: t('$part 불편·통증 언급', 'Mentions $partEn discomfort'),
-        source: _sourceLabel(hit.$1, hit.$2, en: en),
-        action: t(
-          '$part에 부담이 큰 동작($moves 등)을 빼고 저충격 대안으로',
-          'Removes movements that load the $partEn and uses '
-              'low-impact alternatives',
-        ),
+        finding: '$part 불편·통증 언급',
+        source: _sourceLabel(hit.$1, hit.$2),
+        action: '$part에 부담이 큰 동작($moves 등)을 빼고 저충격 대안으로',
       ),
     );
   }
@@ -241,50 +204,32 @@ List<RoutineFinding> ruleFindings({
     out.add(
       RoutineFinding(
         kind: 'escalation',
-        finding: t(
-          '전문가 확인이 필요한 언급(${escalation.$3})',
-          'Mentions a symptom that needs a professional check',
-        ),
-        source: _sourceLabel(escalation.$1, escalation.$2, en: en),
-        action: t(
-          '강도를 올리지 않음 — 전문가 확인 후 조정',
-          'Does not raise intensity — adjust after a professional check',
-        ),
+        finding: '전문가 확인이 필요한 언급(${escalation.$3})',
+        source: _sourceLabel(escalation.$1, escalation.$2),
+        action: '강도를 올리지 않음 — 전문가 확인 후 조정',
       ),
     );
   }
-  final String records = t('운동 기록', 'Workout records');
+  const String records = '운동 기록';
   if (frequent.isNotEmpty) {
     final String names = frequent.join(', ');
     out.add(
       RoutineFinding(
         kind: 'pattern',
-        finding: t('반복한 운동: $names', 'Repeated exercises: $names'),
-        source: t(
-          '$records · 최근 $periodDays일 $sessionCount회',
-          '$records · last $periodDays days, $sessionCount sessions',
-        ),
-        action: t(
-          '회복안은 이 운동을 그대로 유지, 강화안은 하나를 더해 운동량 확대',
-          'Recovery plan keeps these; the Push plan adds one to raise the workload',
-        ),
+        finding: '반복한 운동: $names',
+        source: '$records · 최근 $periodDays일 $sessionCount회',
+        action: '회복안은 이 운동을 그대로 유지, 강화안은 하나를 더해 운동량 확대',
       ),
     );
     return out;
   }
-  final String easeA = t(
-    '회복안 부담을 낮추고 스트레칭 비중 확대',
-    'Recovery plan lowers the load and adds more stretching',
-  );
+  const String easeA = '회복안 부담을 낮추고 스트레칭 비중 확대';
   if (sodiumOver) {
     out.add(
       RoutineFinding(
         kind: 'sodium',
-        finding: t(
-          '오늘 나트륨 ${sodium}mg (목표 초과)',
-          'Sodium today $sodium mg (over goal)',
-        ),
-        source: t('식단 기록 · 오늘', 'Diet records · today'),
+        finding: '오늘 나트륨 ${sodium}mg (목표 초과)',
+        source: '식단 기록 · 오늘',
         action: easeA,
       ),
     );
@@ -292,27 +237,17 @@ List<RoutineFinding> ruleFindings({
   out.add(
     RoutineFinding(
       kind: 'adherence',
-      finding: t('평균 완료율 $completion%', 'Average completion $completion%'),
+      finding: '평균 완료율 $completion%',
       source: records,
       action: completion < 50
           ? easeA
           : completion >= 60
-          ? t(
-              '상향 여력이 있어 강화안에서 운동량을 높임',
-              'Room to step up — the Push plan raises the workload',
-            )
-          : t(
-              '강화안은 운동량을 점진적으로 높임',
-              'Push plan raises the workload gradually',
-            ),
+          ? '상향 여력이 있어 강화안에서 운동량을 높임'
+          : '강화안은 운동량을 점진적으로 높임',
     ),
   );
   return out;
 }
-
-/// 라이브러리 운동 이름을 화면 언어로. 라이브러리 밖 이름은 그대로다.
-String libraryExerciseName(String name, {required bool en}) =>
-    en ? demoEnExerciseNames[name] ?? name : name;
 
 /// 반복 운동 이름으로 유형을 대략 짐작한다 — 서버 `_guess_type`.
 String guessExerciseType(String name) {

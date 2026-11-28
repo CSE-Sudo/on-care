@@ -14,8 +14,6 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/shared/services/locale_provider.dart';
-import 'package:oncare_core/network/accept_language_interceptor.dart';
 
 /// App-wide `Dio` instance, wired with logging/auth/local-api interceptors
 /// based on the current [AppConfig]. Feature data sources should read
@@ -40,12 +38,6 @@ final dioProvider = Provider<Dio>((ref) {
       // factory.
       validateStatus: (int? status) => status != null && status < 400,
     ),
-  );
-
-  // 화면 언어는 가장 먼저 싣는다 — 목업 인터셉터도 같은 요청 헤더를 보게.
-  // 언어는 요청마다 읽으므로 언어가 바뀌어도 Dio 를 다시 만들지 않는다(#2297).
-  dio.interceptors.add(
-    AcceptLanguageInterceptor(() => ref.read(resolvedLocaleProvider)),
   );
 
   // Order matters: LocalApi (drift-backed) short-circuits before auth/logging

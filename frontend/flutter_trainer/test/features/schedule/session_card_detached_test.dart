@@ -46,7 +46,6 @@ Map<String, dynamic> _json({required bool detached, String status = '완료'}) =
 Future<void> _pumpCard(
   WidgetTester tester,
   ScheduleSession session, {
-  Locale locale = const Locale('ko'),
   List<TrainerClient> roster = const <TrainerClient>[],
 }) async {
   tester.view.physicalSize = const Size(420, 900);
@@ -60,7 +59,7 @@ Future<void> _pumpCard(
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -154,17 +153,6 @@ void main() {
       find.byKey(const ValueKey<String>('session-detached-member')),
       findsOneWidget,
     );
-  });
-
-  testWidgets('영어 화면은 Former member 로 쓴다', (tester) async {
-    await _pumpCard(
-      tester,
-      scheduleSessionFromJson(_json(detached: true)),
-      locale: const Locale('en'),
-    );
-
-    expect(find.text('Former member'), findsOneWidget);
-    expect(find.text('해제 회원'), findsNothing);
   });
 
   testWidgets('연결된 회원 카드는 그대로다', (tester) async {

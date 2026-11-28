@@ -152,6 +152,14 @@ class DioExerciseRepository implements ExerciseRepository {
   };
 
   @override
+  Future<void> moveSessions(List<String> ids, DateTime date) async {
+    await _dio.post<Map<String, Object?>>(
+      '/exercise/sessions/move',
+      data: <String, Object?>{'session_ids': ids, 'date': wireDate(date)},
+    );
+  }
+
+  @override
   Future<void> deleteSession(String id) async {
     await _dio.delete<Map<String, Object?>>('/exercise/sessions/$id');
   }

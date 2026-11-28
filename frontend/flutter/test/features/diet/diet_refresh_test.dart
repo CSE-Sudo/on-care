@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/advice/diet_advice.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
@@ -53,9 +54,9 @@ class _CountingRepository extends FakeDietRepository {
   }
 
   @override
-  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) {
+  Future<DietAdvice> fetchAdvice(String period) {
     adviceCalls++;
-    return super.fetchAdvice(period, lang: lang);
+    return super.fetchAdvice(period);
   }
 }
 
@@ -104,9 +105,7 @@ void main() {
     await container.read(dietPeriodProvider(all).future);
     await container.read(dietTodayProvider.future);
     await container.read(dietByDateProvider(DateTime(2026, 8, 18)).future);
-    await container.read(
-      dietAdviceProvider((period: 'week', lang: 'ko')).future,
-    );
+    await container.read(dietAdviceProvider('week').future);
     await container.read(recordSpanProvider.future);
   }
 
@@ -141,9 +140,7 @@ void main() {
 
     refreshDietRecords(container.invalidate);
     await container.read(dietTodayProvider.future);
-    await container.read(
-      dietAdviceProvider((period: 'week', lang: 'ko')).future,
-    );
+    await container.read(dietAdviceProvider('week').future);
 
     expect(repo.todayCalls, greaterThan(today));
     expect(repo.adviceCalls, advice + 1);
@@ -204,6 +201,14 @@ void main() {
     await container.read(dietByDateProvider(past).future);
 
     expect(repo.byDateCalls[past], before + 1);
+  });
+
+  test('홈 코칭 시트도 갱신 대상이다 — 기록한 뒤에 기록을 권하는 카드가 남지 않게(#3351)', () {
+    expect(kDietChangeRefreshTargets, contains(same(aiCoachStateProvider)));
+    expect(
+      kDietChangeRefreshTargets.toSet().length,
+      kDietChangeRefreshTargets.length,
+    );
   });
 
   // MY 기록 그래프는 "식단 또는 운동을 기록한 날" 을 칠한다. 운동만 비우고

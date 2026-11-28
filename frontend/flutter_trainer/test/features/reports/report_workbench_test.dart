@@ -54,7 +54,6 @@ void main() {
     Size size = const Size(1600, 1200),
     List<TrainerClient> clients = const <TrainerClient>[],
     String at = AppRoutes.reports,
-    Locale locale = const Locale('ko'),
     List<Override> extraOverrides = const <Override>[],
   }) async {
     tester.view.devicePixelRatio = 1.0;
@@ -65,7 +64,6 @@ void main() {
       tester,
       token: 'demo-trainer-token',
       at: at,
-      locale: locale,
       extraOverrides: <Override>[
         if (clients.isNotEmpty)
           clientsProvider.overrideWith(
@@ -283,38 +281,6 @@ void main() {
     expect(find.text('PT'), findsOneWidget);
   });
 
-  testWidgets('영어로 켜도 작업대에 한국어가 남지 않는다 (#501, #2232)', (tester) async {
-    await openWorkbench(
-      tester,
-      locale: const Locale('en'),
-      clients: <TrainerClient>[
-        makeClient(
-          id: 'a',
-          name: 'Alex Kim',
-          goal: 'Lose weight',
-          lastMessage: 'hi',
-          lastTime: 'now',
-          lastRoutine: 'today',
-          weekCompletion: const <int>[10, 0, 0, 10, 0, 0, 0],
-        ),
-      ],
-    );
-
-    final RegExp hangul = RegExp(r'[가-힣]');
-    final List<String> leftovers = tester
-        .widgetList<Text>(
-          find.descendant(
-            of: find.byType(ReportWorkbench),
-            matching: find.byType(Text),
-          ),
-        )
-        .map((Text t) => t.data ?? t.textSpan?.toPlainText() ?? '')
-        .where(hangul.hasMatch)
-        .toList();
-
-    expect(leftovers, isEmpty, reason: '영어 로케일인데 한국어가 그려졌어요: $leftovers');
-  });
-
   testWidgets('작업대 줄은 훈련 쪽 사실만 적는다 — 칼로리·나트륨·당류는 없다 (#2232)', (tester) async {
     await openWorkbench(
       tester,
@@ -515,13 +481,6 @@ void main() {
       expect(row.bottom, lessThanOrEqualTo(tester.getRect(queueBox()).top));
       expect(percent(), findsOneWidget);
       expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('영어에서는 sent 와 비율을 함께 적는다', (tester) async {
-      await openWorkbench(tester, clients: _roster, locale: const Locale('en'));
-
-      expect(find.text('0 / 2 sent'), findsOneWidget);
-      expect(tester.widget<Text>(percent()).data, '0%');
     });
 
     test('비율은 반올림한 정수다', () {
@@ -866,16 +825,6 @@ void main() {
       await settle(tester);
 
       expect(find.text('정렬: 이름 내림차순'), findsOneWidget);
-    });
-
-    testWidgets('영어 문구', (tester) async {
-      await openWorkbench(tester, clients: trio, locale: const Locale('en'));
-
-      expect(find.text('Sort: Needs attention first'), findsOneWidget);
-      await tester.tap(sortButton());
-      await settle(tester);
-      expect(find.text('Name A–Z'), findsOneWidget);
-      expect(find.text('Name Z–A'), findsOneWidget);
     });
 
     test('정렬 도메인 — 우선 확인·이름 오름·내림', () {

@@ -4,9 +4,6 @@ RAG(retrieve)로 개인+공공 근거를 모아 LLM 으로 대화형 답변을 �
 LLM 키가 없거나 실패하면 검색 기반(추출형) 답변으로 폴백해, 키 없이도 근거 있는 응답을 준다.
 검색(임베딩) 자체가 실패해도 같은 폴백으로 내려간다 — 외부 장애가 코치 전체 장애가 되지 않게(#1543).
 개인/공공 격리·도메인 필터는 retrieve 가 이미 보장한다.
-
-답은 요청 언어(`Accept-Language`, #2297)로 한다(#2712). 영어면 한국어 지시문 끝에 출력
-언어 규칙만 덧붙이고, 질문 끝 지시문과 대체 답도 영어로 낸다 — 한국어 프롬프트는 그대로다.
 """
 
 from __future__ import annotations
@@ -18,10 +15,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.locale import current_locale, localized
 from app.db.session import release_connection
 from app.models.models import HealthProfile
-from app.services.coach import grounding, insights, prompt_safety
+from app.services.coach import grounding, insights, prompt_rules, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve
 from app.services.coach_service import diet_period_context
@@ -35,8 +31,11 @@ _SYSTEM = (
     "회원의 식단·운동을 돕습니다. "
     "제공된 '내 건강 기록'과 '참고 자료(공공 가이드라인)'에 근거해 "
     f"{grounding.GROUNDED_TOPIC_PHRASE} 관리를 "
-    "중심으로 친근하고 구체적으로 한국어로 답하세요. 2~4문장으로 간결하게, 근거 없는 단정이나 의학적 "
-    "진단은 피하고, 증상이 심각해 보이면 전문의 상담을 권하세요. "
+    "중심으로 친근하고 구체적으로 한국어로 답하세요. 2~4문장으로 간결하게 쓰세요. "
+    # 진단 금지와 어투는 모든 프롬프트가 같은 문구를 쓴다(#1642).
+    + prompt_rules.MEMBER_VOICE + " "
+    + prompt_rules.MEDICAL_GUARD + " "
+    "증상이 심각해 보이면 전문의 상담을 권하세요. "
     # 감지 요약을 어떻게 쓸지 적어 둔다(#1973). 없으면 요약을 넣어도 모델이
     # 그냥 지나친다 — 통증을 알고도 그 부위 운동을 그대로 권하게 된다.
     "'최근 이야기한 불편'이 있으면 그 부위에 힘이 실리는 동작은 권하지 말고 대안을 "
@@ -47,23 +46,10 @@ _SYSTEM = (
     # '내 건강 기록'에는 트레이너와 주고받은 대화도 섞여 들어온다(#580).
     + prompt_safety.UNTRUSTED_QUOTE_GUARD + " "
     # 식단 기록 줄에는 회원이 적은 음식 이름이 들어 있다(#3090).
-    + prompt_safety.FOOD_NAME_GUARD
+    + prompt_safety.FOOD_NAME_GUARD + " "
+    # 프로필의 `건강 상태` 에는 회원·트레이너가 적은 주의사항 글이 들어 있다(#1642).
+    + prompt_safety.HEALTH_NOTE_GUARD
 )
-
-#: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2712).
-#: 기록·검색 자료는 한국어 그대로 넘기고, 답하는 언어만 바꾸게 한다.
-_ENGLISH_OUTPUT_RULE = (
-    " Output language: the member is using the app in English. Reply in natural "
-    "English, ignoring the instruction above to answer in Korean. Quote food or "
-    "exercise names from the records as-is if you cite them, but write the "
-    "surrounding sentences in English."
-)
-
-
-def _system_prompt() -> str:
-    """요청 언어에 맞는 시스템 프롬프트. 한국어는 [_SYSTEM] 그대로다."""
-    return _SYSTEM + _ENGLISH_OUTPUT_RULE if current_locale() == "en" else _SYSTEM
-
 
 logger = logging.getLogger(__name__)
 
@@ -117,11 +103,7 @@ def _build_user_prompt(context: str, history: list, message: str) -> str:
         ]
         parts.append("[이전 대화]\n" + "\n".join(convo))
     parts.append(
-        localized(
-            f"사용자 질문: {message}\n\n온이로서 위 정보를 바탕으로 답해 주세요.",
-            f"Member question: {message}\n\n"
-            "As Oni, answer based on the information above.",
-        )
+        f"사용자 질문: {message}\n\n온이로서 위 정보를 바탕으로 답해 주세요."
     )
     return "\n\n".join(parts)
 
@@ -183,28 +165,13 @@ def _fallback_reply(hits: dict) -> str:
     pub = hits["public"]
     if pub:
         top = pub[0]
-        if current_locale() == "en":
-            # 공공 자료 본문은 한국어 원문뿐이다 — 영어 답에 한국어 문단을 그대로
-            # 붙이지 않고, 어느 자료인지만 알린다(#2712).
-            lead = f"The guideline '{top.title}' covers this. " if top.title else ""
-            return (
-                f"{lead}Ask me more specifically about your diet or exercise "
-                "and Oni will help!"
-            )
         lead = f"'{top.title}' 자료에 따르면, " if top.title else ""
         return f"{lead}{top.content} 더 궁금한 점이 있으면 편하게 물어봐 주세요!"
     if hits["personal"]:
-        return localized(
-            "최근 기록을 보면 꾸준히 관리하고 계세요. 식단과 운동 중 어떤 부분이 궁금하신가요?",
-            "Your recent records show you're keeping at it. "
-            "Which would you like to ask about, diet or exercise?",
-        )
+        return "최근 기록을 보면 꾸준히 관리하고 계세요. 식단과 운동 중 어떤 부분이 궁금하신가요?"
     # 안내 문구도 실제로 답할 수 있는 것만 권한다 — 혈압·혈당을 물으라고 해 놓고
     # 기록이 없어 일반론만 돌려주면 그 자리에서 신뢰를 잃는다(#602).
-    return localized(
-        "식단·운동 관리에 대해 물어봐 주시면 온이가 도와드릴게요!",
-        "Ask about managing your diet or exercise and Oni will help!",
-    )
+    return "식단·운동 관리에 대해 물어봐 주시면 온이가 도와드릴게요!"
 
 
 def _safe_retrieve(db: Session, user_id: str, message: str) -> dict:
@@ -360,7 +327,7 @@ def answer(
     ai_call_quota.acquire(ai_call_quota.FEATURE_COACH_CHAT)
     try:
         # `.text` 가 없거나 문자열이 아닌 응답도 provider 응답 계약 위반으로 센다.
-        text = (llm.generate(_system_prompt(), prompt).text or "").strip()
+        text = (llm.generate(_SYSTEM, prompt).text or "").strip()
     except Exception as exc:  # noqa: BLE001 — 네트워크/인증/한도/모델 오류 → 폴백
         _log_fallback(
             FALLBACK_PROVIDER_ERROR,

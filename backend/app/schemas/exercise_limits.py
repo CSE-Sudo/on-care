@@ -62,3 +62,10 @@ MAX_EXERCISE_SECONDS = MAX_EXERCISE_MINUTES * 60
 #: 회원은 하루치 운동 여러 개를 한 번에 저장한다. 하루에 스무 가지가 넘는 운동을
 #: 따로 기록할 일은 없다고 본다 — 상한이 없으면 요청 하나가 행을 얼마든지 만든다.
 MAX_EXERCISE_SESSIONS_PER_REQUEST = 20
+
+#: 한 번에 날짜를 옮길 수 있는 운동 기록 수. (#3365)
+#:
+#: 회원은 하루의 기록을 통째로 다른 날로 옮긴다. 하루치는 여러 번에 나눠 적을 수
+#: 있어 한 번의 추가 상한([MAX_EXERCISE_SESSIONS_PER_REQUEST])보다 넉넉히 둔다 —
+#: 상한이 없으면 요청 하나가 id 를 얼마든지 싣는다.
+MAX_EXERCISE_SESSIONS_PER_MOVE = 100

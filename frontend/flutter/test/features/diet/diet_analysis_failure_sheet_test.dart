@@ -31,11 +31,6 @@ final Uint8List _jpegBytes = Uint8List.fromList(<int>[
 
 MealPhoto get _photo => MealPhoto.fromBytes(_jpegBytes)!;
 
-/// 영어 화면의 `사진 찍기` 버튼 문구.
-final String _enTakePhoto = lookupAppLocalizations(
-  const Locale('en'),
-).dietTakePhoto;
-
 class _FixedPicker implements MealPhotoPicker {
   @override
   Future<MealPhoto?> pick(MealPhotoSource source) async => _photo;
@@ -96,7 +91,6 @@ class _RejectingDietRepository extends _FailingDietRepository {
 Future<ProviderContainer> _openResultSheet(
   WidgetTester tester,
   _FailingDietRepository repository, {
-  Locale locale = const Locale('ko'),
   bool inDemoSession = false,
   DateTime? date,
 }) async {
@@ -120,7 +114,7 @@ Future<ProviderContainer> _openResultSheet(
       container: container,
       child: MaterialApp(
         theme: AppTheme.light(),
-        locale: locale,
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
@@ -138,9 +132,7 @@ Future<ProviderContainer> _openResultSheet(
   );
   await tester.tap(find.text('open'));
   await tester.pumpAndSettle();
-  await tester.tap(
-    find.text(locale.languageCode == 'ko' ? '사진 찍기' : _enTakePhoto),
-  );
+  await tester.tap(find.text('사진 찍기'));
   await tester.pumpAndSettle();
   return container;
 }
@@ -422,20 +414,6 @@ void main() {
 
     expect(find.text('데이터 공유 동의가 필요합니다.'), findsOneWidget);
     expect(_actionLabel(tester), '닫기');
-  });
-
-  testWidgets('영어 화면에는 403 의 한국어 사유가 새지 않는다', (WidgetTester tester) async {
-    final _FailingDietRepository repo = _FailingDietRepository(
-      403,
-      body: <String, Object?>{'detail': '데이터 공유 동의가 필요합니다.'},
-    );
-    await _openResultSheet(tester, repo, locale: const Locale('en'));
-
-    expect(find.text('데이터 공유 동의가 필요합니다.'), findsNothing);
-    expect(
-      find.text(lookupAppLocalizations(const Locale('en')).errorForbidden),
-      findsOneWidget,
-    );
   });
 
   testWidgets('429 는 잠시 뒤 다시 시도로 안내하고 재시도를 제공한다', (WidgetTester tester) async {

@@ -14,12 +14,23 @@ sealed class SocialSignInResult {
 /// provider 토큰을 받았다 — 서버 `POST /auth/social/{provider}` 에 그대로 보낸다.
 ///
 /// 구글은 ID 토큰, 카카오는 access_token 이다. 웹 카카오는 서버가 인가 코드를
-/// 바꿔 준 access_token 이다.
+/// 바꿔 준 access_token 이다. 애플은 identity_token 이다(#3499).
 final class SocialSignInSuccess extends SocialSignInResult {
-  const SocialSignInSuccess(this.provider, this.token);
+  const SocialSignInSuccess(
+    this.provider,
+    this.token, {
+    this.name,
+    this.authorizationCode,
+  });
 
   final SocialLoginProvider provider;
   final String token;
+
+  /// provider 가 토큰 밖으로 따로 준 이름(애플 첫 로그인). 서버 로그인 본문 `name`.
+  final String? name;
+
+  /// 애플 authorization_code — 탈퇴 때 서버가 Apple 토큰을 철회하는 데 쓴다(#3499).
+  final String? authorizationCode;
 
   // 토큰은 로그·오류 보고에 찍히지 않게 문자열에 담지 않는다.
   @override

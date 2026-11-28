@@ -140,10 +140,12 @@ class DemoCouponBook implements DemoPersistable {
   /// `POST /me/points/exchange`.
   ///
   /// [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 지금은 그래프 색(#2076) 하나다.
+  /// [reportInsights] 는 주간 리포트를 받을 때 함께 남길 지금의 감지 기록이다(#3349).
   DemoCouponResult exchange(
     String itemId, {
     String? option,
     String? clientRequestId,
+    List<Map<String, Object?>> reportInsights = const <Map<String, Object?>>[],
   }) {
     final DemoShopItem? item = _item(itemId);
     if (item == null) return _error(404, '없는 교환 항목이에요.');
@@ -153,7 +155,10 @@ class DemoCouponBook implements DemoPersistable {
     }
     if (item.id == kDemoWeeklyReport.id) {
       // 쿠폰이 아니라 지난주 리포트 한 주를 받는다 — 담당이 없는 회원만(#2022).
-      return reports.exchange(clientRequestId: clientRequestId);
+      return reports.exchange(
+        clientRequestId: clientRequestId,
+        insights: reportInsights,
+      );
     }
     if (item.id == kDemoProfilePet.id) {
       // 쿠폰이 아니라 고른 펫이 7일 동안 이름 옆에 붙는다(#2021).

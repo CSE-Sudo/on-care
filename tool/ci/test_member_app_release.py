@@ -42,6 +42,20 @@ USER_APP_CI = REPO_ROOT / ".github" / "workflows" / "user-app-ci.yml"
 INFRA_CI = REPO_ROOT / ".github" / "workflows" / "infra-ci.yml"
 DOC = REPO_ROOT / "docs" / "mobile_release.md"
 PBXPROJ = REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner.xcodeproj" / "project.pbxproj"
+ENTITLEMENTS = REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner" / "Runner.entitlements"
+PODFILE = REPO_ROOT / "frontend" / "flutter" / "ios" / "Podfile"
+PACKAGE_RESOLVED = (
+    REPO_ROOT / "frontend" / "flutter" / "ios" / "Runner.xcworkspace" / "xcshareddata" / "swiftpm" / "Package.resolved",
+    REPO_ROOT
+    / "frontend"
+    / "flutter"
+    / "ios"
+    / "Runner.xcodeproj"
+    / "project.xcworkspace"
+    / "xcshareddata"
+    / "swiftpm"
+    / "Package.resolved",
+)
 BUNDLE_ID = "com.csesudo.oncare"
 FROM_FILE = "--dart-define-from-file=config/release.json"
 CHECKER = "bash tool/check_release_defines.sh config/release.json"
@@ -454,8 +468,8 @@ def profile_plist(**overrides) -> bytes:
     data = {
         "UUID": "12345678-ABCD-ABCD-ABCD-123456789ABC",
         "Name": "On-Care App Store",
-        "TeamIdentifier": ["UFM3HBFN93"],
-        "Entitlements": {"application-identifier": f"UFM3HBFN93.{BUNDLE_ID}", "get-task-allow": False},
+        "TeamIdentifier": ["VWCBNTMH6B"],
+        "Entitlements": {"application-identifier": f"VWCBNTMH6B.{BUNDLE_ID}", "get-task-allow": False},
     }
     data.update(overrides)
     return plistlib.dumps(data)
@@ -468,13 +482,13 @@ class IosReleaseSigningTest(unittest.TestCase):
 
     def test_reads_an_app_store_profile(self) -> None:
         self.assertEqual(self.profile.uuid, "12345678-ABCD-ABCD-ABCD-123456789ABC")
-        self.assertEqual(self.profile.team_id, "UFM3HBFN93")
+        self.assertEqual(self.profile.team_id, "VWCBNTMH6B")
 
     def test_rejects_profiles_for_other_apps_or_development(self) -> None:
         cases = {
-            "다른 앱": {"Entitlements": {"application-identifier": "UFM3HBFN93.com.other.app"}},
-            "와일드카드": {"Entitlements": {"application-identifier": "UFM3HBFN93.*"}},
-            "개발용": {"Entitlements": {"application-identifier": f"UFM3HBFN93.{BUNDLE_ID}",
+            "다른 앱": {"Entitlements": {"application-identifier": "VWCBNTMH6B.com.other.app"}},
+            "와일드카드": {"Entitlements": {"application-identifier": "VWCBNTMH6B.*"}},
+            "개발용": {"Entitlements": {"application-identifier": f"VWCBNTMH6B.{BUNDLE_ID}",
                                        "get-task-allow": True}},
             "Ad Hoc": {"ProvisionedDevices": ["00008030-000000000000000E"]},
             "UUID 형식": {"UUID": "not-a-uuid"},
@@ -497,7 +511,7 @@ class IosReleaseSigningTest(unittest.TestCase):
         self.assertIn('\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n', body)
         self.assertIn('\t\t\t\t"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";\n', body)
         self.assertIn('\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "12345678-ABCD-ABCD-ABCD-123456789ABC";\n', body)
-        self.assertIn("\t\t\t\tDEVELOPMENT_TEAM = UFM3HBFN93;\n", body)
+        self.assertIn("\t\t\t\tDEVELOPMENT_TEAM = VWCBNTMH6B;\n", body)
         # 다른 블록(Debug·Profile·RunnerTests·프로젝트 설정)은 그대로다.
         self.assertEqual(patched.count("PROVISIONING_PROFILE_SPECIFIER"), 1)
         self.assertEqual(patched.count("CODE_SIGN_STYLE = Manual"), 1)
@@ -531,7 +545,7 @@ class IosReleaseSigningTest(unittest.TestCase):
         options = plistlib.loads(signing.export_options(BUNDLE_ID, self.profile))
         self.assertEqual(options["method"], "app-store-connect")
         self.assertEqual(options["signingStyle"], "manual")
-        self.assertEqual(options["teamID"], "UFM3HBFN93")
+        self.assertEqual(options["teamID"], "VWCBNTMH6B")
         self.assertEqual(options["provisioningProfiles"], {BUNDLE_ID: self.profile.uuid})
         self.assertFalse(options["manageAppVersionAndBuildNumber"])
 
@@ -564,10 +578,104 @@ class IosReleaseSigningTest(unittest.TestCase):
             self.assertEqual(pbxproj.read_text(encoding="utf-8"), self.original)
             self.assertFalse(export.exists())
 
+    def test_rejects_a_profile_missing_an_app_entitlement(self) -> None:
+        # 앱 ID 에 Sign in with Apple 을 켜기 전 프로필이면 애플 로그인이 기기에서 실패한다(#3499).
+        with self.assertRaises(signing.SigningError) as caught:
+            signing.read_profile(profile_plist(), BUNDLE_ID, ["com.apple.developer.applesignin"])
+        self.assertIn("com.apple.developer.applesignin", str(caught.exception))
+        granted = profile_plist(Entitlements={
+            "application-identifier": f"VWCBNTMH6B.{BUNDLE_ID}",
+            "com.apple.developer.applesignin": ["Default"],
+        })
+        signing.read_profile(granted, BUNDLE_ID, ["com.apple.developer.applesignin"])
+
+    def test_main_checks_the_app_entitlements(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            pbxproj = Path(tmp) / "project.pbxproj"
+            pbxproj.write_text(self.original, encoding="utf-8")
+            profile = Path(tmp) / "profile.plist"
+            profile.write_bytes(profile_plist())
+            export = Path(tmp) / "ExportOptions.plist"
+            args = ["--pbxproj", str(pbxproj), "--profile-plist", str(profile),
+                    "--bundle-id", BUNDLE_ID, "--export-options", str(export),
+                    "--entitlements", str(ENTITLEMENTS)]
+            with redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(signing.main(args), 1)
+            self.assertIn("com.apple.developer.applesignin", err.getvalue())
+            self.assertFalse(export.exists())
+            profile.write_bytes(profile_plist(Entitlements={
+                "application-identifier": f"VWCBNTMH6B.{BUNDLE_ID}",
+                "com.apple.developer.applesignin": ["Default"],
+            }))
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(signing.main(args), 0)
+
+    def test_workflow_checks_the_runner_entitlements(self) -> None:
+        self.assertIn("--entitlements ios/Runner/Runner.entitlements", WORKFLOW.read_text(encoding="utf-8"))
+
     def test_repository_project_is_untouched(self) -> None:
         # 저장소의 프로젝트는 개발자 PC 의 자동 서명 그대로다.
         self.assertNotIn("PROVISIONING_PROFILE_SPECIFIER", self.original)
         self.assertNotIn("CODE_SIGN_STYLE = Manual", self.original)
+
+
+class SignInWithAppleEntitlementTest(unittest.TestCase):
+    """App Store 심사(Guideline 4.8)로 회원 앱에 애플 로그인을 넣었다(#3499)."""
+
+    def test_runner_entitlements_enable_sign_in_with_apple(self) -> None:
+        data = plistlib.loads(ENTITLEMENTS.read_bytes())
+        self.assertEqual(data.get("com.apple.developer.applesignin"), ["Default"])
+
+    def test_every_runner_configuration_signs_with_the_entitlements(self) -> None:
+        text = PBXPROJ.read_text(encoding="utf-8")
+        runner = [m.group("body") for m in signing.CONFIG_BLOCK.finditer(text)
+                  if f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};" in m.group("body")]
+        self.assertEqual(len(runner), 3)
+        for body in runner:
+            self.assertIn("CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;", body)
+
+
+class DeviceFamilyTest(unittest.TestCase):
+    """첫 출시는 iPhone 전용이다(#3481). iPad 지원으로 한 번 내면 되돌릴 수 없다."""
+
+    def test_runner_targets_iphone_only(self) -> None:
+        families = re.findall(r"TARGETED_DEVICE_FAMILY = ([^;]+);", PBXPROJ.read_text(encoding="utf-8"))
+        self.assertTrue(families, "TARGETED_DEVICE_FAMILY 설정이 없습니다.")
+        self.assertEqual(set(families), {"1"})
+
+
+class DeploymentTargetTest(unittest.TestCase):
+    """App Store 는 2027년 4월부터 iOS 15 미만 대상 앱을 받지 않는다(ITMS-90068, #3485)."""
+
+    def test_runner_and_podfile_target_ios_15(self) -> None:
+        targets = re.findall(r"IPHONEOS_DEPLOYMENT_TARGET = ([^;]+);", PBXPROJ.read_text(encoding="utf-8"))
+        self.assertTrue(targets, "IPHONEOS_DEPLOYMENT_TARGET 설정이 없습니다.")
+        self.assertEqual(set(targets), {"15.0"})
+        self.assertRegex(PODFILE.read_text(encoding="utf-8"), r"(?m)^platform :ios, '15\.0'$")
+
+
+class SentryCocoaPinTest(unittest.TestCase):
+    """sentry_flutter 8.14.2 는 sentry-cocoa 를 `from: 8.46.0` 으로만 묶는다. 새로 해석해 최신 8.x 가
+    들어오면 SentryFlutterPlugin.swift 가 컴파일되지 않아 8.46.0 에 고정한다(#3485)."""
+
+    def pins(self, path: Path) -> dict[str, dict]:
+        return {pin["identity"]: pin for pin in json.loads(path.read_text(encoding="utf-8"))["pins"]}
+
+    def test_both_resolved_files_pin_sentry_cocoa(self) -> None:
+        self.assertEqual(PACKAGE_RESOLVED[0].read_bytes(), PACKAGE_RESOLVED[1].read_bytes())
+        state = self.pins(PACKAGE_RESOLVED[0])["sentry-cocoa"]["state"]
+        self.assertEqual(state["version"], "8.46.0")
+        self.assertEqual(state["revision"], "e0fa062817b277fd9ab597b54b8e2f92dc65b009")
+
+    def test_pin_is_revisited_when_sentry_flutter_moves(self) -> None:
+        lock = (REPO_ROOT / "frontend" / "flutter" / "pubspec.lock").read_text(encoding="utf-8")
+        version = re.search(r'(?m)^  sentry_flutter:\n(?:    .*\n)*?    version: "([^"]+)"', lock)
+        self.assertIsNotNone(version, "pubspec.lock 에 sentry_flutter 가 없습니다.")
+        self.assertEqual(
+            version.group(1),
+            "8.14.2",
+            "sentry_flutter 를 올렸다면 Package.resolved 의 sentry-cocoa 고정과 이 테스트를 함께 고칩니다.",
+        )
 
 
 if __name__ == "__main__":

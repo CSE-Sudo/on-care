@@ -20,9 +20,8 @@ SLOT_UNAVAILABLE_CODE = "slot_unavailable"
 TOO_MANY_PENDING_CODE = "too_many_pending"
 #: 24시간 신청 한도를 넘었을 때 429 본문의 `detail.code`. (#1628)
 RATE_LIMITED_CODE = "consultation_rate_limited"
-#: 담당 트레이너가 있는 회원이 다른 트레이너에게 신청했을 때 409 본문의
-#: `detail.code`. (#2611)
-LINKED_TO_OTHER_TRAINER_CODE = "linked_to_other_trainer"
+#: 수락된 상담의 시작 시각이 지나 취소할 수 없을 때 409 본문의 `detail.code`. (#3359)
+CONSULTATION_STARTED_CODE = "consultation_started"
 
 
 @router.post(
@@ -43,13 +42,6 @@ def create_consultation(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except consultation_service.DuplicatePendingConsultation as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except consultation_service.LinkedToOtherTrainer as exc:
-        # 대기 중복 409 와 **구분되는 코드**를 싣는다. 앱이 둘을 섞으면 신청하지 않은
-        # 트레이너를 "이미 대기 중" 으로 표시한다.
-        raise HTTPException(
-            status_code=409,
-            detail={"code": LINKED_TO_OTHER_TRAINER_CODE, "message": str(exc)},
-        ) from exc
     except consultation_service.TooManyPendingConsultations as exc:
         # 대기 중복 409 와 **구분되는 코드**를 싣는다. 앱이 둘을 섞으면 신청하지 않은
         # 트레이너를 "이미 대기 중" 으로 표시한다. (#1628)
@@ -158,13 +150,29 @@ def cancel_my_consultation(
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ConsultationOut:
+    """대기 중인 요청과, 수락됐지만 아직 시작하지 않은 상담을 취소한다. (#3359)
+
+    수락된 상담을 취소하면 트레이너 스케줄의 그 상담 일정이 `취소` 로 바뀌고,
+    신청 때 잠근 자리가 다시 열리고, 트레이너에게 알림이 간다.
+    """
     try:
         return consultation_service.cancel_my_consultation(
             db, member.id, consultation_id
         )
     except consultation_service.ConsultationNotFound as exc:
         raise HTTPException(status_code=404, detail="상담 요청을 찾을 수 없어요.") from exc
+    except consultation_service.ConsultationAlreadyStarted as exc:
+        # 같은 409 인 "이미 처리된 요청" 과 **구분되는 코드**를 싣는다 — 앱이
+        # 시작 시각이 지났다는 이유를 따로 안내한다.
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": CONSULTATION_STARTED_CODE,
+                "message": "시작 시각이 지난 상담은 취소할 수 없어요.",
+            },
+        ) from exc
     except consultation_service.ConsultationNotCancellable as exc:
         raise HTTPException(
-            status_code=409, detail="대기 중인 상담 요청만 취소할 수 있어요."
+            status_code=409,
+            detail="대기 중이거나 시작 전인 상담만 취소할 수 있어요.",
         ) from exc

@@ -59,6 +59,7 @@ class AppButton extends StatelessWidget {
     this.loading = false,
     this.fullWidth = false,
     this.shrinkLabel = false,
+    this.pill = false,
   });
 
   final String label;
@@ -85,6 +86,9 @@ class AppButton extends StatelessWidget {
   /// 자리에만 켠다. 짧은 라벨에는 켜지 않는다: 폭이 남으면 아무 일도 하지
   /// 않지만, 켜 두면 언젠가 글자 크기가 제멋대로 줄어드는 버튼이 된다.
   final bool shrinkLabel;
+
+  /// 양끝이 둥근 알약 모양 — 화면의 주 동작과 구별되는 보조 진입에 쓴다(#3432).
+  final bool pill;
 
   @override
   Widget build(BuildContext context) {
@@ -155,8 +159,10 @@ class AppButton extends StatelessWidget {
       padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(
         EdgeInsets.symmetric(horizontal: horizontal),
       ),
-      shape: const WidgetStatePropertyAll<OutlinedBorder>(
-        RoundedRectangleBorder(borderRadius: OnCareRadius.mdAll),
+      shape: WidgetStatePropertyAll<OutlinedBorder>(
+        RoundedRectangleBorder(
+          borderRadius: pill ? OnCareRadius.pillAll : OnCareRadius.mdAll,
+        ),
       ),
       textStyle: WidgetStatePropertyAll<TextStyle>(labelStyle),
       elevation: const WidgetStatePropertyAll<double>(0),

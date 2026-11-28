@@ -19,10 +19,16 @@
   (내역 `earn`, `challenge_reward`), 못 채웠으면 건 포인트는 사라진다. 주 중간에
   목표를 채워도 바로 주지 않는다 — 그 뒤 기록을 지우면 진행이 줄어드는데, 먼저 준
   보상은 되돌릴 근거가 없다. 주가 끝나야 그 주의 기록이 확정된다.
+- **판정 앞에 하루의 유예를 둔다(#3362).** 주가 끝난 다음 날(월요일, KST) 하루 동안
+  적은 지난주 기록까지 센다. 유예 없이 주가 바뀌자마자 판정하면, 일요일 운동을 아직
+  적지 않은 회원이 월요일 아침 앱을 먼저 여는 순간 실패로 굳는다. 유예 중에는
+  `active` 그대로 두고 응답에 집계 중(`settling`)이라고 싣는다. 기록 마감은 유예
+  마지막 날이다 — 그 뒤에 저장된 기록은 판정이 늦게 돌아도 세지 않아, 같은 기록이면
+  판정 요청이 언제 닿든 결과가 같다. 한 번 끝난 판정은 다시 계산하지 않는다.
 - **스케줄러 없이 늦게 판정한다.** 백엔드에 주기 작업이 없다(쿠폰 만료와 같은 사정).
-  회원이 챌린지·포인트 사용처·포인트 잔액(`/users/me/health`)·알림함을 읽을 때 지난
-  주의 진행 중 챌린지를 판정한다. 판정은 `active` 일 때만 바꾸는 조건부 UPDATE 한
-  번이라, 두 경로가 동시에 읽어도 보상과 결과 알림은 한 번뿐이다.
+  회원이 챌린지·포인트 사용처·포인트 잔액(`/users/me/health`)·알림함·미읽음 수를 읽을
+  때 유예까지 끝난 주의 진행 중 챌린지를 판정한다. 판정은 `active` 일 때만 바꾸는
+  조건부 UPDATE 한 번이라, 두 경로가 동시에 읽어도 보상과 결과 알림은 한 번뿐이다.
 - **판정은 미리 적은 기록을 세지 않는다(#3042).** 운동 기록 API 는 앞날을 받지 않지만,
   그 검증 전에 저장된 앞날 기록이 남아 있을 수 있다. 판정은 기록 날짜가 저장된 날
   (`created_at` 의 KST 날짜)보다 뒤인 기록 — 월요일에 화~일을 미리 적어 둔 것 — 을
@@ -62,6 +68,9 @@ MAX_GOAL = 7
 
 #: 참가할 수 있는 요일(월=0, 화=1).
 JOIN_WEEKDAYS = frozenset({0, 1})
+
+#: 주가 끝난 뒤 판정을 미루는 날 수(#3362). 이 동안 적은 지난주 기록까지 센다.
+GRACE_DAYS = 1
 
 #: 챌린지 상태.
 ACTIVE = "active"
@@ -103,6 +112,10 @@ def weekly_state(db: Session, member_id: str) -> WeeklyChallengeOut:
     today = clock.today()
     monday = week_monday(today)
     row = _for_week(db, member_id, monday)
+    # 지난주 참가 기록이 아직 유예 중이면 함께 싣는다 — 카드가 "집계 중"을 적는다.
+    last = _for_week(db, member_id, monday - timedelta(days=7))
+    if last is not None and last.status != ACTIVE:
+        last = None
     balance = points_service.balance(db, member_id)
     progress = progress_days(db, member_id, monday)
     blocked: str | None = None
@@ -125,6 +138,11 @@ def weekly_state(db: Session, member_id: str) -> WeeklyChallengeOut:
         blocked_reason=blocked,
         shortfall=max(STAKE - balance, 0),
         challenge=challenge_out(row, progress=progress) if row is not None else None,
+        settling_challenge=(
+            challenge_out(last, progress=_progress_of(db, member_id, last, today))
+            if last is not None
+            else None
+        ),
     )
 
 
@@ -138,15 +156,9 @@ def list_challenges(db: Session, member_id: str) -> list[ChallengeOut]:
         .order_by(WeeklyChallenge.week_start.desc())
         .limit(_HISTORY_LIMIT)
     ).all()
+    today = clock.today()
     return [
-        challenge_out(
-            row,
-            progress=(
-                progress_days(db, member_id, date.fromisoformat(row.week_start))
-                if row.status == ACTIVE
-                else None
-            ),
-        )
+        challenge_out(row, progress=_progress_of(db, member_id, row, today))
         for row in rows
     ]
 
@@ -173,6 +185,37 @@ def written_in_advance(row: ExerciseSession, day: date) -> bool:
     return day > clock.to_seoul(row.created_at).date()
 
 
+def recorded_after(row: ExerciseSession, deadline: date) -> bool:
+    """기록이 [deadline](KST) 뒤에 저장됐는가 — 판정의 기록 마감을 넘긴 기록. (#3362)
+
+    저장 시각을 모르는 행(아직 flush 전)은 마감 안에 적은 것으로 본다.
+    """
+    if row.created_at is None:
+        return False
+    return clock.to_seoul(row.created_at).date() > deadline
+
+
+def record_deadline(monday: date) -> date:
+    """[monday] 주의 기록 마감 — 유예 마지막 날(KST). 그 다음 날부터 판정한다. (#3362)"""
+    return monday + timedelta(days=6 + GRACE_DAYS)
+
+
+def settlement_days(db: Session, member_id: str, monday: date) -> int:
+    """판정이 세는 [monday] 주의 운동한 날 수. 유예 중의 집계 표시도 이 값을 쓴다.
+
+    일요일까지의 날짜만, 미리 적은 기록(#3042)과 기록 마감 뒤에 저장된 기록(#3362)을
+    빼고 센다.
+    """
+    return progress_days(
+        db,
+        member_id,
+        monday,
+        until=monday + timedelta(days=6),
+        exclude_written_in_advance=True,
+        recorded_by=record_deadline(monday),
+    )
+
+
 def progress_days(
     db: Session,
     member_id: str,
@@ -180,12 +223,14 @@ def progress_days(
     *,
     until: date | None = None,
     exclude_written_in_advance: bool = False,
+    recorded_by: date | None = None,
 ) -> int:
     """[monday] 주에 운동 기록이 있는 날 수. [until](기본 오늘)까지만 센다.
 
     같은 날 기록이 여러 건이어도 하루다. 아직 오지 않은 날에 적어 둔 기록은 한 운동이
     아니라 세지 않는다 — 주가 끝난 뒤 판정할 때는 일요일까지 모두 센다.
     [exclude_written_in_advance] 면 저장된 날보다 뒤 날짜의 기록을 뺀다(판정용, #3042).
+    [recorded_by] 가 있으면 그날(KST)까지 저장된 기록만 센다(판정의 기록 마감, #3362).
     """
     sunday = monday + timedelta(days=6)
     last = min(sunday, until if until is not None else clock.today())
@@ -203,6 +248,7 @@ def progress_days(
         if (day := exercise_activity.activity_date_of(row)) is not None
         and monday <= day <= last
         and not (exclude_written_in_advance and written_in_advance(row, day))
+        and not (recorded_by is not None and recorded_after(row, recorded_by))
     }
     return len(days)
 
@@ -219,6 +265,8 @@ def join(
     못 받고 다시 누른 참가가 포인트를 두 번 쓰지 않는다.
 
     지난 주를 먼저 판정한다. 지난 주 보상이 잔액에 들어온 뒤에 이번 주 참가 잔액을 본다.
+    월요일은 지난주의 유예라 아직 판정 전이다(#3362) — 지난주 보상으로 참가하려면
+    화요일에 참가한다.
     """
     if client_request_id:
         existing = _by_request(db, member_id, client_request_id)
@@ -278,19 +326,21 @@ def join(
 
 
 def settle_due(db: Session, member_id: str) -> int:
-    """주가 끝난 진행 중 챌린지를 판정한다. 판정한 건수. 커밋하지 않는다.
+    """유예까지 끝난 진행 중 챌린지를 판정한다. 판정한 건수. 커밋하지 않는다.
 
-    성공이면 보상을 적립하고, 결과와 상관없이 결과 알림을 한 번 만든다. 판정은
+    주가 끝나고 [GRACE_DAYS] 가 지난 주만 판정한다(#3362) — 유예 중인 주는 `active`
+    로 남는다. 성공이면 보상을 적립하고, 결과와 상관없이 결과 알림을 한 번 만든다. 판정은
     `active` 일 때만 바꾸는 조건부 UPDATE 라 이번 요청이 바꾼 행만 적립·알림을 만든다.
     잔액 행을 먼저 잠근다 — 참가·쿠폰 교환과 같은 잠금 순서다.
     """
-    this_monday = week_monday()
+    # 기록 마감(일요일 + 유예)이 어제까지 지난 주. `week_start` 는 늘 월요일이다.
+    last_due = clock.today() - timedelta(days=7 + GRACE_DAYS)
     due = db.scalars(
         select(WeeklyChallenge)
         .where(
             WeeklyChallenge.user_id == member_id,
             WeeklyChallenge.status == ACTIVE,
-            WeeklyChallenge.week_start < this_monday.isoformat(),
+            WeeklyChallenge.week_start <= last_due.isoformat(),
         )
         .order_by(WeeklyChallenge.week_start)
     ).all()
@@ -301,14 +351,8 @@ def settle_due(db: Session, member_id: str) -> int:
     settled = 0
     for row in due:
         start = date.fromisoformat(row.week_start)
-        # 미리 적어 둔 기록으로 성공하지 못한다(#3042).
-        days = progress_days(
-            db,
-            member_id,
-            start,
-            until=start + timedelta(days=6),
-            exclude_written_in_advance=True,
-        )
+        # 미리 적어 둔 기록(#3042)과 기록 마감 뒤에 적은 기록(#3362)은 세지 않는다.
+        days = settlement_days(db, member_id, start)
         succeeded = days >= row.goal
         claimed = db.execute(
             update(WeeklyChallenge)
@@ -348,7 +392,7 @@ def settle_due(db: Session, member_id: str) -> int:
 
 
 def settle_quietly(db: Session, member_id: str) -> None:
-    """읽기 경로(사용처·잔액·알림함)가 부르는 판정. 실패해도 원래 응답을 막지 않는다."""
+    """읽기 경로(사용처·잔액·알림함·미읽음 수)가 부르는 판정. 실패해도 원래 응답을 막지 않는다."""
     try:
         if settle_due(db, member_id):
             db.commit()
@@ -360,7 +404,10 @@ def settle_quietly(db: Session, member_id: str) -> None:
 
 
 def challenge_out(row: WeeklyChallenge, *, progress: int | None = None) -> ChallengeOut:
-    """[progress] 는 진행 중일 때의 지금까지 날 수. 판정했으면 판정 때 값을 쓴다."""
+    """[progress] 는 진행 중일 때의 지금까지 날 수. 판정했으면 판정 때 값을 쓴다.
+
+    주가 끝났는데 아직 `active` 면 유예 중이라 `settling` 이 참이다(#3362).
+    """
     start = date.fromisoformat(row.week_start)
     if row.status != ACTIVE and row.final_days is not None:
         days = row.final_days
@@ -375,6 +422,7 @@ def challenge_out(row: WeeklyChallenge, *, progress: int | None = None) -> Chall
         stake=row.stake,
         reward=row.reward,
         status=row.status,
+        settling=row.status == ACTIVE and clock.today() > start + timedelta(days=6),
         achieved=days >= row.goal,
         rewarded=row.reward if row.status == SUCCEEDED else 0,
         joined_at=row.joined_at,
@@ -411,12 +459,23 @@ def _by_request(
     )
 
 
+def _progress_of(
+    db: Session, member_id: str, row: WeeklyChallenge, today: date
+) -> int | None:
+    """진행 중인 [row] 의 운동한 날 수. 판정했으면 None — 판정 때 값을 쓴다.
+
+    주가 끝나 유예 중이면 판정이 셀 값을 그대로 보여 준다.
+    """
+    if row.status != ACTIVE:
+        return None
+    start = date.fromisoformat(row.week_start)
+    if today > start + timedelta(days=6):
+        return settlement_days(db, member_id, start)
+    return progress_days(db, member_id, start)
+
+
 def _join_out(db: Session, member_id: str, row: WeeklyChallenge) -> ChallengeJoinOut:
-    progress = (
-        progress_days(db, member_id, date.fromisoformat(row.week_start))
-        if row.status == ACTIVE
-        else None
-    )
+    progress = _progress_of(db, member_id, row, clock.today())
     return ChallengeJoinOut(
         challenge=challenge_out(row, progress=progress),
         spent=row.stake,
@@ -427,7 +486,7 @@ def _join_out(db: Session, member_id: str, row: WeeklyChallenge) -> ChallengeJoi
 def _result_args(
     row: WeeklyChallenge, *, days: int, succeeded: bool
 ) -> dict[str, object]:
-    """결과 알림 틀의 인자(#2302). 문장은 `notification_templates` 가 언어별로 만든다."""
+    """결과 알림 틀의 인자(#2302). 문장은 `notification_templates` 가 만든다."""
     return {
         "succeeded": succeeded,
         "week_start": row.week_start,

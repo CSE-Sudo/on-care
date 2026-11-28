@@ -306,17 +306,4 @@ void main() {
     expect(find.text(l.myProfileEmailTaken), findsNothing);
     await _drainToast(tester);
   });
-
-  testWidgets('영어 화면에서는 영어 문구로 알린다', (WidgetTester tester) async {
-    final (AppLocalizations l, _) = await _openProfile(
-      tester,
-      locale: const Locale('en'),
-    );
-
-    await tester.enterText(find.byKey(_email), 'trainer@oncare.com');
-    await _save(tester, l);
-
-    expect(_fieldError(tester, _email), 'That email is already in use');
-    await _drainToast(tester);
-  });
 }

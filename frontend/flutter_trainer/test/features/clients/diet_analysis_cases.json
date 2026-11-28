@@ -2756,8 +2756,7 @@
   {
    "key": "tr_today_empty",
    "params": {},
-   "ko": "오늘 식단 기록이 아직 없어요.",
-   "en": "No meals logged today yet."
+   "ko": "오늘 식단 기록이 아직 없어요."
   },
   {
    "key": "tr_today_over",
@@ -2770,8 +2769,7 @@
     "target": 2000,
     "ratio": "2.3"
    },
-   "ko": "점심에 먹은 짬뽕(4,286mg) 때문에 오늘 나트륨이 4,645mg까지 올라 목표 2,000mg의 2.3배가 됐어요.",
-   "en": "짬뽕 at lunch (4,286 mg) pushed today's sodium to 4,645 mg, 2.3x the 2,000 mg goal."
+   "ko": "점심에 먹은 짬뽕(4,286mg) 때문에 오늘 나트륨이 4,645mg까지 올라 목표 2,000mg의 2.3배가 됐어요."
   },
   {
    "key": "tr_today_over_meal",
@@ -2783,8 +2781,7 @@
     "target": 2000,
     "ratio": "1.3"
    },
-   "ko": "저녁 식사(1,500kcal) 때문에 오늘 칼로리가 2,600kcal까지 올라 목표 2,000kcal의 1.3배가 됐어요.",
-   "en": "Dinner (1,500 kcal) pushed today's calories to 2,600 kcal, 1.3x the 2,000 kcal goal."
+   "ko": "저녁 식사(1,500kcal) 때문에 오늘 칼로리가 2,600kcal까지 올라 목표 2,000kcal의 1.3배가 됐어요."
   },
   {
    "key": "tr_today_protein_short",
@@ -2793,8 +2790,7 @@
     "value": 60,
     "gap": 40
    },
-   "ko": "단백질은 60g으로 목표보다 40g 부족해요.",
-   "en": "Protein is at 60 g, 40 g short of the goal."
+   "ko": "단백질은 60g으로 목표보다 40g 부족해요."
   },
   {
    "key": "tr_today_protein_chronic",
@@ -2804,30 +2800,26 @@
     "gap": 49,
     "avg": 54
    },
-   "ko": "단백질은 51g으로 목표보다 49g 모자라고, 최근 4주 평균도 하루 54g이라 꾸준히 부족한 편이에요.",
-   "en": "Protein is at 51 g, 49 g short of the goal, and the 4-week average of 54 g a day stays low."
+   "ko": "단백질은 51g으로 목표보다 49g 모자라고, 최근 4주 평균도 하루 54g이라 꾸준히 부족한 편이에요."
   },
   {
    "key": "tr_today_missing",
    "params": {
     "slot": "breakfast"
    },
-   "ko": "아침 기록이 아직 없어요.",
-   "en": "No breakfast logged yet."
+   "ko": "아침 기록이 아직 없어요."
   },
   {
    "key": "tr_today_good",
    "params": {
     "kcal": 1200
    },
-   "ko": "오늘 1,200kcal, 목표 안에서 고르게 드셨어요.",
-   "en": "1,200 kcal today, evenly within the goals."
+   "ko": "오늘 1,200kcal, 목표 안에서 고르게 드셨어요."
   },
   {
    "key": "tr_week_empty",
    "params": {},
-   "ko": "이번 주 식단 기록이 아직 없어요.",
-   "en": "No meals logged this week yet."
+   "ko": "이번 주 식단 기록이 아직 없어요."
   },
   {
    "key": "tr_week_skip_breakfast",
@@ -2836,8 +2828,7 @@
     "logged": 4,
     "days": 3
    },
-   "ko": "이번 주 기록한 4일 중 3일 아침을 걸렀어요.",
-   "en": "Skipped breakfast on 3 of 4 logged days this week."
+   "ko": "이번 주 기록한 4일 중 3일 아침을 걸렀어요."
   },
   {
    "key": "tr_week_skip_breakfast_snack",
@@ -2847,8 +2838,7 @@
     "days": 3,
     "snack_days": 2
    },
-   "ko": "지난주 기록한 5일 중 3일 아침을 걸렀고, 그중 2일은 간식으로 채웠어요.",
-   "en": "Skipped breakfast on 3 of 5 logged days last week, snacking instead on 2."
+   "ko": "지난주 기록한 5일 중 3일 아침을 걸렀고, 그중 2일은 간식으로 채웠어요."
   },
   {
    "key": "tr_week_over",
@@ -2858,8 +2848,7 @@
     "days": 3,
     "nutrient": "sugar"
    },
-   "ko": "이번 주 기록한 4일 중 3일 당류가 목표를 넘었어요.",
-   "en": "Sugar went over the goal on 3 of 4 logged days this week."
+   "ko": "이번 주 기록한 4일 중 3일 당류가 목표를 넘었어요."
   },
   {
    "key": "tr_week_cause",
@@ -2870,8 +2859,7 @@
     "food_value": 4286,
     "nutrient": "sodium"
    },
-   "ko": "월요일 점심에 먹은 짬뽕(4,286mg) 영향이 가장 컸어요.",
-   "en": "The biggest was 짬뽕 at Monday lunch (4,286 mg)."
+   "ko": "월요일 점심에 먹은 짬뽕(4,286mg) 영향이 가장 컸어요."
   },
   {
    "key": "tr_week_protein_short",
@@ -2880,8 +2868,7 @@
     "logged": 3,
     "days": 3
    },
-   "ko": "이번 주 기록한 3일 중 3일 단백질이 목표의 80%에 못 미쳤어요.",
-   "en": "Protein fell below 80% of the goal on 3 of 3 logged days this week."
+   "ko": "이번 주 기록한 3일 중 3일 단백질이 목표의 80%에 못 미쳤어요."
   },
   {
    "key": "tr_week_good",
@@ -2889,8 +2876,7 @@
     "scope": "this",
     "days": 3
    },
-   "ko": "이번 주 기록한 3일 모두 목표 안에서 드셨어요.",
-   "en": "All 3 logged days this week stayed within the goals."
+   "ko": "이번 주 기록한 3일 모두 목표 안에서 드셨어요."
   },
   {
    "key": "tr_week_breakfast_snack_food",
@@ -2898,8 +2884,7 @@
     "food": "과자",
     "count": 3
    },
-   "ko": "아침 대신 먹은 것은 과자 3회가 가장 많았어요.",
-   "en": "과자 replaced breakfast most often (3 times)."
+   "ko": "아침 대신 먹은 것은 과자 3회가 가장 많았어요."
   },
   {
    "key": "tr_week_protein_avg",
@@ -2907,8 +2892,7 @@
     "nutrient": "protein",
     "value": 45
    },
-   "ko": "모자란 날은 하루 평균 45g 정도였어요.",
-   "en": "Those days averaged 45 g a day."
+   "ko": "모자란 날은 하루 평균 45g 정도였어요."
   },
   {
    "key": "tr_week_good_avg",
@@ -2916,8 +2900,7 @@
     "kcal": 1500,
     "protein": 120
    },
-   "ko": "하루 평균 1,500kcal, 단백질 120g을 드셨어요.",
-   "en": "Averaged 1,500 kcal and 120 g protein a day."
+   "ko": "하루 평균 1,500kcal, 단백질 120g을 드셨어요."
   },
   {
    "key": "tr_week_vs_last_more",
@@ -2925,8 +2908,7 @@
     "prev_logged": 7,
     "prev_days": 2
    },
-   "ko": "지난주(7일 중 2일)보다 늘었어요.",
-   "en": "Up from last week (2 of 7 days)."
+   "ko": "지난주(7일 중 2일)보다 늘었어요."
   },
   {
    "key": "tr_week_vs_last_less",
@@ -2934,8 +2916,7 @@
     "prev_logged": 7,
     "prev_days": 5
    },
-   "ko": "지난주(7일 중 5일)보다 줄었어요.",
-   "en": "Down from last week (5 of 7 days)."
+   "ko": "지난주(7일 중 5일)보다 줄었어요."
   },
   {
    "key": "tr_week_vs_last_same",
@@ -2943,16 +2924,14 @@
     "prev_logged": 6,
     "prev_days": 3
    },
-   "ko": "지난주(6일 중 3일)와 비슷해요.",
-   "en": "About the same as last week (3 of 6 days)."
+   "ko": "지난주(6일 중 3일)와 비슷해요."
   },
   {
    "key": "tr_all_few",
    "params": {
     "days": 3
    },
-   "ko": "최근 4주 기록이 3일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
-   "en": "Only 3 days logged in the last 4 weeks. The trend shows after 7."
+   "ko": "최근 4주 기록이 3일이라, 7일이 넘으면 흐름을 짚어 드릴게요."
   },
   {
    "key": "tr_all_slot_sodium",
@@ -2960,24 +2939,21 @@
     "slot": "dinner",
     "days": 6
    },
-   "ko": "최근 4주 동안 저녁 나트륨이 6회 목표의 절반을 넘었어요.",
-   "en": "In the last 4 weeks, dinner sodium went over half the goal 6 times."
+   "ko": "최근 4주 동안 저녁 나트륨이 6회 목표의 절반을 넘었어요."
   },
   {
    "key": "tr_all_carb_heavy",
    "params": {
     "pct": 68
    },
-   "ko": "최근 4주 섭취 칼로리 중 탄수화물이 68%로 높은 편이에요.",
-   "en": "Carbs made up 68% of calories in the last 4 weeks."
+   "ko": "최근 4주 섭취 칼로리 중 탄수화물이 68%로 높은 편이에요."
   },
   {
    "key": "tr_all_protein_light",
    "params": {
     "pct": 12
    },
-   "ko": "최근 4주 섭취 칼로리 중 단백질이 12%로 낮은 편이에요.",
-   "en": "Protein made up only 12% of calories in the last 4 weeks."
+   "ko": "최근 4주 섭취 칼로리 중 단백질이 12%로 낮은 편이에요."
   },
   {
    "key": "tr_all_protein_trend_up",
@@ -2985,8 +2961,7 @@
     "before": 2,
     "after": 6
    },
-   "ko": "단백질 목표를 채운 날이 앞선 2주 2일에서 최근 2주 6일로 늘었어요.",
-   "en": "Days meeting the protein goal rose from 2 in the prior 2 weeks to 6 in the last 2 weeks."
+   "ko": "단백질 목표를 채운 날이 앞선 2주 2일에서 최근 2주 6일로 늘었어요."
   },
   {
    "key": "tr_all_protein_trend_down",
@@ -2994,8 +2969,7 @@
     "before": 6,
     "after": 2
    },
-   "ko": "단백질 목표를 채운 날이 앞선 2주 6일에서 최근 2주 2일로 줄었어요.",
-   "en": "Days meeting the protein goal fell from 6 in the prior 2 weeks to 2 in the last 2 weeks."
+   "ko": "단백질 목표를 채운 날이 앞선 2주 6일에서 최근 2주 2일로 줄었어요."
   },
   {
    "key": "tr_all_frequent",
@@ -3004,8 +2978,7 @@
     "food": "김밥",
     "count": 6
    },
-   "ko": "최근 4주 동안 점심 메뉴로 김밥 6회가 가장 많았어요.",
-   "en": "김밥 was the most common lunch in the last 4 weeks (6 times)."
+   "ko": "최근 4주 동안 점심 메뉴로 김밥 6회가 가장 많았어요."
   },
   {
    "key": "tr_all_repeated",
@@ -3013,16 +2986,14 @@
     "food1": "김밥",
     "food2": "라면"
    },
-   "ko": "최근 4주 음식 기록에서 김밥·라면 비중이 높아요.",
-   "en": "김밥 and 라면 make up much of the last 4 weeks' log."
+   "ko": "최근 4주 음식 기록에서 김밥·라면 비중이 높아요."
   },
   {
    "key": "tr_all_good",
    "params": {
     "days": 20
    },
-   "ko": "최근 4주 동안 20일 기록했고, 흐름이 고른 편이에요.",
-   "en": "20 days logged in the last 4 weeks, with an even trend."
+   "ko": "최근 4주 동안 20일 기록했고, 흐름이 고른 편이에요."
   },
   {
    "key": "tr_foods_one",
@@ -3030,8 +3001,7 @@
     "food1": "짬뽕",
     "count1": 3
    },
-   "ko": "짬뽕 3회가 대부분이에요.",
-   "en": "Mostly 짬뽕 (3 times)."
+   "ko": "짬뽕 3회가 대부분이에요."
   },
   {
    "key": "tr_foods_two",
@@ -3041,8 +3011,7 @@
     "food2": "라면",
     "count2": 2
    },
-   "ko": "짬뽕 3회, 라면 2회가 대부분이에요.",
-   "en": "Mostly 짬뽕 (3 times) and 라면 (2 times)."
+   "ko": "짬뽕 3회, 라면 2회가 대부분이에요."
   }
  ]
 }

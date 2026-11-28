@@ -24,7 +24,6 @@ import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/domain/repositories/place_repository.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -321,21 +320,6 @@ void main() {
     expect(find.text(_ko.myLegalLocationTitle), findsOneWidget);
     // 시행일은 긴 본문 아래라 처음 화면에는 그려지지 않는다 — 본문 첫 조로 본다.
     expect(find.textContaining('제1조 (목적)'), findsOneWidget);
-  });
-
-  testWidgets('영어로도 시트가 뜬다', (WidgetTester tester) async {
-    final AppLocalizationsEn en = AppLocalizationsEn();
-    final _Log log = <String>[];
-    await _pump(
-      tester,
-      _FakeConsent(log),
-      _FakeLocationService(log),
-      locale: const Locale('en'),
-    );
-
-    expect(find.text(en.locationConsentTitle), findsOneWidget);
-    expect(find.text(en.locationConsentAgree), findsOneWidget);
-    expect(find.text(en.locationConsentDecline), findsOneWidget);
   });
 
   group('데모 세션', () {

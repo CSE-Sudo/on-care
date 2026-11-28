@@ -27,6 +27,12 @@ def test_server_matches_the_shared_cases(case):
     assert gen.RUN[case["period"]](case) == case["expected"]
 
 
+def test_renderings_are_korean_only():
+    """생성기도 공유 파일도 문장은 한국어 하나다(#3415)."""
+    for row in [*gen.renderings(), *_CASES["renderings"]]:
+        assert set(row) == {"key", "params", "ko"}
+
+
 def test_the_shared_file_is_up_to_date():
     """사례 목록과 문장이 스크립트와 같다 — 규칙을 바꾸고 파일을 다시 만들지 않으면 깨진다."""
     assert _CASES == json.loads(json.dumps(gen.build(), ensure_ascii=False))

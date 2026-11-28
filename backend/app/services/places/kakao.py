@@ -45,9 +45,16 @@ def _query_for(category: str) -> str:
 
 
 def docs_to_places(docs: list[dict], category: str | None) -> list[PlaceOut]:
-    """카카오 documents → PlaceOut 목록(좌표 없는 항목은 스킵). 순수 함수(테스트 용이)."""
+    """카카오 documents → PlaceOut 목록(좌표 없는 항목은 스킵). 순수 함수(테스트 용이).
+
+    `fitness` 는 트레이너 소속 검색과 같은 판별(`is_gym_doc`)로 거른다(#3357) —
+    "헬스장" 키워드에는 헬스용품점·보충제 가게 같은 다른 업종도 걸리고, 회원 앱은
+    이 목록을 헬스장으로 그린다. 다른 카테고리는 키워드 결과를 그대로 싣는다.
+    """
     out: list[PlaceOut] = []
     for d in docs:
+        if category == "fitness" and not is_gym_doc(d):
+            continue
         try:
             lat = float(d["y"])
             lng = float(d["x"])
@@ -65,6 +72,7 @@ def docs_to_places(docs: list[dict], category: str | None) -> list[PlaceOut]:
             distance_meters=dist,
             lat=lat,
             lng=lng,
+            phone=d.get("phone") or None,
         ))
     return out
 

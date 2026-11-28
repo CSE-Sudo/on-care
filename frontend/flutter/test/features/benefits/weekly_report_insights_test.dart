@@ -56,4 +56,80 @@ void main() {
       '무릎 통증 감지 1회',
     ]);
   });
+
+  group('남겨 둔 감지가 없는 옛 리포트 (#3349)', () {
+    ChatInsightHistory history(List<ChatInsightRecord> records) =>
+        ChatInsightHistory(records: records);
+
+    test('감지 창 안의 주는 지금의 기록에서 센다', () {
+      final List<String>? lines = liveInsightLines(
+        l,
+        history(<ChatInsightRecord>[at('2026-09-16T03:00:00Z')]),
+        DateTime(2026, 9, 14),
+        DateTime(2026, 9, 24, 21),
+      );
+      expect(lines, <String>['무릎 통증 감지 1회']);
+    });
+
+    test('창 안인데 감지가 없으면 빈 목록이다 — 감지가 없던 주다', () {
+      expect(
+        liveInsightLines(
+          l,
+          history(const <ChatInsightRecord>[]),
+          DateTime(2026, 9, 14),
+          DateTime(2026, 9, 24, 21),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('창 밖의 주는 알 수 없다 — "감지 없음" 이 아니라 칸을 비운다', () {
+      expect(
+        liveInsightLines(
+          l,
+          history(const <ChatInsightRecord>[]),
+          DateTime(2026, 9, 14),
+          DateTime(2026, 11, 2, 9),
+        ),
+        isNull,
+      );
+    });
+
+    test('월요일이 창의 첫 순간보다 앞이면 한 주가 다 들지 않아 알 수 없다', () {
+      // 창은 30일 — 10/14 12시에 읽으면 9/14 12시부터다. 9/14 월요일 0시는 그 앞이다.
+      final List<ChatInsightRecord> records = <ChatInsightRecord>[
+        at('2026-09-16T03:00:00Z'),
+      ];
+      expect(
+        liveInsightLines(
+          l,
+          history(records),
+          DateTime(2026, 9, 14),
+          DateTime(2026, 10, 14, 12),
+        ),
+        isNull,
+      );
+      expect(
+        liveInsightLines(
+          l,
+          history(records),
+          DateTime(2026, 9, 14),
+          DateTime(2026, 10, 14),
+        ),
+        <String>['무릎 통증 감지 1회'],
+      );
+    });
+
+    test('서버가 알려 준 창 길이를 따른다', () {
+      expect(
+        liveInsightLines(
+          l,
+          const ChatInsightHistory(windowDays: 7),
+          DateTime(2026, 9, 14),
+          DateTime(2026, 9, 24, 21),
+        ),
+        isNull,
+      );
+    });
+  });
 }

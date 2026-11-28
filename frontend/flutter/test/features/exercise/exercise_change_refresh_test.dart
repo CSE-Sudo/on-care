@@ -9,6 +9,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
@@ -104,6 +105,13 @@ void main() {
       // 인자 하나가 아니라 family 자체다. 수정은 옛 주와 새 주가 다를 수 있다.
       expect(seen, contains(same(exercisePastWeekProvider)));
       expect(seen, contains(same(exerciseAdviceProvider)));
+    });
+
+    test('홈 코칭 시트도 비운다 — 운동 카드가 이번 주 운동량을 말한다(#3351)', () {
+      final List<ProviderOrFamily> seen = <ProviderOrFamily>[];
+      refreshAfterExerciseChange(seen.add);
+
+      expect(seen, contains(same(aiCoachStateProvider)));
     });
 
     test('같은 대상을 두 번 비우지 않는다', () {

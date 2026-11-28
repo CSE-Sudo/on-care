@@ -39,7 +39,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "legal"
 CONTACT_FILE = ROOT / "shared" / "oncare_core" / "lib" / "legal_contact.dart"
-LANDING = ROOT / "index.html"
+LANDING = ROOT / "tool" / "legal" / "look.html"
 
 #: 데모·예시용 도메인. 운영 연락처가 정해지기 전까지 경고만 한다.
 DEMO_EMAIL_DOMAINS = ("oncare.com", "oncare.demo", "example.com")
@@ -72,8 +72,6 @@ class Source:
 SOURCES: tuple[Source, ...] = (
     Source("member-ko", "flutter", "ko", "회원 앱"),
     Source("trainer-ko", "flutter_trainer", "ko", "트레이너 웹"),
-    Source("member-en", "flutter", "en", "Member app"),
-    Source("trainer-en", "flutter_trainer", "en", "Trainer web"),
 )
 
 

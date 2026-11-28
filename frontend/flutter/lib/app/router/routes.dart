@@ -20,6 +20,9 @@ class AppRoutes {
   /// 포인트 내역 — 적립·사용·회수·반환(#2146).
   static const String myPointsHistory = '/my-health/points/history';
 
+  /// 지난 챌린지 결과 — 참가한 주의 목표·달성·보상(#3361).
+  static const String myChallengeHistory = '/my-health/points/challenges';
+
   /// 내 혜택 — 보유 쿠폰(이후 보호권·챌린지)을 모은다(#1787).
   static const String myBenefits = '/my-health/benefits';
   static const String myCouponDetail = '/my-health/benefits/coupons/:couponId';
@@ -100,6 +103,12 @@ class AppRoutes {
 
   /// MY → 비밀번호 변경(#2824)의 설정 구역 이름.
   static const String passwordSettingsSection = 'password';
+
+  /// 계정 탈퇴의 설정 구역 이름. MY 고객 지원과 동의 화면(#3340)이 연다.
+  static const String withdrawSettingsSection = 'withdraw';
+
+  /// 계정 탈퇴 화면. 동의가 남은 계정도 이 주소만은 열 수 있다(#3340).
+  static String get withdraw => mySettingsPath(withdrawSettingsSection);
 
   // First-run onboarding (shown right after sign-up)
   static const String onboarding = '/onboarding';

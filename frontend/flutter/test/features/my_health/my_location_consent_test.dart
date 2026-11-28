@@ -1,6 +1,6 @@
 /// MY → 고객 지원의 위치기반서비스 이용약관과 위치정보 이용 동의 스위치(#3136).
 ///
-/// 헬스장 찾기에서 받은 동의를 여기서 거둔다. 약관은 두 언어로 열리고, 본문의
+/// 헬스장 찾기에서 받은 동의를 여기서 거둔다. 약관 본문의
 /// 위치정보관리책임자 연락처는 처리방침과 같은 상수로 채운다.
 library;
 
@@ -19,7 +19,6 @@ import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_core/legal_contact.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -51,7 +50,6 @@ class _FakeConsent implements LocationConsentRepository {
 }
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 const Key _row = ValueKey<String>('my-location-consent');
 const Key _switch = ValueKey<String>('my-location-consent-switch');
@@ -163,18 +161,6 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('{contact}'), findsNothing);
-    });
-
-    testWidgets('영어로도 열린다', (WidgetTester tester) async {
-      await _pumpSupport(tester, _FakeConsent(), locale: const Locale('en'));
-
-      expect(find.text(_en.myLegalLocationTitle), findsOneWidget);
-      await tester.tap(find.text(_en.myLegalLocationTitle));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Article 1 (Purpose)'), findsOneWidget);
-      await _scrollTo(tester, find.text(_en.myLegalLocationEffectiveDate));
-      expect(find.text(_en.myLegalLocationEffectiveDate), findsOneWidget);
     });
 
     testWidgets('약관·처리방침 화면은 예전 그대로 자기 문서를 연다', (WidgetTester tester) async {

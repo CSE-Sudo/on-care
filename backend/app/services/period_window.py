@@ -21,7 +21,12 @@ PERIOD_TODAY = "today"
 PERIOD_WEEK = "week"
 PERIOD_ALL = "all"
 
-#: `전체` 가 거슬러 올라가는 날 수. 두 앱의 `전체` 그래프와 같은 12주다 (#1018).
+#: `전체` 가 거슬러 올라가는 날 수 — 12주다 (#1018).
+#:
+#: 운동 조언의 직접 기록 구간은 이 값을 쓰지 않는다(#3365). `전체` 그래프가 첫
+#: 기록부터 그리게 된 뒤로(#2079) 조언도 거기서부터 센다
+#: (`exercise_service.period_days`). 추천 개인운동을 읽는 구간
+#: (`routine_advice.fetch_start`)은 그대로 이 값이다.
 ALL_PERIOD_DAYS = 84
 
 

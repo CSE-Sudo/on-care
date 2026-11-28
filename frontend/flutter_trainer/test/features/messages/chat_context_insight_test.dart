@@ -384,48 +384,38 @@ void main() {
     });
   });
 
-  group('부위 이름은 로케일을 따른다 (#2303)', () {
+  group('부위 이름은 화면 문구로 그린다 (#2303)', () {
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
-    test('모든 부위 코드에 한·영 이름이 있다', () {
-      const Map<ChatBodyPart, (String, String)> expected =
-          <ChatBodyPart, (String, String)>{
-            ChatBodyPart.knee: ('무릎', 'Knee'),
-            ChatBodyPart.back: ('허리', 'Back'),
-            ChatBodyPart.ankle: ('발목', 'Ankle'),
-            ChatBodyPart.shoulder: ('어깨', 'Shoulder'),
-            ChatBodyPart.wrist: ('손목', 'Wrist'),
-            ChatBodyPart.neck: ('목', 'Neck'),
-          };
+    test('모든 부위 코드에 이름이 있다', () {
+      const Map<ChatBodyPart, String> expected = <ChatBodyPart, String>{
+        ChatBodyPart.knee: '무릎',
+        ChatBodyPart.back: '허리',
+        ChatBodyPart.ankle: '발목',
+        ChatBodyPart.shoulder: '어깨',
+        ChatBodyPart.wrist: '손목',
+        ChatBodyPart.neck: '목',
+      };
       expect(expected.keys.toSet(), ChatBodyPart.values.toSet());
-      for (final MapEntry<ChatBodyPart, (String, String)> e
-          in expected.entries) {
-        expect(chatBodyPartLabel(ko, e.key), e.value.$1);
-        expect(chatBodyPartLabel(en, e.key), e.value.$2);
+      for (final MapEntry<ChatBodyPart, String> e in expected.entries) {
+        expect(chatBodyPartLabel(ko, e.key), e.value);
       }
     });
 
-    test('영어 메시지에서 잡은 부위도 한국어 화면에는 한국어로 뜬다', () {
+    test('영어 메시지에서 잡은 부위도 한국어로 뜬다', () {
       final ChatContextInsight insight = detector.detect(
         message('my knee hurts'),
       )!;
       expect(chatInsightBodyPartLabel(ko, insight), '무릎');
-      expect(chatInsightBodyPartLabel(en, insight), 'Knee');
       expect(
         ko.chatInsightDiscomfortTitle(chatInsightBodyPartLabel(ko, insight)),
         '무릎 불편 표현 감지',
       );
-      expect(
-        en.chatInsightDiscomfortTitle(chatInsightBodyPartLabel(en, insight)),
-        'Knee discomfort detected',
-      );
     });
 
-    test('한국어 메시지에서 잡은 부위도 영어 화면에는 영어로 뜬다', () {
+    test('한국어 메시지에서 잡은 부위', () {
       final ChatContextInsight insight = detector.detect(message('허리가 뻐근해요'))!;
       expect(chatInsightBodyPartLabel(ko, insight), '허리');
-      expect(chatInsightBodyPartLabel(en, insight), 'Back');
     });
 
     test('부위가 없으면 일반 이름이다', () {
@@ -436,32 +426,26 @@ void main() {
         chatInsightBodyPartLabel(ko, insight),
         ko.chatInsightBodyPartGeneral,
       );
-      expect(
-        chatInsightBodyPartLabel(en, insight),
-        en.chatInsightBodyPartGeneral,
-      );
     });
 
-    test('메모 요약도 로케일 이름을 쓴다', () {
+    test('메모 요약도 부위 이름을 쓴다', () {
       final ChatContextInsight knee = detector.detect(
         message('my knee hurts'),
       )!;
       expect(chatInsightMemoSummary(ko, knee), '무릎 불편 감지');
-      expect(chatInsightMemoSummary(en, knee), 'Knee discomfort detected');
 
       final ChatContextInsight general = detector.detect(
         message('so sore today'),
       )!;
       expect(
-        chatInsightMemoSummary(en, general),
-        en.chatInsightMemoSummaryDiscomfort(en.chatInsightBodyPartGeneral),
+        chatInsightMemoSummary(ko, general),
+        ko.chatInsightMemoSummaryDiscomfort(ko.chatInsightBodyPartGeneral),
       );
 
       final ChatContextInsight negative = detector.detect(
         message('I gave up halfway'),
       )!;
       expect(chatInsightMemoSummary(ko, negative), '운동 부담 감지');
-      expect(chatInsightMemoSummary(en, negative), 'Workout strain detected');
     });
   });
 }

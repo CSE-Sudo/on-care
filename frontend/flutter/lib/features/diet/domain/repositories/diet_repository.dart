@@ -34,9 +34,8 @@ abstract class DietRepository {
   /// 경계는 서버가 정한다 — 앱과 트레이너웹이 각자 계산하면 같은 회원의
   /// `이번 주` 가 화면마다 다른 날부터 시작한다.
   ///
-  /// 조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251). [lang] 은 앱 언어(`ko`·
-  /// `en`)로, 메뉴 이름과 AI 가 만드는 문장이 그 언어로 온다.
-  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'});
+  /// 조언은 규칙 한 줄 + 다음 할 일 한 문장이다(#2251).
+  Future<DietAdvice> fetchAdvice(String period);
 
   /// Upload a food photo for AI analysis (POST /diet/analyze). The server
   /// recognizes the foods, maps nutrition from the public DB, persists a

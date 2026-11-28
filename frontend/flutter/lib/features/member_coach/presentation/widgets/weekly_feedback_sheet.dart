@@ -8,11 +8,16 @@
 /// 돌아오지 않고, 돌아오지 않는 문항은 없는 것과 같다.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare/features/member_coach/presentation/coach_send_failure_labels.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/weekly_feedback_labels.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -271,11 +276,25 @@ class _WeeklyFeedbackSheetState extends ConsumerState<WeeklyFeedbackSheet> {
       // 이 시트가 이미 닫혔으면 아무것도 닫지 않는다 — 미리 잡아 둔 navigator 로
       // 닫으면 아래 화면(코치 리포트 등)이 닫힌다(#3096).
       if (mounted) navigator.pop(true);
-    } on Object {
-      // 못 보냈으면 시트를 닫지 않는다 — 닫고 나면 회원이 적은 말이 사라진다.
+    } on Object catch (error) {
       if (!mounted) return;
+      final CoachSendFailure? reason = CoachSendRejected.reasonOf(error);
+      toast.show(
+        coachSendFailureText(l, CoachSendKind.weeklyFeedback, reason),
+        type: AppToastType.error,
+      );
+      if (reason == CoachSendFailure.unassigned) {
+        // 담당이 해제됐으면 받는 사람이 없다(#3346) — 다시 보내도 같으니 시트를
+        // 닫고, 담당 코치를 다시 읽어 이 물음과 트레이너 화면을 거둔다.
+        unawaited(
+          recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+        );
+        setState(() => _sending = false);
+        navigator.pop(false);
+        return;
+      }
+      // 못 보냈으면 시트를 닫지 않는다 — 닫고 나면 회원이 적은 말이 사라진다.
       setState(() => _sending = false);
-      toast.show(l.weeklyFeedbackSendFailed, type: AppToastType.error);
     }
   }
 }

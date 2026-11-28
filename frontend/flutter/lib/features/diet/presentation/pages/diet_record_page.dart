@@ -478,11 +478,7 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final DietPeriodTab selectedPeriod = ref.watch(dietPeriodTabProvider);
-    // 메뉴 이름과 AI 문장이 앱 언어로 오도록 언어를 함께 보낸다(#2255).
-    final DietAdviceKey adviceKey = (
-      period: _advicePeriod(selectedPeriod),
-      lang: Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'ko',
-    );
+    final String adviceKey = _advicePeriod(selectedPeriod);
     final DateTime today = _today;
     _followMidnight(today);
     // 스트립은 늘 월요일에서 시작해 일요일로 끝난다 (#1059). 오늘을 가운데
@@ -956,8 +952,6 @@ class _NutritionSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
-    // ko `/ 2,000kcal` · en `/ 2,000 kcal`(#3120).
-    final String gap = unitGap(Localizations.localeOf(context).toString());
     // 넘긴 항목은 빨강 (#890). 초과가 아닌 쪽은 브랜드 색이다 (#1070) — 초록은
     // "정상"으로 읽혀서 목표에 한참 못 미친 날까지 괜찮다고 말했다.
     final Color calorieColor = calories.isOverGoal
@@ -1007,7 +1001,7 @@ class _NutritionSummaryCard extends StatelessWidget {
                                 ),
                               ),
                               TextSpan(
-                                text: ' / ${calories.goal}$gap${calories.unit}',
+                                text: ' / ${calories.goal}${calories.unit}',
                                 style: _text(
                                   context,
                                   OnCareTypography.bodySmall,
@@ -1196,8 +1190,7 @@ class _MacroProgressItem extends StatelessWidget {
               // 초과분은 라벨 오른쪽에 빨간 글씨로 (#1070).
               if (macro.item.isOverGoal && macro.difference != null)
                 TextSpan(
-                  text:
-                      ' +${macro.difference}${unitGap(Localizations.localeOf(context).toString())}${macro.item.unit}',
+                  text: ' +${macro.difference}${macro.item.unit}',
                   style: const TextStyle(color: OnCareColors.danger),
                 ),
             ],
@@ -1228,8 +1221,7 @@ class _MacroProgressItem extends StatelessWidget {
                   ),
                 ),
                 TextSpan(
-                  text:
-                      ' / ${macro.item.goal}${unitGap(Localizations.localeOf(context).toString())}${macro.item.unit}',
+                  text: ' / ${macro.item.goal}${macro.item.unit}',
                   style: _text(
                     context,
                     OnCareTypography.caption,

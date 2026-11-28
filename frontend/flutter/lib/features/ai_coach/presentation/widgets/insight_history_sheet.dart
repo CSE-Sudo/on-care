@@ -37,11 +37,11 @@ String insightLabel(AppLocalizations l, ChatInsight insight) =>
       ChatInsightKind.negativeFeedback => l.aicInsightNegative,
     };
 
-/// 감지된 부위 이름을 화면 언어로 옮긴다(#2736).
+/// 감지된 부위 이름을 한국어로 옮긴다(#2736).
 ///
 /// 감지는 실서버(`coach/insights.py`)·데모(`detectChatInsight`) 모두 회원이 쓴
-/// 말의 언어로 부위 이름을 돌려준다(`무릎`·`Knee`). 그대로 끼우면 영어 화면에
-/// `무릎 pain noted` 가 나오므로 두 이름을 모두 알아보고 화면 언어로 바꾼다.
+/// 말의 언어로 부위 이름을 돌려준다(`무릎`·`Knee`). 두 이름을 모두 알아보고
+/// ARB 의 이름으로 바꾼다.
 /// 모르는 이름은 그대로 둔다.
 String insightBodyPartLabel(AppLocalizations l, String part) => switch (part) {
   '무릎' || 'Knee' => l.aicBodyPartKnee,

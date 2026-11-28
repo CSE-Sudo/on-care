@@ -172,7 +172,7 @@ class ProgramNutritionSummaryCard extends StatelessWidget {
                                 // ko `/ 2,000kcal` · en `/ 2,000 kcal`(#3120).
                                 text:
                                     ' / ${calories.goal}'
-                                    '${unitGap(Localizations.localeOf(context).toString())}'
+                                    ''
                                     '${calories.unit}',
                                 style: tokens
                                     .text(
@@ -273,7 +273,7 @@ class _MacroProgressItem extends StatelessWidget {
               if (item.isOverGoal)
                 TextSpan(
                   text:
-                      ' +${item.difference}${unitGap(Localizations.localeOf(context).toString())}${item.unit}',
+                      ' +${item.difference}${item.unit}',
                   style: captionStrong.copyWith(color: OnCareColors.danger),
                 ),
             ],
@@ -299,7 +299,7 @@ class _MacroProgressItem extends StatelessWidget {
                 ),
                 TextSpan(
                   text:
-                      ' / ${item.goal}${unitGap(Localizations.localeOf(context).toString())}${item.unit}',
+                      ' / ${item.goal}${item.unit}',
                   style: captionStrong.copyWith(
                     color: OnCareColors.textSecondary,
                   ),

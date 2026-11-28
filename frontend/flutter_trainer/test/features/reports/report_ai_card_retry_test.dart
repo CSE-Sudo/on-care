@@ -47,7 +47,6 @@ void main() {
   Future<List<int>> pumpCard(
     WidgetTester tester, {
     required int failures,
-    Locale locale = const Locale('ko'),
     Object Function()? failure,
   }) async {
     final List<int> calls = <int>[];
@@ -63,7 +62,7 @@ void main() {
           }),
         ],
         child: MaterialApp(
-          locale: locale,
+          locale: const Locale('ko'),
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           theme: AppTheme.light(),
@@ -124,14 +123,6 @@ void main() {
     expect(retry, findsNothing);
   });
 
-  testWidgets('영어 화면은 영어로 실패를 알린다', (tester) async {
-    await pumpCard(tester, failures: 1, locale: const Locale('en'));
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-
-    expect(find.text(en.reportsAiFailed), findsOneWidget);
-    expect(find.text(en.actionRetry), findsOneWidget);
-  });
-
   final Finder dailyLimit = find.byKey(
     const ValueKey<String>('reports-ai-daily-limit'),
   );
@@ -164,16 +155,4 @@ void main() {
     expect(dailyLimit, findsNothing);
   });
 
-  testWidgets('영어 화면은 영어로 하루 한도를 알린다 (#3032)', (tester) async {
-    await pumpCard(
-      tester,
-      failures: 1,
-      locale: const Locale('en'),
-      failure: () => const RateLimitedError(code: RateLimitedError.dailyLimitCode),
-    );
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-
-    expect(find.text(en.reportsAiDailyLimit), findsOneWidget);
-    expect(retry, findsNothing);
-  });
 }

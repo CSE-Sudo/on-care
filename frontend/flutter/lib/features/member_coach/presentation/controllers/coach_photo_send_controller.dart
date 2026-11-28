@@ -11,7 +11,8 @@ enum CoachPhotoSendStatus {
   /// 올리는 중.
   sending,
 
-  /// 보내지 못했다 — 다시 보내거나 지울 수 있다.
+  /// 보내지 못했다 — 다시 보내거나 지울 수 있다. 서버가 거절한 것이면
+  /// ([PendingCoachPhoto.failure]) 지우기만 된다.
   failed,
 
   /// 서버가 받았다. 대화를 다시 받아 올 때까지 서버가 준 메시지로 그린다.
@@ -29,6 +30,7 @@ class PendingCoachPhoto {
     required this.photo,
     this.status = CoachPhotoSendStatus.sending,
     this.message,
+    this.failure,
   });
 
   /// 이 사진의 멱등키. **다시 보내기에서 그대로 쓴다** — 서버는 받았는데 응답만
@@ -44,6 +46,13 @@ class PendingCoachPhoto {
   /// 사라졌다 나타난다. 그래서 대화가 그 id 를 가질 때까지 이 메시지로 그린다
   /// (화면이 id 로 겹침을 거른다).
   final CoachMessage? message;
+
+  /// 서버가 이 사진을 거절한 이유(#3346). 망 오류처럼 닿지 못한 실패면 null 이다.
+  final CoachSendFailure? failure;
+
+  /// 다시 보낼 수 있는가 — 실패했고, 서버가 거절한 것이 아닐 때만이다. 거절된
+  /// 사진은 같은 키로 다시 보내도 같은 답이라 지우기만 남긴다.
+  bool get canRetry => status == CoachPhotoSendStatus.failed && failure == null;
 
   /// 서버에 적힐 파일 이름. 형식은 바이트에서 읽은 것이라 내용과 어긋나지 않는다.
   String get fileName => 'photo.${photo.format.extension}';
@@ -61,11 +70,13 @@ class PendingCoachPhoto {
   PendingCoachPhoto copyWith({
     CoachPhotoSendStatus? status,
     CoachMessage? message,
+    CoachSendFailure? failure,
   }) => PendingCoachPhoto(
     requestId: requestId,
     photo: photo,
     status: status ?? this.status,
     message: message ?? this.message,
+    failure: failure ?? this.failure,
   );
 }
 
@@ -104,7 +115,8 @@ class CoachPhotoSendController extends Notifier<List<PendingCoachPhoto>> {
   /// 실패한 사진을 **같은 멱등키로** 다시 보낸다.
   Future<bool> retry(String requestId) {
     final PendingCoachPhoto? pending = _find(requestId);
-    if (pending == null || pending.status != CoachPhotoSendStatus.failed) {
+    // 서버가 거절한 사진은 다시 보내지 않는다(#3346).
+    if (pending == null || !pending.canRetry) {
       return Future<bool>.value(false);
     }
     _replace(pending.copyWith(status: CoachPhotoSendStatus.sending));
@@ -149,11 +161,22 @@ class CoachPhotoSendController extends Notifier<List<PendingCoachPhoto>> {
         mimeType: pending.photo.mimeType,
         clientRequestId: pending.requestId,
       );
-    } on Object {
+    } on Object catch (error) {
+      final CoachSendFailure? reason = CoachSendRejected.reasonOf(error);
       // 그새 지웠으면 되살리지 않는다.
       final PendingCoachPhoto? current = _find(pending.requestId);
       if (current != null) {
-        _replace(current.copyWith(status: CoachPhotoSendStatus.failed));
+        _replace(
+          current.copyWith(
+            status: CoachPhotoSendStatus.failed,
+            failure: reason,
+          ),
+        );
+      }
+      // 담당이 해제됐으면 대화를 다시 읽는다 — 해제 안내가 뜨고 입력이
+      // 닫힌다(#3346).
+      if (reason == CoachSendFailure.unassigned) {
+        ref.invalidate(coachChatProvider);
       }
       return false;
     }

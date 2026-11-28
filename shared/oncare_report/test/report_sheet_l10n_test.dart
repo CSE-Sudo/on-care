@@ -3,34 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_report/oncare_report.dart';
 
 void main() {
-  group('reportSheetLocalizationsFor', () {
-    test('한국어·영어는 그 언어로', () {
-      expect(reportSheetLocalizationsFor(const Locale('ko')).localeName, 'ko');
-      expect(reportSheetLocalizationsFor(const Locale('en')).localeName, 'en');
-    });
-
-    test('지역 코드가 붙어도 언어만 본다', () {
-      expect(
-        reportSheetLocalizationsFor(const Locale('en', 'US')).localeName,
-        'en',
-      );
-    });
-
-    test('모르는 언어면 한국어', () {
-      expect(reportSheetLocalizationsFor(const Locale('ja')).localeName, 'ko');
-    });
-
-    testWidgets('로케일이 없는 트리에서도 한국어로 그린다', (tester) async {
-      late ReportSheetLocalizations l;
-      await tester.pumpWidget(
-        Builder(
-          builder: (BuildContext context) {
-            l = reportSheetLocalizationsOf(context);
-            return const SizedBox();
-          },
-        ),
-      );
+  group('reportSheetLocalizations', () {
+    test('문구는 한국어 하나다 (#3415)', () {
+      final ReportSheetLocalizations l = reportSheetLocalizations();
       expect(l.localeName, 'ko');
+      expect(l.reportsPdfDocTitle, isNotEmpty);
+      expect(l.weekdayMon, isNotEmpty);
+    });
+
+    test('지원 로케일은 한국어뿐이다', () {
+      expect(ReportSheetLocalizations.supportedLocales, const <Locale>[
+        Locale('ko'),
+      ]);
     });
   });
 
@@ -50,17 +34,5 @@ void main() {
     test('음수도 같은 규칙이다', () {
       expect(reportFormatNumber(-1500), '-1,500');
     });
-  });
-
-  test('두 언어의 문구 키가 같다', () {
-    final ReportSheetLocalizations ko = lookupReportSheetLocalizations(
-      const Locale('ko'),
-    );
-    final ReportSheetLocalizations en = lookupReportSheetLocalizations(
-      const Locale('en'),
-    );
-    expect(ko.reportsPdfDocTitle, isNot(en.reportsPdfDocTitle));
-    expect(ko.weekdayMon, isNotEmpty);
-    expect(en.weekdayMon, isNotEmpty);
   });
 }

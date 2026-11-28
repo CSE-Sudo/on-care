@@ -79,6 +79,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '기록이 지워져요. 이미 완료한 일정이라 되돌릴 수 없어요.';
 
   @override
+  String get schedDeleteDoneRemovesMemberRecord =>
+      '회원 앱의 PT 기록과 운동 기록에서도 함께 사라져요. 이미 보낸 개인운동은 그대로 남아요.';
+
+  @override
   String get scheduleStatusGap => '공백';
 
   @override
@@ -122,6 +126,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get actionClose => '닫기';
+
+  @override
+  String get actionDone => '완료';
+
+  @override
+  String get actionMore => '더보기';
 
   @override
   String get actionRetry => '다시 시도';
@@ -209,7 +219,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSignUpAction => '회원가입';
 
   @override
-  String get authDemoAction => '로그인 없이 데모 둘러보기';
+  String get authDemoAction => '체험하기';
+
+  @override
+  String get authDemoNote => '예시 데이터 사용 · 회원 연동은 로그인 후';
 
   @override
   String get authSocialDivider => 'SNS 계정으로 로그인';
@@ -993,15 +1006,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatSendFailed => '메시지를 보내지 못했어요. 다시 시도해 주세요';
 
   @override
-  String get chatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
-
-  @override
-  String get chatReportRegistered => '주간 리포트를 보냈어요';
-
-  @override
-  String get chatReportOpenInReports => '리포트 탭으로 가기';
-
-  @override
   String get chatLoadFailed => '대화를 불러오지 못했어요';
 
   @override
@@ -1009,6 +1013,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatLoadOlderFailed => '이전 메시지를 불러오지 못했어요 · 다시 시도';
+
+  @override
+  String get chatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
+
+  @override
+  String get chatReportRegistered => '주간 리포트를 보냈어요';
+
+  @override
+  String get chatReportOpenInReports => '리포트 탭으로 가기';
 
   @override
   String get chatRoutineDelivered => '운동을 보냈어요';
@@ -1274,11 +1287,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String dateDaysAgo(int count) {
     return '$count일 전';
-  }
-
-  @override
-  String dateWeeksAgo(int count) {
-    return '$count주 전';
   }
 
   @override
@@ -1988,13 +1996,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String progHoldValue(int seconds) {
-    return '$seconds초';
+  String progRepsValue(int reps) {
+    return '$reps회';
   }
 
   @override
-  String progRepsValue(int reps) {
-    return '$reps회';
+  String progHoldValue(int seconds) {
+    return '$seconds초';
   }
 
   @override
@@ -2075,7 +2083,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myProfileSaveFailed => '프로필을 저장하지 못했어요.';
 
   @override
-  String get myGymChangeFailed => '소속 헬스장을 바꾸지 못했어요. 나머지 프로필 정보는 저장됐어요.';
+  String get myGymChangeFailed => '소속 헬스장을 바꾸지 못했어요.';
 
   @override
   String get myTabProfile => '내 정보';
@@ -2115,21 +2123,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myNotifNewMessageHint => '회원이 보낸 메시지';
-
-  @override
-  String get myLanguageApp => '화면 언어';
-
-  @override
-  String get myLanguageHint => '고른 언어는 이 브라우저에만 저장돼요. 다른 기기에서는 그 브라우저 설정을 따라요.';
-
-  @override
-  String get myLanguageSystem => '브라우저 설정 따르기';
-
-  @override
-  String get myLanguageKorean => '한국어';
-
-  @override
-  String get myLanguageEnglish => 'English';
 
   @override
   String get myAccount => '계정';
@@ -2190,7 +2183,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLegalTermsEffectiveDate => '시행일 2026. 10. 03.';
 
   @override
-  String get myLegalPrivacyEffectiveDate => '시행일 2026. 10. 05.';
+  String get myLegalPrivacyEffectiveDate => '시행일 2026. 10. 27.';
 
   @override
   String get myLegalTermsBody =>
@@ -2198,7 +2191,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myLegalPrivacyBody(String contact) {
-    return 'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 트레이너 가입: 이메일, 비밀번호(암호화하여 저장), 이름, 연락처.\n② 프로필과 자격 확인: 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보.\n③ 서비스 이용 중 남기는 정보: 회원에게 보낸 메시지와 첨부 사진, 리포트와 코칭 내용, 일정·예약 정보, 회원 메모.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·브라우저와 운영체제 종류·앱 버전.\n⑤ 위치 정보: 트레이너 웹은 기기의 위치정보를 받지 않습니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 운영자의 신고 처리와 계정 관리, 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다. 회원의 건강정보는 민감정보로서 회원의 별도 동의와 데이터 공유 동의가 있을 때만 열람할 수 있습니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 탈퇴 시까지 보유·이용하며, 탈퇴하면 8항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 정보 제공 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: AI 코칭 프로그램·루틴 후보와 리포트 요약 생성(Gemini API)\n- 주식회사 카카오: 헬스장 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 웹·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 트레이너와의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 트레이너 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필, 메시지·리포트·일정 기록 / 데이터베이스 운영 / 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / AI 기능을 쓸 때 입력한 코칭 조건과 담당 회원의 운동 기록·주간 리포트 수치 / AI 프로그램·요약 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 브라우저와 운영체제 종류·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 개인정보의 파기 절차 및 방법\n① 절차: 트레이너가 탈퇴하면 즉시 계정과 함께 프로필, 담당 회원과의 연결과 대화(첨부 사진·리포트 PDF 파일 포함), 루틴·프로그램, 일정과 예약 가능 시간, 알림을 삭제하고, 담당 회원과 예약한 회원에게 그 사실을 알립니다. 회원이 보낸 상담 요청은 회원의 기록이므로 트레이너 정보만 지운 채 남습니다. 4항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n9. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n10. 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하며, 전송 구간을 암호화합니다. 열람 기록에는 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 남기며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n11. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n12. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필 수정과 탈퇴는 MY 메뉴에서 할 수 있고, 그 밖의 요청은 13항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n13. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: $contact\n\n14. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n15. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 서비스 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 트레이너 웹이 위치정보를 받지 않는다는 항목 추가(1항 ⑤)\n- 2026년 10월 3일: 처리 위탁·국외 이전·파기 절차·자동 수집 장치·만 14세 미만·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 5일';
+    return 'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 트레이너 가입: 이메일, 비밀번호(암호화하여 저장), 이름, 연락처.\n② 프로필과 자격 확인: 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보.\n③ 서비스 이용 중 남기는 정보: 회원에게 보낸 메시지와 첨부 사진, 리포트와 코칭 내용, 일정·예약 정보, 회원 메모.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·브라우저와 운영체제 종류·앱 버전.\n⑤ 위치 정보: 트레이너 웹은 기기의 위치정보를 받지 않습니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 운영자의 신고 처리와 계정 관리, 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다. 회원의 건강정보는 민감정보로서 회원의 별도 동의와 데이터 공유 동의가 있을 때만 열람할 수 있습니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 탈퇴 시까지 보유·이용하며, 탈퇴하면 8항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 정보 제공 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: AI 코칭 프로그램·루틴 후보와 리포트 요약 생성(Gemini API)\n- Google LLC: 가입 인증 코드, 비밀번호 재설정 메일 발송(Gmail)\n- 주식회사 카카오: 헬스장 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 웹·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 트레이너와의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 트레이너 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필, 메시지·리포트·일정 기록 / 데이터베이스 운영 / 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / AI 기능을 쓸 때 입력한 코칭 조건과 담당 회원의 운동 기록·주간 리포트 수치 / AI 프로그램·요약 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 브라우저와 운영체제 종류·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n⑤ Google LLC(Gmail) / 미국 등 Google이 운영하는 데이터센터 소재 국가 / 받는 사람의 이메일 주소와 메일 내용(인증 코드, 비밀번호 재설정 코드와 재설정 링크) / 가입 인증·비밀번호 재설정 메일 발송 / 발송일로부터 30일(발신 계정 보낸편지함의 사본을 30일이 지나면 삭제)\n가입 인증 코드나 비밀번호 재설정을 요청할 때에는 그 메일을 보내기 위해 ⑤로 전송됩니다. 국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 개인정보의 파기 절차 및 방법\n① 절차: 트레이너가 탈퇴하면 즉시 계정과 함께 프로필, 담당 회원과의 연결과 대화(첨부 사진·리포트 PDF 파일 포함), 루틴·프로그램, 일정과 예약 가능 시간, 알림을 삭제하고, 담당 회원과 예약한 회원에게 그 사실을 알립니다. 회원이 보낸 상담 요청은 회원의 기록이므로 트레이너 정보만 지운 채 남습니다. 4항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n9. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n10. 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하며, 전송 구간을 암호화합니다. 열람 기록에는 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 남기며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n11. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n12. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필 수정과 탈퇴는 MY 메뉴에서 할 수 있고, 그 밖의 요청은 13항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n13. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: $contact\n\n14. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n15. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 서비스 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 27일: 회원 앱 처리방침 개정에 맞춘 시행일 변경(트레이너 웹의 처리 내용은 그대로)\n- 2026년 10월 14일: 메일 발송 업체(Google LLC, Gmail)의 처리 위탁과 국외 이전 추가(6항·7항)\n- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 트레이너 웹이 위치정보를 받지 않는다는 항목 추가(1항 ⑤)\n- 2026년 10월 3일: 처리 위탁·국외 이전·파기 절차·자동 수집 장치·만 14세 미만·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 27일';
   }
 
   @override
@@ -2571,9 +2564,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myClientsSubtitle => '담당 회원 연결을 정리해요';
 
   @override
-  String get myLanguageSubtitle => '콘솔을 볼 언어를 골라요';
-
-  @override
   String get myAccountSubtitle => '로그인 계정과 비밀번호를 관리해요';
 
   @override
@@ -2607,16 +2597,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySecurity => '보안';
 
   @override
-  String get myDiscardTitle => '수정을 그만둘까요?';
+  String get myDiscardTitle => '변경사항을 저장할까요?';
 
   @override
-  String get myDiscardBody => '고친 내용은 저장되지 않아요.';
+  String get myDiscardBody => '저장하지 않고 나가면 고친 내용이 사라져요.';
 
   @override
   String get myKeepEditing => '계속 수정';
 
   @override
-  String get myDiscardAction => '나가기';
+  String get myDiscardAction => '저장 안 함';
+
+  @override
+  String get mySaveAndLeave => '저장하고 나가기';
 
   @override
   String get mySignOutConfirm => '이 브라우저에서 로그아웃할까요?';
@@ -2631,11 +2624,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCertsEmpty => '등록한 자격증이 없어요';
 
   @override
-  String get myGymEmpty => '소속 헬스장이 아직 없어요. 프로필 수정에서 설정해 주세요.';
+  String get myGymEmpty => '소속 헬스장이 아직 없어요. 헬스장 설정에서 골라 주세요.';
 
   @override
-  String get myEditVisibleBody =>
-      '전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 그대로 나와요.';
+  String get myEditVisibleBody => '전문 분야·경력·소개·자격증은 회원 앱의 트레이너 소개에 그대로 나와요.';
 
   @override
   String get myClientManagementNoteTitle => '연결을 해제해도 회원 기록은 남아요';
@@ -2901,6 +2893,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplates => '프로그램 템플릿';
 
   @override
+  String get coachMemberRecords => '회원 기록';
+
+  @override
   String get coachSentHistory => '전송 이력';
 
   @override
@@ -2977,9 +2972,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiKeepOneExercise => '운동을 하나 이상 남겨 주세요';
-
-  @override
-  String get aiCustomRoutineName => 'AI 맞춤 추천안';
 
   @override
   String get aiAnalysing => 'AI가 분석 중…';
@@ -3631,7 +3623,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTplConsultCancelledTitle => '상담 요청이 취소됐어요';
 
   @override
+  String get notifTplConsultBookingCancelledTitle => '확정된 상담이 취소됐어요';
+
+  @override
   String get notifTplConsultWithdrawnTitle => '회원 탈퇴로 상담 요청이 취소됐어요';
+
+  @override
+  String get notifTplConsultWithdrawnBookedTitle => '회원 탈퇴로 확정된 상담이 취소됐어요';
 
   @override
   String get notifTplInviteAcceptedTitle => '담당 요청이 수락됐어요';
@@ -4923,10 +4921,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get unitGram => 'g';
 
   @override
-  String get a11yRemoveExercise => '운동 지우기';
+  String get a11yRemoveExercise => '운동 삭제';
 
   @override
-  String get a11yRemoveCertification => '자격증 지우기';
+  String get a11yRemoveCertification => '자격증 삭제';
 
   @override
   String get a11yPrevWeek => '지난주';
@@ -4962,9 +4960,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String coachClientAge(int age) {
     return '$age세';
   }
-
-  @override
-  String get coachTemplateMenu => '템플릿 메뉴';
 
   @override
   String get routineFormDecrease => '줄이기';
@@ -5945,19 +5940,49 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authForgotPassword => '비밀번호 찾기';
 
   @override
-  String get authFindEmail => '아이디 찾기';
+  String get authFindEmail => '이메일 찾기';
 
   @override
-  String get findEmailTitle => '아이디 찾기';
+  String get findEmailTitle => '이메일 찾기';
 
   @override
   String get findEmailSubtitle => '가입할 때 입력한 이름과 휴대폰 번호로 가입 이메일을 찾아요.';
 
   @override
-  String get findEmailAction => '아이디 찾기';
+  String get findEmailAction => '이메일 찾기';
 
   @override
-  String get findEmailComingSoon => '아이디 찾기는 준비 중이에요.';
+  String get findEmailFoundSubtitle => '입력한 정보로 가입한 계정이에요.';
+
+  @override
+  String get findEmailMaskedNote => '개인정보 보호를 위해 이메일 일부를 가렸어요.';
+
+  @override
+  String findEmailSocialTitle(String provider) {
+    return '$provider 계정으로 가입했어요';
+  }
+
+  @override
+  String get findEmailSocialBody => '로그인 화면에서 가입한 방법으로 로그인해 주세요.';
+
+  @override
+  String get findEmailProviderKakao => '카카오';
+
+  @override
+  String get findEmailProviderGoogle => '구글';
+
+  @override
+  String get findEmailProviderOther => '소셜';
+
+  @override
+  String get findEmailNotFoundTitle => '일치하는 계정을 찾지 못했어요';
+
+  @override
+  String get findEmailNotFoundBody =>
+      '이름과 휴대폰 번호를 다시 확인해 주세요. 가입할 때 번호를 넣지 않았거나 나중에 바꿨다면 찾을 수 없어요.';
+
+  @override
+  String get findEmailRetry => '다시 찾기';
 
   @override
   String get signUpPhoneHint => '010-0000-0000';
@@ -6094,7 +6119,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorServerTemporary => '서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get myGymInfoEdit => '헬스장 정보 수정';
+  String get myGymChange => '헬스장 변경';
+
+  @override
+  String get myGymInfoEdit => '영업시간·연락처 수정';
 
   @override
   String get myGymInfoSubtitle =>
@@ -6134,7 +6162,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymInfoSaveFailed => '헬스장 정보를 저장하지 못했어요.';
 
   @override
-  String get a11yRemoveGymTag => '태그 지우기';
+  String get a11yRemoveGymTag => '태그 삭제';
 
   @override
   String myGymTagsHint(int max, int length) {

@@ -21,9 +21,7 @@ from app.services import signup_consent
 _ROOT = Path(__file__).resolve().parents[2]
 _APPS = ("flutter", "flutter_trainer")
 _ARBS = [
-    _ROOT / "frontend" / app / "lib" / "l10n" / f"app_{lang}.arb"
-    for app in _APPS
-    for lang in ("ko", "en")
+    _ROOT / "frontend" / app / "lib" / "l10n" / "app_ko.arb" for app in _APPS
 ]
 
 pytestmark = pytest.mark.skipif(
@@ -44,20 +42,11 @@ def _privacy_version() -> date:
 
 @pytest.mark.parametrize("app", _APPS)
 def test_korean_effective_date_is_the_consent_version(app: str):
-    """한국어 원본의 시행일이 동의 기록 버전과 같은 날이다."""
+    """본문의 시행일이 동의 기록 버전과 같은 날이다."""
     found = _KO_EFFECTIVE.findall(_privacy_body(app, "ko"))
     assert len(found) == 1, "시행일 줄이 하나여야 한다"
     y, m, d = (int(x) for x in found[0])
     assert date(y, m, d) == _privacy_version()
-
-
-@pytest.mark.parametrize("app", _APPS)
-def test_english_effective_date_is_the_consent_version(app: str):
-    """영문본도 같은 날짜를 단다 — 두 언어의 시행일이 갈리면 안 된다."""
-    v = _privacy_version()
-    body = _privacy_body(app, "en")
-    month = v.strftime("%B")
-    assert f"{v.day} {month} {v.year}" in body or f"{month} {v.day}, {v.year}" in body
 
 
 def test_effective_date_is_not_the_old_placeholder():
@@ -83,48 +72,135 @@ def test_newest_revision_entry_is_the_consent_version(app: str):
 
 @pytest.mark.parametrize("app", _APPS)
 def test_contact_change_is_recorded_in_the_history(app: str):
-    """보호책임자 연락처 변경(#3132)이 두 언어의 개정 이력에 남는다."""
+    """보호책임자 연락처 변경(#3132)이 개정 이력에 남는다."""
     assert "개인정보 보호책임자 연락처 변경" in _privacy_body(app, "ko")
-    assert "changed the contact address" in _privacy_body(app, "en")
 
 
-def test_naver_apple_removal_is_folded_into_the_unreleased_revision():
-    """네이버·애플 로그인 제외(#3217)는 미배포 2026-10-05 판에 합쳤다 — 버전을 새로 만들지 않는다.
+def test_naver_removal_stays_in_the_2026_10_05_revision():
+    """네이버·애플 로그인 제외(#3217)는 미배포 2026-10-05 판에 합쳤다 — 그 기록은 그대로 둔다.
 
     같은 날짜 안에서 두 번째 버전을 만들 수 없고(버전이 날짜 문자열), 그 판은 아직
-    배포 전이라 재동의를 다시 요구할 실익이 없다. 그래서 동의 버전은 그대로이고,
-    회원 앱 처리방침의 같은 날짜 개정 이력에 제외 사실을 덧붙였다.
+    배포 전이라 재동의를 다시 요구할 실익이 없었다. 그래서 회원 앱 처리방침의 같은 날짜
+    개정 이력에 제외 사실을 덧붙였다. 애플은 그 뒤 다시 넣었지만(#3499, 아래 테스트)
+    지난 개정 이력은 고치지 않는다.
     """
-    assert _privacy_version() == date(2026, 10, 5)
+    assert _privacy_version() >= date(2026, 10, 5)
     ko = _privacy_body("flutter", "ko")
-    en = _privacy_body("flutter", "en")
     # 같은 날짜 개정(위치정보 동의 안내, #3136)과 한 줄로 합쳐져 있다.
     assert "- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경," in ko
     assert "소셜 로그인 수단에서 네이버·애플 제외" in ko
-    assert "removed Naver and Apple from the social login options" in en
-    # 수집 항목에는 실제로 제공하는 소셜 로그인만 남는다.
-    assert "소셜 로그인(카카오·구글)" in ko
-    assert "social login (Kakao or Google)" in en
+
+
+def test_apple_sign_in_is_a_new_privacy_version():
+    """애플 로그인을 다시 넣은 개정(#3499)은 새 버전이다 — 2026-10-14 판이 이미 운영 중이다.
+
+    회원 앱 처리방침은 수집 경로(1항 ①)와 탈퇴 때의 연결 해제(10항 ①)를 알린다. 트레이너
+    웹에는 애플 로그인이 없지만 처리방침 버전이 하나라 시행일만 함께 옮긴다.
+    """
+    assert _privacy_version() == date(2026, 10, 27)
+    member = _privacy_body("flutter", "ko")
+    assert "소셜 로그인(카카오·구글·애플)으로 가입하면" in member
+    assert "Apple이 만든 전달용 이메일 주소" in member
+    destroy = member.split("\n10. ", 1)[1].split("\n11. ", 1)[0]
+    assert "Apple에 로그인 연결 해제(토큰 철회)도 요청" in destroy
+    assert "- 2026년 10월 27일: 소셜 로그인 수단에 애플 추가(1항 ①)" in member
+    trainer = _privacy_body("flutter_trainer", "ko")
+    assert "- 2026년 10월 27일: 회원 앱 처리방침 개정에 맞춘 시행일 변경" in trainer
 
 
 @pytest.mark.parametrize("app", _APPS)
-@pytest.mark.parametrize("lang", ["ko", "en"])
-def test_naver_apple_appear_only_in_the_revision_history(app: str, lang: str):
-    """네이버·애플은 제외를 알리는 개정 이력 줄 말고는 처리방침에 나오지 않는다(#3217)."""
-    words = ("네이버", "애플") if lang == "ko" else ("Naver", "Apple")
-    lines = [
-        line
-        for line in _privacy_body(app, lang).splitlines()
-        if any(word in line for word in words)
-    ]
-    for line in lines:
-        assert line.startswith(("- 2026년 10월 5일: ", "- 5 October 2026: ")), line
+def test_naver_appears_only_in_the_revision_history(app: str):
+    """네이버는 제외를 알리는 개정 이력 줄 말고는 처리방침에 나오지 않는다(#3217)."""
+    for line in _privacy_body(app, "ko").splitlines():
+        if "네이버" in line:
+            assert line.startswith("- 2026년 10월 5일: "), line
+
+
+def test_trainer_policy_does_not_name_apple_as_a_login():
+    """트레이너 웹에는 애플 로그인이 없다 — 애플은 회원 iOS 앱에만 있다(#3499)."""
+    assert "애플" not in _privacy_body("flutter_trainer", "ko")
 
 
 def test_contact_placeholder_is_kept_in_every_body():
     """연락처는 본문에 박지 않고 `{contact}` 자리로 둔다 — 정의 지점은 한 곳이다(#3005)."""
     for app in _APPS:
-        for lang in ("ko", "en"):
-            body = _privacy_body(app, lang)
-            assert "{contact}" in body
-            assert "@" not in body.replace("{contact}", "")
+        body = _privacy_body(app, "ko")
+        assert "{contact}" in body
+        assert "@" not in body.replace("{contact}", "")
+
+
+_MAIL_RETENTION = "발송일로부터 30일(발신 계정 보낸편지함의 사본을 30일이 지나면 삭제)"
+_CLEANUP_SCRIPT = _ROOT / "tool" / "ops" / "gmail_sent_cleanup.gs"
+
+
+@pytest.mark.parametrize("app", _APPS)
+def test_mail_processor_is_disclosed_as_trust_and_overseas_transfer(app: str):
+    """운영 메일(Gmail SMTP, #480)의 위탁(6항)과 국외 이전(7항)을 함께 알린다(#3443).
+
+    `docs/privacy_processing.md` 1절 Google LLC(Gmail) 행과 같은 사실이다. 이전 항목은
+    받는 사람 주소와 메일 내용뿐이다 — 이름은 메일에 넣지 않는다(아래 테스트).
+    """
+    body = _privacy_body(app, "ko")
+    trust, _, rest = body.partition("\n7. 개인정보의 국외 이전\n")
+    transfer = rest.split("\n8. ", 1)[0]
+    assert "- Google LLC: 가입 인증 코드, 비밀번호 재설정" in trust
+    assert "메일 발송(Gmail)" in trust
+    mail_lines = [
+        line for line in transfer.splitlines() if line.startswith("⑤ Google LLC(Gmail) / ")
+    ]
+    assert len(mail_lines) == 1
+    country, items, purpose, period = mail_lines[0].split(" / ")[1:]
+    assert country == "미국 등 Google이 운영하는 데이터센터 소재 국가"
+    assert items.startswith(
+        "받는 사람의 이메일 주소와 메일 내용(인증 코드, 비밀번호 재설정 코드와 재설정 링크"
+    )
+    assert "메일 발송" in purpose
+    assert period == _MAIL_RETENTION
+    assert "그 메일을 보내기 위해 ⑤로 전송됩니다" in transfer
+    assert (
+        "- 2026년 10월 14일: 메일 발송 업체(Google LLC, Gmail)의 처리 위탁과 국외 이전 추가"
+        in body
+    )
+
+
+def test_outgoing_mail_carries_only_the_disclosed_items():
+    """처리방침이 적은 이전 항목(주소·코드·링크·가린 새 주소) 밖의 개인정보를 메일에 싣지 않는다."""
+    from types import SimpleNamespace
+
+    from app.services import account_notice, password_reset, signup_email_code
+
+    settings = SimpleNamespace(mail_support_contact="")
+    user = SimpleNamespace(email="member@example.com", name="홍길동", phone="01012345678")
+    mails = [
+        password_reset._compose(user, "123456", 30, "https://example.test/#/r?token=123456"),
+        signup_email_code._compose_code("member@example.com", "123456", 10, settings),
+        signup_email_code._compose_code(
+            "new@example.com", "123456", 10, settings, purpose=signup_email_code.EMAIL_CHANGE
+        ),
+        signup_email_code._compose_already_registered("member@example.com", settings),
+        account_notice.compose_email_changed(
+            "member@example.com", "new@example.com", settings=settings
+        ),
+    ]
+    for mail in mails:
+        assert "홍길동" not in mail.body
+        assert "01012345678" not in mail.body
+        # Gmail 사본 정리 스크립트(tool/ops/gmail_sent_cleanup.gs)는 이 제목 머리로 서버가
+        # 보낸 메일을 고른다. 머리가 바뀌면 사본이 30일 뒤에도 남는다.
+        assert mail.subject.startswith("[On-Care] "), mail.subject
+    # 이메일 변경 안내는 새 주소를 가려 적는다.
+    assert "new@example.com" not in mails[-1].body
+
+
+@pytest.mark.skipif(not _CLEANUP_SCRIPT.exists(), reason="운영 스크립트가 없는 체크아웃")
+def test_cleanup_script_matches_the_disclosed_retention():
+    """처리방침의 30일과 정리 스크립트의 기간·제목 머리가 같다(#3443)."""
+    script = _CLEANUP_SCRIPT.read_text(encoding="utf-8")
+    assert "var RETENTION_DAYS = 30;" in script
+    assert "var SUBJECT_PREFIX = '[On-Care] ';" in script
+    assert "labelIds: ['SENT']" in script
+    # 휴지통(30일 더 보관)을 거치지 않는 영구 삭제여야 30일 약속이 맞는다.
+    assert "Gmail.Users.Messages.batchDelete" in script
+    assert "moveThreadsToTrash(" not in script
+    assert "Messages.trash(" not in script
+    assert _MAIL_RETENTION.startswith("발송일로부터 30일")

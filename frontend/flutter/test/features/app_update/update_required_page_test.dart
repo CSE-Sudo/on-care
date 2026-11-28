@@ -14,7 +14,6 @@ import 'package:oncare/core/app_version/store_link.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/app_update/presentation/pages/update_required_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -37,7 +36,6 @@ const AppVersionGateState _blocked = AppVersionGateState(
 );
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 Future<void> _pump(
   WidgetTester tester, {
@@ -113,21 +111,6 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.byKey(UpdateRequiredPage.bodyKey), findsOneWidget);
-  });
-
-  testWidgets('영어로도 보인다', (WidgetTester tester) async {
-    await _pump(
-      tester,
-      platform: TargetPlatform.android,
-      locale: const Locale('en'),
-    );
-
-    expect(find.text(_en.updateRequiredTitle), findsOneWidget);
-    expect(
-      find.textContaining(_en.updateRequiredVersions('0.4.0', '0.5.0')),
-      findsOneWidget,
-    );
-    expect(find.text(_en.updateRequiredAction), findsOneWidget);
   });
 
   group('안드로이드', () {

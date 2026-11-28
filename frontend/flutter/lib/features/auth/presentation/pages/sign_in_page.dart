@@ -12,6 +12,7 @@ import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/auth/domain/social_login_rejection.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/auth/presentation/demo_site_entry.dart';
 import 'package:oncare/features/auth/presentation/member_social_login.dart';
 import 'package:oncare/features/auth/presentation/sign_in_failure.dart';
 import 'package:oncare/features/auth/presentation/trainer_web_address.dart';
@@ -28,9 +29,10 @@ enum _Field { email, password }
 
 /// 로그인 화면 — 이메일/비밀번호 로그인 + 소셜 로그인.
 ///
-/// "로그인 없이 데모 둘러보기" 진입은 화면에서 내렸다. 코드는 지우지 않고
-/// [AppConfig.showDemoEntry] 로 감춰 두었으므로, 다시 열려면
-/// `--dart-define=SHOW_DEMO_ENTRY=true` 로 빌드한다. (#1526)
+/// 로그인 없이 들어가는 `체험하기` 진입은 [AppConfig.showDemoEntry] 로 감춰
+/// 두었다(#1526). `--dart-define=SHOW_DEMO_ENTRY=true` 로 빌드하면 화면 맨 아래에
+/// 뜬다 — 데모 배포가 그렇게 빌드한다(#3423, #3432). 운영 웹 빌드는 대신
+/// `DEMO_SITE_URL` 을 받아 같은 버튼이 둘러보기 데모 사이트로 옮긴다(#3437).
 class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
 
@@ -92,7 +94,14 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     if (_errors.isWatching) setState(() {});
   }
 
-  void _enterDemo() {
+  /// 체험하기. 데모 사이트 주소([demoSite])가 있으면(운영 웹 빌드) 같은 탭에서
+  /// 그리로 옮긴다 — 운영 서버에는 데모 폴백이 없어 앱 안 데모가 비기 때문이다
+  /// (#3437). 없으면 지금처럼 이 앱 안에서 데모로 들어간다.
+  void _enterDemo(Uri? demoSite) {
+    if (demoSite != null) {
+      unawaited(ref.read(demoSiteLauncherProvider)(demoSite));
+      return;
+    }
     ref.read(sessionControllerProvider.notifier).enterDemo();
     context.go(AppRoutes.dashboard);
   }
@@ -202,7 +211,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     try {
       await ref
           .read(sessionControllerProvider.notifier)
-          .socialLogin(provider: success.provider.id, token: success.token);
+          .socialLogin(
+            provider: success.provider.id,
+            token: success.token,
+            name: success.name,
+          );
       final String next = await firstRouteAfterSignIn(container);
       if (next != AppRoutes.dashboard) router?.go(next);
     } catch (e) {
@@ -226,6 +239,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final MemberSocialLogin social = ref.watch(memberSocialLoginProvider);
+    final AppConfig config = ref.watch(appConfigProvider);
+    final Uri? demoSite = demoSiteEntryAddress(config.demoSiteUrl);
     return AppAuthLayout(
       // 브랜드 — On-Care 로고 (테두리 없이 크게)
       logo: Image.asset(
@@ -290,8 +305,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               ),
             ),
             // 이메일·비밀번호를 잊은 회원이 되찾는 입구(#2824). 비밀번호 칸
-            // 바로 아래 오른쪽 — 막혔다는 걸 깨닫는 자리다. 영어 문구가 길어
-            // 좁은 폭에서는 줄을 바꾼다.
+            // 바로 아래 오른쪽 — 막혔다는 걸 깨닫는 자리다. 좁은 폭에서는
+            // 줄을 바꾼다.
             Wrap(
               alignment: WrapAlignment.end,
               children: <Widget>[
@@ -335,6 +350,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               // '준비 중' 안내를 단다 — 숨기면 화면 배치가 바뀐다(#2769).
               //
               // 웹 구글은 구글이 그리는 같은 크기의 원형 버튼이다(#330).
+              //
+              // 애플은 iOS 에만 같은 크기로 둔다(#3499, App Review Guideline 4.8).
               AppSocialLoginRow(
                 children: <Widget>[
                   AppSocialLoginButton(
@@ -365,6 +382,17 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       onPressed: null,
                     ),
                   ),
+                  if (social.offers(SocialLoginProvider.apple))
+                    AppSocialLoginButton(
+                      key: const ValueKey<String>('member-login-apple'),
+                      provider: AppSocialProvider.apple,
+                      label: l.authAppleAction,
+                      onPressed:
+                          _loading ||
+                              !social.isEnabled(SocialLoginProvider.apple)
+                          ? null
+                          : () => _social(SocialLoginProvider.apple),
+                    ),
                 ],
               ),
               if (!social.anyEnabled) ...<Widget>[
@@ -380,8 +408,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               ],
               const SizedBox(height: OnCareSpacing.s12),
             ],
-            // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.
-            // Row 로 두면 영어에서 화면 밖으로 넘친다(폭 400 기준 실측).
+            // Wrap 인 이유: Row 로 두면 좁은 폭·큰 글자에서 화면 밖으로 넘친다.
             Wrap(
               alignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -402,15 +429,32 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             ),
             // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
             // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
-            if (ref.watch(appConfigProvider).showDemoEntry)
+            // 데모 배포는 이 플래그를 켠다(#3423). 로그인이 이 화면의 주 동작이라
+            // 맨 아래 알약 버튼으로 두어 꽉 찬 로그인 버튼과 구별한다(#3432).
+            // 운영 웹 빌드는 데모 사이트 주소를 받아 같은 버튼을 띄운다(#3437).
+            if (config.showDemoEntry || demoSite != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s16),
               Center(
                 child: AppButton(
                   key: const Key('demoEnterButton'),
                   label: l.authDemoAction,
-                  onPressed: _enterDemo,
-                  variant: AppButtonVariant.text,
+                  onPressed: _loading ? null : () => _enterDemo(demoSite),
+                  variant: AppButtonVariant.brandOutline,
+                  pill: true,
                 ),
               ),
+              // 배포 데모는 두 앱이 각자 브라우저 안의 예시 데이터로 돈다 —
+              // 한쪽에서 남긴 기록이 다른 쪽에 보이지 않는 것을 미리 알린다(#3423).
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.authDemoNote,
+                key: const Key('demoEntryNote'),
+                textAlign: TextAlign.center,
+                style: context.oncare
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ],
           ],
         ),
       ),

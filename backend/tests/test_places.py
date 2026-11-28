@@ -136,16 +136,17 @@ def test_kakao_docs_to_places_parsing():
 
     docs = [
         {
-            "id": "1", "place_name": "온케어짐", "x": "127.0", "y": "37.5",
+            "id": "1", "place_name": "온케어내과", "x": "127.0", "y": "37.5",
             "distance": "120", "road_address_name": "서울 서대문구 신촌로 120",
         },
         {"id": "2", "place_name": "좌표없음"},  # x/y 없음 → 스킵
         {"id": "3", "place_name": "거리없음", "x": "127.1", "y": "37.6"},  # distance 없음 → 0
     ]
-    out = docs_to_places(docs, "fitness")
+    # 헬스장 판별(#3357)은 `fitness` 에만 걸린다 — 여기서는 파싱만 본다.
+    out = docs_to_places(docs, "medical")
     assert len(out) == 2
-    assert out[0].name == "온케어짐"
-    assert out[0].category == "fitness"
+    assert out[0].name == "온케어내과"
+    assert out[0].category == "medical"
     assert out[0].distance_meters == 120
     assert out[0].lat == 37.5 and out[0].lng == 127.0
     assert out[1].distance_meters == 0
@@ -290,8 +291,8 @@ def test_kakao_cache_reduces_calls(monkeypatch):
     monkeypatch.setattr(kk.httpx, "AsyncClient", _FakeClient)
 
     async def _run():
-        a = await kk.search_nearby(37.5, 127.0, "fitness", 3000, api_key="k")
-        b = await kk.search_nearby(37.5, 127.0, "fitness", 3000, api_key="k")
+        a = await kk.search_nearby(37.5, 127.0, "pharmacy", 3000, api_key="k")
+        b = await kk.search_nearby(37.5, 127.0, "pharmacy", 3000, api_key="k")
         return a, b
 
     try:

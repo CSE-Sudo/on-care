@@ -122,19 +122,6 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('영어 로케일에서는 비어 있다는 말도 영어다', (WidgetTester tester) async {
-    final SemanticsHandle handle = tester.ensureSemantics();
-    await pumpHome(
-      tester,
-      const AsyncValue<ExerciseWeek>.data(emptyWeek),
-      locale: const Locale('en'),
-    );
-
-    expect(labelled('No records yet'), findsWidgets);
-    expect(labelled('기록이 없어요'), findsNothing);
-    handle.dispose();
-  });
-
   testWidgets('영양 추이 꺾은선도 요일별 값을 말한다', (WidgetTester tester) async {
     final SemanticsHandle handle = tester.ensureSemantics();
     await pumpHome(

@@ -29,11 +29,16 @@ log = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class OutgoingMail:
-    """보낼 메일 한 통. 본문은 일반 텍스트다 — 링크 하나와 코드 하나면 충분하다."""
+    """보낼 메일 한 통. 본문은 일반 텍스트다 — 링크 하나와 코드 하나면 충분하다.
+
+    `html` 이 있으면 같은 내용을 꾸민 HTML 을 함께 싣는다(#3490). 텍스트는 늘
+    있어야 한다 — HTML 을 못 그리는 메일 앱과 개발 로그가 그것을 본다.
+    """
 
     to: str
     subject: str
     body: str
+    html: str | None = None
 
 
 class MailDeliveryError(Exception):
@@ -97,6 +102,8 @@ class SmtpMailer:
         msg["To"] = mail.to
         msg["Subject"] = mail.subject
         msg.set_content(mail.body)
+        if mail.html:
+            msg.add_alternative(mail.html, subtype="html")
         return msg
 
     def send(self, mail: OutgoingMail) -> None:

@@ -86,6 +86,23 @@ class AlertAction {
   bool get isNavigable => target != AlertTarget.unknown;
 }
 
+/// 리포트 알림이 가리키는 리포트 — 어느 주, 어느 대화 메시지인가. (#3344)
+///
+/// 서버는 리포트 알림의 목적지 값을 메시지 알림과 같은 `coach_chat` 으로 두고 이
+/// 값을 **더해** 준다(`report`). 목적지 값을 새로 만들면 이미 깔린 앱이 모르는 값이라
+/// 눌러도 아무 데도 가지 않기 때문이다. 이 값이 있으면 대화가 아니라 그 주 리포트를
+/// 바로 연다. 이 값이 생기기 전에 쌓인 리포트 알림에는 없다 — 그때는 대화로 간다.
+class AlertReportRef {
+  const AlertReportRef({required this.weekStart, this.messageId});
+
+  /// 리포트가 다루는 주의 월요일(날짜만).
+  final DateTime weekStart;
+
+  /// 리포트가 실려 온 대화 메시지. 같은 주 리포트를 다시 보냈을 때 알림이 말한
+  /// 그 한 건을 고르는 데 쓴다. 없으면 그 주의 마지막 리포트를 연다.
+  final String? messageId;
+}
+
 class AlertItem {
   const AlertItem({
     required this.id,
@@ -99,6 +116,7 @@ class AlertItem {
     this.action,
     this.createdAt = '',
     this.messageKey,
+    this.report,
   });
 
   final String id;
@@ -128,6 +146,10 @@ class AlertItem {
   /// 대신 로케일에 맞는 문장을 쓴다. 서버가 만든 알림은 번역본이 없어 비어 있다. (#1812)
   final String? messageKey;
 
+  /// 리포트 알림이 가리키는 리포트(#3344). 리포트 알림이 아니거나, 서버가 주·메시지를
+  /// 싣기 전에 쌓인 리포트 알림이면 없다.
+  final AlertReportRef? report;
+
   AlertItem copyWith({bool? read}) => AlertItem(
     id: id,
     title: title,
@@ -140,6 +162,7 @@ class AlertItem {
     action: action,
     createdAt: createdAt,
     messageKey: messageKey,
+    report: report,
   );
 }
 

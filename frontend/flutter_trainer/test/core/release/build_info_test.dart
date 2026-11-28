@@ -12,11 +12,9 @@ import 'package:oncare_core/build_info.dart';
 import 'package:oncare_trainer/core/release/build_info.dart';
 import 'package:oncare_trainer/features/my/data/app_version.dart';
 import 'package:oncare_trainer/features/my/data/build_info.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 final BuildInfo _released = BuildInfo.fromDefines(
   version: '0.2.0',
@@ -27,7 +25,6 @@ final BuildInfo _released = BuildInfo.fromDefines(
 void main() {
   setUpAll(() async {
     await initializeDateFormatting('ko');
-    await initializeDateFormatting('en');
   });
 
   group('formatReleaseDate', () {
@@ -37,13 +34,6 @@ void main() {
         '2026년 10월 5일 14:30',
       );
     });
-
-    test('영어는 월 일, 연 시:분(24시간)', () {
-      expect(
-        formatReleaseDate(DateTime(2026, 10, 5, 14, 30), 'en'),
-        'Oct 5, 2026 14:30',
-      );
-    });
   });
 
   group('buildInfoSummary', () {
@@ -51,10 +41,6 @@ void main() {
       expect(
         buildInfoSummary(_ko, 'ko', _released),
         'On-Care 트레이너 · 버전 0.2.0 (7032) · 2026년 10월 5일 14:30 KST 배포',
-      );
-      expect(
-        buildInfoSummary(_en, 'en', _released),
-        'On-Care Trainer · Version 0.2.0 (7032) · Deployed Oct 5, 2026 14:30 KST',
       );
     });
 
@@ -75,10 +61,6 @@ void main() {
       expect(
         buildInfoSummary(_ko, 'ko', info),
         'On-Care 트레이너 · 버전 0.2.0 · 개발 빌드',
-      );
-      expect(
-        buildInfoSummary(_en, 'en', info),
-        'On-Care Trainer · Version 0.2.0 · Development build',
       );
     });
 

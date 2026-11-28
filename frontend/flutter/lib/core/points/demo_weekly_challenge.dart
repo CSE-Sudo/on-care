@@ -16,11 +16,16 @@ typedef DemoExerciseDays = Future<Set<DateTime>> Function(DateTime monday);
 /// - 한 주는 월요일~일요일. 참가는 월·화요일에만, 한 주에 한 번이고 100P 를 건다.
 /// - 목표는 참가할 때의 주간 운동 횟수 목표로 고정한다(없으면 3, 7 초과는 7).
 /// - 진행은 운동 기록이 있는 날 수다. 같은 날 여러 번은 1회, 오늘 이후 날짜는 세지 않는다.
-/// - 주가 끝난 뒤 [settleDue] 가 한 번 판정한다. 채웠으면 200P 를 적립하고, 못 채웠으면
-///   건 포인트는 사라진다. 판정마다 결과 알림 한 건([DemoChallengeNotice])을 돌려준다.
+/// - 주가 끝나고 하루의 유예([graceDays])가 지난 뒤 [settleDue] 가 한 번 판정한다.
+///   채웠으면 200P 를 적립하고, 못 채웠으면 건 포인트는 사라진다. 판정마다 결과 알림
+///   한 건([DemoChallengeNotice])을 돌려준다. 유예 중(주가 끝난 다음 날)에는 진행 중
+///   그대로 두고 `settling` 으로 답한다 — 그날 적은 지난주 기록까지 센다(#3362).
 ///
-/// 판정은 읽는 쪽이 먼저 부른다 — 목업 API 가 챌린지·사용처·잔액·알림함을 답하기
-/// 전에 부른다. 서버의 늦은 판정과 같은 자리다.
+/// 판정은 읽는 쪽이 먼저 부른다 — 목업 API 가 챌린지·사용처·잔액·알림함·미읽음 수를
+/// 답하기 전에 부른다. 서버의 늦은 판정과 같은 자리다.
+///
+/// 서버는 유예 뒤에 저장된 기록을 판정에서 뺀다(기록 마감). 목업의 운동 표는 저장
+/// 시각 없이 요일로만 세므로 그 마감은 옮기지 않았다.
 ///
 /// 운동한 날은 목업 API 가 자기 운동 표(drift)로 센다(#2662). 시험은
 /// [recordedDays] 로 출처를 갈아 끼울 수 있다.
@@ -38,6 +43,9 @@ class DemoWeeklyChallenge implements DemoPersistable {
   /// 목표가 없을 때의 목표와, 한 주에 셀 수 있는 최대 날 수.
   static const int defaultGoal = 3;
   static const int maxGoal = 7;
+
+  /// 주가 끝난 뒤 판정을 미루는 날 수. 서버 `GRACE_DAYS` 와 같다(#3362).
+  static const int graceDays = 1;
 
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
@@ -57,12 +65,15 @@ class DemoWeeklyChallenge implements DemoPersistable {
       ? defaultGoal
       : math.min(weeklyWorkoutGoal, maxGoal);
 
-  /// 주가 끝난 진행 중 챌린지를 판정한다. 이번에 판정한 것의 결과 알림을 돌려준다.
+  /// 유예까지 끝난 진행 중 챌린지를 판정한다. 이번에 판정한 것의 결과 알림을 돌려준다.
   Future<List<DemoChallengeNotice>> settleDue(DemoExerciseDays daysOf) async {
-    final DateTime thisMonday = mondayOf(_today());
+    final DateTime today = _today();
     final List<DemoChallengeNotice> notices = <DemoChallengeNotice>[];
     for (final _DemoChallenge c in List<_DemoChallenge>.of(_challenges)) {
-      if (c.status != _active || !c.weekStart.isBefore(thisMonday)) continue;
+      // 기록 마감(일요일 + 유예)이 어제까지 지난 주만 판정한다.
+      if (c.status != _active || !today.isAfter(_recordDeadline(c.weekStart))) {
+        continue;
+      }
       final int days = _count(
         await daysOf(c.weekStart),
         c.weekStart,
@@ -90,6 +101,11 @@ class DemoWeeklyChallenge implements DemoPersistable {
     final DateTime today = _today();
     final DateTime monday = mondayOf(today);
     final _DemoChallenge? row = _forWeek(monday);
+    // 지난주 참가 기록이 아직 유예 중이면 함께 싣는다 — 카드가 "집계 중"을 적는다.
+    final _DemoChallenge? last = _forWeek(_addDays(monday, -7));
+    final _DemoChallenge? settling = last != null && last.status == _active
+        ? last
+        : null;
     final int balance = _ledger.balance;
     final int progress = _count(await daysOf(monday), monday, today);
     final String? blocked = row != null
@@ -112,6 +128,16 @@ class DemoWeeklyChallenge implements DemoPersistable {
       'blocked_reason': blocked,
       'shortfall': math.max(stake - balance, 0),
       'challenge': row == null ? null : _json(row, progress: progress),
+      'settling_challenge': settling == null
+          ? null
+          : _json(
+              settling,
+              progress: _count(
+                await daysOf(settling.weekStart),
+                settling.weekStart,
+                today,
+              ),
+            ),
     };
   }
 
@@ -226,6 +252,10 @@ class DemoWeeklyChallenge implements DemoPersistable {
   static DateTime _addDays(DateTime day, int days) =>
       DateTime(day.year, day.month, day.day + days);
 
+  /// [monday] 주의 기록 마감 — 유예 마지막 날. 그 다음 날부터 판정한다.
+  static DateTime _recordDeadline(DateTime monday) =>
+      _addDays(monday, 6 + graceDays);
+
   static bool _isJoinDay(DateTime day) =>
       day.weekday == DateTime.monday || day.weekday == DateTime.tuesday;
 
@@ -269,6 +299,8 @@ class DemoWeeklyChallenge implements DemoPersistable {
       'stake': c.stake,
       'reward': c.reward,
       'status': c.status,
+      'settling':
+          c.status == _active && _today().isAfter(_addDays(c.weekStart, 6)),
       'achieved': days >= c.goal,
       'rewarded': c.status == _succeeded ? c.reward : 0,
       'joined_at': c.joinedAt.toIso8601String(),

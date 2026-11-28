@@ -1,5 +1,11 @@
 # 의존성 업데이트 PR 을 주 1회 받는다(#2837).
 #
+# 백엔드(pip)·두 앱(pub)은 보안 업데이트만 자동 PR 로 받는다 — 버전 업데이트는
+# open-pull-requests-limit: 0 으로 끈다. 보안 업데이트는 이 한도와 별개로 계속 열린다.
+# 부·수 버전 묶음이 고정된 Flutter SDK 보다 새 SDK 를 요구하거나(예: web 1.1.2 → Dart 3.13)
+# 일시적인 E2E 실패로 매주 손이 가는 데 비해 얻는 것이 적어서다. 아래 groups·ignore 는
+# 다시 켤 때를 위해 남긴다.
+#
 # 생태계마다 업데이트를 한 묶음(groups)으로 모아 PR 수를 줄인다 — 매주 많아야
 # 생태계당 하나다. pip·pub 의 주 버전 변경은 자동 PR 로 받지 않는다(#2978) — 앱 전체
 # 코드 수정이 따르므로 필요할 때 패키지별 이슈로 계획한다. 보안 업데이트는 ignore 와
@@ -16,7 +22,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: Asia/Seoul
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0  # 보안 업데이트만
     labels: [chore]
     commit-message:
       prefix: chore
@@ -57,7 +63,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: Asia/Seoul
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 0  # 보안 업데이트만
     labels: [chore]
     commit-message:
       prefix: chore
@@ -70,4 +76,29 @@ updates:
         update-types: ["version-update:semver-major"]
       # flutter_localizations(SDK)가 intl 버전을 고정한다 — 앱에서 따로 올리면 의존성
       # 해석이 실패한다. Flutter SDK 를 올릴 때 함께 맞춘다.
+      # 이 규칙은 intl 을 업데이트 대상으로 고르는 것만 막는다. Dependabot 이 더 새로운
+      # Flutter SDK 로 의존성을 풀면 잠금 파일의 intl 은 그 SDK 고정 버전으로 따라 바뀐다 —
+      # 처리 절차는 docs/team_workflow.md "pub 잠금 파일에 SDK 고정 패키지가 따라올 때"(#3319).
       - dependency-name: intl
+      # 아래는 부 버전인데도 다른 패키지의 주 버전을 끌고 들어오는 업데이트다(#3319).
+      # 위의 주 버전 제외는 업데이트 대상으로 고른 패키지에만 걸리고, 그 패키지를 올리려고
+      # 함께 풀리는 패키지에는 걸리지 않는다. 그래서 끌고 들어오는 쪽을 막는다.
+      #
+      # analyzer 8 을 요구하는 버전 — riverpod_lint 2.x 가 analyzer 7 에 묶여 있어
+      # riverpod_lint·flutter_riverpod 3.x 가 함께 올라온다. riverpod 3 이행을 마치면 지운다.
+      - dependency-name: custom_lint
+        versions: [">=0.8.0"]
+      - dependency-name: build_runner
+        versions: [">=2.10.0"]
+      - dependency-name: drift_dev
+        versions: [">=2.30.0"]
+      # drift_dev 2.29 이하는 drift 2.30 미만만 받고, drift_flutter 0.2.8 은 drift 2.30
+      # 이상을 요구한다 — 둘 다 drift_dev 를 2.30 으로 밀어 올린다. 위 세 줄과 함께 지운다.
+      - dependency-name: drift
+        versions: [">=2.30.0"]
+      - dependency-name: drift_flutter
+        versions: [">=0.2.8"]
+      # geolocator_linux 가 package_info_plus 10 을 요구하는 버전 — win32 6 이 따라와
+      # flutter_secure_storage 11 까지 올라온다. 두 패키지의 주 버전 이행을 마치면 지운다.
+      - dependency-name: geolocator
+        versions: [">=14.0.3"]

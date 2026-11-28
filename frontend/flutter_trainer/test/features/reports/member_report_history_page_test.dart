@@ -70,7 +70,6 @@ void main() {
   Future<void> open(
     WidgetTester tester, {
     String at = AppRoutes.reports,
-    Locale locale = const Locale('ko'),
     Size size = const Size(1600, 2400),
   }) async {
     tester.view.devicePixelRatio = 1.0;
@@ -82,7 +81,6 @@ void main() {
       token: 'demo-trainer-token',
       at: at,
       seedClock: kMidWeekKst,
-      locale: locale,
     );
     await settle(tester);
   }
@@ -298,42 +296,11 @@ void main() {
     expect(_key('reports-history-week-$_lastWeek'), findsOneWidget);
   });
 
-  testWidgets('영어로 바꾸면 영어 제목과 버튼이다', (tester) async {
-    await open(tester, locale: const Locale('en'));
-    await waitFor(tester, _key('reports-history-$_steady'));
-    expect(
-      find.descendant(
-        of: _key('reports-history-$_steady'),
-        matching: find.text('Past reports'),
-      ),
-      findsOneWidget,
-    );
-
-    await tapAndSettle(tester, _key('reports-history-$_steady'));
-    expect(tester.widget<Text>(historyTitle).data, endsWith("'s past reports"));
-    expect(
-      find.descendant(
-        of: _key('reports-history-back'),
-        matching: find.text('Member list'),
-      ),
-      findsOneWidget,
-    );
-    await waitFor(tester, _key('reports-history-view-$_lastWeek'));
-    expect(
-      find.descendant(
-        of: _key('reports-history-view-$_lastWeek'),
-        matching: find.text('View'),
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('가장 좁은 지원 폭·영어·큰 글자에서도 버튼이 넘치지 않는다', (tester) async {
+  testWidgets('가장 좁은 지원 폭·큰 글자에서도 버튼이 넘치지 않는다', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 1.3;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await open(
       tester,
-      locale: const Locale('en'),
       size: const Size(1024, 2400),
     );
 

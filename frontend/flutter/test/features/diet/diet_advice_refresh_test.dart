@@ -27,7 +27,7 @@ class _LiveAdviceRepository extends FakeDietRepository {
   int adviceCalls = 0;
 
   @override
-  Future<DietAdvice> fetchAdvice(String period, {String lang = 'ko'}) async {
+  Future<DietAdvice> fetchAdvice(String period) async {
     adviceCalls++;
     final DietDay day = await fetchToday();
     final int sodium = day.entries.fold<int>(

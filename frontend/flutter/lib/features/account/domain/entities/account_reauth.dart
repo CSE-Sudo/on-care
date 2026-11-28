@@ -9,23 +9,32 @@ class AccountReauth {
   /// 비밀번호 계정 — 현재 비밀번호.
   const AccountReauth.password(String this.currentPassword)
     : socialProvider = null,
-      socialToken = null;
+      socialToken = null,
+      appleAuthorizationCode = null;
 
   /// 소셜 전용 계정 — 방금 다시 로그인해 받은 provider 토큰.
-  const AccountReauth.social({required String provider, required String token})
-    : socialProvider = provider,
-      socialToken = token,
-      currentPassword = null;
+  ///
+  /// 애플은 같은 로그인의 [appleAuthorizationCode] 도 싣는다. 탈퇴하면 서버가 이
+  /// 코드로 Apple 토큰을 철회한다(#3499). 이메일 변경은 이 값을 쓰지 않는다.
+  const AccountReauth.social({
+    required String provider,
+    required String token,
+    this.appleAuthorizationCode,
+  }) : socialProvider = provider,
+       socialToken = token,
+       currentPassword = null;
 
   final String? currentPassword;
   final String? socialProvider;
   final String? socialToken;
+  final String? appleAuthorizationCode;
 
   /// 요청 본문에 얹을 칸. 쓰지 않는 칸은 넣지 않는다.
   Map<String, Object?> toJson() => <String, Object?>{
     'current_password': ?currentPassword,
     'social_provider': ?socialProvider,
     'social_token': ?socialToken,
+    'apple_authorization_code': ?appleAuthorizationCode,
   };
 }
 

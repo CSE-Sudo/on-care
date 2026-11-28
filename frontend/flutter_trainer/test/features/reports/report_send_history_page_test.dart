@@ -6,7 +6,7 @@
 ///  * 새로 연 작업대가 서버 이력만으로 `전송 완료` 열을 세운다.
 ///  * 이미 보낸 회원에게 다시 보내려 하면 먼저 묻고, 취소하면 보내지 않는다.
 ///  * 이력을 읽지 못하면 작업대가 그 사실을 말한다 — 조용히 미전송으로 세우지
-///    않는다. 한·영 두 로케일 모두.
+///    않는다.
 library;
 
 import 'dart:typed_data';
@@ -80,7 +80,6 @@ void main() {
     WidgetTester tester, {
     required _History history,
     String at = AppRoutes.reports,
-    Locale locale = const Locale('ko'),
     int stage = 0,
   }) async {
     tester.view.devicePixelRatio = 1.0;
@@ -91,7 +90,6 @@ void main() {
       tester,
       token: 'demo-trainer-token',
       at: at,
-      locale: locale,
       extraOverrides: <Override>[
         history.override,
         reportPdfGeneratorProvider.overrideWithValue(_InstantPdfGenerator()),
@@ -203,22 +201,6 @@ void main() {
       );
     });
 
-    testWidgets('이력 경고는 영어 화면에서도 영어로 선다', (tester) async {
-      await open(
-        tester,
-        history: _History(<String, ReportSendRecord>{}, fail: true),
-        locale: const Locale('en'),
-      );
-
-      expect(
-        find.text(
-          "Couldn't load send history. Members you've already sent to may "
-          'show as not sent.',
-        ),
-        findsOneWidget,
-      );
-    });
-
     testWidgets('이력을 읽었으면 경고가 없다', (tester) async {
       await open(tester, history: _History(<String, ReportSendRecord>{}));
 
@@ -318,25 +300,6 @@ void main() {
       await tapSend(tester);
 
       expect(find.text('이미 보낸 리포트예요'), findsOneWidget);
-    });
-
-    testWidgets('영어 화면의 확인 창은 영어로 묻는다', (tester) async {
-      await open(
-        tester,
-        history: _History(_sentThisWeek(_minsu)),
-        at: AppRoutes.reportFor(_minsu),
-        locale: const Locale('en'),
-        stage: 2,
-      );
-
-      await tapSend(tester);
-
-      expect(find.text('Already sent'), findsOneWidget);
-      expect(find.text('Send again'), findsOneWidget);
-      expect(
-        find.textContaining('Sending it again delivers a second copy'),
-        findsOneWidget,
-      );
     });
   });
 }

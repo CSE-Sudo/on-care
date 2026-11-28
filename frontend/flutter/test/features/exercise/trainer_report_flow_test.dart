@@ -389,26 +389,6 @@ void main() {
       expect(find.byKey(const Key('trainer-report-sheet')), findsNothing);
       await drainToast(tester);
     });
-
-    testWidgets('영어 로케일에서 시트 문구가 영어다', (WidgetTester tester) async {
-      await pumpRoute(
-        tester,
-        location: AppRoutes.trainerDetailPath(_trainer.id),
-        repository: _RecordingRepository(),
-        locale: const Locale('en'),
-      );
-      expect(
-        find.text('Affiliation registered by the trainer'),
-        findsOneWidget,
-      );
-      await openFromDetail(tester);
-
-      expect(find.text('Report trainer'), findsWidgets);
-      expect(find.text('Impersonation'), findsOneWidget);
-      expect(find.text('Inappropriate message'), findsOneWidget);
-      expect(find.text('Other'), findsOneWidget);
-      expect(find.text('Submit report'), findsOneWidget);
-    });
   });
 
   group('헬스장 상세의 소속 트레이너 (#3008)', () {

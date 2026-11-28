@@ -39,6 +39,7 @@ AppConfig _real(SocialLoginConfig social) => AppConfig(
 
 const Key _kakao = ValueKey<String>('member-login-kakao');
 const Key _google = ValueKey<String>('member-login-google');
+const Key _apple = ValueKey<String>('member-login-apple');
 const Key _soon = ValueKey<String>('member-login-social-soon');
 
 class _Harness {
@@ -79,6 +80,7 @@ Future<_Harness> _pump(
   FakeKakaoGateway? kakao,
   FakeGoogleGateway? google,
   FakeKakaoPopup? popup,
+  FakeAppleGateway? apple,
   bool failSocial = false,
 }) async {
   FlutterSecureStorage.setMockInitialValues(<String, String>{});
@@ -150,6 +152,7 @@ Future<_Harness> _pump(
             kakaoGateway: kakao ?? FakeKakaoGateway(),
             googleGateway: googleGateway,
             kakaoPopup: kakaoPopup,
+            appleGateway: apple ?? FakeAppleGateway(),
           ),
         ),
       ],
@@ -253,6 +256,85 @@ void main() {
     expect(h.socialRequests.single.path, '/auth/social/kakao');
     expect(h.status, isNot(SessionStatus.authenticated));
     expect(find.text(h.l.authSocialSignInFailed), findsOneWidget);
+  });
+
+  group('애플(#3499)', () {
+    testWidgets('iOS — 키 없이도 켜지고, 토큰과 첫 로그인 이름을 서버로 보낸다', (tester) async {
+      final FakeAppleGateway apple = FakeAppleGateway()
+        ..credential = (
+          identityToken: 'apple-identity-token',
+          authorizationCode: 'apple-code',
+          givenName: '수빈',
+          familyName: '김',
+        );
+      final _Harness h = await _pump(
+        tester,
+        social: const SocialLoginConfig(),
+        platform: SocialLoginPlatform.ios,
+        apple: apple,
+      );
+
+      expect(h.enabled(_apple), isTrue);
+      expect(find.byKey(_soon), findsNothing);
+      await h.tap(_apple);
+
+      final RequestOptions request = h.socialRequests.single;
+      expect(request.path, '/auth/social/apple');
+      expect(request.data, <String, Object?>{
+        'token': 'apple-identity-token',
+        'name': '김수빈',
+      });
+      expect(h.status, SessionStatus.authenticated);
+    });
+
+    testWidgets('iOS — 두 번째 로그인부터는 이름 없이 토큰만 보낸다', (tester) async {
+      final _Harness h = await _pump(tester, platform: SocialLoginPlatform.ios);
+
+      await h.tap(_apple);
+
+      expect(h.socialRequests.single.data, <String, Object?>{
+        'token': 'apple-identity-token',
+      });
+    });
+
+    testWidgets('iOS — 카카오·구글과 같은 줄에 같은 크기로 놓인다', (tester) async {
+      await _pump(tester, platform: SocialLoginPlatform.ios);
+
+      final Size kakao = tester.getSize(find.byKey(_kakao));
+      expect(tester.getSize(find.byKey(_google)), kakao);
+      expect(tester.getSize(find.byKey(_apple)), kakao);
+      expect(
+        tester.getCenter(find.byKey(_apple)).dy,
+        tester.getCenter(find.byKey(_kakao)).dy,
+      );
+    });
+
+    testWidgets('iOS — 애플 오류는 실패 안내', (tester) async {
+      final FakeAppleGateway apple = FakeAppleGateway()
+        ..error = StateError('apple down');
+      final _Harness h = await _pump(
+        tester,
+        platform: SocialLoginPlatform.ios,
+        apple: apple,
+      );
+
+      await h.tap(_apple);
+
+      expect(h.socialRequests, isEmpty);
+      expect(find.text(h.l.authSocialSignInFailed), findsOneWidget);
+    });
+
+    for (final SocialLoginPlatform platform in <SocialLoginPlatform>[
+      SocialLoginPlatform.android,
+      SocialLoginPlatform.web,
+    ]) {
+      testWidgets('${platform.name} — 애플 버튼을 두지 않는다', (tester) async {
+        await _pump(tester, platform: platform);
+
+        expect(find.byKey(_apple), findsNothing);
+        expect(find.byKey(_kakao), findsOneWidget);
+      });
+    }
   });
 
   group('웹', () {

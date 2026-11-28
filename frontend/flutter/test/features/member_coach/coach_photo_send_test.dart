@@ -18,6 +18,7 @@ import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/coach_photo_send_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 
@@ -179,7 +180,7 @@ void main() {
       expect(image.length, _png.length);
     });
 
-    test('서버 거절은 앱 오류로 바뀐다', () async {
+    test('서버 거절은 원인별 거절 값으로 바뀐다', () async {
       when(
         () => dio.post<Map<String, Object?>>(
           '/me/coach/chat/image',
@@ -204,7 +205,13 @@ void main() {
           mimeType: 'image/png',
           clientRequestId: 'photo-1',
         ),
-        throwsA(isA<AppError>()),
+        throwsA(
+          isA<CoachSendRejected>().having(
+            (CoachSendRejected e) => e.reason,
+            'reason',
+            CoachSendFailure.photoUnsupported,
+          ),
+        ),
       );
     });
 

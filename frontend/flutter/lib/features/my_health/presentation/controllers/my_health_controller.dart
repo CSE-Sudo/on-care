@@ -4,8 +4,13 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
+import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/my_health/data/repositories/demo_trainer_sync_repository.dart';
 import 'package:oncare/features/my_health/data/repositories/dio_my_health_repository.dart';
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
+import 'package:oncare/features/my_health/data/repositories/trainer_sync_repository.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/domain/repositories/my_health_repository.dart';
 
@@ -23,6 +28,34 @@ final myHealthRepositoryProvider = Provider<MyHealthRepository>((ref) {
   }
   return DioMyHealthRepository(ref.watch(dioProvider));
 }, name: 'myHealthRepository');
+
+/// 데모에서 연결 코드를 입력해 주는 트레이너. 데모 담당 요청을 보내는 사람과
+/// 같다(`MockMemberCoachRepository`).
+const String _demoPairingTrainerId = 'trainer-kim';
+
+/// 동기화 코드 발급·취소. (#1634)
+///
+/// 실서비스와 데모가 같은 경로를 탄다. 데모에서는 코드를 띄워 두면 잠시 뒤
+/// 트레이너가 입력한 것처럼 담당 연결을 잇는다 — 그래야 시트의 `연결됐어요` 가
+/// 데모에서도 보인다(#3342). 연결 상태는 헬스장 저장소가 들고 있고, 담당 코치
+/// 저장소도 그것을 읽는다(#1865).
+final trainerSyncRepositoryProvider = Provider<TrainerSyncRepository>((ref) {
+  if (ref.watch(appConfigProvider).useMockApi) {
+    final GymRepository gym = ref.watch(gymRepositoryProvider);
+    final DemoTrainerSyncRepository demo = DemoTrainerSyncRepository(
+      ref.watch(dioProvider),
+      onCodeEntered: () {
+        // 이미 담당이 있으면 그대로 둔다 — 코드는 담당이 없는 회원을 잇는 문이다.
+        if (gym is MockGymRepository && !gym.hasTrainer) {
+          gym.linkTrainer(_demoPairingTrainerId);
+        }
+      },
+    );
+    ref.onDispose(demo.dispose);
+    return demo;
+  }
+  return TrainerSyncRepository(ref.watch(dioProvider));
+}, name: 'trainerSyncRepository');
 
 /// 프로필·위험도·포인트·설정.
 ///

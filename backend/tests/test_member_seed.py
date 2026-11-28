@@ -350,3 +350,39 @@ def test_health_profile_goals_persisted(client, db_session):
     assert profile is not None
     assert profile.risk_level == "medium"
     assert profile.risk_title
+
+
+def test_today_timeline_pts_carry_personal_routines(client, db_session):
+    """오늘 타임라인의 프로그램 있는 PT 는 개인운동을 달고 선다(#2616).
+
+    `개인운동은 PT 마다 최소 한 개`(#2223) — 데모 첫 화면이 규칙을 어긴 상태로
+    서면 안 된다. 붙은 줄은 아직 보내지 않은 것이라 회원 목록에는 없다.
+    """
+    import json
+
+    from app.models.models import TrainerRoutine, TrainerSchedule
+    from app.services.trainer._common import (
+        DELIVERY_PT_WITH_ROUTINE,
+        ROUTINE_SCHEDULED,
+    )
+
+    today = clock.today_iso()
+    slots = db_session.scalars(
+        select(TrainerSchedule).where(
+            TrainerSchedule.id.like(f"seed-schedule-{today}-%"),
+            TrainerSchedule.member_id.is_not(None),
+            TrainerSchedule.type != "상담",
+        )
+    ).all()
+    with_program = [s for s in slots if json.loads(s.program_json or "[]")]
+    assert with_program, "오늘 타임라인에 프로그램 있는 PT 시드가 없습니다."
+    for slot in with_program:
+        rows = db_session.scalars(
+            select(TrainerRoutine).where(TrainerRoutine.schedule_id == slot.id)
+        ).all()
+        assert rows, f"{slot.client_name} PT 에 개인운동이 없습니다."
+        for row in rows:
+            assert row.member_id == slot.member_id
+            assert row.status == ROUTINE_SCHEDULED
+            assert row.delivery_kind == DELIVERY_PT_WITH_ROUTINE
+            assert row.exercise_date == today

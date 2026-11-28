@@ -10,13 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_core/licenses.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/pump_app.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
-final AppLocalizationsEn _en = AppLocalizationsEn();
 
 const Key _row = ValueKey<String>('support-licenses');
 
@@ -60,9 +58,8 @@ void main() {
     expect(page.applicationIcon, isA<OnCareLicenseLogo>());
   });
 
-  test('줄 이름이 두 언어로 있다', () {
+  test('줄 이름이 ARB 에 있다', () {
     expect(_ko.myOpenSourceLicensesTitle, '오픈소스 라이선스');
-    expect(_en.myOpenSourceLicensesTitle, 'Open-source licenses');
   });
 
   test('OFL 전문이 앱에 담기도록 자산으로 등록돼 있다', () {

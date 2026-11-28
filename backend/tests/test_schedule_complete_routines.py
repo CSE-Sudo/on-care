@@ -167,8 +167,7 @@ def test_sending_the_program_sends_its_personal_routines(client, db_session):
 def test_pt_send_names_the_program_and_the_personal_exercises(client, db_session):
     """PT 를 보내면 알림 둘이 각자 받은 것을 부른다 — PT 프로그램과 개인운동. (#3107)
 
-    개인운동 알림은 예전에 한국어 제목을 박아 넣어 영어 화면에도 한국어로
-    보였다. 프로그램 화면의 `개인운동만` 전송과 같은 문장 틀을 쓴다.
+    개인운동 알림은 프로그램 화면의 `개인운동만` 전송과 같은 문장 틀을 쓴다.
     """
     token = _tok(client)
     day = clock.today().isoformat()
@@ -198,10 +197,8 @@ def test_pt_send_names_the_program_and_the_personal_exercises(client, db_session
         }
         personal = next(row for row in rows if row.title == "새 개인운동이 왔어요")
         assert personal.template_args["personal"] is True
-        title_en, _ = nt.render(
-            nt.MEMBER_ROUTINE_PROGRAM, personal.template_args, "en"
-        )
-        assert title_en == "New personal exercise"
+        title, _ = nt.render(nt.MEMBER_ROUTINE_PROGRAM, personal.template_args)
+        assert title == personal.title
     finally:
         _cleanup(db_session, day)
 

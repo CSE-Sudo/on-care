@@ -1,32 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
-import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
-import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../helpers/client_factory.dart';
-import '../helpers/pump_app.dart';
 
 /// 트레이너 웹 회원 행은 공용 컴포넌트 한 벌로 그린다. (#2467)
 ///
-/// 같은 회원의 이름이 탭마다 14·15·16 에 굵기까지 갈려 있었고, 목표는 어떤
-/// 탭에서만 번역돼 영어 화면에서 탭마다 다른 말로 보였다.
+/// 같은 회원의 이름이 탭마다 14·15·16 에 굵기까지 갈려 있었다.
 void main() {
   const String goal = '혈압 관리 · 체중 감량';
 
   Future<void> pumpBlock(
     WidgetTester tester,
-    Widget child, {
-    Locale locale = const Locale('ko'),
-  }) => tester.pumpWidget(
+    Widget child) => tester.pumpWidget(
     MaterialApp(
-      locale: locale,
+      locale: const Locale('ko'),
       theme: AppTheme.light(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -74,17 +67,6 @@ void main() {
       expect(demographics.fontSize!, lessThan(name.fontSize!));
       expect(demographics.color, OnCareColors.textTertiary);
     }
-  });
-
-  testWidgets('목표는 늘 로케일 문구로 적는다', (tester) async {
-    final TrainerClient client = makeClient(name: 'Alex', goal: goal);
-    await pumpBlock(
-      tester,
-      ClientIdentityBlock(client: client),
-      locale: const Locale('en'),
-    );
-    expect(find.text('Blood pressure care · Weight loss'), findsOneWidget);
-    expect(find.text(goal), findsNothing);
   });
 
   // 회원 관리 목록·상세·메시지 행이 함께 쓰는 자리다(#2744). 생년월일이 없는
@@ -163,40 +145,5 @@ void main() {
     expect(textsIn('detail'), 3);
     expect(textsIn('hidden'), 2);
     expect(textsIn('empty'), 2);
-  });
-
-  // 회원 고르기 카드(프로그램 탭 왼쪽 목록)는 목표를 원문 그대로 적어, 영어
-  // 화면에서 이 탭만 한국어 목표가 남았다.
-  testWidgets('영어 화면의 프로그램 탭 회원 목록도 목표를 번역한다', (tester) async {
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1600, 1200);
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await pumpTrainerApp(
-      tester,
-      token: 'demo-trainer-token',
-      at: AppRoutes.coaching,
-      locale: const Locale('en'),
-      extraOverrides: <Override>[
-        clientsProvider.overrideWith(
-          (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
-            makeClient(id: 'type-a', name: 'Alex', goal: goal),
-          ]),
-        ),
-      ],
-    );
-    await tester.pumpAndSettle();
-
-    final Finder row = find.byKey(
-      const ValueKey<String>('program-client-type-a'),
-    );
-    expect(
-      find.descendant(
-        of: row,
-        matching: find.text('Blood pressure care · Weight loss'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.descendant(of: row, matching: find.text(goal)), findsNothing);
   });
 }

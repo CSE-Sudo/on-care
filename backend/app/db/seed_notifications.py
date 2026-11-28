@@ -21,8 +21,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.core.clock import SEOUL
-from app.core.locale import Locale
 from app.db.seed_trainer import TRAINER_NAME
 from app.models import models
 from app.services import notification_service
@@ -177,7 +177,7 @@ def seed_demo_notifications(db: Session, user_id: str, *, now: datetime | None =
             )
         db.commit()
         return 0
-    base = now or datetime.now(timezone.utc)
+    base = now or clock.now_utc()
     for item in DEMO_NOTIFICATIONS:
         db.add(
             models.Notification(
@@ -199,26 +199,25 @@ def seed_demo_notifications(db: Session, user_id: str, *, now: datetime | None =
 DEMO_AGO_BY_ID: dict[str, timedelta] = {n.id: n.ago for n in DEMO_NOTIFICATIONS}
 
 
-def demo_time_ago(ago: timedelta, locale: Locale) -> str:
+def demo_time_ago(ago: timedelta) -> str:
     """데모 알림의 상대 시각 — 회원 앱 데모와 같은 문구다(#2691).
 
     회원 앱 데모는 하루 지난 알림을 "어제" 로 보인다. 서버의 일반 문구
     (`notification_service.time_ago`)는 "1일 전" 이라, 데모 계정만 데모 문구를 따른다.
     """
-    ko = locale == "ko"
     sec = ago.total_seconds()
     if sec < 60:
-        return "방금" if ko else "just now"
+        return "방금"
     if sec < 3600:
         n = int(sec // 60)
-        return f"{n}분 전" if ko else f"{n} min ago"
+        return f"{n}분 전"
     if sec < 86400:
         n = int(sec // 3600)
-        return f"{n}시간 전" if ko else f"{n} {'hour' if n == 1 else 'hours'} ago"
+        return f"{n}시간 전"
     n = int(sec // 86400)
     if n == 1:
-        return "어제" if ko else "yesterday"
-    return f"{n}일 전" if ko else f"{n} days ago"
+        return "어제"
+    return f"{n}일 전"
 
 
 def slide_demo_notifications(
@@ -240,7 +239,7 @@ def slide_demo_notifications(
     newest = next((r for r in rows if r.id == DEMO_NOTIFICATIONS[0].id), None)
     if newest is None:
         return False
-    now = now or datetime.now(timezone.utc)
+    now = now or clock.now_utc()
     created = newest.created_at
     if created.tzinfo is None:
         created = created.replace(tzinfo=timezone.utc)

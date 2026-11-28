@@ -85,6 +85,10 @@ class _FakeCoachRepository implements MemberCoachRepository {
       const <CoachMessage>[];
 
   @override
+  Future<ReceivedReportsPage> fetchReceivedReports({DateTime? before}) async =>
+      const ReceivedReportsPage(reports: <ReceivedReport>[]);
+
+  @override
   Future<List<CoachRoutine>> fetchRoutines() async => const <CoachRoutine>[];
 
   @override
@@ -112,8 +116,12 @@ class _FakeCoachRepository implements MemberCoachRepository {
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
-    required int minutes,
+    int? minutes,
     int? durationSeconds,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
     String intensity = 'moderate',
     DateTime? day,
   }) async => throw UnimplementedError();
