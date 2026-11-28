@@ -130,6 +130,18 @@
   "@homeAdviceExerciseStart": {
     "description": "Home AI advice when nothing was logged this week (#1943)."
   },
+  "homeAdviceDietEmpty": "오늘 식단 기록이 아직 없어요. 사진 한 장으로 첫 끼니를 남겨 보세요.",
+  "@homeAdviceDietEmpty": {
+    "description": "홈 AI 통합 조언의 식단 문장 — 오늘 식단 기록이 없을 때(#3549). 뒤에 운동 문장이 이어진다."
+  },
+  "homeAdviceDietOk": "오늘 나트륨은 목표 안이에요. 지금처럼 싱겁게 이어 가요.",
+  "@homeAdviceDietOk": {
+    "description": "홈 AI 통합 조언의 식단 문장 — 오늘 기록이 있고 나트륨이 목표 안일 때(#3549)."
+  },
+  "homeAdviceSodiumNextMeal": "다음 끼니는 국물을 줄이고 채소를 곁들여 보세요.",
+  "@homeAdviceSodiumNextMeal": {
+    "description": "홈 AI 통합 조언에서 음식 이름이 든 나트륨 경고 뒤에 잇는 행동 문장(#3549)."
+  },
   "homeAdviceSodiumOverSources": "{foods} 섭취로 나트륨이 높아요.",
   "@homeAdviceSodiumOverSources": {
     "description": "Home AI advice when today's sodium is over the goal, naming the foods that added the most sodium. {foods} is the member's own food names, not translated (#2644).",

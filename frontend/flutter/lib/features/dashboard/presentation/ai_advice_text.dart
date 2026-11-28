@@ -6,6 +6,11 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 ///
 /// 우선순위:
 ///
+/// 0. 데모 키([kDailyCombinedAdviceKey]) — 체험하기 문장 그대로.
+/// 0-1. [DashboardSummary.dietAdviceKey] + [DashboardSummary.exerciseAdviceKey] —
+///    식단 문장 뒤에 운동 문장을 잇는다(#3549). 체험하기 카드처럼 하루의 식단과
+///    운동을 함께 말한다. 둘 다 규칙 문장이고 AI 를 부르지 않는다. 한쪽이라도
+///    모르는 키면 아래로 넘어간다.
 /// 1. [DashboardSummary.aiAdviceKey] — 서버·데모가 싣는 로케일 독립 식별자.
 ///    여기서 ARB 문장으로 푼다(#435, #1943).
 ///    음식 이름이 든 나트륨 경고도 키(`sodium_over_sources`)와 음식 이름
@@ -19,6 +24,11 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 않으면 그 문장으로 떨어져, 기록이 없는 회원에게도 실제 분석처럼 보였다
 /// (#2813).
 String aiAdviceBody(AppLocalizations l, DashboardSummary summary) {
+  if (summary.aiAdviceKey == kDailyCombinedAdviceKey) {
+    return l.homeAiAdviceBody;
+  }
+  final String? combined = _combined(l, summary);
+  if (combined != null) return combined;
   final String? fromKey = _localized(l, summary);
   return fromKey ??
       summary.sodiumWarning ??
@@ -42,6 +52,43 @@ String? _localized(AppLocalizations l, DashboardSummary summary) =>
         ),
         null => null,
       },
+      'exercise_on_track' => l.homeAdviceExerciseOnTrack(
+        summary.exerciseCardioMinutes,
+      ),
+      'exercise_more' => l.homeAdviceExerciseMore(
+        summary.exerciseCardioMinutes,
+      ),
+      'exercise_cardio_start' => l.homeAdviceExerciseCardioStart,
+      'exercise_start' => l.homeAdviceExerciseStart,
+      _ => null,
+    };
+
+/// 식단 문장 + 운동 문장(#3549). 어느 한쪽 키가 없거나 모르면 null.
+String? _combined(AppLocalizations l, DashboardSummary summary) {
+  final String? diet = _dietSentence(l, summary);
+  final String? exercise = _exerciseSentence(l, summary);
+  if (diet == null || exercise == null) return null;
+  return '$diet $exercise';
+}
+
+/// 식단 문장. 음식 이름이 든 나트륨 경고는 원인만 말하므로 다음 끼니 행동을 잇는다.
+String? _dietSentence(AppLocalizations l, DashboardSummary summary) =>
+    switch (summary.dietAdviceKey) {
+      'diet_empty' => l.homeAdviceDietEmpty,
+      'diet_ok' => l.homeAdviceDietOk,
+      'sodium_over' => l.homeAdviceSodiumOver,
+      'sodium_over_sources' => switch (_foods(summary.dietAdviceParams)) {
+        final List<String> foods =>
+          '${l.homeAdviceSodiumOverSources(_joinFoods(l, foods))} '
+              '${l.homeAdviceSodiumNextMeal}',
+        null => null,
+      },
+      _ => null,
+    };
+
+/// 운동 문장 — 분 수는 요약이 들고 있는 이번 주 유산소 분이다(#3350).
+String? _exerciseSentence(AppLocalizations l, DashboardSummary summary) =>
+    switch (summary.exerciseAdviceKey) {
       'exercise_on_track' => l.homeAdviceExerciseOnTrack(
         summary.exerciseCardioMinutes,
       ),
