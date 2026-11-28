@@ -1,9 +1,10 @@
 """코칭 시트 피드백의 회원별 캐시·무효화·하루 상한·회원 전용 권한. (#3351) DB 필요(로컬 skip, CI 실행).
 
-`GET /ai-coach/feedback` 은 호출 한 번에 모델을 최대 두 번 부르는데 캐시도 회원별
-제한도 없었다. 여기서 보는 것:
+`GET /ai-coach/feedback` 은 카드를 만들 때마다 식단·운동 `이번 주` 조언을 읽는다
+(그 조언이 기록이 바뀌었으면 AI 를 부른다, #3549). 캐시도 회원별 제한도 없으면 시트를
+열 때마다 그 일이 반복된다. 여기서 보는 것:
 
-* 같은 날·같은 언어로 다시 부르면 모델을 부르지 않는다. 인사말은 매번 새로 만든다.
+* 같은 날·같은 언어로 다시 부르면 카드를 새로 만들지 않는다. 인사말은 매번 새로 만든다.
 * 식단·운동 기록이 바뀌면 그 회원의 캐시만 버린다 — 다음 요청이 새 기록을 말한다.
 * 판정 기준인 회원 목표(나트륨·주간 유산소, #3350)가 바뀌어도 버린다. 포인트처럼
   카드와 무관한 프로필 변경은 캐시를 건드리지 않는다.
@@ -15,7 +16,6 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -33,39 +33,49 @@ from app.models.models import (
     HealthProfile,
     User,
 )
-from app.services import coach_feedback_service
-from app.services.coach import domain_coaches
+from app.services import coach_feedback_service, coach_service
 
 pytest.importorskip("fastapi")
 
 EN = {"Accept-Language": "en"}
-_AI_BODY = "저녁 식사 뒤 20분 걸어 보세요."
+_AI_DETAIL = "이번 주는 걷기를 꾸준히 이어 갔어요. 남은 날에는 가벼운 근력 운동을 한 번 더해 보세요."
 _NO_DIET_TITLE = "오늘 식단을 기록해 보세요"
 
 
-class _CountingLLM:
-    """부른 횟수를 세고 정해진 문장을 돌려준다. `on_call` 은 모델을 기다리는 사이의 일이다."""
+class _CountingDetails:
+    """시트가 `이번 주` 조언의 긴 문장을 새로 읽은 횟수(= 카드를 새로 만든 횟수)를 센다.
+
+    시트는 AI 를 직접 부르지 않고 식단·운동 탭 `이번 주` 조언이 받아 둔 긴 문장을
+    읽는다(#3549). 여기서는 그 두 읽기를 바꿔 끼워, 캐시·상한이 "카드를 새로 만드는
+    일" 을 얼마나 막는지 센다. 한 번 만들 때 운동 쪽을 한 번 읽으므로 그것을 센다.
+    `on_call` 은 긴 문장을 기다리는 사이의 일이다.
+    """
 
     def __init__(self) -> None:
         self.calls = 0
         self.on_call = None
 
-    def generate(self, system_prompt: str, user_prompt: str):
+    def diet(self, _db, _user_id):
+        return _AI_DETAIL
+
+    def exercise(self, _db, _user_id):
         self.calls += 1
         if self.on_call is not None:
             self.on_call()
-        return SimpleNamespace(text=_AI_BODY)
+        return _AI_DETAIL
 
 
 @pytest.fixture
-def llm(monkeypatch) -> _CountingLLM:
-    stub = _CountingLLM()
-    monkeypatch.setattr(domain_coaches, "get_coach_llm", lambda *_a, **_k: stub)
-    # 검색 자료가 없으면 모델을 부르지 않고 폴백한다 — 자료가 있는 것처럼 둔다.
-    monkeypatch.setattr(
-        domain_coaches, "retrieve_context", lambda *_a, **_k: "[참고 자료]\n- 걷기"
-    )
+def llm(monkeypatch) -> _CountingDetails:
+    stub = _CountingDetails()
+    monkeypatch.setattr(coach_service, "_diet_week_detail", stub.diet)
+    monkeypatch.setattr(coach_service, "_exercise_week_detail", stub.exercise)
     return stub
+
+
+def _has_ai_detail(card: dict) -> bool:
+    """카드 본문이 규칙 첫 문장 뒤에 `이번 주` 긴 문장을 이었는가."""
+    return card["body"].endswith(" " + _AI_DETAIL)
 
 
 @pytest.fixture
@@ -146,11 +156,10 @@ def test_reopening_the_sheet_does_not_call_the_model_again(client, llm, limits):
     again = _get(client, h)
     third = _get(client, h)
 
-    # 기록이 없는 회원은 식단이 규칙 카드라 운동 코치만 모델을 부른다.
     assert calls == 1
     assert llm.calls == calls
     assert again["suggestions"] == first["suggestions"] == third["suggestions"]
-    assert _card(again, "exercise")["body"] == _AI_BODY
+    assert _has_ai_detail(_card(again, "exercise"))
     assert _card(again, "diet")["title"] == _NO_DIET_TITLE
 
 
@@ -264,12 +273,12 @@ def test_diet_record_drops_the_cache_and_the_next_sheet_reflects_it(
     after = _get(client, h)
 
     assert _card(after, "diet")["title"] != _NO_DIET_TITLE
-    assert _card(after, "diet")["title"] == "오늘의 식단 코칭"
-    # 식단·운동 코치를 다시 만들었다.
-    assert llm.calls == 3
+    assert _card(after, "diet")["title"] == "식단 균형이 좋아요"
+    # 카드를 다시 만들었다.
+    assert llm.calls == 2
     # 그 뒤로는 다시 캐시다.
     _get(client, h)
-    assert llm.calls == 3
+    assert llm.calls == 2
 
 
 def test_high_sodium_record_shows_up_right_away(client, db_session, llm, limits):
@@ -375,7 +384,7 @@ def test_changing_the_sodium_goal_drops_the_cache(client, db_session, llm, limit
     member_id, h = _member(client)
     _profile(db_session, member_id)
     _add_diet(db_session, member_id, sodium=1500)
-    assert _card(_get(client, h), "diet")["title"] == "오늘의 식단 코칭"
+    assert _card(_get(client, h), "diet")["title"] == "식단 균형이 좋아요"
 
     _profile(db_session, member_id).daily_sodium_mg = 1200
     db_session.commit()
@@ -488,7 +497,7 @@ def test_daily_limit_is_per_member(client, llm, limits):
     body = _get(client, b)
 
     assert llm.calls == 2
-    assert _card(body, "exercise")["body"] == _AI_BODY
+    assert _has_ai_detail(_card(body, "exercise"))
 
 
 def test_daily_limit_reopens_on_the_next_kst_day(client, llm, limits, monkeypatch):
@@ -504,7 +513,7 @@ def test_daily_limit_reopens_on_the_next_kst_day(client, llm, limits, monkeypatc
     body = _get(client, h)
 
     assert llm.calls == 2
-    assert _card(body, "exercise")["body"] == _AI_BODY
+    assert _has_ai_detail(_card(body, "exercise"))
 
 
 def test_zero_limit_turns_the_cap_off(client, llm, limits):
