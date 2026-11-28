@@ -50,3 +50,14 @@ class DashboardSummary(BaseModel):
     #: 상위 급원 음식 이름, 최대 두 개)가 실린다. 음식 이름은 회원이 적은
     #: 데이터라 번역하지 않고 문장 틀에 그대로 끼운다.
     ai_advice_params: dict[str, list[str]] = Field(default_factory=dict)
+    #: 홈 카드의 **식단 문장** 키(#3549). 앱은 이 문장과 [exercise_advice_key] 문장을
+    #: 이어 카드 본문을 만든다 — 한 가지만 고르던 [ai_advice_key] 는 키를 모르는 옛
+    #: 앱이 읽는다. `diet_empty`(오늘 기록 없음) · `diet_ok`(나트륨 목표 안) ·
+    #: `sodium_over` · `sodium_over_sources` 중 하나다.
+    diet_advice_key: Optional[str] = None
+    #: [diet_advice_key] 문장에 끼울 값. `sodium_over_sources` 면 `foods` 가 실린다.
+    diet_advice_params: dict[str, list[str]] = Field(default_factory=dict)
+    #: 홈 카드의 **운동 문장** 키 — `exercise_on_track` · `exercise_more` ·
+    #: `exercise_cardio_start` · `exercise_start` 중 하나다. 분 수는
+    #: [exercise_cardio_minutes] 를 쓴다.
+    exercise_advice_key: Optional[str] = None

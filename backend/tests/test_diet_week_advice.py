@@ -1,11 +1,14 @@
-"""식단 `이번 주` AI 맞춤 조언 — 규칙 한 줄 + AI 한 문장, 하루 한 번. (#2253)
+"""식단 `이번 주` AI 맞춤 조언 — 규칙 한 줄 + AI 한 문장. (#2253, #3549)
 
 보는 것:
 1. 월·화이고 이번 주 기록이 이틀 미만이면 지난주를 돌아본다(운동 조언과 같은 규칙).
 2. 끼니 습관(아침 건너뜀) → 집중 목표(가장 많이 넘긴 영양소) → 칭찬 순으로 하나.
 3. AI 문장에는 규칙이 계산하지 않은 수치가 없고 길이 한도 안이다. 어기면 다시 받고,
    그래도 안 되면 규칙 대체 문장이다.
-4. 한 번 만든 조언은 그날 내내 두고, AI 가 실패했으면 1시간 뒤 다시 만든다.
+4. 기록이 그대로면 한 번 만든 조언을 그날 내내 두고, 기록이 바뀌면 다시 만들되 하루
+   5번까지다. AI 가 실패했으면 1시간 뒤 다시 만든다.
+5. 같은 호출에서 홈 코칭 시트용 긴 문장(`detail`)도 받는다(#3549). 칭찬하는 주에도
+   AI 를 불러 긴 문장을 받지만, 탭 카드는 규칙 문장(`tip_keep`)을 그대로 쓴다.
 """
 from __future__ import annotations
 
@@ -174,6 +177,59 @@ def test_generate_retries_once_then_gives_up(monkeypatch):
     assert ai.generate(**kw) is None
 
 
+DETAIL = "이번 주는 저녁 짬뽕 국물이 나트륨을 끌어올렸어요. 오늘 저녁은 국물 대신 구운 생선과 나물 반찬을 골라 보세요."
+
+
+def _pair(sentence="짬뽕 국물은 반만 드세요.", detail=DETAIL):
+    return json.dumps({"sentence": sentence, "detail": detail}, ensure_ascii=False)
+
+
+def test_generate_pair_returns_both_sentences_from_one_call(monkeypatch):
+    calls = []
+    monkeypatch.setattr(ai, "_call_pair_llm", lambda s, u: calls.append(u) or _pair())
+    kw = dict(analysis_text="이번 주 나트륨을 **3일** 넘겼어요.", finding="f",
+              records=["월 점심: 짬뽕"], notes=[], goal="", metric="t")
+    pair = ai.generate_pair(**kw)
+    assert (pair.sentence, pair.detail) == ("짬뽕 국물은 반만 드세요.", DETAIL)
+    assert len(calls) == 1
+
+
+def test_generate_pair_retries_a_bad_detail_then_keeps_the_sentence(monkeypatch):
+    kw = dict(analysis_text="이번 주 나트륨을 **3일** 넘겼어요.", finding="f",
+              records=[], notes=[], goal="", metric="t")
+    # 긴 문장에 수치가 섞이면 다시 받는다.
+    answers = iter([_pair(detail="저녁 짬뽕 국물로 나트륨이 1,800mg 더 늘었어요. 오늘은 국물을 남기고 채소를 곁들여 보세요."), _pair()])
+    monkeypatch.setattr(ai, "_call_pair_llm", lambda s, u: next(answers))
+    assert ai.generate_pair(**kw).detail == DETAIL
+
+    # 두 번 다 긴 문장이 짧으면 짧은 문장만 돌려준다 — 탭 카드는 AI 문장을 쓴다.
+    short = iter([_pair(detail="국물을 줄여요."), _pair(detail="국물을 줄여요.")])
+    monkeypatch.setattr(ai, "_call_pair_llm", lambda s, u: next(short))
+    pair = ai.generate_pair(**kw)
+    assert (pair.sentence, pair.detail) == ("짬뽕 국물은 반만 드세요.", None)
+
+    # 짧은 문장이 두 번 다 걸리면 None — 규칙 대체 문장이다.
+    bad = iter([_pair(sentence="1,800mg"), _pair(sentence="2,000mg")])
+    monkeypatch.setattr(ai, "_call_pair_llm", lambda s, u: next(bad))
+    assert ai.generate_pair(**kw) is None
+
+    def boom(s, u):
+        raise RuntimeError("키 없음")
+
+    monkeypatch.setattr(ai, "_call_pair_llm", boom)
+    assert ai.generate_pair(**kw) is None
+
+
+def test_pair_prompt_asks_for_both_lengths_without_measures():
+    system, user = ai.build_pair_prompt(
+        limit=30, finding="이번 주 나트륨을 3일 넘겼다.",
+        records=["월 점심: 짬뽕"], notes=["국물은 드시지 마세요"], goal="체중 감량",
+    )
+    assert '"detail"' in system and "30자" in system
+    assert "50~95자" in system and "수치를 쓰지 않는다" in system
+    assert "- 월 점심: 짬뽕" in user and "트레이너: 국물은 드시지 마세요" in user
+
+
 def test_prompt_carries_records_and_trainer_notes():
     system, user = ai.build_prompt(
         limit=40, finding="이번 주 나트륨을 3일 넘겼다.",
@@ -230,7 +286,8 @@ def _thu(hour=19, days=0):
 
 
 class _FakeAI:
-    def __init__(self, answer='{"sentence": "짬뽕 국물은 반만 드세요."}', fail=False):
+    def __init__(self, answer=None, fail=False):
+        answer = answer or _pair()
         self.answer, self.fail, self.calls, self.prompts = answer, fail, 0, []
 
     def __call__(self, system, user):
@@ -250,9 +307,9 @@ def _states(db_session, user_id):
     )
 
 
-def test_week_advice_names_the_cause_and_is_kept_for_the_day(db_session, member, monkeypatch):
+def test_week_advice_names_the_cause_and_is_kept_while_records_stay(db_session, member, monkeypatch):
     fake = _FakeAI()
-    monkeypatch.setattr(ai, "_call_llm", fake)
+    monkeypatch.setattr(ai, "_call_pair_llm", fake)
     _salty_week(db_session, member.id)
 
     advice = svc.week_advice(db_session, member.id, now=_thu())
@@ -261,23 +318,58 @@ def test_week_advice_names_the_cause_and_is_kept_for_the_day(db_session, member,
     assert (advice.action.key, advice.action.text, advice.action_source) == (
         None, "짬뽕 국물은 반만 드세요.", "llm",
     )
+    assert advice.detail == DETAIL
     assert "짬뽕" in fake.prompts[0]
 
-    # 그날 안에서는 기록이 바뀌어도 다시 만들지 않는다.
-    _eat(db_session, member.id, MON + timedelta(days=3), "dinner", sodium=2600)
+    # 기록이 그대로면 그날 안에서는 다시 만들지 않는다 — 긴 문장도 그대로 읽힌다.
     again = svc.week_advice(db_session, member.id, now=_thu(hour=22))
-    assert again.analysis.params == {"scope": "this", "days": 3}
+    assert (again.analysis.params, again.detail) == ({"scope": "this", "days": 3}, DETAIL)
     assert fake.calls == 1
 
     # 다음 날 새로 만든다.
     tomorrow = svc.week_advice(db_session, member.id, now=_thu(days=1))
-    assert tomorrow.analysis.params["days"] == 4
+    assert tomorrow.analysis.params["days"] == 3
     assert fake.calls == 2
+
+
+def test_week_advice_is_remade_when_records_change(db_session, member, monkeypatch):
+    """기록이 바뀌면 다음 조회에서 다시 만든다(#3549) — 점심에 적은 메뉴가 시트에 바로 보인다."""
+    fake = _FakeAI()
+    monkeypatch.setattr(ai, "_call_pair_llm", fake)
+    _salty_week(db_session, member.id)
+    svc.week_advice(db_session, member.id, now=_thu())
+
+    _eat(db_session, member.id, MON + timedelta(days=3), "dinner", sodium=2600)
+    again = svc.week_advice(db_session, member.id, now=_thu(hour=20))
+    assert again.analysis.params == {"scope": "this", "days": 4}
+    assert fake.calls == 2
+
+
+def test_week_advice_is_remade_at_most_five_times_a_day(db_session, member, monkeypatch):
+    """하루에 다시 만드는 횟수는 5번까지다(#3549). 넘으면 마지막 조언을 그대로 둔다."""
+    from app.services import week_advice_refresh
+
+    fake = _FakeAI()
+    monkeypatch.setattr(ai, "_call_pair_llm", fake)
+    _salty_week(db_session, member.id)
+
+    for i in range(week_advice_refresh.MAX_GENERATIONS_PER_DAY + 2):
+        svc.week_advice(db_session, member.id, now=_thu(hour=12) + timedelta(minutes=i))
+        _eat(db_session, member.id, MON + timedelta(days=3), "snack", sodium=10)
+    assert fake.calls == week_advice_refresh.MAX_GENERATIONS_PER_DAY
+
+    kept = svc.week_advice(db_session, member.id, now=_thu(hour=23))
+    assert (kept.action_source, kept.detail) == ("llm", DETAIL)
+    assert fake.calls == week_advice_refresh.MAX_GENERATIONS_PER_DAY
+
+    # 다음 날에는 다시 열린다.
+    svc.week_advice(db_session, member.id, now=_thu(days=1))
+    assert fake.calls == week_advice_refresh.MAX_GENERATIONS_PER_DAY + 1
 
 
 def test_week_advice_falls_back_and_retries_after_an_hour(db_session, member, monkeypatch):
     fake = _FakeAI(fail=True)
-    monkeypatch.setattr(ai, "_call_llm", fake)
+    monkeypatch.setattr(ai, "_call_pair_llm", fake)
     _salty_week(db_session, member.id)
 
     first = svc.week_advice(db_session, member.id, now=_thu())
@@ -300,9 +392,9 @@ def test_week_advice_does_not_hold_the_connection_while_waiting_for_ai(
 
     def fake(system, user):
         seen.append(db_session.in_transaction())
-        return '{"sentence": "짬뽕 국물은 반만 드세요."}'
+        return _pair()
 
-    monkeypatch.setattr(ai, "_call_llm", fake)
+    monkeypatch.setattr(ai, "_call_pair_llm", fake)
     _salty_week(db_session, member.id)
 
     advice = svc.week_advice(db_session, member.id, now=_thu())
@@ -311,23 +403,29 @@ def test_week_advice_does_not_hold_the_connection_while_waiting_for_ai(
     assert _states(db_session, member.id) == 1
 
 
-def test_empty_week_is_not_kept_and_praise_does_not_call_ai(db_session, member, monkeypatch):
+def test_empty_week_is_not_kept_and_praise_keeps_the_rule_tip(db_session, member, monkeypatch):
     fake = _FakeAI()
-    monkeypatch.setattr(ai, "_call_llm", fake)
+    monkeypatch.setattr(ai, "_call_pair_llm", fake)
     empty = svc.week_advice(db_session, member.id, now=_thu())
     assert (empty.analysis.key, empty.action.key) == ("week_empty", "week_empty_hint")
+    assert empty.detail is None
     assert _states(db_session, member.id) == 0
+    assert fake.calls == 0
 
     for i in range(3):
         for meal in ("breakfast", "lunch", "dinner"):
             _eat(db_session, member.id, MON + timedelta(days=i), meal)
     good = svc.week_advice(db_session, member.id, now=_thu())
-    assert (good.analysis.key, good.action.key) == ("week_good", "tip_keep")
-    assert fake.calls == 0
+    # 탭 카드는 규칙 문장 그대로, AI 는 홈 시트의 긴 문장만 맡는다(#3549).
+    assert (good.analysis.key, good.action.key, good.action_source) == ("week_good", "tip_keep", "rules")
+    assert good.detail == DETAIL
+    assert fake.calls == 1
+    # 칭찬하는 주에도 AI 가 잘한 메뉴를 짚을 수 있게 그 주의 끼니를 보여 준다.
+    assert "월 아침: 밥" in fake.prompts[0]
 
 
 def test_monday_looks_back_at_last_week(db_session, member, monkeypatch):
-    monkeypatch.setattr(ai, "_call_llm", _FakeAI())
+    monkeypatch.setattr(ai, "_call_pair_llm", _FakeAI())
     last_week = MON - timedelta(days=7)
     for i in range(3):
         _eat(db_session, member.id, last_week + timedelta(days=i), "dinner", name="짬뽕", sodium=2500)
@@ -338,7 +436,7 @@ def test_monday_looks_back_at_last_week(db_session, member, monkeypatch):
 
 
 def test_endpoint_week(client, monkeypatch):
-    monkeypatch.setattr(ai, "_call_llm", _FakeAI(fail=True))
+    monkeypatch.setattr(ai, "_call_pair_llm", _FakeAI(fail=True))
     email = f"week-api-{uuid.uuid4().hex[:8]}@oncare.com"
     client.post("/v1/auth/register", json={"email": email, "password": "oncare123", "name": "조언"})
     token = client.post("/v1/auth/login", data={"username": email, "password": "oncare123"}).json()["access_token"]

@@ -1,17 +1,14 @@
 """
-AI 코치 서비스.
+AI 코치 서비스 — 홈 코칭 시트의 식단·운동 카드.
 
-설계(사용자 요구사항 반영):
-- 코칭을 '식단 코치'와 '운동 코치'로 도메인 분리해서 각각 생성한 뒤 합친다.
-- 각 도메인 코치는 RAG 로 만든다(`coach/domain_coaches.py`):
-    * 검색 자료 = 회원 개인 기록 요약(user_id=본인) + 공공 문서(user_id=NULL)
-    * 식단 코치는 domain='diet' 자료를, 운동 코치는 domain='exercise' 자료를 위주로 검색
-    * 다른 회원의 개인 문서는 절대 섞이지 않음 (user_id 격리)
-
-키·자료가 없거나 LLM 호출이 실패하면, 이 모듈의 규칙 기반 코치가 회원의 실제
-식단·운동 기록을 읽어 제안을 만든다(폴백). 두 경로의 응답 형식은 같다.
+카드 제목과 첫 문장은 이 모듈의 규칙 코치가 회원의 실제 식단·운동 기록을 읽어
+만든다. 그 뒤에는 식단·운동 탭 `이번 주` 조언이 한 번의 AI 호출로 함께 받아 둔 긴
+문장을 잇는다(#3549) — 시트는 AI 를 따로 부르지 않는다. 긴 문장이 없으면 규칙 카드만
+쓴다.
 """
 from __future__ import annotations
+
+import logging
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -30,6 +27,8 @@ from app.services.exercise_service import (
 #: 기록일 대비 비율이 아니라 **절대 일수**다 — 이 주가 처음 기록을 시작한 주라도
 #: (기록일이 적어도) 사흘 다 초과였다면 이미 패턴이다.
 _SODIUM_PATTERN_MIN_DAYS = 3
+
+logger = logging.getLogger(__name__)
 
 
 def _week_bounds() -> tuple[str, str]:
@@ -244,26 +243,71 @@ def build_greeting(user_name: str) -> str:
 def build_suggestions(
     db: Session, user_id: str, *, use_model: bool = True
 ) -> list[CoachSuggestion]:
-    """
-    도메인별 코치를 각각 호출해 합친다.
+    """식단·운동 코칭 카드 두 장. (#3549)
 
-    식단·운동 코치는 RAG 기반(domain_coaches)으로 동작한다.
-    RAG 가 불가(키 미설정/자료 없음/실패)하면 내부에서 규칙 기반으로 자동 폴백한다.
+    카드 제목과 첫 문장(오늘·이번 주 수치)은 규칙이 만들고, 그 뒤에 식단·운동 탭
+    `이번 주` 조언이 한 번의 AI 호출로 함께 받아 둔 긴 문장을 잇는다. 시트가 AI 를
+    따로 부르지 않으므로 같은 날 탭과 홈이 같은 판단을 말하고, 호출 수도 탭의 것뿐이다
+    (2026-09-22 회의 결정). 예전에는 식단·운동 RAG 코치를 시트가 직접 불렀다.
 
-    `use_model=False` 면 검색도 모델도 거치지 않고 규칙 기반 카드만 만든다 — 회원의
+    `use_model=False` 면 `이번 주` 조언을 읽지 않고 규칙 카드만 만든다 — 회원의
     하루 상한을 넘겼을 때 쓴다(#3351).
     """
     # 카드는 데모와 같은 식단·운동 두 장이다(#2706) — 데모 화면이 기준이다.
+    # 규칙 카드를 먼저 만든다 — 아래 `이번 주` 조언은 AI 를 기다리는 동안 연결을
+    # 돌려주므로(#3242), 오늘 기록은 그 전에 한 번만 읽는다.
+    diet = _diet_suggestion(db, user_id)
+    exercise = _exercise_suggestion(db, user_id)
     if not use_model:
-        return [_diet_suggestion(db, user_id), _exercise_suggestion(db, user_id)]
-
-    # 지연 import (순환 참조 방지: domain_coaches 가 coach_service 를 import)
-    from app.services.coach.domain_coaches import diet_coach, exercise_coach
-
+        return [diet, exercise]
     return [
-        diet_coach(db, user_id),       # 식단 RAG 코치 (실패 시 규칙 폴백)
-        exercise_coach(db, user_id),   # 운동 RAG 코치 (실패 시 규칙 폴백)
+        _with_detail(diet, _diet_week_detail(db, user_id)),
+        _with_detail(exercise, _exercise_week_detail(db, user_id)),
     ]
+
+
+def _lead(body: str) -> str:
+    """규칙 본문의 첫 문장 — 오늘·이번 주 수치를 말하는 부분이다."""
+    for i, ch in enumerate(body):
+        if ch in ".!?" and (i + 1 == len(body) or body[i + 1] == " "):
+            return body[: i + 1]
+    return body
+
+
+def _with_detail(card: CoachSuggestion, detail: str | None) -> CoachSuggestion:
+    """규칙 카드의 첫 문장 뒤에 `이번 주` AI 의 긴 문장을 잇는다(#3549).
+
+    수치는 규칙이, 원인과 행동은 AI 가 말한다(2026-09-22 회의 결정 3번). 긴 문장이
+    없으면(기록이 없는 주, AI 실패) 규칙 카드를 그대로 쓴다.
+    """
+    if not detail:
+        return card
+    return CoachSuggestion(tag=card.tag, title=card.title, body=f"{_lead(card.body)} {detail}")
+
+
+def _diet_week_detail(db: Session, user_id: str) -> str | None:
+    """식단 탭 `이번 주` 조언이 함께 받은 긴 문장. 홈은 AI 를 새로 부르지 않는다."""
+    from app.services import diet_week_advice  # 지연 import — 순환 참조 방지
+
+    try:
+        return diet_week_advice.week_advice(db, user_id).detail
+    except Exception:  # noqa: BLE001 - AI 층의 실패가 시트를 막지 않는다
+        db.rollback()
+        logger.warning("식단 이번 주 긴 문장을 읽지 못함 (user_id=%s)", user_id, exc_info=True)
+        return None
+
+
+def _exercise_week_detail(db: Session, user_id: str) -> str | None:
+    """운동 탭 `이번 주` 조언이 함께 받은 긴 문장."""
+    from app.services import exercise_week_ai  # 지연 import — 순환 참조 방지
+
+    try:
+        ai = exercise_week_ai.week_ai(db, user_id)
+    except Exception:  # noqa: BLE001 - AI 층의 실패가 시트를 막지 않는다
+        db.rollback()
+        logger.warning("운동 이번 주 긴 문장을 읽지 못함 (user_id=%s)", user_id, exc_info=True)
+        return None
+    return ai.detail if ai is not None else None
 
 
 def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback:

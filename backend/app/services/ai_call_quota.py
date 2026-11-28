@@ -46,6 +46,8 @@ FEATURE_ROUTINE_OPTIONS = "routine_options"
 FEATURE_REPORT_SUMMARY = "report_summary"
 FEATURE_DIET_PHOTO = "diet_photo"
 FEATURE_DIET_ADVICE = "diet_advice"
+#: 운동 `이번 주` AI 조언(#3549).
+FEATURE_EXERCISE_ADVICE = "exercise_advice"
 FEATURE_DIET_RECOMMENDATION = "diet_recommendation"
 FEATURE_DIET_MENU_PLAN = "diet_menu_plan"
 FEATURE_EXERCISE_NAME = "exercise_name"
