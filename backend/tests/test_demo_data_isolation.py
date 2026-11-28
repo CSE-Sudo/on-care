@@ -227,6 +227,75 @@ def test_demo_trainer_detail_is_404_when_demo_is_off(client, demo_off):
     assert client.get("/v1/trainers/trainer-demo-seo").status_code == 404
 
 
+@pytest.fixture
+def coach_link(db_session):
+    """데모 트레이너를 담당으로 둔 새 회원. (token) 끝나면 링크를 지운다."""
+    from app.models import models
+    from tests.test_consultations import _register_member
+
+    created: list[str] = []
+
+    def _make(client, trainer_id: str) -> str:
+        member_id, token = _register_member(client)
+        link_id = f"tc-{uuid4().hex[:12]}"
+        db_session.add(models.TrainerClient(
+            id=link_id, trainer_id=trainer_id, member_id=member_id, active=True,
+        ))
+        db_session.commit()
+        created.append(link_id)
+        return token
+
+    yield _make
+
+    for link_id in created:
+        row = db_session.get(models.TrainerClient, link_id)
+        if row is not None:
+            db_session.delete(row)
+    db_session.commit()
+
+
+def test_my_demo_coach_detail_is_readable_when_demo_is_off(
+    client, demo_off, coach_link
+):
+    """이미 담당인 데모 트레이너는 운영에서도 읽힌다. (#3547)
+
+    `/me/coach` 는 담당이 있다고 하는데 상세가 404 면 회원 앱은
+    "담당 트레이너 없음" 을 띄운다.
+    """
+    from tests.test_consultations import _auth
+
+    token = coach_link(client, "trainer-park")
+
+    coach = client.get("/v1/me/coach", headers=_auth(token))
+    assert coach.status_code == 200, coach.text
+    assert coach.json()["trainer_id"] == "trainer-park"
+
+    r = client.get("/v1/trainers/trainer-park", headers=_auth(token))
+    assert r.status_code == 200, r.text
+    assert r.json()["id"] == "trainer-park"
+
+
+def test_demo_coach_exception_stays_out_of_the_directory(
+    client, demo_off, coach_link
+):
+    """담당 예외는 그 회원의 상세 조회에만 걸린다 — 목록·남의 상세는 그대로 막힌다."""
+    from app.db import demo_ids
+    from tests.test_consultations import _auth, _register_member
+
+    token = coach_link(client, "trainer-park")
+    _other_id, other_token = _register_member(client)
+
+    assert (
+        client.get("/v1/trainers/trainer-park", headers=_auth(other_token)).status_code
+        == 404
+    )
+    assert client.get("/v1/trainers/trainer-park").status_code == 404
+
+    listed = client.get("/v1/trainers", headers=_auth(token))
+    assert listed.status_code == 200, listed.text
+    assert not {t["id"] for t in listed.json()} & demo_ids.demo_trainer_ids()
+
+
 def test_gym_trainer_list_hides_demo_trainers_when_demo_is_off(
     client, db_session, monkeypatch
 ):
