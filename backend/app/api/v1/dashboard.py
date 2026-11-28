@@ -167,6 +167,15 @@ def _advice_params(
     return {}
 
 
+def _diet_advice_key(
+    *, has_entries: bool, sodium_warning: str | None, sodium_source_names: list[str]
+) -> str:
+    """홈 카드 식단 문장의 식별자(#3549). 나트륨 경고는 [_advice_key] 와 같은 키다."""
+    if sodium_warning is not None:
+        return "sodium_over_sources" if sodium_source_names else "sodium_over"
+    return "diet_ok" if has_entries else "diet_empty"
+
+
 def _rank_sodium_sources(foods_json_values: Iterable[str]) -> list[str]:
     """오늘 먹은 음식을 나트륨이 많은 순으로 — 경고 문장이 앞의 몇 개를 짚는다.
 
@@ -265,6 +274,13 @@ def dashboard_summary(
         any_exercise=exercise_minutes > 0,
     )
 
+    # 홈 카드는 식단 문장과 운동 문장을 잇는다(#3549) — 체험하기 카드(#2706)처럼
+    # 하루의 식단과 운동을 함께 말한다. 둘 다 규칙 문장이라 AI 를 부르지 않는다.
+    diet_key = _diet_advice_key(
+        has_entries=bool(diet_rows),
+        sodium_warning=sodium_warning,
+        sodium_source_names=source_names,
+    )
     advice_key = _advice_key(
         sodium_warning=sodium_warning,
         sodium_source_names=source_names,
@@ -283,4 +299,9 @@ def dashboard_summary(
         ai_advice_params=_advice_params(
             advice_key=advice_key, sodium_source_names=source_names,
         ),
+        diet_advice_key=diet_key,
+        diet_advice_params=_advice_params(
+            advice_key=diet_key, sodium_source_names=source_names,
+        ),
+        exercise_advice_key=exercise_advice_key,
     )

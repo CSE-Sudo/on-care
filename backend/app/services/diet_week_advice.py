@@ -7,15 +7,18 @@
   3. 넘긴 날이 하루도 없으면 칭찬 — 하루라도 넘겼으면 "모두 목표 안" 이라고 하지 않는다.
 
 AI 한 문장은 규칙이 고른 한 가지와 그 주의 끼니 기록을 보고 원인 메뉴를 짚거나
-구체적인 대안을 준다(`diet_ai_sentence`). 칭찬에는 AI 를 부르지 않는다 — 고칠 것이
-없으면 짚을 원인도 없다.
+구체적인 대안을 준다(`diet_ai_sentence`). 같은 호출에서 홈 코칭 시트용 **긴 문장**
+(`detail`)도 함께 받는다(#3549) — 홈은 AI 를 새로 부르지 않고 이것을 읽는다. 그래서
+칭찬하는 주에도 AI 를 부른다(잘한 점과 이어 갈 방법). 탭 카드는 칭찬에 규칙 문장
+(`tip_keep`)을 그대로 쓴다.
 
 기간 경계는 운동 조언(#2162)과 같다: 월·화이고 이번 주에 끼니를 기록한 날이 이틀
 미만이며 지난주 기록이 있으면 지난주(월~일)를 돌아본다.
 
-**하루에 한 번 만든다.** 그날 처음 연 조언을 그날 내내 둔다(다음 날 새로 만든다). 기록이
-없어 안내만 하는 문구는 두지 않는다 — 곧 첫 기록이 생긴다. AI 가 실패해 대체 문장을
-두었으면 1시간 뒤 다시 만든다.
+**기록이 바뀌면 다시 만들되 하루 최대 5번이다**(`week_advice_refresh`, #3549). 기록이
+그대로면 그날 처음 만든 조언을 그날 내내 둔다(다음 날 새로 만든다). 기록이 없어 안내만
+하는 문구는 두지 않는다 — 곧 첫 기록이 생긴다. AI 가 실패해 대체 문장을 두었으면
+1시간 뒤 다시 만든다.
 """
 from __future__ import annotations
 
@@ -27,12 +30,18 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.core.week import monday_of
 from app.db.session import release_connection
-from app.services import diet_ai_sentence
+from app.services import diet_ai_sentence, week_advice_refresh
 from app.services import diet_coach_inputs as inputs
 from app.services.diet_advice_copy import SLOT_LABELS_KO, Line, ai_line, line
-from app.services.diet_period_advice import DietAdvice, cached_advice, store_advice
+from app.services.diet_period_advice import (
+    DietAdvice,
+    advice_from_state,
+    cached_advice,
+    load_state,
+    store_advice,
+)
 
-PERIOD_WEEK = "week"
+PERIOD_WEEK = week_advice_refresh.PERIOD_DIET_WEEK
 
 #: 아침을 이만큼 건너뛰면 끼니 습관으로 말한다.
 SKIP_BREAKFAST_MIN = 3
@@ -190,7 +199,8 @@ def find(
         "good",
         line("week_good", scope=scope, days=len(days)),
         f"{scope_ko} 기록한 {len(days)}일 모두 목표 안이다.",
-        (),
+        # 칭찬하는 주에도 AI 가 잘한 메뉴를 짚을 수 있게 그 주의 끼니를 모두 보여 준다.
+        tuple(r.day for r in days),
     )
 
 
@@ -258,6 +268,15 @@ def week_advice(
     cached = cached_advice(db, user_id, PERIOD_WEEK, key, now)
     if cached is not None:
         return cached
+    state = load_state(db, user_id, PERIOD_WEEK, key)
+    if not week_advice_refresh.may_regenerate(state):
+        # 오늘 만들 수 있는 만큼 만들었다 — 마지막 조언을 그대로 둔다(#3549).
+        kept = advice_from_state(PERIOD_WEEK, state) if state is not None else None
+        if kept is not None:
+            return kept
+        # 보관한 조언을 읽지 못했다 — 상한을 지키려고 규칙 문장만 다시 만든다.
+        use_llm = False
+    made = week_advice_refresh.generations(state) + 1
 
     two_weeks = monday_of(today) - timedelta(days=7)
     entries = inputs.entries_between(db, user_id, two_weeks, today)
@@ -273,38 +292,44 @@ def week_advice(
             action_source="rules",
         )
 
-    action: Line
+    action: Line = fallback_action(finding)
     source = "rules"
+    detail: str | None = None
     retry_after = None
-    if finding.kind == "good":
-        action = line("tip_keep")
-    else:
-        text = None
-        if use_llm:
-            notes = inputs.trainer_notes(db, user_id)
-            goal = (profile.conditions if profile else "") or ""
-            # 문장을 기다리는 동안 연결을 쥐지 않는다(#3242). 여기까지는 읽기뿐이고,
-            # 저장(`store_advice`)은 새 연결로 한다.
-            release_connection(db)
-            text = diet_ai_sentence.generate(
-                analysis_text=finding.analysis.text,
-                finding=finding.description,
-                records=record_lines(finding, records),
-                notes=notes,
-                goal=goal,
-                metric="diet_week_advice",
-            )
-        if text:
-            action = ai_line(text)
-            source = "llm"
+    if use_llm:
+        notes = inputs.trainer_notes(db, user_id)
+        goal = (profile.conditions if profile else "") or ""
+        # 문장을 기다리는 동안 연결을 쥐지 않는다(#3242). 여기까지는 읽기뿐이고,
+        # 저장(`store_advice`)은 새 연결로 한다.
+        release_connection(db)
+        pair = diet_ai_sentence.generate_pair(
+            analysis_text=finding.analysis.text,
+            finding=finding.description,
+            records=record_lines(finding, records),
+            notes=notes,
+            goal=goal,
+            metric="diet_week_advice",
+        )
+        if pair is None:
+            retry_after = now + RETRY_AFTER
         else:
-            action = fallback_action(finding)
-            retry_after = now + RETRY_AFTER if use_llm else None
+            detail = pair.detail
+            # 칭찬하는 주의 탭 카드는 규칙 문장(`tip_keep`)을 그대로 쓴다 — 고칠 것이
+            # 없는 주에 탭이 새 행동을 권하지 않게. AI 는 시트의 긴 문장만 맡는다.
+            if finding.kind != "good":
+                action = ai_line(pair.sentence)
+                source = "llm"
+            if detail is None:
+                # 긴 문장만 검사에 걸렸다 — 탭 문장은 두고 시트용 문장을 1시간 뒤 다시 받는다.
+                retry_after = now + RETRY_AFTER
 
     advice = DietAdvice(
         period=PERIOD_WEEK, from_date=start.isoformat(), to_date=end.isoformat(),
         days_logged=len(records), analysis=finding.analysis, action=action,
-        action_source=source,
+        action_source=source, detail=detail,
     )
-    store_advice(db, user_id, PERIOD_WEEK, key, advice, retry_after=retry_after)
+    store_advice(
+        db, user_id, PERIOD_WEEK, key, advice,
+        retry_after=retry_after, generations=made if use_llm else None,
+    )
     return advice

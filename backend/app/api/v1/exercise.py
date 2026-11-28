@@ -36,6 +36,7 @@ from app.services import (
     exercise_records,
     exercise_service,
     exercise_types,
+    exercise_week_ai,
     points_service,
     streak_shield_service,
 )
@@ -192,7 +193,20 @@ def exercise_advice(
         # 앱이 문장을 직접 그릴 수 있게 문장 키와 값도 함께 준다(#2210).
         advice_key=advice.key,
         advice_params=advice.params,
+        ai_sentence=_week_ai_sentence(db, current_user.id, advice.text)
+        if period == "week" else None,
     )
+
+
+def _week_ai_sentence(db: Session, user_id: str, rule_text: str) -> str | None:
+    """운동 `이번 주` AI 한 문장(#3549). 실패해도 규칙 문장 카드는 뜬다."""
+    try:
+        ai = exercise_week_ai.week_ai(db, user_id, rule_text=rule_text)
+    except Exception:  # noqa: BLE001 - AI 층의 실패가 탭 카드를 막지 않는다
+        db.rollback()
+        log.warning("운동 이번 주 AI 문장을 만들지 못함 (user_id=%s)", user_id, exc_info=True)
+        return None
+    return ai.sentence if ai is not None else None
 
 
 def _strength_only(normalized_type: str, value):

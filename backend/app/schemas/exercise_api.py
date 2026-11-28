@@ -114,6 +114,10 @@ class ExerciseAdviceResponse(BaseModel):
     advice_key: str | None = None
     #: 문장에 드는 값 — 수, 운동 유형·부위 코드, 운동 이름(트레이너가 적은 그대로).
     advice_params: dict[str, int | str] = Field(default_factory=dict)
+    #: `이번 주` 에만 — AI 가 붙이는 다음 할 일 한 문장(#3549). 화면은 [message] 뒤에
+    #: 잇는다. 이번 주 기록이 없거나 AI 가 실패했으면 null 이다. 같은 호출에서 받은
+    #: 긴 문장은 홈 코칭 시트가 쓴다.
+    ai_sentence: str | None = None
 
 
 class ExerciseWeekResponse(BaseModel):

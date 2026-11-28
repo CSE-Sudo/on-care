@@ -21,6 +21,7 @@ import json
 import logging
 import re
 import threading
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 
 from app.core import metrics
@@ -35,6 +36,14 @@ from app.services.coach.prompt_safety import (
 )
 from app.services.diet_advice_copy import plain
 from app.services.ai_log import log_ai_fallback
+from app.services.week_advice_text import (
+    DETAIL_MAX,
+    DETAIL_MIN,
+    LLM_PAIR_MAX_OUTPUT_TOKENS,
+    WeekAdviceText,
+    detail_rejection_reason,
+    parse_pair,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +167,24 @@ def build_prompt(
 
 
 def _call_llm(system: str, user: str) -> str:
+    """한 문장 호출(식단 `전체` 등)."""
+    return _invoke(
+        system, user,
+        feature=ai_call_quota.FEATURE_DIET_ADVICE,
+        max_output_tokens=LLM_MAX_OUTPUT_TOKENS,
+    )
+
+
+def _call_pair_llm(
+    system: str, user: str, *, feature: str = ai_call_quota.FEATURE_DIET_ADVICE
+) -> str:
+    """두 문장 호출(#3549) — 짧은 문장과 긴 문장이 함께 들어가 출력 상한이 더 크다."""
+    return _invoke(
+        system, user, feature=feature, max_output_tokens=LLM_PAIR_MAX_OUTPUT_TOKENS,
+    )
+
+
+def _invoke(system: str, user: str, *, feature: str, max_output_tokens: int) -> str:
     if not _llm_slots.acquire(blocking=False):
         raise LLMBusyError("LLM 동시 호출 한도 초과")
     try:
@@ -165,7 +192,7 @@ def _call_llm(system: str, user: str) -> str:
         llm = get_coach_llm()
         # 서버 전체 하루 상한(#3032). 자리를 잡은 뒤에 세야 포화로 부르지 않은 호출을
         # 세지 않는다.
-        ai_call_quota.acquire(ai_call_quota.FEATURE_DIET_ADVICE)
+        ai_call_quota.acquire(feature)
     except BaseException:
         _llm_slots.release()
         raise
@@ -176,7 +203,7 @@ def _call_llm(system: str, user: str) -> str:
                 system, user, json_mode=True,
                 thinking_budget=DEFAULT_THINKING_BUDGET,
                 timeout_seconds=LLM_TIMEOUT_SEC,
-                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
+                max_output_tokens=output_cap(max_output_tokens),
             )
         finally:
             _llm_slots.release()
@@ -238,3 +265,139 @@ def generate(
         )
     metrics.incr(f"{metric}.fallback", reason="invalid")
     return None
+
+
+# ── 짧은 문장 + 긴 문장 한 번에 (#3549) ─────────────────────────────────────
+
+
+def build_pair_prompt(
+    *,
+    limit: int,
+    finding: str,
+    records: list[str],
+    notes: list[str],
+    goal: str,
+) -> tuple[str, str]:
+    """식단 `이번 주` — 탭 카드의 짧은 문장과 홈 코칭 시트의 긴 문장을 한 번에 받는다.
+
+    두 문장은 같은 판단의 길이만 다른 표현이다. 따로 부르면 비용이 두 배이고, 같은 날
+    탭과 홈이 다른 말을 할 수 있다(2026-09-22 회의 결정).
+    """
+    system = (
+        f"너는 {MEMBER_AUDIENCE}의 식단을 돕는 영양 코치다. 규칙이 찾아낸 "
+        "[분석] 한 가지를 보고, 같은 판단을 길이만 달리해 두 번 쓴다.\n"
+        "규칙:\n"
+        "1. [기록]에서 원인이 된 메뉴를 짚거나, 바꿔 먹을 구체적인 음식을 권한다"
+        "(예: 짬뽕 국물은 반만, 건더기 위주로요 / 요거트나 삶은 달걀이라도 드세요). "
+        "고칠 것이 없으면 잘한 점과 이어 갈 방법을 말한다.\n"
+        f"2. sentence: 다음 할 일 한 문장, 공백 포함 {limit}자 이내. "
+        "메뉴·음식 이름은 **로 감쌀 수 있다(두 곳까지).\n"
+        f"3. detail: 두 문장, 공백 포함 {DETAIL_MIN}~{DETAIL_MAX}자. 첫 문장은 원인이 된 "
+        "메뉴나 잘한 점, 둘째 문장은 오늘 바로 할 수 있는 구체적인 행동. ** 표시는 쓰지 "
+        "않는다.\n"
+        f"4. 두 문장 모두 한국어. {MEMBER_VOICE}\n"
+        "5. **수치를 쓰지 않는다.** mg·kcal·g·% 같은 양은 이미 [분석]이 말했다. "
+        "'주 3회', '달걀 2개' 같은 작은 횟수만 쓸 수 있다.\n"
+        f"6. {MEDICAL_GUARD}\n"
+        f"{TRAINER_DIET_GUARD}\n{FOOD_NAME_GUARD}\n{HEALTH_NOTE_GUARD}\n"
+        'JSON 만 출력한다: {"sentence":"...","detail":"..."}'
+    )
+    lines = [f"[분석] {finding}", f"[목표] {goal or '정보 없음'}", "", "[기록]"]
+    lines += [f"- {r}" for r in records] or ["- 없음"]
+    lines += ["", "[트레이너 메시지]"]
+    lines += [f"- 트레이너: {n}" for n in notes] or ["- 없음"]
+    return system, "\n".join(lines)
+
+
+def generate_pair(
+    *,
+    analysis_text: str,
+    finding: str,
+    records: list[str],
+    notes: list[str],
+    goal: str,
+    metric: str,
+) -> WeekAdviceText | None:
+    """식단 `이번 주` 의 짧은 문장 + 긴 문장. 짧은 문장이 검사에 걸리면 None."""
+    limit = sentence_limit(analysis_text)
+    system, user = build_pair_prompt(
+        limit=limit, finding=finding, records=records, notes=notes, goal=goal,
+    )
+    # 호출 때 이름으로 찾는다 — 테스트가 `_call_pair_llm` 을 바꿔 끼울 수 있게.
+    return run_pair(
+        system, user, limit=limit, metric=metric,
+        call=lambda s, u: _call_pair_llm(s, u),
+    )
+
+
+def run_pair(
+    system: str,
+    user: str,
+    *,
+    limit: int,
+    metric: str,
+    call: Callable[[str, str], str],
+) -> WeekAdviceText | None:
+    """한 번의 호출로 두 문장을 받는다. 식단·운동 `이번 주` 가 함께 쓴다(#3549).
+
+    짧은 문장은 탭 카드의 다음 할 일이라 꼭 있어야 한다. 긴 문장은 홈 시트에만 쓰여,
+    검사에 걸리면 한 번 더 받아 보고 그래도 안 되면 짧은 문장만 돌려준다 — 시트는
+    규칙 문장으로 남는다.
+    """
+    sentence_only: str | None = None
+    for _ in range(MAX_ATTEMPTS):
+        try:
+            sentence, detail = parse_pair(call(system, user))
+        except LLMBusyError:
+            metrics.incr(f"{metric}.fallback", reason="busy")
+            return _sentence_only(sentence_only)
+        except ai_call_quota.AiCapacityReached:
+            metrics.incr(f"{metric}.fallback", reason="global_cap")
+            return _sentence_only(sentence_only)
+        except LLMTruncatedError:
+            metrics.incr(f"{metric}.fallback", reason="truncated")
+            logger.info("%s LLM 응답이 출력 상한에 끊김", metric)
+            return _sentence_only(sentence_only)
+        except FutureTimeout:
+            metrics.incr(f"{metric}.fallback", reason="timeout")
+            logger.warning("%s LLM timeout (%.1fs)", metric, LLM_TIMEOUT_SEC)
+            return _sentence_only(sentence_only)
+        except Exception as exc:  # noqa: BLE001 - AI 장애 종류와 무관하게 카드는 떠야 한다
+            metrics.incr(f"{metric}.fallback", reason="error")
+            log_ai_fallback(logger, metric, "error", exc=exc)
+            return _sentence_only(sentence_only)
+        sentence = _clean_sentence(sentence)
+        reason = rejection_reason(sentence, limit)
+        if reason is not None:
+            # 원문은 남기지 않는다 — 회원 식단·운동이 실린다(#2913, #3090).
+            logger.info(
+                "%s LLM 문장 검사 탈락: reason=%s len=%d limit=%d",
+                metric, reason, len(plain(sentence)), limit,
+            )
+            continue
+        detail_reason = detail_rejection_reason(detail, has_measure)
+        if detail_reason is None:
+            metrics.incr(f"{metric}.generated", by="llm")
+            return WeekAdviceText(sentence=sentence, detail=detail)
+        logger.info(
+            "%s LLM 긴 문장 검사 탈락: reason=%s len=%d",
+            metric, detail_reason, len(detail),
+        )
+        sentence_only = sentence_only or sentence
+    if sentence_only is not None:
+        metrics.incr(f"{metric}.generated", by="llm_sentence_only")
+        return WeekAdviceText(sentence=sentence_only, detail=None)
+    metrics.incr(f"{metric}.fallback", reason="invalid")
+    return None
+
+
+def _clean_sentence(text: str) -> str:
+    """짧은 문장 정리 — [clean] 과 같은 규칙(굵게 표시는 두 곳까지)."""
+    text = " ".join(text.split()).strip().strip('"“”\'')
+    if text.count("**") > 4 or text.count("**") % 2:
+        text = plain(text)
+    return text
+
+
+def _sentence_only(sentence: str | None) -> WeekAdviceText | None:
+    return WeekAdviceText(sentence=sentence, detail=None) if sentence else None
