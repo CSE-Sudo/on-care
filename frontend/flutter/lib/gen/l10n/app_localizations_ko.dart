@@ -164,6 +164,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
 
   @override
+  String get homeAdviceDietEmpty => '오늘 식단 기록이 아직 없어요. 사진 한 장으로 첫 끼니를 남겨 보세요.';
+
+  @override
+  String get homeAdviceDietOk => '오늘 나트륨은 목표 안이에요. 지금처럼 싱겁게 이어 가요.';
+
+  @override
+  String get homeAdviceSodiumNextMeal => '다음 끼니는 국물을 줄이고 채소를 곁들여 보세요.';
+
+  @override
   String homeAdviceSodiumOverSources(String foods) {
     return '$foods 섭취로 나트륨이 높아요.';
   }

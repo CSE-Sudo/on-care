@@ -69,6 +69,9 @@ class DashboardSummary {
     this.exerciseFeedback,
     this.aiAdviceKey,
     this.aiAdviceParams = const <String, Object>{},
+    this.dietAdviceKey,
+    this.dietAdviceParams = const <String, Object>{},
+    this.exerciseAdviceKey,
   }) : exerciseCardioMinutes = exerciseCardioMinutes ?? exerciseMinutes;
 
   /// 3-row health summary (칼로리 / 나트륨 / 당류).
@@ -113,6 +116,19 @@ class DashboardSummary {
   /// 적은 데이터라 번역하지 않고 ARB 문장 틀에 그대로 끼운다.
   final Map<String, Object> aiAdviceParams;
 
+  /// 홈 카드의 **식단 문장** 키(#3549) — `diet_empty` · `diet_ok` · `sodium_over` ·
+  /// `sodium_over_sources`. 화면은 이 문장과 [exerciseAdviceKey] 문장을 이어
+  /// 체험하기 카드처럼 하루의 식단과 운동을 함께 말한다. 옛 서버면 null 이고, 그때는
+  /// 한 가지만 고른 [aiAdviceKey] 를 쓴다.
+  final String? dietAdviceKey;
+
+  /// [dietAdviceKey] 문장에 끼울 값. `sodium_over_sources` 면 `foods` 가 온다.
+  final Map<String, Object> dietAdviceParams;
+
+  /// 홈 카드의 **운동 문장** 키 — `exercise_on_track` · `exercise_more` ·
+  /// `exercise_cardio_start` · `exercise_start`. 분 수는 [exerciseCardioMinutes].
+  final String? exerciseAdviceKey;
+
   HealthIndicator get calorieIndicator => indicators.firstWhere(
     (HealthIndicator indicator) => indicator.unit == 'kcal',
     orElse: () => const HealthIndicator(
@@ -154,12 +170,17 @@ class DashboardSummary {
     sodiumWarning: json['sodium_warning'] as String?,
     exerciseFeedback: json['exercise_feedback'] as String?,
     aiAdviceKey: json['ai_advice_key'] as String?,
-    aiAdviceParams: <String, Object>{
-      for (final MapEntry<Object?, Object?> e
-          in ((json['ai_advice_params'] as Map<Object?, Object?>?) ??
-                  const <Object?, Object?>{})
-              .entries)
-        if (e.key is String && e.value != null) e.key! as String: e.value!,
-    },
+    aiAdviceParams: _params(json['ai_advice_params']),
+    dietAdviceKey: json['diet_advice_key'] as String?,
+    dietAdviceParams: _params(json['diet_advice_params']),
+    exerciseAdviceKey: json['exercise_advice_key'] as String?,
   );
 }
+
+/// 문장 값 맵 — 문자열 키와 null 이 아닌 값만 남긴다.
+Map<String, Object> _params(Object? raw) => <String, Object>{
+  for (final MapEntry<Object?, Object?> e
+      in ((raw as Map<Object?, Object?>?) ?? const <Object?, Object?>{})
+          .entries)
+    if (e.key is String && e.value != null) e.key! as String: e.value!,
+};

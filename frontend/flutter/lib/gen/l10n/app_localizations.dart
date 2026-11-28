@@ -376,6 +376,24 @@ abstract class AppLocalizations {
   /// **'이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.'**
   String get homeAdviceExerciseStart;
 
+  /// 홈 AI 통합 조언의 식단 문장 — 오늘 식단 기록이 없을 때(#3549). 뒤에 운동 문장이 이어진다.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 식단 기록이 아직 없어요. 사진 한 장으로 첫 끼니를 남겨 보세요.'**
+  String get homeAdviceDietEmpty;
+
+  /// 홈 AI 통합 조언의 식단 문장 — 오늘 기록이 있고 나트륨이 목표 안일 때(#3549).
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 나트륨은 목표 안이에요. 지금처럼 싱겁게 이어 가요.'**
+  String get homeAdviceDietOk;
+
+  /// 홈 AI 통합 조언에서 음식 이름이 든 나트륨 경고 뒤에 잇는 행동 문장(#3549).
+  ///
+  /// In ko, this message translates to:
+  /// **'다음 끼니는 국물을 줄이고 채소를 곁들여 보세요.'**
+  String get homeAdviceSodiumNextMeal;
+
   /// Home AI advice when today's sodium is over the goal, naming the foods that added the most sodium. {foods} is the member's own food names, not translated (#2644).
   ///
   /// In ko, this message translates to:
