@@ -257,6 +257,67 @@ def test_dashboard_names_the_advice_it_chose(client, db_session):
     assert "ai_advice_key" in r.json()
 
 
+def test_dashboard_names_the_diet_and_exercise_sentences_separately():
+    """홈 카드는 식단 문장과 운동 문장을 잇는다(#3549) — 두 키를 따로 싣는가.
+
+    한 가지만 고르는 [ai_advice_key] 는 나트륨 경고가 있으면 운동을, 없으면 식단을
+    빠뜨렸다. 체험하기 카드처럼 하루의 식단과 운동을 함께 말하려면 둘 다 필요하다.
+    """
+    from app.api.v1.dashboard import _diet_advice_key
+
+    assert _diet_advice_key(
+        has_entries=False, sodium_warning=None, sodium_source_names=[],
+    ) == "diet_empty"
+    assert _diet_advice_key(
+        has_entries=True, sodium_warning=None, sodium_source_names=[],
+    ) == "diet_ok"
+    assert _diet_advice_key(
+        has_entries=True, sodium_warning="오늘 나트륨이 3,000mg으로 목표(2,000mg)를 넘었어요.",
+        sodium_source_names=[],
+    ) == "sodium_over"
+    assert _diet_advice_key(
+        has_entries=True, sodium_warning="라면 섭취로 나트륨이 높아요.",
+        sodium_source_names=["라면"],
+    ) == "sodium_over_sources"
+
+
+def test_dashboard_sends_both_home_sentence_keys(client, db_session):
+    """응답에 식단·운동 문장 키가 함께 실리고, 음식 이름은 식단 문장 값으로 간다."""
+    from uuid import uuid4
+
+    from app.core import clock
+    from app.models.models import DietEntry
+
+    email = f"dash-keys-{uuid4().hex[:8]}@oncare.com"
+    client.post(
+        "/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"}
+    )
+    token = client.post(
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    empty = client.get("/v1/dashboard/summary", headers=headers).json()
+    assert empty["diet_advice_key"] == "diet_empty"
+    assert empty["diet_advice_params"] == {}
+    assert empty["exercise_advice_key"] == "exercise_start"
+
+    user_id = client.get("/v1/users/me", headers=headers).json()["id"]
+    db_session.add(DietEntry(
+        id=f"dash-keys-{uuid4().hex[:8]}", user_id=user_id, date=clock.today_iso(),
+        meal_type="lunch",
+        foods_json=json.dumps([{"name": "라면", "sodium_mg": 3000}], ensure_ascii=False),
+        total_calories=500, sodium_mg=3000, sugar_g=5,
+    ))
+    db_session.commit()
+
+    salty = client.get("/v1/dashboard/summary", headers=headers).json()
+    assert salty["diet_advice_key"] == "sodium_over_sources"
+    assert salty["diet_advice_params"] == {"foods": ["라면"]}
+    # 나트륨 경고가 있어도 운동 문장 키는 따로 온다.
+    assert salty["exercise_advice_key"] == "exercise_start"
+
+
 def test_summary_schema_drops_fields_the_home_never_read():
     """응답 계약에서 빠진 필드가 스키마에 되살아나지 않는다(#2646)."""
     from app.schemas.dashboard_api import DashboardNutritionDay, DashboardSummary
