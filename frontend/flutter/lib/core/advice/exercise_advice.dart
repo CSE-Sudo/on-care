@@ -19,6 +19,7 @@ class ExerciseAdvice {
     required this.message,
     this.key,
     this.params = const <String, Object>{},
+    this.aiSentence,
   });
 
   /// 서버 응답(`ExerciseAdviceResponse`)에서.
@@ -32,6 +33,7 @@ class ExerciseAdvice {
               .entries)
         if (e.value != null) e.key: e.value!,
     },
+    aiSentence: _nonEmpty(json['ai_sentence']),
   );
 
   /// 한국어 문장. 키를 모르거나 값이 맞지 않으면 화면이 이 문장을 쓴다.
@@ -42,6 +44,18 @@ class ExerciseAdvice {
 
   /// 문장에 드는 값 — 수, 운동 유형·부위 코드, 운동 이름.
   final Map<String, Object> params;
+
+  /// `이번 주` 에만 오는 AI 한 문장(#3549) — 이번 주에 잘한 운동과 다음 운동을
+  /// 짚는다. 수치는 규칙 문장이 말하므로 이 문장에는 없다. 규칙 문장 뒤에 잇고,
+  /// 없으면(기록 없는 주, AI 실패, 옛 서버) 규칙 문장만 쓴다. 회원이 받은 한국어
+  /// 문장 그대로다.
+  final String? aiSentence;
+}
+
+String? _nonEmpty(Object? value) {
+  if (value is! String) return null;
+  final String trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }
 
 /// 받침에 맞는 조사. 규칙은 서버·두 앱이 함께 쓰는 `oncare_rules` 의 [josa] 다
@@ -68,7 +82,16 @@ int _int(Object? value) {
 }
 
 /// [advice] 를 [l] 의 언어로. 모르는 키이거나 값이 맞지 않으면 한국어 [message].
+///
+/// `이번 주` AI 한 문장([ExerciseAdvice.aiSentence])이 있으면 규칙 문장 뒤에
+/// 잇는다(#3549) — 식단 `이번 주` 카드의 "규칙 한 줄 + AI 한 문장" 과 같은 모양이다.
 String exerciseAdviceText(AppLocalizations l, ExerciseAdvice advice) {
+  final String rule = _ruleText(l, advice);
+  final String? ai = advice.aiSentence;
+  return ai == null ? rule : '$rule $ai';
+}
+
+String _ruleText(AppLocalizations l, ExerciseAdvice advice) {
   final String? key = advice.key;
   if (key == null) return advice.message;
   try {
