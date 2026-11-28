@@ -77,6 +77,9 @@ class DietAdvice:
     action: Line | None
     #: 다음 할 일 문장의 출처 — `plan`(추천 메뉴 리스트)·`rules`·`llm`. 없으면 None.
     action_source: str | None
+    #: 홈 코칭 시트용 긴 문장(#3549). `이번 주` 의 AI 가 짧은 문장과 함께 준 것이고,
+    #: 다른 기간이나 AI 가 실패한 때는 None 이다.
+    detail: str | None = None
 
 
 @dataclass(frozen=True)
@@ -365,6 +368,7 @@ def advice_payload(advice: DietAdvice) -> dict:
         "analysis": _line_payload(advice.analysis),
         "action": _line_payload(advice.action),
         "action_source": advice.action_source,
+        "detail": advice.detail,
     }
 
 
@@ -384,6 +388,7 @@ def advice_from_state(period: str, row: DietAdviceState) -> DietAdvice | None:
         analysis=analysis,
         action=_line_from(data.get("action")),
         action_source=data.get("action_source"),
+        detail=data.get("detail") if isinstance(data.get("detail"), str) else None,
     )
 
 
@@ -409,9 +414,17 @@ def store_advice(
     advice: DietAdvice,
     *,
     retry_after: datetime | None,
+    generations: int | None = None,
 ) -> None:
-    """만든 조언을 둔다. 같은 날(주)의 것이 있으면 갈아 끼운다."""
-    payload = json.dumps(advice_payload(advice), ensure_ascii=False)
+    """만든 조언을 둔다. 같은 날(주)의 것이 있으면 갈아 끼운다.
+
+    [generations] 는 그날 이 조언을 만든 횟수다 — `이번 주` 가 하루 상한을 지키는 데
+    쓴다(`week_advice_refresh`, #3549).
+    """
+    data = advice_payload(advice)
+    if generations is not None:
+        data["generations"] = generations
+    payload = json.dumps(data, ensure_ascii=False)
     row = load_state(db, user_id, period, key_date)
     if row is None:
         db.add(DietAdviceState(
