@@ -223,7 +223,7 @@ def _to_trainer(
     )
 
 
-def _trainer_query(*, require_gym: bool = True):
+def _trainer_query(*, require_gym: bool = True, hide_demo: bool = True):
     """디렉터리에 노출할 트레이너 — 상담 대상 조건과 같아야 한다. (#451)
 
     `consultation_service._validate_target` 은 상담 요청 시 트레이너의 소속을
@@ -255,6 +255,11 @@ def _trainer_query(*, require_gym: bool = True):
     데모 시드가 꺼진 서버(운영)에서는 데모 트레이너(`demo_ids`)도 뺀다(#2811).
     예전 기본값으로 운영 DB 에 심긴 가상 트레이너가 실서비스 회원에게 노출되고
     상담 신청까지 받는 것을 막는다. 정리 스크립트로 지우기 전에도 안전하다.
+
+    `hide_demo=False` 도 `require_gym=False` 와 같은 자리에서만 쓴다. 이미 담당으로
+    연결된 회원에게 그 트레이너를 404 로 숨기면 `/me/coach` 는 담당이 있다고 하는데
+    앱은 "담당 트레이너 없음"을 띄운다(#3547). 모르는 회원에게 노출되는 길은
+    여전히 막혀 있다.
     """
     from app.db import demo_ids
 
@@ -266,7 +271,7 @@ def _trainer_query(*, require_gym: bool = True):
             User.is_active.is_(True),
         )
     )
-    if not demo_ids.demo_data_enabled():
+    if hide_demo and not demo_ids.demo_data_enabled():
         query = query.where(User.id.not_in(demo_ids.demo_trainer_ids()))
     if not require_gym:
         return query
@@ -320,7 +325,8 @@ def get_trainer(
 ) -> TrainerOut | None:
     """트레이너 상세. 디렉터리 조건에 걸리면 None(라우터에서 404).
 
-    예외가 하나 있다. **요청자의 담당 트레이너**는 소속이 비어도 읽을 수 있다.
+    예외가 하나 있다. **요청자의 담당 트레이너**는 소속이 비어도, 데모 트레이너여도
+    읽을 수 있다(#3547).
     `/me/coach` 는 `trainer_clients` 기준으로 담당을 그대로 돌려주는데 상세만 소속
     기준으로 404 를 내면, 회원은 담당이 있다고 표시되면서 그 트레이너를 읽지 못하는
     상태가 된다 — 예약 패널·코치 카드가 통째로 빠진다. 디렉터리 노출 정책(#451)은
@@ -329,7 +335,9 @@ def get_trainer(
     row = db.execute(_trainer_query().where(User.id == trainer_id)).first()
     if row is None and viewer_id is not None and _is_my_coach(db, viewer_id, trainer_id):
         row = db.execute(
-            _trainer_query(require_gym=False).where(User.id == trainer_id)
+            _trainer_query(require_gym=False, hide_demo=False).where(
+                User.id == trainer_id
+            )
         ).first()
     if row is None:
         return None
